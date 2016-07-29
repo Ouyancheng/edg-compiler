@@ -11219,6 +11219,7 @@ Return TRUE if the conversion was successful.
                                /*source_is_constant=*/TRUE,
                                /*source_is_string_literal=*/FALSE,
                                /*source_is_function=*/FALSE,
+                               /*is_copy_initialization=*/FALSE,
                                tap->variant.constant,
                                type_required,
                                /*allow_qualifier_or_eh_mismatch=*/FALSE,

@@ -1201,6 +1201,7 @@ extern a_boolean impl_conversion_possible(
                           a_boolean            source_is_constant,
                           a_boolean            source_is_string_literal,
                           a_boolean            source_is_function,
+                          a_boolean            is_copy_initialization,
                           a_constant           *source_constant,
                           a_type_ptr           dest_type,
                           a_boolean            allow_qualifier_or_eh_mismatch,

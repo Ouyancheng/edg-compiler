@@ -4790,6 +4790,7 @@ attribute to it and return the entity.
                                    /*source_is_constant=*/FALSE,
                                    /*source_is_string_literal=*/FALSE,
                                    /*source_is_function=*/FALSE,
+                                   /*is_copy_initialization=*/FALSE,
                                    (a_constant*)NULL,
                                    rtsp->param_type_list->type,
                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,

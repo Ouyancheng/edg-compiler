@@ -9734,6 +9734,7 @@ a_boolean impl_conversion_possible(
                           a_boolean            source_is_constant,
                           a_boolean            source_is_string_literal,
                           a_boolean            source_is_function,
+                          a_boolean            is_copy_initialization,
                           a_constant           *source_constant,
                           a_type_ptr           dest_type,
                           a_boolean            allow_qualifier_or_eh_mismatch,
@@ -9812,10 +9813,11 @@ See conversion_possible.
     /* okay = FALSE; -- already set. */
   } else if (is_bool(dest_type)) {
     /* Conversion to the bool type.  This is possible only in C++.
-       Conversion is allowed from arithmetic, unscoped enumeration, pointer,
-       and pointer to member.   C++/CLI does not allow conversion from a handle
-       to bool (though it is allowed, effectively, in a boolean controlling
-       expression). */
+       Conversion is allowed from arithmetic, unscoped enumeration,
+       pointer, and pointer to member, as well as from nullptr_t in
+       direct-initialization contexts.  C++/CLI does not allow conversion
+       from a handle to bool (though it is allowed, effectively, in a
+       boolean controlling expression). */
     if (is_bool(source_type)) {
       /* bool --> bool is no conversion. */
       okay = TRUE;
@@ -9823,7 +9825,7 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type) ||
-               is_nullptr(source_type)) {
+               (is_nullptr(source_type) && !is_copy_initialization)) {
       okay = TRUE;
       /* This conversion is worse than others in overload resolution.
          Remember that. */
@@ -10274,6 +10276,7 @@ exception specifications are not checked.
                                        /*source_is_constant=*/FALSE,
                                        /*source_is_string_literal=*/FALSE,
                                        /*source_is_function=*/FALSE,
+                                       /*is_copy_initialization=*/FALSE,
                                        (a_constant *)NULL,
                                        source_type,
                                        allow_qualifier_or_eh_mismatch,
@@ -10424,6 +10427,7 @@ C++ mode.  See [expr.static.cast].
     impl_okay = impl_conversion_possible(source_type, source_is_constant,
                                          source_is_string_literal,
                                          source_is_function,
+                                         /*is_copy_initialization=*/FALSE,
                                          source_constant, dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,

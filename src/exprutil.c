@@ -21715,6 +21715,7 @@ user-defined conversions.
                                    (a_boolean)operand->
                                                       is_simple_string_literal,
                                    operand_is_function(operand),
+                                   /*is_copy_initialization=*/FALSE,
                                    &operand->variant.constant,
                                    bool_type(),
                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,

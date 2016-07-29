@@ -1,5 +1,18 @@
 Version 4.12
 
+7/29/16  [EDGcpfe/17041]
+Core issue 1423, conversion of std::nullptr_t to bool
+
+The resolution of core issue 1423 requires that the implicit conversion of
+a prvalue of type std::nullptr_t to bool be allowed only in
+direct-initialization contexts; previously such conversions were also
+permitted for copy initialization.  The front end now implements this
+restriction.  For example, with --c++11:
+
+  bool b0 = nullptr;   // No longer permitted
+  bool b1{nullptr};    // Still allowed
+
+
 7/29/16  [EDGcpfe/16929]
 constexpr reference cast to same type
 

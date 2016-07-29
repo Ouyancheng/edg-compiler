@@ -16260,6 +16260,7 @@ TRUE.
                                                 /*source_is_string_literal=*/
                                                                          FALSE,
                                                 /*source_is_function=*/FALSE,
+                                              /*is_copy_initialization=*/FALSE,
                                                 src_con,
                                                 new_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -16658,6 +16659,7 @@ options is a set of name lookup options.
                                     /*source_is_constant=*/TRUE,
                                     /*source_is_string_literal=*/FALSE,
                                     is_routine_node(expr),
+                                    /*is_copy_initialization=*/FALSE,
                                     constant,
                                     dst_type,
                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -17130,6 +17132,7 @@ name lookup options.
                                     /*source_is_constant=*/TRUE,
                                     /*source_is_string_literal=*/FALSE,
                                     /*source_is_function=*/FALSE,
+                                    /*is_copy_initialization=*/FALSE,
                                     source_con,
                                     guide_type,
                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
