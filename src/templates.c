@@ -11574,7 +11574,7 @@ If there is an error in the copying, set *copy_error to TRUE.
         prev_new_tap->next = tap;
       }  /* if */
       prev_new_tap = tap;
-     if (have_params && !tpp->is_pack &&
+      if (have_params && !tpp->is_pack &&
          !is_start_of_pack_expansion_templ_arg(tap)) {
         tpp = tpp->next;
         ttp_tpp = ttp_tpp != NULL ? ttp_tpp->next : NULL;
