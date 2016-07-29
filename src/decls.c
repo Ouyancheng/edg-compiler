@@ -7802,17 +7802,7 @@ signature.  Return TRUE if it does.  Otherwise, return FALSE, and, if the
 given position is non-NULL, issue one or more errors as appropriate.
 */
 {
-  a_boolean     result = TRUE, is_list;
-  a_symbol_ptr  op_sym;
-
-  if (symbol_is(templ_sym, sk_overloaded_function)) {
-    is_list = TRUE;
-    op_sym = templ_sym->variant.overloaded_function.symbols;
-  } else {
-    is_list = FALSE;
-    op_sym = templ_sym;
-  }  /* if */
-    
+  a_boolean             result = TRUE;
   a_template_symbol_supplement_ptr
                         tssp = templ_sym->variant.template_info;
   a_routine_ptr         rp = tssp->variant.function.routine;
