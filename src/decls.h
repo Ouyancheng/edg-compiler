@@ -1474,9 +1474,6 @@ extern a_boolean check_constexpr_routine_def_type(
                                                 a_routine_ptr      rp,
                                                 a_source_position  *diag_pos);
 
-extern a_boolean check_udl_operator_template(a_symbol_ptr       templ_sym,
-                                             a_source_position  *pos);
-
 extern a_boolean check_udl_operator(a_boolean     *p_use_literal_op_template,
                                     a_symbol_ptr  *p_sym_to_use);
 
