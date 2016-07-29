@@ -7793,6 +7793,7 @@ position.
 }  /* check_constexpr_routine_def_type */
 
 
+static
 a_boolean check_udl_operator_template(a_symbol_ptr       templ_sym,
                                       a_source_position  *pos)
 /*
