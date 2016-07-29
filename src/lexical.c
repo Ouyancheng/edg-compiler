@@ -1532,26 +1532,31 @@ associated with the current token.
 
 
 /*
-Macro to free a cached token entry, i.e., to put it on the avail list to be
-reused.  If the entry points to a cached constant entry, free it, too.
-It is expected that no pragma entries will be pointed to at the time
-the cached token is freed.
+Macro to free a constant used by a cached token, i.e., to put it on the
+avail list to be reused.
 */
-#define free_cached_token(ctp)                                          \
-{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant || \
-      ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {   \
-    /* The entry points to a constant entry; free it. */                \
-    a_constant_ptr con;                                                 \
-    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) { \
-      con = ctp->variant.ud_lit.constant;                               \
-    } else {                                                            \
-      con = ctp->variant.constant;                                      \
-    }  /* if */                                                         \
-    con->next = avail_cached_constants;                                 \
-    avail_cached_constants = con;                                       \
-  }  /* if */                                                           \
-  ctp->next = avail_cached_tokens;                                      \
-  avail_cached_tokens = ctp;                                            \
+#define free_cached_token_constant(cp) \
+{                                      \
+  (cp)->next = avail_cached_constants; \
+  avail_cached_constants = (cp);       \
+}  /* free_cached_token_constant */
+
+
+/*
+Macro to free a cached token entry, i.e., to put it on the avail list to be
+reused.  If the entry points to one or more cached constant entries, free
+them, too.  It is expected that no pragma entries will be pointed to at the
+time the cached token is freed.
+*/
+#define free_cached_token(ctp)                                               \
+{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {      \
+    free_cached_token_constant(ctp->variant.constant);                       \
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) { \
+    free_cached_token_constant(ctp->variant.ud_lit.value_con);               \
+    free_cached_token_constant(ctp->variant.ud_lit.spelling_con);            \
+  }  /* if */                                                                \
+  ctp->next = avail_cached_tokens;                                           \
+  avail_cached_tokens = ctp;                                                 \
 }  /* free_cached_token */
 
 
@@ -1812,8 +1817,11 @@ This is used to save tokens for later rescanning.
       /* Save the information needed to restore the user-defined literal
          from the cache. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
-    ctp->variant.ud_lit.constant = alloc_cached_constant();
-    copy_constant(&const_for_curr_token, ctp->variant.ud_lit.constant);
+    ctp->variant.ud_lit.value_con = alloc_cached_constant();
+    copy_constant(&const_for_curr_token, ctp->variant.ud_lit.value_con);
+    ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
+    copy_constant(&const_with_curr_tok_spelling,
+                  ctp->variant.ud_lit.spelling_con);
     ctp->variant.ud_lit.op_sym = ud_lit_op_sym_for_curr_token;
     ctp->variant.ud_lit.suffix = ud_suffix_from_literal_operator_id(
                                 locator_for_curr_id.symbol_header->identifier);
@@ -1882,7 +1890,7 @@ of something like a qualified name.
 static void copy_cached_token(a_cached_token_ptr	from_ctp,
 			      a_cached_token_ptr	to_ctp)
 /*
-Make a copy of a cached token, including any constant or pragmas pointed
+Make a copy of a cached token, including any constants or pragmas pointed
 to by the token.
 */
 {
@@ -1894,9 +1902,12 @@ to by the token.
     to_ctp->variant.constant = alloc_cached_constant();
     copy_constant(from_ctp->variant.constant, to_ctp->variant.constant);
   } else if (extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
-    to_ctp->variant.constant = alloc_cached_constant();
-    copy_constant(from_ctp->variant.ud_lit.constant,
-                  to_ctp->variant.ud_lit.constant);
+    to_ctp->variant.ud_lit.value_con = alloc_cached_constant();
+    copy_constant(from_ctp->variant.ud_lit.value_con,
+                  to_ctp->variant.ud_lit.value_con);
+    to_ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
+    copy_constant(from_ctp->variant.ud_lit.spelling_con,
+                  to_ctp->variant.ud_lit.spelling_con);
   } else if (extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
     to_ctp->variant.pragmas =
                            make_copy_of_pragma_list(from_ctp->variant.pragmas);
@@ -2827,8 +2838,10 @@ an equivalent change.
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
-    /* Restore const_for_curr_token. */
-    copy_constant(ctp->variant.ud_lit.constant, &const_for_curr_token);
+    /* Restore const_for_curr_token and const_with_curr_tok_spelling. */
+    copy_constant(ctp->variant.ud_lit.value_con, &const_for_curr_token);
+    copy_constant(ctp->variant.ud_lit.spelling_con,
+                  &const_with_curr_tok_spelling);
     /* Set up locator_for_curr_id and look up the symbol for the literal
        operator or literal operator template.  (The lookup must be repeated
        here, rather than using the symbol stored with the token, to handle
@@ -2948,8 +2961,10 @@ an equivalent change.
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
-    /* Restore const_for_curr_token. */
-    copy_constant(ctp->variant.ud_lit.constant, &const_for_curr_token);
+    /* Restore const_for_curr_token and const_with_curr_tok_spelling. */
+    copy_constant(ctp->variant.ud_lit.value_con, &const_for_curr_token);
+    copy_constant(ctp->variant.ud_lit.spelling_con,
+                  &const_with_curr_tok_spelling);
     /* Set up locator_for_curr_id and look up the symbol for the literal
        operator or literal operator template.  (The lookup must be
        repeated here, rather than using the symbol stored with the token,
@@ -14703,6 +14718,7 @@ identifier, else to NULL.
   a_token_cache 	cache;
   a_token_kind 		ntoken;
   a_cached_token_ptr	ctp = NULL;
+  a_boolean		saved_caching_tokens = caching_tokens;
 
   db_enter(5, "next_token_full");
   if (in_preprocessing_directive && curr_token == tok_newline) {
@@ -14759,6 +14775,7 @@ identifier, else to NULL.
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
+    caching_tokens = TRUE;
     /* Fetch the next token and remember its kind. */
     ntoken = get_token();
     /* If seq is not NULL, return the sequence number of the next token. */
@@ -14775,6 +14792,7 @@ identifier, else to NULL.
        the rescan list. */
     rescan_cached_tokens(&cache);
     error_position = saved_error_position;
+    caching_tokens = saved_caching_tokens;
   }  /* if */
 done:
   db_exit();

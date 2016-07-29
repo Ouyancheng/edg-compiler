@@ -31560,82 +31560,96 @@ to the safe_cast keyword and return TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean make_func_operand_for_literal_operator_call(
-                                                          an_operand  *result)
+                                       an_operand  *result,
+                                       a_boolean   *p_use_literal_op_template)
 /*
 The current token is a user-defined literal.  Create a function operand for
 the function call implied by that literal (which may involve partially
-instantiating a literal operator template).  In error cases return FALSE and
+instantiating literal operator templates).  In error cases return FALSE and
 issue an error; otherwise, return TRUE.
 */
 {
   a_symbol_ptr  op_sym = NULL;
+  a_boolean     use_literal_op_template;
 
   if (ud_lit_op_sym_for_curr_token == NULL) {
     /* No literal operators or literal operator template have been declared
        for the specified ud-suffix.  Report an error. */
     pos_error(ec_literal_operator_not_found, &pos_curr_token);
-  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
-    /* The set of matching literal operators (including possibly a template)
-       results in an ambiguity: Report the error. */
-    a_symbol_header_ptr sym_hdr = ud_lit_op_sym_for_curr_token->header;
-    a_diagnostic_ptr    dp;
-    dp = pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
-    (void)find_literal_operator(
+    use_literal_op_template = FALSE;
+  } else if (!check_udl_operator(&use_literal_op_template, &op_sym)) {
+    /* An ambiguity. */
+    if (expr_error_should_be_issued()) {
+      a_symbol_header_ptr sym_hdr = ud_lit_op_sym_for_curr_token->header;
+      a_diagnostic_ptr    dp;
+      dp = pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
+      (void)find_literal_operator(
           ud_suffix_from_literal_operator_id(sym_hdr->identifier),
           sym_hdr->identifier_length - LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO,
           &pos_curr_token, const_for_curr_token.type, /*from_cache=*/FALSE,
           dp);
-    end_diagnostic(dp);
+      end_diagnostic(dp);
+    }  /* if */
     make_error_operand(result);
-  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {
-    /* An ordinary (i.e., non-template) literal operator.  Use the operator
-       symbol directly. */
-    op_sym = ud_lit_op_sym_for_curr_token;
-  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
+  } else if (use_literal_op_template) {
     /* A literal operator template: Create a list of template arguments from
        the string in const_for_curr_token, and use the corresponding instance
        as the symbol to call. */
-    if (!check_udl_operator_template(ud_lit_op_sym_for_curr_token,
-                                     (a_source_position*)NULL)) {
-      /* The template is not valid: An error should have been issued
-         already. */
-      expect_error();
-      op_sym = NULL;
-    } else {
-      a_template_arg_ptr      templ_arg_list = NULL, tap;
-      a_constant_ptr          char_con, next_char_con;
-      a_memory_region_number  region_to_switch_back_to;
-      /* The template argument list corresponds to a pack expansion. */
-      switch_to_file_scope_region(&region_to_switch_back_to);
-      templ_arg_list =
+    a_template_arg_ptr      templ_arg_list = NULL, tap;
+    a_constant_ptr          char_con, next_char_con;
+    a_memory_region_number  region_to_switch_back_to;
+    /* The template argument list corresponds to a pack expansion. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    templ_arg_list =
             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-      tap = templ_arg_list;
-      /* Turn const_for_curr_token into a ck_aggregate constant with a
-         constant for every character. */
-      check_assertion(const_for_curr_token.kind ==
+    tap = templ_arg_list;
+    /* Turn const_for_curr_token into a ck_aggregate constant with a
+       constant for every character. */
+    check_assertion(const_for_curr_token.kind ==
                                              (a_constant_repr_kind)ck_string);
-      explode_string_initializer(&const_for_curr_token);
-      char_con = const_for_curr_token.variant.aggregate.first_constant;
-      check_assertion(char_con != NULL);
-      next_char_con = char_con->next;
-      /* Be careful not to include the terminating null character. */
-      while (next_char_con != NULL) {
-        tap->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
-        tap = tap->next;
-        tap->is_pack_element = TRUE;
-        tap->variant.constant = char_con;
-        char_con->next = NULL;
-        char_con = next_char_con;
-        next_char_con = next_char_con->next;
-      }  /* while */
-      switch_back_to_original_region(region_to_switch_back_to);
-      op_sym = find_template_function(ud_lit_op_sym_for_curr_token,
-                                      &templ_arg_list,
+    explode_string_initializer(&const_for_curr_token);
+    char_con = const_for_curr_token.variant.aggregate.first_constant;
+    check_assertion(char_con != NULL);
+    next_char_con = char_con->next;
+    /* Be careful not to include the terminating null character. */
+    while (next_char_con != NULL) {
+      tap->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+      tap = tap->next;
+      tap->is_pack_element = TRUE;
+      tap->variant.constant = char_con;
+      char_con->next = NULL;
+      char_con = next_char_con;
+      next_char_con = next_char_con->next;
+    }  /* while */
+    switch_back_to_original_region(region_to_switch_back_to);
+    if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
+      a_symbol_ptr  sym;
+      sym = ud_lit_op_sym_for_curr_token->variant.overloaded_function.symbols;
+      for (; sym != NULL; sym = sym->next) {
+        if (!symbol_is(sym, sk_function_template)) continue;
+        if (substitute_template_arguments(sym, templ_arg_list,
+                                          (a_template_arg_ptr*)NULL,
+                                          (a_template_param_ptr)NULL,
+                                          /*is_partial_order_check=*/FALSE)
+                                                                    != NULL) {
+          if (op_sym != NULL) {
+            pos_error(ec_ambig_literal_operator, &pos_curr_token);
+          } else {
+            op_sym = sym;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    } else {
+      op_sym = ud_lit_op_sym_for_curr_token;
+      check_assertion(symbol_is(op_sym, sk_function_template));
+    }  /* if */
+    if (op_sym != NULL) {
+      op_sym = find_template_function(op_sym, &templ_arg_list,
                                       /*explicit_arg_list_present=*/TRUE,
                                       &pos_curr_token);
     }  /* if */
   } else {
-    unexpected_condition();
+    check_assertion(op_sym != NULL);
   }  /* if */
   if (op_sym != NULL) {
     a_source_position  end_pos;
@@ -31662,7 +31676,9 @@ issue an error; otherwise, return TRUE.
                                TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION;
       do_operand_transformations(result, options);
     }
+    ud_lit_op_sym_for_curr_token = op_sym;
   }  /* if */
+  *p_use_literal_op_template = use_literal_op_template;
   return op_sym != NULL;
 }  /* make_func_operand_for_literal_operator_call */
 
@@ -31747,13 +31763,19 @@ Scan a user-defined literal and return an operand for it in *operand.
 */
 {
   an_operand  func_operand, dummy_bound_function_selector;
+  a_boolean   use_literal_op_template = FALSE;
 
   error_position = pos_curr_token;
-  if (make_func_operand_for_literal_operator_call(&func_operand)) {
+  if (make_func_operand_for_literal_operator_call(&func_operand,
+                                                  &use_literal_op_template)) {
     an_expr_node_ptr arg_list;
     an_expr_node_ptr function_call_node;
     a_boolean        folded;
-    arg_list = make_implicit_operands_for_literal_operator_call();
+    if (use_literal_op_template) {
+      arg_list = NULL;
+    } else {
+      arg_list = make_implicit_operands_for_literal_operator_call();
+    }  /* if */
     check_assertion(!func_operand.bound_function);
 #ifdef _lint
     /* We pass dummy_bound_function_selector rather than a null pointer

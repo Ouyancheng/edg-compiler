@@ -7796,13 +7796,23 @@ position.
 a_boolean check_udl_operator_template(a_symbol_ptr       templ_sym,
                                       a_source_position  *pos)
 /*
-templ_sym represents a literal operator template.  Check that the template has
-an acceptable signature.  Return TRUE if it does.  Otherwise, return FALSE,
-and, if the given position is non-NULL, issue one or more errors as
-appropriate.
+templ_sym represents a literal operator template or an overload set containing
+at least one such template.  Check that the template has an acceptable
+signature.  Return TRUE if it does.  Otherwise, return FALSE, and, if the
+given position is non-NULL, issue one or more errors as appropriate.
 */
 {
-  a_boolean             result = TRUE;
+  a_boolean     result = TRUE, is_list;
+  a_symbol_ptr  op_sym;
+
+  if (symbol_is(templ_sym, sk_overloaded_function)) {
+    is_list = TRUE;
+    op_sym = templ_sym->variant.overloaded_function.symbols;
+  } else {
+    is_list = FALSE;
+    op_sym = templ_sym;
+  }  /* if */
+    
   a_template_symbol_supplement_ptr
                         tssp = templ_sym->variant.template_info;
   a_routine_ptr         rp = tssp->variant.function.routine;
@@ -7836,6 +7846,78 @@ appropriate.
   }  /* if */
   return result;
 }  /* check_udl_operator_template */
+
+
+a_boolean check_udl_operator(a_boolean     *p_use_literal_op_template,
+                             a_symbol_ptr  *p_sym_to_use)
+/*
+The current token is a user-defined literal (with ud_lit_op_sym_for_curr_token
+and const_for_curr_token set accordingly).  Return TRUE if an unambiguous
+literal operator function can be identified (returned through *p_sym_to_use) or
+if a literal operator template applies (*p_use_literal_op_template is set to
+TRUE in that case, and *p_sym_to_use is set to NULL since deduction may be
+needed to disambiguate a potential overload set of templates).
+*/
+{
+  a_boolean     result = TRUE;
+  a_symbol_ptr  op_sym = ud_lit_op_sym_for_curr_token, raw_sym;
+  a_boolean     is_list;
+  a_boolean     has_raw_literal_op = FALSE, has_literal_op_template = FALSE;
+  
+  if (symbol_is(op_sym, sk_overloaded_function)) {
+    is_list = TRUE;
+    op_sym = op_sym->variant.overloaded_function.symbols;
+  } else {
+    is_list = FALSE;
+  }  /* if */
+  for (; op_sym != NULL; op_sym = is_list ? op_sym->next : NULL) {
+    a_symbol_ptr fund_sym = fundamental_symbol_of(op_sym);
+    if (symbol_is(fund_sym, sk_routine)) {
+      a_routine_ptr     rp = fund_sym->variant.routine.ptr;
+      a_type_ptr        rtp = skip_typerefs(rp->type);
+      a_param_type_ptr  ptp = function_type_params(rtp);
+      a_type_kind       p1kind, a1kind;
+      p1kind = skip_typerefs(ptp->type)->kind;
+      if (p1kind == (a_type_kind)tk_pointer && ptp->next == NULL) {
+        /* A raw literal operator. */
+        has_raw_literal_op = TRUE;
+        raw_sym = fund_sym;
+      } else {
+        a1kind = skip_typerefs(const_for_curr_token.type)->kind;
+        if (a1kind == (a_type_kind)tk_array) {
+          /* Array decay. */
+          a1kind = (a_type_kind)tk_pointer;
+        }  /* if */
+        if (p1kind == a1kind) {
+          /* A matching operator literal that is neither a raw literal operator
+             nor a literal operator template. */
+          *p_use_literal_op_template = FALSE;
+          *p_sym_to_use = fund_sym;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (symbol_is(fund_sym, sk_function_template) &&
+               check_udl_operator_template(fund_sym,
+                                           (a_source_position*)NULL)) {
+      has_literal_op_template = TRUE;
+    }  /* if */
+  }  /* for */
+  /* If we got this far, we'll have to use a raw literal operator or a literal
+     operator template. */
+  if (has_raw_literal_op && has_literal_op_template) {
+    /* An error. */
+    *p_use_literal_op_template = FALSE;
+    result = FALSE;
+  } else if (has_raw_literal_op) {
+    *p_use_literal_op_template = FALSE;
+    *p_sym_to_use = raw_sym;
+  } else {
+    *p_use_literal_op_template = TRUE;
+    *p_sym_to_use = NULL;
+  }  /* if */
+done:
+  return result;
+}  /* check_udl_operator */
 
 
 static a_boolean is_valid_udl_char_parameter_type(a_type_ptr  char_type)

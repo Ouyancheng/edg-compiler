@@ -1,5 +1,22 @@
 Version 4.12
 
+7/29/16  [EDGcpfe/17056]
+Overloaded literal operator templates
+
+The front end previously did not correctly handle overloaded literal operator
+templates (reporting an ambiguity in all cases).  For example:
+
+  template<bool, typename = void> struct enable_if {};
+  template<typename T> struct enable_if<true, T> { typedef T type; };
+  template <char... cs>
+    typename enable_if<sizeof...(cs) == 1, int>::type operator""X();
+  template <char... cs>
+    typename enable_if<sizeof...(cs) >= 2, int>::type operator""X();
+  int r = 42X;  // Previously triggered a spurious error.  Now okay.
+
+This is now fixed.
+
+
 7/29/16  [EDGcpfe/13555,EDGcpfe/17041]
 Core issue 1423, conversion of std::nullptr_t to bool
 

@@ -1574,6 +1574,15 @@ EXTERN a_constant
 		const_for_curr_token;
 			/* If the current token is a literal constant,
 			   this is its value. */
+EXTERN a_constant
+		const_with_curr_tok_spelling;
+			/* If the current token is a numeric user-defined
+			   literal and tokens are either being cached or
+			   extracted from a cache, this is a quoted string
+			   containing the spelling of the token, excluding
+			   the literal suffix.  For example, if the current
+			   token is 123_x, this constant would be the
+			   string "123". */
 EXTERN a_symbol_ptr
 		ud_lit_op_sym_for_curr_token;
 			/* If the current token is a user-defined literal
@@ -1979,14 +1988,18 @@ typedef struct a_cached_token {
     /* When extra_info_kind == teik_ud_lit: */
     struct {
       a_constant_ptr
-		constant;
+		value_con;
 			/* Pointer to a constant entry (in front end
 			   storage) giving the value to be passed as the
 			   first argument to the literal operator
-			   designated by ud_lit_op_sym or the ck_string
-			   containing the characters of the token spelling
-			   with which the literal operator template is to
-			   be instantiated. */
+			   designated by ud_lit_op_sym. */
+      a_constant_ptr
+		spelling_con;
+			/* Pointer to a ck_string constant entry (in front
+			   end storage) containing the characters of the
+			   token spelling with which the raw literal
+			   operator is to be invoked or the literal
+			   operator template is to be instantiated. */
       a_symbol_ptr
 		op_sym;	/* The literal operator or literal operator template
 			   selected to produce the value of the literal, if
