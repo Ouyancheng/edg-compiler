@@ -1,6 +1,6 @@
 Version 4.12
 
-7/29/16  [EDGcpfe/17041]
+7/29/16  [EDGcpfe/13555,EDGcpfe/17041]
 Core issue 1423, conversion of std::nullptr_t to bool
 
 The resolution of core issue 1423 requires that the implicit conversion of
