@@ -60,7 +60,7 @@ Core issue 1423, conversion of std::nullptr_t to bool
 The resolution of core issue 1423 requires that the implicit conversion of
 a prvalue of type std::nullptr_t to bool be allowed only in
 direct-initialization contexts; previously such conversions were also
-permitted for copy initialization.  The front end now implements this
+permitted in copy-initialization.  The front end now implements this
 restriction.  For example, with --c++11:
 
   bool b0 = nullptr;   // No longer permitted
