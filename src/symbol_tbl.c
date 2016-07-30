@@ -15464,8 +15464,8 @@ const_for_curr_token.
             matching_sym = orig_sym;
           } else {
             matching_sym = operator_template;
+            token_string_needed = TRUE;
           }  /* if */
-          token_string_needed = TRUE;
         } else if (raw_operator != NULL) {
           if (ambiguous_raw_operator) {
             /* Return the original overloaded function symbol to indicate
@@ -15473,8 +15473,8 @@ const_for_curr_token.
             matching_sym = orig_sym;
           } else {
             matching_sym = raw_operator;
+            token_string_needed = TRUE;
           }  /* if */
-          token_string_needed = TRUE;
         }  /* if */
         if (token_string_needed) {
           if (from_cache) {
