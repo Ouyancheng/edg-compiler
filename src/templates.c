@@ -11731,7 +11731,7 @@ to an alias template, the substituted type is returned in *new_type
      the actual template to use from the template argument list. */
   if (template_sym->is_template_param) {
     a_template_ptr	new_templ;
-    /* Save the parameter list form the template template parameter. */
+    /* Save the parameter list from the template template parameter. */
     ttp_param_list = tssp->cache.decl_info->parameters;
     new_templ = template_sym->variant.template_info->il_template_entry;
     new_templ = copy_template_with_substitution(new_templ, templ_arg_list,
