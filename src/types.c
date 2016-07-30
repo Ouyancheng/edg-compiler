@@ -9742,24 +9742,25 @@ a_boolean impl_conversion_possible(
                           an_error_code        default_warning_code,
                           a_std_conv_descr_ptr std_conv)
 /*
-Return TRUE if it is okay to implicitly convert something of type source_type
-to something of type dest_type.  If source_is_constant is TRUE, the source
-is a constant, and source_constant points to the constant value.  (That's
-needed to check for conversions of a null pointer constant to a pointer
-type.)  If source_is_string_literal is TRUE, the source is a simple
-string literal (that's needed for the deprecated conversion from
-string literal to "char *"); the flag can be TRUE even when
-source_is_constant is FALSE, for an extension.  If source_is_function
-is TRUE, the source is the address of a specific function, which
-matters for a particular C++/CLI conversion.  suppress_extensions is
-TRUE if conversions that are extensions should not be allowed (what
-constitutes an extension depends on C_dialect, of course).  If the
-conversion is possible, *std_conv is filled out to describe the
+Return TRUE if it is okay to implicitly convert something of type
+source_type to something of type dest_type.  If source_is_constant is TRUE,
+the source is a constant, and source_constant points to the constant value.
+(That's needed to check for conversions of a null pointer constant to a
+pointer type.)  If source_is_string_literal is TRUE, the source is a simple
+string literal (that's needed for the deprecated conversion from string
+literal to "char *"); the flag can be TRUE even when source_is_constant is
+FALSE, for an extension.  If source_is_function is TRUE, the source is the
+address of a specific function, which matters for a particular C++/CLI
+conversion.  is_copy_initialization is TRUE if the conversion is being done
+as part of copy-initialization and FALSE for direct-initialization.
+suppress_extensions is TRUE if conversions that are extensions should not
+be allowed (what constitutes an extension depends on C_dialect, of course).
+If the conversion is possible, *std_conv is filled out to describe the
 conversion.  In particular, if the conversion is suspect and should be
 flagged with a warning, the warning_suggested field is set to an
 appropriate error code; normally, it is set to ec_no_error.
-default_warning_code will be copied into warning_suggested when no
-specific message applies.
+default_warning_code will be copied into warning_suggested when no specific
+message applies.
 
 Note that any top-level type qualifiers on the types are ignored, and
 when allow_qualifier_or_eh_mismatch is TRUE exception specifications
