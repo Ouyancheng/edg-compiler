@@ -211,6 +211,22 @@ the routine type is updated accordingly).  Return the symbol for the function.
   /* Restore the previous default name linkage. */
   scope_stack[decl_scope_level].default_name_linkage = saved_name_linkage;
   sym->explicit_linkage_specifier = !C_mode();
+#if DEBUG
+  if (db_flag_is_set("dump_builtins")) {
+    /* Dump builtin declarations. */
+    an_il_to_str_output_control_block octl;
+    fprintf(f_debug, "/* %s */ ", sym->header->identifier);
+    clear_il_to_str_output_control_block(&octl);
+    octl.output_str = put_str_to_f_debug;
+    form_type_first_part(rout_type, /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/FALSE, TQ_NONE,
+                         FTO_NO_OPTIONS, &octl);
+    fprintf(f_debug, "%s", sym->header->identifier);
+    form_type_second_part(rout_type, /*under_lhs_declarator=*/FALSE,
+                          FTO_NO_OPTIONS, &octl);
+    fprintf(f_debug, ";\n");
+  }  /* if */
+#endif /* DEBUG */
   return sym;
 }  /* enter_builtin_function */
 
