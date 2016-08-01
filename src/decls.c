@@ -7853,7 +7853,7 @@ ambiguity is encountered or to NULL for other failures.
 */
 {
   a_boolean     result = TRUE;
-  a_symbol_ptr  op_sym = ud_lit_op_sym_for_curr_token, raw_sym;
+  a_symbol_ptr  op_sym = ud_lit_op_sym_for_curr_token, raw_sym = NULL;
   a_boolean     is_list;
   a_boolean     has_raw_literal_op = FALSE, has_literal_op_template = FALSE;
   
