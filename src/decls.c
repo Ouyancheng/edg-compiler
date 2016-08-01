@@ -7847,7 +7847,9 @@ and const_for_curr_token set accordingly).  Return TRUE if an unambiguous
 literal operator function can be identified (returned through *p_sym_to_use) or
 if a literal operator template applies (*p_use_literal_op_template is set to
 TRUE in that case, and *p_sym_to_use is set to NULL since deduction may be
-needed to disambiguate a potential overload set of templates).
+needed to disambiguate a potential overload set of templates).  Otherwise,
+return FALSE, and set *p_sym_to_use to ud_lit_op_sym_for_curr_token if an
+ambiguity is encountered or to NULL for other failures.
 */
 {
   a_boolean     result = TRUE;
@@ -7887,10 +7889,17 @@ needed to disambiguate a potential overload set of templates).
           goto done;
         }  /* if */
       }  /* if */
-    } else if (symbol_is(fund_sym, sk_function_template) &&
-               check_udl_operator_template(fund_sym,
-                                           (a_source_position*)NULL)) {
-      has_literal_op_template = TRUE;
+    } else if (symbol_is(fund_sym, sk_function_template)) {
+      if (check_udl_operator_template(fund_sym, (a_source_position*)NULL)) {
+        has_literal_op_template = TRUE;
+      } else {
+        /* An error. */
+        expect_error();
+        result = FALSE;
+        *p_use_literal_op_template = FALSE;
+        *p_sym_to_use = NULL;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* for */
   /* If we got this far, we'll have to use a raw literal operator or a literal
@@ -7898,6 +7907,7 @@ needed to disambiguate a potential overload set of templates).
   if (has_raw_literal_op && has_literal_op_template) {
     /* An error. */
     *p_use_literal_op_template = FALSE;
+    *p_sym_to_use = ud_lit_op_sym_for_curr_token;
     result = FALSE;
   } else if (has_raw_literal_op) {
     *p_use_literal_op_template = FALSE;

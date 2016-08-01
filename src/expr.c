@@ -31577,7 +31577,7 @@ issue an error; otherwise, return TRUE.
     use_literal_op_template = FALSE;
   } else if (!check_udl_operator(&use_literal_op_template, &op_sym)) {
     /* An ambiguity. */
-    if (expr_error_should_be_issued()) {
+    if (expr_error_should_be_issued() && op_sym != NULL) {
       a_symbol_header_ptr sym_hdr = ud_lit_op_sym_for_curr_token->header;
       a_diagnostic_ptr    dp;
       dp = pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
