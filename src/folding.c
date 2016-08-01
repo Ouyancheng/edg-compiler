@@ -5038,21 +5038,53 @@ set if the operation cannot be folded.
   *err_code = ec_no_error;
   *err_severity = es_warning;
   if (base_object(constant_1) != base_object(constant_2)) {
-    /* The pointers are to different complete objects.  They can only be
-       compared for equality, not relationally. */
-    if (op == (an_expr_operator_kind)eok_eq ||
-        op == (an_expr_operator_kind)eok_ne) {
+    /* The pointers are in different objects.  In C++11 and following,
+       equality comparisons of constant addresses are required to work in
+       the obvious fashion.  In earlier versions of the language, however,
+       we should not fold even equality comparisons:
+         int i, j;
+         if (&i != &j) { ... }  <--- probably different
+       However, that seems pointless, and could actually cause problems
+       (maybe a smart compiler puts i and j at the same address because
+       their lifetimes are disjoint). */
+    if (constexpr_enabled &&
+        (op == (an_expr_operator_kind)eok_eq ||
+         op == (an_expr_operator_kind)eok_ne)) {
+      /* Constant pointers to different objects compare unequal. */
       result_value = (op == (an_expr_operator_kind)eok_ne);
       set_constant_kind(result, (a_constant_repr_kind)ck_integer);
       set_integer_value(&result->variant.integer_value,
                         (a_host_large_integer)result_value);
     } else {
-      /* A relational comparison operator. */
+      /* Pre-C++11 or relational comparison (which cannot be folded, even
+         in C++11). */
       *did_not_fold = TRUE;
+      if (op == (an_expr_operator_kind)eok_eq ||
+          op == (an_expr_operator_kind)eok_ne) {
+        /* However, "&var != NULL" or "&var == NULL" can often be folded. */
+        a_variable_ptr var = NULL;
+        if (is_null_pointer_value(constant_2) &&
+            constant_1->kind == (a_constant_repr_kind)ck_address &&
+            constant_1->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+          var = constant_1->variant.address.variant.variable;
+        } else if (is_null_pointer_value(constant_1) &&
+                   constant_2->kind == (a_constant_repr_kind)ck_address &&
+                   constant_2->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+          var = constant_2->variant.address.variant.variable;
+        }  /* if */
+        if (var != NULL && variable_has_non_null_address(var)) {
+          *did_not_fold = FALSE;
+          result_value = (op == (an_expr_operator_kind)eok_ne);
+          set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+          set_integer_value(&result->variant.integer_value,
+                            (a_host_large_integer)result_value);
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else {
-    /* The pointers are in the same base object, so they can be compared
-       both for equality and relationally using their offsets. */
+    /* The pointers are in the same base object, so they can be compared. */
     get_pointer_offset(constant_1, offset_1);
     get_pointer_offset(constant_2, offset_2);
     /* Compare the offsets, then generate a result value. */
