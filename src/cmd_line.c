@@ -2483,12 +2483,12 @@ option values if they were not already set by a command line option.
         if (ms_cpp14_mode) {
           msvc_lang = "201402L";
           aggregate_classes_can_have_field_initializers = TRUE;
+          relaxed_range_based_for_enabled = TRUE;
         }  /* if */
         if (ms_cpplatest_mode) {
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
           terse_static_assert_enabled = TRUE;
-          relaxed_range_based_for_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {

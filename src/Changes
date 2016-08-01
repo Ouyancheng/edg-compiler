@@ -209,10 +209,9 @@ This is now fixed.
 7/25/16  [EDGcpfe/17338]
 C++17: Relaxed range-based-for loop requirements
 
-In C++17 mode and in Microsoft mode with microsoft_version >= 1903 and
---ms_c++latest specified, the front end now permits the "begin" and "end"
-iterators implied by the definition of the range-based-for statement not to
-have compatible types.  For example:
+In C++17 mode and in Microsoft mode with microsoft_version >= 1903, the front
+end now permits the "begin" and "end" iterators implied by the definition of
+the range-based-for statement not to have compatible types.  For example:
 
   struct S { operator int const*() { return nullptr; } };
   struct I {
