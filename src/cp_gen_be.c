@@ -7750,8 +7750,9 @@ is the one associated with the definition of the enum.
               enum_con->variant.template_param.variant.constant->
                                                  variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression &&
-              is_operation_node((con_expr = expr_node_from_tpck_expression(
-                        enum_con->variant.template_param.variant.constant))) &&
+              (con_expr = expr_node_from_tpck_expression(
+                 enum_con->variant.template_param.variant.constant)) != NULL &&
+              is_operation_node(con_expr) &&
               con_expr->variant.operation.compiler_generated))) {
           /* Either the constant is the initial implicit zero or it is a
              compiler-generated expression, which only occurs if it is the

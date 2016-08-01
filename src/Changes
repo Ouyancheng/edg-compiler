@@ -1,5 +1,21 @@
 Version 4.12
 
+8/1/16   [EDGcpfe/17274]
+C++-generating back end: use of dependent expression in enumerator value
+
+In C++-generating back end configurations in which code is generated from
+the prototype instantiation IL, the front end aborted with a segfault in
+gen_enum_definition when the value of an enumerator was specified using
+a dependent expression.  This is now fixed.  For example, with --c++11:
+
+  constexpr int f(int x, int p = 0) {
+    return x > 1 ? x : p;
+  }
+  template<int nt> struct S {
+    enum { x = f(nt) };   // Previously caused a segfault
+  };
+
+
 7/29/16  [EDGcpfe/17054]
 Constant comparison of addresses for equality
 
