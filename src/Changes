@@ -1,5 +1,20 @@
 Version 4.12
 
+8/1/16   [EDGcpfe/17428]
+Extra braces on singleton expression for aggregate initializer
+
+Consider the following example:
+
+  struct S { int i, j; } x;
+  S ax[] = { { x } };  // Previously an error.  Now accepted.
+
+Previously, this was rejected in C++11 mode because the outer level of braces
+were matched to the array type and the inner braces were matched to type S (an
+aggregate class type).  Now, per the C++11 standard, it is accepted and the
+construct "{ x }" is treated as a single initializer for ax[0] because it is a
+braced singleton expression with a class type that matches the type of ax[0].
+
+
 8/1/16   [EDGcpfe/17274]
 C++-generating back end: use of dependent expression in enumerator value
 
