@@ -15316,10 +15316,11 @@ const_for_curr_token.
        cache in case something in the cache, such as a using-directive,
        affects the result of the lookup, so doing a lookup at this point
        would be wasted effort. */
-    if (allow_raw_and_template) {
+    if (allow_raw_and_template && !from_cache) {
       /* We may need the token spelling when we do the lookup of the cached
-         token, so save it in const_with_curr_tok_spelling so the value can
-         be cached. */
+         token; if this token isn't already in a cache, save the token
+         spelling in const_with_curr_tok_spelling so the value can be
+         cached. */
       create_constant_from_token_spelling(&const_with_curr_tok_spelling);
     }  /* if */
   } else {
