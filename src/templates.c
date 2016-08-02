@@ -22068,7 +22068,11 @@ the template parameter list of which tpp is an element.
          completed. */
       arg_list = template_arg_list_for_symbol(prototype_sym);
     }  /* if */
+  } else if (symbol_is(template_sym, sk_variable_template)) {
+    a_variable_ptr	var = variable_for_symbol(template_sym);
+    arg_list = var->template_info->template_arg_list;
   } else {
+    check_assertion(symbol_is(template_sym, sk_function_template));
     arg_list = template_sym->variant.template_info->
                                    variant.function.routine->template_arg_list;
   }  /* if */

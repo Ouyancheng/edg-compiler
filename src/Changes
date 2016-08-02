@@ -1,5 +1,17 @@
 Version 4.12
 
+8/2/16   [EDGcpfe/17336]
+Microsoft compatibility: abort on variable template with default argument
+
+In Microsoft mode, default template arguments are not scanned until needed.
+This processing did not work properly for variable templates and could
+result in an abort (in delayed_scan_of_template_param_default_arg).  Now
+fixed.
+
+  template <int = 0> int x = 0;
+  int i = x<>;
+
+
 8/2/16   [EDGcpfe/17434]
 GNU/Clang/Microsoft compatibility: explicit instantiation via derived class
 
