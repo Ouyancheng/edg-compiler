@@ -1,5 +1,17 @@
 Version 4.12
 
+8/2/16   [EDGcpfe/17270]
+Microsoft compatibility: class template used in same-named default argument
+
+A spurious "may not have a template argument list" error was issued in
+Microsoft mode if a class template was used in a default template argument
+for a type template parameter with the same name as the class template.
+Now fixed.
+
+  template <class T> struct A;
+  template <class T, typename A = A<T> > class B;
+
+
 8/2/16   [EDGcpfe/17336]
 Microsoft compatibility: abort on variable template with default argument
 

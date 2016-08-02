@@ -16740,8 +16740,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
                       template_sym->kind == (a_symbol_kind)sk_undefined;
     if (template_sym != NULL &&
         is_type_symbol(template_sym) && next_tok == tok_lt &&
-        !lt_permitted_context) {
-      /* A type name followed by a template argument list. */
+        !lt_permitted_context &&
+        !(ms_extensions && caching_tokens)) {
+      /* A type name followed by a template argument list.  The test of
+         Microsoft mode and caching_tokens is used to cause this case to
+         be handled by the ms_extensions case below (instead of resulting
+         in an error). */
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
                    template_sym);
       template_sym = NULL;
