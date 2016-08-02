@@ -31649,6 +31649,11 @@ issue an error; otherwise, return TRUE.
   } else {
     check_assertion(op_sym != NULL);
   }  /* if */
+  if (op_sym != NULL && symbol_is(op_sym, sk_overloaded_function)) {
+    /* An error must have been issued already. */
+    expect_error();
+    op_sym = NULL;
+  }  /* if */
   if (op_sym != NULL) {
     a_source_position  end_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
