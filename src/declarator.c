@@ -3628,7 +3628,7 @@ an error if a default argument expression is encountered.
             if (identical_types(parent_type, tp)) {
               /* Type of the first parameter is identical to the type of the
                  parent class. */
-              if (done) {
+              if (done && !any_variadic_params) {
                 /* This is like case 1 above. */
                 pos_ty_error(ec_bad_constructor_param, &param_type_pos,
                              parent_type);

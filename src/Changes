@@ -1,5 +1,21 @@
 Version 4.12
 
+8/2/16   [EDGcpfe/17316]
+Spurious error on variadic constructor called with same type as class
+
+A spurious error was issued if a variadic constructor was called with
+more than one argument, and the first argument had the same type as the
+class of which the constructor was a member.  Now fixed.
+
+  struct A {
+    template<typename... Args> A(Args... args);
+  };
+  int main() {
+    A a;
+    A a2(a, a);
+  }
+
+
 8/2/16   [EDGcpfe/17270]
 Microsoft compatibility: class template used in same-named default argument
 
