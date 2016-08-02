@@ -1,5 +1,18 @@
 Version 4.12
 
+8/2/16   [EDGcpfe/17434]
+GNU/Clang/Microsoft compatibility: explicit instantiation via derived class
+
+In g++, Clang, and Microsoft mode a class can now be explicitly instantiated
+using a class name inherited from a base class.
+
+  class A {
+    template <class X> class B {};
+  };
+  class C : A {};
+  template class C::B<C>;  // should be "A::B<C>"
+
+
 8/1/16   [EDGcpfe/17428]
 Extra braces on singleton expression for aggregate initializer
 

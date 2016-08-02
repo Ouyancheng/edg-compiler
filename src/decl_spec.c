@@ -3410,6 +3410,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
            that are specified using the derived class name as qualifier. */
         if (locator.is_class_member && locator.is_qualified_name &&
             locator.specific_symbol != NULL &&
+            !gpp_mode && !microsoft_mode &&
             is_template_instance_class_symbol(locator.specific_symbol)) {
           a_type_ptr  qualifier = qualifier_class_type(locator);
           if (!same_entities(sym_parent_class(locator.specific_symbol),
