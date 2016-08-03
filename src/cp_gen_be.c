@@ -15025,6 +15025,47 @@ Generate a braced linkage specifier block like
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 
+static void gen_early_access_specifier_if_needed(void)
+/*
+If the current name context is a class, and the next member declaration for
+that class requires an access specifier to be emitted, emit it now.  This
+function looks ahead beyond source sequence entries for preprocessing
+directives, etc. to find the next member declaration (if any).
+*/
+{
+  if (curr_name_context_is_a_class()) {
+    a_source_sequence_scan_state  saved_state;
+    save_source_sequence_scan_state(&saved_state);
+    for (;;) {
+      a_src_seq_secondary_decl_ptr  sec_decl;
+      char                          *entry_ptr;
+      an_il_entry_kind              entry_kind;
+      a_source_correspondence_ptr   scp;
+      advance_past_preprocessing_directives();
+      if (curr_source_sequence_entry == NULL ||
+          ss_entry_kind(curr_source_sequence_entry) ==
+                                               iek_src_seq_end_of_construct) {
+        break;
+      }  /* if */
+      /* Extract the entity/kind from the current source sequence entry. */
+      if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+        entry_ptr = ss_entry_ptr(sec_decl, char*);
+        entry_kind = ss_entry_kind(sec_decl);
+      } else {
+        entry_ptr = ss_entry_ptr(curr_source_sequence_entry, char*);
+        entry_kind = ss_entry_kind(curr_source_sequence_entry);
+      }  /* if */
+      scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
+      if (scp != NULL) {
+        gen_member_access_specifier_for_decl_of(scp);
+        break;
+      }  /* if */
+    }  /* if */
+    restore_source_sequence_scan_state(&saved_state);
+  }  /* if */
+}  /* gen_early_access_specifier_if_needed */
+
+
 static void gen_ms_if_exists(void)
 /*
 Generate code for a Microsoft __if_exists directive.  IL entries for
@@ -15041,7 +15082,9 @@ the __if_exist appears between top-level declarations of the class.
   adv_curr_source_sequence_entry();
   if (entity != NULL) {
     /* A non-NULL entity pointer indicates that this is the start of the
-       __if_exists block. */
+       __if_exists block.  If we are in a class definition context, check
+       if an access specifier must be emitted. */
+    gen_early_access_specifier_if_needed();
     set_output_position(&msiep->position);
     write_tok_str((char *)(msiep->is_if_exists ? "__if_exists("
                                                : "__if_not_exists("));
