@@ -21219,7 +21219,7 @@ depends on a template parameter.
     }  /* if */
     if ((!const_type_involves_template_param && !ms_extensions) ||
         decl_state->is_template_template_param ||
-        nonclass_prototype_instantiations) {
+        nonclass_prototype_instantiations || is_variadic_template_context()) {
       /* Indicate that a prototype instantiation of this default argument
          should be done later when the template parameter information
          is completed.  Note that this is also done for defaults whose
@@ -21229,7 +21229,8 @@ depends on a template parameter.
          template parameters of template template parameters.  This is
          not done in Microsoft mode unless nonclass prototype instantiations
          are being done because the Microsoft compiler allows invalid
-         default arguments. */
+         default arguments.  It is also done in Microsoft mode in
+         variadic contexts where the pack information must be recorded. */
       template_param->do_prototype_instantiation = TRUE;
       if (decl_state->is_template_template_param) {
         /* Default arguments of template template parameters need to be

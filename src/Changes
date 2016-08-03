@@ -1,5 +1,20 @@
 Version 4.12
 
+8/3/16   [EDGcpfe/17285]
+Microsoft compatibility: pack expansion in nontype template default argument
+
+In Microsoft mode, a spurious error was issued if a member template of a
+variadic class template used an enclosing template parameter pack in a
+default argument for a nontype template parameter.  Now fixed.
+
+  template <typename... Args> struct A {
+    template <int i = sizeof...(Args)> static void f() {}
+  };
+  int main() {
+    A<int, int>::f<>();
+  }
+
+
 8/3/16   [EDGcpfe/16825]
 Microsoft compatibility: __if_exists not allowed after access specification
 
