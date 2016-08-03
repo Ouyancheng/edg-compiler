@@ -15458,40 +15458,57 @@ const_for_curr_token.
            const_for_curr_token to a string containing the spelling of the
            token. */
         a_boolean token_string_needed = FALSE;
+        a_boolean ambiguous = FALSE;
         if (operator_template != NULL) {
           if (raw_operator != NULL || ambiguous_operator_template) {
             /* Return the original overloaded function symbol to indicate
                the ambiguity. */
             matching_sym = orig_sym;
+            ambiguous = TRUE;
           } else {
             matching_sym = operator_template;
-            token_string_needed = TRUE;
           }  /* if */
+          token_string_needed = TRUE;
         } else if (raw_operator != NULL) {
           if (ambiguous_raw_operator) {
             /* Return the original overloaded function symbol to indicate
                the ambiguity. */
             matching_sym = orig_sym;
+            ambiguous = TRUE;
           } else {
             matching_sym = raw_operator;
-            token_string_needed = TRUE;
           }  /* if */
+          token_string_needed = TRUE;
         }  /* if */
         if (token_string_needed) {
           if (from_cache) {
-            /* The current token is being extracted from a cache, so both
-               const_for_curr_token and const_with_curr_tok_spelling are
-               valid.  We need the "raw" version for a raw literal operator
-               or literal operator template, so copy the token spelling
-               into const_for_curr_token. */
-            copy_constant(&const_with_curr_tok_spelling,
-                          &const_for_curr_token);
+            if (!ambiguous) {
+              /* The current token is being extracted from a cache, so both
+                 const_for_curr_token and const_with_curr_tok_spelling are
+                 valid.  We need the "raw" version for a raw literal operator
+                 or literal operator template, so copy the token spelling
+                 into const_for_curr_token. */
+              copy_constant(&const_with_curr_tok_spelling,
+                            &const_for_curr_token);
+            } else {
+              /* Leave const_for_curr_token unchanged in case of ambiguity. */
+            }  /* if */
           } else {
             /* A regular token, neither being added to nor extracted from a
-               cache.  We need to put the spelling of the current token
-               into const_for_curr_token for a raw literal operator or
-               literal operator template. */
-            create_constant_from_token_spelling(&const_for_curr_token);
+               cache. */
+            if (!ambiguous) {
+              /* We need to put the spelling of the current token
+                 into const_for_curr_token for a raw literal operator or
+                 literal operator template. */
+              create_constant_from_token_spelling(&const_for_curr_token);
+            } else {
+              /* There was an ambiguity detected.  In some cases, that can
+                 be resolved by SFINAE, so we put the token spelling into
+                 const_with_curr_tok_spelling in case it is needed but
+                 leave const_for_curr_token unchanged. */
+              create_constant_from_token_spelling(
+                                                &const_with_curr_tok_spelling);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
