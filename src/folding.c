@@ -8736,6 +8736,9 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_pow:
       case bfk_powf:
       case bfk_powl:
+      case bfk_signbit:
+      case bfk_signbitf:
+      case bfk_signbitl:
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
       case bfk_atomic_always_lock_free:
       case bfk_atomic_is_lock_free:
@@ -8907,6 +8910,17 @@ Otherwise, return FALSE.
         result = fp_is_normalized(&cp->variant.float_value,
                                   cp->type->variant.float_kind,
                                   &unknown_result);
+        break;
+      case bfk_signbit:
+      case bfk_signbitf:
+      case bfk_signbitl:
+        if (fp_is_nan(&cp->variant.float_value,
+                      cp->type->variant.float_kind)) {
+          unknown_result = TRUE;
+        } else {
+          result = fp_is_negative(cp->type->variant.float_kind,
+                                  &cp->variant.float_value);
+        }  /* if */
         break;
       default:
         unexpected_condition();
@@ -9245,6 +9259,9 @@ the folding mechanism is used as a way to validate argument values.
       case bfk_isinfl:
       case bfk_isfinite:
       case bfk_isnormal:
+      case bfk_signbit:
+      case bfk_signbitf:
+      case bfk_signbitl:
         /* Unlike some other functions handled here, __builtin_isnan and
            __builtin_isinf are ellipsis functions, and hence ordinary call
            processing will not diagnose invalid arguments.  GCC, however,

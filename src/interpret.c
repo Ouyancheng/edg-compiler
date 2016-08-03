@@ -4756,6 +4756,17 @@ cannot be evaluated, return FALSE.
         }  /* if */
       }
       break;
+    case bfk_signbit:
+    case bfk_signbitf:
+    case bfk_signbitl:
+      if (fp_is_nan(fpval, fpkind)) {
+        /* We don't currently attempt to determine the sign bit of a NaN
+           value.  (This matches Clang but not GCC.) */
+        do_constexpr_fail(result);
+      } else {
+        result = fp_is_negative(fpkind, fpval);
+      }  /* if */
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -4950,6 +4961,9 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_isinfl:
     case bfk_isfinite:
     case bfk_isnormal:
+    case bfk_signbit:
+    case bfk_signbitf:
+    case bfk_signbitl:
       {
         interpreted = TRUE;
         if (args == NULL || args->next != NULL ||

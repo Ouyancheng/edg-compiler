@@ -1,5 +1,17 @@
 Version 4.12
 
+8/3/16   [EDGcpfe/17340]
+GNU/Clang compatibility: Folding of __builtin_signbit
+
+In GNU and Clang modes the front end now folds calls to __builtin_signbit (and
+__builtin_signbitf and __builtin_signbitl) for constant operands.  (Like Clang,
+but unlike GCC, the front end will not fold those functions if the operand is
+"not a number".)  For example:
+
+  static_assert(__builtin_signbit(-1.0), "Unexpected");
+    // Now accepted in GNU and Clang C++11 modes.
+
+
 8/3/16   [EDGcpfe/17285]
 Microsoft compatibility: pack expansion in nontype template default argument
 
