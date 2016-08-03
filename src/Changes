@@ -1,5 +1,18 @@
 Version 4.12
 
+8/3/16   [EDGcpfe/16825]
+Microsoft compatibility: __if_exists not allowed after access specification
+
+In C++-generating back end versions, an __if_exists or __if_not_exists
+directive was not allowed immediately following an access specification.
+Now fixed.
+
+  template <class T> class A : T {
+  public:
+    __if_not_exists(B) { int a; }
+  };
+
+
 8/2/16   [EDGcpfe/17316]
 Spurious error on variadic constructor called with same type as class
 

@@ -23405,6 +23405,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
         syntax_error(ec_exp_colon);
       }  /* if */
     }  /* if */
+    check_for_if_exists_pragmas();
     /* Any next-construct-pragmas that appear after the access specifier
        should be added to those that appear before.  This means the access
        specifier is ignored as a "construct" -- the binding skips over it. */
