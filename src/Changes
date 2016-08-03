@@ -338,7 +338,7 @@ has more arguments than the function declaration (1) it resolves to.  (That
 error is always issued in strict mode.)
 
 
-7/21/16  [EDGcpfe/17423]
+7/21/16  [EDGcpfe/17192,EDGcpfe/17423]
 Abort on constexpr call producing an address in a base class subobject
 
 In C++14 mode, the front end sometimes aborted with an internal error in
