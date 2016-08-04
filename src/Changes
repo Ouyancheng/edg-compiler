@@ -1,5 +1,18 @@
 Version 4.12
 
+8/4/16   [EDGcpfe/17324,EDGcpfe/17333]
+Internal error folding type traits in deferred-access contexts
+
+An internal error could occur (in record_access_error) if a certain type
+trait operations were folded in contexts in which access checking was
+being deferred.  Now fixed.
+
+  class A {
+    operator int();
+  };
+  bool b = __is_convertible_to(A, int);
+
+
 8/3/16   [EDGcpfe/17340]
 GNU/Clang compatibility: Folding of __builtin_signbit
 

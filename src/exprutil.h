@@ -640,6 +640,14 @@ it never creates one.
      expr_node_from_tpck_expression(&(operand)->variant.constant) :           \
      NULL)
 
+/*
+Return TRUE if we are in a context in which operations, such as
+access checking, are required to produce immediate results (and so are
+allowed even in deferred access contexts).
+*/
+#define in_expr_testing_context() \
+	  (scope_stack_top().is_rescan || \
+	   (expr_stack != NULL && expr_stack->suppress_diagnostics)) 
 
 /*
 Bit flags used in calling do_operand_transformations, to suppress

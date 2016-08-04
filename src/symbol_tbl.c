@@ -12020,9 +12020,9 @@ a context where deferral of errors applies.
     defer_access_checks = ssep->defer_access_checks;
   }  /* if */
   if (!defer_access_checks ||
-      (scope_stack_top().is_rescan && error_detected != NULL)) {
-    /* In rescan contexts, do the check immediately so that the result
-       can be returned. */
+      (error_detected != NULL && in_expr_testing_context())) {
+    /* In rescan and similar contexts, do the check immediately so that the
+       result can be returned. */
     if (locator == NULL || !locator->access_control_error_reported) {
       issue_access_error(sym,
                          protected_access_class,
