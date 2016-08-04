@@ -4764,7 +4764,7 @@ cannot be evaluated, return FALSE.
            value.  (This matches Clang but not GCC.) */
         do_constexpr_fail(result);
       } else {
-        result = fp_is_negative(fpkind, fpval);
+        val = fp_is_negative(fpkind, fpval);
       }  /* if */
       break;
     default:
