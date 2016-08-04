@@ -8916,6 +8916,8 @@ Otherwise, return FALSE.
       case bfk_signbitl:
         if (fp_is_nan(&cp->variant.float_value,
                       cp->type->variant.float_kind)) {
+          /* We don't currently attempt to determine the sign bit of a NaN
+             value.  (This matches Clang but not GCC.) */
           unknown_result = TRUE;
         } else {
           result = fp_is_negative(cp->type->variant.float_kind,
