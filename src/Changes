@@ -1,5 +1,30 @@
 Version 4.12
 
+8/4/16   [EDGcpfe/17447]
+GNU/Microsoft compatibility: Using-declarations and extern "C" functions
+
+In GNU and Microsoft modes, matching extern "C" declarations in different
+namespaces are not always treated as declaring the same entity.  See for
+example the entries of 10/6/99 (Microsoft mode) and 7/28/04 (GNU mode).
+When two such entities are brought together with a using-declaration, a
+reference to these entities produced an ambiguity error.  For example:
+
+  extern "C" {
+    void cf();
+    namespace N {
+      void c();
+      using ::cf;
+    }
+  }
+  void (*pf)() = &N::cf;  // Previously an error.  Now okay.
+
+Now, the ambiguity is avoided by not having the using-declaration import an
+extern "C" declaration matching one already present in the scope.  (Note that
+this is only an approximation of the Microsoft behavior: MSVC accepts the code
+above, but issues an ambiguity if the reference to the function name is for a
+call.)
+
+
 8/4/16   [EDGcpfe/17202]
 C++14-mode abort on variable with an initializer that references itself
 

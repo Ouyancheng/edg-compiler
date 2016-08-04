@@ -1294,7 +1294,7 @@ such pointer is found, NULL is returned.
 a_boolean symbols_are_lookup_equivalent(
 			a_symbol_ptr			sym1,
 			a_symbol_ptr			sym2,
-			a_boolean			merge_gpp_c_routines,
+			a_boolean			merge_c_funcs,
 			an_id_lookup_options_set	options)
 /*
 Returns TRUE if sym1 is the same as sym2 or if sym1 and sym2 point
@@ -1304,8 +1304,8 @@ the same underlying extern "C" variable or function.  Two such symbols
 that appear in the same using-directive lookup set are considered to
 represent the same entity, so one of the two symbols is arbitrarily
 selected.  sym1 and sym2 must have been reduced to their fundamental
-symbols by the caller.  merge_gpp_c_routines is TRUE if extern "C"
-functions should be treated as equivalent in GNU C++ mode.  options
+symbols by the caller.  merge_c_funcs is TRUE if extern "C" functions
+should be treated as equivalent in GNU and Microsoft C++ modes.  options
 specifies the options being used for the lookup.
 */
 {
@@ -1321,7 +1321,8 @@ specifies the options being used for the lookup.
       a_routine_ptr	rp1 = sym1->variant.routine.ptr;
       a_routine_ptr	rp2 = sym2->variant.routine.ptr;
       result = rp1 == rp2;
-      if (!result && merge_gpp_c_routines && gpp_mode) {
+      if (!result && merge_c_funcs &&
+          ((gpp_mode && !clang_mode) || microsoft_mode)) {
         /* In g++ mode a second extern "C" routine is not added to the lookup
            set for using-directives if the set already contains an extern "C"
            routine.  Note that the types don't need to be the same. */
@@ -1348,7 +1349,7 @@ specifies the options being used for the lookup.
 
 a_boolean already_in_lookup_set(a_symbol_ptr			curr_sym,
                                 a_symbol_ptr			new_sym,
-				a_boolean			is_using_dir,
+				a_boolean			merge_c_funcs,
 				an_id_lookup_options_set	options)
 /*
 See if new_sym is already in the lookup set represented by curr_sym.
@@ -1356,9 +1357,10 @@ curr_sym could point to a single namespace projection symbol or
 an sk_overloaded_function symbol that points to a set of namespace
 projections symbols.  curr_sym is the fundamental symbol to be compared
 with the fundamental symbols pointed to by the namespace projection
-symbol(s) in curr_sym.  is_using_dir is TRUE if the lookup set is
-from a using-directive lookup.  options specifies the options being
-used for the lookup.
+symbol(s) in curr_sym.  merge_c_funcs is TRUE if extern "C" functions
+from different scopes should be considered equivalent (in GNU and
+Microsoft modes).  options specifies the options being used for the
+lookup.
 */
 {
   a_boolean	result = FALSE;
@@ -1372,7 +1374,7 @@ used for the lookup.
     a_symbol_ptr	fund_curr_sym = fundamental_symbol_of(curr_sym);
     result = new_sym == fund_curr_sym ||
              symbols_are_lookup_equivalent(new_sym, fund_curr_sym,
-                                           is_using_dir, options);
+                                           merge_c_funcs, options);
   } else if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* Look through the overload set for a fundamental symbol that matches
        new_sym. */
@@ -1381,7 +1383,7 @@ used for the lookup.
          sym != NULL; sym = sym->next) {
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (new_sym == fund_sym ||
-          symbols_are_lookup_equivalent(new_sym, fund_sym, is_using_dir,
+          symbols_are_lookup_equivalent(new_sym, fund_sym, merge_c_funcs,
                                         options)) {
         break;
       }  /* if */
@@ -1393,7 +1395,7 @@ used for the lookup.
        a function or template symbol. */
     check_assertion(is_function_or_template_symbol(curr_sym));
     result = curr_sym == new_sym ||
-             symbols_are_lookup_equivalent(curr_sym, new_sym, is_using_dir,
+             symbols_are_lookup_equivalent(curr_sym, new_sym, merge_c_funcs,
                                            options);
   }  /* if */
   return result;
@@ -1440,7 +1442,7 @@ scope lookup.  options specifies the options being used for the lookup.
       set_namespace_projection_symbol(curr_sym, new_sym, NO_SCOPE_DEPTH);
     } else {
       /* If new_sym is not already in the lookup set, add it. */
-      if (!already_in_lookup_set(curr_sym, new_sym, /*is_using_dir=*/TRUE,
+      if (!already_in_lookup_set(curr_sym, new_sym, /*merge_c_funcs=*/TRUE,
                                  options)) {
         new_sym = make_namespace_projection_symbol(new_sym,
                                                    &locator->source_position,
@@ -1485,7 +1487,7 @@ scope lookup.  options specifies the options being used for the lookup.
          declaration). */
       if (rout_sym->is_invisible) continue;
       if (curr_sym_was_null ||
-          !already_in_lookup_set(curr_sym, rout_sym, /*is_using_dir=*/TRUE,
+          !already_in_lookup_set(curr_sym, rout_sym, /*merge_c_funcs=*/TRUE,
                                  options)) {
         new_rout_sym =
                    make_namespace_projection_symbol(rout_sym,
@@ -1770,7 +1772,7 @@ scope lookup.  options specifies the options being used for the lookup.
     } else {
       set_namespace_projection_symbol(curr_sym, new_sym, NO_SCOPE_DEPTH);
     }  /* if */
-  } else if (already_in_lookup_set(curr_sym, new_sym, /*is_using_dir=*/TRUE,
+  } else if (already_in_lookup_set(curr_sym, new_sym, /*merge_c_funcs=*/TRUE,
                                    options)) {
     /* The symbol is already present -- nothing more to do. */
   } else {
