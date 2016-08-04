@@ -1578,7 +1578,7 @@ EXTERN a_constant
 		const_with_curr_tok_spelling;
 			/* If the current token is a numeric user-defined
 			   literal and tokens are either being cached or
-			   extracted from a cache, this is a quoted string
+			   extracted from a cache, this is a ck_string
 			   containing the spelling of the token, excluding
 			   the literal suffix.  For example, if the current
 			   token is 123_x, this constant would be the
