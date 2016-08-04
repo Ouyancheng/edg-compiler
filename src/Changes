@@ -9,20 +9,16 @@ example the entries of 10/6/99 (Microsoft mode) and 7/28/04 (GNU mode).
 When two such entities are brought together with a using-declaration, a
 reference to these entities produced an ambiguity error.  For example:
 
-  extern "C" {
-    void cf();
-    namespace N {
-      void c();
-      using ::cf;
-    }
+  namespace N {
+    extern "C" int c();
   }
-  void (*pf)() = &N::cf;  // Previously an error.  Now okay.
+  extern "C" int cf();
+  using N::cf;
+  int r = N::cf();  // Previously ambiguous in GNU and Microsoft mode.
+                    // Now okay.
 
 Now, the ambiguity is avoided by not having the using-declaration import an
-extern "C" declaration matching one already present in the scope.  (Note that
-this is only an approximation of the Microsoft behavior: MSVC accepts the code
-above, but issues an ambiguity if the reference to the function name is for a
-call.)
+extern "C" declaration matching one already present in the scope.
 
 
 8/4/16   [EDGcpfe/17202]
