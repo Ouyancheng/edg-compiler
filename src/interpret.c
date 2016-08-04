@@ -3373,8 +3373,16 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       } else {
                         /* In GNU C++ mode, the initializer may not be
                            instantiated yet. */
-                        check_assertion(gpp_mode);
-                        cp = instantiate_member_constant(vp);
+                        if (gpp_mode && vp->is_template_variable) {
+                          cp = instantiate_member_constant(vp);
+                        }  /* if */
+                        if (cp == NULL) {
+                          /* We may get here if a variable's initializer
+                             refers to the variable itself.  Create a run-time
+                             address. */
+                          clear_runtime_constant_address(value, con);
+                          break;
+                        }  /* if */
                       }  /* if */
                     }  /* if */
                     result = extract_value_from_constant(
@@ -9149,11 +9157,11 @@ the value representation of the integer value.
           /* Record the allocation sequence number for this temporary in the
              address record. */ 
           cap->alloc_seq_number = alloc_seq_number;
-          mark_complete_object_initialized(tmp_bytes);
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
         }  /* if */
+        mark_complete_object_initialized(tmp_bytes);
       }
       break;
     case enk_object_lifetime:
