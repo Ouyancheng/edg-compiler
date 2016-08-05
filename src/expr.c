@@ -39235,13 +39235,20 @@ expression context.  Return either *is_constant TRUE and a constant value in
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
-    a_type_ptr specific_type = cpp11_mode ? integer_type(targ_size_t_int_kind):
-                                            (a_type_ptr)NULL;
-    try_to_convert_class_operand_to_builtin_type(&result,
-                                                 specific_type,
-                                                 (a_builtin_type_kind_set)
-                                                     (BTK_INTEGRAL | BTK_ENUM),
-                                                 &processed);
+    a_builtin_type_kind_set  btks;
+    a_type_ptr               specific_type;
+    if (cpp11_mode) {
+      /* In C++11 the nonconstant case is handled as a conversion to size_t. */
+      specific_type = integer_type(targ_size_t_int_kind);
+      btks = BTK_NONE;
+    } else {
+      /* Prior to C++11, we just look for conversion to an integral or
+         enumeration type (which hopefully will be unambiguous). */
+      specific_type = (a_type_ptr)NULL;
+      btks = (BTK_INTEGRAL | BTK_ENUM);
+    }  /* if */
+    try_to_convert_class_operand_to_builtin_type(&result, specific_type,
+                                                 btks, &processed);
   }  /* if */
   if (!processed) {
     /* Do lvalue --> rvalue and other transformations for the non-overloaded

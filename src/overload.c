@@ -13563,6 +13563,27 @@ not_direct_binding_case:
           result_is_an_lvalue = FALSE;
         }  /* if */
       }  /* if */
+      if (dest_type != NULL) {
+        /* If we're matching to a specific destination type, determine the
+           standard conversion needed to achieve that type.  This may be
+           needed to be able to determine the best match.  E.g.:
+              struct A {
+                constexpr operator int() {return 5; }
+                constexpr operator decltype(sizeof(int))() {return 5; }
+              };
+              float a[A()];  // The second operator is a better match.
+        */
+        (void)impl_conversion_possible(
+                                     return_type,
+                                     /*source_is_constant=*/FALSE,
+                                     /*source_is_string_literal=*/FALSE,
+                                     /*source_is_function=*/FALSE,
+                                     orig_is_copy_initialization,
+                                     (a_constant_ptr)NULL, dest_type,
+                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                    /*suppress_extensions=*/TRUE,
+                                    ec_no_error, &std_conversion);
+       }  /* if */
       if (need_lvalue_result && is_const_qualified_type(return_type)) {
         /* Rule out const types if an lvalue is required. */
       } else if (type_is_in_builtin_type_set(return_type,
@@ -17495,14 +17516,6 @@ error and set *processed to TRUE if the conversion is ambiguous.
   a_boolean                ambiguous;
   a_candidate_function_ptr ambiguity_list;
 
-  if (specific_type != NULL) {
-    /* The convention below this routine is that the built-in types set
-       is the dominant argument, with the specific type being a guiding type
-       if both are specified.  For this routine, however, specific_type
-       being non-NULL overrides builtin_types_allowed.  Convert to
-       the other interface specification. */
-    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-  }  /* if */
   /* Only look at this operand if it has a class type. */
   if (is_class_struct_union_type(operand->type)) {
     /* See if the class type can be converted to an acceptable built-in
