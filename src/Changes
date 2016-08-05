@@ -14,6 +14,7 @@ the behavior of g++ and clang.  For example:
 
 
 8/4/16   [EDGcpfe/17418]
+Abort with constexpr function template as nontype template argument
 
 In C++11 modes, the front end could abort with a segfault (in
 copy_template_param_expr_as_rvalue) when an invocation of a constexpr
