@@ -4162,8 +4162,6 @@ This function is also called in clang mode.
   binary_literals_allowed = gnu_version >= 40300;
   null_chars_allowed_in_source = TRUE;
   allow_nonstandard_anonymous_unions = TRUE;
-  /* Late template test for g++ 3.2, 3.3, and 3.4. */
-  late_template_ovl_res_tiebreaker = FALSE;
   /* In some configurations, special processing is done for references
      to __STDC__ in system header files. */
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
@@ -4256,16 +4254,9 @@ This function is also called in clang mode.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   c99_bool_is_keyword = TRUE;
-  if (gnu_version >= 40600 && !clang_mode) {
-    static_assert_enabled = TRUE;
-  }  /* if */
   if (gnu_version >= 40700) {
     alignof_enabled = TRUE;
     alignas_enabled = TRUE;
-  }  /* if */
-  if (!clang_mode && gnu_version >= 40900) {
-    std_thread_local_storage_specifier_enabled = TRUE;
-    c11_atomic_enabled = TRUE;
   }  /* if */
   if (clang_mode) {
     if (clang_version >= 30100) {
@@ -4275,6 +4266,18 @@ This function is also called in clang mode.
       c11_atomic_enabled = TRUE;
       c11_atomic_classes_disabled = TRUE;
       std_thread_local_storage_specifier_enabled = TRUE;
+    }  /* if */
+  } else {
+    /* GCC (not Clang) mode. */
+    if (gnu_version >= 40600) {
+      static_assert_enabled = TRUE;
+    }  /* if */
+    /* Late template test for g++ prior to 4.7 (a TRUE value corresponds to
+       standard behavior). */
+    late_template_ovl_res_tiebreaker = gnu_version >= 40700;
+    if (gnu_version >= 40900) {
+      std_thread_local_storage_specifier_enabled = TRUE;
+      c11_atomic_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */

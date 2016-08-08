@@ -1,5 +1,33 @@
 Version 4.12
 
+8/8/16   [EDGcpfe/17051]
+GNU compatibility: Late template overload resolution tie-breaker
+
+Overload resolution includes a tie-breaker rule that prefers non-template
+functions over template functions.  That rule applies is use very late in the
+overload resolution process, but a long time ago it applied slightly earlier
+and GCC implemented the earlier rule for a long time (see the entry of
+12/22/04): We therefore previously emulated GCC in this regard for all values
+of gnu_version (in GNU mode).  Now, we only emulated it when gnu_version is
+less than 40700.  Also, the GCC behavior was previously accidentally enabled
+in Clang mode; that is now no longer the case.  Here is an example where this
+change is observable (C++11 mode):
+
+  struct S {
+    template <class T1> operator T1() { return 0; }
+    operator int() = delete;
+  };
+  int main() {
+    S s;
+    return (char)s;  // Previous always an error in GNU C++11 mode.
+  }                  // Now accepted when gnu_version >= 40700.
+
+In this example, early versions of GCC discard the member template early,
+which results in the deleted conversion function being selected and an error
+being issued.  The front end now only emulates that behavior when gnu_version
+is less than 40700.
+
+
 8/5/16   [EDGcpfe/17050]
 User-defined conversions for array bounds
 
