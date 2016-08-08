@@ -4272,9 +4272,6 @@ This function is also called in clang mode.
     if (gnu_version >= 40600) {
       static_assert_enabled = TRUE;
     }  /* if */
-    /* Late template test for g++ prior to 4.7 (a TRUE value corresponds to
-       standard behavior). */
-    late_template_ovl_res_tiebreaker = gnu_version >= 40700;
     if (gnu_version >= 40900) {
       std_thread_local_storage_specifier_enabled = TRUE;
       c11_atomic_enabled = TRUE;
@@ -4552,23 +4549,30 @@ before this routine is called.
       warn_on_deduced_return_types = TRUE;
     }  /* if */
   }  /* if */
-  if (clang_mode && clang_version >= 30000) {
-    inline_namespaces_enabled = TRUE;
-    if (clang_version >= 30100) {
-      /* Clang enables _Atomic support in all C++ modes.  We currently
-         disable _Atomic class types in Clang modes, because Clang treats
-         _Atomic classes differently. */
-      c11_atomic_enabled = TRUE;
-      c11_atomic_classes_disabled = TRUE;
+  if (clang_mode) {
+    if (clang_version >= 30000) {
+      inline_namespaces_enabled = TRUE;
+      if (clang_version >= 30100) {
+        /* Clang enables _Atomic support in all C++ modes.  We currently
+           disable _Atomic class types in Clang modes, because Clang treats
+           _Atomic classes differently. */
+        c11_atomic_enabled = TRUE;
+        c11_atomic_classes_disabled = TRUE;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* GCC 5.x and earlier accept "false" as a null pointer constant. */
-  if (!clang_mode && gnu_version < 60000) {
-    false_literal_is_not_null_pointer_constant = FALSE;
-  }  /* if */
-  if (cpp11_mode && gnu_version >= 60000 && !clang_mode) {
-    /* Later versions of GNU appear to enable this by default. */
-    terse_static_assert_enabled = TRUE;
+  } else {
+    /* Not Clang mode. */
+    /* Late template test for g++ prior to 4.7 (a TRUE value corresponds to
+       standard behavior). */
+    late_template_ovl_res_tiebreaker = gnu_version >= 40700;
+    if (gnu_version < 60000) {
+      /* GCC 5.x and earlier accept "false" as a null pointer constant. */
+      false_literal_is_not_null_pointer_constant = FALSE;
+    }  /* if */
+    if (cpp11_mode && gnu_version >= 60000) {
+      /* Later versions of GNU appear to enable this by default. */
+      terse_static_assert_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
