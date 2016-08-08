@@ -1598,8 +1598,7 @@ typedef struct a_param_id {
 			/* For a new- or old-style function parameter, this is
 			   the storage class to be associated with it when it
 			   is declared. */
-  a_bit_field
-		implicitly_declared:1;
+  a_bit_field	implicitly_declared:1;
 			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
   a_bit_field	is_parameter_pack:1;
