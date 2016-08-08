@@ -955,7 +955,7 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is an alias declaration. */
   a_bit_field	param_with_only_enclosing_pack_refs:1;
 			/* TRUE if this is a parameter declaration that only
-			   refers to an enclosing template parameter packs
+			   refers to enclosing template parameter packs
 			   (not to any local ones). */
   an_init_state
 		init_state;
