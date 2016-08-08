@@ -13563,7 +13563,10 @@ not_direct_binding_case:
           result_is_an_lvalue = FALSE;
         }  /* if */
       }  /* if */
-      if (dest_type != NULL) {
+      if (dest_type != NULL &&
+          (builtin_types_allowed == BTK_BOOL ||
+           builtin_types_allowed == BTK_PTRDIFF_T ||
+           builtin_types_allowed == BTK_NULLPTR_T)) {
         /* If we're matching to a specific destination type, determine the
            standard conversion needed to achieve that type.  This may be
            needed to be able to determine the best match.  E.g.:
@@ -13583,7 +13586,7 @@ not_direct_binding_case:
                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, &std_conversion);
-       }  /* if */
+      }  /* if */
       if (need_lvalue_result && is_const_qualified_type(return_type)) {
         /* Rule out const types if an lvalue is required. */
       } else if (type_is_in_builtin_type_set(return_type,
