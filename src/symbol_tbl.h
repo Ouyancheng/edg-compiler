@@ -1602,8 +1602,7 @@ typedef struct a_param_id {
 		implicitly_declared:1;
 			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
-  a_bit_field
-		is_parameter_pack:1;
+  a_bit_field	is_parameter_pack:1;
 			/* TRUE for the parameter of a template definition of
 			   a variadic template for the function parameter
 			   pack.  (See the similar field in a_param_type for a
@@ -1624,8 +1623,7 @@ typedef struct a_param_id {
 			     };
 			   Parameter p will have this flag set. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_bit_field
-		is_decl_after_first_in_comma_list:1;
+  a_bit_field	is_decl_after_first_in_comma_list:1;
 			/* TRUE for an old-style parameter defined in a
 			   comma-separated list, but not the first in that
 			   list.  For example, for y in:
