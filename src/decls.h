@@ -953,10 +953,10 @@ typedef struct a_decl_parse_state {
 			   lambda declaration. */
   a_bit_field	is_alias:1;
 			/* TRUE if this is an alias declaration. */
-  a_bit_field	param_with_no_enclosing_pack_ref:1;
-			/* TRUE if this is a parameter declaration that does
-			   not refer to an enclosing template parameter
-			   pack. */
+  a_bit_field	param_with_only_enclosing_pack_refs:1;
+			/* TRUE if this is a parameter declaration that only
+			   refers to an enclosing template parameter packs
+			   (not to any local ones). */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

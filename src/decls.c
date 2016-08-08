@@ -203,7 +203,7 @@ be restored).
     dps->is_init_capture = FALSE;
     dps->is_lambda = FALSE;
     dps->is_alias = FALSE;
-    dps->param_with_no_enclosing_pack_ref = FALSE;
+    dps->param_with_only_enclosing_pack_refs = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;

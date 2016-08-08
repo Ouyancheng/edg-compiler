@@ -11689,7 +11689,7 @@ that list to pedp.
           a_pack_reference_ptr	prp2;
           a_pack_reference_ptr	prev_prp2 = prp1;
           if (!prp1->uses_enclosing_pack) {
-            /* Record that this expansion uses a non-enclosing pack. */
+            /* Record that this expansion uses only a non-enclosing pack. */
             pedp->uses_only_enclosing_packs = FALSE;
           }  /* if */
           for (prp2 = prp1->next; prp2 != NULL; prp2 = prp2->next) {
@@ -12042,6 +12042,8 @@ form.
      definition context.  Don't record pack references during rescans -- just
      use the pack references from the definition. */
   if (is_prototype_instantiation_context() &&
+      !(pack_expansion_stack != NULL &&
+       pack_expansion_stack->instantiation_descr != NULL) &&
       (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
        pack_expansion_stack->is_suppression)) {
     if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
@@ -12097,7 +12099,7 @@ form.
         } else if (kind == prk_parameter) {
           a_param_id_ptr  pip = pack_symbol->variant.param_id;
           prp->param_num = pip->param_num;
-          if (pip->uses_enclosing_pack) {
+          if (pip->uses_only_enclosing_pack) {
             prp->uses_enclosing_pack = TRUE;
           }  /* if */
         } else if (kind == prk_bases) {
@@ -12113,10 +12115,13 @@ form.
           if (pack_symbol != NULL &&
               pack_symbol->decl_scope != scope_stack[depth].number) {
             prp->uses_enclosing_pack = TRUE;
+          } else {
             if (scope_is(&scope_stack_top(), sck_func_prototype)) {
+              /* This is a reference to a local pack.  Clear the flag that
+                 indicates all references were to enclosing packs. */
               a_decl_parse_state_ptr  dps = scope_stack_top().decl_parse_state;
-              if (dps != NULL && dps->param_with_no_enclosing_pack_ref) {
-                dps->param_with_no_enclosing_pack_ref = FALSE;
+              if (dps != NULL && dps->param_with_only_enclosing_pack_refs) {
+                dps->param_with_only_enclosing_pack_refs = FALSE;
               }  /* if */
             }  /* if */
           }  /* if */

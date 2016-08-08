@@ -1614,9 +1614,10 @@ typedef struct a_param_id {
 			   a variadic template for those parameters that are
 			   associated with a parameter pack of the original
 			   variadic template. */
-  a_bit_field	uses_enclosing_pack:1;
-			/* TRUE for a parameter whose declaration refers to an
-			   enclosing parameter pack.  For example:
+  a_bit_field	uses_only_enclosing_pack:1;
+			/* TRUE for a parameter whose declaration refers only
+			   to an enclosing parameter pack (and not a local
+			   one).  For example:
 			     template<class ... Ts> struct S {
 			       template<class F> auto m(F f, Ts... p)
 			                                 ->decltype(f(p...));

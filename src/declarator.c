@@ -2890,9 +2890,9 @@ an error if a default argument expression is encountered.
         is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
         is_non_initial_pack_element = is_non_initial_variadic_element();
         /* Start the following flag with value TRUE.  It will be set to FALSE
-           if the declaration actually includes a reference to an enclosing
+           if the declaration includes a reference to a local (non-enclosing)
            template pack. */
-        state->param_with_no_enclosing_pack_ref = TRUE;
+        state->param_with_only_enclosing_pack_refs = TRUE;
         /* Count the number of parameters encountered.  All elements of a given
            parameter pack are given the same parameter number. */
         if (!is_non_initial_pack_element) param_number++;
@@ -3494,20 +3494,20 @@ an error if a default argument expression is encountered.
         if (ptp->pack_expansion_descr != NULL) {
           ptp->is_parameter_pack = TRUE;
           last_param_id->is_parameter_pack = TRUE;
-          if (!state->param_with_no_enclosing_pack_ref) {
+          if (state->param_with_only_enclosing_pack_refs) {
             /* In something like:
                  template<class ... Ts> struct S {
                    template<class F> auto m(F f, Ts... p)->decltype(f(p...));
                  };
                a pack reference entry will be created for the reference to p
                in the return type.  That entry must indicate that it really is
-               expanded through the enclosing template's pack (Ts, here);
+               expanded only through the enclosing template's pack (Ts, here);
                otherwise, the empty expansion case will not be handled
                correctly.  By recording this property at this time (when p is
                declared), we ensure that record_potential_pack_reference_full
                will have the needed information to record the property for the
                later reference. */
-            last_param_id->uses_enclosing_pack = TRUE;
+            last_param_id->uses_only_enclosing_pack = TRUE;
           }  /* if */
         }  /* if */
         any_variadic_params = advance_to_next_pack_element(pesep);
@@ -3697,7 +3697,7 @@ an error if a default argument expression is encountered.
         run_end_of_parse_actions(&param_state, /*more_declarators=*/FALSE);
       } while (!done || any_variadic_params);
     }  /* if */
-    state->param_with_no_enclosing_pack_ref = FALSE;
+    state->param_with_only_enclosing_pack_refs = FALSE;
     /* Save the list of symbols for the prototype scope (usually NULL, but
        can have symbols for named types declared within the prototype). */
     if (is_top_level_declarator) {
