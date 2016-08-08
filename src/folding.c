@@ -11623,6 +11623,16 @@ TRUE, record call_expr as a backing expression for the resulting constant.
   clear_constexpr_evaluation_block(&ceblock, pos);
   folded = i_fold_constexpr_call(call_expr, &ceblock,
                                  /*gnu_builtins_too=*/FALSE, result_con);
+  if (folded && result_con->kind == (a_constant_repr_kind)ck_template_param &&
+      result_con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression &&
+      in_file_scope(call_expr) &&
+      !in_file_scope(result_con->variant.template_param.variant.expr)) {
+    /* Folding dependent expressions in the template definition context is
+       not necessary, and in this case the folding would have memory region
+       issues, so do not fold this call. */
+    folded = FALSE;
+  }  /* if */
   if (folded && record_backing_expr) result_con->expr = call_expr;
   if (failure_warning != NULL) {
     if (folded) {
