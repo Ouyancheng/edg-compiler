@@ -1439,7 +1439,7 @@ Changes were also made to expressions of the form "(T())++" and "(T())--"
 (which are now accepted if the ++/-- is not followed by another expression).
 
 
-6/9/16   [EDGcpfe/17262]
+6/9/16   [EDGcpfe/16833,EDGcpfe/17262]
 Move optimization and bitwise copyable class types
 
 Consider the following example:
