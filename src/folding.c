@@ -10482,6 +10482,7 @@ ceblock gives context information for the evaluation.
     an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
     a_constant_ptr        op1_constant = local_constant();
     a_constant_ptr        op2_constant = local_constant();
+    a_constant_ptr        addr_con = local_constant();
     a_constant_ptr        obj_expr_con;
     a_boolean             op1_folded = FALSE, op2_folded = FALSE;
     a_type_ptr            tp;
@@ -10742,7 +10743,11 @@ pm_field_selection:
         break;
       case eok_base_class_cast:
         /* A cast of a prvalue to one of its base class subobjects. */
-        if (fold_expr(op1, ceblock, op1_constant)) {
+        if ((is_glvalue_node(op1) &&
+             fold_glvalue_expr(op1, ceblock, addr_con) &&
+             constant_value_at_address(addr_con, ceblock, op1_constant) !=
+                                                                       NULL) ||
+            fold_expr(op1, ceblock, op1_constant)) {
           if (op1_constant->kind == (a_constant_repr_kind)ck_template_param) {
             /* A dependent constant.  Just change the type. */
             type_change_constant(op1_constant, expr->type,
@@ -10983,6 +10988,7 @@ pm_field_selection:
         }  /* if */
         break;
     }  /* switch */
+    release_local_constant(&addr_con);
     release_local_constant(&op1_constant);
     release_local_constant(&op2_constant);
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
