@@ -1,5 +1,39 @@
 Version 4.12
 
+8/9/16   [EDGcpfe/17432]
+Unbounded loop in C++14 constexpr interpreter
+
+The C++14 constexpr sometimes got stuck in an unbounded loop in the C++14
+constexpr interpreter (specifically, in function translate_interpreter_offset).
+The following example triggered the bug:
+
+  template<int...> struct S {};
+  template<int> struct L {
+    double v;
+    constexpr L(): v() {}
+  };
+  template<typename, typename ...Ts> struct U;
+  template<int... Is, typename ...Ts> struct U<S<Is...>, Ts...>: L<Is>... {};
+  template<typename> struct X {
+    U<S<0>, double> x;
+    constexpr X(double) {}
+  };
+  constexpr double const& val(X<double> const &p) {
+    return ((L<0> const&)(p.x)).v;
+  }
+  void g() {
+    constexpr X<double> xd(1.0);
+  }
+  double h() {
+    constexpr X<double> xd(2.0);
+    return val(xd);
+  }
+
+The problem was caused by the interpreter treating fields added by IL lowering
+(to represent base class subobjects) as if they were user-declared fields.
+This is now fixed.
+
+
 8/9/16   [EDGcpfe/17195]
 Base-class casts in constant expressions
 
