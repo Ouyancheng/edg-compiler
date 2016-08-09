@@ -4562,7 +4562,7 @@ before this routine is called.
     }  /* if */
   } else {
     /* Not Clang mode. */
-    /* Late template test for g++ prior to 4.7 (a TRUE value corresponds to
+    /* Early template test for g++ prior to 4.7 (a TRUE value corresponds to
        standard behavior). */
     late_template_ovl_res_tiebreaker = gnu_version >= 40700;
     if (gnu_version < 60000) {

@@ -24,11 +24,11 @@ is cast to a base class prvalue.  This is now fixed.  For example, with
 GNU compatibility: Late template overload resolution tie-breaker
 
 Overload resolution includes a tie-breaker rule that prefers non-template
-functions over template functions.  That rule applies is use very late in the
+functions over template functions.  That rule applies very late in the
 overload resolution process, but a long time ago it applied slightly earlier
 and GCC implemented the earlier rule for a long time (see the entry of
 12/22/04): We therefore previously emulated GCC in this regard for all values
-of gnu_version (in GNU mode).  Now, we only emulated it when gnu_version is
+of gnu_version (in GNU mode).  Now, we only emulate it when gnu_version is
 less than 40700.  Also, the GCC behavior was previously accidentally enabled
 in Clang mode; that is now no longer the case.  Here is an example where this
 change is observable (C++11 mode):
@@ -39,7 +39,7 @@ change is observable (C++11 mode):
   };
   int main() {
     S s;
-    return (char)s;  // Previous always an error in GNU C++11 mode.
+    return (char)s;  // Previously always an error in GNU C++11 mode.
   }                  // Now accepted when gnu_version >= 40700.
 
 In this example, early versions of GCC discard the member template early,
