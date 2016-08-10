@@ -7969,9 +7969,21 @@ a type in certain ways (see template_arg_list_is_dependent).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (prototype_type != NULL) {
-    class_type->in_gnu_abi_tag_namespace =
+  if (gpp_mode) {
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+      /* If no ELF visibility was explicitly specified, use that of the
+         enclosing class or namespace (if any). */
+      an_ELF_visibility_kind  visibility = ctsp->ELF_visibility;
+      update_for_default_ELF_visibility(
+                     &visibility, class_type->source_corresp.is_class_member);
+      ctsp->ELF_visibility = visibility;
+    }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    if (prototype_type != NULL) {
+      class_type->in_gnu_abi_tag_namespace =
                                       prototype_type->in_gnu_abi_tag_namespace;
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG

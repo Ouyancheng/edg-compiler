@@ -1,5 +1,23 @@
 Version 4.12
 
+8/10/16  [EDGcpfe/17461]
+ELF visibility attribute and implicit class template instantiations
+
+In GNU C++ modes in configurations with GNU_VISIBILITY_ATTRIBUTE_ALLOWED set
+to TRUE, the front end previously failed to apply the "visibility" attribute
+of an enclosing namespace to the implicit instances of a class template.
+For example:
+
+  namespace N __attribute((visibility("hidden"))) {
+    template<typename T> struct S { ~S(); };
+    template<typename T> S<T>::~S() {}
+  }
+  S<int> si;  // S<int>::~S() was previously not given "hidden" visibility;
+              // now it is.
+
+This is now fixed.
+
+
 8/9/16   [EDGcpfe/17432]
 Unbounded loop in C++14 constexpr interpreter
 
