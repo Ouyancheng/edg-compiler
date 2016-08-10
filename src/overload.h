@@ -176,14 +176,16 @@ conversion_from_class_possible.
 #define BTK_SCOPED_ENUM 0x200
 			/* Scoped enumeration types in C++. */
 #define BTK_PTRDIFF_T 0x400
-			/* ptrdiff_t */
+			/* ptrdiff_t. */
+#define BTK_SIZE_T 0x800
+			/* size_t. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define BTK_HANDLE 0x800
+#define BTK_HANDLE 0x1000
 			/* Any C++/CLI handle type. */
-#define BTK_HANDLE_TO_CLI_ARRAY 0x1000
+#define BTK_HANDLE_TO_CLI_ARRAY 0x2000
 			/* Handle to a CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define BTK_NULLPTR_T 0x2000
+#define BTK_NULLPTR_T 0x4000
 			/* decltype(nullptr), aka. std::nullptr_t. */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
@@ -269,6 +271,9 @@ typedef int a_conv_context_set;
 			/* Used when a conversion is being checked for a
 			   type traits helper function (e.g.,
 			   __is_convertible_to). */
+#define CCO_CONVERTED_CONSTANT_EXPR ((a_conv_context_set)0x80000)
+			/* Used when the conversion context is a "converted
+			   constant expression" (a C++11 concept). */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the
@@ -961,6 +966,7 @@ extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
                                  a_type_ptr              specific_type,
                                  a_builtin_type_kind_set builtin_types_allowed,
+                                 a_conv_context_set      conv_context,
                                  a_boolean               *processed);
 
 extern void make_generic_operation_operand(

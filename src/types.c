@@ -2236,6 +2236,20 @@ Return TRUE if the given type is ptrdiff_t, possibly cv-qualified.
   return is_ptrdiff_t;
 }  /* is_ptrdiff_t_type */
 
+
+a_boolean is_size_t_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is size_t, possibly cv-qualified.
+*/
+{
+  a_boolean is_size_t;
+
+  tp = skip_typerefs(tp);
+  is_size_t = is_integral(tp) &&
+              tp->variant.integer.int_kind == targ_size_t_int_kind;
+  return is_size_t;
+}  /* is_size_t_type */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_class_struct_union_type(a_type_ptr tp)

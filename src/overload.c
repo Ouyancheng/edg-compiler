@@ -1932,6 +1932,9 @@ the type set when the set indicates multiple types, return "built-in".
     case BTK_PTRDIFF_T:
       result = "ptrdiff_t";
       break;
+    case BTK_SIZE_T:
+      result = "size_t";
+      break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case BTK_HANDLE:
       result = "handle";
@@ -12931,6 +12934,8 @@ builtin_types.
                              is_ptr_to_member_type(type)) ||
       ((builtin_types & BTK_PTRDIFF_T) &&
                              is_ptrdiff_t_type(type)) ||
+      ((builtin_types & BTK_SIZE_T) &&
+                             is_size_t_type(type)) ||
       ((builtin_types & BTK_NULLPTR_T) &&
                              is_nullptr_type(type))) {
     in_set = TRUE;
@@ -13064,6 +13069,11 @@ binding is to an rvalue reference.
     /* There's only one type in the BTK_PTRDIFF_T category, so make this a
        conversion to a specific type so that templates can be used. */
     dest_type = requested_type = integer_type(targ_ptrdiff_t_int_kind);
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+  } else if (builtin_types_allowed == BTK_SIZE_T) {
+    /* There's only one type in the BTK_SIZE_T category, so make this a
+       conversion to a specific type so that templates can be used. */
+    dest_type = requested_type = integer_type(targ_size_t_int_kind);
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
   } else if (builtin_types_allowed == BTK_NULLPTR_T) {
     /* There's only one type in the BTK_NULLPTR_T category, so make this a
@@ -13511,7 +13521,19 @@ not_direct_binding_case:
                                             ec_no_error, &std_conversion)) {
           /* This conversion function returns a type that can be converted
              via a standard conversion to the type we want. */
-          compatible = TRUE;
+          if (conv_context & CCO_CONVERTED_CONSTANT_EXPR) {
+            /* In a "converted constant expression" context, not all standard
+               conversions are acceptable (e.g., a floating-point -> integer
+               conversion should be rejected). */
+            compatible = impl_converted_constant_expr_conversion_possible(
+                                                 return_type,
+                                                 /*source_is_constant=*/FALSE,
+                                                 (a_constant*)NULL,
+                                                 dest_type,
+                                                 (an_error_code*)NULL);
+          } else {
+            compatible = TRUE;
+          }  /* if */
           result_is_an_lvalue = FALSE;
         } else if ((conv_context & CCO_ANY_CV_QUAL_ON_PTR_ALLOWED) &&
                    is_pointer_type(unqual_return_type) &&
@@ -13562,30 +13584,6 @@ not_direct_binding_case:
           unqual_return_type = return_type;
           result_is_an_lvalue = FALSE;
         }  /* if */
-      }  /* if */
-      if (dest_type != NULL &&
-          (builtin_types_allowed == BTK_BOOL ||
-           builtin_types_allowed == BTK_PTRDIFF_T ||
-           builtin_types_allowed == BTK_NULLPTR_T)) {
-        /* If we're matching to a specific destination type, determine the
-           standard conversion needed to achieve that type.  This may be
-           needed to be able to determine the best match.  E.g.:
-              struct A {
-                constexpr operator int() {return 5; }
-                constexpr operator decltype(sizeof(int))() {return 5; }
-              };
-              float a[A()];  // The second operator is a better match.
-        */
-        (void)impl_conversion_possible(
-                                     return_type,
-                                     /*source_is_constant=*/FALSE,
-                                     /*source_is_string_literal=*/FALSE,
-                                     /*source_is_function=*/FALSE,
-                                     orig_is_copy_initialization,
-                                     (a_constant_ptr)NULL, dest_type,
-                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                    /*suppress_extensions=*/TRUE,
-                                    ec_no_error, &std_conversion);
       }  /* if */
       if (need_lvalue_result && is_const_qualified_type(return_type)) {
         /* Rule out const types if an lvalue is required. */
@@ -17506,6 +17504,7 @@ void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
                                  a_type_ptr              specific_type,
                                  a_builtin_type_kind_set builtin_types_allowed,
+                                 a_conv_context_set      conv_context,
                                  a_boolean               *processed)
 /*
 If *operand has a class type, see if it can be converted (via a conversion
@@ -17530,7 +17529,7 @@ error and set *processed to TRUE if the conversion is ambiguous.
                                        (builtin_types_allowed & BTK_BOOL) == 0,
                                        /*ref_binding_type=*/(a_type*)NULL,
                                        /*is_direct_binding=*/FALSE,
-                                       CCO_DEFAULT,
+                                       conv_context,
                                        &conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */

@@ -9725,6 +9725,7 @@ address), in which case a conversion is not used.
                                                  BTK_FLOATING |
                                                  BTK_POINTER |
                                                  BTK_BOOL,
+                                                 CCO_DEFAULT,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -19598,6 +19599,7 @@ in *rcblock).
     try_to_convert_class_operand_to_builtin_type(&operand,
                                                  (a_type_ptr)NULL,
                                                  builtin_type_kinds,
+                                                 CCO_DEFAULT,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -26002,6 +26004,7 @@ class type if necessary.  In modern C++ modes, this routine implements
     try_to_convert_class_operand_to_builtin_type(result,
                                                  (a_type_ptr)NULL,
                                                  type_kind_set,
+                                                 CCO_DEFAULT,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -33189,6 +33192,7 @@ used for constant expressions.
     try_to_convert_class_operand_to_builtin_type(operand,
                                                  (a_type_ptr)NULL,
                                                  type_kind_set,
+                                                 CCO_DEFAULT,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -33482,6 +33486,7 @@ an enumerator.
     try_to_convert_class_operand_to_builtin_type(operand,
                                                  dest_type,
                                                  builtin_types,
+                                                 CCO_CONVERTED_CONSTANT_EXPR,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -39073,13 +39078,14 @@ The value of the constant is returned in *constant.
     if (constexpr_enabled) {
       /* C++11 allows user-defined conversions and limits certain
          implicit conversions. */
-      process_converted_constant_expression(&result,
-                                            specific_type,
-                                            (a_builtin_type_kind_set)
-                                                     (BTK_INTEGRAL | BTK_ENUM),
-                                            is_array_bound,
-                                            is_enum,
-                                            constant);
+      a_builtin_type_kind_set  btks;
+      if (cpp11_mode && is_array_bound) {
+        btks = BTK_SIZE_T;
+      } else {
+        btks = BTK_INTEGRAL | BTK_ENUM;
+      }  /* if */
+      process_converted_constant_expression(&result, specific_type, btks,
+                                            is_array_bound, is_enum, constant);
     } else {
       /* C mode or pre-C++11 C++ mode. */
       do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -39247,8 +39253,8 @@ expression context.  Return either *is_constant TRUE and a constant value in
       specific_type = (a_type_ptr)NULL;
       btks = (BTK_INTEGRAL | BTK_ENUM);
     }  /* if */
-    try_to_convert_class_operand_to_builtin_type(&result, specific_type,
-                                                 btks, &processed);
+    try_to_convert_class_operand_to_builtin_type(&result, specific_type, btks,
+                                                 CCO_DEFAULT, &processed);
   }  /* if */
   if (!processed) {
     /* Do lvalue --> rvalue and other transformations for the non-overloaded
