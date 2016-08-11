@@ -5483,9 +5483,10 @@ a constant result, return TRUE and set *result_con to that result.  Otherwise,
 return FALSE.
 */
 {
-  a_boolean     is_constant = FALSE;
+  a_boolean   is_constant = FALSE;
+  a_type_ptr  return_type;
   static an_expr_node_ptr
-                call_node = NULL, rout_node, src_node;
+              call_node = NULL, rout_node, src_node, rvalue_node;
 
   /* Create an expression tree representing the conversion call and
      interpret it. */
@@ -5495,6 +5496,7 @@ return FALSE.
     rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
     src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
     rout_node->next = src_node;
+    rvalue_node = alloc_expr_node((an_expr_node_kind)enk_operation);
   }  /* if */
   if (is_constant_operand(source_operand)) {
     src_node->kind = (an_expr_node_kind)enk_constant;
@@ -5510,18 +5512,26 @@ return FALSE.
   }  /* if */
   rout_node->variant.routine.ptr = conv_func;
   rout_node->type = conv_func->type;
-  set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
-                    result_type, /*is_lvalue=*/FALSE, rout_node);
+  return_type = skip_typerefs(conv_func->type)->variant.routine.return_type;
+  if (is_any_reference_type(return_type)) {
+    set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
+                      return_type, /*is_lvalue=*/TRUE, rout_node);
+    set_node_operator(rvalue_node, (an_expr_operator_kind)eok_ref_indirect,
+                      result_type, /*is_lvalue=*/FALSE, call_node);
+  } else {
+    set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
+                      result_type, /*is_lvalue=*/FALSE, rout_node);
+    set_node_operator(rvalue_node, (an_expr_operator_kind)eok_cast,
+                      result_type, /*is_lvalue=*/FALSE, call_node);
+  }  /* if */
   if (relaxed_constexpr_enabled) {
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
-    is_constant = interpret_constexpr_call(call_node, result_con, &diag_list);
+    is_constant = interpret_expr(rvalue_node, result_con, &diag_list);
     discard_more_info_list(&diag_list);
   } else {
-    an_error_code  failure_warning = ec_no_error;
-    is_constant = fold_constexpr_call(call_node, /*record_backing_expr=*/FALSE,
-                                      &error_position, result_con,
-                                      &failure_warning);
+    is_constant = fold_constexpr_expr(rvalue_node, /*treat_as_object=*/FALSE,
+                                      &error_position, result_con);
   }  /* if */
 done:
   return is_constant;

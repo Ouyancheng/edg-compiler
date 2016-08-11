@@ -41,8 +41,8 @@ allowed in a constant expression in C++14.
 The Interpreter
 ---------------
 The interpreter itself traverses the IL in typical "recursive descent" fashion.
-The principal entry points are interpret_constexpr_call and
-interpret_constexpr_ctor, which set up an "interpreter state" that is carried
+The principal entry points are interpret_expr, interpret_constexpr_call, and
+interpret_constexpr_ctor.  These set up an "interpreter state" that is carried
 through the interpretation process (this state includes local allocations and
 mappings, the call stack, diagnostic records, etc.).
 
@@ -9657,6 +9657,62 @@ diagnostic in *ips.
   }  /* switch */
   return result;
 }  /* copy_interpreter_object_to_constant */
+
+
+a_boolean interpret_expr(an_expr_node_ptr  expr,
+                         a_constant_ptr    result_con,
+                         a_diag_list_ptr   diag_list)
+/*
+Attempt to interpret the given expression.  Return TRUE if successful, and
+produce the resulting value in result_con.  Otherwise, return FALSE, and
+record diagnostic info in *diag_list.
+*/
+{
+  a_boolean             result = TRUE;
+  an_interpreter_state  ips;
+  a_byte                *result_storage;
+  a_byte_count          n_bytes;
+  a_type_ptr            result_type = skip_typerefs(expr->type);
+
+  if (is_prototype_instantiation_context()) {
+    /* Don't attempt interpretation in template contexts. */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips);
+  ips.position = expr->position;
+  n_bytes = expr_result_size(&ips, expr, result_type, &result); 
+  if (!result) {
+    /* Nothing more to be done. */
+  } else {
+    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    result_con->type = result_type;
+    if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
+      if (ips.input_error) {
+        /* Interpretation failed due to an error node in the IL.  Continue
+           with an error constant, but treat interpretation as successful. */
+        set_error_constant(result_con);
+      } else {
+        do_constexpr_fail(result);
+      }  /* if */
+    } else if (!copy_interpreter_object_to_constant(
+                                         &ips, result_storage, result_storage,
+                                         result_type, result_con)) {
+      do_constexpr_fail(result);
+    }  /* if */
+  }  /* if */
+  *diag_list = ips.diag_list;
+  release_interpreter_state(&ips);
+  if (n_free_variant_path_entries != n_variant_path_entries) {
+    reclaim_variant_path_entries();
+  }  /* if */
+done:
+  return result;
+}  /* interpret_expr */
 
 
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
