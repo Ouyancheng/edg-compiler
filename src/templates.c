@@ -19654,10 +19654,16 @@ friend_template_checks_done:
         /* The template found is the prototype instantiation of the primary
            template.  This occurs if the primary template was named in the
            template argument list of a partial specialization.  This is
-           not permitted. */
-        pos_error(ec_partial_spec_is_primary_template,
-                  &locator.source_position);
-        err = TRUE;
+           not permitted.  Earlier versions of the Microsoft compiler allow
+           this, so only a warning is issued. */
+        an_error_severity severity = es_error;
+        if (microsoft_mode && microsoft_version <= 1600) {
+          severity = es_warning;
+        } else {
+          err = TRUE;
+        }  /* if */
+        pos_diagnostic(severity, ec_partial_spec_is_primary_template,
+                       &locator.source_position);
       }  /* if */
     } else if (is_nonreal_instance_class_symbol(sym)) {
       a_scope_stack_entry_ptr	ssep =

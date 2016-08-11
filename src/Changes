@@ -1,5 +1,16 @@
 Version 4.12
 
+8/11/16  [EDGcpfe/17463]
+Microsoft compatibility: template argument list on primary template declaration
+
+A template argument list is now allowed on a redeclaration of a primary
+class template in Microsoft mode when microsoft_version <= 1600.  A
+warning is issued.
+
+  template <class T> struct A;
+  template <class T> struct A<T> {};
+
+
 8/10/16  [EDGcpfe/17461]
 ELF visibility attribute and implicit class template instantiations
 
