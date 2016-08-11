@@ -13525,12 +13525,18 @@ not_direct_binding_case:
             /* In a "converted constant expression" context, not all standard
                conversions are acceptable (e.g., a floating-point -> integer
                conversion should be rejected). */
-            compatible = impl_converted_constant_expr_conversion_possible(
+            a_constant_ptr  conv_result = local_constant();
+            compatible = constant_conv_function_result(conversion_routine,
+                                                       source_operand,
+                                                       return_type,
+                                                       conv_result) &&
+                         impl_converted_constant_expr_conversion_possible(
                                                  return_type,
-                                                 /*source_is_constant=*/FALSE,
-                                                 (a_constant*)NULL,
+                                                 /*source_is_constant=*/TRUE,
+                                                 conv_result,
                                                  dest_type,
                                                  (an_error_code*)NULL);
+            release_local_constant(&conv_result);
           } else {
             compatible = TRUE;
           }  /* if */

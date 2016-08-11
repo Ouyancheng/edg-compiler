@@ -5473,6 +5473,57 @@ constant expressions, fold to a constant result.
 }  /* force_operand_to_constant_if_possible */
 
 
+a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
+                                        an_operand      *source_operand,
+                                        a_type_ptr      result_type,
+                                        a_constant_ptr  result_con)
+/*
+If calling the given conversion function on the given source operand produces
+a constant result, return TRUE and set *result_con to that result.  Otherwise,
+return FALSE.
+*/
+{
+  a_boolean     is_constant = FALSE;
+  an_expr_node  call_node, rout_node, src_node;
+  a_diag_list   diag_list;
+
+  clear_diag_list(&diag_list);
+  /* Create an expression tree representing the conversion call and
+     interpret it. */
+  if (is_constant_operand(source_operand)) {
+    src_node.kind = (an_expr_node_kind)enk_constant;
+    src_node.is_lvalue = FALSE;
+    src_node.is_xvalue = FALSE;
+    src_node.variant.constant.ptr = &source_operand->variant.constant;
+    src_node.type = source_operand->type;
+  } else if (is_expression_operand(source_operand)) {
+    src_node = *source_operand->variant.expression;
+  } else {
+    goto done;
+  }  /* if */
+  src_node.next = NULL;
+  rout_node.kind = (an_expr_node_kind)enk_routine;
+  rout_node.variant.routine.ptr = conv_func;
+  rout_node.type = conv_func->type;
+  rout_node.next = &src_node;
+  call_node.kind = (an_expr_node_kind)enk_operation;
+  set_node_operator(&call_node, (an_expr_operator_kind)eok_dot_member_call,
+                    result_type, /*is_lvalue=*/FALSE, &rout_node);
+  if (relaxed_constexpr_enabled) {
+    is_constant = interpret_constexpr_call(&call_node, result_con, &diag_list);
+  } else {
+    an_error_code  failure_warning = ec_no_error;
+    is_constant = fold_constexpr_call(&call_node,
+                                      /*record_backing_expr=*/FALSE,
+                                      &error_position, result_con,
+                                      &failure_warning);
+  }  /* if */
+  discard_more_info_list(&diag_list);
+done:
+  return is_constant;
+}  /* constant_conv_function_result */
+
+
 #if !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/
 #endif /* !UPC_EXTENSIONS_ALLOWED */
