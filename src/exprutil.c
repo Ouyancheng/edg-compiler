@@ -5484,41 +5484,45 @@ return FALSE.
 */
 {
   a_boolean     is_constant = FALSE;
-  an_expr_node  call_node, rout_node, src_node;
-  a_diag_list   diag_list;
+  static an_expr_node_ptr
+                call_node = NULL, rout_node, src_node;
 
-  clear_diag_list(&diag_list);
   /* Create an expression tree representing the conversion call and
      interpret it. */
+  if (call_node == NULL) {
+    /* Allocate expression nodes the first time this routine is called. */
+    call_node = alloc_expr_node((an_expr_node_kind)enk_operation);
+    rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
+    src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
+    rout_node->next = src_node;
+  }  /* if */
   if (is_constant_operand(source_operand)) {
-    src_node.kind = (an_expr_node_kind)enk_constant;
-    src_node.is_lvalue = FALSE;
-    src_node.is_xvalue = FALSE;
-    src_node.variant.constant.ptr = &source_operand->variant.constant;
-    src_node.type = source_operand->type;
+    src_node->kind = (an_expr_node_kind)enk_constant;
+    src_node->is_lvalue = FALSE;
+    src_node->is_xvalue = FALSE;
+    src_node->variant.constant.ptr = &source_operand->variant.constant;
+    src_node->type = source_operand->type;
   } else if (is_expression_operand(source_operand)) {
-    src_node = *source_operand->variant.expression;
+    *src_node = *source_operand->variant.expression;
+    src_node->next = NULL;
   } else {
     goto done;
   }  /* if */
-  src_node.next = NULL;
-  rout_node.kind = (an_expr_node_kind)enk_routine;
-  rout_node.variant.routine.ptr = conv_func;
-  rout_node.type = conv_func->type;
-  rout_node.next = &src_node;
-  call_node.kind = (an_expr_node_kind)enk_operation;
-  set_node_operator(&call_node, (an_expr_operator_kind)eok_dot_member_call,
-                    result_type, /*is_lvalue=*/FALSE, &rout_node);
+  rout_node->variant.routine.ptr = conv_func;
+  rout_node->type = conv_func->type;
+  set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
+                    result_type, /*is_lvalue=*/FALSE, rout_node);
   if (relaxed_constexpr_enabled) {
-    is_constant = interpret_constexpr_call(&call_node, result_con, &diag_list);
+    a_diag_list  diag_list;
+    clear_diag_list(&diag_list);
+    is_constant = interpret_constexpr_call(call_node, result_con, &diag_list);
+    discard_more_info_list(&diag_list);
   } else {
     an_error_code  failure_warning = ec_no_error;
-    is_constant = fold_constexpr_call(&call_node,
-                                      /*record_backing_expr=*/FALSE,
+    is_constant = fold_constexpr_call(call_node, /*record_backing_expr=*/FALSE,
                                       &error_position, result_con,
                                       &failure_warning);
   }  /* if */
-  discard_more_info_list(&diag_list);
 done:
   return is_constant;
 }  /* constant_conv_function_result */
