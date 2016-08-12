@@ -1,5 +1,18 @@
 Version 4.12
 
+8/12/16  [EDGcpfe/17158]
+GCC and Clang compatibility: Uninitialized variables in constexpr function
+
+In Clang and GNU C++14 modes, the front end now accepts declarations of
+uninitialized variables of empty class type in constexpr functions.  For
+example:
+
+  struct S {};
+  constexpr void g() {
+    S s;  // Error in default C++14 mode; accepted in GNU/Clang C++14 mode.
+  }
+
+
 8/11/16  [EDGcpfe/17463]
 Microsoft compatibility: template argument list on primary template declaration
 

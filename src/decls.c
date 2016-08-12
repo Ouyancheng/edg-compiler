@@ -2187,13 +2187,16 @@ the function non-constexpr in that case).
     innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
   } else if (!is_template_dependent_context()) {
     a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
-    if (!is_literal_type(vp->type)) {
+    a_type_ptr     vtp = skip_typerefs(vp->type);
+    if (!is_literal_type(vtp)) {
       if (!rp->is_template_function || rp->is_specialized) {
         pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
         vp->type = error_type();
       }  /* if */
       rp->is_constexpr = FALSE;
-    } else if (vp->init_kind == (an_init_kind)initk_none) {
+    } else if (vp->init_kind == (an_init_kind)initk_none &&
+               !((gpp_mode || clang_mode) && is_immediate_class_type(vtp) &&
+                 vtp->variant.class_struct_union.is_empty_class)) {
       if (!rp->is_template_function || rp->is_specialized) {
         pos_error(ec_uninitialized_var_in_constexpr_function, pos);
       }  /* if */
