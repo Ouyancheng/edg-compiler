@@ -746,6 +746,15 @@ ignored.  This is the case when the tag is being defined and for
 explicit specializations.
 */
 {
+  a_boolean defer_access_checks;
+
+  /* If we are allowing access (e.g, for a definition) and access checks
+     are not already being deferred, defer them now. */
+  defer_access_checks = allow_access &&
+                        !scope_stack_top().defer_access_checks;
+  if (defer_access_checks) {
+    begin_deferral_of_access_checks();
+  }  /* if */
   /* The Microsoft compiler does check the access of qualified tag
      references. */
   if (microsoft_bugs) {
@@ -762,6 +771,9 @@ explicit specializations.
        of a member function or static data member.  This is also done
        for explicit specializations that name a class. */
     discard_declarator_access_errors();
+  }  /* if */
+  if (defer_access_checks) {
+    end_deferral_of_access_checks();
   }  /* if */
 }  /* check_qualified_tag_access */
 

@@ -1,5 +1,19 @@
 Version 4.12
 
+8/16/16  [EDGcpfe/17013]
+Spurious access error on out-of-class definition of local nested class
+
+A spurious access error could be issued if a nested class of a local class
+was defined outside of its parent class.  Now fixed.
+
+  int main() {
+    class A {
+      class B;
+    };
+    class A::B { };
+  }
+
+
 8/15/16  [EDGcpfe/17388]
 GNU compatibility: Multiple _Alignas alignment specifiers
 
