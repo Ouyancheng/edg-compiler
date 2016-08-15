@@ -1,5 +1,13 @@
 Version 4.12
 
+8/15/16  [EDGcpfe/17469]
+Missing ak_may_alias case
+
+The ak_may_alias case was missing from a switch statement in disp_attribute
+which could cause "** BAD KIND **" to be displayed rather than "may_alias"
+in edgcpdisp output.
+
+
 8/16/16  [EDGcpfe/17013]
 Spurious access error on out-of-class definition of local nested class
 

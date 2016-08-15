@@ -5548,6 +5548,7 @@ Display the indicated attribute entry.
     case ak_init_priority:       kind_name = "init_priority";       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     case ak_malloc:              kind_name = "malloc";              break;
+    case ak_may_alias:           kind_name = "may_alias";           break;
     case ak_mode:                kind_name = "mode";                break;
     case ak_no_instrument_function:
                                  kind_name = "no_instrument_function";
