@@ -1,5 +1,16 @@
 Version 4.12
 
+8/15/16  [EDGcpfe/17388]
+GNU compatibility: Multiple _Alignas alignment specifiers
+
+The C11 standard dictates that when multiple _Alignas alignment specifiers
+are present, the strictest alignment is used.  That had been true except when
+gnu_version < 40800.  Now fixed.  For example (with --c11 --gnu_version 40700):
+
+  long _Alignas(4) _Alignas(8) _Alignas(1) x;
+  _Static_assert(__alignof(x) == 8, "");
+
+
 8/12/16  [EDGcpfe/17158]
 GCC and Clang compatibility: Uninitialized variables in constexpr function
 

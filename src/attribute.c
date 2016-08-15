@@ -3831,9 +3831,9 @@ and C11 _Alignas specifiers.
   a_const_char *constr;
   a_boolean    std_specifier = is_std_attribute(ap) &&
                                !ap->is_std_gcc_attribute;
-  /* GNU appears to use the last attribute in the declaration in earlier
+  /* G++ appears to use the last attribute in the declaration in earlier
      versions, and even in later versions for types. */
-  a_boolean    use_last_attribute = gnu_mode && !clang_mode &&
+  a_boolean    use_last_attribute = !C_mode() && gnu_mode && !clang_mode &&
                                     (gnu_version < 40800 ||
                                      entity_kind == iek_type);
 
