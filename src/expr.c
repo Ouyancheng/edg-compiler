@@ -38320,10 +38320,6 @@ type with the type of return_op.
     keep_placeholder = FALSE;
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
-  /* Make sure array-to-pointer and function-to-pointer decay are done before
-     we use the type as the return type. */
-  do_operand_transformations(return_op,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
   if (!curr_routine->has_deduced_return_type) {
     /* This is the first time we deduce the return type.  Record the original
        in case we must perform the deduction again for another return statement
@@ -38332,6 +38328,12 @@ type with the type of return_op.
   } else {
     orig_type = scope_stack[depth_innermost_function_scope].orig_return_type;
     check_assertion(orig_type != NULL);
+  }  /* if */
+  if (!is_reference_type(orig_type)) {
+    /* Make sure array-to-pointer and function-to-pointer decay are done
+       before we use the type as the return type. */
+    do_operand_transformations(return_op,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
   }  /* if */
   auto_type = find_bottom_of_type(orig_type);
   is_decltype_auto = is_auto_type(orig_type) &&

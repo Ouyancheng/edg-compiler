@@ -12001,6 +12001,7 @@ node pointing to the dynamic init "dip".
   expr->variant.init.dynamic_init = dip;
   expr->type = con->type;
   con->expr = expr;
+  fix_memory_region_problems_in_copied_constant(con);
 }  /* add_temp_init_backing_expression */
 
 
