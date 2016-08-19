@@ -38305,10 +38305,15 @@ function (curr_routine) whose return type is to be set from such an expression.
 type with the type of return_op.
 */
 {
-  a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;
-  a_boolean   is_decltype_auto, still_dependent;
-  a_boolean   lambda_case = curr_routine->is_lambda_body;
-  a_boolean   keep_placeholder = !lambda_case;
+  a_type_ptr                   rout_type, orig_type, auto_type, deduced_type;
+  a_type_ptr                   deduced_auto_type;
+  a_boolean                    is_decltype_auto, still_dependent;
+  a_boolean                    lambda_case = curr_routine->is_lambda_body;
+  a_boolean                    keep_placeholder = !lambda_case;
+  a_transformation_options_set topts =
+                                     TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
+  a_boolean                    first_deduction =
+                                        !curr_routine->has_deduced_return_type;
 
   check_assertion(curr_routine->has_deducible_return_type);
   rout_type = skip_typerefs(curr_routine->type);
@@ -38320,7 +38325,7 @@ type with the type of return_op.
     keep_placeholder = FALSE;
   }  /* if */
 #endif /* COROUTINES_ALLOWED */
-  if (!curr_routine->has_deduced_return_type) {
+  if (first_deduction) {
     /* This is the first time we deduce the return type.  Record the original
        in case we must perform the deduction again for another return statement
        in this function. */
@@ -38329,11 +38334,20 @@ type with the type of return_op.
     orig_type = scope_stack[depth_innermost_function_scope].orig_return_type;
     check_assertion(orig_type != NULL);
   }  /* if */
-  if (!is_reference_type(orig_type)) {
-    /* Make sure array-to-pointer and function-to-pointer decay are done
-       before we use the type as the return type. */
-    do_operand_transformations(return_op,
-                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+  if (is_reference_type(orig_type)) {
+    /* A reference return type can bind to array and function return
+       types. */
+    topts |= (TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
+  }  /* if */
+  /* Check the return expression for validity and, for non-reference return
+     types, make sure array-to-pointer and function-to-pointer decay are
+     done before we use the type as the return type. */
+  do_operand_transformations(return_op, topts);
+  if (first_deduction) {
+    /* If an error was detected, processing the erroneous operand will have
+       changed the function return type to an error type. */
+    orig_type = rout_type->variant.routine.return_type;
   }  /* if */
   auto_type = find_bottom_of_type(orig_type);
   is_decltype_auto = is_auto_type(orig_type) &&
