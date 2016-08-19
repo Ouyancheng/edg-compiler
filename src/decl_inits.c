@@ -5654,8 +5654,8 @@ FALSE is returned) for non-class objects.
         }  /* if */
       } else {
         if (ctor != NULL) {
-          a_constant  folded_con, *cp;
-          a_boolean   folded;
+          a_constant_ptr  folded_con = local_constant(), cp;
+          a_boolean       folded;
           /* Normal case -- there's a constructor to do the initialization. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                              /*evaluated=*/TRUE);
@@ -5667,7 +5667,7 @@ FALSE is returned) for non-class objects.
             folded = fold_constexpr_ctor(init_dip,
                                          /*record_backing_expr=*/TRUE,
                                          /*check_constexpr=*/FALSE,
-                                         err_pos, &folded_con);
+                                         err_pos, folded_con);
             /* Clear the variable field again.  It may get recorded later if
                needed. */
             init_dip->variable = NULL;
@@ -5676,7 +5676,7 @@ FALSE is returned) for non-class objects.
           }  /* if */
           if (folded) {
             /* The constructor call can be folded. */
-            cp = alloc_unshared_constant(&folded_con);
+            cp = alloc_unshared_constant(folded_con);
             if (!same_entities(var_type, tp)) {
               /* The object has an array type.  We need to build an aggregate
                  initialization on top of the constant. */
@@ -5721,6 +5721,7 @@ FALSE is returned) for non-class objects.
                                                            /*evaluated=*/TRUE);
             }  /* if */
           }  /* if */
+          release_local_constant(&folded_con);
         } else if (is_nonreal_class) {
           /* Assume a dynamic initialization is needed. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
