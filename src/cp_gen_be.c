@@ -5755,7 +5755,12 @@ field designator.
                                   type->variant.class_struct_union.field_list);
     }  /* if */
     /* Loop through the list of initializer constants. */
-    sub_con = first_con;
+    /* First, skip over any initializers for base classes; they are
+       implicit and mustn't be put out in the generated code. */
+    for (sub_con = first_con;
+         sub_con != NULL &&
+                       sub_con->constant_for_base_class_from_constexpr_folding;
+         sub_con = sub_con-> next) {}
     if (sub_con != NULL &&
         (sub_con->implicit_aggr_element ||
          (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
