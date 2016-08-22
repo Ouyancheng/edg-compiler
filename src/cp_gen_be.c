@@ -15998,7 +15998,8 @@ a default initialization, i.e., one that wasn't written in the
 source.
 */
 {
-  a_boolean is_default_init = FALSE, is_value_init;
+  a_boolean      is_default_init = FALSE, is_value_init;
+  a_constant_ptr con;
 
   dip = skip_constexpr_ctor_eval(dip);
   if (dip->is_explicit_cast) {
@@ -16022,6 +16023,10 @@ source.
     is_default_init = TRUE;
   } else if (default_class_array_initialization(dip, &is_value_init)) {
     /* This is default initialization for a class array. */
+    is_default_init = TRUE;
+  } else if ((con = constant_value_of_dynamic_init(dip)) != NULL &&
+             con->is_result_of_constexpr_call && con->expr == NULL) {
+    /* This is the result of a default constexpr constructor evaluation. */
     is_default_init = TRUE;
   }  /* if */
   return is_default_init;
