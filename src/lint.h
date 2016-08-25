@@ -347,7 +347,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,find_ms_attribute_for_entity)*/
 /*lint -esym(759,form_property_or_event_name_as_qualifier_if_needed)*/
 /*lint -esym(765,form_property_or_event_name_as_qualifier_if_needed)*/
-/*lint -esym(552,ms_permissive)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #else /* BACK_END_IS_CP_GEN_BE */
 /*lint -esym(759,conv_prvalue_expr_to_object_pointer)*/
@@ -544,6 +543,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_linker)*/
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_user)*/
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_last)*/
+/*lint -esym(552,ms_permissive)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !FIXED_POINT_ALLOWED
 /*lint -esym(759,fixed_point_enabled)*/
