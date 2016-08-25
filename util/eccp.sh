@@ -714,6 +714,7 @@ check_abbreviation()
 --ms_c++latest
 --ms_compatibility
 --ms_extensions
+--ms_permissive
 --mscorlib_file_name
 --multibyte_chars
 --multi_trans_unit
@@ -1314,6 +1315,7 @@ process_option()
          --no_ms_compatibility | \
          --ms_extensions | \
          --no_ms_extensions | \
+         --ms_permissive | \
          --no_ms_permissive | \
 	 --cppcli | \
 	 --no_cppcli | \

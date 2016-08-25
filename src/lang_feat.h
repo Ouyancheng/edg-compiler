@@ -1107,6 +1107,16 @@ to be processed in the same manner as msak_unrecognized attributes.
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
 
 /*
+Flag that is the default value for ms_permissive, a global variable that
+controls whether the Microsoft emulation is more (when TRUE) or less (when
+FALSE) permissive in accepting certain constructs.  Emulates the Visual
+Studio /permissive[-] option.
+*/
+#ifndef DEFAULT_MS_PERMISSIVE
+#define DEFAULT_MS_PERMISSIVE TRUE
+#endif /* ifndef DEFAULT_MS_PERMISSIVE */
+
+/*
 The global variable sun_mode is defined here (rather than in cmd_line.h) so
 that it can be available to standalone utilities.
 */

@@ -573,7 +573,10 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE */
-  add_option_description(optk_no_ms_permissive, "no_ms_permissive",
+  add_option_description(optk_ms_permissive, "ms_permissive",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_permissive, "no_ms_permissive",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5869,6 +5872,11 @@ file.
 #else /* !defined(DEFAULT_MICROSOFT_VERSION) */
   comment_undefined_macro_name(DEFAULT_MICROSOFT_VERSION);
 #endif /* defined(DEFAULT_MICROSOFT_VERSION) */
+#if defined(DEFAULT_MS_PERMISSIVE)
+  define_numeric_valued_macro(DEFAULT_MS_PERMISSIVE);
+#else /* !defined(DEFAULT_MS_PERMISSIVE) */
+  comment_undefined_macro_name(DEFAULT_MS_PERMISSIVE);
+#endif /* defined(DEFAULT_MS_PERMISSIVE) */
 #if defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED)
   define_numeric_valued_macro(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED);
 #else /* !defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED) */
@@ -9251,10 +9259,10 @@ enable_microsoft_mode:
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
-      case optk_no_ms_permissive:
-        /* Emulate Microsoft's /permissive- switch (and also implies
+      case optk_ms_permissive:
+        /* Emulate Microsoft's /permissive[-] switch (which also implies
            Microsoft mode). */
-        no_ms_permissive = TRUE;
+        ms_permissive = opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11268,7 +11276,7 @@ variables declared in cmd_line.h.
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
-  no_ms_permissive = FALSE;
+  ms_permissive = DEFAULT_MS_PERMISSIVE;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;
