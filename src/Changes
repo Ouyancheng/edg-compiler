@@ -1,5 +1,13 @@
 Version 4.12
 
+8/25/16  [EDGcpfe/17455]
+Microsoft compatibility: add --no_ms_permissive command-line option
+
+A new command-line option, --no_ms_permissive, has been added to emulate
+Microsoft's /permissive- option.  This option applies to all Microsoft modes
+(i.e., C, C++, C++/CLI, and C++/CX).
+
+
 8/18/16  [EDGcpfe/17471]
 Deduced reference return type with array/function lvalue expression
 

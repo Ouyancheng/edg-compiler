@@ -790,6 +790,7 @@ check_abbreviation()
 --no_microsoft_bugs
 --no_ms_compatibility
 --no_ms_extensions
+--no_ms_permissive
 --no_multibyte_chars
 --no_named_address_spaces
 --no_named_registers
@@ -1313,6 +1314,7 @@ process_option()
          --no_ms_compatibility | \
          --ms_extensions | \
          --no_ms_extensions | \
+         --no_ms_permissive | \
 	 --cppcli | \
 	 --no_cppcli | \
 	 --c++cli | \

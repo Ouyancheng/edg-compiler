@@ -573,6 +573,9 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE */
+  add_option_description(optk_no_ms_permissive, "no_ms_permissive",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -9248,6 +9251,12 @@ enable_microsoft_mode:
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_no_ms_permissive:
+        /* Emulate Microsoft's /permissive- switch (and also implies
+           Microsoft mode). */
+        no_ms_permissive = TRUE;
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -11259,6 +11268,7 @@ variables declared in cmd_line.h.
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
+  no_ms_permissive = FALSE;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;

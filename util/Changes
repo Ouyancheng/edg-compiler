@@ -1,5 +1,12 @@
 Version 4.12
 
+8/25/16  [EDGcpfe/17455]
+Microsoft compatibility: add --no_ms_permissive command-line option
+
+The --no_ms_permissive (which emulates Microsoft's /permissive- option) has
+been added to eccp.sh.
+
+
 6/27/16  [EDGcpfe/16967,EDGcpfe/17000]
 Microsoft compatibility: add --ms_c++14 and --ms_c++latest command-line options
 

@@ -293,6 +293,7 @@ typedef enum /*an_option_kind*/ {
   optk_assembly_using_dir,
   optk_using_framework_directory,
   optk_mscorlib_file_name,
+  optk_no_ms_permissive,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
@@ -1429,6 +1430,15 @@ EXTERN a_boolean
 EXTERN a_const_char
                 *msvc_lang;
                         /* The value for the _MSVC_LANG predefined macro. */
+
+EXTERN a_boolean
+		no_ms_permissive;
+			/* TRUE if the --no_ms_permissive command-line
+			   option has been specified.  This emulates the
+			   Microsoft /permissive- option which is meant to
+			   more strictly adhere to standards.  Can be used
+			   with C, C++, C++/CLI, and C++/CX modes. */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
