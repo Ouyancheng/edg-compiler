@@ -1433,12 +1433,10 @@ EXTERN a_const_char
 
 EXTERN a_boolean
 		ms_permissive;
-			/* TRUE if the --[no_]ms_permissive command-line
-			   option has been specified.  This emulates the
-			   Microsoft /permissive[-] option which is meant to
-			   control how strictly Visual Studio adheres to
-			   standards.  Can be used with C, C++, C++/CLI, and
-			   C++/CX modes. */
+			/* TRUE if the Microsoft "permissive" mode is being
+			   emulated.  Default value is specified by
+			   DEFAULT_MS_PERMISSIVE.  Can be used with C, C++,
+			   C++/CLI, and C++/CX modes. */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
