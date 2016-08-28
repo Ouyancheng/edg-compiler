@@ -11581,6 +11581,16 @@ gnu_builtin_fail:;
           if (is_reference_type(il_return_type)) {
             /* Adjust lvalue reference to rvalue reference if necessary. */
             result_con->type = il_return_type;
+            if (result_con->kind == (a_constant_repr_kind)ck_address &&
+                result_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+                !in_file_scope(result_con->variant.address.variant.constant)) {
+              /* Returning a reference to a local constant: copy it to the
+                 file scope to avoid memory region problems. */
+              result_con->variant.address.variant.constant =
+                     alloc_unshared_constant(result_con->
+                                             variant.address.variant.constant);
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
@@ -12001,7 +12011,6 @@ node pointing to the dynamic init "dip".
   expr->variant.init.dynamic_init = dip;
   expr->type = con->type;
   con->expr = expr;
-  fix_memory_region_problems_in_copied_constant(con);
 }  /* add_temp_init_backing_expression */
 
 
