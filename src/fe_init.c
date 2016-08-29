@@ -676,7 +676,7 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_case,      "case");
   enter_keyword((a_token_kind)tok_char,      "char");
   enter_keyword((a_token_kind)tok_continue,  "continue");
-  if (!(microsoft_mode && microsoft_version >= 1400)) {
+  if (!(microsoft_mode && microsoft_version >= 1400 && ms_permissive)) {
     /* Newer Microsoft compilers treat "default" as an ordinary identifier in
        most contexts, and turn it into a keyword only when it is followed by
        a colon. */

@@ -14,6 +14,7 @@ When --no_ms_permissive mode is used:
   - nonclass prototype instantiations are done
   - Names declared only in friend declarations are only visible to ADL
   - The special Microsoft nonreal base class lookup is disabled
+  - "default" is not allowed as an identifier
 
 
 8/18/16  [EDGcpfe/17471]
