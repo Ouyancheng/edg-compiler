@@ -1263,6 +1263,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		microsoft_bugs;
 EXTERN a_boolean
+		microsoft_permissive;
+EXTERN a_boolean
 		cppcli_enabled;
 EXTERN a_boolean
 		cppcx_enabled;
@@ -1279,6 +1281,7 @@ EXTERN a_boolean
 #define ms_extensions FALSE
 #define ms_compat FALSE
 #define microsoft_bugs FALSE
+#define ms_permissive FALSE
 #define cppcli_enabled FALSE
 #define cppcx_enabled FALSE
 #define cli_or_cx_enabled FALSE
