@@ -4860,6 +4860,21 @@ A pointer to the head of the list is returned in tcsp.
     /* No call to record_strongest_alignment_attr is necessary for a prototype
        instantiation. */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (gpp_mode) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(prototype_type);
+    if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+      /* If no ELF visibility was explicitly specified, use that of the
+         enclosing class or namespace (if any). */
+      an_ELF_visibility_kind  visibility = ctsp->ELF_visibility;
+      update_for_default_ELF_visibility(
+                 &visibility, prototype_type->source_corresp.is_class_member);
+      ctsp->ELF_visibility = visibility;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Scan the base specifiers list, if any, and the body of the class.
      The pending class definition counter is incremented while processing
      the instantiation.  This ensures that the fixup of the instantiation
@@ -7970,17 +7985,10 @@ a type in certain ways (see template_arg_list_is_dependent).
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
-      /* If no ELF visibility was explicitly specified, use that of the
-         enclosing class or namespace (if any). */
-      an_ELF_visibility_kind  visibility = ctsp->ELF_visibility;
-      update_for_default_ELF_visibility(
-                     &visibility, class_type->source_corresp.is_class_member);
-      ctsp->ELF_visibility = visibility;
-    }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (prototype_type != NULL) {
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      ctsp->ELF_visibility = class_type_supp(prototype_type)->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       class_type->in_gnu_abi_tag_namespace =
                                       prototype_type->in_gnu_abi_tag_namespace;
     }  /* if */
