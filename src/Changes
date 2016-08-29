@@ -1,12 +1,19 @@
 Version 4.12
 
 8/25/16  [EDGcpfe/17455]
-Microsoft compatibility: add --[no_]ms_permissive command-line options
+Microsoft compatibility: addition of "non-permissive" Microsoft mode
 
 New command-line options, --[no_]ms_permissive, have been added to emulate
 Microsoft's /permissive[-] option.  These options apply to all Microsoft modes
 (i.e., C, C++, C++/CLI, and C++/CX).  A new configuration macro,
 DEFAULT_MS_PERMISSIVE, has been added to control the default behavior.
+When --no_ms_permissive mode is used:
+  - Standard dependent name lookup is done (e.g., unqualified lookup
+    ignores dependent base classes, 2-phase lookup is done, the implicit
+    typename feature is disabled) 
+  - nonclass prototype instantiations are done
+  - Names declared only in friend declarations are only visible to ADL
+  - The special Microsoft nonreal base class lookup is disabled
 
 
 8/18/16  [EDGcpfe/17471]

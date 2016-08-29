@@ -3504,7 +3504,8 @@ that do normal id lookup processing.
   if ((ref_sym == NULL || def_sym == NULL) &&
       (!lookup_state->is_friend_lookup ||
        (lookup_state->must_be_tag &&
-        ((gpp_mode && gnu_version < 40000) || sun_mode || microsoft_mode)) ||
+        ((gpp_mode && gnu_version < 40000) || sun_mode ||
+          (microsoft_mode && ms_permissive))) ||
        depth_innermost_namespace_scope <= common_depth ||
        locator->is_template_id) &&
        !do_not_look_in_common_scopes) {
@@ -5622,7 +5623,7 @@ namespace.  This routine is used only in C++ mode.
     locator->specific_symbol = sym;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (sym == NULL && microsoft_mode) {
+  if (sym == NULL && microsoft_mode && ms_permissive) {
     a_scope_stack_entry_ptr	ssep = &scope_stack_top();
     if (ssep->in_decltype_context && scope_is(ssep, sck_func_prototype) &&
         is_template_dependent_context()) {

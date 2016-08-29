@@ -2206,7 +2206,17 @@ option values if they were not already set by a command line option.
     }  /* if */
 #endif /* !RUNTIME_USES_TYPENAME */
     if (!option_kind_used[(int)optk_implicit_typename]) {
-      implicit_typename_enabled = TRUE;
+      /* In non-permissive mode, implicit typename processing is not done. */
+      if (ms_permissive) {
+        implicit_typename_enabled = TRUE;
+      } else {
+        implicit_typename_enabled = FALSE;
+      }  /* if */
+    }  /* if */
+    if (!ms_permissive) {
+      /* Only do the special nonreal base class processing in permissive
+         mode. */
+      no_ms_nonreal_base_classes = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
       /* If nonstandard instantiation lookup was not set on the command line,
@@ -2258,14 +2268,31 @@ option values if they were not already set by a command line option.
       arg_dependent_lookup_enabled = (microsoft_version >= 1310);
     }  /* if */
     if (!option_kind_used[(int)optk_friend_injection]) {
-      friend_class_injection_enabled = TRUE;
-      friend_function_injection_enabled = TRUE;
+      /* In non-permissive mode, do not inject friend names. */
+      if (ms_permissive) {
+        friend_class_injection_enabled = TRUE;
+        friend_function_injection_enabled = TRUE;
+      } else {
+        friend_class_injection_enabled = FALSE;
+        friend_function_injection_enabled = FALSE;
+      }  /* if */
     }  /* if */
     if (!option_kind_used[(int)optk_dependent_name_processing]) {
-      do_dependent_name_processing = FALSE;
+      /* In non-permissive mode, do normal dependent name processing. */
+      if (ms_permissive) {
+        do_dependent_name_processing = FALSE;
+      } else {
+        do_dependent_name_processing = TRUE;
+      }  /* if */
     }  /* if */
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
-      nonclass_prototype_instantiations = FALSE;
+      /* In non-permissive mode, parse non-class templates (this is needed
+         for dependent name processing. */
+      if (ms_permissive) {
+        nonclass_prototype_instantiations = FALSE;
+      } else {
+        nonclass_prototype_instantiations = TRUE;
+      }  /* if */
     }  /* if */
     dependent_lookup_finds_static_functions = TRUE;
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
