@@ -2287,7 +2287,7 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
       /* In non-permissive mode, parse non-class templates (this is needed
-         for dependent name processing. */
+         for dependent name processing). */
       if (ms_permissive) {
         nonclass_prototype_instantiations = FALSE;
       } else {
