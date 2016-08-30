@@ -1263,7 +1263,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		microsoft_bugs;
 EXTERN a_boolean
-		microsoft_permissive;
+		ms_permissive;
 EXTERN a_boolean
 		cppcli_enabled;
 EXTERN a_boolean
