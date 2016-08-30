@@ -15,6 +15,10 @@ When --no_ms_permissive mode is used:
   - Names declared only in friend declarations are only visible to ADL
   - The special Microsoft nonreal base class lookup is disabled
   - "default" is not allowed as an identifier
+  - Only one member of a union can be initialized in a constructor
+    initializer of that union
+  - The anachronism that allows binding a reference to nonconst to a class
+    rvalue is disabled
 
 
 8/18/16  [EDGcpfe/17471]

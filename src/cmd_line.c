@@ -2325,7 +2325,8 @@ option values if they were not already set by a command line option.
     } else if (microsoft_version == 1300) {
       late_template_ovl_res_tiebreaker = FALSE;
     }  /* if */
-    if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
+    if (!(option_kind_used[(int)optk_nonconst_ref_anachronism]) &&
+        ms_permissive) {
       allow_nonconst_ref_anachronism = TRUE;
     }  /* if */
     allow_nonconst_call_anachronism = (microsoft_version < 1000);

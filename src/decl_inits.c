@@ -6340,7 +6340,7 @@ underlying element type and the array type itself is returned through
              assume cip->kind is cik_field. */
           if (cip->variant.field == field) {
             /* Error on duplicate initialization will be issued below. */
-          } else if (!microsoft_mode &&
+          } else if (!(microsoft_mode && ms_permissive) &&
                      disjoint_members_of_union(cip->variant.field, field)) {
             /* The union (or the anonymous union subobject) has already been
                initialized. */
