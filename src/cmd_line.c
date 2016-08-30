@@ -11310,6 +11310,7 @@ variables declared in cmd_line.h.
   microsoft_bugs = FALSE;
   ms_extensions = FALSE;
   ms_compat = FALSE;
+  ms_permissive = FALSE;
   cppcli_enabled = FALSE;
   cppcx_enabled = FALSE;
   cli_or_cx_enabled = FALSE;
