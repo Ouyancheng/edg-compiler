@@ -679,7 +679,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         get_token_and_coalesce_if_identifier(flags);
         if (curr_token == tok_lparen) {
           get_token_and_coalesce_if_identifier(flags);
-          cache_tokens_until(tok_rbracket, /*coalesce=*/TRUE);
+          cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
           type_specifier_seen = TRUE;
         } else {
           next_token_fetched = TRUE;

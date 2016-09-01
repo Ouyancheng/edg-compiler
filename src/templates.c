@@ -12744,6 +12744,8 @@ make_new_type:
           while (any_more) {
             a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
             a_type_ptr declared_type;
+            a_type_qualifier_set
+                       param_qualifiers = TQ_NONE;
             elements++;
             if (reusable_param_types > 0) {
               /* We have already called copy_type_with_substitution for this
@@ -12774,7 +12776,14 @@ make_new_type:
                    8.3.5 para 3.  However, because they do belong to
                    the type of the parameter variable, they were not
                    removed before add_to_param_id_list was called. */
-                 tp = make_unqualified_type(tp);
+                param_qualifiers = get_top_level_type_qualifiers(tp);
+                if (param_qualifiers != TQ_NONE) { 
+                  tp = make_unqualified_type(tp);
+                  if (param_qualifiers & TQ_C11_ATOMIC) {
+                    /* The C11 _Atomic qualifier should not be discarded. */
+                    tp = make_qualified_type(tp, TQ_C11_ATOMIC);
+                  }  /* if */
+                }  /* if */
               }  /* if */
               if (is_void_type(tp) ||
                   (!microsoft_mode && !gpp_mode &&
@@ -12787,6 +12796,7 @@ make_new_type:
             /* Allocate the param type entry and copy default arg info. */
             new_ptp = make_param_type(tp, &null_source_position);
             new_ptp->declared_type = declared_type;
+            new_ptp->qualifiers = param_qualifiers;
             new_ptp->param_num = ptp->param_num;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             /* Copy the C++/CLI param array state to the deduced parameter. */

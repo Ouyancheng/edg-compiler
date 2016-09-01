@@ -6567,7 +6567,7 @@ TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
         }  /* if */
       } else if (c11_atomic_enabled) {
         if ((list1->qualifiers & TQ_C11_ATOMIC) !=
-                                         (list2->qualifiers &TQ_C11_ATOMIC)) {
+                                        (list2->qualifiers & TQ_C11_ATOMIC)) {
           compatible = FALSE;
           goto done;
         }  /* if */
