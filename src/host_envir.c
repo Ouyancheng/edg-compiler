@@ -6001,6 +6001,11 @@ This is done before command line processing.
      definition for UINT32_MAX, we defaulted that macro to UINT_MAX.  Check
      that this does not exceed the capacity of the uint32_t type. */
   check_assertion(sizeof(UINT32_MAX) <= sizeof(uint32_t)); /*lint !e866*/
+  /* Check that bit field types are large enough. */
+  check_assertion_str(
+       sizeof(a_wide_bit_field)*CHAR_BIT >= NUM_BITS_FOR_TYPE_QUALIFIER_SET &&
+       sizeof(a_wide_bit_field)*CHAR_BIT >= NUM_BITS_FOR_NAME_LINKAGE,
+       "host_envir_early_init: a_wide_bit_field too small");
 }  /* host_envir_early_init */
 
 

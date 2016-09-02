@@ -1,5 +1,21 @@
 Version 4.12
 
+9/2/16   [EDGcpfe/17503]
+Bit fields in IL entries
+
+Previously, bit fields in IL entries were always declared with type
+a_bit_field.   When building the front end with a Microsoft compiler
+a_bit_field is a typedef for "unsigned char" to allow for more compact
+layouts of some IL entries.  That is, however, not always sufficient to hold
+bit fields representing type qualifier sets (and, theoretically, large name
+linkage sets), particularly with the recent addition of the C11 _Atomic
+qualifier and the Clang nullability qualifiers.  A new type a_wide_bit_field
+has therefore been introduced to deal with these cases.  Its underlying type
+can be configured through the new macro WIDE_BIT_FIELD_TYPE.  If that macro
+is undefined, a_wide_bit_field is "unsigned short" when building with the
+Microsoft compiler and "unsigned int" otherwise.
+
+
 9/2/16   [EDGcpfe/17494]
 Spurious error on capture of constant-valued variable used as an lvalue
 
