@@ -443,11 +443,11 @@ that results in poor packing, so use "unsigned char".
 */
 #if __MSC__
 typedef unsigned char a_bit_field;
-#else /* !__MSC__ */
-typedef unsigned int a_bit_field;
 #ifndef WIDE_BIT_FIELD_TYPE
 #define WIDE_BIT_FIELD_TYPE unsigned short
 #endif /* ifndef WIDE_BIT_FIELD_TYPE */
+#else /* !__MSC__ */
+typedef unsigned int a_bit_field;
 #endif /* __MSC__ */
 
 /*
