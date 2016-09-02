@@ -3803,13 +3803,17 @@ Also, if the member is virtual, force its definition to be generated.
                                                       rp, (a_symbol_ptr)NULL);
         if (declared_exception_spec != NULL) {
           /* If an exception specification was specified at all, it must be
-             equivalent to the generated one. */
+             equivalent to the generated one.  The resolution of Core issue
+             1778 changed the non-equivalent cases to cause the defaulted
+             member to be deleted instead of ill-formed.  MSVC and GCC already
+             behaved that way for template instances. */
           if (exception_spec_is_less_restrictive(
                     declared_exception_spec, rtsp->exception_specification) ||
               exception_spec_is_less_restrictive(
                     rtsp->exception_specification, declared_exception_spec)) {
-            if ((microsoft_mode || (gpp_mode && !clang_mode)) &&
-                rp->is_template_function && !rp->is_specialized) {
+            if (cpp14_mode ||
+                ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+                 rp->is_template_function && !rp->is_specialized)) {
               rp->is_deleted = TRUE;
               rp->defined = TRUE;
             } else {

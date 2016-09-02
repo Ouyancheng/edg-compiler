@@ -1,5 +1,21 @@
 Version 4.12
 
+9/2/16   [EDGcpfe/17453]
+Exception specifications and defaulted special member functions
+
+Previously, declaring a defaulted special member function with an exception
+specification that does not match that of a corresponding generated special
+member always resulted in an error.  Now, in C++14 mode, when the special
+member is defaulted in the class definition, the member becomes deleted.
+For example:
+
+  struct S {
+    ~S() throw(int) = default;  // Previously an error.  Now accepted in
+  };                            // C++14 mode.
+
+This change reflects the resolution of Core issue 1778.
+
+
 9/2/16   [EDGcpfe/17503]
 Bit fields in IL entries
 
