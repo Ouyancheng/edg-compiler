@@ -2510,11 +2510,25 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
     if ((options & FTO_SUPPRESS_SPECIFIERS) == 0) {
+      a_boolean  c11_atomic = FALSE;
       if (qualifiers != TQ_NONE) {
+        if (qualifiers & TQ_C11_ATOMIC) {
+          /* We should be able to emit _Atomic like other type qualifiers, but
+             early Clang versions only accepted the "_Atomic(T)" form; not
+             "_Atomic T".  We therefore handle TQ_C11_ATOMIC separately. */
+          c11_atomic = TRUE;
+          qualifiers &= ~TQ_C11_ATOMIC;
+        }  /* if */
         form_type_qualifier(qualifiers, upc_block_size,
                             /*need_trailing_space=*/TRUE, octl);
+        if (c11_atomic) {
+          octl->output_str("_Atomic(", octl);
+        }  /* if */
       }  /* if */
       form_type_specifier(type, octl);
+      if (c11_atomic) {
+        octl->output_str(")", octl);
+      }  /* if */
       if (attrib_stop_type != orig_type) {
         output_type_attributes(orig_type, attrib_stop_type, octl);
       }  /* if */
