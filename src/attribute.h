@@ -51,10 +51,6 @@ extern void update_for_default_ELF_visibility(
                                      a_boolean               is_class_member);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
-extern a_type_ptr get_type_with_mode(a_type_ptr        type,
-                                     a_type_mode_kind  mode,
-                                     a_source_position *pos);
-
 extern a_boolean check_transparent_union(a_type_ptr        tp,
                                          a_source_position *pos);
 

@@ -5338,9 +5338,9 @@ given "may_alias" attribute to it.
 }  /* apply_may_alias_attr */
 
 
-a_type_ptr get_type_with_mode(a_type_ptr        type,
-                              a_type_mode_kind  mode,
-                              a_source_position *pos)
+static a_type_ptr get_type_with_mode(a_type_ptr        type,
+                                     a_type_mode_kind  mode,
+                                     a_source_position *pos)
 /*
 Return a type, similar to the type provided, but with the indicated machine
 mode.  The source position at which any errors should be emitted is given by

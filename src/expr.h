@@ -559,8 +559,6 @@ an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if BUILTIN_FUNCTIONS_ENABLED
-extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
-
 extern a_boolean fold_gnu_call_if_possible(an_operand_ptr   op,
                                            an_expr_node_ptr call);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */

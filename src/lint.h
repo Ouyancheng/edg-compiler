@@ -1330,6 +1330,12 @@ extern int fileno(FILE *);
 /*lint -esym(755,gnu_routine_supp)*/
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
+/*lint -esym(714,load_matching_builtin_function_by_name)*/
+/*lint -esym(759,load_matching_builtin_function_by_name)*/
+/*lint -esym(765,load_matching_builtin_function_by_name)*/
+/*lint -esym(830,bufk_first)*/
+/*lint -esym(830,bufk_last)*/
+
 #endif /* ifndef LINT_H */
 
 /******************************************************************************

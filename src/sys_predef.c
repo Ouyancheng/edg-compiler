@@ -257,10 +257,10 @@ matches must also have an 'A'.
     if (*p == 'g' || *p == 'L' || *p == 'm') {
       result = TRUE;
       if (*p == 'g') {
-        result &= (gnu_mode && !clang_mode);
+        result = result && (gnu_mode && !clang_mode);
         version = gnu_version;
       } else if (*p == 'L') {
-        result &= (gnu_mode && clang_mode);
+        result = result && (gnu_mode && clang_mode);
         version = clang_version;
       } else {
         check_assertion(*p == 'm');
@@ -270,8 +270,8 @@ matches must also have an 'A'.
       p++;
       check_assertion(*p == 'x' || *p == 'c' || *p == '+');
       result &= (*p == 'x') ||
-                (*p == ('c' && C_mode())) ||
-                (*p == ('+' && !C_mode()));
+                ((*p == 'c') && C_mode()) ||
+                ((*p == '+') && !C_mode());
       p++;
       if (*p == '4') {
         result &= !targ_supports_x86_64;
@@ -481,9 +481,9 @@ builtin_type_table for the builtin's type.
 {
   a_symbol_locator loc;
   a_type_ptr       builtin_type = NULL;
-  static char      atomic_name_buffer[200] = /*lint -(e785) */
+  static char      atomic_name_buffer[200] = /*lint -e(785) */
                                          {'_','_','a','t','o','m','i','c','_'};
-  static char      builtin_name_buffer[200] = /*lint -(e785) */
+  static char      builtin_name_buffer[200] = /*lint -e(785) */
                                      {'_','_','b','u','i','l','t','i','n','_'};
   char             *name;
   char             required_prefix = '\0';
@@ -534,7 +534,7 @@ builtin_type_table for the builtin's type.
 }  /* preload_builtin_symbol */
 
 
-void preload_builtin_symbols(void)
+static void preload_builtin_symbols(void)
 /*
 Loop through each builtin declaration (including user-defined builtins) and
 create a symbol header entry for any builtin entry that is enabled in the

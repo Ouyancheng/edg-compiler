@@ -4442,7 +4442,7 @@ will be called to check and adjust the argument types.
 
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
-a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name)
+static a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name)
 /*
 Return the symbol for the GNU __builtin_... function identified by the given
 string, or NULL if there is no such function.
