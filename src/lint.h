@@ -1335,8 +1335,11 @@ extern int fileno(FILE *);
 /*lint -esym(714,load_matching_builtin_function_by_name)*/
 /*lint -esym(759,load_matching_builtin_function_by_name)*/
 /*lint -esym(765,load_matching_builtin_function_by_name)*/
-/*lint -esym(769,bufk_first)*/
-/*lint -esym(769,bufk_last)*/
+/*lint -esym(714,push_new_top_level_declaration)*/
+/*lint -esym(759,push_new_top_level_declaration)*/
+/*lint -esym(765,push_new_top_level_declaration)*/
+/*lint -esym(769,a_builtin_user_function_kind_tag::bufk_first)*/
+/*lint -esym(769,a_builtin_user_function_kind_tag::bufk_last)*/
 /*lint -esym(552,targ_ssize_t_int_kind)*/
 
 #endif /* ifndef LINT_H */

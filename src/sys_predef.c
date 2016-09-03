@@ -264,27 +264,29 @@ matches must also have an 'A'.
         version = clang_version;
       } else {
         check_assertion(*p == 'm');
-        result &= microsoft_mode;
+        result = result && microsoft_mode;
         version = microsoft_version;
       }  /* if */
       p++;
       check_assertion(*p == 'x' || *p == 'c' || *p == '+');
       result = result && ((*p == 'x') ||
-                          ((*p == 'c') && C_mode()) ||
-                          ((*p == '+') && !C_mode()));
+                          (*p == 'c' && C_mode()) ||
+                          (*p == '+' && !C_mode()));
       p++;
       if (*p == '4') {
-        result &= !targ_supports_x86_64;
+        result = result && !targ_supports_x86_64;
         p++;
       } else if (*p == '8') {
-        result &= targ_supports_x86_64;
+        result = result && targ_supports_x86_64;
         p++;
       }  /* if */
       if (*p == '(') {
-        /* A range specification follows. */
-        result &= builtin_matches_version_range(version, &p);
+        /* A range specification follows (note that the version range is
+           inspected even if result is FALSE because the pointer needs to
+           be updated to point past the version range). */
+        result = builtin_matches_version_range(version, &p) && result;
       }  /* if */
-      result &= prefix_match;
+      result = result && prefix_match;
       if (result) {
         /* Found a match. */
         break;
@@ -481,9 +483,9 @@ builtin_type_table for the builtin's type.
 {
   a_symbol_locator loc;
   a_type_ptr       builtin_type = NULL;
-  static char      atomic_name_buffer[200] = /*lint --e(785) */
+  static char      atomic_name_buffer[200] = /*lint -e{785} */
                                          {'_','_','a','t','o','m','i','c','_'};
-  static char      builtin_name_buffer[200] = /*lint --e(785) */
+  static char      builtin_name_buffer[200] = /*lint -e{785} */
                                      {'_','_','b','u','i','l','t','i','n','_'};
   char             *name;
   char             required_prefix = '\0';
