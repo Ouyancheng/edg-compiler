@@ -5414,6 +5414,7 @@ push_instantiation_scope_for_boxed_enum_type.
   free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_boxed_enum_type */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void push_new_top_level_declaration(void)
 /*
@@ -5431,7 +5432,6 @@ Use pop_scope to pop the scope.
                   PS_NEW_INSTANTIATION_CONTEXT);
 }  /* push_new_top_level_declaration */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void push_template_declaration_scope(
 		a_template_decl_info_ptr	decl_info,

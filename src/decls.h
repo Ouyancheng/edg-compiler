@@ -171,7 +171,7 @@ type specifier.
       (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type)
 #else /* !GNU_VECTOR_TYPES_ALLOWED */
 #define or_is_edg_type_keyword(tok)                                       \
-  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type         \
+  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
       (tok) == tok_edg_bool_type)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 

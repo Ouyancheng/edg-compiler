@@ -2131,9 +2131,9 @@ extern void push_instantiation_scope_for_boxed_enum_type(void);
 
 extern void pop_instantiation_scope_for_boxed_enum_type(void);
 
-extern void push_new_top_level_declaration(void);
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern void push_new_top_level_declaration(void);
 
 extern void push_instantiation_scope_for_templ_param_rescan(
                             a_template_decl_info_ptr	decl_info,

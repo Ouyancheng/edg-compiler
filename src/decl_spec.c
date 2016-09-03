@@ -2771,8 +2771,8 @@ type.
       n_elems = (a_targ_size_t)unsigned_value_of_integer_constant(con, &ovflo);
       if (ovflo ||
           (n_elems * esize) > (a_targ_size_t)targ_maximum_pack_alignment) {
-      pos_error(ec_vector_length_too_large, &pos);
-      err = TRUE;
+        pos_error(ec_vector_length_too_large, &pos);
+        err = TRUE;
       } else if (n_elems <= 0) {
         pos_error(ec_vector_length_must_be_positive, &pos);
         err = TRUE;

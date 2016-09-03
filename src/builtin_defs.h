@@ -14,7 +14,7 @@ builtin_defs.h -- Declarations related to builtin declarations
 */
 
 /* Do not add builtins here.  See sys_predef.h to add user-defined builtins. */
-
+/*lint -e641 */ /* Suppress lint messages about converting enums to int. */
 
 /*------------------Beginning of automatically generated code---------------*/
 
@@ -12914,6 +12914,7 @@ EXTERN a_builtin_descr builtin_table[]
 ;
 
 /*--------------------End of automatically generated code-----------------*/
+/*lint +e641 */ /* Re-enable lint messages about converting enums to int. */
 
 /******************************************************************************
 *                                                             \  ___  /       *

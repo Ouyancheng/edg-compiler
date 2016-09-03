@@ -4082,7 +4082,7 @@ typedef struct a_symbol_header {
 /* Macro that is TRUE if the symbol header refers to a builtin function that
    has not been loaded yet. */
 #define builtin_needs_to_be_loaded(sym_hdr) \
-  ((sym_hdr)->builtin_function_index != bfk_none && \
+  ((sym_hdr)->builtin_function_index != (a_builtin_function_index)bfk_none && \
    !(sym_hdr)->builtin_has_been_loaded)
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
