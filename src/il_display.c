@@ -3161,26 +3161,6 @@ Print the name of the C++ operator kind.
   (void)printf("%s", s);
 }  /* disp_opname_kind_name */
 
-#if BUILTIN_FUNCTIONS_ENABLED
-
-static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
-/* Print the name of the builtin function kind. */
-{
-  a_const_char *s;
-
-  if (kind == (a_builtin_function_kind)bfk_none) {
-    s = "(bfk_none)";
-  } else if (kind == (a_builtin_function_kind)bfk_last) {
-    s = "(bfk_last)";
-  } else if (kind > (a_builtin_function_kind)bfk_last) {
-    s = "**BAD BUILTIN FUNCTION KIND**";
-  } else {
-    s = builtin_function_kind_names[(int)kind];
-  }  /* if */
-  (void)printf("%s", s);
-}  /* disp_builtin_function_kind_name */
-
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static void disp_class_list(a_const_char           *name,
                             a_class_list_entry_ptr ptr)
@@ -3340,8 +3320,7 @@ Display the indicated routine.
              ptr->variant.builtin_function_kind != 
                                            (a_builtin_function_kind)bfk_none) {
     disp_name("builtin_function_kind");
-    disp_builtin_function_kind_name(ptr->variant.builtin_function_kind);
-    (void)printf("\n");
+    (void)printf("%s\n",unmangled_or_fabricated_name_of(&ptr->source_corresp));
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   }  /* if */
   if (ptr->address_taken) {

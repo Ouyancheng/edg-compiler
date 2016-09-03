@@ -546,6 +546,13 @@ extern void form_sun_link_scope_specifiers(
 extern void il_to_str_one_time_init(void);
 extern void il_to_str_init(void);
 
+#if GNU_VECTOR_TYPES_ALLOWED
+EXTERN a_boolean
+		gen_edg_vector_type;
+			/* If TRUE, use the __edg_vector_type__ keyword to
+			   render vector types (instead of a GNU attribute). */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 #endif /* ifndef IL_TO_STR_H */
 
 

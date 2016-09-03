@@ -12897,6 +12897,16 @@ restart:
       if (ctoken == tok_string_literal) {
         /* Give this string literal a sequence number, if needed. */
         assign_string_literal_sequence_number();
+#if BUILTIN_FUNCTIONS_ENABLED
+      } else if (!fetch_pp_tokens && ctoken == tok_identifier &&
+                 locator_for_curr_id.symbol_header != NULL &&
+                 builtin_needs_to_be_loaded(
+                                          locator_for_curr_id.symbol_header)) {
+        /* If this cached identifier is for a builtin function that has not yet
+           been loaded (because loading is disabled during caching), load it
+           now. */
+        load_matching_builtin_function(locator_for_curr_id.symbol_header);
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       }  /* if */
       goto return_from_token_scan;
     }  /* if */
@@ -13561,6 +13571,15 @@ id_scan:
         }  /* if */
         sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);
+#if BUILTIN_FUNCTIONS_ENABLED
+        if (!fetch_pp_tokens &&
+            !fetching_tokens_from_insert_string() &&
+            builtin_needs_to_be_loaded(sym_hdr)) {
+          /* Load a builtin function once it's referenced (though not during
+             preprocessing nor when creating token caches). */
+          load_matching_builtin_function(sym_hdr);
+        }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
         assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* We must check for white-space keywords before any macro expansion

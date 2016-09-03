@@ -1856,6 +1856,11 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->is_cli_operator = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ptr->any_function_referenced_in_dependent_call = FALSE;
+#if BUILTIN_FUNCTIONS_ENABLED
+  ptr->builtin_has_been_loaded = FALSE;
+  ptr->is_user_builtin_function = FALSE;
+  ptr->builtin_function_index = 0;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   db_exit();
 
   return ptr;

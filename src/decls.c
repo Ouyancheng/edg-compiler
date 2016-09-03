@@ -4032,7 +4032,6 @@ style builtin function without the "__builtin_" prefix, return TRUE.
 {
   a_boolean            result = FALSE;
   a_symbol_header_ptr  hdr = loc->symbol_header;
-  a_symbol_ptr         matching_sym;
   a_symbol_locator     matching_loc;
   sizeof_t             builtin_name_length;
 
@@ -4045,12 +4044,11 @@ style builtin function without the "__builtin_" prefix, return TRUE.
   strcpy(temp_text_buffer+sizeof(BF_PREFIX)-1, hdr->identifier);
   /* Look up the prefixed name and check if it corresponds to a GNU built-in
      function. */
-  matching_sym = find_symbol(temp_text_buffer, builtin_name_length,
-                             &matching_loc);
+  clear_locator(&matching_loc, &null_source_position);
+  (void)find_symbol(temp_text_buffer, builtin_name_length, &matching_loc);
 #undef BF_PREFIX
-  if (matching_sym != NULL &&
-      is_simple_function_symbol(matching_sym) &&
-      is_gnu_builtin_function(matching_sym->variant.routine.ptr)) {
+  if (matching_loc.symbol_header != NULL &&
+      matching_loc.symbol_header->builtin_function_index != 0) {
     result = TRUE;
   }  /* if */
   return result; 
@@ -7653,6 +7651,13 @@ use of).
       if (name != NULL) {
         a_symbol_locator  loc;
         bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+        if (bsym == NULL) {
+          /* If no matching symbol was found, it's possible that the underlying
+             builtin has not been loaded yet, so load it and redo the
+             lookup. */
+          load_matching_builtin_function(loc.symbol_header);
+          bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+        }  /* if */
       }  /* if */
       if (bsym != NULL) {
         for (; bsym != NULL; bsym = bsym->next) {
@@ -18490,8 +18495,7 @@ templates (e.g., __make_integer_seq).
                                             next_token_is_top_level_decl_start;
   scanning_generated_code_from_metadata = is_metadata;
   scanning_generated_code = TRUE;
-  check_assertion(scope_stack[depth_scope_stack].kind 
-                                                    == (a_scope_kind)sck_file);
+  check_assertion(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE);
   if (assembly_index != 0) {
     /* Determine the position information to use for this assembly file. */
     a_cli_metadata_file_ptr cmfp = map_assembly_index_to_cmfp(assembly_index);

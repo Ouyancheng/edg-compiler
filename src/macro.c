@@ -6210,10 +6210,7 @@ end_arg_expansion:;
 #if BUILTIN_FUNCTIONS_ENABLED
       a_const_char *builtin_name = clang_feature_test_id(map, &arg_position);
       if (builtin_name != NULL &&
-          (gnu_builtin_func_by_name(builtin_name) != NULL ||
-           /* __builtin_shufflevector is treated as a keyword, not a builtin.*/
-           (clang_mode &&
-            strcmp(builtin_name, "__builtin_shufflevector") == 0))) {
+          builtin_function_is_enabled(builtin_name)) {
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");

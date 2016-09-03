@@ -620,6 +620,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if GNU_VECTOR_TYPES_ALLOWED
    (an_opname_kind)onk_none,           /* tok_builtin_shuffle */
    (an_opname_kind)onk_none,           /* tok_builtin_shufflevector */
+   (an_opname_kind)onk_none,           /* tok_edg_vector_type */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_noreturn */
    (an_opname_kind)onk_none,          /* tok_builtin_complex */
@@ -636,6 +637,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_trivially_copy_assignable */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_builtin_addressof */
+   (an_opname_kind)onk_none,          /* tok_edg_size_type */
+   (an_opname_kind)onk_none,          /* tok_edg_ptrdiff_type */
+   (an_opname_kind)onk_none,          /* tok_edg_bool_type */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */

@@ -128,6 +128,10 @@ incorporated:
 #include "debug.h"
 #endif /* DEBUG */
 
+#if BUILTIN_FUNCTIONS_ENABLED
+#include "sys_predef.h"
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+
 #endif /* ifndef FE_COMMON_H */
 
 /******************************************************************************

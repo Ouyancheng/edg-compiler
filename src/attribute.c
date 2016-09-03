@@ -5929,6 +5929,14 @@ The attribute is being applied to "routine".  If an error is issued,
 
 #if GNU_FUNCTION_MULTIVERSIONING
 
+#if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
+static a_boolean
+                mv_builtins_loaded;
+                        /* Flag that is TRUE if the GCC builtins required
+                           during the lowering of multiversioning routines
+                           have been loaded. */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
+
 a_boolean process_multiversion_function(an_attribute_ptr ap,
                                         a_scope_depth    scope_depth,
                                         a_routine_ptr    representative,
@@ -6078,6 +6086,18 @@ attributes in C mode).
     /* Queue the new target-specific routine on the list. */
     add_to_specific_version_list(representative, target_routine);
   }  /* if */
+#if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
+  if (!mv_builtins_loaded) {
+    /* During the lowering process, these builtins will be needed, so load
+       them now.  This is done here rather than during lowering because
+       lexing/parsing may be finished by the time lowering actually needs
+       these builtins. */
+    load_matching_builtin_function_by_name("__builtin_cpu_init");
+    load_matching_builtin_function_by_name("__builtin_cpu_is");
+    load_matching_builtin_function_by_name("__builtin_cpu_supports");
+    mv_builtins_loaded = TRUE;
+  }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
   *target = target_routine;
 done:
   return !err;
@@ -8454,6 +8474,9 @@ attributes.
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #endif /* DEBUG */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
+      pch_saved_var_array_elem(mv_builtins_loaded),
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -8480,6 +8503,9 @@ translation unit.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   unscanned_attributes = NULL;
   unscanned_attributes_active = FALSE;
+#if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
+  mv_builtins_loaded = FALSE;
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
 }  /* attribute_trans_unit_init */
 
 

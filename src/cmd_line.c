@@ -2049,6 +2049,12 @@ static a_flag_name
   { "no_very_expensive_checking", &no_very_expensive_checking },
   { "diag_override_does_not_affect_sfinae",
     &diag_override_does_not_affect_sfinae },
+#if BUILTIN_FUNCTIONS_ENABLED
+  { "preload_builtin_functions", &preload_builtin_functions },
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#if GNU_VECTOR_TYPES_ALLOWED
+  { "gen_edg_vector_type", &gen_edg_vector_type },
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
 
@@ -10889,6 +10895,9 @@ variables declared in cmd_line.h.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   gen_old_style_line_dirs = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if GNU_VECTOR_TYPES_ALLOWED
+  gen_edg_vector_type = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   gen_line_info_in_pp_output = FALSE;
   f_pp_output = NULL;
   pp_file_name = NULL;
@@ -11379,6 +11388,7 @@ variables declared in cmd_line.h.
 #endif /* COROUTINES_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_functions_enabled = FALSE;
+  preload_builtin_functions = FALSE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   utf8_char_literals_enabled = FALSE;
   deduced_return_types_enabled = FALSE;

@@ -31192,6 +31192,10 @@ Create and return the __va_list_tag struct type that is predefined by certain
   source_sequence_entries_disallowed =
                                      saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if BACK_END_IS_CP_GEN_BE
+  /* No elaborated type specifier is needed. */
+  type->has_been_declared = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   return type;
 }  /* make_va_list_tag_type */
 

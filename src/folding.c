@@ -8677,7 +8677,7 @@ pseudo_call can be NULL if that information is not needed.
     switch (rp->variant.builtin_function_kind) {
       case bfk_classify_type:
       case bfk_constant_p:
-      case bfk_choose_expr:
+      case bufk_choose_expr:
 #if GCC_BUILTIN_VARARGS
       case bfk_stdarg_start:
       case bfk_va_start:

@@ -18137,7 +18137,11 @@ static a_routine_ptr
 
 static void create_builtin_cpu_routines()
 /*
-Initialize the builtin_cpu_*_routine variables (if necessary).
+Initialize the builtin_cpu_*_routine variables (if necessary).  Note that these
+builtins were loaded during "target" attribute processing (it's unlikely that
+the source referred to them directly, so the lazy loading mechanism would not
+have loaded them and it may be too late in the lexing/parsing process to load
+them now).
 */
 {
   if (builtin_cpu_init_routine == NULL) {

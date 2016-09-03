@@ -162,6 +162,20 @@ type keyword extensions.  If you change this, see also type_keyword.
 #endif /* or_is_extension_type_keyword */
 
 /*
+Macro that is true for EDG-specific extension keywords that construct a
+type specifier.
+*/
+#if GNU_VECTOR_TYPES_ALLOWED
+#define or_is_edg_type_keyword(tok)                                       \
+  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
+      (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type)
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+#define or_is_edg_type_keyword(tok)                                       \
+  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type         \
+      (tok) == tok_edg_bool_type)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
+/*
 Macro that is TRUE if the indicated token is a type keyword, e.g., int.
 If you change this, see also type_keyword.
 */
@@ -177,6 +191,7 @@ If you change this, see also type_keyword.
    or_is_microsoft_type_keyword(tok)                                  \
    or_is_int128_keyword(tok)                                          \
    or_is_fixed_point_type_keyword(tok)                                \
+   or_is_edg_type_keyword(tok)                                        \
    or_is_extension_type_keyword(tok)) 
 
 /*

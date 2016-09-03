@@ -4056,8 +4056,35 @@ typedef struct a_symbol_header {
 			   non-member function with the name given by
 			   this header.  This is used to suppress warnings
 			   about unused static functions in some cases. */
+#if BUILTIN_FUNCTIONS_ENABLED
+  a_bit_field	builtin_has_been_loaded:1;
+                        /* TRUE if this is a builtin (i.e.,
+                           builtin_function_index is not bfk_none) and the
+                           builtin has been loaded. */
+  a_bit_field	is_user_builtin_function:1;
+                        /* TRUE if this is a builtin (i.e.,
+                           builtin_function_index is not bfk_none) and the
+                           information about the builtin is found in the
+                           user-defined builtin table (builtin_user_table).
+                           Otherwise the information is found in builtin_table.
+                           */
+  a_builtin_function_index
+                builtin_function_index;
+                        /* When not bfk_none, the symbol header refers to
+                           a builtin function.  The value can be an enumeration
+                           value from a_builtin_function_kind_tag or
+                           a_builtin_user_function_kind_tag. */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 } a_symbol_header;
 
+
+#if BUILTIN_FUNCTIONS_ENABLED
+/* Macro that is TRUE if the symbol header refers to a builtin function that
+   has not been loaded yet. */
+#define builtin_needs_to_be_loaded(sym_hdr) \
+  ((sym_hdr)->builtin_function_index != bfk_none && \
+   !(sym_hdr)->builtin_has_been_loaded)
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #define SYMBOL_TABLE_SIZE 16381
 	  		/* The number of buckets in the symbol table.  This

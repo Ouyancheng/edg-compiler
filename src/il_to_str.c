@@ -2029,13 +2029,30 @@ by octl.
          are rendered from an_attribute entries, we only render the element
          type here.  Otherwise, we form the attribute also, unless it must
          be deferred to meet GCC requirements (which happens when vector_size
-         occurs in a typedef definition). */
-      if (!octl->defer_vector_attribute && octl->output_attributes == NULL) {
-        a_boolean need_leading_space = FALSE;
-        form_vector_type_attribute(type, &need_leading_space, octl);
-        octl->output_str(" ", octl);
+         occurs in a typedef definition).  It is also possible to have vector
+         types rendered as "__edg_vector_type__(T, N)" by setting the global
+         variable gen_edg_vector_type to TRUE. */
+      if (gen_edg_vector_type) {
+        a_type_ptr  etype = type->variant.vector.element_type;
+        octl->output_str("__edg_vector_type__(", octl);
+        form_type(etype, octl);
+        octl->output_str(", ", octl);
+        if (type->variant.vector.size_constant != NULL) {
+          form_constant(type->variant.vector.size_constant,
+                        /*need_parens=*/FALSE, octl);
+        } else {
+          a_targ_size_t  vlen = type->size/skip_typerefs(etype)->size;
+          form_unsigned_num((a_host_large_unsigned)vlen, octl);
+        }  /* if */
+        octl->output_str(")", octl);
+      } else {
+        if (!octl->defer_vector_attribute && octl->output_attributes == NULL) {
+          a_boolean need_leading_space = FALSE;
+          form_vector_type_attribute(type, &need_leading_space, octl);
+          octl->output_str(" ", octl);
+        }  /* if */
+        form_type(type->variant.vector.element_type, octl);
       }  /* if */
-      form_type(type->variant.vector.element_type, octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4755,12 +4772,11 @@ it represents a backing expression for the floating-point constant value.
          this particular NaN pattern, see if the NaN constant has a backing
          expression that specifies a builtin call.  If so, use that call
          (and argument) to recreate it in the back end. */
-      check_assertion(strlen(builtin_function_kind_names[
-                                     (int)rp->variant.builtin_function_kind]) +
+      check_assertion(strlen(unmangled_or_fabricated_name_of(
+                                                        &rp->source_corresp)) +
                       string_con->variant.string.length + 7 < sizeof(buf));
       (void)sprintf(buf, "(%s(\"%s\"))",
-                    builtin_function_kind_names[
-                                       (int)rp->variant.builtin_function_kind],
+                    unmangled_or_fabricated_name_of(&rp->source_corresp),
                     string_con->variant.string.value);
     } else if (msvc_is_generated_code_target) {
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to

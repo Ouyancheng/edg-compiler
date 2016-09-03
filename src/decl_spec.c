@@ -2714,6 +2714,90 @@ issued in some cases.
 }  /* preapply_microsoft_class_align_attribute */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+
+static a_type_ptr scan_edg_vector_type()
+/*
+Scan a construct of the form
+
+	__edg_vector_type__(<element type>, <integral constant N>)
+
+and return a tk_vector type representing a vector of N elements of the given
+type.
+*/
+{
+  a_type_ptr      vtype, etype;
+  a_boolean       err = FALSE;
+  a_targ_size_t   n_elems, esize;
+  a_constant_ptr  size_con = NULL;
+
+  (void)get_token();
+  /* A '(' should be next. */
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    a_source_position  pos;
+    a_constant_ptr     con = local_constant();
+    pos = pos_curr_token;
+    add_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    type_name(&etype);
+    if (is_integral_or_enum_type(etype) || is_real_floating_type(etype)) {
+      /* The normal case. */
+      esize = skip_typerefs(etype)->size;
+    } else if (is_template_param_type(etype)) {
+      /* Use an arbitrary nonzero size. */
+      esize = 1;
+    } else {
+      /* Other type kinds are invalid. */
+      if (!is_error_type(etype)) {
+        pos_ty_error(ec_invalid_vector_element_type, &pos, etype);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+    (void)required_token(tok_comma, ec_exp_comma);
+    pos = pos_curr_token;
+    scan_integral_constant_expression(con);
+    if (is_error_constant(con)) {
+      expect_error();
+      err = TRUE;
+    } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      /* Record a dummy (nonzero) size. */
+      n_elems = 1;
+      size_con = move_local_constant_to_il(&con);
+    } else if (con->kind != (a_constant_repr_kind)ck_integer) {
+      pos_error(ec_exp_int_constant, &pos);
+      err = TRUE;
+    } else if (!err) {
+      a_boolean  ovflo;
+      n_elems = (a_targ_size_t)unsigned_value_of_integer_constant(con, &ovflo);
+      if (ovflo ||
+          (n_elems * esize) > (a_targ_size_t)targ_maximum_pack_alignment) {
+      pos_error(ec_vector_length_too_large, &pos);
+      err = TRUE;
+      } else if (n_elems <= 0) {
+        pos_error(ec_vector_length_must_be_positive, &pos);
+        err = TRUE;
+      } else if ((n_elems & (n_elems-1)) != 0) {
+        pos_error(ec_vector_size_must_be_power_of_two, &pos);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_comma);
+    remove_stop_token(tok_rparen);
+    if (con != NULL) release_local_constant(&con);
+  } else {
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    vtype = error_type();
+  } else {
+    vtype = make_vector_type(etype, n_elems);
+    vtype->variant.vector.size_constant = size_con;
+  }  /* if */
+  return vtype;
+}  /* scan_edg_vector_type */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* diag_pos is not used in some configurations. */
@@ -10601,6 +10685,31 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         goto no_get_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_edg_size_type:
+        /* An EDG-specific way to specify size_t. */
+        *type_ptr = integer_type(targ_size_t_int_kind);
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        break;
+      case tok_edg_ptrdiff_type:
+        /* An EDG-specific way to specify ptrdiff_t. */
+        *type_ptr = integer_type(targ_ptrdiff_t_int_kind);
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        break;
+      case tok_edg_bool_type:
+        /* An EDG-specific way to specify a boolean type. */
+        *type_ptr = bool_type();
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tok_edg_vector_type:
+        *type_ptr = scan_edg_vector_type();
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        goto no_get_token;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tok_typename:
         /* A typename specifier.  The typename keyword is used to
 	   specify that the qualified name that follows the keyword is

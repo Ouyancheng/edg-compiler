@@ -2191,6 +2191,12 @@ EXTERN a_boolean
 		builtin_functions_enabled;
 			/* TRUE if any GNU-style builtin functions are enabled
 			   in the current emulation mode. */
+
+EXTERN a_boolean
+                preload_builtin_functions;
+                        /* TRUE if builtin functions should be preloaded
+                           (typically used only for testing purposes, otherwise
+                           functions are lazily loaded). */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 EXTERN a_boolean

@@ -1002,6 +1002,11 @@ builtin_functions_enabled global variable.
 #define BUILTIN_FUNCTIONS_ENABLED FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+#if !BUILTIN_FUNCTIONS_ENABLED && \
+    (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)
+ #error -- BUILTIN_FUNCTIONS_ENABLED must be enabled for GNU or Microsoft \
+           emulation
+#endif /* !BUILTIN_FUNCTIONS_ENABLED && ... */
 
 /*
 Flag that is TRUE if built-in GNU __sync_... functions should be accepted in

@@ -4134,7 +4134,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     add_matching_stop_token(tok_rparen);
   }  /* if */
   switch (bfk) {
-    case bfk_choose_expr:
+    case bufk_choose_expr:
       check_assertion(C_mode());  /* rcblock is not passed down. */
       scan_and_process_builtin_choose_expr_args(result_op);
       break;
@@ -4454,7 +4454,15 @@ string, or NULL if there is no such function.
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   sym = file_scope_id_lookup(il_header.primary_scope, &loc,
-                             IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+                             IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                             IDL_SUPPRESS_DECL_SEQ_CHECK);
+  if (builtin_needs_to_be_loaded(loc.symbol_header)) {
+    /* Load the builtin function and redo the lookup. */
+    load_matching_builtin_function(loc.symbol_header);
+    sym = file_scope_id_lookup(il_header.primary_scope, &loc,
+                               IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                               IDL_SUPPRESS_DECL_SEQ_CHECK);
+  }  /* if */
   /* Cover the unlikely case that the symbol name corresponds to multiple
      entries. */
   /*lint --e{850} sym modified in loop */
@@ -4610,12 +4618,13 @@ that the final call needs to be cast to the indicated type.
       a_symbol_ptr      sym;
       an_operand        orig_operand;
       char              name[100];
-      sizeof_t          name_len = strlen(builtin_function_kind_names[bfk]);
+      sizeof_t          name_len =
+                strlen(unmangled_or_fabricated_name_of(&rout->source_corresp));
       a_boolean         nongeneric_atomic = FALSE;
       a_name_reference  *nrp = alloc_name_reference();;
       /* Construct the concrete routine's name: */
       check_assertion(name_len < 90);
-      strcpy(name, builtin_function_kind_names[bfk]);
+      strcpy(name, unmangled_or_fabricated_name_of(&rout->source_corresp));
       if (bfk == (a_builtin_function_kind)bfk_atomic_load_n ||
           bfk == (a_builtin_function_kind)bfk_atomic_store_n ||
           bfk == (a_builtin_function_kind)bfk_atomic_exchange_n ||
@@ -4686,6 +4695,13 @@ that the final call needs to be cast to the indicated type.
       if (!template_case) {
         ptp = skip_typerefs(rout->type)->variant.routine.extra_info
                                        ->param_type_list;
+        if (is_generic) {
+          /* In the case of an atomic generic function, the first parameter
+             is size_t and is unused, so skip it. */
+          check_assertion(identical_types(ptp->type,
+                                          integer_type(targ_size_t_int_kind)));
+          ptp = ptp->next;
+        }  /* if */
       }  /* if */
       for (ap = args; ap != NULL; ap = next_elem(ap)) {
         an_expr_node_ptr expr_arg;
