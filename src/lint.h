@@ -822,6 +822,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_shuffle)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_shufflevector)*/
 /*lint -esym(769,ec_shufflevector_index_out_of_range)*/
+/*lint -esym(769,ec_invalid_vector_element_type)*/
+/*lint -esym(769,ec_vector_length_too_large)*/
 #endif /* !GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
@@ -1333,8 +1335,9 @@ extern int fileno(FILE *);
 /*lint -esym(714,load_matching_builtin_function_by_name)*/
 /*lint -esym(759,load_matching_builtin_function_by_name)*/
 /*lint -esym(765,load_matching_builtin_function_by_name)*/
-/*lint -esym(830,bufk_first)*/
-/*lint -esym(830,bufk_last)*/
+/*lint -esym(769,bufk_first)*/
+/*lint -esym(769,bufk_last)*/
+/*lint -esym(552,targ_ssize_t_int_kind)*/
 
 #endif /* ifndef LINT_H */
 
