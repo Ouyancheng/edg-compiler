@@ -4698,8 +4698,9 @@ that the final call needs to be cast to the indicated type.
         if (is_generic) {
           /* In the case of an atomic generic function, the first parameter
              is size_t and is unused, so skip it. */
-          check_assertion(identical_types(ptp->type,
-                                          integer_type(targ_size_t_int_kind)));
+          check_assertion(f_identical_types(ptp->type,
+                                            integer_type(targ_size_t_int_kind),
+                                            ITF_NO_FLAGS));
           ptp = ptp->next;
         }  /* if */
       }  /* if */

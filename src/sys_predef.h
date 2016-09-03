@@ -187,6 +187,7 @@ enter_builtin_function directly) should be used.
 Note also that the ordering of this table is arbitrary (i.e., it does not need
 to be kept sorted).
 */
+/*lint -e641 */ /* Suppress lint messages about converting enums to int. */
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
@@ -307,6 +308,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 }
 #endif /* VAR_INITIALIZERS */
 ;
+/*lint +e641 */ /* Re-enable lint messages about converting enums to int. */
 extern void load_matching_builtin_function(a_symbol_header *sym_hdr);
 
 extern void load_matching_builtin_function_by_name(a_const_char *name);
@@ -446,13 +448,6 @@ extern void validate_target_argument(a_const_char         *str,
                                      a_boolean            *error_issued);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
-
-#if BUILTIN_FUNCTIONS_ENABLED
-extern a_symbol_ptr enter_builtin_function(a_const_char            *name,
-                                           a_type_ptr              rout_type,
-                                           a_builtin_function_kind kind,
-                                           a_symbol_locator        *loc);
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern void sys_predef_one_time_init(void);
 

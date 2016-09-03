@@ -184,6 +184,11 @@ Enter some predefined macros for a MacOS X (Apple) system.
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 #if BUILTIN_FUNCTIONS_ENABLED
 
+static void enter_builtin_function(a_const_char            *name,
+                                   a_type_ptr              rout_type,
+                                   a_builtin_function_kind kind,
+                                   a_symbol_locator        *loc);
+
 static a_boolean builtin_matches_version_range(unsigned long version,
                                                a_const_char  **cond_range)
 /*
@@ -252,10 +257,10 @@ matches must also have an 'A'.
     if (*p == 'g' || *p == 'L' || *p == 'm') {
       result = TRUE;
       if (*p == 'g') {
-        result &= gnu_mode && !clang_mode;
+        result &= (gnu_mode && !clang_mode);
         version = gnu_version;
       } else if (*p == 'L') {
-        result &= gnu_mode && clang_mode;
+        result &= (gnu_mode && clang_mode);
         version = clang_version;
       } else {
         check_assertion(*p == 'm');
@@ -265,8 +270,8 @@ matches must also have an 'A'.
       p++;
       check_assertion(*p == 'x' || *p == 'c' || *p == '+');
       result &= (*p == 'x') ||
-                (*p == 'c' && C_mode()) ||
-                (*p == '+' && !C_mode());
+                (*p == ('c' && C_mode())) ||
+                (*p == ('+' && !C_mode()));
       p++;
       if (*p == '4') {
         result &= !targ_supports_x86_64;
@@ -301,23 +306,20 @@ type.  See also scan_top_level_generated_code (which is similar).
   a_type_ptr        result;
   a_token_cache     cache;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean         saved_scanning_generated_code;
+  a_boolean         saved_scanning_generated_code = scanning_generated_code;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean         saved_next_token_is_top_level_decl_start;
+  a_boolean         saved_next_token_is_top_level_decl_start =
+                                            next_token_is_top_level_decl_start;
   a_boolean         saved_allow_ellipsis_only_param_in_C_mode =
                                          allow_ellipsis_only_param_in_C_mode;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean         saved_source_sequence_entries_disallowed;
+  a_boolean         saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
 
   /* Don't generate source sequence entries for builtins. */
-  saved_source_sequence_entries_disallowed =
-                                            source_sequence_entries_disallowed;
   source_sequence_entries_disallowed = TRUE;
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  saved_scanning_generated_code = scanning_generated_code;
-  saved_next_token_is_top_level_decl_start =
-                                            next_token_is_top_level_decl_start;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -363,7 +365,7 @@ specified type if it has not been parsed yet.
 {
   a_builtin_function_type *bftp = &builtin_type_table[type_index];
 
-  check_assertion(type_index < bfti_last);
+  check_assertion(type_index < (unsigned short)bfti_last);
   if (bftp->type == NULL) {
     bftp->type = builtin_function_type(bftp->type_string);
   }  /* if */
@@ -395,8 +397,9 @@ routine is created (and potentially a routine type is parsed).
   push_new_top_level_declaration();
   decl_scope_level = DEPTH_OF_FILE_SCOPE;
   /* Builtins are always have C linkage. */
-  if (scope_stack[depth_scope_stack].default_name_linkage != nlk_external) {
-    push_name_linkage(nlk_external);
+  if (scope_stack[depth_scope_stack].default_name_linkage !=
+                                           (a_name_linkage_kind)nlk_external) {
+    push_name_linkage((a_name_linkage_kind)nlk_external);
     name_linkage_pushed = TRUE;
   }  /* if */
   /* Save the lexical state. */
@@ -478,9 +481,9 @@ builtin_type_table for the builtin's type.
 {
   a_symbol_locator loc;
   a_type_ptr       builtin_type = NULL;
-  static char      atomic_name_buffer[200] =
+  static char      atomic_name_buffer[200] = /*lint -(e785) */
                                          {'_','_','a','t','o','m','i','c','_'};
-  static char      builtin_name_buffer[200] =
+  static char      builtin_name_buffer[200] = /*lint -(e785) */
                                      {'_','_','b','u','i','l','t','i','n','_'};
   char             *name;
   char             required_prefix = '\0';
@@ -550,16 +553,16 @@ current emulation mode.  This must be done for each translation unit.
   for (budp = &builtin_user_table[1], i = 1; budp->name != NULL; budp++, i++) {
     preload_builtin_symbol(budp->name, budp->cond, i,
                            /*is_user_builtin_function=*/TRUE, budp->kind,
-                           bfk_none, budp->type_string);
+                           0, budp->type_string);
   }  /* for */
   builtin_functions_enabled = TRUE;
 }  /* preload_builtin_symbols */
 
 
-a_symbol_ptr enter_builtin_function(a_const_char            *name,
-                                    a_type_ptr              rout_type,
-                                    a_builtin_function_kind kind,
-                                    a_symbol_locator        *loc)
+static void enter_builtin_function(a_const_char            *name,
+                                   a_type_ptr              rout_type,
+                                   a_builtin_function_kind kind,
+                                   a_symbol_locator        *loc)
 /*
 Enter a builtin function with the given name and type (which must be a
 tk_routine type; not a tk_typeref).  The builtin corresponds to the
@@ -614,7 +617,6 @@ for the function.
     fprintf(f_debug, ";\n");
   }  /* if */
 #endif /* DEBUG */
-  return sym;
 }  /* enter_builtin_function */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -673,15 +675,17 @@ Enter the predeclared functions for Microsoft mode.
     annotation_fn_type->variant.routine.extra_info->has_ellipsis = TRUE;
     annotation_fn_type->variant.routine.extra_info->calling_convention =
                                                (a_calling_convention)cc_cdecl;
-    (void)enter_builtin_function("__annotation", annotation_fn_type,
-                                 bfk_none, (a_symbol_locator *)NULL);
+    enter_builtin_function("__annotation", annotation_fn_type,
+                           (a_builtin_function_kind)bfk_none,
+                           (a_symbol_locator *)NULL);
     debugbreak_fn_type = make_routine_type(no_return_value, (a_type_ptr)NULL,
                                            (a_type_ptr)NULL, (a_type_ptr)NULL,
                                            (a_type_ptr)NULL);
     debugbreak_fn_type->variant.routine.extra_info->calling_convention =
                                                (a_calling_convention)cc_cdecl;
-    (void)enter_builtin_function("__debugbreak", debugbreak_fn_type,
-                                 bfk_none, (a_symbol_locator *)NULL);
+    enter_builtin_function("__debugbreak", debugbreak_fn_type,
+                           (a_builtin_function_kind)bfk_none,
+                           (a_symbol_locator *)NULL);
   }  /* if */
 }  /* enter_microsoft_predeclared_functions */
 

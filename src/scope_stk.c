@@ -5424,12 +5424,14 @@ Use pop_scope to pop the scope.
 */
 {
   depth_innermost_namespace_scope = DEPTH_OF_FILE_SCOPE;
-  push_scope_full(sck_instantiation_context, NO_SCOPE_NUMBER, NULL,
-                  NULL, (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
-                  (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
-                  (a_template_decl_info_ptr)NULL, (an_object_lifetime_ptr)NULL,
-                  (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
-                  PS_NEW_INSTANTIATION_CONTEXT);
+  (void)push_scope_full((a_scope_kind)sck_instantiation_context,
+                        NO_SCOPE_NUMBER, NULL, NULL, (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        PS_NEW_INSTANTIATION_CONTEXT);
 }  /* push_new_top_level_declaration */
 
 
