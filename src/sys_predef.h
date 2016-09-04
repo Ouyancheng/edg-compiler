@@ -195,6 +195,9 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   /* __builtin_choose_expr is available in all gcc modes. */
   { "choose_expr", "Bgc", "int (...)", bufk_choose_expr },
 
+  /* __builtin_va_arg is not picked up by the automatic tools. */
+  { "va_arg", "Bgx(40500-)", "void (...)", bfk_va_arg },
+
   /* Manually add the size-specific versions of the __atomic builtins for
      clang.  These entries were copied from the corresponding automatically-
      generated GCC entries. */
