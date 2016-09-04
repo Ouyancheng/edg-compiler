@@ -551,6 +551,9 @@ current emulation mode.  This must be done for each translation unit.
     preload_builtin_symbol(bdp->name, bdp->cond, i,
                            /*is_user_builtin_function=*/FALSE, bdp->kind,
                            bdp->type_index, NULL);
+    /* For the multi-translation unit case, make sure any cached types are
+       reset. */
+    builtin_type_table[bdp->type_index].type = NULL;
   }  /* for */
   for (budp = &builtin_user_table[1], i = 1; budp->name != NULL; budp++, i++) {
     preload_builtin_symbol(budp->name, budp->cond, i,
