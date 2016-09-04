@@ -6233,6 +6233,7 @@ results in better error recovery.
   (is_class_template_or_injected_template_symbol(sym) ||		\
    (sym)->kind == (a_symbol_kind)sk_function_template ||		\
    (sym)->kind == (a_symbol_kind)sk_variable_template ||		\
+   is_template_variable_symbol(sym) ||					\
    ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&		\
     overload_set_contains_template(sym)))
 
@@ -6242,6 +6243,13 @@ results in better error recovery.
   (symbol_is(sym, sk_function_template) ||                              \
    (symbol_is(sym, sk_overloaded_function) &&                           \
     overload_set_contains_template(sym)))
+
+/* Return TRUE if a symbol is an instance of a variable template. */
+#define is_template_variable_symbol(sym)				\
+  ((symbol_is((sym), sk_variable) ||					\
+    symbol_is((sym), sk_static_data_member)) &&				\
+    variable_for_symbol((sym))->is_template_variable &&			\
+    variable_for_symbol((sym))->template_info->template_arg_list != NULL)
 
 /* Return TRUE if a symbol is a function symbol. */
 #define is_function_symbol(sym)                                       \

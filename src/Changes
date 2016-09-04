@@ -1,5 +1,17 @@
 Version 4.12
 
+9/4/16   [EDGcpfe/17398]
+Spurious error on variable template partial specialization
+
+A spurious error could be issued on a partial specialization of a variable
+template that is a member of a non-template class.  Now fixed.
+
+  struct X {
+   template <class U, class T> static T x;
+  };
+  template <class T> T X::x<T, T> = T(1);
+
+
 9/2/16   [EDGcpfe/17453]
 Exception specifications and defaulted special member functions
 
