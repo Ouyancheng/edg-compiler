@@ -198,6 +198,9 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   /* __builtin_va_arg is not picked up by the automatic tools. */
   { "va_arg", "Bgx(40500-)", "void (...)", bfk_va_arg },
 
+  /* __builtin_stdarg_start is also not picked up for GCC. */
+  { "stdarg_start", "Bgx(40500-)", "void (...)", bfk_stdarg_start },
+
   /* Manually add the size-specific versions of the __atomic builtins for
      clang.  These entries were copied from the corresponding automatically-
      generated GCC entries. */
