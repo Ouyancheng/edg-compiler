@@ -1,5 +1,21 @@
 Version 4.12
 
+9/6/16   [EDGcpfe/17404]
+Bad result for decltype applied to a call producing a reference to function
+
+The front end did not correctly determine the result type of a decltype
+construct whose operand is a call producing a reference to a function; it
+produced a function type instead of a reference to function type.  For
+example:
+
+  typedef void F();
+  F &g();
+  decltype(g()) rf = g();  // Previously elicited a spurious error.
+                           // Now okay.
+
+This is now fixed.
+
+
 9/6/16   [EDGcpfe/17392]
 Variable template default template argument issues
 

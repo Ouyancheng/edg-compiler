@@ -12965,13 +12965,28 @@ expression (i.e., id-expression or member access).
 {
   a_type_ptr        result = NULL;
   an_expr_node_ptr  expr = NULL;
+  a_boolean         is_ref_to_fun_lvalue = FALSE;
+  a_boolean         is_ref_to_fun_xvalue = FALSE;
 
   *no_parens_matters = FALSE;
   if (is_expression_operand(operand)) {
     /* Strip a reference indirection from the expression, if present, so
        we can see what's underneath. */
-    expr = strip_ref_indirect(operand->variant.expression,
-                              /*parens_also=*/FALSE);
+    expr = operand->variant.expression;
+    if (is_a_function_designator(operand)) {
+      /* Check for the case of a function-type glvalue that results from a
+         reference to function. */
+      an_expr_node_ptr  expr_noparens = skip_parens(expr);
+      if (is_operation_node(expr_noparens) &&
+          node_operator_is(expr_noparens, eok_ref_indirect)) {
+        if (expr_noparens->is_lvalue) {
+          is_ref_to_fun_lvalue = TRUE;
+        } else if (expr_noparens->is_xvalue) {
+          is_ref_to_fun_xvalue = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
   }  /* if */
   /* Note that skip_parens is not called here, because parentheses are
      significant. */
@@ -13048,7 +13063,7 @@ general_case:
       if (!is_error_operand(operand)) {
         result = type_of_unknown_templ_param_nontype;
       }  /* if */
-    } else if (is_an_lvalue(operand)) {
+    } else if (is_an_lvalue(operand) || is_ref_to_fun_lvalue) {
       /* For an lvalue, the returned type is an lvalue reference to the
          expression type. */
       if (operand_is_instantiation_dependent(operand)) {
@@ -13060,7 +13075,7 @@ general_case:
       } else {
         result = make_reference_type(result);
       }  /* if */
-    } else if (is_an_xvalue(operand)) {
+    } else if (is_an_xvalue(operand) || is_ref_to_fun_xvalue) {
       /* For an xvalue, the returned type is an rvalue reference to the
          expression type. */
       if (operand_is_instantiation_dependent(operand)) {

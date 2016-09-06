@@ -279,6 +279,9 @@ typedef a_byte an_operand_kind;
 Operand states (lvalue versus rvalue, etc.).  In C++, glvalues encompass
 lvalues and xvalues, and traditional C rvalues are called prvalues.
 In C mode, interpret "glvalue" as "lvalue" and "prvalue" as "rvalue".
+A "function designator" is an expression of function type; in C++, those
+are lvalues, bit is_an_lvalue does not indicate that (see function
+is_a_cplusplus_lvalue instead).
 */
 enum an_operand_state_tag {
   os_none,
