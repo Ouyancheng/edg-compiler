@@ -1,5 +1,21 @@
 Version 4.12
 
+9/6/16   [EDGcpfe/17392]
+Variable template default template argument issues
+
+If a variable template was first declared with a default template argument
+and was later redeclared, the default argument was not considered when
+scanning the template argument list.  This could result in spurious errors.
+In addition, an internal error (in form_template_arg_info) could result if
+a diagnostic was issued that involved a variable template instance that
+was produced when a "too few arguments" error was (incorrectly) issued.
+Now fixed.
+
+  template <int N, class T = int> extern T x;
+  template <int N, class T> T x = T();
+  int i = x<33>;
+
+
 9/4/16   [EDGcpfe/17398]
 Spurious error on variable template partial specialization
 

@@ -17450,7 +17450,7 @@ list.
          later. */
       unget_token();
     }  /* if */
-    if (arg_list == NULL) {
+    if (arg_list == NULL || any_errors) {
       make_specific_symbol_error_locator(&locator_for_curr_id);
       locator_for_curr_id.source_position = orig_locator.source_position;
       new_sym = locator_for_curr_id.specific_symbol;

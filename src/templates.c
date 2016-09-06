@@ -23065,13 +23065,21 @@ template symbol supplement for this template should be returned to the caller.
     err = TRUE;
   } else if (!is_initial_decl &&
              tssp->variant.variable.decl_cache.decl_info != NULL &&
-             !equiv_template_param_lists(tssp->variant.variable.decl_cache.
+             (!equiv_template_param_lists(tssp->variant.variable.decl_cache.
                                                          decl_info->parameters,
-                                         decl_state->decl_info->parameters,
-                                         /*issue_errors=*/TRUE,
-                                         ETP_NO_OPTIONS,
-                                         &locator->source_position,
-                                         es_error)) {
+                                          decl_state->decl_info->parameters,
+                                          /*issue_errors=*/TRUE,
+                                          ETP_NO_OPTIONS,
+                                          &locator->source_position,
+                                          es_error) ||
+              !reconcile_template_param_lists(
+                                      decl_state->decl_info->parameters,
+                                      decl_state, sym,
+                                      &sym->decl_position,
+                                      /*default_allowed=*/TRUE,
+                                      /*checking_parent_params=*/FALSE,
+                                      /*allow_missing_member_constraint=*/TRUE,
+                                      es_error))) {
     err = TRUE;
   } else  if (!is_initial_decl && sym->is_class_member &&
               !in_prototype_instantiation_or_cli_generic(decl_state) &&
