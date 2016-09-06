@@ -44,14 +44,14 @@ template that is a member of a non-template class.  Now fixed.
   template <class T> T X::x<T, T> = T(1);
 
 
-9/2/16   [EDGcpfe/17453]
+9/2/16   [EDGcpfe/16241,EDGcpfe/17453]
 Exception specifications and defaulted special member functions
 
 Previously, declaring a defaulted special member function with an exception
 specification that does not match that of a corresponding generated special
-member always resulted in an error.  Now, in C++14 mode, when the special
-member is defaulted in the class definition, the member becomes deleted.
-For example:
+member always resulted in an error.  Now, in C++14 mode (or GNU C++11 mode),
+when the special member is defaulted in the class definition, the member
+becomes deleted.  For example:
 
   struct S {
     ~S() throw(int) = default;  // Previously an error.  Now accepted in
