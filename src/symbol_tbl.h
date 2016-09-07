@@ -4070,10 +4070,10 @@ typedef struct a_symbol_header {
                            */
   a_builtin_function_index
                 builtin_function_index;
-                        /* When not bfk_none, the symbol header refers to
-                           a builtin function.  The value can be an enumeration
-                           value from a_builtin_function_kind_tag or
-                           a_builtin_user_function_kind_tag. */
+                        /* When not zero, this symbol header refers to
+                           a builtin function.  The value is an index into
+                           either builtin_table or builtin_user_table depending
+                           on the value of is_user_builtin_function. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 } a_symbol_header;
 
@@ -4082,7 +4082,7 @@ typedef struct a_symbol_header {
 /* Macro that is TRUE if the symbol header refers to a builtin function that
    has not been loaded yet. */
 #define builtin_needs_to_be_loaded(sym_hdr) \
-  ((sym_hdr)->builtin_function_index != (a_builtin_function_index)bfk_none && \
+  ((sym_hdr)->builtin_function_index != (a_builtin_function_index)0 && \
    !(sym_hdr)->builtin_has_been_loaded)
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
