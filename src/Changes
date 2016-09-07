@@ -7,7 +7,7 @@ Consider:
 
   struct V { operator int () const; };
   struct B: virtual V { operator int () const; };
-  struct D: A, virtual V {};
+  struct D: B, virtual V {};
   int r = D();  // Previously ambiguous.  Now okay.
 
 Previously, the front end considered the conversion functions in both direct
