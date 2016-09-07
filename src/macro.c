@@ -4935,6 +4935,11 @@ end_scan_for_macro_modifs:;
               /* The macro name appears directly in its own expansion,
                  which would always lead to unbounded recursion. */
               is_inert_macro = TRUE;
+            } else if (top_microsoft_slmp == NULL) {
+              /* We are processing the arguments in the top-level macro
+                 invocation, and the Microsoft preprocessor does not allow
+                 recursion in that context, so the macro is inert. */
+              is_inert_macro = TRUE;
             } else {
               /* We will need to check the expansion to see if the macro
                  should be treated as inert. */
