@@ -22224,7 +22224,7 @@ class_type.  Set *updated if a projection symbol is created.
              from the base class.  If the entry on the current class list
              is a projection to the same routine as the symbol from
              the base class, it can also be ignored. */
-          if (symbol_is(sym, sk_projection)) {
+          if (!symbol_is(sym, sk_projection)) {
             /* The symbol is from the current class.  Ignore the base
                symbol. */
             break;
