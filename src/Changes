@@ -44,7 +44,7 @@ template that is a member of a non-template class.  Now fixed.
   template <class T> T X::x<T, T> = T(1);
 
 
-9/2/16   [EDGcpfe/16241,EDGcpfe/17453]
+9/2/16   [EDGcpfe/16241,EDGcpfe/17453,EDGcpfe/17474]
 Exception specifications and defaulted special member functions
 
 Previously, declaring a defaulted special member function with an exception
