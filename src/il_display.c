@@ -2365,6 +2365,11 @@ Display the indicated type entry.
       if (ptr->variant.typeref.direct_bases) {
         disp_boolean("direct_bases", TRUE);
       }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
+      if (ptr->variant.typeref.is_lowered_complex_type) {
+        disp_boolean("is_lowered_complex_type", TRUE);
+      }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member",
@@ -3518,11 +3523,6 @@ Display the indicated routine.
   if (ptr->implicit_alias) {
     disp_boolean("implicit_alias", TRUE);
   }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
-  if (ptr->builtin_using_complex_type) {
-    disp_boolean("builtin_using_complex_type", TRUE);
-  }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {

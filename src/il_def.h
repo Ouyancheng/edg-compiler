@@ -9526,6 +9526,12 @@ typedef struct a_type {
 		direct_bases:1;
 			/* If is_bases is TRUE, this is FALSE for __bases
 			   and TRUE for __direct_bases. */
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
+      a_wide_bit_field
+		is_lowered_complex_type:1;
+			/* TRUE if this typeref represents a lowered complex
+			   type. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */
@@ -11204,16 +11210,6 @@ typedef struct a_routine {
 			   gnu_extra_info->aliased_routine).
 			   (E.g., a "strlen" declaration may be implicitly
 			   treated as an alias for "__builtin_strlen".) */
-#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
-  a_wide_bit_field
-		builtin_using_complex_type:1;
-			/* TRUE if this routine is a builtin function, at
-			   least one of whose parameters or return type is
-			   a complex type.  Used by the C-generating back
-			   end to emit declarations for builtin functions
-			   involving types that are lowered and thus
-			   incompatible with the actual builtin function. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_wide_bit_field

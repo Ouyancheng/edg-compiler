@@ -4561,6 +4561,7 @@ The lowered type is given the name indicated by "name".
     cmplx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
     strcpy((char *)cmplx_type->source_corresp.name, name);
     cmplx_type->variant.typeref.type = lowered_repr;
+    cmplx_type->variant.typeref.is_lowered_complex_type = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
     if (needed_flag_is_set(&cmplx_type->source_corresp)) {
       mark_as_needed((char *)lowered_repr, iek_type);

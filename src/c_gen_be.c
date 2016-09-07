@@ -10176,6 +10176,44 @@ needed_flag_bit_number == 1).
   return (a_const_char*)result;
 }  /* tls_init_name */
 
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
+
+static a_boolean ttt_has_lowered_complex_type(
+                                           a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a type that
+contains a lowered complex type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_ptr->kind == (a_type_kind)tk_typeref) {
+    if (type_ptr->variant.typeref.is_lowered_complex_type) {
+      result = TRUE;
+      *force_end_of_traversal = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* ttt_has_lowered_complex_type */
+
+
+static a_boolean type_has_lowered_complex_type(a_type_ptr type)
+/*
+Return TRUE if the indicated type contains a lowered "complex" type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (traverse_type_tree(type, ttt_has_lowered_complex_type,
+                         TTT_RETURN_TYPE | TTT_PARAM_TYPES)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* type_has_lowered_complex_type */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
 
 static void dump_routine_decl(a_routine_ptr rout,
                               a_boolean     dump_defn)
@@ -10284,7 +10322,7 @@ if this routine has a body (dump nothing if it has no body).
                 thus must be declared as ordinary functions if they are
                 used. */
              && !(entity_needed_in_generated_code(rout) &&
-                  rout->builtin_using_complex_type)
+                  type_has_lowered_complex_type(rout->type))
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
              ) {
     /* GNU-style builtin functions should otherwise not be declared or
