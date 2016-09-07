@@ -2365,11 +2365,11 @@ Display the indicated type entry.
       if (ptr->variant.typeref.direct_bases) {
         disp_boolean("direct_bases", TRUE);
       }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       if (ptr->variant.typeref.is_lowered_complex_type) {
         disp_boolean("is_lowered_complex_type", TRUE);
       }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member",

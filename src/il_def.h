@@ -9526,12 +9526,12 @@ typedef struct a_type {
 		direct_bases:1;
 			/* If is_bases is TRUE, this is FALSE for __bases
 			   and TRUE for __direct_bases. */
-#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       a_wide_bit_field
 		is_lowered_complex_type:1;
 			/* TRUE if this typeref represents a lowered complex
 			   type. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */
