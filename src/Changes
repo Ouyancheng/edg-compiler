@@ -1,5 +1,23 @@
 Version 4.12
 
+9/7/16   [EDGcpfe/17012]
+Lookup of conversion functions with virtual base classes
+
+Consider:
+
+  struct V { operator int () const; };
+  struct B: virtual V { operator int () const; };
+  struct D: A, virtual V {};
+  int r = D();  // Previously ambiguous.  Now okay.
+
+Previously, the front end considered the conversion functions in both direct
+base classes of D (A and V) viable candidates for conversion and, because both
+candidates provide equally good conversions, an ambiguity error ensued.
+However, the standard actually specifies that "A::operator int" hides
+"V::operator int", which avoids the ambiguity.  The front end now implements
+that rule.
+
+
 9/6/16   [EDGcpfe/17404]
 Bad result for decltype applied to a call producing a reference to function
 

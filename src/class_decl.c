@@ -22200,49 +22200,58 @@ class_type.  Set *updated if a projection symbol is created.
 {
   a_class_symbol_supplement_ptr cssp, bcssp;
   a_symbol_list_entry_ptr       slep, bcslep;
-  a_symbol_ptr                  sym;
 
   bcssp = symbol_supplement_for_class(base_class->type);
   bcslep = is_template_list ? bcssp->conversion_template_list :
                               bcssp->conversion_list;
   if (bcslep != NULL) {
+    a_symbol_ptr  sym, bcsym;
     cssp = symbol_supplement_for_class(class_type);
     for (; bcslep != NULL; bcslep = bcslep->next) {
       /* Compare the conversion list entry from the base class with each
          conversion list entry for the current class.  They convert to the
          same type if they have the same header. */
+      bcsym = bcslep->symbol;
       slep = is_template_list ? cssp->conversion_template_list :
                                 cssp->conversion_list;
       for (; slep != NULL; slep = slep->next) {
-        if (conversion_matches_base_member(slep->symbol, bcslep->symbol) ||
+        sym = slep->symbol;
+        if (conversion_matches_base_member(sym, bcsym) ||
             (is_template_list &&
-             conversion_template_matches_base_member(slep->symbol,
-                                                     bcslep->symbol))) {
+             conversion_template_matches_base_member(sym, bcsym))) {
           /* A conversion to the same type.  If this is from the current class
              (i.e., it is not a projection symbol) we should ignore the one
              from the base class.  If the entry on the current class list
              is a projection to the same routine as the symbol from
              the base class, it can also be ignored. */
-          if (slep->symbol->kind != (a_symbol_kind)sk_projection) {
+          if (symbol_is(sym, sk_projection)) {
             /* The symbol is from the current class.  Ignore the base
                symbol. */
             break;
           } else {
             /* A projection symbol.  Ignore this entry if it refers to the
 	       same function or template as one already on the list. */
-            a_symbol_ptr  fund_curr_sym = fundamental_symbol_of(slep->symbol);
+            a_symbol_ptr  fund_curr_sym = fundamental_symbol_of(sym);
             a_symbol_ptr  fund_base_sym =
-                                         fundamental_symbol_of(bcslep->symbol);
-            if (fund_curr_sym->kind == (a_symbol_kind)sk_function_template) {
+                                         fundamental_symbol_of(bcsym);
+            if (symbol_is(fund_curr_sym, sk_function_template)) {
               if (same_entities(fund_curr_sym->variant.template_info->
                                          il_template_entry->canonical_template,
                                 fund_base_sym->variant.template_info->
                                      il_template_entry->canonical_template)) {
                 break;
               }  /* if */
-            } else {
-              if (same_entities(fund_curr_sym->variant.routine.ptr,
-                                fund_base_sym->variant.routine.ptr)) {
+            } else if (same_entities(fund_curr_sym->variant.routine.ptr,
+                                     fund_base_sym->variant.routine.ptr)) {
+              break;
+            } else if (base_class->is_virtual) {
+              /* Check if slep represents a projection from a base_class that
+                 also derives virtually from base_class.  In that case, this
+                 projection should be skipped (per the resolution of Core
+                 issue 39, through paper N1626). */
+              if (is_on_any_derivation_of(base_class,
+                                          sym->variant.projection.extra_info
+                                             ->fundamental_base_class)) {
                 break;
               }  /* if */
             }  /* if */
@@ -22257,19 +22266,19 @@ class_type.  Set *updated if a projection symbol is created.
            base classes because conversion functions are not looked up by
            name (and sym->ambiguous is meant to denote name lookup
            ambiguity). */
-        a_symbol_ptr      fund_sym = fundamental_symbol_of(bcslep->symbol);
+        a_symbol_ptr      fund_sym = fundamental_symbol_of(bcsym);
         a_type_ptr        fund_base_type = sym_parent_class(fund_sym);
         a_base_class_ptr  fund_base = find_base_with_type(fund_base_type,
                                                           class_type,
                                                           base_class);
-        sym = make_projection_symbol(bcslep->symbol, class_type, fund_base,
+        sym = make_projection_symbol(bcsym, class_type, fund_base,
                                      /*path=*/(a_derivation_step*)NULL,
                                      /*ambiguous=*/FALSE);
         sym->variant.projection.access =
-                            compute_access(access_for_symbol(bcslep->symbol),
+                            compute_access(access_for_symbol(bcsym),
                                            base_class->derivation->access);
         sym->variant.projection.any_intervening_using_decl =
-               bcslep->symbol->variant.projection.any_intervening_using_decl;
+               bcsym->variant.projection.any_intervening_using_decl;
         /* Allocate the new conversion list entry and link it in the
            list for the current class. */
         add_to_conversion_list(sym, cssp);
@@ -22290,12 +22299,27 @@ destination type is not yet on the current class's conversion list.
 */
 {
   a_base_class_ptr  bcp;
-  a_boolean         updated = FALSE;
+  a_boolean         updated = FALSE, has_direct_virtual_base = FALSE;
 
   db_enter(4, "project_base_class_conversion_functions");
-  /* Examine each direct base class. */
+  /* Examine each direct base class.  This may require two passes because we
+     must deal specially with direct virtual bases.  Consider:
+       struct V { operator int () const; };
+       struct B: virtual V { operator int () const; };
+       struct D: A, virtual V {};
+       int r = D();
+     The rules of N1626 ([class.member.lookup] 10.2/6 in the C++14 standard)
+     cause "V::operator int" to be hidden by "B::operator int".  To implement
+     that, we deal with direct virtual base classes after direct nonvirtual
+     base classes, and project their conversion functions only if no "masking"
+     projection has been projected before.
+  */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
+      if (bcp->is_virtual) {
+        has_direct_virtual_base = TRUE;
+        continue;
+      }  /* if */
       /* Examine each conversion list entry in the base class. */
       check_base_class_conversion_list(class_type, bcp,
                                        /*is_template_list=*/FALSE, &updated);
@@ -22303,6 +22327,17 @@ destination type is not yet on the current class's conversion list.
                                        /*is_template_list=*/TRUE, &updated);
     }  /* if */
   }  /* for */
+  if (has_direct_virtual_base) {
+    /* Perform an additional pass to deal with direct virtual bases. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && bcp->is_virtual) {
+        check_base_class_conversion_list(class_type, bcp,
+                                         /*is_template_list=*/FALSE, &updated);
+        check_base_class_conversion_list(class_type, bcp,
+                                         /*is_template_list=*/TRUE, &updated);
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (updated) {
     /* Since the scope symbol list may have been empty before and since
        at least one new symbol has been added, update the symbols list
