@@ -8739,10 +8739,8 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_signbit:
       case bfk_signbitf:
       case bfk_signbitl:
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
       case bfk_atomic_always_lock_free:
       case bfk_atomic_is_lock_free:
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
         result = TRUE;
         break;
       case bfk_assume_aligned:
@@ -9047,7 +9045,6 @@ floating-point value of the given type).  Otherwise, return FALSE.
   return folded;
 }  /* fold_pow_if_possible */
 
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 
 static a_boolean fold_lock_free_query_if_possible(
                                          a_builtin_function_kind  bfk,
@@ -9093,7 +9090,6 @@ TRUE.
   return folded;
 }  /* fold_lock_free_query_if_possible */
 
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 static a_boolean is_dependent_list_of_constant_nodes(an_expr_node_ptr  list)
 /*
@@ -9409,7 +9405,6 @@ the folding mechanism is used as a way to validate argument values.
           }  /* if */
         }
         break;
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
       case bfk_atomic_always_lock_free:
         if (!is_constant_node(args)) {
           /* __atomic_always_lock_free's first argument must be a
@@ -9424,7 +9419,6 @@ the folding mechanism is used as a way to validate argument values.
                                            rp->variant.builtin_function_kind,
                                            args, args2, result, result_type);
         break;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
       case bfk_assume_aligned:
         /* Calls to __builtin_assume_aligned are never actually folded, but
            we treat it as "potentially folded" to simplify checking for

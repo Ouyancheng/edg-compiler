@@ -703,24 +703,6 @@ support for __attribute__((vector_size(N))).)
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 
 /*
-Flag that is TRUE if GNU built-in functions implementing IA-32 vector
-instructions should be predeclared.  (These map on machine instruction sets
-like Intel's MMX or AMD's 3DNow!.)
-*/
-#ifndef GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
-#if GNU_VECTOR_TYPES_ALLOWED && (defined(__i386) || defined(__x86_64))
-#define GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED TRUE
-#else /* !(GNU_VECTOR_TYPES_ALLOWED && (...)) */
-#define GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED FALSE
-#endif /* GNU_VECTOR_TYPES_ALLOWED && (defined(__i386) || defined(__x86_64)) */
-#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
-
-#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !GNU_VECTOR_TYPES_ALLOWED
- #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires \
-           GNU_VECTOR_TYPES_ALLOWED
-#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !GNU_VECTOR_TYPES_... */
-
-/*
 Macro that determines which version of the clang compiler should be
 emulated by default.  Version x.y.z of the clang compiler is represented by
 the value x*10000+y*100+z.
@@ -1008,18 +990,25 @@ builtin_functions_enabled global variable.
            emulation
 #endif /* !BUILTIN_FUNCTIONS_ENABLED && ... */
 
-/*
-Flag that is TRUE if built-in GNU __sync_... functions should be accepted in
-GNU modes.
-*/
-#ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-#define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED FALSE
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#if BUILTIN_FUNCTIONS_ENABLED && !GNU_VECTOR_TYPES_ALLOWED
+ #error -- BUILTIN_FUNCTIONS_ENABLED requires GNU_VECTOR_TYPES_ALLOWED
+#endif /* BUILTIN_FUNCTIONS_ENABLED && !GNU_VECTOR_TYPES_ALLOWED */
 
-#if !BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
- #error -- GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED requires \
+/*
+The configuration macros GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED and
+GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED are no longer used (the builtin
+functions they had enabled are now enabled when BUILTIN_FUNCTIONS_ENABLED is
+TRUE).
+*/
+
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED && !BUILTIN_FUNCTIONS_ENABLED
+ #error -- GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED has been replaced by \
            BUILTIN_FUNCTIONS_ENABLED
-#endif /* !BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED && !BUILTIN_FUNCTIONS_ENABLED */
+#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !BUILTIN_FUNCTIONS_ENABLED
+ #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED has been replaced by \
+           BUILTIN_FUNCTIONS_ENABLED
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !BUILTIN_FUNCTIONS... */
 
 /*
 Flag that is TRUE if a "__thread" specifier (to indicate that a variable should

@@ -2195,7 +2195,7 @@ enum a_special_function_kind_tag {
   sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
   sfk_last_accessor = sfk_event_raise,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   sfk_gnu_sync_concrete_function,
 			/* The concrete version of a GNU __sync_... or
 			   __atomic_... builtin function, except the
@@ -2212,7 +2212,7 @@ enum a_special_function_kind_tag {
 			/* Represents a generic GNU __atomic_... function.
 			   Generic functions have an initial size_t argument
 			   added by the front end. */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   sfk_last		/* Must be last. */
 };
 
@@ -3999,11 +3999,11 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
    "property getter", "property setter",
    "event add", "event remove", "event raise",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
    "gnu sync concrete function",
    "gnu atomic nongeneric function",
    "gnu atomic generic function",
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */

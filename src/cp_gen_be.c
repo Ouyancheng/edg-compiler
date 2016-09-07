@@ -4644,7 +4644,7 @@ successfully emitted.
       }  /* if */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
     if (use_name_reference &&
         (nrp->special_kind ==
                 (a_special_function_kind)sfk_gnu_atomic_nongeneric_function ||
@@ -4653,7 +4653,7 @@ successfully emitted.
       /* These are special cases handled by gen_name_from_routine_node. */
       use_name_reference = FALSE;
     }  /* if */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     for (qual = nrp->qualifier;
          use_name_reference && qual != NULL && qual->is_class;
          qual = qual->previous_qualifier) {
@@ -4783,9 +4783,9 @@ qualified is TRUE, force the generation of a qualified name.
       gen_unqualified_name(&rout->source_corresp, iek_routine);
     }  /* if */
   } else {
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
     a_name_reference_ptr  nrp;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     a_type_ptr            parent_class = parent_class_or_null(rout);
     a_boolean             saved_qualification_needed =
                                      rout->source_corresp.qualification_needed;
@@ -4801,7 +4801,7 @@ qualified is TRUE, force the generation of a qualified name.
                       variant.class_struct_union.is_prototype_instantiation)) {
       rout->source_corresp.qualification_needed = TRUE;
     }  /* if */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
     if (is_routine_node(node) &&
         (nrp = node->variant.routine.name_reference) != NULL &&
         (special_kind_is(nrp, sfk_gnu_sync_concrete_function) ||
@@ -4841,7 +4841,7 @@ qualified is TRUE, force the generation of a qualified name.
         *(char *)(name + i) = '_';
       }  /* if */
     } else
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     /* Do not insert code here. */
     {
       gen_routine_name(rout);
@@ -11991,7 +11991,7 @@ call.
         write_tok_ch(')');
       }  /* if */
       /* Put out the arguments. */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
       if (rout != NULL && routine_node != NULL &&
           special_kind_for_routine_node(routine_node) ==
                     (a_special_function_kind)sfk_gnu_atomic_generic_function) {
@@ -12000,7 +12000,7 @@ call.
         check_assertion(args != NULL);
         args = args->next;
       }  /* if */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       gen_argument_list(args,
                         (is_pointer_type(func_expr->type) ?
                                       type_pointed_to(func_expr->type) : NULL),

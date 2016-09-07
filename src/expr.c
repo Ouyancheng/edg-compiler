@@ -4351,7 +4351,6 @@ result_built:
   release_local_constant(&result);
 }  /* scan_gnu_builtin_pseudo_call */
 
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 
 static a_boolean is_gnu_sync_call(a_routine_ptr rout,
                                   int           *n_args,
@@ -4772,7 +4771,6 @@ done:
   return rout;
 }  /* adjust_gnu_sync_call */
 
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static void report_this_param_mismatch(
@@ -4912,10 +4910,8 @@ are expected to be NULL in that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         call_folded_to_constant = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   a_type_ptr        sync_result_type = NULL;
   int               sync_n_args = 0;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
@@ -5386,7 +5382,7 @@ are expected to be NULL in that case.
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
   }  /* if */
-#if BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   if (routine != NULL && is_gnu_builtin_function(routine)) {
     /* See if this is a call to a predeclared GNU __sync_... function.  If
        so, the concrete routine to call will not be known until after the
@@ -5397,7 +5393,7 @@ are expected to be NULL in that case.
       routine = NULL;
     }  /* if */
   }  /* if */
-#endif /* BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
   if (orig_routine_type == NULL) {
     /* If this call is the result of optimizing a virtual function call to
@@ -5425,7 +5421,7 @@ are expected to be NULL in that case.
                       &closing_paren_position);
 
   error_position = call_position;
-#if BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   if (gnu_sync_function_case) {
     /* Check and adjust the arguments for a call of a GNU __sync_... function.
        Also determine the concrete routine being called, based on the argument
@@ -5435,7 +5431,7 @@ are expected to be NULL in that case.
                                    &closing_paren_position, &argument_list);
     routine_type = routine->type;
   }  /* if */
-#endif /* BUILTIN_FUNCTIONS_ENABLED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
   if (overloaded_function_case) {
     an_operand        orig_operand;
@@ -5628,13 +5624,11 @@ are expected to be NULL in that case.
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (sync_result_type != NULL) {
     /* Cast the call result to the right type for certain GNU __sync_...
        function calls. */
     cast_operand(sync_result_type, result, /*is_implicit_cast=*/TRUE);
   }  /* if */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 done:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   free_arg_list(arg_list);

@@ -764,12 +764,12 @@ extern int fileno(FILE *);
 /*lint -esym(759,alignment_of_variable)*/
 /*lint -esym(765,alignment_of_variable)*/
 /*lint -esym(714,alignment_of_variable)*/
-#if !(GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED)
+#if !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED)
 /*lint -esym(769,ec_bad_type_for_gnu_sync_function)*/
 /*lint -esym(769,ec_invalid_gnu_sync_size)*/
 /*lint -esym(769,ec_extra_arguments_ignored)*/
 /*lint -esym(769,ec_first_arg_must_be_integer_constant)*/
-#endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
+#endif /* !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED) */
 #if !GNU_EXTENSIONS_ALLOWED || RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 /*lint -esym(769,ec_bad_asm_constraint_modifier)*/
 /*lint -esym(769,ec_bad_asm_constraint_letter)*/
@@ -1302,7 +1302,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_named_register_tag::anr_19)*/
 /*lint -esym(769,a_named_register_tag::anr_20)*/
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
-#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugepd)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugeps)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugesd)*/
@@ -1327,7 +1327,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_roldi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rorsi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rordi)*/
-#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(755,gnu_routine_supp)*/
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */

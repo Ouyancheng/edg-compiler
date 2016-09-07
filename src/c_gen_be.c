@@ -5433,9 +5433,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean                      pointer_arithmetic_op = FALSE;
   an_expr_node_ptr               ptr_operand;
   a_boolean                      comma_case;
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
   a_boolean                      remove_compiler_generated_casts = FALSE;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   check_assertion_str(!is_nullptr_type(expr->type),
@@ -6313,7 +6313,7 @@ process_assignment:
           }
 #endif /* CHECKING */
           /* Put out the arguments. */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
           if (is_routine_node(operand_1) &&
               operand_1->variant.routine.name_reference != NULL &&
               special_kind_is(operand_1->variant.routine.name_reference,
@@ -6325,9 +6325,9 @@ process_assignment:
             operand_2 = operand_2->next;
             remove_compiler_generated_casts = TRUE;
           }  /* if */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
           for (call_argument = operand_2; call_argument != NULL;) {
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
             if (remove_compiler_generated_casts &&
                 is_operation_node(call_argument) &&
                 call_argument->variant.operation.compiler_generated &&
@@ -6338,7 +6338,7 @@ process_assignment:
                                                            call_argument->next;
               call_argument = call_argument->variant.operation.operands;
             }  /* if */
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
             dump_expr_with_parens(call_argument);
 #if CHECKING
             /* Check for unwidened arguments to old-style functions. */

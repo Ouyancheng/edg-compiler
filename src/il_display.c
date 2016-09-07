@@ -597,7 +597,7 @@ Display a_name_reference entry.
                iek_type);
     }  /* if */
 #if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
-    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+    BUILTIN_FUNCTIONS_ENABLED
   } else {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
@@ -3086,7 +3086,7 @@ Print the name of a special function kind.
     case sfk_event_remove:       s = "sfk_event_remove";       break;
     case sfk_event_raise:        s = "sfk_event_raise";        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
     case sfk_gnu_sync_concrete_function:
                                 s = "sfk_gnu_sync_concrete_function";
                                                                break;
@@ -3096,7 +3096,7 @@ Print the name of a special function kind.
     case sfk_gnu_atomic_generic_function:
                                 s = "sfk_gnu_atomic_generic_function";
                                                                break;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     default:                     s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
   (void)printf("%s", s);

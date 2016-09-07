@@ -548,17 +548,17 @@ are diagnosed.
                                                 targ_maximum_pack_alignment) {
     internal_error("check_target_config: invalid targ_maximum_pack_alignment");
   }  /* if */
-#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_EXIST
   /* The GNU built-in functions that map on IA-32 vector instructions require
      that integers of specific sizes exist.  To keep things simple, we make
      the slightly stronger requirement that sizeof(short) == 2,
      sizeof(int) == 4, and sizeof(long long) == 8.  (LONG_LONG_ALLOWED is
-     always TRUE when GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED is TRUE.) */
+     always TRUE when BUILTIN_FUNCTIONS_EXIST is TRUE.) */
   check_assertion_str2(targ_sizeof_short == 2 && targ_sizeof_int == 4 &&
                          targ_sizeof_long_long == 8,
                        "check_target_config: invalid integer sizes for",
                        " GNU IA-32 vector functions");
-#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_EXIST */
 #if IA64_ABI && DO_IL_LOWERING
   { 
     /* Verify that the integer kind used for a vtable entry is signed and

@@ -63,9 +63,9 @@ platform.
 #endif /* ifdef __x86_64 */
 #endif /* ifndef TARG_SUPPORTS_X86_64 */
 
-#ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-#define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED 1
-#endif /* ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#ifndef BUILTIN_FUNCTIONS_ENABLED
+#define BUILTIN_FUNCTIONS_ENABLED 1
+#endif /* ifndef BUILTIN_FUNCTIONS_ENABLED */
 
 /*
 Configure the legacy configuration as 32-bit or 64-bit (depending on the
