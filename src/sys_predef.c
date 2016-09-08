@@ -570,11 +570,11 @@ static void enter_builtin_function(a_const_char            *name,
                                    a_symbol_locator        *loc)
 /*
 Enter a builtin function with the given name and type (which must be a
-tk_routine type; not a tk_typeref).  The builtin corresponds to the
-(a_builtin_function_kind_tag or a_builtin_user_function_kind_tag) kind.  If
-non-NULL, loc specifies the symbol locator for name.  The routine is given C
-name linkage (and the routine type is updated accordingly).  Return the symbol
-for the function.
+tk_routine type -- possibly with a typeref that describes attributes).  The
+builtin corresponds to the (a_builtin_function_kind_tag or
+a_builtin_user_function_kind_tag) kind.  If non-NULL, loc specifies the symbol
+locator for name.  The routine is given C name linkage (and the routine type is
+updated accordingly).  Return the symbol for the function.
 */
 {
   a_symbol_ptr        sym;
@@ -582,9 +582,9 @@ for the function.
   a_name_linkage_kind saved_name_linkage =
                            scope_stack[decl_scope_level].default_name_linkage;
 
-  /* FIXME: for __attribute(noreturn) case, rout_type is a typeref with
-     for_type_attributes set to TRUE; what to do about that? */
-  /* FIXME: also fix comment in header above. */
+  /* In cases where attributes are part of the function type, a typeref
+     may be present here; skip it (the attributes are already reflected in
+     the underlying type). */
   rout_type = skip_typerefs(rout_type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   if (loc == NULL) {

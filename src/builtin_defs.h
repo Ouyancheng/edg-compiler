@@ -650,6 +650,7 @@ enum a_builtin_function_type_index {
   bfti_617a569928,
   bfti_6185d55604,
   bfti_61a3861bfb,
+  bfti_61b0bb3150,
   bfti_61b7287efc,
   bfti_61cfa1935a,
   bfti_61fc71ca74,
@@ -2334,6 +2335,7 @@ EXTERN a_builtin_function_type builtin_type_table[]
   /* bfti_617a569928 */ { NULL, "int (void*,const char*,...)" },
   /* bfti_6185d55604 */ { NULL, "__edg_vector_type__(char,8) (__edg_vector_type__(char,8),__edg_vector_type__(char,8))" },
   /* bfti_61a3861bfb */ { NULL, "void (volatile void*)" },
+  /* bfti_61b0bb3150 */ { NULL, "void (void*,int) __attribute((noreturn))" },
   /* bfti_61b7287efc */ { NULL, "void (__edg_vector_type__(short,8)*,__edg_vector_type__(long long,4),char)" },
   /* bfti_61cfa1935a */ { NULL, "void (__edg_vector_type__(int,4)*,__edg_vector_type__(int,4),unsigned char)" },
   /* bfti_61fc71ca74 */ { NULL, "__edg_vector_type__(double,4) (__edg_vector_type__(double,4),__edg_vector_type__(double,2),int,__edg_vector_type__(double,4),char)" },
@@ -12536,7 +12538,8 @@ EXTERN a_builtin_descr builtin_table[]
   { "logf", "Bgx(-40407)bgx(40500-)bLx", bfti_b16b545bf5, bfk_logf },
   { "logl", "Bgx(-40407)bgx(40500-)bLx", bfti_90b4c59578, bfk_logl },
   { "longjmp", "BLx", bfti_4f6a73628d, bfk_longjmp },
-  { "longjmp", "Bgx", bfti_996e402141, bfk_longjmp },
+  { "longjmp", "Bgx(-40499)", bfti_61b0bb3150, bfk_longjmp },
+  { "longjmp", "Bgx(40500-)", bfti_996e402141, bfk_longjmp },
   { "lrint", "Bgx(-40407)bgx(40500-)bLx", bfti_3442f023a1, bfk_lrint },
   { "lrintf", "Bgx(-40407)bgx(40500-)bLx", bfti_4602dc1244, bfk_lrintf },
   { "lrintl", "Bgx(-40407)bgx(40500-)bLx", bfti_3329d4c20c, bfk_lrintl },
@@ -12914,6 +12917,7 @@ EXTERN a_builtin_descr builtin_table[]
 ;
 
 /*--------------------End of automatically generated code-----------------*/
+
 /*lint +e641 */ /* Re-enable lint messages about converting enums to int. */
 
 /******************************************************************************
