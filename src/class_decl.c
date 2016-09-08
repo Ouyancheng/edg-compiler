@@ -22245,7 +22245,7 @@ class_type.  Set *updated if a projection symbol is created.
                                      fund_base_sym->variant.routine.ptr)) {
               break;
             } else if (base_class->is_virtual) {
-              /* Check if slep represents a projection from a base_class that
+              /* Check if slep represents a projection from a base class that
                  also derives virtually from base_class.  In that case, this
                  projection should be skipped (per the resolution of Core
                  issue 39, through paper N1626). */

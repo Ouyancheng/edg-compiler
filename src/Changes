@@ -11,9 +11,9 @@ Consider:
   int r = D();  // Previously ambiguous.  Now okay.
 
 Previously, the front end considered the conversion functions in both direct
-base classes of D (A and V) viable candidates for conversion and, because both
+base classes of D (B and V) viable candidates for conversion and, because both
 candidates provide equally good conversions, an ambiguity error ensued.
-However, the standard actually specifies that "A::operator int" hides
+However, the standard actually specifies that "B::operator int" hides
 "V::operator int", which avoids the ambiguity.  The front end now implements
 that rule.
 
