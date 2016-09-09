@@ -1,5 +1,18 @@
 Version 4.12
 
+9/9/16   [EDGcpfe/17522]
+Deduction failure with template alias that refers to nondeduced context
+
+Template argument deduction did not correctly handle an alias template
+instance that referred to a type that should be treated as a nondeduced
+context.  This could result in a spurious deduction failure.  Now fixed.
+
+  template <typename T> struct A { typedef int type; };
+  template <typename U> using B = typename A<U>::type;
+  template <typename T> void f(const B<T>& b, T t) {}
+  template void f(const int& b, int t);  // formerly rejected
+
+
 9/7/16   [EDGcpfe/17012]
 Lookup of conversion functions with virtual base classes
 

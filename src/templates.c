@@ -10595,8 +10595,9 @@ points to the template parameter list.
            nondeduced context.  Consider it a match for now. */
         match = TRUE;
       } else {
-        /* Skip typedefs on the real type. */
+        /* Skip typedefs on the types. */
         type = skip_typedefs(type);
+        templ_type = skip_typedefs(templ_type);
         if (templ_type->source_corresp.is_class_member) {
           /* This is a template parameter associated with a member of a
              proxy class (e.g., X in a type like T::X).  The members must have
