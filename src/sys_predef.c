@@ -393,7 +393,7 @@ routine is created (and potentially a routine type is parsed).
 
   check_assertion((!sym_hdr->builtin_has_been_loaded ||
                    !is_primary_translation_unit) &&
-                  sym_hdr->builtin_function_index != 0);
+                  sym_hdr->is_builtin_function);
   sym_hdr->builtin_has_been_loaded = TRUE;
   /* Push a scope suitable for a new top-level declaration. */
   push_new_top_level_declaration();
@@ -454,7 +454,7 @@ the current emulation mode.
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   if (loc.symbol_header != NULL &&
-      loc.symbol_header->builtin_function_index != 0) {
+      loc.symbol_header->is_builtin_function) {
     result = TRUE;
   }  /* if */
   return result;
@@ -506,6 +506,7 @@ builtin_type_table for the builtin's type.
   if (name[0] == '_' && builtin_enabled(condition, required_prefix)) {
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+    loc.symbol_header->is_builtin_function = TRUE;
     loc.symbol_header->builtin_function_index = idx;
     loc.symbol_header->builtin_has_been_loaded = FALSE;
     loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
@@ -524,6 +525,7 @@ builtin_type_table for the builtin's type.
         builtin_enabled(condition, '\0')) {
       clear_locator(&loc, &null_source_position);
       (void)find_symbol(builtin_name, (sizeof_t)strlen(builtin_name), &loc);
+      loc.symbol_header->is_builtin_function = TRUE;
       loc.symbol_header->builtin_function_index = idx;
       loc.symbol_header->builtin_has_been_loaded = FALSE;
       loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
@@ -547,7 +549,7 @@ current emulation mode.  This must be done for each translation unit.
   a_builtin_user_descr      *budp;
   a_builtin_function_index  i;
 
-  for (bdp = &builtin_table[1], i = 1; bdp->name != NULL; bdp++, i++) {
+  for (bdp = builtin_table, i = 0; bdp->name != NULL; bdp++, i++) {
     preload_builtin_symbol(bdp->name, bdp->cond, i,
                            /*is_user_builtin_function=*/FALSE, bdp->kind,
                            bdp->type_index, NULL);
@@ -555,7 +557,7 @@ current emulation mode.  This must be done for each translation unit.
        reset. */
     builtin_type_table[bdp->type_index].type = NULL;
   }  /* for */
-  for (budp = &builtin_user_table[1], i = 1; budp->name != NULL; budp++, i++) {
+  for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
     preload_builtin_symbol(budp->name, budp->cond, i,
                            /*is_user_builtin_function=*/TRUE, budp->kind,
                            0, budp->type_string);

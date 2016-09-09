@@ -4057,23 +4057,24 @@ typedef struct a_symbol_header {
 			   this header.  This is used to suppress warnings
 			   about unused static functions in some cases. */
 #if BUILTIN_FUNCTIONS_ENABLED
+  a_bit_field	is_builtin_function:1;
+                        /* TRUE if this symbol header is for a builtin
+                           function (which may or may not have been loaded). */
   a_bit_field	builtin_has_been_loaded:1;
-                        /* TRUE if this is a builtin (i.e.,
-                           builtin_function_index is not bfk_none) and the
-                           builtin has been loaded. */
+                        /* TRUE if this is a builtin (i.e., is_builtin_function
+                           is TRUE) and the builtin has been loaded. */
   a_bit_field	is_user_builtin_function:1;
-                        /* TRUE if this is a builtin (i.e.,
-                           builtin_function_index is not bfk_none) and the
-                           information about the builtin is found in the
-                           user-defined builtin table (builtin_user_table).
-                           Otherwise the information is found in builtin_table.
-                           */
+                        /* TRUE if this is a builtin (i.e., is_builtin_function
+                           is TRUE) and the information about the builtin is
+                           found in the user-defined builtin table
+                           (builtin_user_table).  Otherwise the information is
+                           found in builtin_table. */
   a_builtin_function_index
                 builtin_function_index;
-                        /* When not zero, this symbol header refers to
-                           a builtin function.  The value is an index into
-                           either builtin_table or builtin_user_table depending
-                           on the value of is_user_builtin_function. */
+                        /* When is_builtin_function is TRUE, the value is an
+                           index into either builtin_table or
+                           builtin_user_table depending on the value of
+                           is_user_builtin_function. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 } a_symbol_header;
 
@@ -4082,8 +4083,7 @@ typedef struct a_symbol_header {
 /* Macro that is TRUE if the symbol header refers to a builtin function that
    has not been loaded yet. */
 #define builtin_needs_to_be_loaded(sym_hdr) \
-  ((sym_hdr)->builtin_function_index != (a_builtin_function_index)0 && \
-   !(sym_hdr)->builtin_has_been_loaded)
+  ((sym_hdr)->is_builtin_function && !(sym_hdr)->builtin_has_been_loaded)
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #define SYMBOL_TABLE_SIZE 16381

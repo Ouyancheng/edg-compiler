@@ -21,8 +21,6 @@ sys_predef.h -- System dependent predefined macros and assertions.
 
 /* FIXME: Changes entry. */
 /* FIXME: Documentation changes (new builtin_defs.h). */
-/* FIXME: Look at removing unused configuration macros. */
-/* FIXME: Figure out how to do attribute(noreturn), etc. */
 /* FIXME: Don't remove prefix (see how it impacts performance). */
 /* FIXME: Further testing. */
 /*
@@ -190,8 +188,6 @@ to be kept sorted).
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
-  { NULL, NULL, 0, bfk_none },  /* beginning of table marker */
-
   /* __builtin_choose_expr is available in all gcc modes. */
   { "choose_expr", "Bgc", "int (...)", bufk_choose_expr },
 

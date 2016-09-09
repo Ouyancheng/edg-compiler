@@ -7161,7 +7161,6 @@ enum a_builtin_function_kind_tag {
 EXTERN a_builtin_descr builtin_table[]
 #if VAR_INITIALIZERS
 = {
-  { NULL, NULL, 0, bfk_none },  /* beginning of table marker */
   { "FILE", "Bgx(40800-)", bfti_2d4097d376, bfk_FILE },
   { "FUNCTION", "Bgx(40800-)", bfti_2d4097d376, bfk_FUNCTION },
   { "GOMP_atomic_end", "Bgx(40500-50400)", bfti_cb9f72e7da, bfk_GOMP_atomic_end },

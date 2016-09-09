@@ -4048,7 +4048,7 @@ style builtin function without the "__builtin_" prefix, return TRUE.
   (void)find_symbol(temp_text_buffer, builtin_name_length, &matching_loc);
 #undef BF_PREFIX
   if (matching_loc.symbol_header != NULL &&
-      matching_loc.symbol_header->builtin_function_index != 0) {
+      matching_loc.symbol_header->is_builtin_function) {
     result = TRUE;
   }  /* if */
   return result; 
