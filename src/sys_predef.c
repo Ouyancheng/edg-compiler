@@ -299,7 +299,8 @@ matches must also have an 'A'.
 }  /* builtin_enabled */
 
 
-static a_type_ptr builtin_function_type(a_builtin_type_string type_string)
+static a_type_ptr builtin_function_type(a_builtin_type_string type_string,
+                                        a_source_position     *err_source_pos)
 /*
 Parse the builtin type specified by type_string and return the resulting
 type.  See also scan_top_level_generated_code (which is similar).
@@ -335,7 +336,7 @@ type.  See also scan_top_level_generated_code (which is similar).
   /* Insert the builtin type into the token stream. */
   insert_string_into_token_stream(type_string, /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
-                                  null_source_position);
+                                  *err_source_pos);
   /* Scan the type. */
   type_name(&result);
   /* Get the injected end of source token. */
@@ -369,7 +370,7 @@ specified type if it has not been parsed yet.
 
   check_assertion(type_index < (unsigned short)bfti_last);
   if (bftp->type == NULL) {
-    bftp->type = builtin_function_type(bftp->type_string);
+    bftp->type = builtin_function_type(bftp->type_string, &pos_curr_token);
   }  /* if */
   check_assertion(bftp->type != NULL && !is_error_type(bftp->type));
   return bftp->type;
@@ -410,7 +411,7 @@ routine is created (and potentially a routine type is parsed).
   if (sym_hdr->is_user_builtin_function) {
     a_builtin_user_descr_ptr budp =
                           &builtin_user_table[sym_hdr->builtin_function_index];
-    builtin_type = builtin_function_type(budp->type_string);
+    builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
     builtin_kind = budp->kind;
   } else {
     a_builtin_descr_ptr bdp = &builtin_table[sym_hdr->builtin_function_index];
@@ -514,7 +515,8 @@ builtin_type_table for the builtin's type.
       if (type_string == NULL) {
         builtin_type = builtin_function_type_for_index(type_index);
       } else {
-        builtin_type = builtin_function_type(type_string);
+        builtin_type = builtin_function_type(type_string,
+                                             &null_source_position);
       }  /* if */
       enter_builtin_function(name, builtin_type, kind, &loc);
     }  /* if */
@@ -589,6 +591,13 @@ updated accordingly).  Return the symbol for the function.
      the underlying type). */
   rout_type = skip_typerefs(rout_type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  if (is_or_contains_error_type(rout_type)) {
+    /* In some configurations (e.g., when GNU vectors or 128-bit integers are
+       not enabled), using a builtin that refers to those types will result
+       in error types being part of the routine type.  In that case, issue an
+       error that the builtin isn't available in the current configuration. */
+    pos_error(ec_builtin_not_available, &pos_curr_token);
+  }  /* if */
   if (loc == NULL) {
     /* Find the symbol header if not specified by the caller. */
     clear_locator(&local_loc, &null_source_position);
@@ -671,6 +680,7 @@ static void enter_microsoft_predeclared_functions(void)
 Enter the predeclared functions for Microsoft mode.
 */
 {
+  /* FIXME: see if these can be folded into the new mechanism. */
   if (microsoft_version >= 1300) {
     a_type_ptr  no_return_value = void_type();
     a_type_ptr  annotation_fn_type, debugbreak_fn_type;
@@ -840,21 +850,27 @@ Enter a predefined type __builtin_va_list.
 }  /* enter_builtin_va_list_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-#if GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED
 
 static void enter_128bit_integer_typedefs(void)
 /*
 Enter typedefs "__int128_t" and "__uint128_t" corresponding to signed and
-unsigned 128-bit integer types, respectively.
+unsigned 128-bit integer types, respectively (or error types if 128-bit
+integer types are not configured).
 */
 {
-  (void)enter_predefined_typedef(
+#if GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED
+  if (int128_extensions_enabled) {
+    (void)enter_predefined_typedef(
                       "__int128_t", integer_type((an_integer_kind)ik_int128));
-  (void)enter_predefined_typedef(
+    (void)enter_predefined_typedef(
             "__uint128_t", integer_type((an_integer_kind)ik_unsigned_int128));
+  }  /* if */
+#else /* !(GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED) */
+  enter_predefined_typedef("__int128_t", error_type());
+  enter_predefined_typedef("__uint128_t", error_type());
+#endif /* GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED */
 }  /* enter_128bit_integer_typedefs */
 
-#endif /* GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -924,11 +940,7 @@ Enter predeclared symbols as required by the implementation.
 #if GCC_BUILTIN_VARARGS
     enter_builtin_va_list_type();
 #endif /* GCC_BUILTIN_VARARGS */
-#if INT128_EXTENSIONS_ALLOWED
-    if (int128_extensions_enabled) {
-      enter_128bit_integer_typedefs();
-    }  /* if */
-#endif /* INT128_EXTENSIONS_ALLOWED */
+    enter_128bit_integer_typedefs();
     if (gnu_version >= 40000 && !clang_mode) {
       a_type_ptr file_star_type = init_predeclared_class(
                                                         (a_type_kind)tk_struct,

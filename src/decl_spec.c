@@ -2714,7 +2714,6 @@ issued in some cases.
 }  /* preapply_microsoft_class_align_attribute */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
 
 static a_type_ptr scan_edg_vector_type()
 /*
@@ -2785,16 +2784,19 @@ type.
   } else {
     err = TRUE;
   }  /* if */
-  if (err) {
-    vtype = error_type();
-  } else {
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (!err) {
     vtype = make_vector_type(etype, n_elems);
     vtype->variant.vector.size_constant = size_con;
+  } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  /* Do not insert code here. */
+  {
+    vtype = error_type();
   }  /* if */
   return vtype;
 }  /* scan_edg_vector_type */
 
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* diag_pos is not used in some configurations. */
@@ -10700,13 +10702,11 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         break;
-#if GNU_VECTOR_TYPES_ALLOWED
       case tok_edg_vector_type:
         *type_ptr = scan_edg_vector_type();
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         goto no_get_token;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tok_typename:
         /* A typename specifier.  The typename keyword is used to
 	   specify that the qualified name that follows the keyword is

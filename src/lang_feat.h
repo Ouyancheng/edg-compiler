@@ -975,7 +975,11 @@ are supported (e.g., in Microsoft 16-bit mode).
 Flag that is TRUE if GNU-style builtin functions are enabled.  Note that
 not all GNU-style builtin functions may be available in all modes, but setting
 this to TRUE enables the GNU-style builtin function mechanism.  See also the
-builtin_functions_enabled global variable.
+builtin_functions_enabled global variable.  Note that some builtin functions
+require other configuration macros, e.g., INT128_EXTENSIONS_ALLOWED and
+GNU_VECTOR_TYPES, but those are not checked at compile time here.  If such
+a builtin (e.g., a builtin that requires vectors when GNU_VECTOR_TYPES is
+FALSE) is loaded at compilation time, an error will be generated.
 */
 #ifndef BUILTIN_FUNCTIONS_ENABLED
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -989,12 +993,6 @@ builtin_functions_enabled global variable.
  #error -- BUILTIN_FUNCTIONS_ENABLED must be enabled for GNU or Microsoft \
            emulation
 #endif /* !BUILTIN_FUNCTIONS_ENABLED && ... */
-
-#if 0  /* FIXME: Causing problems in some configurations. */
-#if BUILTIN_FUNCTIONS_ENABLED && !GNU_VECTOR_TYPES_ALLOWED
- #error -- BUILTIN_FUNCTIONS_ENABLED requires GNU_VECTOR_TYPES_ALLOWED
-#endif /* BUILTIN_FUNCTIONS_ENABLED && !GNU_VECTOR_TYPES_ALLOWED */
-#endif /* 0 */
 
 /*
 The configuration macros GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED and

@@ -1001,6 +1001,7 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
     enter_keyword((a_token_kind)tok_ext_alignof, "__alignof");
 #if GNU_VECTOR_TYPES_ALLOWED
+    /* FIXME: check to see if we can handle these differently. */
     if (gnu_version >= (unsigned long)(gcc_mode ? 40700 : 40800)) {
       enter_keyword((a_token_kind)tok_builtin_shuffle, "__builtin_shuffle");
     }  /* if */
@@ -1011,8 +1012,11 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_builtin_shufflevector,
                     "__builtin_shufflevector");
     }  /* if */
-    enter_keyword((a_token_kind)tok_edg_vector_type, "__edg_vector_type__");
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Note that the __edg_vector_type__ is defined even when
+       GNU_VECTOR_TYPES_ALLOWED is FALSE; it will become an error type in that
+       case. */
+    enter_keyword((a_token_kind)tok_edg_vector_type, "__edg_vector_type__");
   }  /* if */
   if (ms_extensions || clang_mode) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");

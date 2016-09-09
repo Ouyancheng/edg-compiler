@@ -1260,7 +1260,6 @@ typedef enum /*a_token_kind*/ {
 #if GNU_VECTOR_TYPES_ALLOWED
   tok_builtin_shuffle,
   tok_builtin_shufflevector,
-  tok_edg_vector_type,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tok_noreturn,
   tok_builtin_complex,
@@ -1277,6 +1276,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_trivially_copy_assignable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_builtin_addressof,
+  tok_edg_vector_type,
   tok_edg_size_type,
   tok_edg_ptrdiff_type,
   tok_edg_bool_type,
@@ -1442,7 +1442,6 @@ EXTERN a_const_char
 #if GNU_VECTOR_TYPES_ALLOWED
    "__builtin_shuffle",
    "__builtin_shufflevector",
-   "__edg_vector_type__",
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    "_Noreturn",
    "__builtin_complex",
@@ -1457,6 +1456,7 @@ EXTERN a_const_char
    "__is_trivially_copy_assignable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__builtin_addressof",
+   "__edg_vector_type__",
    "__edg_size_type__",
    "__edg_ptrdiff_type__",
    "__edg_bool_type__",

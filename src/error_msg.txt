@@ -2868,6 +2868,7 @@ ec_conflicting_nullability;;"at most one of the qualifiers _Nullable, _Nonnull, 
 ec_invalid_type_for_nullability;;"nullability qualifiers are only permitted on pointer and pointer-to-member types"
 ec_vector_length_too_large;;"vector length is too large"
 ec_invalid_vector_element_type;;"vector element type must be integral, enum, or real floating-point type"
+ec_builtin_not_available;;"builtin function is not available in this configuration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
