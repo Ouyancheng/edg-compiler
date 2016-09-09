@@ -2728,7 +2728,9 @@ type.
   a_type_ptr      vtype, etype;
   a_boolean       err = FALSE;
   a_targ_size_t   n_elems, esize;
+#if GNU_VECTOR_TYPES_ALLOWED
   a_constant_ptr  size_con = NULL;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
   (void)get_token();
   /* A '(' should be next. */
@@ -2761,7 +2763,9 @@ type.
     } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
       /* Record a dummy (nonzero) size. */
       n_elems = 1;
+#if GNU_VECTOR_TYPES_ALLOWED
       size_con = move_local_constant_to_il(&con);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (con->kind != (a_constant_repr_kind)ck_integer) {
       pos_error(ec_exp_int_constant, &pos);
       err = TRUE;
