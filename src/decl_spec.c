@@ -2741,7 +2741,11 @@ type.
     add_stop_token(tok_rparen);
     add_stop_token(tok_comma);
     type_name(&etype);
-    if (is_integral_or_enum_type(etype) || is_real_floating_type(etype)) {
+    if (is_integral_or_enum_type(etype) 
+#if C99_IL_EXTENSIONS_SUPPORTED
+        || is_real_floating_type(etype)
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+                                       ) {
       /* The normal case. */
       esize = skip_typerefs(etype)->size;
     } else if (is_template_param_type(etype)) {

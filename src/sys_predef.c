@@ -867,8 +867,10 @@ integer types are not configured).
             "__uint128_t", integer_type((an_integer_kind)ik_unsigned_int128));
   }  /* if */
 #else /* !INT128_EXTENSIONS_ALLOWED */
+#if 0 /* FIXME */
   (void)enter_predefined_typedef("__int128_t", error_type());
   (void)enter_predefined_typedef("__uint128_t", error_type());
+#endif /* 0 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
 }  /* enter_128bit_integer_typedefs */
 
