@@ -409,12 +409,13 @@ routine is created (and potentially a routine type is parsed).
   push_lexical_state_stack();
   saved_locator_for_curr_id = locator_for_curr_id;
   if (sym_hdr->is_user_builtin_function) {
-    a_builtin_user_descr_ptr budp =
+    const a_builtin_user_descr *budp =
                           &builtin_user_table[sym_hdr->builtin_function_index];
     builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
     builtin_kind = budp->kind;
   } else {
-    a_builtin_descr_ptr bdp = &builtin_table[sym_hdr->builtin_function_index];
+    const a_builtin_descr *bdp =
+                               &builtin_table[sym_hdr->builtin_function_index];
     builtin_type = builtin_function_type_for_index(bdp->type_index);
     builtin_kind = bdp->kind;
   }  /* if */
@@ -547,9 +548,9 @@ create a symbol header entry for any builtin entry that is enabled in the
 current emulation mode.  This must be done for each translation unit.
 */
 {
-  a_builtin_descr           *bdp;
-  a_builtin_user_descr      *budp;
-  a_builtin_function_index  i;
+  const a_builtin_descr      *bdp;
+  const a_builtin_user_descr *budp;
+  a_builtin_function_index   i;
 
   for (bdp = builtin_table, i = 0; bdp->name != NULL; bdp++, i++) {
     preload_builtin_symbol(bdp->name, bdp->cond, i,

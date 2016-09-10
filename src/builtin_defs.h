@@ -7158,7 +7158,7 @@ enum a_builtin_function_kind_tag {
 };
 
 /* Entries for automatically-generated builtin functions. */
-EXTERN a_builtin_descr builtin_table[]
+EXTERN const a_builtin_descr builtin_table[]
 #if VAR_INITIALIZERS
 = {
   { "FILE", "Bgx(40800-)", bfti_2d4097d376, bfk_FILE },
