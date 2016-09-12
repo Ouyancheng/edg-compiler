@@ -187,7 +187,70 @@ Enter some predefined macros for a MacOS X (Apple) system.
 static void enter_builtin_function(a_const_char            *name,
                                    a_type_ptr              rout_type,
                                    a_builtin_function_kind kind,
-                                   a_symbol_locator        *loc);
+                                   a_symbol_locator        *loc)
+/*
+Enter a builtin function with the given name and type (which must be a
+tk_routine type -- possibly with a typeref that describes attributes).  The
+builtin corresponds to the (a_builtin_function_kind_tag or
+a_builtin_user_function_kind_tag) kind.  If non-NULL, loc specifies the symbol
+locator for name.  The routine is given C name linkage (and the routine type is
+updated accordingly).  Return the symbol for the function.
+*/
+{
+  a_symbol_ptr        sym;
+  a_symbol_locator    local_loc;
+  a_name_linkage_kind saved_name_linkage =
+                           scope_stack[decl_scope_level].default_name_linkage;
+
+  /* In cases where attributes are part of the function type, a typeref
+     may be present here; skip it (the attributes are already reflected in
+     the underlying type). */
+  rout_type = skip_typerefs(rout_type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  if (is_or_contains_error_type(rout_type)) {
+    /* In some configurations (e.g., when GNU vectors or 128-bit integers are
+       not enabled), using a builtin that refers to those types will result
+       in error types being part of the routine type.  In that case, issue an
+       error that the builtin isn't available in the current configuration. */
+    pos_error(ec_builtin_not_available, &pos_curr_token);
+  }  /* if */
+  if (loc == NULL) {
+    /* Find the symbol header if not specified by the caller. */
+    clear_locator(&local_loc, &null_source_position);
+    (void)find_symbol(name, (sizeof_t)strlen(name), &local_loc);
+    loc = &local_loc;
+  }  /* if */
+  /* Builtin functions have extern "C" name linkage by default. */
+  scope_stack[decl_scope_level].default_name_linkage =
+                                            (a_name_linkage_kind)nlk_external;
+  sym = make_predeclared_function_symbol(loc, rout_type);
+  check_assertion(sym->variant.routine.ptr->source_corresp.name_linkage
+                                         == (a_name_linkage_kind)nlk_external);
+  check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
+                                         == (a_name_linkage_kind)nlk_external);
+  /* Restore the previous default name linkage. */
+  scope_stack[decl_scope_level].default_name_linkage = saved_name_linkage;
+  sym->explicit_linkage_specifier = !C_mode();
+  sym->header->builtin_has_been_loaded = TRUE;
+  sym->variant.routine.ptr->variant.builtin_function_kind = kind;
+#if DEBUG
+  if (db_flag_is_set("dump_builtins")) {
+    /* Dump builtin declarations. */
+    an_il_to_str_output_control_block octl;
+    fprintf(f_debug, "/* %s */ ", sym->header->identifier);
+    clear_il_to_str_output_control_block(&octl);
+    octl.output_str = put_str_to_f_debug;
+    form_type_first_part(rout_type, /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/FALSE, TQ_NONE,
+                         FTO_NO_OPTIONS, &octl);
+    fprintf(f_debug, "%s", sym->header->identifier);
+    form_type_second_part(rout_type, /*under_lhs_declarator=*/FALSE,
+                          FTO_NO_OPTIONS, &octl);
+    fprintf(f_debug, ";\n");
+  }  /* if */
+#endif /* DEBUG */
+}  /* enter_builtin_function */
+
 
 static a_boolean builtin_matches_version_range(unsigned long version,
                                                a_const_char  **cond_range)
@@ -567,74 +630,6 @@ current emulation mode.  This must be done for each translation unit.
   builtin_functions_enabled = TRUE;
 }  /* preload_builtin_symbols */
 
-
-static void enter_builtin_function(a_const_char            *name,
-                                   a_type_ptr              rout_type,
-                                   a_builtin_function_kind kind,
-                                   a_symbol_locator        *loc)
-/*
-Enter a builtin function with the given name and type (which must be a
-tk_routine type -- possibly with a typeref that describes attributes).  The
-builtin corresponds to the (a_builtin_function_kind_tag or
-a_builtin_user_function_kind_tag) kind.  If non-NULL, loc specifies the symbol
-locator for name.  The routine is given C name linkage (and the routine type is
-updated accordingly).  Return the symbol for the function.
-*/
-{
-  a_symbol_ptr        sym;
-  a_symbol_locator    local_loc;
-  a_name_linkage_kind saved_name_linkage =
-                           scope_stack[decl_scope_level].default_name_linkage;
-
-  /* In cases where attributes are part of the function type, a typeref
-     may be present here; skip it (the attributes are already reflected in
-     the underlying type). */
-  rout_type = skip_typerefs(rout_type);
-  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-  if (is_or_contains_error_type(rout_type)) {
-    /* In some configurations (e.g., when GNU vectors or 128-bit integers are
-       not enabled), using a builtin that refers to those types will result
-       in error types being part of the routine type.  In that case, issue an
-       error that the builtin isn't available in the current configuration. */
-    pos_error(ec_builtin_not_available, &pos_curr_token);
-  }  /* if */
-  if (loc == NULL) {
-    /* Find the symbol header if not specified by the caller. */
-    clear_locator(&local_loc, &null_source_position);
-    (void)find_symbol(name, (sizeof_t)strlen(name), &local_loc);
-    loc = &local_loc;
-  }  /* if */
-  /* Builtin functions have extern "C" name linkage by default. */
-  scope_stack[decl_scope_level].default_name_linkage =
-                                            (a_name_linkage_kind)nlk_external;
-  sym = make_predeclared_function_symbol(loc, rout_type);
-  check_assertion(sym->variant.routine.ptr->source_corresp.name_linkage
-                                         == (a_name_linkage_kind)nlk_external);
-  check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
-                                         == (a_name_linkage_kind)nlk_external);
-  /* Restore the previous default name linkage. */
-  scope_stack[decl_scope_level].default_name_linkage = saved_name_linkage;
-  sym->explicit_linkage_specifier = !C_mode();
-  sym->header->builtin_has_been_loaded = TRUE;
-  sym->variant.routine.ptr->variant.builtin_function_kind = kind;
-#if DEBUG
-  if (db_flag_is_set("dump_builtins")) {
-    /* Dump builtin declarations. */
-    an_il_to_str_output_control_block octl;
-    fprintf(f_debug, "/* %s */ ", sym->header->identifier);
-    clear_il_to_str_output_control_block(&octl);
-    octl.output_str = put_str_to_f_debug;
-    form_type_first_part(rout_type, /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/FALSE, TQ_NONE,
-                         FTO_NO_OPTIONS, &octl);
-    fprintf(f_debug, "%s", sym->header->identifier);
-    form_type_second_part(rout_type, /*under_lhs_declarator=*/FALSE,
-                          FTO_NO_OPTIONS, &octl);
-    fprintf(f_debug, ";\n");
-  }  /* if */
-#endif /* DEBUG */
-}  /* enter_builtin_function */
-
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -673,41 +668,6 @@ Enter these in the file scope and return the type entry.
 }  /* enter_predefined_typedef */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void enter_microsoft_predeclared_functions(void)
-/*
-Enter the predeclared functions for Microsoft mode.
-*/
-{
-  /* FIXME: see if these can be folded into the new mechanism. */
-  if (microsoft_version >= 1300) {
-    a_type_ptr  no_return_value = void_type();
-    a_type_ptr  annotation_fn_type, debugbreak_fn_type;
-    annotation_fn_type =
-      make_routine_type(no_return_value,
-                        make_pointer_type(eff_wchar_t_type()),
-                                          (a_type_ptr)NULL, (a_type_ptr)NULL,
-                                          (a_type_ptr)NULL);
-    annotation_fn_type->variant.routine.extra_info->has_ellipsis = TRUE;
-    annotation_fn_type->variant.routine.extra_info->calling_convention =
-                                               (a_calling_convention)cc_cdecl;
-    enter_builtin_function("__annotation", annotation_fn_type,
-                           (a_builtin_function_kind)bfk_none,
-                           (a_symbol_locator *)NULL);
-    debugbreak_fn_type = make_routine_type(no_return_value, (a_type_ptr)NULL,
-                                           (a_type_ptr)NULL, (a_type_ptr)NULL,
-                                           (a_type_ptr)NULL);
-    debugbreak_fn_type->variant.routine.extra_info->calling_convention =
-                                               (a_calling_convention)cc_cdecl;
-    enter_builtin_function("__debugbreak", debugbreak_fn_type,
-                           (a_builtin_function_kind)bfk_none,
-                           (a_symbol_locator *)NULL);
-  }  /* if */
-}  /* enter_microsoft_predeclared_functions */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 #if UPC_EXTENSIONS_ALLOWED
 
 static void enter_upc_predefined_macros(void)
@@ -962,9 +922,6 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_extensions) {
-    enter_microsoft_predeclared_functions();
-  }  /* if */
   if (!C_mode() &&
       ((microsoft_mode && microsoft_version >= 1900) ||
        clang_mode)) {
