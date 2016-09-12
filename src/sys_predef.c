@@ -285,40 +285,30 @@ cond_range (which is part of a a_builtin_condition_string).
 
 
 static a_boolean builtin_enabled(a_builtin_condition_string condition,
-                                 char                       required_prefix)
+                                 a_boolean                  is_secondary)
 /*
 Returns TRUE if the builtin condition is satisfied in the current emulation
-mode.  required_prefix, if not zero, specifies a prefix shortcut that must
-match the condition string.  E.g., if required_prefix is 'A' (meaning the
-builtin's name begins with the "__atomic_" prefix), then the condition that
-matches must also have an 'A'.
+mode.  If is_secondary is TRUE, this declaration is for the "secondary"
+declaration (i.e., one without the "__builtin_" prefix).  In that case, make
+sure an 'S' is present in the condition (indicating that a secondary
+declaration is allowed).
 */
 {
-  a_boolean     result = FALSE, prefix_match;
+  a_boolean     result = FALSE;
   a_const_char  *p = condition;
   unsigned long version;
 
   check_assertion(p != NULL);
   while (*p != '\0') {
-    if (*p == 'A' || *p == 'B' || *p == 'b') {
-      /* This entry has a prefix; skip the entry if it doesn't match. */
-      if (required_prefix == *p ||
-          (*p == 'b' &&
-           (required_prefix == 'B' || required_prefix == '\0'))) {
-        prefix_match = TRUE;
-      } else {
-        prefix_match = FALSE;
-      }  /* if */
+    if (*p == 'S') {
+      /* This will match the primary or secondary declaration. */
+      result = TRUE;
       p++;
-    } else if (required_prefix == '\0') {
-      /* No prefix required and none found. */
-      prefix_match = TRUE;
     } else {
-      /* A prefix is required, but none found. */
-      prefix_match = FALSE;
+      /* This will only match a primary declaration. */
+      result = !is_secondary;
     }  /* if */
     if (*p == 'g' || *p == 'L' || *p == 'm') {
-      result = TRUE;
       if (*p == 'g') {
         result = result && (gnu_mode && !clang_mode);
         version = gnu_version;
@@ -349,7 +339,6 @@ matches must also have an 'A'.
            be updated to point past the version range). */
         result = builtin_matches_version_range(version, &p) && result;
       }  /* if */
-      result = result && prefix_match;
       if (result) {
         /* Found a match. */
         break;
@@ -536,38 +525,22 @@ static void preload_builtin_symbol(
 /*
 If the builtin named by builtin_name is enabled in the current mode, create a
 symbol header for it and mark that it is associated with a builtin function.
-condition is a string that describes the conditions in which the builtin is
-applicable.  idx is the array index (into either builtin_table or
-builtin_user_table depending on the value of is_user_builtin_function) for this
-builtin.  kind is the a_builtin_function_kind or a_builtin_user_function_kind
-enum value that corresponds to this builtin.  If type_string is non-NULL, it is
-a string that gives the builtin's type, otherwise type_index is an index into
+If the builtin has a "secondary" declaration (i.e., one without the __builtin
+prefix), that will be entered as well.  condition is a string that describes
+the conditions in which the builtin is applicable.  idx is the array index
+(into either builtin_table or builtin_user_table depending on the value of
+is_user_builtin_function) for this builtin.  kind is the
+a_builtin_function_kind or a_builtin_user_function_kind enum value that
+corresponds to this builtin.  If type_string is non-NULL, it is a string that
+gives the builtin's type, otherwise type_index is an index into
 builtin_type_table for the builtin's type.
 */
 {
   a_symbol_locator loc;
   a_type_ptr       builtin_type = NULL;
-  static char      atomic_name_buffer[200] = /*lint -e{785} */
-                                         {'_','_','a','t','o','m','i','c','_'};
-  static char      builtin_name_buffer[200] = /*lint -e{785} */
-                                     {'_','_','b','u','i','l','t','i','n','_'};
-  char             *name;
-  char             required_prefix = '\0';
+  a_const_char     *name = builtin_name;
 
-  name = (char *)builtin_name;
-  if (condition[0] == 'A') {
-    check_assertion(strlen(name) + 9 + 1 < sizeof(atomic_name_buffer));
-    (void)strcpy(&atomic_name_buffer[9], name);
-    name = atomic_name_buffer;
-    required_prefix = 'A';
-  } else if (condition[0] == 'B' || condition[0] == 'b') {
-    check_assertion(strlen(name) + 10 + 1 < sizeof(builtin_name_buffer));
-    (void)strcpy(&builtin_name_buffer[10], name);
-    name = builtin_name_buffer;
-    required_prefix = 'B';
-  }  /* if */
-  /* FIXME: only adding builtins with an initial underscore now. */
-  if (name[0] == '_' && builtin_enabled(condition, required_prefix)) {
+  if (builtin_enabled(condition, /*is_secondary=*/FALSE)) {
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
     loc.symbol_header->is_builtin_function = TRUE;
@@ -584,19 +557,20 @@ builtin_type_table for the builtin's type.
       enter_builtin_function(name, builtin_type, kind, &loc);
     }  /* if */
     /* Also see if there's a non-prefixed version that should be added. */
-    /* FIXME: only adding builtins with an initial underscore now. */
-    if (builtin_name[0] == '_' &&
-        strchr(condition, 'b') != NULL &&
-        builtin_enabled(condition, '\0')) {
-      clear_locator(&loc, &null_source_position);
-      (void)find_symbol(builtin_name, (sizeof_t)strlen(builtin_name), &loc);
-      loc.symbol_header->is_builtin_function = TRUE;
-      loc.symbol_header->builtin_function_index = idx;
-      loc.symbol_header->builtin_has_been_loaded = FALSE;
-      loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
-      if (preload_builtin_functions) {
-        check_assertion(builtin_type != NULL);
-        enter_builtin_function(builtin_name, builtin_type, kind, &loc);
+    if (strncmp(name, "__builtin_", 10) == 0) {
+      name = &builtin_name[10];
+      if ((is_user_builtin_function || name[0] == '_') &&
+          builtin_enabled(condition, /*is_secondary=*/TRUE)) {
+        clear_locator(&loc, &null_source_position);
+        (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+        loc.symbol_header->is_builtin_function = TRUE;
+        loc.symbol_header->builtin_function_index = idx;
+        loc.symbol_header->builtin_has_been_loaded = FALSE;
+        loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
+        if (preload_builtin_functions) {
+          check_assertion(builtin_type != NULL);
+          enter_builtin_function(name, builtin_type, kind, &loc);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -615,6 +589,13 @@ current emulation mode.  This must be done for each translation unit.
   a_builtin_function_index  i;
 
   for (bdp = builtin_table, i = 0; bdp->name != NULL; bdp++, i++) {
+    if (*bdp->name != '_') {
+      /* Don't preload any non-user defined builtins whose name doesn't begin
+         with an underscore.  These names appear in the builtin_table, but
+         neither GCC nor clang preload them (though they may be used to give
+         better error messages in the absence of declarations). */
+      break;
+    }  /* if */
     preload_builtin_symbol(bdp->name, bdp->cond, i,
                            /*is_user_builtin_function=*/FALSE, bdp->kind,
                            bdp->type_index, NULL);
@@ -631,7 +612,6 @@ current emulation mode.  This must be done for each translation unit.
 }  /* preload_builtin_symbols */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-
 #if GNU_EXTENSIONS_ALLOWED
 
 static void enter_predefined_type(a_type_ptr   type,
