@@ -284,29 +284,29 @@ cond_range (which is part of a a_builtin_condition_string).
 }  /* builtin_matches_version_range */
 
 
-static a_boolean builtin_enabled(a_builtin_condition_string condition,
-                                 a_boolean                  is_secondary)
+static void builtin_condition_enabled(
+                                 a_builtin_condition_string condition,
+                                 a_boolean                  *primary_enabled,
+                                 a_boolean                  *secondary_enabled)
 /*
-Returns TRUE if the builtin condition is satisfied in the current emulation
-mode.  If is_secondary is TRUE, this declaration is for the "secondary"
-declaration (i.e., one without the "__builtin_" prefix).  In that case, make
-sure an 'S' is present in the condition (indicating that a secondary
-declaration is allowed).
+For the given builtin condition string, sets *primary_enabled to TRUE if
+the condition string causes a "primary" declaration to be enabled in the
+current configuration and sets *secondary_enabled to TRUE if a "secondary"
+declaration is enabled by the string.
 */
 {
-  a_boolean     result = FALSE;
+  a_boolean     result, has_secondary;
   a_const_char  *p = condition;
   unsigned long version;
 
   check_assertion(p != NULL);
   while (*p != '\0') {
+    result = TRUE;
     if (*p == 'S') {
-      /* This will match the primary or secondary declaration. */
-      result = TRUE;
+      has_secondary = TRUE;
       p++;
     } else {
-      /* This will only match a primary declaration. */
-      result = !is_secondary;
+      has_secondary = FALSE;
     }  /* if */
     if (*p == 'g' || *p == 'L' || *p == 'm') {
       if (*p == 'g') {
@@ -340,13 +340,47 @@ declaration is allowed).
         result = builtin_matches_version_range(version, &p) && result;
       }  /* if */
       if (result) {
-        /* Found a match. */
-        break;
+        *primary_enabled = TRUE;
+        if (!*secondary_enabled) {
+          *secondary_enabled = has_secondary;
+        }  /* if */
       }  /* if */
     } else {
       unexpected_condition();
     }  /* if */
   }  /* while */
+}  /* builtin_condition_enabled */
+
+
+static a_boolean builtin_enabled(unsigned short             cond_index,
+                                 a_builtin_condition_string condition,
+                                 a_boolean                  is_secondary)
+/*
+Returns TRUE if the builtin condition is satisfied in the current emulation
+mode.  The condition is given by "condition" if it is non-NULL, otherwise
+cond_index is assumed to be an index into builtin_condition_table where the
+condition string is specified by the "condition_string" field of that entry.
+If is_secondary is TRUE, this declaration is for the "secondary" declaration
+(i.e., one without the "__builtin_" prefix).  In that case, make sure an 'S' is
+present in the condition (indicating that a secondary declaration is allowed).
+*/
+{
+  a_boolean result;
+
+  if (condition != NULL) {
+    a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
+    builtin_condition_enabled(condition, &primary_enabled, &secondary_enabled);
+    result = (is_secondary ? secondary_enabled : primary_enabled);
+  } else {
+    a_builtin_function_condition *bfcp = &builtin_condition_table[cond_index];
+    check_assertion(cond_index < (unsigned short)bfci_last);
+    if (!bfcp->evaluated) {
+      builtin_condition_enabled(bfcp->condition_string, &bfcp->primary_enabled,
+                                &bfcp->secondary_enabled);
+      bfcp->evaluated = TRUE;
+    }  /* if */
+    result = (is_secondary ? bfcp->secondary_enabled : bfcp->primary_enabled);
+  }  /* if */
   return result;
 }  /* builtin_enabled */
 
@@ -516,6 +550,7 @@ the current emulation mode.
 
 static void preload_builtin_symbol(
                            a_const_char               *builtin_name,
+                           unsigned short             cond_index,
                            a_builtin_condition_string condition,
                            a_builtin_function_index   idx,
                            a_boolean                  is_user_builtin_function,
@@ -527,9 +562,10 @@ If the builtin named by builtin_name is enabled in the current mode, create a
 symbol header for it and mark that it is associated with a builtin function.
 If the builtin has a "secondary" declaration (i.e., one without the __builtin
 prefix), that will be entered as well.  condition is a string that describes
-the conditions in which the builtin is applicable.  idx is the array index
-(into either builtin_table or builtin_user_table depending on the value of
-is_user_builtin_function) for this builtin.  kind is the
+the conditions in which the builtin is applicable, if NULL, cond_index is used
+in its place and specifies an index into builtin_condition_table.  idx is the
+array index (into either builtin_table or builtin_user_table depending on the
+value of is_user_builtin_function) for this builtin.  kind is the
 a_builtin_function_kind or a_builtin_user_function_kind enum value that
 corresponds to this builtin.  If type_string is non-NULL, it is a string that
 gives the builtin's type, otherwise type_index is an index into
@@ -540,7 +576,7 @@ builtin_type_table for the builtin's type.
   a_type_ptr       builtin_type = NULL;
   a_const_char     *name = builtin_name;
 
-  if (builtin_enabled(condition, /*is_secondary=*/FALSE)) {
+  if (builtin_enabled(cond_index, condition, /*is_secondary=*/FALSE)) {
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
     loc.symbol_header->is_builtin_function = TRUE;
@@ -560,7 +596,7 @@ builtin_type_table for the builtin's type.
     if (strncmp(name, "__builtin_", 10) == 0) {
       name = &builtin_name[10];
       if ((is_user_builtin_function || name[0] == '_') &&
-          builtin_enabled(condition, /*is_secondary=*/TRUE)) {
+          builtin_enabled(cond_index, condition, /*is_secondary=*/TRUE)) {
         clear_locator(&loc, &null_source_position);
         (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
         loc.symbol_header->is_builtin_function = TRUE;
@@ -596,7 +632,7 @@ current emulation mode.  This must be done for each translation unit.
          better error messages in the absence of declarations). */
       break;
     }  /* if */
-    preload_builtin_symbol(bdp->name, bdp->cond, i,
+    preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
                            /*is_user_builtin_function=*/FALSE, bdp->kind,
                            bdp->type_index, NULL);
     /* For the multi-translation unit case, make sure any cached types are
@@ -604,7 +640,7 @@ current emulation mode.  This must be done for each translation unit.
     builtin_type_table[bdp->type_index].type = NULL;
   }  /* for */
   for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
-    preload_builtin_symbol(budp->name, budp->cond, i,
+    preload_builtin_symbol(budp->name, 0, budp->cond, i,
                            /*is_user_builtin_function=*/TRUE, budp->kind,
                            0, budp->type_string);
   }  /* for */
