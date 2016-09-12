@@ -1,5 +1,28 @@
 Version 4.12
 
+9/12/16  [EDGcpfe/16900]
+constexpr copy construction from value-initialized members
+
+The front end previously reported a spurious "must have a constant value"
+error for cases in which bitwise copy initialization is required from a
+value-initialized class member in a context requiring a constant
+expression.  This is now fixed.  For example, with --c++11:
+
+  template <typename... Ts> struct A;
+  template <> struct A<> {
+    constexpr A() { }
+    constexpr A(const A&) { }
+  };
+  template <typename First, typename... Rest>
+  struct A<First, Rest...> : A<Rest...> {
+    typedef A<Rest...> Base;
+    constexpr A() : Base(), elem() { }
+    First elem;
+  };
+  constexpr A<int, int, int> t1;
+  constexpr A<int, int, int> t2(t1);  // Previously a spurious error
+
+
 9/9/16   [EDGcpfe/17522]
 Deduction failure with template alias that refers to nondeduced context
 
