@@ -5,7 +5,7 @@ Microsoft compatibility: default Microsoft version changed
 
 The default Microsoft version number (specified by DEFAULT_MICROSOFT_VERSION)
 is now 1900.  This corresponds to the value of _MSC_VER used with Visual
-C++ 2015 (but is also used for some later updates, see EDGcpfe/17121).
+C++ 2015.
 
 
 9/13/16  [EDGcpfe/17524]
