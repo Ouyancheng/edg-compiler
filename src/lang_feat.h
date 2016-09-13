@@ -535,7 +535,7 @@ emulated by default.  Version x.y.z of the GNU compiler is represented by
 the value x*10000+y*100+z.
 */
 #ifndef DEFAULT_GNU_VERSION
-#define DEFAULT_GNU_VERSION 40300
+#define DEFAULT_GNU_VERSION 40800
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
@@ -1064,7 +1064,7 @@ version of the Microsoft compiler that is being emulated (for example,
 default value of the microsoft_version variable.
 */
 #ifndef DEFAULT_MICROSOFT_VERSION
-#define DEFAULT_MICROSOFT_VERSION 1600
+#define DEFAULT_MICROSOFT_VERSION 1900
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*
