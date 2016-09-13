@@ -5,7 +5,10 @@ Microsoft compatibility: default Microsoft version changed
 
 The default Microsoft version number (specified by DEFAULT_MICROSOFT_VERSION)
 is now 1900.  This corresponds to the value of _MSC_VER used with Visual
-C++ 2015.
+C++ 2015.  Note that newer versions of Visual Studio implement features
+from C++11 and C++14, so the change in DEFAULT_MICROSOFT_VERSION means that
+most C++11 features and some C++14 features are now enabled in Microsoft
+mode when our DEFAULT_MICROSOFT_VERSION value is used.
 
 
 9/13/16  [EDGcpfe/17524]
