@@ -10990,6 +10990,9 @@ pm_field_selection:
                                expr->type,
                                ceblock,
                                result_con);
+  } else if (expr->kind == (an_expr_node_kind)enk_reuse_value) {
+    folded = fold_dynamic_init(expr->variant.reused_value_init,
+                               expr->type, ceblock, result_con);
   } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
     /* Fold a builtin operation if possible. */
     a_boolean not_a_constant;
