@@ -1402,6 +1402,13 @@ constructs, in which case offsetof_case is TRUE.
     (void)get_token();
     add_matching_stop_token(tok_rbracket);
     /* Scan the second operand. */
+    if (std_attributes_enabled && curr_token == tok_lbracket) {
+      /* '[ [' should strictly-speaking introduce a standard attribute, even
+         though it could conceivably be a subscript operation with a lambda
+         expression. */
+      pos_diagnostic(es_discretionary_error, ec_must_introduce_attribute,
+                     &pos_curr_token);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (subscript_is_expr_list) {
       /* The subscript is an expression list in C++/CLI mode.  Top-level commas

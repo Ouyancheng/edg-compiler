@@ -1,5 +1,19 @@
 Version 4.12
 
+9/14/16  [EDGcpfe/17389]
+Error on consecutive left square brackets that don't introduce an attribute
+
+The C++ standard is clear that the occurrence of two left brackets must
+introduce an attribute list, but previously that construct had been accepted
+in some cases.  The example below now gets a discretionary error in
+configurations where C++ standard attributes are allowed (e.g., --c++11):
+
+  void f() {
+    int a[1];
+    a[[]{return 0;}()] = 0;   // previously accepted, now an error
+  }
+
+
 9/13/16  [EDGcpfe/17524]
 Microsoft compatibility: default Microsoft version changed
 

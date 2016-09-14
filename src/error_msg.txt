@@ -2870,6 +2870,7 @@ ec_vector_length_too_large;;"vector length is too large"
 ec_invalid_vector_element_type;;"vector element type must be integral, enum, or real floating-point type"
 ec_builtin_needs_128_bit_integers;;"builtin function is not available because 128-bit integers are not supported"
 ec_builtin_needs_vector_types;;"builtin function is not available because vector types are not supported"
+ec_must_introduce_attribute;;"two consecutive left square brackets can only introduce an attribute list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
