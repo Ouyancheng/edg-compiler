@@ -11792,7 +11792,16 @@ evaluation.
                appropriate zero-valued constant and use it to temporarily
                transform the initialization to a dik_constant. */
             source_member_con = local_constant();
-            make_zero_of_proper_type(field->type, source_member_con);
+            if (is_array_type(field->type) ||
+                is_class_struct_union_type(field->type)) {
+              /* The value will be an empty aggregate. */
+              clear_constant(source_member_con,
+                             (a_constant_repr_kind)ck_aggregate);
+              source_member_con->type = field->type;
+            } else {
+              /* The value will be a zero of the required type. */
+              make_zero_of_proper_type(field->type, source_member_con);
+            }  /* if */
             implicit_source_case = TRUE;
             dip->kind = (a_dynamic_init_kind)dik_constant;
             dip->variant.constant = source_member_con;
