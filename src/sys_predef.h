@@ -21,7 +21,6 @@ sys_predef.h -- System dependent predefined macros and assertions.
 
 /* FIXME: Changes entry. */
 /* FIXME: Documentation changes (new builtin_defs.h). */
-/* FIXME: Don't remove prefix (see how it impacts performance). */
 /* FIXME: Further testing. */
 /*
 To add a user-defined builtin, follow these steps:
@@ -62,6 +61,7 @@ typedef struct a_builtin_user_descr {
                              - mode ('c', '+', or 'x')
                              - arch ('4' or '8') [optional]
                              - version (version range in parens) [optional]
+                             - restrictions ['v', 'i'] [optional]
 
                            A prefix of 'S' indicates that the name in the
                            entry (which must start with "__builtin_") also
@@ -75,15 +75,25 @@ typedef struct a_builtin_user_descr {
                            A mode of 'c' indicates C mode, '+' indicates
                            C++ mode, and 'x' indicates both C and C++ modes.
 
-                           A '4' indicates the builtin applies only to 32-bit
-                           architectures and an '8' indicates the builtin
-                           applies only to 64-bit architectures.
+                           A '4' indicates the builtin applies only to
+                           architectures where targ_supports_x86_64 is FALSE
+                           and an '8' indicates the builtin applies only to
+                           architectures where targ_supports_x86_64 is TRUE.
 
                            If a parenthesized range of applicable versions is
                            given, the builtin is only enabled when the version
                            is within that range.  Either end of the range can
                            be dropped; e.g., "gc(40800-)" means the attribute
-                           is valid in GNU C mode with gnu_version >= 40800. */
+                           is valid in GNU C mode with gnu_version >= 40800.
+
+                           If restrictions exist, they are a non-empty
+                           sequence of 'v' and/or 'i', where 'v' indicates that
+                           the signature depends on vector types, and 'i'
+                           indicates that the signature depends on 128-bit
+                           integer types.  If a builtin with restrictions is
+                           referenced, a check is made at run time to ensure
+                           that all restrictions are satisfied (otherwise
+                           an error is given). */
   a_builtin_type_string
                 type_string;
                         /* The type of the builtin function(s).  This takes
@@ -136,6 +146,10 @@ typedef struct a_builtin_function_condition {
                         /* If TRUE, this condition string indicates that any
                            secondary builtin declarations that use it are
                            enabled in the current configuration. */
+  a_const_char  *restrictions;
+                        /* If non-NULL, points to any "restrictions" for this
+                           builtin.  See the description of "cond" in
+                           a_builtin_user_descr for more information. */
   a_builtin_condition_string
                 condition_string;
                         /* A character string that represents the conditions

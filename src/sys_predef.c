@@ -207,13 +207,6 @@ updated accordingly).  Return the symbol for the function.
      the underlying type). */
   rout_type = skip_typerefs(rout_type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-  if (is_or_contains_error_type(rout_type)) {
-    /* In some configurations (e.g., when GNU vectors or 128-bit integers are
-       not enabled), using a builtin that refers to those types will result
-       in error types being part of the routine type.  In that case, issue an
-       error that the builtin isn't available in the current configuration. */
-    pos_error(ec_builtin_not_available, &pos_curr_token);
-  }  /* if */
   if (loc == NULL) {
     /* Find the symbol header if not specified by the caller. */
     clear_locator(&local_loc, &null_source_position);
@@ -287,21 +280,25 @@ cond_range (which is part of a a_builtin_condition_string).
 static void builtin_condition_enabled(
                                  a_builtin_condition_string condition,
                                  a_boolean                  *primary_enabled,
-                                 a_boolean                  *secondary_enabled)
+                                 a_boolean                  *secondary_enabled,
+                                 a_const_char               **restrictions)
 /*
 For the given builtin condition string, sets *primary_enabled to TRUE if
 the condition string causes a "primary" declaration to be enabled in the
 current configuration and sets *secondary_enabled to TRUE if a "secondary"
-declaration is enabled by the string.
+declaration is enabled by the string.  Also sets *restrictions to point to
+a list of characters representing restrictions (or NULL if there are no
+restrictions).
 */
 {
   a_boolean     result, has_secondary;
-  a_const_char  *p = condition;
+  a_const_char  *p = condition, *res_ptr;
   unsigned long version;
 
   check_assertion(p != NULL);
   while (*p != '\0') {
     result = TRUE;
+    res_ptr = NULL;
     if (*p == 'S') {
       has_secondary = TRUE;
       p++;
@@ -339,10 +336,23 @@ declaration is enabled by the string.
            be updated to point past the version range). */
         result = builtin_matches_version_range(version, &p) && result;
       }  /* if */
+      if (*p == '[') {
+        /* This string has restrictions; save a pointer for later. */
+        p++;
+        res_ptr = p;
+        p = strchr(p, ']');
+        p++;
+      }  /* if */
       if (result) {
         *primary_enabled = TRUE;
+        *restrictions = res_ptr;
         if (!*secondary_enabled) {
           *secondary_enabled = has_secondary;
+          if (has_secondary) {
+            /* Both primary and secondary are enabled; no need to look any
+               further. */
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -369,20 +379,85 @@ present in the condition (indicating that a secondary declaration is allowed).
 
   if (condition != NULL) {
     a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
-    builtin_condition_enabled(condition, &primary_enabled, &secondary_enabled);
+    a_const_char    *restrictions;
+    builtin_condition_enabled(condition, &primary_enabled, &secondary_enabled,
+                              &restrictions);
     result = (is_secondary ? secondary_enabled : primary_enabled);
   } else {
     a_builtin_function_condition *bfcp = &builtin_condition_table[cond_index];
     check_assertion(cond_index < (unsigned short)bfci_last);
     if (!bfcp->evaluated) {
       builtin_condition_enabled(bfcp->condition_string, &bfcp->primary_enabled,
-                                &bfcp->secondary_enabled);
+                                &bfcp->secondary_enabled,
+                                &bfcp->restrictions);
       bfcp->evaluated = TRUE;
     }  /* if */
     result = (is_secondary ? bfcp->secondary_enabled : bfcp->primary_enabled);
   }  /* if */
   return result;
 }  /* builtin_enabled */
+
+
+static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr)
+/*
+Returns TRUE if the builtin referred to by sym_hdr has no restrictions or
+those restrictions are met in the current configuration.  If FALSE is returned
+an error is issued.
+*/
+{
+  a_boolean     result = TRUE;
+  a_const_char  *restrictions;
+  
+  if (sym_hdr->is_user_builtin_function) {
+    /* For a user-defined builtin, re-parse the condition string to see if
+       there are any restrictions. */
+    a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
+    a_builtin_user_descr_ptr budp =
+                          &builtin_user_table[sym_hdr->builtin_function_index];
+    builtin_condition_enabled(budp->cond, &primary_enabled, &secondary_enabled,
+                              &restrictions);
+  } else {
+    /* The restriction string (if any) has already been found for non-user
+       defined builtins. */
+    a_builtin_descr_ptr bdp = &builtin_table[sym_hdr->builtin_function_index];
+    restrictions = builtin_condition_table[bdp->cond_index].restrictions;
+  }  /* if */
+  if (restrictions != NULL) {
+    while (*restrictions != ']' && *restrictions != '\0') {
+      switch (*restrictions) {
+        case 'i':
+          /* Ensure that 128-bit integers are configured and enabled. */
+#if INT128_EXTENSIONS_ALLOWED
+          if (int128_extensions_enabled) {
+            /* Okay. */
+          } else
+#endif /* INT128_EXTENSIONS_ALLOWED */
+          {
+            pos_error(ec_builtin_needs_128_bit_integers, &pos_curr_token);
+            result = FALSE;
+          }  /* if */
+          break;
+        case 'v':
+          /* GNU vector types must be configured. */
+#if !GNU_VECTOR_TYPES_ALLOWED
+          pos_error(ec_builtin_needs_vector_types, &pos_curr_token);
+          result = FALSE;
+#endif /* !GNU_VECTOR_TYPES_ALLOWED */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      restrictions++;
+    }  /* while */
+    if (!result) {
+      /* Prevent cascading errors for this builtin. */
+      check_assertion(locator_for_curr_id.symbol_header == sym_hdr);
+      curr_token = tok_identifier;
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* builtin_restrictions_met */
 
 
 static a_type_ptr builtin_function_type(a_builtin_type_string type_string,
@@ -482,38 +557,41 @@ routine is created (and potentially a routine type is parsed).
                    !is_primary_translation_unit) &&
                   sym_hdr->is_builtin_function);
   sym_hdr->builtin_has_been_loaded = TRUE;
-  /* Push a scope suitable for a new top-level declaration. */
-  push_new_top_level_declaration();
-  decl_scope_level = DEPTH_OF_FILE_SCOPE;
-  /* Builtins are always have C linkage. */
-  if (scope_stack[depth_scope_stack].default_name_linkage !=
+  if (builtin_restrictions_met(sym_hdr)) {
+    /* Push a scope suitable for a new top-level declaration. */
+    push_new_top_level_declaration();
+    decl_scope_level = DEPTH_OF_FILE_SCOPE;
+    /* Builtins are always have C linkage. */
+    if (scope_stack[depth_scope_stack].default_name_linkage !=
                                            (a_name_linkage_kind)nlk_external) {
-    push_name_linkage((a_name_linkage_kind)nlk_external);
-    name_linkage_pushed = TRUE;
-  }  /* if */
-  /* Save the lexical state. */
-  push_lexical_state_stack();
-  saved_locator_for_curr_id = locator_for_curr_id;
-  if (sym_hdr->is_user_builtin_function) {
-    a_builtin_user_descr_ptr budp =
+      push_name_linkage((a_name_linkage_kind)nlk_external);
+      name_linkage_pushed = TRUE;
+    }  /* if */
+    /* Save the lexical state. */
+    push_lexical_state_stack();
+    saved_locator_for_curr_id = locator_for_curr_id;
+    if (sym_hdr->is_user_builtin_function) {
+      a_builtin_user_descr_ptr budp =
                           &builtin_user_table[sym_hdr->builtin_function_index];
-    builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
-    builtin_kind = budp->kind;
-  } else {
-    a_builtin_descr_ptr bdp = &builtin_table[sym_hdr->builtin_function_index];
-    builtin_type = builtin_function_type_for_index(bdp->type_index);
-    builtin_kind = bdp->kind;
+      builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
+      builtin_kind = budp->kind;
+    } else {
+      a_builtin_descr_ptr bdp =
+                               &builtin_table[sym_hdr->builtin_function_index];
+      builtin_type = builtin_function_type_for_index(bdp->type_index);
+      builtin_kind = bdp->kind;
+    }  /* if */
+    enter_builtin_function(sym_hdr->identifier, builtin_type, builtin_kind,
+                           (a_symbol_locator *)NULL);
+    /* Restore the lexical state, name linkage, and scope. */
+    locator_for_curr_id = saved_locator_for_curr_id;
+    pop_lexical_state_stack();
+    if (name_linkage_pushed) {
+      pop_name_linkage();
+    }  /* if */
+    decl_scope_level = saved_decl_scope_level;
+    pop_scope();
   }  /* if */
-  enter_builtin_function(sym_hdr->identifier, builtin_type, builtin_kind,
-                         (a_symbol_locator *)NULL);
-  /* Restore the lexical state, name linkage, and scope. */
-  locator_for_curr_id = saved_locator_for_curr_id;
-  pop_lexical_state_stack();
-  if (name_linkage_pushed) {
-    pop_name_linkage();
-  }  /* if */
-  decl_scope_level = saved_decl_scope_level;
-  pop_scope();
 }  /* load_matching_builtin_function */
 
 

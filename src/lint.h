@@ -769,7 +769,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_gnu_sync_size)*/
 /*lint -esym(769,ec_extra_arguments_ignored)*/
 /*lint -esym(769,ec_first_arg_must_be_integer_constant)*/
-/*lint -esym(769,ec_builtin_not_available)*/
+/*lint -esym(769,ec_builtin_needs_128_bit_integers)*/
+/*lint -esym(769,ec_builtin_needs_vector_types)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED) */
 #if !GNU_EXTENSIONS_ALLOWED || RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 /*lint -esym(769,ec_bad_asm_constraint_modifier)*/
