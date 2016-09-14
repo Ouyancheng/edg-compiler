@@ -4157,6 +4157,9 @@ be completed here.
                                         /*is_defined=*/FALSE,
                                         /*is_definition=*/TRUE);
       }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      ctsp->ELF_visibility = class_type_supp(proto_type)->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -4786,6 +4789,7 @@ A pointer to the head of the list is returned in tcsp.
   a_symbol_ptr                      instance_sym;
   a_template_arg_ptr                template_arg_list;
   a_class_symbol_supplement_ptr     cssp;
+  a_class_type_supplement_ptr       ctsp = class_type_supp(prototype_type);
   a_boolean			    is_class_member;
   a_boolean			    scope_pushed;
   a_push_scope_options_set	    ps_options = PS_PROTOTYPE_INSTANTIATION;
@@ -4853,28 +4857,26 @@ A pointer to the head of the list is returned in tcsp.
   if (tssp->attributes != NULL) {
     /* When parsing the template, some attributes were encountered between the
        class-key ("class", "struct", or "union") and the template name. */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    /* Save the ELF visibility that was in effect when the template was
+       declared.  Clear the field in the class type supplement after that, to
+       allow any attributes on the definition to take effect.  If no visibility
+       attributes are applied, the default visibility is restored below. */
+    an_ELF_visibility_kind  ELF_visibility = ctsp->ELF_visibility;
+    ctsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     attach_tag_attributes(tssp->attributes, prototype_type,
                           &decl_state->decl_parse, /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+      ctsp->ELF_visibility = ELF_visibility;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     /* No call to record_strongest_alignment_attr is necessary for a prototype
        instantiation. */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  if (gpp_mode) {
-    a_class_type_supplement_ptr  ctsp = class_type_supp(prototype_type);
-    if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
-      /* If no ELF visibility was explicitly specified, use that of the
-         enclosing class or namespace (if any). */
-      an_ELF_visibility_kind  visibility = ctsp->ELF_visibility;
-      update_for_default_ELF_visibility(
-                 &visibility, prototype_type->source_corresp.is_class_member);
-      ctsp->ELF_visibility = visibility;
-    }  /* if */
-  }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Scan the base specifiers list, if any, and the body of the class.
      The pending class definition counter is incremented while processing
      the instantiation.  This ensures that the fixup of the instantiation
@@ -7986,9 +7988,6 @@ a type in certain ways (see template_arg_list_is_dependent).
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
     if (prototype_type != NULL) {
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      ctsp->ELF_visibility = class_type_supp(prototype_type)->ELF_visibility;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       class_type->in_gnu_abi_tag_namespace =
                                       prototype_type->in_gnu_abi_tag_namespace;
     }  /* if */
@@ -20306,6 +20305,23 @@ friend_template_checks_done:
         tssp->cache_segment->first_token_number = first_token_number;
         tssp->cache_segment->last_token_number = last_token_number;
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      if (gpp_mode) {
+        a_type_ptr  class_type = 
+                         tssp->variant.class_template.prototype_instantiation
+                             ->variant.class_struct_union.type;
+        a_class_type_supplement_ptr
+                  ctsp = class_type_supp(class_type);
+        if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+          /* If no ELF visibility was explicitly specified, use that of the
+             enclosing class or namespace (if any). */
+          an_ELF_visibility_kind  visibility = ctsp->ELF_visibility;
+          update_for_default_ELF_visibility(
+                     &visibility, class_type->source_corresp.is_class_member);
+          ctsp->ELF_visibility = visibility;
+        }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
   } else {
     mark_declared(sym, &locator.source_position);
