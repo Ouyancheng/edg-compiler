@@ -4789,7 +4789,6 @@ A pointer to the head of the list is returned in tcsp.
   a_symbol_ptr                      instance_sym;
   a_template_arg_ptr                template_arg_list;
   a_class_symbol_supplement_ptr     cssp;
-  a_class_type_supplement_ptr       ctsp = class_type_supp(prototype_type);
   a_boolean			    is_class_member;
   a_boolean			    scope_pushed;
   a_push_scope_options_set	    ps_options = PS_PROTOTYPE_INSTANTIATION;
@@ -4862,7 +4861,8 @@ A pointer to the head of the list is returned in tcsp.
        declared.  Clear the field in the class type supplement after that, to
        allow any attributes on the definition to take effect.  If no visibility
        attributes are applied, the default visibility is restored below. */
-    an_ELF_visibility_kind  ELF_visibility = ctsp->ELF_visibility;
+    a_class_type_supplement_ptr  ctsp = class_type_supp(prototype_type);
+    an_ELF_visibility_kind       ELF_visibility = ctsp->ELF_visibility;
     ctsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     attach_tag_attributes(tssp->attributes, prototype_type,
