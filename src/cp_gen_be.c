@@ -10758,15 +10758,21 @@ function reference.
         /* The __super Microsoft extension does not work if "this->" is
            explicitly coded. */
         suppress_this = TRUE;
-      } else if (msvc_is_generated_code_target &&
-                 msvc_target_version_number <= 1900 &&
+      } else if ((msvc_is_generated_code_target &&
+                  msvc_target_version_number <= 1900)
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+                 || (gcc_is_generated_code_target &&
+                     gnu_target_version_number < 70000)
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+                                                        &&
                  object_expr->kind == (an_expr_node_kind)enk_param_ref &&
                  object_expr->variant.param_ref.param_num == 0) {
         /* The fact that "this" is represented by an enk_param_ref instead
            of an enk_variable indicates that the context is something like
            a decltype in a member function return type.  The Microsoft
            compiler rejected use of "this" in such contexts up through
-           early builds of MSVC 13, although later versions accept it. */
+           early builds of MSVC 13, although later versions accept it, and
+           similarly for versions of g++ before 7.0.0. */
         suppress_this = TRUE;
       } else if (!msvc_is_generated_code_target ||
                  msvc_target_version_number != 1000) {
