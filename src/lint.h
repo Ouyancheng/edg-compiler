@@ -771,6 +771,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_first_arg_must_be_integer_constant)*/
 /*lint -esym(769,ec_builtin_needs_128_bit_integers)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED) */
+#if GNU_VECTOR_TYPES_ALLOWED || !BUILTIN_FUNCTIONS_ENABLED
+/*lint -esym(769,ec_builtin_needs_vector_types)*/
+#endif /* GNU_VECTOR_TYPES_ALLOWED || !BUILTIN_FUNCTIONS_ENABLED */
 #if !GNU_EXTENSIONS_ALLOWED || RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 /*lint -esym(769,ec_bad_asm_constraint_modifier)*/
 /*lint -esym(769,ec_bad_asm_constraint_letter)*/
@@ -1328,8 +1331,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_roldi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rorsi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rordi)*/
-#else /* !BUILTIN_FUNCTIONS_ENABLED */
-/*lint -esym(769,ec_builtin_needs_vector_types)*/
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(755,gnu_routine_supp)*/
