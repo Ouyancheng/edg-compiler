@@ -1,5 +1,16 @@
 Version 4.12
 
+9/15/16  [EDGcpfe/17385]
+GNU C compatibility: Negation of constant cast to pointer type
+
+In standard C, an expression like "!(void*)0" is not a valid integral
+constant-expression (because such expressions cannot involve casts to
+pointer types).  In GNU C mode, however, such expressions are now accepted
+in contexts expecting an integral constant-expression.  E.g., in GNU C11:
+
+  static_assert(!(void*)0, "Okay in GNU C11");
+
+
 9/15/16  [EDGcpfe/17395]
 GNU compatibility: decltype(auto) and type qualifiers
 

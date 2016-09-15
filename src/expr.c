@@ -10053,12 +10053,16 @@ analysis on a previously-scanned expression, and return the result in
                          (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
+    a_local_expr_options_set  eopts = EOPT_NO_OPTIONS;
     operator_token = curr_token;
+    if (operator_token == tok_not && gcc_mode) {
+      eopts |= EOPT_LOGICAL_NOT_OPERAND;
+    }  /* if */
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
     /* Scan the operand. */
     (void)get_token();
-    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+    scan_expr(&operand, PREC_PREFIX, eopts);
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
@@ -20146,7 +20150,8 @@ contains something not valid in a constant expression.
         err_code = expr_not_arithmetic_code();
       }  /* if */
     }  /* if */
-  } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
+  } else if (((local_options & EOPT_OPERAND_OF_CAST) ||
+              (gcc_mode && (local_options & EOPT_LOGICAL_NOT_OPERAND))) &&
              is_pointer_type(dest_type) &&
              (is_integral_or_enum_type(source_type) ||
               is_template_param_type(source_type))) {
@@ -23288,6 +23293,7 @@ Also scans GNU statement expressions:
                                       (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
                                                  EOPT_OPERAND_OF_ADDRESS_OF |
+                                                 EOPT_LOGICAL_NOT_OPERAND |
                                                  EOPT_DELEGATE_INITIALIZER)) |
                                        EOPT_ALLOW_BOUND_FUNCTION |
                                        EOPT_PRESERVE_PROPERTY_REF;

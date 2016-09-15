@@ -72,6 +72,9 @@ expr.h -- Declarations related to expression parsing.
 			/* This expression is a top-level expression in the
 			   initializer for a C++/CLI gcnew of a delegate
 			   type. */
+#define EOPT_LOGICAL_NOT_OPERAND 0x400
+			/* This expression is an operand for a logical "not"
+			   operator. */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;
