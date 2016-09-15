@@ -17436,7 +17436,8 @@ name lookup options.
             a_constant_ptr      sizeof_expr_con = local_constant();
             a_constant_ptr      alloc_sizeof_expr_con;
             a_ctws_options_set  extra_ctws_options = CTWS_NON_CONSTANT_EXPR;
-            if (con->variant.template_param.kind == tpck_noexcept) {
+            if (con->variant.template_param.kind ==
+                              (a_template_param_constant_kind)tpck_noexcept) {
               extra_ctws_options |= CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND;
             }  /* if */
             expr = copy_template_param_expr(expr,
