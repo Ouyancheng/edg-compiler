@@ -5342,7 +5342,7 @@ and not for constructor_init entries in destructors.
                               insert_location, &insert_location2);
     effective_insert_loc = &insert_location2;
   }  /* if */
-#if DO_UNORDERED_EH_PROCESSING
+#if GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING
   if (exceptions_enabled) {
     if (dip->unordered) {
       /* For unordered destructions, clear the associated conditional flag
@@ -5360,7 +5360,7 @@ and not for constructor_init entries in destructors.
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* DO_UNORDERED_EH_PROCESSING */
+#endif /* GENERATE_EH_TABLES && DO_UNORDERED_EH_PROCESSING */
   add_destructor_call(dip->destructor,
                       &dedp->init_pos_descr,
                       /*have_complete_object=*/TRUE,

@@ -1,5 +1,12 @@
 Version 4.12
 
+9/15/16  [EDGcpfe/17530]
+Build issue when GENERATE_EH_TABLES is FALSE
+
+lower_init.c had failed to build in configurations where GENERATE_EH_TABLES is
+FALSE and DO_UNORDERED_EH_PROCESSING is TRUE.  Now fixed.
+
+
 9/14/16  [EDGcpfe/16846]
 C++-generating back end, GNU compatibility: this-> in decltype expressions
 
