@@ -904,31 +904,21 @@ Enter a predefined type __builtin_va_list.
 }  /* enter_builtin_va_list_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED
 
 static void enter_128bit_integer_typedefs(void)
 /*
 Enter typedefs "__int128_t" and "__uint128_t" corresponding to signed and
-unsigned 128-bit integer types, respectively (or error types if 128-bit
-integer types are not configured).
+unsigned 128-bit integer types, respectively.
 */
 {
-#if INT128_EXTENSIONS_ALLOWED
-  if (int128_extensions_enabled) {
-    (void)enter_predefined_typedef(
+  (void)enter_predefined_typedef(
                       "__int128_t", integer_type((an_integer_kind)ik_int128));
-    (void)enter_predefined_typedef(
+  (void)enter_predefined_typedef(
             "__uint128_t", integer_type((an_integer_kind)ik_unsigned_int128));
-  }  /* if */
-#else /* !INT128_EXTENSIONS_ALLOWED */
-#if 0 /* FIXME */
-  (void)enter_predefined_typedef("__int128_t", error_type());
-  (void)enter_predefined_typedef("__uint128_t", error_type());
-#endif /* 0 */
-#endif /* INT128_EXTENSIONS_ALLOWED */
 }  /* enter_128bit_integer_typedefs */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -998,7 +988,11 @@ Enter predeclared symbols as required by the implementation.
 #if GCC_BUILTIN_VARARGS
     enter_builtin_va_list_type();
 #endif /* GCC_BUILTIN_VARARGS */
-    enter_128bit_integer_typedefs();
+#if INT128_EXTENSIONS_ALLOWED
+    if (int128_extensions_enabled) {
+      enter_128bit_integer_typedefs();
+    }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
     if (gnu_version >= 40000 && !clang_mode) {
       a_type_ptr file_star_type = init_predeclared_class(
                                                         (a_type_kind)tk_struct,
