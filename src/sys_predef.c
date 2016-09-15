@@ -398,11 +398,12 @@ present in the condition (indicating that a secondary declaration is allowed).
 }  /* builtin_enabled */
 
 
-static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr)
+static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr,
+                                          a_boolean       issue_error)
 /*
 Returns TRUE if the builtin referred to by sym_hdr has no restrictions or
 those restrictions are met in the current configuration.  If FALSE is returned
-an error is issued.
+an error is issued (only if issue_error is TRUE).
 */
 {
   a_boolean     result = TRUE;
@@ -433,14 +434,18 @@ an error is issued.
           } else
 #endif /* INT128_EXTENSIONS_ALLOWED */
           {
-            pos_error(ec_builtin_needs_128_bit_integers, &pos_curr_token);
+            if (issue_error) {
+              pos_error(ec_builtin_needs_128_bit_integers, &pos_curr_token);
+            }  /* if */
             result = FALSE;
           }  /* if */
           break;
         case 'v':
           /* GNU vector types must be configured. */
 #if !GNU_VECTOR_TYPES_ALLOWED
-          pos_error(ec_builtin_needs_vector_types, &pos_curr_token);
+          if (issue_error) {
+            pos_error(ec_builtin_needs_vector_types, &pos_curr_token);
+          }  /* if */
           result = FALSE;
 #endif /* !GNU_VECTOR_TYPES_ALLOWED */
           break;
@@ -449,7 +454,7 @@ an error is issued.
       }  /* switch */
       restrictions++;
     }  /* while */
-    if (!result) {
+    if (!result && issue_error) {
       /* Prevent cascading errors for this builtin. */
       check_assertion(locator_for_curr_id.symbol_header == sym_hdr);
       curr_token = tok_identifier;
@@ -557,7 +562,7 @@ routine is created (and potentially a routine type is parsed).
                    !is_primary_translation_unit) &&
                   sym_hdr->is_builtin_function);
   sym_hdr->builtin_has_been_loaded = TRUE;
-  if (builtin_restrictions_met(sym_hdr)) {
+  if (builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE)) {
     /* Push a scope suitable for a new top-level declaration. */
     push_new_top_level_declaration();
     decl_scope_level = DEPTH_OF_FILE_SCOPE;
@@ -661,7 +666,8 @@ builtin_type_table for the builtin's type.
     loc.symbol_header->builtin_function_index = idx;
     loc.symbol_header->builtin_has_been_loaded = FALSE;
     loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
-    if (preload_builtin_functions) {
+    if (preload_builtin_functions &&
+        builtin_restrictions_met(loc.symbol_header, /*issue_error=*/FALSE)) {
       if (type_string == NULL) {
         builtin_type = builtin_function_type_for_index(type_index);
       } else {
@@ -681,7 +687,9 @@ builtin_type_table for the builtin's type.
         loc.symbol_header->builtin_function_index = idx;
         loc.symbol_header->builtin_has_been_loaded = FALSE;
         loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
-        if (preload_builtin_functions) {
+        if (preload_builtin_functions &&
+            builtin_restrictions_met(loc.symbol_header,
+                                     /*issue_error=*/FALSE)) {
           check_assertion(builtin_type != NULL);
           enter_builtin_function(name, builtin_type, kind, &loc);
         }  /* if */

@@ -1001,7 +1001,8 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
     enter_keyword((a_token_kind)tok_ext_alignof, "__alignof");
 #if GNU_VECTOR_TYPES_ALLOWED
-    /* FIXME: check to see if we can handle these differently. */
+    /* Note that some "__builtin_" builtins are treated as keywords to mimic
+       the way they are implemented in GCC. */
     if (gnu_version >= (unsigned long)(gcc_mode ? 40700 : 40800)) {
       enter_keyword((a_token_kind)tok_builtin_shuffle, "__builtin_shuffle");
     }  /* if */
