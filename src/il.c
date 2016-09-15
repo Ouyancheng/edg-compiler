@@ -17433,14 +17433,18 @@ name lookup options.
         { an_expr_node_ptr expr = generic_sizeof_arg_expr(con);
           if (expr != NULL) {
             /* There's an associated expression.  Do substitution on it. */
-            a_constant_ptr   sizeof_expr_con = local_constant();
-            a_constant_ptr   alloc_sizeof_expr_con;
+            a_constant_ptr      sizeof_expr_con = local_constant();
+            a_constant_ptr      alloc_sizeof_expr_con;
+            a_ctws_options_set  extra_ctws_options = CTWS_NON_CONSTANT_EXPR;
+            if (con->variant.template_param.kind == tpck_noexcept) {
+              extra_ctws_options |= CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND;
+            }  /* if */
             expr = copy_template_param_expr(expr,
                                             template_arg_list,
                                             template_param_list,
                                             (a_type_ptr)NULL,
                                             source_pos,
-                                            options | CTWS_NON_CONSTANT_EXPR,
+                                            options | extra_ctws_options,
                                             copy_error,
                                             ctws_state,
                                             sizeof_expr_con,

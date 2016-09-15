@@ -5418,12 +5418,15 @@ the current context.
 {
   a_boolean fold = FALSE;
 
+  /* Note that folding should always be done for noexcept operands since it
+     affects the outcome of the operand.  That is true even in template-
+     dependent contexts because the operand may not be itself dependent. */
   if (constexpr_enabled &&
       !expr_stack->suppress_constexpr_call_folding &&
-      (curr_expr_is_evaluated() ||
-       expr_stack->in_noexcept_operand_expression) &&
-      (!is_prototype_instantiation_context() ||
-       curr_expr_kind_is_const())) {
+      ((curr_expr_is_evaluated() &&
+        (!is_prototype_instantiation_context() ||
+         curr_expr_kind_is_const())) ||
+       expr_stack->in_noexcept_operand_expression)) {
     fold = TRUE;
   }  /* if */
   return fold;

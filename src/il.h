@@ -1840,6 +1840,10 @@ typedef int a_ctws_options_set;
 			/* TRUE when creating the substituted template
 			   argument list as part of the partial specialization
 			   matching process. */
+#define CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND     0x800
+		       /* TRUE when rescanning the operand of a noexcept
+			  operator. */
+
 
 /*
 Structure used to represent a set of function parameters that resulted from

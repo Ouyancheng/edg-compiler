@@ -40515,6 +40515,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   a_token_kind                  operator_token;
   a_boolean                     unary, postfix;
   a_boolean                     stack_pop_needed = FALSE;
+  a_boolean                     saved_in_noexcept_operand_expression;
   an_expr_node_ptr              saved_expr = rcblock->expr;
   a_ctws_options_set            saved_rcblock_options = rcblock->options;
   an_operand                    local_bound_function_selector;
@@ -40553,6 +40554,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
     }  /* if */
   }  /* if */
   saved_default_rescan_info = expr_stack->default_rescan_info;
+  if (rcblock->options & CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND) {
+    saved_in_noexcept_operand_expression =
+                                   expr_stack->in_noexcept_operand_expression;
+    expr_stack->in_noexcept_operand_expression = TRUE;
+  }  /* if */
   if (explicit_eriep != NULL) {
     /* This expression has rescan info, so save it as the model for
        default rescan info for any subnodes that don't have their own
@@ -40896,7 +40902,14 @@ alternative callable from outside, see rescan_expr_with_substitution.
     release_local_constant(&con);
   }  /* if */
   expr_stack->default_rescan_info = saved_default_rescan_info;
-  if (stack_pop_needed) pop_expr_stack();
+  if (stack_pop_needed) {
+    pop_expr_stack();
+  } else {
+    if (rcblock->options & CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND) {
+      expr_stack->in_noexcept_operand_expression =
+                                         saved_in_noexcept_operand_expression;
+    }  /* if */
+  }  /* if */
   pop_expr_rescan_context_if_necessary(&saved_context);
   rcblock->expr = saved_expr;
   rcblock->options = saved_rcblock_options;

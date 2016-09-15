@@ -1,5 +1,24 @@
 Version 4.12
 
+9/15/16  [EDGcpfe/17290]
+Rescanning noexcept operands with constexpr function calls
+
+When instantiating a function template whose declaration involves a noexcept
+operator, that operator's operand must be "rescanned".  Previously, that
+rescanning did not correctly foldable calls to constexpr functions, which in
+turn could result in spurious errors.  For example:
+
+  template<bool> struct S;
+  template<> struct S<true> { using Type = bool; };
+  template<typename T> constexpr int f(T p) { return p; }
+  template<typename T> constexpr typename S<noexcept(f(42))>::Type g() {
+    return true;
+  }
+  static_assert(g<void>(), "Unexpected");
+
+This is now fixed.
+
+
 9/15/16  [EDGcpfe/17385]
 GNU C compatibility: Negation of constant cast to pointer type
 
