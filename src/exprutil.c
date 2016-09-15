@@ -16254,20 +16254,24 @@ so return TRUE; otherwise, return FALSE.
         n_extra_parens -= 1;
         break;
       case onk_plus_plus:
-        if (function_type_params(function_type) != NULL) {
-          /* Postfix ++. */
-          expected_token = (a_token_kind)tok_plus_plus;
-        } else {
-          expected_token = (a_token_kind)tok_error;
-        }  /* if */
-        break;
       case onk_minus_minus:
-        if (function_type_params(function_type) != NULL) {
-          /* Postfix --. */
-          expected_token = (a_token_kind)tok_minus_minus;
-        } else {
-          expected_token = (a_token_kind)tok_error;
-        }  /* if */
+        { a_param_type_ptr  ptp = function_type_params(function_type);
+          if (!routine_type_is_nonstatic_member_function(function_type)) {
+            ptp = ptp->next;
+          }  /* if */
+          if (ptp != NULL) {
+            /* An extra parameter is present: Postfix ++ or --. */
+            if (rout->variant.opname_kind == (an_opname_kind)onk_plus_plus) {
+              expected_token = (a_token_kind)tok_plus_plus;
+            } else {
+              expected_token = (a_token_kind)tok_minus_minus;
+            }  /* if */
+          } else {
+            /* Prefix ++ or --: No additional operator token should be
+               expected. */
+            expected_token = (a_token_kind)tok_error;
+          }  /* if */
+        }
         break;
       default:
         expected_token = (a_token_kind)tok_error;
