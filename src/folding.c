@@ -11787,10 +11787,12 @@ evaluation.
         if (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
             dip->variant.bitwise_copy.source == NULL &&
             !source_cannot_be_folded) {
+          /* The source is implied, coming either from the constructor
+             argument or from an implicit value-initialized object. */
           if (args == NULL) {
             /* This represents a value-initialization case, so create an
-               appropriate zero-valued constant and use it to temporarily
-               transform the initialization to a dik_constant. */
+               appropriate constant and use it to temporarily transform the
+               initialization to a dik_constant. */
             source_member_con = local_constant();
             if (is_array_type(field->type) ||
                 is_class_struct_union_type(field->type)) {
@@ -11806,10 +11808,9 @@ evaluation.
             dip->kind = (a_dynamic_init_kind)dik_constant;
             dip->variant.constant = source_member_con;
           } else {
-            /* The source is implied.  Try to extract a constant value from
-               the corresponding field of the constructor argument and, if
-               successful, temporarily transform the dynamic initializer to
-               a dik_constant. */
+            /* Try to extract a constant value from the corresponding field
+               of the constructor argument and, if successful, temporarily
+               transform the dynamic initializer to a dik_constant. */
             if (source_obj == NULL && !source_cannot_be_folded) {
               /* Attempt to fold the constructor argument into a constant. */
               a_constant_ptr addr_con = local_constant();
