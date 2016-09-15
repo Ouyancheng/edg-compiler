@@ -17862,7 +17862,10 @@ which are diagnosed elsewhere).
                 &dps->auto_pos);
     }  /* if */
   } else if (dps->decltype_auto_specifier_seen &&
-             !identical_types(dps->declared_type, dps->auto_type)) {
+             !f_identical_types(dps->declared_type, dps->auto_type,
+                                (gpp_mode && !clang_mode) ?
+                                               ITF_IGNORE_TOP_LEVEL_QUALIFIERS
+                                             : ITF_NO_FLAGS)) {
     /* "decltype(auto)" was seen, but that type is modified in some way; e.g.,
        "decltype(auto) *p = &x;".  That is not permitted. */
     pos_error(ec_modified_decltype_auto_type, &dps->auto_pos);

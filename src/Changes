@@ -1,5 +1,15 @@
 Version 4.12
 
+9/15/16  [EDGcpfe/17395]
+GNU compatibility: decltype(auto) and type qualifiers
+
+Ordinarily, a decltype(auto) specifier in a variable declaration can not have
+added type qualifiers.  GCC, however, does accept them and we now emulate that
+behavior in GNU C++14 mode.  For example:
+
+  decltype(auto) const x = 3;  // Now accepted in GNU C++14 mode.
+
+
 9/15/16  [EDGcpfe/17530]
 Build issue when GENERATE_EH_TABLES is FALSE
 

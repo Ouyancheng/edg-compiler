@@ -7865,7 +7865,8 @@ by *type_ptr.  This function is called from decl_specifiers only.
           pos_warning(ec_cv_qualified_function_type, diag_pos);
         }  /* if */
         qualifiers = TQ_NONE;
-      } else if (state->decltype_auto_specifier_seen) {
+      } else if (state->decltype_auto_specifier_seen &&
+                 !(gpp_mode && !clang_mode)) {
         pos_error(ec_decltype_auto_cannot_be_qualified, &state->auto_pos);
         qualifiers = TQ_NONE;
       }  /* if */
