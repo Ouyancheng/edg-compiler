@@ -31,7 +31,7 @@ than 70000.  For example, with --parse --no_defer --gnu_version=40802 --c++11:
 Error on consecutive left square brackets that don't introduce an attribute
 
 The C++ standard is clear that the occurrence of two left brackets must
-introduce an attribute list, but previously that construct had been accepted
+introduce an attribute list, but previously that rule was not enforced
 in some cases.  The example below now gets a discretionary error in
 configurations where C++ standard attributes are allowed (e.g., --c++11):
 
