@@ -16704,6 +16704,33 @@ for the union type (class_type).
 }  /* check_valid_union_field */
 
 
+static void diagnose_duplicate_union_field_init(
+                                     a_class_symbol_supplement_ptr  cssp,
+                                     a_symbol_ptr                   new_sym,
+                                     a_source_position              *diag_pos)
+/*
+The caller has determined that a field about to be declared (possibly through
+anonymous union field promotion) would add a second field initializer to the
+class associated with cssp.  Issue a diagnostic at the given position and
+mark the new field (described by new_sym) as not having an associated
+initializer.
+*/
+{
+  a_symbol_ptr  sym = cssp->symbols != NULL ? cssp->symbols
+                                            : cssp->pointers_block.symbols;
+
+  /* Search for the prior initializer through the symbol list so that
+     anonymous union members are also found. */
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    if (symbol_is(sym, sk_field) && sym->variant.field.ptr->has_initializer) {
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(sym != NULL && sym != new_sym);
+  pos_sy_error(ec_multiple_union_field_initializers, diag_pos, sym);
+  new_sym->variant.field.ptr->has_initializer = FALSE;
+}  /* diagnose_duplicate_union_field_init */
+
 static a_symbol_ptr find_anonymous_parent_object_symbol_clone(
                                                a_symbol_ptr  apo_sym,
                                                a_symbol_ptr  *new_apo_sym_list,
@@ -17114,15 +17141,23 @@ nonstandard anonymous unions is_nonstd is TRUE.
         promote_anonymous_union_field_symbol(
                          sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
-        if (sym->variant.field.ptr->has_initializer && class_type != NULL &&
-            !aggregate_classes_can_have_field_initializers) {
-          /* Class types with data members that have field initializers aren't
-             aggregate types in C++11 (but they are in C++14).  We take the
-             view here that promoted fields also make the parent class a
-             non-aggregate. */
+        if (sym->variant.field.ptr->has_initializer && class_type != NULL) {
           a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
           check_assertion(cdsp != NULL);
-          cdsp->class_aggregate_ruled_out = TRUE;
+          if (class_type->kind == (a_type_kind)tk_union &&
+              cdsp->has_field_initializer) {
+            diagnose_duplicate_union_field_init(parent_cssp, sym,
+                                                &sym->decl_position);
+          } else {
+            cdsp->has_field_initializer = TRUE;
+          }  /* if */
+          if (!aggregate_classes_can_have_field_initializers) {
+            /* Class types with data members that have field initializers
+               aren't aggregate types in C++11 (but they are in C++14).  We
+               take the view here that promoted fields also make the parent
+               class a non-aggregate. */
+            cdsp->class_aggregate_ruled_out = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case sk_member_function:
@@ -18867,13 +18902,8 @@ information about the member declaration, respectively.
           class_state->has_field_initializer) {
         /* Unions can only have a single member with a field initializer.
            Issue an error, and discard the later initializer. */
-        a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
-        for (; fp != NULL; fp = fp->next) {
-          if (fp->has_initializer) break;
-        }  /* for */
-        check_assertion(fp != NULL && fp != field);
-        pos_sy_error(ec_multiple_union_field_initializers,
-                     &dps->declarator_pos, symbol_for(fp));
+        diagnose_duplicate_union_field_init(cssp, dps->sym,
+                                            &dps->declarator_pos);
         /* Skip over the initializer (or, in some template cases, the
            associated placeholder token). */
         if (curr_token != tok_removed_expr) {

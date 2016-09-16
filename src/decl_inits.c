@@ -7668,7 +7668,7 @@ initialized.  These are addressed in the course of the processing.
      the symbol list contains only user-defined fields whereas the field
      list may also include compiler-generated field entries. */
   class_sym = symbol_for(class_type);
-  for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
+  for (sym = class_symbol_supp(class_sym)->symbols;
        sym != NULL;
        sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {

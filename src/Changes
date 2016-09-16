@@ -1,5 +1,23 @@
 Version 4.12
 
+9/16/16  [EDGcpfe/16420]
+Multiple default union member initializers via anonymous unions
+
+The front end previously failed to diagnose unions with multiple default
+member initializers if one of the members was declared within an anonymous
+union.  Having multiple initializers in the IL could then cause expression
+folding to abort later on.  For example (C++11 mode):
+
+  union U {
+    int i = 1;
+    constexpr U() {}
+    union { float f = 2.0; };  // Previously not diagnosed.  Now an error.
+  };
+  float r = U().f;  // Previously triggered an abort in folding.c.
+
+This is now fixed.
+
+
 9/15/16  [EDGcpfe/17290]
 Rescanning noexcept operands with constexpr function calls
 
