@@ -51,7 +51,7 @@ in contexts expecting an integral constant-expression.  E.g., in GNU C11:
 9/15/16  [EDGcpfe/17395]
 GNU compatibility: decltype(auto) and type qualifiers
 
-Ordinarily, a decltype(auto) specifier in a variable declaration can not have
+Ordinarily, a decltype(auto) specifier in a variable declaration cannot have
 added type qualifiers.  GCC, however, does accept them and we now emulate that
 behavior in GNU C++14 mode.  For example:
 
