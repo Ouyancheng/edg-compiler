@@ -13158,7 +13158,7 @@ source sequence entry list.  Return a pointer to the created entry.
 
 static an_expr_node_ptr skip_commas_and_parens(an_expr_node_ptr  expr)
 /*
-Skip eok_comma and eok_parent operations pointed to by expr; follow the right
+Skip eok_comma and eok_parens operations pointed to by expr; follow the right
 operand for eok_comma nodes.  Return the node found at the end of such a chain
 (or expr itself if it's neither kind of node).
 */
