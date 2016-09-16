@@ -23,8 +23,8 @@ Rescanning noexcept operands with constexpr function calls
 
 When instantiating a function template whose declaration involves a noexcept
 operator, that operator's operand must be "rescanned".  Previously, that
-rescanning did not correctly foldable calls to constexpr functions, which in
-turn could result in spurious errors.  For example:
+rescanning did not correctly handle foldable calls to constexpr functions,
+which in turn could result in spurious errors.  For example:
 
   template<bool> struct S;
   template<> struct S<true> { using Type = bool; };
