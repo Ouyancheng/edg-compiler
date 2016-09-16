@@ -1,5 +1,15 @@
 Version 4.12
 
+9/16/16  [EDGcpfe/17537]
+Microsoft compatibility: (void*)N as case labels
+
+For several years the front end has accepted case labels like "(void*)1" in
+Microsoft mode (see the entry of 12/9/01).  However, that capability was
+accidentally dropped in Microsoft modes that enable the C++11 "constexpr"
+feature (including, by default, Microsoft modes with microsoft_version larger
+than 1900).  The capability has now been restored for all Microsoft modes.
+
+
 9/16/16  [EDGcpfe/16431,EDGcpfe/16852,EDGcpfe/16897,EDGcpfe/17135,
           EDGcpfe/17142,EDGcpfe/17323,EDGcpfe/17527]
 Re-structure the handling of builtin functions

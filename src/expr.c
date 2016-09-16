@@ -41810,43 +41810,6 @@ one following the closing parenthesis.
   db_exit();
 }  /* scan_dependent_type_parenthesized_initializer */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void scan_microsoft_case_label_constant_expression(a_constant *constant)
-/*
-Scan an integral constant expression for a Microsoft case label constant,
-and return the value of the constant in *constant.  MSVC++ allows
-things like (void *)1 as case constants.
-*/
-{
-  an_operand result;
-
-  db_enter(3, "scan_microsoft_case_label_constant_expression");
-  scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
-                                             /*is_expr_list=*/FALSE,
-                                             /*will_cast=*/TRUE,
-                                             /*top_level=*/FALSE,
-                                             PREC_LOWEST,
-                                             &result, constant,
-                                             (a_boolean *)NULL);
-  if (!is_integral_or_enum_type(constant->type)) {
-    /* MSVC++ allows some weird cases like (void *)1.  Warn on those. */
-    if (!is_error_type(constant->type)) {
-      if (is_floating_type(constant->type)) {
-        /* MSVC++ doesn't allow floating constants. */
-        expr_pos_error(ec_expr_not_integral_constant, &result.position);
-      } else {
-        expr_pos_warning(ec_expr_not_integral_constant, &result.position);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = result.end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  db_exit();
-}  /* scan_microsoft_case_label_constant_expression */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_constant_ptr scan_case_label_constant(a_type_ptr switch_type)
 /*
@@ -41874,77 +41837,92 @@ selector type.
   transfer_expr_context_if_applicable(saved_expr_stack);
   label_position = pos_curr_token;
   /* Scan the constant expression. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !constexpr_enabled) {
-    /* MSVC++ allows things like (void *)1 as case label constants. */
-    a_boolean      did_not_fold;
-    a_constant_ptr orig_constant = local_constant();
-    scan_microsoft_case_label_constant_expression(constant);
-    copy_constant(constant, orig_constant);
-    type_change_constant(constant, switch_type,
-                         /*is_implicit_cast=*/TRUE,
-                         /*maintain_expression=*/TRUE,
-                         &did_not_fold, &label_position);
-    check_assertion(!did_not_fold);
-    if (!cast_identical_types(orig_constant->type, switch_type) &&
-        !(constant->expr != NULL &&
-          is_cast_operation_node(constant->expr))) {
-      /* Create a cast node to use as a backing expression for the
-         constant.  Inhibit normal diagnostics during that process, since
-         they will already have been issued. */
-      a_boolean saved_suppress = expr_stack->suppress_diagnostics;
-      a_boolean saved_any_error = expr_stack->any_suppressed_error;
-      expr_stack->suppress_diagnostics = TRUE;
-      if (constant->expr == NULL) {
-        /* Make a node that can be used as the operand of the cast. */
-        constant->expr = alloc_node_for_constant(orig_constant);
-      }  /* if */
-      break_constant_source_corresp(constant);
-      add_cast_to_node(&constant->expr, switch_type,
-                       /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
-                       /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE,
-                       /*reintepret_semantics=*/FALSE, &label_position);
-      expr_stack->suppress_diagnostics = saved_suppress;
-      expr_stack->any_suppressed_error = saved_any_error;
-    }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    release_local_constant(&orig_constant);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    /* Scan the constant expression. */
-    if (gnu_mode && !constexpr_enabled) {
-      /* Older gnu versions allow some extensions beyond standard
-         integral constant expressions. */
+  if (gnu_mode && !constexpr_enabled) {
+    /* Older gnu versions allow some extensions beyond standard
+       integral constant expressions. */
+    scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                               /*is_expr_list=*/FALSE,
+                                               /*will_cast=*/FALSE,
+                                               /*top_level=*/FALSE,
+                                               PREC_LOWEST,
+                                               &operand,
+                                               (a_constant *)NULL,
+                                               (a_boolean *)NULL);
+  } else {
+    if (microsoft_mode && !constexpr_enabled) {
       scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                  /*is_expr_list=*/FALSE,
-                                                 /*will_cast=*/FALSE,
+                                                 /*will_cast=*/TRUE,
                                                  /*top_level=*/FALSE,
-                                                 PREC_LOWEST,
-                                                 &operand,
-                                                 (a_constant *)NULL,
-                                                 (a_boolean *)NULL);
+                                                 PREC_LOWEST, &operand,
+                                                 (a_constant*)NULL,
+                                                 (a_boolean*)NULL);
     } else {
       scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && is_constant_operand(&operand)) {
+      /* MSVC++ allows (void *)1 as a case label constant. */
+      a_constant_ptr  case_con = &operand.variant.constant;
+      if (is_floating_type(case_con->type)) {
+        expr_pos_error(ec_expr_not_integral_constant, &operand.position);
+      } else if (constant_is(case_con, ck_integer) &&
+                 is_pointer_type(operand.type)) {
+        a_boolean  did_not_fold;
+        a_constant_ptr orig_constant = local_constant();
+        copy_constant(case_con, orig_constant);
+        expr_pos_warning(ec_expr_not_integral_constant, &operand.position);
+        type_change_constant(case_con, switch_type,
+                             /*is_implicit_cast=*/TRUE,
+                             /*maintain_expression=*/TRUE,
+                             &did_not_fold, &label_position);
+        if (!did_not_fold) {
+          operand.type = switch_type;
+          if (!cast_identical_types(orig_constant->type, switch_type) &&
+              !(case_con->expr != NULL &&
+                is_cast_operation_node(case_con->expr))) {
+            /* Create a cast node to use as a backing expression for the
+               constant.  Inhibit normal diagnostics during that process,
+               since they will already have been issued. */
+            a_boolean saved_suppress = expr_stack->suppress_diagnostics;
+            a_boolean saved_any_error = expr_stack->any_suppressed_error;
+            expr_stack->suppress_diagnostics = TRUE;
+            if (constant->expr == NULL) {
+              /* Make a node that can be used as the operand of the cast. */
+              case_con->expr = alloc_node_for_constant(orig_constant);
+            }  /* if */
+            break_constant_source_corresp(case_con);
+            add_cast_to_node(
+                     &case_con->expr, switch_type,
+                     /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
+                     /*is_implicit_cast=*/TRUE,
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reintepret_semantics=*/FALSE, &label_position);
+            expr_stack->suppress_diagnostics = saved_suppress;
+            expr_stack->any_suppressed_error = saved_any_error;
+          }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = operand.end_position;
+          end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Convert the expression to the switch type. */
-    process_converted_constant_expression(&operand,
-                                          is_error_type(switch_type) ?
-                                              NULL :
-                                              switch_type,
-                                          (a_builtin_type_kind_set)
-                                                     (BTK_INTEGRAL | BTK_ENUM),
-                                          /*is_array_bound=*/FALSE,
-                                          /*is_enum=*/FALSE,
-                                          constant);
+          release_local_constant(&orig_constant);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Convert the expression to the switch type. */
+  process_converted_constant_expression(&operand,
+                                        is_error_type(switch_type) ?
+                                            NULL :
+                                            switch_type,
+                                        (a_builtin_type_kind_set)
+                                                   (BTK_INTEGRAL | BTK_ENUM),
+                                        /*is_array_bound=*/FALSE,
+                                        /*is_enum=*/FALSE,
+                                        constant);
   wrap_up_constant_full_expression(constant, &label_position);
   if (is_error_constant(constant)) {
     /* Error; constant_ptr is left NULL. */
