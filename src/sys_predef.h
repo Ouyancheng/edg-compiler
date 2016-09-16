@@ -19,11 +19,8 @@ sys_predef.h -- System dependent predefined macros and assertions.
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
-/* FIXME: Changes entry. */
-/* FIXME: Documentation changes (new builtin_defs.h). */
-/* FIXME: Further testing. */
 /*
-To add a user-defined builtin, follow these steps:
+To add a user-defined builtin function, follow these steps:
 
   - Add a new enumeration value to a_builtin_user_function_kind_tag below.
   - Add a new entry in builtin_user_table below.  See the description for
@@ -32,14 +29,17 @@ To add a user-defined builtin, follow these steps:
 
 /*
 This typedef is used for character strings used to specify a compact encoding
-of a condition under which the builtin should be enabled.  See the description
-of the "cond" field in a_builtin_user_descr below for more information. */
+of a condition under which the builtin function should be enabled.  See the
+description of the "cond" field in a_builtin_user_descr below for more
+information.
+*/
 typedef a_const_char *a_builtin_condition_string;
 
 /*
 This typedef is used for character strings that contain a C representation
-of a builtin's type.  The string is parsed by the front end if the builtin
-is referenced. */
+of a builtin function's type.  The string is parsed by the front end if the
+builtin function is referenced.
+*/
 typedef a_const_char *a_builtin_type_string;
 
 /*
@@ -48,12 +48,12 @@ Describes a user-defined builtin function.
 typedef struct a_builtin_user_descr *a_builtin_user_descr_ptr;
 typedef struct a_builtin_user_descr {
   a_const_char  *name;
-                        /* The name of the builtin. */
+                        /* The name of the builtin function. */
   a_builtin_condition_string
                 cond;
                         /* A compact encoding of the condition(s) in which this
-                           builtin is enabled.  The encoding consists of a
-                           sequence of conditions, each condition has five
+                           builtin function is enabled.  The encoding consists
+                           of a sequence of conditions, each condition has six
                            potential parts (in the following order):
 
                              - prefix ('S') [optional]
@@ -68,20 +68,20 @@ typedef struct a_builtin_user_descr {
                            has a secondary declaration with the same type
                            but without the "__builtin_" prefix.
 
-                           The 'L' emulation mode indicates that the builtin
+                           The 'L' emulation mode indicates that the function
                            applies to clang mode; 'g' indicates GNU mode, and
                            'm' is for Microsoft emulation mode.
 
                            A mode of 'c' indicates C mode, '+' indicates
                            C++ mode, and 'x' indicates both C and C++ modes.
 
-                           A '4' indicates the builtin applies only to
+                           A '4' indicates the function applies only to
                            architectures where targ_supports_x86_64 is FALSE
-                           and an '8' indicates the builtin applies only to
+                           and an '8' indicates the function applies only to
                            architectures where targ_supports_x86_64 is TRUE.
 
                            If a parenthesized range of applicable versions is
-                           given, the builtin is only enabled when the version
+                           given, the function is only enabled when the version
                            is within that range.  Either end of the range can
                            be dropped; e.g., "gc(40800-)" means the attribute
                            is valid in GNU C mode with gnu_version >= 40800.
@@ -90,10 +90,10 @@ typedef struct a_builtin_user_descr {
                            sequence of 'v' and/or 'i', where 'v' indicates that
                            the signature depends on vector types, and 'i'
                            indicates that the signature depends on 128-bit
-                           integer types.  If a builtin with restrictions is
-                           referenced, a check is made at run time to ensure
-                           that all restrictions are satisfied (otherwise
-                           an error is given). */
+                           integer types.  If a function with restrictions is
+                           referenced, a check is made to ensure that all
+                           restrictions are satisfied (otherwise an error is
+                           given). */
   a_builtin_type_string
                 type_string;
                         /* The type of the builtin function(s).  This takes
@@ -102,18 +102,19 @@ typedef struct a_builtin_user_descr {
                            be: "float (int)". */
   a_builtin_function_kind
                 kind;
-                        /* A unique identifier for this builtin.  It should be
-                           an enumeration value from
+                        /* A unique identifier for this builtin function.  It
+                           should be an enumeration value from
                            a_builtin_function_kind_tag or
                            a_builtin_user_function_kind_tag. */
 } a_builtin_user_descr;
 
 /*
-Mapping between the string representation of a builtin type and its internal
-representation.  Entries containing the C representations of each builtin
-routine's type are automatically generated by an external tool, then, if
-referenced, the internal type is generated by invoking the parser on the
-string. */
+Mapping between the string representation of a builtin function type and its
+internal representation.  Entries containing the C representations of each
+builtin function's type are automatically generated by an external tool, then,
+if referenced, the internal type is generated by invoking the parser on the
+string.
+*/
 typedef struct a_builtin_function_type {
   a_type_ptr    type;
                         /* If non-NULL, contains the internal representation
@@ -128,11 +129,12 @@ typedef struct a_builtin_function_type {
 } a_builtin_function_type;
 
 /*
-Mapping between the string representation of a condition string and its internal
-representation.  Entries containing the C representations of each builtin
-routine's type are automatically generated by an external tool, then, if
-referenced, the internal type is generated by invoking the parser on the
-string. */
+Mapping between the string representation of a condition string and its
+internal representation.  Entries containing the C representations of each
+builtin function's type are automatically generated by an external tool, then,
+if referenced, the internal type is generated by invoking the parser on the
+string.
+*/
 typedef struct a_builtin_function_condition {
   a_boolean     evaluated;
                         /* If TRUE, this condition string has been evaluated
@@ -148,52 +150,55 @@ typedef struct a_builtin_function_condition {
                            enabled in the current configuration. */
   a_const_char  *restrictions;
                         /* If non-NULL, points to any "restrictions" for this
-                           builtin.  See the description of "cond" in
+                           builtin function.  See the description of "cond" in
                            a_builtin_user_descr for more information. */
   a_builtin_condition_string
                 condition_string;
                         /* A character string that represents the conditions
-                           in which the builtin is enabled. */
+                           under which the builtin function is enabled. */
 } a_builtin_function_condition;
 
 /*
-Data structure describing the name and signature of a builtin, as well
-as the modes in which the builtin should be recognized.  These entries are
-automatically generated by an external tool. */
+Data structure describing the name and signature of a builtin function, as well
+as the modes in which the builtin function should be recognized.  These entries
+are automatically generated by an external tool.
+*/
 typedef struct a_builtin_descr *a_builtin_descr_ptr;
 typedef struct a_builtin_descr {
   a_const_char  *name;
-                        /* The name of the builtin. */
+                        /* The name of the builtin function. */
   unsigned short
                 cond_index;
                         /* An index into builtin_condition_table that gives the
-                           condition string for the builtin.  See the comment
-                           for the "cond" field in a_builtin_user_descr for a
-                           full explanation. */
+                           condition string for the builtin function.  See the
+                           comment for the "cond" field in a_builtin_user_descr
+                           for a full explanation. */
   unsigned short
                 type_index;
                         /* An index into builtin_type_table that specifies
-                           the type of the builtin routine(s) for this entry.*/
+                           the type of the builtin function(s) for this
+                           entry. */
   a_builtin_function_kind
                 kind;
-                        /* An indicator of which builtin (for use within the
-                           front end).  Note that the same value is used for
-                           cases where an entry refers to two symbols (i.e.,
-                           because an 'S' is present in the condition string
-                           indicating that there are primary and secondary
-                           versions of the builtin). */
+                        /* An indicator of which builtin function (for use
+                           within the front end).  Note that the same value is
+                           used for cases where an entry refers to two symbols
+                           (i.e., because an 'S' is present in the condition
+                           string indicating that there are primary and
+                           secondary versions of the builtin function). */
 } a_builtin_descr;
-
 
 /*
 Include the GCC/clang/Microsoft builtins that have been automatically
-generated by an external tool. */
+generated by an external tool.
+*/
 #include "builtin_defs.h"
 
 /*
 An enumeration of unique user-defined builtin functions.  This is effectively
 a continuation of the automatically-generated a_builtin_function_kind_tag
-enumeration. */
+enumeration.
+*/
 enum a_builtin_user_function_kind_tag {
   bufk_first = bfk_last,          /* initial entry */
   bufk_choose_expr,               /* __builtin_choose_expr */
@@ -208,9 +213,9 @@ not captured by the external tool, or are added by the customer.
 
 Note that any entries in this table are lazily loaded, i.e., they are
 loaded into the symbol table for each translation unit, but a routine entry
-(and associated symbol) are not created until the builtin is referenced.  If
-the builtin must be defined each time, a different mechanism (e.g., calling
-enter_builtin_function directly) should be used.
+(and associated symbol) are not created until the builtin function is
+referenced.  If the builtin function must be defined each time, a different
+mechanism (e.g., calling enter_builtin_function directly) should be used.
 
 Note also that the ordering of this table is arbitrary (i.e., it does not need
 to be kept sorted).

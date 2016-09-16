@@ -191,7 +191,7 @@ static void enter_builtin_function(a_const_char            *name,
 /*
 Enter a builtin function with the given name and type (which must be a
 tk_routine type -- possibly with a typeref that describes attributes).  The
-builtin corresponds to the (a_builtin_function_kind_tag or
+builtin function corresponds to the (a_builtin_function_kind_tag or
 a_builtin_user_function_kind_tag) kind.  If non-NULL, loc specifies the symbol
 locator for name.  The routine is given C name linkage (and the routine type is
 updated accordingly).  Return the symbol for the function.
@@ -228,7 +228,7 @@ updated accordingly).  Return the symbol for the function.
   sym->variant.routine.ptr->variant.builtin_function_kind = kind;
 #if DEBUG
   if (db_flag_is_set("dump_builtins")) {
-    /* Dump builtin declarations. */
+    /* Dump builtin function declarations. */
     an_il_to_str_output_control_block octl;
     fprintf(f_debug, "/* %s */ ", sym->header->identifier);
     clear_il_to_str_output_control_block(&octl);
@@ -401,17 +401,17 @@ present in the condition (indicating that a secondary declaration is allowed).
 static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr,
                                           a_boolean       issue_error)
 /*
-Returns TRUE if the builtin referred to by sym_hdr has no restrictions or
-those restrictions are met in the current configuration.  If FALSE is returned
-an error is issued (only if issue_error is TRUE).
+Returns TRUE if the builtin function referred to by sym_hdr has no restrictions
+or those restrictions are met in the current configuration.  If FALSE is
+returned an error is issued (only if issue_error is TRUE).
 */
 {
   a_boolean     result = TRUE;
   a_const_char  *restrictions;
   
   if (sym_hdr->is_user_builtin_function) {
-    /* For a user-defined builtin, re-parse the condition string to see if
-       there are any restrictions. */
+    /* For a user-defined builtin function, re-parse the condition string to
+       see if there are any restrictions. */
     a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
     a_builtin_user_descr_ptr budp =
                           &builtin_user_table[sym_hdr->builtin_function_index];
@@ -455,7 +455,7 @@ an error is issued (only if issue_error is TRUE).
       restrictions++;
     }  /* while */
     if (!result && issue_error) {
-      /* Prevent cascading errors for this builtin. */
+      /* Prevent cascading errors for this builtin function. */
       check_assertion(locator_for_curr_id.symbol_header == sym_hdr);
       curr_token = tok_identifier;
       make_specific_symbol_error_locator(&locator_for_curr_id);
@@ -468,8 +468,8 @@ an error is issued (only if issue_error is TRUE).
 static a_type_ptr builtin_function_type(a_builtin_type_string type_string,
                                         a_source_position     *err_source_pos)
 /*
-Parse the builtin type specified by type_string and return the resulting
-type.  See also scan_top_level_generated_code (which is similar).
+Parse the builtin function type specified by type_string and return the
+resulting type.  See also scan_top_level_generated_code (which is similar).
 */
 {
   a_type_ptr        result;
@@ -495,11 +495,11 @@ type.  See also scan_top_level_generated_code (which is similar).
   allow_ellipsis_only_param_in_C_mode = TRUE;
   check_assertion(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE);
   /* Inject an end-of-source token into the token stream to prevent
-     any over reading the token stream. */
+     reading past the end. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
   terminate_token_cache(&cache);
   rescan_cached_tokens(&cache);
-  /* Insert the builtin type into the token stream. */
+  /* Insert the builtin function type into the token stream. */
   insert_string_into_token_stream(type_string, /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
                                   *err_source_pos);
@@ -528,8 +528,8 @@ type.  See also scan_top_level_generated_code (which is similar).
 
 static a_type_ptr builtin_function_type_for_index(unsigned short type_index)
 /*
-Return the type associated with the builtin function type_index.  Parse the
-specified type if it has not been parsed yet.
+Return the type associated with the specified builtin function type index.
+Parse the specified type if it has not been parsed yet.
 */
 {
   a_builtin_function_type *bftp = &builtin_type_table[type_index];
@@ -641,18 +641,19 @@ static void preload_builtin_symbol(
                            unsigned short             type_index,
                            a_builtin_type_string      type_string)
 /*
-If the builtin named by builtin_name is enabled in the current mode, create a
-symbol header for it and mark that it is associated with a builtin function.
-If the builtin has a "secondary" declaration (i.e., one without the __builtin
-prefix), that will be entered as well.  condition is a string that describes
-the conditions in which the builtin is applicable, if NULL, cond_index is used
-in its place and specifies an index into builtin_condition_table.  idx is the
-array index (into either builtin_table or builtin_user_table depending on the
-value of is_user_builtin_function) for this builtin.  kind is the
-a_builtin_function_kind or a_builtin_user_function_kind enum value that
-corresponds to this builtin.  If type_string is non-NULL, it is a string that
-gives the builtin's type, otherwise type_index is an index into
-builtin_type_table for the builtin's type.
+If the builtin function named by builtin_name is enabled in the current mode,
+create a symbol header for it and mark that it is associated with a builtin
+function.  If the builtin has a "secondary" declaration (i.e., one without the
+__builtin prefix), that will be entered as well.  condition is a string that
+describes the conditions in which the builtin is applicable, if NULL,
+cond_index is used in its place and specifies an index into
+builtin_condition_table.  idx is the array index (into either builtin_table or
+builtin_user_table depending on the value of is_user_builtin_function) for this
+builtin function.  kind is the a_builtin_function_kind or
+a_builtin_user_function_kind enum value that corresponds to this builtin
+function.  If type_string is non-NULL, it is a string that gives the builtin
+function's type, otherwise type_index is an index into builtin_type_table for
+the builtin function's type.
 */
 {
   a_symbol_locator loc;
@@ -702,7 +703,7 @@ builtin_type_table for the builtin's type.
 static void preload_builtin_symbols(void)
 /*
 Loop through each builtin declaration (including user-defined builtins) and
-create a symbol header entry for any builtin entry that is enabled in the
+create a symbol header entry for any builtin function that is enabled in the
 current emulation mode.  This must be done for each translation unit.
 */
 {

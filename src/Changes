@@ -1,5 +1,47 @@
 Version 4.12
 
+9/16/16  [EDGcpfe/16431,EDGcpfe/16852,EDGcpfe/16897,EDGcpfe/17135,
+          EDGcpfe/17142,EDGcpfe/17323,EDGcpfe/17527]
+Re-structure the handling of builtin functions
+
+Previously, the handling of the large majority of GCC builtin functions
+(and more recently clang and Microsoft) had largely been a manual process that
+relied on accurate documentation.  As thousands of builtins functions have been
+recently added, that task became too unwieldy.
+
+A set of tools have been developed to use the plugin feature of GCC and clang
+to automatically extract the signatures of builtin functions from those
+compilers.  The result of this process is the new file: builtin_defs.h.  This
+file contains information about each builtin, including its signature(s) and
+the various modes in which it is valid.  This should allow the front end to
+keep pace with future GCC and clang releases.  Microsoft builtins functions are
+also represented in the file (though the input for Microsoft builtin functions
+remains a manual procedure).
+
+Note that the plugin architecture is only available in GCC 4.5.0 and later, so
+the tools use signatures from the EDG front end in GCC emulation mode to obtain
+those builtin function signatures (which also provides for backward
+compatibility).
+
+Along with automatically generating the builtin function signature information,
+there are two other significant changes: builtin functions are now loaded only
+when they are referenced, and the types of the builtin functions themselves
+are stored in strings as C declarations and parsed by the front end to generate
+a routine type.  Lazily loading builtin functions can result in considerable
+performances gain in some cases (and keeps the IL smaller).
+
+To make the builtin function signatures more concise, three new tokens have
+been added: __edg_size_type__, __edg_ptrdiff_type__, and __edg_vector_type__,
+which represent size_t, ptrdiff_t, and a shorthand for
+__attribute__((vector_size)), respectively.
+
+Customers who want to add their own builtin functions should not modify
+builtin_defs.h; rather they should modify builtin_user_table in sys_predef.h
+(see the comment at the beginning of sys_predef.h for more information).
+
+The builtin function signatures are current through GCC 6.2.0 and clang 3.8.1.
+
+
 9/16/16  [EDGcpfe/16420]
 Multiple default union member initializers via anonymous unions
 
