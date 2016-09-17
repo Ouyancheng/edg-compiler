@@ -900,9 +900,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_edg_size_type:
       case tok_edg_ptrdiff_type:
       case tok_edg_bool_type:
-#if GNU_VECTOR_TYPES_ALLOWED
       case tok_edg_vector_type:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
         prescan_type_operator(state, flags);

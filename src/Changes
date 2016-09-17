@@ -49,7 +49,13 @@ Customers who want to add their own builtin functions should not modify
 builtin_defs.h; rather they should modify builtin_user_table in sys_predef.h
 (see the comment at the beginning of sys_predef.h for more information).
 
-The builtin function signatures are current through GCC 6.2.0 and clang 3.8.1.
+As part of these changes, the configuration macros
+GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED and
+GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED have been removed (the builtins enabled by
+those macros are now always enabled when BUILTIN_FUNCTIONS_ENABLED is TRUE --
+assuming other conditions are met such as GNU_VECTOR_TYPES being enabled).
+
+The builtin function signatures are current through GCC 6.2.0 and clang 3.9.0.
 
 
 9/16/16  [EDGcpfe/16420]
