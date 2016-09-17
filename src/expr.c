@@ -40515,7 +40515,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   a_token_kind                  operator_token;
   a_boolean                     unary, postfix;
   a_boolean                     stack_pop_needed = FALSE;
-  a_boolean                     saved_in_noexcept_operand_expression;
+  a_boolean                     saved_in_noexcept_operand_expression = FALSE;
   an_expr_node_ptr              saved_expr = rcblock->expr;
   a_ctws_options_set            saved_rcblock_options = rcblock->options;
   an_operand                    local_bound_function_selector;
