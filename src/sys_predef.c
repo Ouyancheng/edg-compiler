@@ -184,6 +184,13 @@ Enter some predefined macros for a MacOS X (Apple) system.
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 #if BUILTIN_FUNCTIONS_ENABLED
 
+static a_boolean
+                builtin_types_written;
+                        /* When TRUE, at least one builtin_type_table[].type
+                           entry has been written to (necessitating resetting
+                           all entries for a new translation unit). */
+
+
 static void enter_builtin_function(a_const_char            *name,
                                    a_type_ptr              rout_type,
                                    a_builtin_function_kind kind,
@@ -537,6 +544,7 @@ Parse the specified type if it has not been parsed yet.
   check_assertion(type_index < (unsigned short)bfti_last);
   if (bftp->type == NULL) {
     bftp->type = builtin_function_type(bftp->type_string, &pos_curr_token);
+    builtin_types_written = TRUE;
   }  /* if */
   check_assertion(bftp->type != NULL && !is_error_type(bftp->type));
   return bftp->type;
@@ -1669,8 +1677,11 @@ Do initialization for each translation unit.
 */
 {
 #if BUILTIN_FUNCTIONS_ENABLED
-  /* Invalidate the cached builtin function types. */
-  invalidate_builtin_function_types();
+  if (builtin_types_written) {
+    /* Invalidate the cached builtin function types. */
+    invalidate_builtin_function_types();
+    builtin_types_written = FALSE;
+  }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_init */
 
@@ -1694,6 +1705,9 @@ Do one-time initialization for data structures used in this file.
                                 (a_multiversion_arch_kind)mvak_lowest_isa + 1),
                       "wrong number of elements in isa_alphabetic_order");
 #endif /* CHECKING && USE_X86_FUNCTION_MULTIVERSIONING */
+#if BUILTIN_FUNCTIONS_ENABLED
+  builtin_types_written = FALSE;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_one_time_init */
 
 
