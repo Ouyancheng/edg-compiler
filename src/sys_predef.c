@@ -558,9 +558,7 @@ routine is created (and potentially a routine type is parsed).
   a_type_ptr       builtin_type;
   a_builtin_function_kind builtin_kind;
 
-  check_assertion((!sym_hdr->builtin_has_been_loaded ||
-                   !is_primary_translation_unit) &&
-                  sym_hdr->is_builtin_function);
+  check_assertion(sym_hdr->is_builtin_function);
   sym_hdr->builtin_has_been_loaded = TRUE;
   if (builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE)) {
     /* Push a scope suitable for a new top-level declaration. */
@@ -665,7 +663,6 @@ the builtin function's type.
     (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
     loc.symbol_header->is_builtin_function = TRUE;
     loc.symbol_header->builtin_function_index = idx;
-    loc.symbol_header->builtin_has_been_loaded = FALSE;
     loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
     if (preload_builtin_functions &&
         builtin_restrictions_met(loc.symbol_header, /*issue_error=*/FALSE)) {
@@ -686,7 +683,6 @@ the builtin function's type.
         (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
         loc.symbol_header->is_builtin_function = TRUE;
         loc.symbol_header->builtin_function_index = idx;
-        loc.symbol_header->builtin_has_been_loaded = FALSE;
         loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
         if (preload_builtin_functions &&
             builtin_restrictions_met(loc.symbol_header,
@@ -704,7 +700,7 @@ static void preload_builtin_symbols(void)
 /*
 Loop through each builtin declaration (including user-defined builtins) and
 create a symbol header entry for any builtin function that is enabled in the
-current emulation mode.  This must be done for each translation unit.
+current emulation mode.
 */
 {
   a_builtin_descr           *bdp;
@@ -722,9 +718,6 @@ current emulation mode.  This must be done for each translation unit.
     preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
                            /*is_user_builtin_function=*/FALSE, bdp->kind,
                            bdp->type_index, NULL);
-    /* For the multi-translation unit case, make sure any cached types are
-       reset. */
-    builtin_type_table[bdp->type_index].type = NULL;
   }  /* for */
   for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
     preload_builtin_symbol(budp->name, 0, budp->cond, i,
@@ -733,6 +726,27 @@ current emulation mode.  This must be done for each translation unit.
   }  /* for */
   builtin_functions_enabled = TRUE;
 }  /* preload_builtin_symbols */
+
+
+a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit(
+                                                      a_symbol_header *sym_hdr)
+/*
+Returns TRUE if the builtin function specified by the symbol header needs to be
+loaded.  This function is only used in a secondary translation unit (as
+builtin_has_been_loaded has this information for the primary translation unit).
+*/
+{
+  a_symbol_locator  loc;
+  a_symbol_ptr      sym;
+
+  check_assertion(!is_primary_translation_unit);
+  clear_locator(&loc, &null_source_position);
+  loc.symbol_header = sym_hdr;
+  sym = file_scope_id_lookup(il_header.primary_scope, &loc,
+                             IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                             IDL_SUPPRESS_DECL_SEQ_CHECK);
+  return sym == NULL;
+}  /* builtin_needs_to_be_loaded_in_secondary_translation_unit */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1012,7 +1026,8 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (gnu_mode || ms_extensions || cppcli_enabled) {
+  if (is_primary_translation_unit &&
+      (gnu_mode || ms_extensions || cppcli_enabled)) {
     /* Enter symbol headers for any applicable builtin functions.  The
        routines themselves will be lazily loaded as needed. */
     preload_builtin_symbols();

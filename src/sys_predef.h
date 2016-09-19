@@ -352,6 +352,9 @@ extern void load_matching_builtin_function_by_name(a_const_char *name);
 
 extern a_boolean builtin_function_is_enabled(a_const_char *name);
 
+extern a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit
+                                                    (a_symbol_header *sym_hdr);
+
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern a_type_ptr get_default_va_list_type(void);

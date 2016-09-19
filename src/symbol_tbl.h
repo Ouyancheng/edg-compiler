@@ -4062,7 +4062,8 @@ typedef struct a_symbol_header {
                            function (which may or may not have been loaded). */
   a_bit_field	builtin_has_been_loaded:1;
                         /* TRUE if this is a builtin (i.e., is_builtin_function
-                           is TRUE) and the builtin has been loaded. */
+                           is TRUE) and the builtin has been loaded.  Relevant
+                           only for the primary translation unit. */
   a_bit_field	is_user_builtin_function:1;
                         /* TRUE if this is a builtin (i.e., is_builtin_function
                            is TRUE) and the information about the builtin is
@@ -4083,7 +4084,9 @@ typedef struct a_symbol_header {
 /* Macro that is TRUE if the symbol header refers to a builtin function that
    has not been loaded yet. */
 #define builtin_needs_to_be_loaded(sym_hdr) \
-  ((sym_hdr)->is_builtin_function && !(sym_hdr)->builtin_has_been_loaded)
+  ((sym_hdr)->is_builtin_function && \
+   (is_primary_translation_unit ? !(sym_hdr)->builtin_has_been_loaded : \
+            builtin_needs_to_be_loaded_in_secondary_translation_unit(sym_hdr)))
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #define SYMBOL_TABLE_SIZE 16381
