@@ -538,7 +538,7 @@ Parse the specified type if it has not been parsed yet.
   if (bftp->type == NULL) {
     bftp->type = builtin_function_type(bftp->type_string, &pos_curr_token);
   }  /* if */
-  check_assertion(bftp->type != NULL);
+  check_assertion(bftp->type != NULL && !is_error_type(bftp->type));
   return bftp->type;
 }  /* builtin_function_type_for_index */
 
@@ -747,6 +747,21 @@ builtin_has_been_loaded has this information for the primary translation unit).
                              IDL_SUPPRESS_DECL_SEQ_CHECK);
   return sym == NULL;
 }  /* builtin_needs_to_be_loaded_in_secondary_translation_unit */
+
+
+static void invalidate_builtin_function_types(void)
+/*
+Reset the type pointers for all builtin function types.
+*/
+{
+  a_builtin_function_type *bftp;
+
+  for (bftp = builtin_type_table;
+       bftp < &builtin_type_table[bfti_last];
+       bftp++) {
+    bftp->type = NULL;
+  }  /* for */
+}  /* invalidate_builtin_function_types */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1647,6 +1662,18 @@ str_len should be used to determine the end of the argument.
 }  /* validate_target_argument */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+void sys_predef_init(void)
+/*
+Do initialization for each translation unit.
+*/
+{
+#if BUILTIN_FUNCTIONS_ENABLED
+  /* Invalidate the cached builtin function types. */
+  invalidate_builtin_function_types();
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+}  /* sys_predef_init */
+
 
 void sys_predef_one_time_init(void)
 /*

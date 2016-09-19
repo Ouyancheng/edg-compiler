@@ -1578,6 +1578,7 @@ source file's compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sys_predef_init();
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will

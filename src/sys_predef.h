@@ -487,6 +487,8 @@ extern void validate_target_argument(a_const_char         *str,
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern void sys_predef_init(void);
+
 extern void sys_predef_one_time_init(void);
 
 #endif /* ifndef SYS_PREDEF_H */
