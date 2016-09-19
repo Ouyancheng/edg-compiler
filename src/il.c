@@ -27127,7 +27127,7 @@ local).  See the descriptions of each of the flags for more information.
         kind = iek_type;
         flag = WP_TYPE;
       } else if (kind == iek_type &&
-                 ((a_type_ptr)scp)->kind == tk_template_param) {
+                 ((a_type_ptr)scp)->kind == (a_type_kind)tk_template_param) {
         /* Skip template parameters (whose scopes are template declarations).*/
         break;
       } else {
