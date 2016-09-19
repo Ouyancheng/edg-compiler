@@ -1615,6 +1615,8 @@ in the user's program.
       scope->kind == (a_scope_kind)sck_condition) {
     /* Mark local variables of functions. */
     temp->source_corresp.is_local_to_function = TRUE;
+    temp->source_corresp.enclosing_routine =
+                                 innermost_function_scope->variant.routine.ptr;
   }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   if (promote_if_necessary &&
@@ -1631,8 +1633,6 @@ in the user's program.
        routine doesn't undergo the usual promotion (for good reasons; see
        pop_generated_routine_context), so promote appropriate variables
        individually in that context. */
-    temp->source_corresp.enclosing_routine =
-                                 innermost_function_scope->variant.routine.ptr;
     promote_static_variable_out_of_function(temp, scope,
                                 innermost_function_scope->variant.routine.ptr);
   } else
