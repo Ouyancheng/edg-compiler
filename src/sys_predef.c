@@ -538,7 +538,7 @@ Parse the specified type if it has not been parsed yet.
   if (bftp->type == NULL) {
     bftp->type = builtin_function_type(bftp->type_string, &pos_curr_token);
   }  /* if */
-  check_assertion(bftp->type != NULL && !is_error_type(bftp->type));
+  check_assertion(bftp->type != NULL);
   return bftp->type;
 }  /* builtin_function_type_for_index */
 
