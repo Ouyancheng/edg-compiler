@@ -16726,8 +16726,14 @@ initializer.
       break;
     }  /* if */
   }  /* for */
-  check_assertion(sym != NULL && sym != new_sym);
-  pos_sy_error(ec_multiple_union_field_initializers, diag_pos, sym);
+  if (sym == NULL) {
+    /* This can happen in severe error cases (where the prior initializer has
+       no associated field symbol). */
+    expect_error();
+  } else {
+    check_assertion(sym != new_sym);
+    pos_sy_error(ec_multiple_union_field_initializers, diag_pos, sym);
+  }  /* if */
   new_sym->variant.field.ptr->has_initializer = FALSE;
 }  /* diagnose_duplicate_union_field_init */
 
@@ -18856,7 +18862,8 @@ information about the member declaration, respectively.
                          !decl_info->is_bit_field &&
                          (curr_token == tok_assign ||
                           curr_token == tok_lbrace ||
-                          curr_token == tok_removed_expr);
+                          curr_token == tok_removed_expr) &&
+                         !locator->is_error;
   /* Create the IL for the field, enter the symbol (if needed), etc. */
   (void)decl_nonstatic_data_member(locator, class_state, decl_info,
                                    depth_scope_stack);
