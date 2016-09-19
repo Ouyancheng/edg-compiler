@@ -1631,6 +1631,8 @@ in the user's program.
        routine doesn't undergo the usual promotion (for good reasons; see
        pop_generated_routine_context), so promote appropriate variables
        individually in that context. */
+    temp->source_corresp.enclosing_routine =
+                                 innermost_function_scope->variant.routine.ptr;
     promote_static_variable_out_of_function(temp, scope,
                                 innermost_function_scope->variant.routine.ptr);
   } else
@@ -19825,13 +19827,8 @@ been removed from the scope variables list).
 #endif /* DEBUG */
   /* Mangle the name if necessary (e.g., if it is part of a template
      function). */
-  if (variable->lowering_generated &&
-      unmangled_name_of(&variable->source_corresp) == NULL) {
-    /* No need to mangle an un-named temporary variable. */
-  } else {
-    mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
-                                /*final=*/FALSE, routine, scope);
-  }  /* if */
+  mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
+                              /*final=*/FALSE, routine, scope);
   variable->source_corresp.is_local_to_function = FALSE;
   clear_local_scope_ref_if_present(&variable->source_corresp);
   if (has_name(variable) &&
