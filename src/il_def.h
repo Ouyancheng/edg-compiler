@@ -2775,7 +2775,7 @@ typedef struct a_source_correspondence {
 			   and is for front end use only. */
   a_scope_ptr	parent_scope;
 			/* The scope in which the current entity was declared.
-			   Is is_class_member is TRUE, this points to a scope
+			   If is_class_member is TRUE, this points to a scope
 			   of kind sck_class_struct_union.  NULL if the current
 			   entity is stored in file scope memory and the parent
 			   scope is a function or block scope (to avoid memory
@@ -2784,7 +2784,9 @@ typedef struct a_source_correspondence {
 			   to a specific declaration, and for template entries
 			   that are members of prototype instantiations when
 			   those prototype instantiations are not recorded in
-			   the IL. */
+			   the IL.  For some template parameters, points to an
+			   sck_template_declaration scope (for prototype
+			   instantiations). */
   a_routine_ptr
 		enclosing_routine;
 			/* If the current entity is a member of a function or

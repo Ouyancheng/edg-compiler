@@ -1,5 +1,24 @@
 Version 4.12
 
+9/19/16  [EDGcpfe/17490,EDGcpfe/17541]
+GNU compatibility: assertion failures in walk_parents with abi_tag attribute
+
+A couple of issues that ended up failing an assertion check in walk_parents
+as a result of using the abi_tag attribute have been fixed.  For example
+(with --gnu_version 60100):
+
+  inline namespace N __attribute__((abi_tag)) {}
+  template <class T> T x;
+
+or:
+
+  inline namespace N __attribute__((abi_tag)) {}
+  struct A {
+    A(int i);
+  };
+  const A& a = A(77); 
+
+
 9/16/16  [EDGcpfe/17537]
 Microsoft compatibility: (void*)N as case labels
 
