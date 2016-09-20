@@ -1,5 +1,33 @@
 Version 4.12
 
+9/20/16  [EDGcpfe/17543]
+Microsoft compatibility: Unused default member initializers
+
+In Microsoft modes the front end no longer parses default member initializers
+(a C++11 feature) if they are not actually used in the translation unit.
+For example:
+
+  struct I;
+  
+  template<class T> struct M {
+      M(int) { T i; }
+  };
+  
+  struct S {
+    S();
+    virtual ~S();
+    M<I> m{1};  // Previously an error.  Now accepted in Microsoft mode.
+  };
+
+Ordinarily, the constructor of M<I> is instantiated when the initializer for
+S::m is parsed; that in turn triggers an error because the type I of the local
+variable i is incomplete.  In Microsoft modes, however, the default member
+initializer is no longer parsed because it is not actually used by any
+construct in the example.  This matches the behavior of Microsoft compilers,
+but it also means that the IL will have no representation of the initializer,
+which in turn implies that the C++-generating back end can not render it.
+
+
 9/20/16  [EDGcpfe/17546]
 Precompiled header created when no files were included
 

@@ -3515,9 +3515,6 @@ type must be complete.
     a_type_ptr              parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state      dps;
     a_memory_region_number  region_to_switch_back_to;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean               incomplete_type_error_reported = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_boolean               class_reactivated = FALSE;
     push_lexical_state_stack();
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
@@ -3557,6 +3554,7 @@ type must be complete.
          initializer processing delayed using a fixup entry. */
       a_decl_pos_block  decl_pos_block;
       a_variable_ptr    var;
+      a_boolean         incomplete_type_error_reported = FALSE;
       check_assertion(cli_or_cx_enabled && is_managed_class_type(parent_type));
       clear_decl_pos_block(&decl_pos_block);
       var = dps.sym->variant.static_data_member.variable;
@@ -3938,6 +3936,13 @@ after a class instantiation.
       /* Fix up in-class initializers and in-class inline function bodies. */
       if (field_initializers_enabled || cli_or_cx_enabled) {
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
+          a_type_ptr  class_type = cfp->class_type;
+          if (microsoft_mode && !is_immediate_managed_class_type(class_type)) {
+            /* The Microsoft compiler doesn't process field initializers at the
+               end of the enclosing class definition.  (Static data member
+               initializers of managed classes are processed however.) */
+            continue;
+          }  /* if */
           /* Make sure we are in the right translation unit. */
           check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
           inclass_initializer_fixup_for_class(cfp->class_type,
@@ -19857,7 +19862,7 @@ scanned.
              template instance). */
           instantiate_field_initializer_if_needed(sym->variant.field.ptr);
         } else {
-          /* Process the associated initializer fixups (which will take case
+          /* Process the associated initializer fixups (which will take care
              of any other field initializers, so we can exit the loop). */
           inclass_initializer_fixup_for_class(
                    class_type,
