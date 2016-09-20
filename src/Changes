@@ -1,5 +1,15 @@
 Version 4.12
 
+9/20/16  [EDGcpfe/17536]
+Microsoft compatibility: p->x in constant expressions
+
+In Microsoft mode, an expression like p->x may be constant-folded if x is a
+constant-valued member (e.g., an enumerator constant); see the entry of 1/5/05.
+This feature, however, was accidentally disabled in Microsoft modes that enable
+the constexpr feature (e.g., when microsoft_version >= 1900).  That is now
+fixed.
+
+
 9/19/16  [EDGcpfe/17490,EDGcpfe/17541]
 GNU compatibility: assertion failures in walk_parents with abi_tag attribute
 

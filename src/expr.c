@@ -7090,7 +7090,8 @@ case).
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (operator_token == tok_arrow);
 
-  if (curr_expr_kind_is_traditional_const()) {
+  if (curr_expr_kind_is_traditional_const() ||
+      (microsoft_mode && constexpr_enabled)) {
     if (curr_expr_kind_is(ek_pp)) {
       /* Field selection not allowed in preprocessor expression. */
       expr_pos_error(ec_bad_pp_operator, &pos_curr_token);
@@ -7786,13 +7787,15 @@ after_switch:;
     set_operand_position(result, &operand_1->position, &end_position,
                          &operator_position);
   }  /* if */
-  if (allow_constant_selection) {
-    /* If we are allowing field selection in a constant expression
-       as an extension, check now that the result is constant and has
-       an appropriate type.  allow_constant_selection TRUE means we
-       suppressed an error earlier in exchange for this check at the
-       end.  Note that there are other cases of selections allowed in
-       constant expressions that don't have the flag set. */
+  if (allow_constant_selection && !constexpr_enabled) {
+    /* If we are allowing field selection in a constant expression as an
+       extension, check now that the result is constant and has an appropriate
+       type (assuming the C++03 model of constant expressions; for the C++11
+       "constexpr" model, this is done later if needed).
+       allow_constant_selection TRUE means we suppressed an error earlier in
+       exchange for this check at the end.  Note that there are other cases of
+       selections allowed in constant expressions that don't have the flag
+       set. */
     a_boolean bad = TRUE;
     if ((curr_expr_kind_is(ek_init_constant) ||
          curr_expr_kind_is(ek_template_arg)) &&
