@@ -3944,8 +3944,8 @@ after a class instantiation.
             continue;
           }  /* if */
           /* Make sure we are in the right translation unit. */
-          check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
-          inclass_initializer_fixup_for_class(cfp->class_type,
+          check_trans_unit_for_class(class_type, &trans_unit_pushed);
+          inclass_initializer_fixup_for_class(class_type,
                                               cfp->is_template_instantiation);
         }  /* for */
       }  /* if */
