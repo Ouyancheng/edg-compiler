@@ -30,7 +30,7 @@ C++ operator new();
 /* Note that operator new is not in the std namespace. */
 
 
-extern void *operator new(size_t size) THROW(STD_NAMESPACE::bad_alloc)
+extern void *operator new(size_t size)
 /*
 Allocate the specified memory size from free store.  If the allocation fails,
 call *_new_handler() if defined (non-NULL pointer), and try the allocation

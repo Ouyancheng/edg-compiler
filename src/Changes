@@ -1,5 +1,18 @@
 Version 4.12
 
+9/20/16  [EDGcpfe/15635]
+C++11: Exception specifications for standard allocation/deallocation functions
+
+In C++03, the default operator new/operator new[] includes an exception
+specification "throw(std::bad_alloc)".  In C++11, however, the standard dropped
+those exception specifications.  Similarly, other allocation and deallocation
+functions went from a "throw()" exception specification to a "noexcept"
+specification.  The <new> header shipped with the front end (for demonstration
+purposes; implemented in file "new.stdh") now reflects that distinction and
+the actual implementation of the operators now reflects the C++11 semantics
+(which are nearly indistinguishable from the C++03 semantics).
+
+
 9/20/16  [EDGcpfe/17536]
 Microsoft compatibility: p->x in constant expressions
 

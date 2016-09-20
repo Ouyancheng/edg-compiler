@@ -393,15 +393,13 @@ stack is unwound in this case.
 #endif /* EXCEPTION_HANDLING */
 
 /*
-Define macros that are used to define exception specifications.  The
-macros are used so that the throw specifications can be discarded when
-exception handling is not being used.
+Define a macro are used to define exception specifications.  The macro is
+used so that the throw specifications can be discarded when exception handling
+is not being used.
 */
 #if EXCEPTION_HANDLING
-#define THROW(throw_spec) throw(throw_spec)
-#define THROW_NOTHING() throw()
+#define THROW_NOTHING() noexcept
 #else /* !EXCEPTION_HANDLING */
-#define THROW(throw_spec) /* Nothing. */
 #define THROW_NOTHING() /* Nothing. */
 #endif /* EXCEPTION_HANDLING */
 
