@@ -1,5 +1,14 @@
 Version 4.12
 
+9/20/16  [EDGcpfe/17546]
+Precompiled header created when no files were included
+
+One of the factors involved in the decision to create a PCH file is the
+number of declarations seen.  Predefined entities such as macros and
+types could cause a PCH to be created even if no files were included.
+An explicit test for the presence of included files is now done.
+
+
 9/20/16  [EDGcpfe/15635]
 C++11: Exception specifications for standard allocation/deallocation functions
 

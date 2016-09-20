@@ -1613,6 +1613,9 @@ write out the precompiled header file.
       /* There haven't been enough declarations to justify writing out and
          restoring the header information. */
       db_cannot_generate_reason("too few declarations");
+    } else if (il_header.primary_source_file->first_child_file == NULL) {
+      /* Don't generate a PCH if there were no included files. */
+      db_cannot_generate_reason("no included files");
     } else {
       /* Allow for any work needed to prepare data structures that will be
          recorded in the precompiled header file. */
