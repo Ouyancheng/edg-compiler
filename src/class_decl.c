@@ -3937,10 +3937,13 @@ after a class instantiation.
       if (field_initializers_enabled || cli_or_cx_enabled) {
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
           a_type_ptr  class_type = cfp->class_type;
-          if (microsoft_mode && !is_immediate_managed_class_type(class_type)) {
-            /* The Microsoft compiler doesn't process field initializers at the
-               end of the enclosing class definition.  (Static data member
-               initializers of managed classes are processed however.) */
+          if (always_delay_field_initializer_processing &&
+              !is_immediate_managed_class_type(class_type)) {
+            /* The Microsoft compiler doesn't fully process field initializers
+               at the end of the enclosing class definition.  (Static data
+               member initializers of managed classes are processed however.)
+               We currently approximate that behavior when the global variable
+               always_delay_field_initializer_processing is TRUE. */
             continue;
           }  /* if */
           /* Make sure we are in the right translation unit. */

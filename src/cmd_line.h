@@ -1285,6 +1285,12 @@ EXTERN a_boolean
 			   field initializer make a class a non-aggregate). */
 
 EXTERN a_boolean
+		always_delay_field_initializer_processing;
+			/* When TRUE, field initializers are not parsed until
+			   needed even when they appear in nontemplate
+			   classes. */
+
+EXTERN a_boolean
 		selection_from_prvalue_is_xvalue;
 			/* TRUE if the C++14 rule that a field selection on a
 			   prvalue class object produces an xvalue is in effect

@@ -2055,6 +2055,7 @@ static a_flag_name
 #if GNU_VECTOR_TYPES_ALLOWED
   { "gen_edg_vector_type", &gen_edg_vector_type },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { NULL, NULL }  /* must be last */
 };
 

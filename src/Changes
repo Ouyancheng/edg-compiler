@@ -3,9 +3,9 @@ Version 4.12
 9/20/16  [EDGcpfe/17543]
 Microsoft compatibility: Unused default member initializers
 
-In Microsoft modes the front end no longer parses default member initializers
-(a C++11 feature) if they are not actually used in the translation unit.
-For example:
+Microsoft compilers treat default member initializers (a C++11 feature) that
+are not actually used in the translation unit in a way that prevents certain
+template instantiations.  For example:
 
   struct I;
   
@@ -16,15 +16,17 @@ For example:
   struct S {
     S();
     virtual ~S();
-    M<I> m{1};  // Previously an error.  Now accepted in Microsoft mode.
-  };
+    M<I> m{1};  // Normally an error.  Now accepted with the option
+  };            // --set_flag lazy_field_initializers.
 
 Ordinarily, the constructor of M<I> is instantiated when the initializer for
 S::m is parsed; that in turn triggers an error because the type I of the local
-variable i is incomplete.  In Microsoft modes, however, the default member
-initializer is no longer parsed because it is not actually used by any
-construct in the example.  This matches the behavior of Microsoft compilers,
-but it also means that the IL will have no representation of the initializer,
+variable i is incomplete.  Microsoft compilers, however, do not issue such a
+diagnostic.  To approximate that behavior, the front end now delays parsing of
+the initializer until it is actually used if the global variable
+always_delay_field_initializer_processing is set to TRUE (which can be achieved
+with the command-line option "--set_flag lazy_field_initializers").  Doing so
+means that the IL will have no representation of the initializer, however,
 which in turn implies that the C++-generating back end can not render it.
 
 
