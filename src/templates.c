@@ -26544,9 +26544,8 @@ that follows.
         if (dps->is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
-          sym->variant.static_data_member.variable->storage_class =
-                                              (a_storage_class)sc_unspecified;
-          /* Make sure that the type of the static data member is complete.
+          vp->storage_class = (a_storage_class)sc_unspecified;
+          /* Make sure that the type of the variable is complete.
              If the type cannot be completed, an error will be issued by
              initializer.  Note that a static data member specialization
              that is a definition always has an initializer (such a

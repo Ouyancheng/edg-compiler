@@ -1,5 +1,15 @@
 Version 4.12
 
+9/21/16  [EDGcpfe/17550]
+Incorrect symbol variant used for variable template specialization
+
+The incorrect symbol variant was accessed when processing a specialization
+of a variable template (although the example still worked because the
+correct memory was accessed).  Now fixed.
+
+  template <typename T> constexpr T t = T { 1 };
+  template <> constexpr int t<int> = 2;
+
 9/20/16  [EDGcpfe/17543]
 Microsoft compatibility: Unused default member initializers
 
