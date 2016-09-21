@@ -563,8 +563,7 @@ Return TRUE if token can follow a typeof of the form "typeof(expression)".
 static void prescan_type_operator(a_disambig_state_ptr       state,
 				  a_disambig_flag_set        flags)
 /*
-Scan past (and cache) a decltype, alignas, __underlying_type, typeof,
-__edg_size_type__, __edg_ptrdiff_type__, __edg_bool_type__, or
+Scan past (and cache) a decltype, alignas, __underlying_type, typeof, or
 __edg_vector_type__ specifier.  (alignas isn't strictly a type operator, but it
 is syntactically similar.)
 */
@@ -794,6 +793,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if INT128_EXTENSIONS_ALLOWED
       case tok_int128:
 #endif /* INT128_EXTENSIONS_ALLOWED */
+      case tok_edg_size_type:
+      case tok_edg_ptrdiff_type:
+      case tok_edg_bool_type:
         type_specifier_seen = TRUE;
         break;
       /* Type qualifier. */
@@ -897,9 +899,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_decltype:
       case tok_underlying_type:
       case tok_typeof:
-      case tok_edg_size_type:
-      case tok_edg_ptrdiff_type:
-      case tok_edg_bool_type:
       case tok_edg_vector_type:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;

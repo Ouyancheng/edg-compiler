@@ -6091,10 +6091,14 @@ attributes in C mode).
     /* During the lowering process, these builtins will be needed, so load
        them now.  This is done here rather than during lowering because
        lexing/parsing may be finished by the time lowering actually needs
-       these builtins. */
+       these builtins.  Load these into the primary translation unit (if
+       there are multiple translation units). */
+    a_translation_unit_ptr saved_tup = curr_translation_unit;
+    switch_translation_unit(translation_units);
     load_matching_builtin_function_by_name("__builtin_cpu_init");
     load_matching_builtin_function_by_name("__builtin_cpu_is");
     load_matching_builtin_function_by_name("__builtin_cpu_supports");
+    switch_translation_unit(saved_tup);
     mv_builtins_loaded = TRUE;
   }  /* if */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */

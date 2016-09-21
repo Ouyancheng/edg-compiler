@@ -154,20 +154,20 @@ extensions.
 #endif /* FIXED_POINT_ALLOWED */
 
 /*
+Macro to be used in conjunction with is_type_keyword to check for EDG-specific
+extension keywords that construct a type specifier.
+*/
+#define or_is_edg_type_keyword(tok)                                       \
+  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
+      (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type)
+
+/*
 Macro that can be redefined by users to include checking for user-defined
 type keyword extensions.  If you change this, see also type_keyword.
 */
 #ifndef or_is_extension_type_keyword
 #define or_is_extension_type_keyword(tok)  /* Nothing */
 #endif /* or_is_extension_type_keyword */
-
-/*
-Macro that is true for EDG-specific extension keywords that construct a
-type specifier.
-*/
-#define or_is_edg_type_keyword(tok)                                       \
-  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
-      (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type)
 
 /*
 Macro that is TRUE if the indicated token is a type keyword, e.g., int.
