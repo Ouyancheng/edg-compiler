@@ -25072,7 +25072,7 @@ instantiation of the containing class.
   if (!err) {
     update_decl_pos_info(
            &tssp->variant.class_template.prototype_instantiation->
-                                              variant.type.ptr->source_corresp,
+                                     variant.enumeration.type->source_corresp,
                        &decl_state->decl_pos_block);
    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
