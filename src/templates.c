@@ -10525,6 +10525,10 @@ points to the template parameter list.
          parameter.  Any template parameters found in templ_type must be at
          the same level to participate in deduction. */
       depth_of_template = nesting_depth_of_template_param(templ_param_list);
+      /* If the type is a typedef (possibly an alias template instance),
+         get the underlying type before checking for a template
+         parameter. */
+      templ_type = skip_typedefs(templ_type);
       if (templ_type->variant.template_param.kind ==
                              (a_template_param_type_kind)tptk_param) {
         if (depth_of_template !=
@@ -10594,9 +10598,8 @@ points to the template parameter list.
            nondeduced context.  Consider it a match for now. */
         match = TRUE;
       } else {
-        /* Skip typedefs on the types. */
+        /* Skip typedefs on the real type. */
         type = skip_typedefs(type);
-        templ_type = skip_typedefs(templ_type);
         if (templ_type->source_corresp.is_class_member) {
           /* This is a template parameter associated with a member of a
              proxy class (e.g., X in a type like T::X).  The members must have
