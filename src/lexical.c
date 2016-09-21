@@ -21437,9 +21437,11 @@ of characters added.
              token == tok_char_constant ||
              token == tok_ud_literal ||
              is_microsoft_tok_uuid(token)) {
-    a_constant_ptr	constant = ctp->variant.constant;
+    a_constant_ptr	constant;
+    constant = token != tok_ud_literal ? ctp->variant.constant
+                                       : ctp->variant.ud_lit.value_con;
     /* Write out a string that represents the constant. */
-    if (constant->kind == (a_constant_repr_kind)ck_error) {
+    if (constant != NULL && constant->kind == (a_constant_repr_kind)ck_error) {
       /* If there was an error in scanning the token, reset the flag to avoid
          an assertion failure in the subroutine.  This means something like
          "<error-const>" will be put out in the template string. */
