@@ -1673,7 +1673,7 @@ str_len should be used to determine the end of the argument.
 
 void sys_predef_init(void)
 /*
-Do initialization for each translation unit.
+Do initialization for each source file.
 */
 {
 #if BUILTIN_FUNCTIONS_ENABLED
