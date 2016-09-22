@@ -1542,7 +1542,9 @@ result to an allocated area.
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version);
   if (is_unknown_targ_bitset(bs)) {
     /* An unknown target attribute; just copy it to the mangled name.  The
-       attribute is in "raw token" form, so it has quotation marks. */
+       attribute is in "raw token" form, so it has quotation marks.  Note that
+       the string is not sorted there may be problems if the string contains
+       multiple target attributes. */
     a_const_char     *start, *end;
     size_t           len;
     an_attribute_ptr ap = find_attribute(ak_target,
