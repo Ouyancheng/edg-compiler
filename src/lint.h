@@ -311,6 +311,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,find_mv_target_specific_routine)*/
 /*lint -esym(765,find_mv_target_specific_routine)*/
 /*lint -esym(769,ec_resolver_routine_required)*/
+/*lint -esym(769,ec_invalid_target_attribute)*/
 /*lint -esym(759,constant_fully_initializes_type)*/
 /*lint -esym(714,constant_fully_initializes_type)*/
 /*lint -esym(765,constant_fully_initializes_type)*/
@@ -1244,6 +1245,8 @@ extern int fileno(FILE *);
 #endif /* !GNU_FUNCTION_MULTIVERSIONING */
 #if USE_X86_FUNCTION_MULTIVERSIONING
 /*lint -esym(769,ec_resolver_routine_required)*/
+#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
+/*lint -esym(769,ec_invalid_target_attribute)*/
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
 /*lint -esym(769,a_pragma_kind_tag::pk_ident)*/

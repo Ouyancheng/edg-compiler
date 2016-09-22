@@ -1553,7 +1553,8 @@ result to an allocated area.
     an_attribute_ptr ap = find_attribute(ak_target,
                                          routine->source_corresp.attributes);
     check_assertion(ap != NULL && ap->arguments != NULL &&
-                    ap->arguments->kind == aak_raw_token &&
+                    ap->arguments->kind ==
+                                        (an_attribute_arg_kind)aak_raw_token &&
                     *ap->arguments->variant.token == '"');
     start = ap->arguments->variant.token + 1;
     end = strchr(start, '"');
@@ -1648,8 +1649,9 @@ attribute processing to check for re-declarations.
         ap = find_attribute(ak_target, rp->source_corresp.attributes);
         check_assertion(ap != NULL && aap != NULL &&
                         ap->arguments != NULL &&
-                        aap->kind == aak_raw_token &&
-                        ap->arguments->kind == aak_raw_token);
+                        aap->kind == (an_attribute_arg_kind)aak_raw_token &&
+                        ap->arguments->kind ==
+                                         (an_attribute_arg_kind)aak_raw_token);
         if (strcmp(aap->variant.token, ap->arguments->variant.token) == 0) {
           result = rp;
           break;

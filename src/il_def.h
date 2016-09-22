@@ -11764,7 +11764,7 @@ typedef struct a_routine {
 GNU multiversion target set; this is a bitset where the bit positions
 correspond to a_multiversion_arch_kind_tag enumeration values.
 */
-typedef uint64_t a_mv_target_bitset;
+typedef uint32_t a_mv_target_bitset;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 /*
