@@ -34,6 +34,10 @@ typedef struct a_disambig_state {
   a_type_ptr	decl_class_type;
 			/* In certain modes, this is set to the class type
 			   of the declarator that is found. */
+  a_boolean	check_if_is_decl;
+			/* TRUE if this is the normal C++ declaration vs.
+			   expression disambiguation, FALSE if this is
+			   some other kind of prescan. */
   a_boolean	may_be_decl;
 			/* TRUE while the statement being scanned could still
 			   be a declaration. */
@@ -91,15 +95,19 @@ typedef struct a_disambig_state {
 
 
 static void init_disambig_state(a_disambig_state_ptr	dsp,
+				a_boolean		check_if_is_decl,
 				a_boolean		suppress_packs,
 				a_boolean		cache_tokens)
 /*
-Initialize a disambiguation state block.  If suppress_packs is TRUE
-and we are in the prototype instantiation of a variadic template,
+Initialize a disambiguation state block.  check_if_is_decl is TRUE if
+this is the normal C++ declaration/expression disambiguation and FALSE
+if this is being called for some other kind of prescan.  If suppress_packs
+is TRUE and we are in the prototype instantiation of a variadic template,
 push a pack expansion suppression.  If cache_tokens is TRUE, a token
 cache of the tokens fetched for disambiguation should be created.
 */
 {
+  dsp->check_if_is_decl = check_if_is_decl;
   dsp->decl_class_type = NULL;
   dsp->may_be_decl = TRUE;
   dsp->terminate = FALSE;
@@ -1291,7 +1299,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     is_name_start = curr_token == tok_identifier &&
                     (!locator_for_curr_id.is_global_qualified_name ||
                      is_template_decl(flags)) &&
-                    !(gpp_mode && !is_top_level &&
+                    !(state->check_if_is_decl && gpp_mode && !is_top_level &&
                       locator_for_curr_id.is_qualified_name);
     if (!real_declarator_allowed(flags) ||
         (abstract_declarator_allowed(flags) && !is_name_start)) {
@@ -1664,7 +1672,8 @@ types separated by commas (when single_type_required is FALSE).
       clear_specific_symbol(locator_for_curr_id);
     }  /* if */
     /* Initialize the token cache. */
-    init_disambig_state(&state, /*suppress_packs=*/TRUE,
+    init_disambig_state(&state, /*check_if_is_decl=*/TRUE,
+                        /*suppress_packs=*/TRUE,
                         /*cache_tokens=*/TRUE);
     /* Scan forward as far as required to determine whether this is a
        declaration.  Each token that is encountered is cached away, so
@@ -1799,7 +1808,8 @@ cache passed by the caller are flushed.
   a_disambig_state    state;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*suppress_packs=*/TRUE,
+  init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
+                      /*suppress_packs=*/TRUE,
                       /*cache_tokens=*/FALSE);
   state.set_decl_class_type = TRUE;
   rescan_reusable_cache(decl_token_cache_ptr);
@@ -1822,7 +1832,8 @@ Return TRUE if it is a ranged-based-for, FALSE if it is not.
   a_boolean		result = FALSE;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+  init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
+                      /*suppress_packs=*/FALSE,
                       /*cache_tokens=*/TRUE);
   check_assertion(curr_token == tok_for);
   (void)get_token();
@@ -1874,7 +1885,8 @@ declaration.
   a_disambig_state  state;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+  init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
+                      /*suppress_packs=*/FALSE,
                       /*cache_tokens=*/TRUE);
   state.find_static_specifier_only = TRUE;
   prescan_declaration(&state, DFS_REAL_DECLARATOR_ALLOWED,
@@ -1901,7 +1913,8 @@ Microsoft compilers accept it nonetheless.
     a_disambig_state   state;
     /* Use init_disambig_state as a convenient way to manage background token
        caching. */
-    init_disambig_state(&state, /*suppress_packs=*/FALSE,
+    init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
+                        /*suppress_packs=*/FALSE,
                         /*cache_tokens=*/TRUE);
     pos_class_key = pos_curr_token;
     /* Advance past the keyword. */
@@ -1962,7 +1975,8 @@ indicate that the lambda is a C++14 generic lambda.
   a_disambig_state  state;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+  init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
+                      /*suppress_packs=*/FALSE,
                       /*cache_tokens=*/TRUE);
   state.decl_parse_state = dps;
   state.record_auto_parameters = TRUE;
