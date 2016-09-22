@@ -1143,6 +1143,7 @@ static a_const_char *target_attributes[] = {
   "sse2",             /* mvak_isa_sse2 */
   "sse3",             /* mvak_isa_sse3 */
   "ssse3",            /* mvak_isa_ssse3 */
+  "sse4",             /* mvak_isa_sse4 */
   "sse4a",            /* mvak_isa_sse4a */
   "sse4.1",           /* mvak_isa_sse4_1 */
   "sse4.2",           /* mvak_isa_sse4_2 */
@@ -1178,6 +1179,7 @@ static a_multiversion_arch_kind isa_alphabetic_order[] = {
   (a_multiversion_arch_kind)mvak_isa_sse,
   (a_multiversion_arch_kind)mvak_isa_sse2,
   (a_multiversion_arch_kind)mvak_isa_sse3,
+  (a_multiversion_arch_kind)mvak_isa_sse4,
   (a_multiversion_arch_kind)mvak_isa_sse4_1,
   (a_multiversion_arch_kind)mvak_isa_sse4_2,
   (a_multiversion_arch_kind)mvak_isa_sse4a,
@@ -1206,13 +1208,6 @@ is found, mvak_unknown is returned.
       break;
     }  /* if */
   }  /* for */
-  if (result == (a_multiversion_arch_kind)mvak_unknown) {
-    /* Handle a special case here ("sse4" and "sse4.1" map to the same
-       entry). */
-    if (strncmp(str, "sse4", str_len) == 0) {
-      result = (a_multiversion_arch_kind)mvak_isa_sse4_1;
-    }  /* if */
-  }  /* if */
   return result;
 }  /* find_target_attribute */
 

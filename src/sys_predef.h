@@ -401,6 +401,7 @@ enum a_multiversion_arch_kind_tag {
   mvak_isa_sse2,
   mvak_isa_sse3,
   mvak_isa_ssse3,
+  mvak_isa_sse4,
   mvak_isa_sse4a,
   mvak_isa_sse4_1,
   mvak_isa_sse4_2,
