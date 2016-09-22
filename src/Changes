@@ -1,5 +1,21 @@
 Version 4.12
 
+9/22/16  [EDGcpfe/17517]
+IL write-read error on type declared in function template declaration
+
+In configurations with the configuration macros GENERATE_SOURCE_SEQUENCE_LISTS
+and IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front end could abort with
+an IL write-read error (an internal error) when a class is first declared in a
+function template declaration but parsing of function templates is disabled.
+For example (in default C++03 mode):
+
+  template<class V> void g(struct C*) {}
+    // C is first declared in this function template.  Previously,
+    // this could result in an internal error in some configurations.
+
+This is now fixed.
+
+
 9/21/16  [EDGcpfe/17506,EDGcpfe/17544]
 GNU compatibility: "target" attributes and function multiversioning
 
