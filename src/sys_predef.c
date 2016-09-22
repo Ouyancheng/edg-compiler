@@ -1130,6 +1130,7 @@ all one-to-one mappings: the names in the latter two cases are massaged as
 necessary to match GNU's behavior.
 */
 static a_const_char *target_attributes[] = {
+  NULL,               /* mvak_unknown */
   "arch=bdver1",      /* mvak_cpu_bdver1 */
   "arch=bdver2",      /* mvak_cpu_bdver2 */
   "arch=corei7",      /* mvak_cpu_corei7 */
@@ -1142,11 +1143,20 @@ static a_const_char *target_attributes[] = {
   "sse2",             /* mvak_isa_sse2 */
   "sse3",             /* mvak_isa_sse3 */
   "ssse3",            /* mvak_isa_ssse3 */
+  "sse4a",            /* mvak_isa_sse4a */
   "sse4.1",           /* mvak_isa_sse4_1 */
   "sse4.2",           /* mvak_isa_sse4_2 */
   "popcnt",           /* mvak_isa_popcnt */
+  "aes",              /* mvak_isa_aes */
+  "pclmul",           /* mvak_isa_pclmul */
   "avx",              /* mvak_isa_avx */
+  "bmi",              /* mvak_isa_bmi */
+  "fma4",             /* mvak_isa_fma4 */
+  "xop",              /* mvak_isa_xop */
+  "fma",              /* mvak_isa_fma */
+  "bmi2",             /* mvak_isa_bmi2 */
   "avx2",             /* mvak_isa_avx2 */
+  "avx512f",          /* mvak_isa_avx512f */
 };
 
 /*
@@ -1154,16 +1164,25 @@ GNU's mangled names for ISA architectures are emitted in alphabetical order
 so this table lists the ISA architectures in that order.
 */
 static a_multiversion_arch_kind isa_alphabetic_order[] = {
+  (a_multiversion_arch_kind)mvak_isa_aes,
   (a_multiversion_arch_kind)mvak_isa_avx,
   (a_multiversion_arch_kind)mvak_isa_avx2,
+  (a_multiversion_arch_kind)mvak_isa_avx512f,
+  (a_multiversion_arch_kind)mvak_isa_bmi,
+  (a_multiversion_arch_kind)mvak_isa_bmi2,
+  (a_multiversion_arch_kind)mvak_isa_fma,
+  (a_multiversion_arch_kind)mvak_isa_fma4,
   (a_multiversion_arch_kind)mvak_isa_mmx,
+  (a_multiversion_arch_kind)mvak_isa_pclmul,
   (a_multiversion_arch_kind)mvak_isa_popcnt,
   (a_multiversion_arch_kind)mvak_isa_sse,
   (a_multiversion_arch_kind)mvak_isa_sse2,
   (a_multiversion_arch_kind)mvak_isa_sse3,
   (a_multiversion_arch_kind)mvak_isa_sse4_1,
   (a_multiversion_arch_kind)mvak_isa_sse4_2,
-  (a_multiversion_arch_kind)mvak_isa_ssse3
+  (a_multiversion_arch_kind)mvak_isa_sse4a,
+  (a_multiversion_arch_kind)mvak_isa_ssse3,
+  (a_multiversion_arch_kind)mvak_isa_xop
 };
 
 
@@ -1172,20 +1191,22 @@ static a_multiversion_arch_kind find_target_attribute(a_const_char *str,
 /*
 Return the a_multiversion_arch_kind for the "target" attribute pointed to by
 str whose length is strlen (str may not be NULL terminated).  If no attribute
-is found, mvak_invalid is returned.
+is found, mvak_unknown is returned.
 */
 {
-  a_multiversion_arch_kind result = (a_multiversion_arch_kind)mvak_invalid;
+  a_multiversion_arch_kind result = (a_multiversion_arch_kind)mvak_unknown;
   a_multiversion_arch_kind arch;
 
-  for (arch = 0; arch < (a_multiversion_arch_kind)mvak_last; arch++) {
+  for (arch = mvak_lowest_cpu;
+       arch < (a_multiversion_arch_kind)mvak_last;
+       arch++) {
     if (strlen(target_attributes[arch]) == str_len &&
         strncmp(str, target_attributes[arch], str_len) == 0) {
       result = arch;
       break;
     }  /* if */
   }  /* for */
-  if (result == (a_multiversion_arch_kind)mvak_invalid) {
+  if (result == (a_multiversion_arch_kind)mvak_unknown) {
     /* Handle a special case here ("sse4" and "sse4.1" map to the same
        entry). */
     if (strncmp(str, "sse4", str_len) == 0) {
@@ -1294,7 +1315,7 @@ be at most one) if one is found (and to mvak_invalid otherwise).
       default:
         unexpected_condition();
     }  /* switch */
-    if (bitset & (1<<arch)) {
+    if (bitset & ((a_mv_target_bitset)1<<arch)) {
       result_isa = arch_isa;
       *cpu_arch = arch;
       break;
@@ -1304,7 +1325,7 @@ be at most one) if one is found (and to mvak_invalid otherwise).
   for (arch = (a_multiversion_arch_kind)mvak_lowest_isa;
        arch <= (a_multiversion_arch_kind)mvak_highest_isa;
        arch++) {
-    if ((bitset & (1<<arch)) && result_isa < arch) {
+    if ((bitset & ((a_mv_target_bitset)1<<arch)) && result_isa < arch) {
       result_isa = arch;
     }  /* if */
   }  /* for */
@@ -1477,7 +1498,8 @@ that are pointed to by representative.
       for (rlep = head; rlep != NULL; rlep = rlep->next) {
         a_mv_target_bitset rlep_bs = gnu_routine_supp(rlep->routine)->
                                         mv_info.targeted_version.target_bitset;
-        check_assertion(target_bs != rlep_bs);
+        check_assertion(target_bs != rlep_bs ||
+                        is_unknown_targ_bitset(target_bs));
         if (compare_target_priority(target_bs, rlep_bs) < 0) {
           /* Found the insertion point. */
           break;
@@ -1523,43 +1545,62 @@ result to an allocated area.
                      arch;
 
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version);
-  /* This loop adds the CPU architecture name (if any). */
-  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
-       arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
-       arch++) {
-    if (bs & (1<<arch)) {
-      arch_name = target_distinction(arch);
-      is_first = FALSE;
-      check_assertion(buff_idx == 0);
-      if (strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
-      (void)strcpy(&buffer[0], arch_name);
-      buff_idx = strlen(arch_name);
-      break;
-    }  /* if */
-  }  /* for */
-  /* This loop adds the ISA architecture name(s), if any in alphabetical
-     order. */
-  for (i = 0;
-       i < sizeof(isa_alphabetic_order)/sizeof(isa_alphabetic_order[0]);
-       i++) {
-    arch = isa_alphabetic_order[i];
-    if (bs & (1<<arch)) {
-      arch_name = target_distinction(arch);
-      if (is_first) {
+  if (is_unknown_targ_bitset(bs)) {
+    /* An unknown target attribute; just copy it to the mangled name.  The
+       attribute is in "raw token" form, so it has quotation marks. */
+    a_const_char     *start, *end;
+    size_t           len;
+    an_attribute_ptr ap = find_attribute(ak_target,
+                                         routine->source_corresp.attributes);
+    check_assertion(ap != NULL && ap->arguments != NULL &&
+                    ap->arguments->kind == aak_raw_token &&
+                    *ap->arguments->variant.token == '"');
+    start = ap->arguments->variant.token + 1;
+    end = strchr(start, '"');
+    check_assertion(end != NULL);
+    len = end - start;
+    if (len >= STATIC_BUFFER_SIZE) goto done;
+    memcpy(&buffer[0], start, len);
+    buff_idx = len;
+  } else {
+    /* This loop adds the CPU architecture name (if any). */
+    for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
+         arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
+         arch++) {
+      if (bs & ((a_mv_target_bitset)1<<arch)) {
+        arch_name = target_distinction(arch);
         is_first = FALSE;
-      } else {
-        too_long = buff_idx + 1 >= STATIC_BUFFER_SIZE;
+        check_assertion(buff_idx == 0);
+        if (strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
+        (void)strcpy(&buffer[0], arch_name);
+        buff_idx = strlen(arch_name);
+        break;
+      }  /* if */
+    }  /* for */
+    /* This loop adds the ISA architecture name(s), if any in alphabetical
+       order. */
+    for (i = 0;
+         i < sizeof(isa_alphabetic_order)/sizeof(isa_alphabetic_order[0]);
+         i++) {
+      arch = isa_alphabetic_order[i];
+      if (bs & ((a_mv_target_bitset)1<<arch)) {
+        arch_name = target_distinction(arch);
+        if (is_first) {
+          is_first = FALSE;
+        } else {
+          too_long = buff_idx + 1 >= STATIC_BUFFER_SIZE;
+          check_assertion(!too_long);
+          if (too_long) goto done;
+          buffer[buff_idx++] = '_';
+        }  /* if */
+        too_long = buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE;
         check_assertion(!too_long);
         if (too_long) goto done;
-        buffer[buff_idx++] = '_';
+        (void)strcpy(&buffer[buff_idx], arch_name);
+        buff_idx += strlen(arch_name);
       }  /* if */
-      too_long = buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE;
-      check_assertion(!too_long);
-      if (too_long) goto done;
-      (void)strcpy(&buffer[buff_idx], arch_name);
-      buff_idx += strlen(arch_name);
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 done:
   /* Make sure the string is NULL terminated (only an issue if we've run out of
      buffer space). */
@@ -1574,14 +1615,16 @@ done:
 #if !USE_X86_FUNCTION_MULTIVERSIONING
 /*ARGSUSED*/ /* No arguments are used in this case. */
 #endif /* !USE_X86_FUNCTION_MULTIVERSIONING */
-a_routine_ptr find_existing_mv_routine(a_routine_ptr representative,
-                                       a_routine_ptr candidate)
+a_routine_ptr find_existing_mv_routine(a_routine_ptr        representative,
+                                       a_routine_ptr        candidate,
+                                       an_attribute_arg_ptr aap)
 /*
 Returns a pointer to a target-specific version routine with the same
 "target" attributes as "candidate" or NULL if none is found.
 representative is the representative routine for the specific group of
-multiversion functions.  Called during attribute processing to check for
-re-declarations.
+multiversion functions.  aap is a pointer to the "target" attributes for
+candidate (they haven't been applied to the routine yet).  Called during
+attribute processing to check for re-declarations.
 */
 {
   a_routine_ptr            result = NULL;
@@ -1597,8 +1640,24 @@ re-declarations.
     a_routine_ptr rp = rlep->routine;
     if (gnu_routine_supp(candidate)->mv_info.targeted_version.target_bitset ==
                 gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset) {
-      result = rp;
-      break;
+      if (gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset ==
+           (a_mv_target_bitset)1 << mvak_unknown) {
+        /* Both routines have a unknown target attributes; they're the same
+           only if the target attributes are also the same. */
+        an_attribute_ptr ap;
+        ap = find_attribute(ak_target, rp->source_corresp.attributes);
+        check_assertion(ap != NULL && aap != NULL &&
+                        ap->arguments != NULL &&
+                        aap->kind == aak_raw_token &&
+                        ap->arguments->kind == aak_raw_token);
+        if (strcmp(aap->variant.token, ap->arguments->variant.token) == 0) {
+          result = rp;
+          break;
+        }  /* if */
+      } else {
+        result = rp;
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -1630,36 +1689,33 @@ str_len should be used to determine the end of the argument.
      target argument. */
   a_multiversion_arch_kind arch = find_target_attribute(str, str_len);
 
-  if (arch != (a_multiversion_arch_kind)mvak_invalid) {
-    if (C_mode()) {
-      /* The presence of the argument is sufficient. */
-    } else if (skip_typerefs(routine->type)->
-          variant.routine.extra_info->routine_name_linkage ==
+  if (arch == (a_multiversion_arch_kind)mvak_unknown) {
+    /* An unknown target attribute.  The list of "target" attributes is
+       continually growing and the front end only recognizes those needed to
+       create a resolver routine, so accept unknown attributes.  Issue a
+       warning and record the attribute (the back end may know what to do with
+       these). */
+    pos_warning(ec_unrecognized_target_attribute, &aap->position);
+  }  /* if */
+  if (C_mode()) {
+    /* The presence of the argument is sufficient. */
+  } else if (skip_typerefs(routine->type)->
+        variant.routine.extra_info->routine_name_linkage ==
                                            (a_name_linkage_kind)nlk_external) {
-      /* An extern "C" routine; silently accept the argument. */
-    } else {
-      a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
-      check_assertion(grsp->is_target_specific_version);
-      if (is_mv_cpu_arch(arch) &&
-          is_any_mv_arch_bit_set(
-                               grsp->mv_info.targeted_version.target_bitset)) {
-        /* Can't specify more than one CPU architecture. */
-        pos_error(ec_gnu_mv_only_one_arch, &aap->position);
-        *error_issued = TRUE;
-      } else {
-        /* Add this CPU/ISA architecture to the list of target-specific
-           versions that this routine supports. */
-        grsp->mv_info.targeted_version.target_bitset |= 1 << arch;
-      }  /* if */
-    }  /* if */
+    /* An extern "C" routine; silently accept the argument. */
   } else {
-    if (C_mode()) {
-      /* Since we're not doing anything special with the attributes in C mode,
-         just issue a warning (the back end may know what to do with these). */
-      pos_warning(ec_unrecognized_target_attribute, &aap->position);
-    } else {
-      pos_error(ec_unrecognized_target_attribute, &aap->position);
+    a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
+    check_assertion(grsp->is_target_specific_version);
+    if (is_mv_cpu_arch(arch) &&
+        is_any_mv_arch_bit_set(grsp->mv_info.targeted_version.target_bitset)) {
+      /* Can't specify more than one CPU architecture. */
+      pos_error(ec_gnu_mv_only_one_arch, &aap->position);
       *error_issued = TRUE;
+    } else {
+      /* Add this CPU/ISA architecture to the list of target-specific
+         versions that this routine supports. */
+      grsp->mv_info.targeted_version.target_bitset |=
+                                                 (a_mv_target_bitset)1 << arch;
     }  /* if */
   }  /* if */
 #else /* !USE_X86_FUNCTION_MULTIVERSIONING */

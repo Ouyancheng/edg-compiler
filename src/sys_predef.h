@@ -374,10 +374,17 @@ ISA architectures (in the order specified in the GCC Function Multiversioning
 Wiki).  When an entry is added here, the target_distinction table must also be
 updated.  If an ISA entry is added here, an entry must also be added to
 isa_alphabetic_order.
+
+The "target" attributes listed below correspond to those that GCC appears
+to use in its resolver functions.  All other "target" attributes are mapped
+to mvak_unknown and a warning is issued (which is suppressed in system
+headers).  An error is issued if an mvak_unknown routine is needed by a
+lowering-created resolver routine.
 */
 enum a_multiversion_arch_kind_tag {
   mvak_invalid = -1,                /* An invalid entry. */
-  mvak_lowest_cpu = 0,              /* Lowest CPU architecture entry. */
+  mvak_unknown = 0,                 /* Not otherwise on this list. */
+  mvak_lowest_cpu,                  /* Lowest CPU architecture entry. */
   /* CPU architectures: */
   mvak_cpu_bdver1 = mvak_lowest_cpu,
   mvak_cpu_bdver2,
@@ -394,12 +401,21 @@ enum a_multiversion_arch_kind_tag {
   mvak_isa_sse2,
   mvak_isa_sse3,
   mvak_isa_ssse3,
+  mvak_isa_sse4a,
   mvak_isa_sse4_1,
   mvak_isa_sse4_2,
   mvak_isa_popcnt,
+  mvak_isa_aes,
+  mvak_isa_pclmul,
   mvak_isa_avx,
+  mvak_isa_bmi,
+  mvak_isa_fma4,
+  mvak_isa_xop,
+  mvak_isa_fma,
+  mvak_isa_bmi2,
   mvak_isa_avx2,
-  mvak_highest_isa = mvak_isa_avx2, /* Marks last ISA entry. */
+  mvak_isa_avx512f,
+  mvak_highest_isa = mvak_isa_avx512f, /* Marks last ISA entry. */
   mvak_last                         /* Must be last. */
 };
 
@@ -418,14 +434,24 @@ CPU architecture.
 Macro that returns TRUE if a CPU architecture is specified in a bitset.
 */
 #define is_any_mv_arch_bit_set(bs)                                            \
-  (((bs) & ((1 << ((a_multiversion_arch_kind)mvak_highest_cpu + 1)) - 1)) != 0)
+  (((bs) & (((a_mv_target_bitset)1 <<                                         \
+             ((a_multiversion_arch_kind)mvak_highest_cpu + 1)) - 1)) != 0)
 
 /*
 Macro that returns TRUE if the specified bitset indicates the "default"
 routine.
 */
 #define is_default_targ_bitset(bs)                                            \
-  ((bs) == 1 << (a_multiversion_arch_kind)mvak_default_target)
+  ((bs) == (a_mv_target_bitset)1 <<                                           \
+           (a_multiversion_arch_kind)mvak_default_target)
+
+/*
+Macro that returns TRUE if the specified bitset indicates an unknown target
+attribute.
+*/
+#define is_unknown_targ_bitset(bs)                                            \
+  ((bs) & (a_mv_target_bitset)1 <<                                           \
+          (a_multiversion_arch_kind)mvak_unknown)
 
 /*
 Macro that returns TRUE if the specific-target routine is the "default"
@@ -471,7 +497,8 @@ extern a_routine_ptr find_mv_target_specific_routine(
 #if GNU_FUNCTION_MULTIVERSIONING
 extern a_routine_ptr find_existing_mv_routine(
                                        a_routine_ptr representative_routine,
-                                       a_routine_ptr candidate);
+                                       a_routine_ptr candidate,
+                                       an_attribute_arg_ptr aap);
 
 extern void add_to_specific_version_list(a_routine_ptr representative_routine,
                                          a_routine_ptr target_routine);

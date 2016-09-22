@@ -5877,6 +5877,13 @@ error is issued, *error_issued is set to TRUE.
     ++ptr; ++str_len;
   }  /* while */
   if (str_len > 0) {
+    if (clang_mode) {
+      /* Clang ignores spaces. */
+      while (**target_arg == ' ') {
+        (*target_arg)++;
+        str_len--;
+      }  /* while */
+    }  /* if */
     validate_target_argument(*target_arg, str_len, aap, routine, error_issued);
     if (*ptr == ',') {
       *target_arg = ++ptr;
@@ -6066,7 +6073,7 @@ attributes in C mode).
   validate_target_argument_string(aap, target_routine, &err);
   /* Check to see if the new routine is compatible with those already
      declared (if any). */
-  existing = find_existing_mv_routine(representative, target_routine);
+  existing = find_existing_mv_routine(representative, target_routine, aap);
   if (existing != NULL) {
     /* A routine has been previously declared (or defined) with the same
        set of target attributes; give an error if there are two definitions. */

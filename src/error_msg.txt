@@ -2871,6 +2871,7 @@ ec_invalid_vector_element_type;;"vector element type must be integral, enum, or 
 ec_builtin_needs_128_bit_integers;;"builtin function is not available because 128-bit integers are not supported"
 ec_builtin_needs_vector_types;;"builtin function is not available because vector types are not supported"
 ec_must_introduce_attribute;;"two consecutive left square brackets can only introduce an attribute list"
+ec_invalid_target_attribute;;"unrecognized \"target\" attribute disqualifies this routine from being used by resolver routine"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

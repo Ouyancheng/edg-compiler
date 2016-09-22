@@ -18188,7 +18188,7 @@ builtin functions to determine the underlying CPU characteristics.
   for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
        arch <= (a_multiversion_arch_kind)mvak_highest_isa;
        arch++) {
-    if (bs & (1<<arch)) {
+    if (bs & ((a_mv_target_bitset)1<<arch)) {
       an_expr_node_ptr str_node = make_expr_for_string_literal(
                                                target_name_for_builtin(arch));
       if (is_mv_cpu_arch(arch)) {
@@ -18328,8 +18328,14 @@ The "ifunc" mechanism is used to associate the resolver routine with
   for (rlep = sorted_list->next; rlep != NULL; rlep = rlep->next) {
     /* Since there may be both definitions and declarations in this list,
        emit only one check for each unique bitset. */
-    if (previous_bitset != gnu_routine_supp(rlep->routine)->
-                                      mv_info.targeted_version.target_bitset) {
+    a_mv_target_bitset bs = gnu_routine_supp(rlep->routine)->
+                                        mv_info.targeted_version.target_bitset;
+    if (is_unknown_targ_bitset(bs)) {
+      /* Issue a discretionary error and skip the routine if it has a target
+         attribute that isn't recognized. */
+      pos_diagnostic(es_discretionary_error, ec_invalid_target_attribute,
+                     &rlep->routine->source_corresp.decl_position);
+    } else if (previous_bitset != bs) {
       an_expr_node_ptr if_node = make_mv_target_specific_expr(rlep->routine);
       insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
                           insert_location,
@@ -18339,8 +18345,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
       assign_function_constant(rlep->routine, temp_var, &then_insert_location);
       insert_location = &else_insert_location;
     }  /* if */
-    previous_bitset = gnu_routine_supp(rlep->routine)->
-                                        mv_info.targeted_version.target_bitset;
+    previous_bitset = bs;
   }  /* for */
   /* Add the "default" routine case. */
   assign_function_constant(default_routine, temp_var, insert_location);
