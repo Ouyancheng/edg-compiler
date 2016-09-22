@@ -1,5 +1,23 @@
 Version 4.12
 
+9/22/16  [EDGcpfe/17358]
+Spurious error on nested declarator in template static data member definition
+
+Version 4.11 introduced a regression that could cause a spurious error
+on the definition of a static data member of a nested class of a class
+template when the definition made use of a nested declarator.  Now fixed.
+
+  template <typename T> struct A {
+    struct B {
+      void f() {}
+    };
+  };
+  template <typename T> struct C {
+    static void (A<T>::B::*bfp)();
+  };
+  template <typename T> void (A<T>::B::*(C<T>::bfp))();
+
+
 9/22/16  [EDGcpfe/17517]
 IL write-read error on type declared in function template declaration
 
