@@ -1197,7 +1197,7 @@ is found, mvak_unknown is returned.
   a_multiversion_arch_kind result = (a_multiversion_arch_kind)mvak_unknown;
   a_multiversion_arch_kind arch;
 
-  for (arch = mvak_lowest_cpu;
+  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
        arch < (a_multiversion_arch_kind)mvak_last;
        arch++) {
     if (strlen(target_attributes[arch]) == str_len &&
@@ -1641,8 +1641,8 @@ attribute processing to check for re-declarations.
     a_routine_ptr rp = rlep->routine;
     if (gnu_routine_supp(candidate)->mv_info.targeted_version.target_bitset ==
                 gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset) {
-      if (gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset ==
-           (a_mv_target_bitset)1 << mvak_unknown) {
+      if (is_unknown_targ_bitset(
+               gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset)) {
         /* Both routines have a unknown target attributes; they're the same
            only if the target attributes are also the same. */
         an_attribute_ptr ap;
