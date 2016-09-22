@@ -6,7 +6,9 @@ GNU compatibility: "target" attributes and function multiversioning
 Changes have been made to update the way the "target" attribute/pragma is
 handled in GNU emulation mode.  GNU and clang have added a large number of
 "target" attributes in their system headers, so any unknown "target" attribute
-now elicits a warning rather than an error.
+in a system header is silently accepted.  For unknown "target" attributes
+outside of a system header, a warning is generated in C mode and a
+discretionary error is generated in C++ mode.
 
 For configurations that support function multiversioning (see the Changes entry
 for EDGcpfe/14759), nine new "target" ISA architectures are supported: sse4a,

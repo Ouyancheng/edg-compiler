@@ -1690,16 +1690,26 @@ str_len should be used to determine the end of the argument.
      the mv_target_bitset for the routine is updated to reflect the
      target argument. */
   a_multiversion_arch_kind arch = find_target_attribute(str, str_len);
+  a_boolean                err = FALSE;
 
   if (arch == (a_multiversion_arch_kind)mvak_unknown) {
-    /* An unknown target attribute.  The list of "target" attributes is
-       continually growing and the front end only recognizes those needed to
-       create a resolver routine, so accept unknown attributes.  Issue a
-       warning and record the attribute (the back end may know what to do with
-       these). */
-    pos_warning(ec_unrecognized_target_attribute, &aap->position);
+    /* An unknown target attribute.  The list of "target" attributes used in
+       system headers is continually growing and the front end only recognizes
+       those needed to create a resolver routine, so accept unknown attributes
+       in system headers(the back end may know what to do with these).  Issue a
+       discretionary error otherwise. */
+    if (!seq_is_in_system_header(aap->position.seq)) {
+      an_error_severity es = C_mode() ? es_warning : es_discretionary_error;
+      pos_diagnostic(es, ec_unrecognized_target_attribute,
+                     &aap->position);
+      if (is_effective_error(ec_unrecognized_target_attribute, es)) {
+        err = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
-  if (C_mode()) {
+  if (err) {
+    *error_issued = TRUE;
+  } else if (C_mode()) {
     /* The presence of the argument is sufficient. */
   } else if (skip_typerefs(routine->type)->
         variant.routine.extra_info->routine_name_linkage ==
