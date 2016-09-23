@@ -422,8 +422,7 @@ returned an error is issued (only if issue_error is TRUE).
   } else {
     /* The restriction string (if any) has already been found for non-user
        defined builtins. */
-    const a_builtin_descr *bdp =
-                               &builtin_table[sym_hdr->builtin_function_index];
+    a_builtin_descr *bdp = &builtin_table[sym_hdr->builtin_function_index];
     restrictions = builtin_condition_table[bdp->cond_index].restrictions;
   }  /* if */
   if (restrictions != NULL) {
@@ -583,8 +582,7 @@ routine is created (and potentially a routine type is parsed).
       builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
       builtin_kind = budp->kind;
     } else {
-      const a_builtin_descr *bdp =
-                               &builtin_table[sym_hdr->builtin_function_index];
+      a_builtin_descr *bdp = &builtin_table[sym_hdr->builtin_function_index];
       builtin_type = builtin_function_type_for_index(bdp->type_index);
       builtin_kind = bdp->kind;
     }  /* if */
@@ -707,7 +705,7 @@ create a symbol header entry for any builtin function that is enabled in the
 current emulation mode.
 */
 {
-  const a_builtin_descr     *bdp;
+  a_builtin_descr           *bdp;
   a_builtin_user_descr      *budp;
   a_builtin_function_index  i;
 
