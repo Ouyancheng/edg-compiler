@@ -1260,6 +1260,7 @@ typedef enum /*a_token_kind*/ {
 #if GNU_VECTOR_TYPES_ALLOWED
   tok_builtin_shuffle,
   tok_builtin_shufflevector,
+  tok_builtin_convertvector,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tok_noreturn,
   tok_builtin_complex,
@@ -1442,6 +1443,7 @@ EXTERN a_const_char
 #if GNU_VECTOR_TYPES_ALLOWED
    "__builtin_shuffle",
    "__builtin_shufflevector",
+   "__builtin_convertvector",
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    "_Noreturn",
    "__builtin_complex",
@@ -12807,6 +12809,9 @@ typedef enum a_builtin_operation_kind_tag {
   bok_builtin_shufflevector,
 			/* Clang's __builtin_shufflevector operator.  Two
 			   vector operands followed by a list of integers. */
+  bok_builtin_convertvector,
+			/* Clang's __builtin_convertvector operator.  A vector
+			   operand followed by a type operand. */
   bok_is_assignable,    /* Microsoft's __is_assignable.  Two type operands. */
   bok_is_trivially_copy_assignable,
 			/* Microsoft's __is_trivially_copy_assignable.  Two
@@ -16993,6 +16998,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_win_class",
   "__is_win_interface",
   "__builtin_shufflevector",
+  "__builtin_convertvector",
   "__is_assignable",
   "__is_trivially_copy_assignable",
   "__builtin_addressof",

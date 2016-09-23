@@ -12716,6 +12716,104 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
   set_operand_position(result, &start_pos, &end_pos, &start_pos);
 }  /* scan_builtin_shuffle */
 
+
+static void scan_builtin_convertvector(a_rescan_control_block  *rcblock,
+                                       an_operand              *result)
+/*
+Scan the Clang __builtin_convertvector construct and represent it in *result.
+
+The construct has the form:
+
+	__builtin_convertvector(vec, dest_vec_type)
+
+where vec is a vector operand and dest_vec_type is a vector type with the same
+length as the type of vec.  The result is an rvalue of type dest_vec_type.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__builtin_convertvector construct.
+*/
+{
+  a_source_position  start_pos, end_pos, type_pos;
+  an_operand         src_op;
+  a_boolean          src_is_vector, src_is_dependent;
+  an_expr_node_ptr   src_node, dst_type_node, expr;
+  a_type_ptr         dst_type;
+
+  if (rcblock == NULL) {
+    /* Normal scan from tokens. */
+    check_assertion(curr_token == tok_builtin_convertvector);
+    start_pos = pos_curr_token;
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    scan_expr(&src_op, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    remove_stop_token(tok_comma);
+    (void)required_token(tok_comma, ec_exp_comma);
+    type_pos = pos_curr_token;
+    type_name(&dst_type);
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  } else {
+    /* "Rescan" a previously parsed construct with substitutions. */
+    a_token_sequence_number  start_tok_seq_number;
+    an_operand               dst_type_op;
+    make_rescan_operands(rcblock, &src_op, &dst_type_op, (an_operand*)NULL,
+                         &start_pos, &start_tok_seq_number,
+                         (a_source_position *)NULL);
+    check_assertion(is_expression_operand(&dst_type_op) &&
+                    dst_type_op.variant.expression->kind ==
+                                         (an_expr_node_kind)enk_type_operand);
+    dst_type = dst_type_op.variant.expression->variant.type_operand.type;
+    type_pos = dst_type_op.position;
+  }  /* if */
+  do_operand_transformations(&src_op, TOPT_NO_OPTIONS);
+  if (!is_vector_type(dst_type) && !is_error_type(dst_type) &&
+      !(is_template_dependent_context() &&
+        is_template_dependent_type(dst_type))) {
+    pos_ty_error(ec_vector_type_required, &type_pos, dst_type);
+    dst_type = error_type();
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  dst_type_node = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+  dst_type_node->type = void_type();
+  dst_type_node->position = type_pos;
+  /* Check that the first operand has a vector type (or an unknown type). */
+  src_is_vector = check_operand_is_vector(rcblock, &src_op, &src_is_dependent);
+  if (src_is_dependent) {
+    /* Defer additional checks until a real instantiation. */
+  } else if (!src_is_vector) {
+    /* Something went wrong with the first operand. */
+    dst_type = error_type();
+  } else if (is_vector_type(dst_type) &&
+             !vector_type_is_template_dependent(skip_typerefs(dst_type))) {
+    /* Check that the source operand has the same length as the destination
+       type. */
+    if (num_vector_elements(src_op.type) != num_vector_elements(dst_type)) {
+      if (expr_error_should_be_issued()) {
+        pos_ty2_error(ec_vector_types_differ_in_length, &start_pos,
+                      src_op.type, dst_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  dst_type_node->variant.type_operand.type = dst_type;
+  record_type_operand_position_for_rescan(dst_type_node, &start_pos);
+  expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+  expr->type = dst_type;
+  expr->variant.builtin_operation.kind =
+                          (a_builtin_operation_kind)bok_builtin_convertvector;
+  src_node = make_node_from_operand(&src_op);
+  src_node->next = dst_type_node;
+  expr->variant.builtin_operation.operands = src_node;
+  record_position_in_expr_for_rescan(expr, &start_pos, &end_pos);
+  make_expression_operand(expr, result);
+  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+}  /* scan_builtin_convertvector */
+
+
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
 
@@ -28037,6 +28135,7 @@ Return TRUE if the indicated token is one that could start an expression.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tok_builtin_shuffle:
     case tok_builtin_shufflevector:
+    case tok_builtin_convertvector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tok_builtin_complex:
@@ -32793,6 +32892,10 @@ type_start:
     case tok_builtin_shuffle:
     case tok_builtin_shufflevector:
       scan_builtin_shuffle((a_rescan_control_block *)NULL, &local_result);
+      break;
+    case tok_builtin_convertvector:
+      scan_builtin_convertvector((a_rescan_control_block *)NULL,
+                                 &local_result);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
@@ -40434,6 +40537,9 @@ set accordingly.
       case bok_builtin_shufflevector:
         operator_token = tok_builtin_shufflevector;
         break;
+      case bok_builtin_convertvector:
+        operator_token = tok_builtin_convertvector;
+        break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         operator_token = tok_has_assign;  /* Representing the generic case
@@ -40752,6 +40858,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_builtin_shuffle:
       case tok_builtin_shufflevector:
         scan_builtin_shuffle(rcblock, result);
+        break;
+      case tok_builtin_convertvector:
+        scan_builtin_convertvector(rcblock, result);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED

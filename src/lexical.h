@@ -620,6 +620,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if GNU_VECTOR_TYPES_ALLOWED
    (an_opname_kind)onk_none,           /* tok_builtin_shuffle */
    (an_opname_kind)onk_none,           /* tok_builtin_shufflevector */
+   (an_opname_kind)onk_none,           /* tok_builtin_convertvector */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_noreturn */
    (an_opname_kind)onk_none,          /* tok_builtin_complex */

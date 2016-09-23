@@ -1012,6 +1012,8 @@ Install the keywords in the symbol table.
          be shared with __builtin_shuffle). */
       enter_keyword((a_token_kind)tok_builtin_shufflevector,
                     "__builtin_shufflevector");
+      enter_keyword((a_token_kind)tok_builtin_convertvector,
+                    "__builtin_convertvector");
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Note that the __edg_vector_type__ is defined even when

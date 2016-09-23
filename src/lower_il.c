@@ -14070,8 +14070,8 @@ bok_offsetof, which can include nonconstant subscripts.
 #if GNU_VECTOR_TYPES_ALLOWED
     case bok_builtin_shuffle:
     case bok_builtin_shufflevector:
-      /* For __builtin_shuffle and __builtin_shufflevector, just lower the
-         operands. */
+    case bok_builtin_convertvector:
+      /* For __builtin_shuffle, etc., just lower the operands. */
       lower_expr_list(expr->variant.builtin_operation.operands,
                       /*is_bool_controlling_expr_mask=*/0,
                       /*assume_expr_is_non_null_mask=*/0);
@@ -15906,10 +15906,12 @@ cast.  See lower_expr for typical invocation.
       /* Lower a parameter reference. */
       lower_param_ref(expr);
       break;
+    case enk_type_operand:
+      lower_os_type(expr->variant.type_operand.type);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-    case enk_type_operand:
     case enk_sizeof_pack:
     case enk_alignof:
     default:

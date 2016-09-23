@@ -1,5 +1,12 @@
 Version 4.12
 
+9/23/16  [EDGcpfe/17560]
+Clang compatibility: __builtin_convertvector
+
+In Clang modes the front end now supports the builtin vector operator
+__builtin_convertvector (GNU_VECTOR_TYPES_ALLOWED must be configured TRUE).
+
+
 9/22/16  [EDGcpfe/17417]
 Overload resolution and copy constructor templates
 
