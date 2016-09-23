@@ -8,7 +8,7 @@ no default constructor in the ctor-initializer for an abstract class type.
 For example:
 
   struct V { V(int); };
-  struct D: V {
+  struct D: virtual V {
     D() {}  // Previously an error.  Now okay.
     virtual void f() = 0;
   };
