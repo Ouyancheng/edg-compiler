@@ -29,6 +29,7 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #if USE_X86_FUNCTION_MULTIVERSIONING
 #include "exprutil.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+#include "pch.h"
 
 #ifdef __linux__
 
@@ -183,13 +184,6 @@ Enter some predefined macros for a MacOS X (Apple) system.
 
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 #if BUILTIN_FUNCTIONS_ENABLED
-
-static a_boolean
-                builtin_types_written;
-                        /* When TRUE, at least one builtin_type_table[].type
-                           entry has been written to (necessitating resetting
-                           all entries for a new translation unit). */
-
 
 static void enter_builtin_function(a_const_char            *name,
                                    a_type_ptr              rout_type,
@@ -394,7 +388,8 @@ present in the condition (indicating that a secondary declaration is allowed).
     a_builtin_function_condition *bfcp = &builtin_condition_table[cond_index];
     check_assertion(cond_index < (unsigned short)bfci_last);
     if (!bfcp->evaluated) {
-      builtin_condition_enabled(bfcp->condition_string, &bfcp->primary_enabled,
+      builtin_condition_enabled(builtin_condition_strings[cond_index],
+                                &bfcp->primary_enabled,
                                 &bfcp->secondary_enabled,
                                 &bfcp->restrictions);
       bfcp->evaluated = TRUE;
@@ -427,7 +422,8 @@ returned an error is issued (only if issue_error is TRUE).
   } else {
     /* The restriction string (if any) has already been found for non-user
        defined builtins. */
-    a_builtin_descr_ptr bdp = &builtin_table[sym_hdr->builtin_function_index];
+    const a_builtin_descr *bdp =
+                               &builtin_table[sym_hdr->builtin_function_index];
     restrictions = builtin_condition_table[bdp->cond_index].restrictions;
   }  /* if */
   if (restrictions != NULL) {
@@ -543,8 +539,8 @@ Parse the specified type if it has not been parsed yet.
 
   check_assertion(type_index < (unsigned short)bfti_last);
   if (bftp->type == NULL) {
-    bftp->type = builtin_function_type(bftp->type_string, &pos_curr_token);
-    builtin_types_written = TRUE;
+    bftp->type = builtin_function_type(builtin_type_strings[type_index],
+                                       &pos_curr_token);
   }  /* if */
   check_assertion(bftp->type != NULL && !is_error_type(bftp->type));
   return bftp->type;
@@ -587,7 +583,7 @@ routine is created (and potentially a routine type is parsed).
       builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
       builtin_kind = budp->kind;
     } else {
-      a_builtin_descr_ptr bdp =
+      const a_builtin_descr *bdp =
                                &builtin_table[sym_hdr->builtin_function_index];
       builtin_type = builtin_function_type_for_index(bdp->type_index);
       builtin_kind = bdp->kind;
@@ -711,7 +707,7 @@ create a symbol header entry for any builtin function that is enabled in the
 current emulation mode.
 */
 {
-  a_builtin_descr           *bdp;
+  const a_builtin_descr     *bdp;
   a_builtin_user_descr      *budp;
   a_builtin_function_index  i;
 
@@ -755,21 +751,6 @@ builtin_has_been_loaded has this information for the primary translation unit).
                              IDL_SUPPRESS_DECL_SEQ_CHECK);
   return sym == NULL;
 }  /* builtin_needs_to_be_loaded_in_secondary_translation_unit */
-
-
-static void invalidate_builtin_function_types(void)
-/*
-Reset the type pointers for all builtin function types.
-*/
-{
-  a_builtin_function_type *bftp;
-
-  for (bftp = builtin_type_table;
-       bftp < &builtin_type_table[bfti_last];
-       bftp++) {
-    bftp->type = NULL;
-  }  /* for */
-}  /* invalidate_builtin_function_types */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1736,19 +1717,28 @@ str_len should be used to determine the end of the argument.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-void sys_predef_init(void)
+void sys_predef_trans_unit_init(void)
 /*
 Do initialization for each source file.
 */
 {
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (builtin_types_written) {
-    /* Invalidate the cached builtin function types. */
-    invalidate_builtin_function_types();
-    builtin_types_written = FALSE;
+  /* Allocate the array to hold builtin function types that are referenced
+     in this translation unit. */
+  builtin_type_table = (a_builtin_function_type*)alloc_fe(
+                   num_builtin_type_entries * sizeof(a_builtin_function_type));
+  memzero((char *)builtin_type_table,
+          num_builtin_type_entries * sizeof(a_builtin_function_type));
+  if (builtin_condition_table == NULL) {
+    /* Only one of these is needed for the front end (but alloc_fe can't
+       be called in sys_predef_one_time_init -- it's too early). */
+    builtin_condition_table = (a_builtin_function_condition*)alloc_fe(
+         num_builtin_condition_entries * sizeof(a_builtin_function_condition));
+    memzero((char *)builtin_condition_table,
+         num_builtin_condition_entries * sizeof(a_builtin_function_condition));
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-}  /* sys_predef_init */
+}  /* sys_predef_trans_unit_init */
 
 
 void sys_predef_one_time_init(void)
@@ -1756,6 +1746,20 @@ void sys_predef_one_time_init(void)
 Do one-time initialization for data structures used in this file.
 */
 {
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+#if BUILTIN_FUNCTIONS_ENABLED
+      pch_saved_var_array_elem(builtin_condition_table),
+      pch_saved_var_array_elem(builtin_type_table),
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(builtin_type_table);
 #if CHECKING && USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
   if (sizeof(a_mv_target_bitset)*8 < (size_t)mvak_last) { /*lint !e506*/
@@ -1771,7 +1775,8 @@ Do one-time initialization for data structures used in this file.
                       "wrong number of elements in isa_alphabetic_order");
 #endif /* CHECKING && USE_X86_FUNCTION_MULTIVERSIONING */
 #if BUILTIN_FUNCTIONS_ENABLED
-  builtin_types_written = FALSE;
+  builtin_type_table = NULL;
+  builtin_condition_table = NULL;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_one_time_init */
 

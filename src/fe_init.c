@@ -1580,7 +1580,6 @@ source file's compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  sys_predef_init();
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will
@@ -1846,6 +1845,7 @@ when it is a secondary file.
     ms_metadata_trans_unit_init(trans_unit_file_name);
   }  /* if */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+  sys_predef_trans_unit_init();
 #if RECORD_MACROS_IN_IL
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
