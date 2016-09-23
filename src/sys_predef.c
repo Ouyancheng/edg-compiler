@@ -1759,7 +1759,9 @@ Do one-time initialization for data structures used in this file.
   }  /* if */
   /* Register variables that must be saved and restored when switching
      between translation units. */
+#if BUILTIN_FUNCTIONS_ENABLED
   register_trans_unit_variable(builtin_type_table);
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if CHECKING && USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
   if (sizeof(a_mv_target_bitset)*8 < (size_t)mvak_last) { /*lint !e506*/

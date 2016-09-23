@@ -1825,7 +1825,7 @@ enum a_builtin_function_type_index {
   bfti_last /* final entry */
 };
 
-EXTERN const a_builtin_type_string builtin_type_strings[]
+EXTERN a_builtin_type_string builtin_type_strings[]
 #if VAR_INITIALIZERS
 = {
   /* bfti_000db6619e */ "__edg_vector_type__(float,16) (__edg_vector_type__(float,16),__edg_vector_type__(float,16),unsigned short,const int)",
@@ -7874,7 +7874,7 @@ enum a_builtin_function_kind_tag {
 };
 
 /* Entries for automatically-generated builtin functions. */
-EXTERN const a_builtin_descr builtin_table[]
+EXTERN a_builtin_descr builtin_table[]
 #if VAR_INITIALIZERS
 = {
   { "_Block_object_assign", bfci_8f30ba5abe, bfti_3ff25f2d91, bfk__Block_object_assign },
@@ -13865,19 +13865,19 @@ EXTERN const a_builtin_descr builtin_table[]
 /*--------------------End of automatically generated code-----------------*/
 /*lint +e641 */ /* Re-enable lint messages about converting enums to int. */
 
-EXTERN const size_t
+EXTERN size_t
                 num_builtin_condition_entries
                         /* Number of entries in builtin_condition_strings. */
 #if VAR_INITIALIZERS
-     = sizeof(builtin_condition_strings)/sizeof(&builtin_condition_strings[0])
+      = sizeof(builtin_condition_strings)/sizeof(builtin_condition_strings[0])
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 
-EXTERN const size_t
+EXTERN size_t
                 num_builtin_type_entries
                         /* Number of entries in builtin_type_strings. */
 #if VAR_INITIALIZERS
-               = sizeof(builtin_type_strings)/sizeof(&builtin_type_strings[0])
+                = sizeof(builtin_type_strings)/sizeof(builtin_type_strings[0])
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 
