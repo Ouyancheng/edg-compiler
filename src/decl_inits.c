@@ -7979,8 +7979,12 @@ initialized.  These are addressed in the course of the processing.
         prev_cip = cip;
         continue;
       }  /* if */
-    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
-      /* Handling implicit initializations is not needed for templates. */
+    } else if (class_type->variant.class_struct_union.is_nonreal_class ||
+               (cip->kind == (a_constructor_init_kind)cik_virtual_base_class &&
+                class_type->variant.class_struct_union.abstract)) {
+      /* Handling implicit initializations is not needed for templates, nor
+         for virtual base classes of abstract classes (there is always a more
+         derived class that will initialize the virtual base classes). */
       if (prev_cip == NULL) {
         cib.cip_list = cip->next;
       } else {

@@ -1,5 +1,19 @@
 Version 4.12
 
+9/23/16  [EDGcpfe/17511]
+Constructor initializers for virtual bases of abstract base classes
+
+The front end no longer issues an error when omitting a virtual base with
+no default constructor in the ctor-initializer for an abstract class type.
+For example:
+
+  struct V { V(int); };
+  struct D: V {
+    D() {}  // Previously an error.  Now okay.
+    virtual void f() = 0;
+  };
+
+
 9/23/16  [EDGcpfe/17289]
 Problems with variadic partial specialization declared outside of its class
 
