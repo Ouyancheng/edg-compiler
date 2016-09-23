@@ -2593,17 +2593,19 @@ the scope being pushed.
        (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block ||
         kind == (a_scope_kind)sck_condition ||
+        kind == (a_scope_kind)sck_template_declaration ||
         kind == (a_scope_kind)sck_func_prototype)) ||
-        kind == (a_scope_kind)sck_file ||
-        kind == (a_scope_kind)sck_namespace_extension ||
-        kind == (a_scope_kind)sck_namespace_reactivation ||
-        kind == (a_scope_kind)sck_class_reactivation ||
-        kind == (a_scope_kind)sck_template_instantiation) {
+       kind == (a_scope_kind)sck_file ||
+       kind == (a_scope_kind)sck_namespace_extension ||
+       kind == (a_scope_kind)sck_namespace_reactivation ||
+       kind == (a_scope_kind)sck_class_reactivation ||
+       kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
        in the function declarator.  For block reactivations, use the scope
-       number from the original push.  The number is only reused if an IL
-       scope was allocated (otherwise scope_number_to_reuse will be
-       NO_SCOPE_NUMBER). */
+       number from the original push.  For template declaration reactivations,
+       the scope number for the template parameters is used.  The number
+       is only reused if an IL scope was allocated (otherwise
+       scope_number_to_reuse will be NO_SCOPE_NUMBER). */
     /* For class reactivations, re-establish the class scope and for template
        instantiations re-establish the template declaration scope.
        For the file scope, use the specified scope number. */
@@ -5435,11 +5437,13 @@ Use pop_scope to pop the scope.
 }  /* push_new_top_level_declaration */
 
 
-void push_template_declaration_scope(
+void push_template_declaration_scope_full(
 		a_template_decl_info_ptr	decl_info,
+		a_scope_number			scope_number,
 		a_boolean			is_template_param_rescan)
 /*
-Push a template declaration scope.  is_template_param_rescan is TRUE if this
+Push a template declaration scope.  scope_number is the scope number to
+reuse or NO_SCOPE_NUMBER.  is_template_param_rescan is TRUE if this
 scope is for the rescan of a dependent template template parameter.
 */
 {
@@ -5447,7 +5451,7 @@ scope is for the rescan of a dependent template template parameter.
 
   if (is_template_param_rescan) ps_options |= PS_IS_TEMPLATE_PARAM_RESCAN;
   (void)push_scope_full((a_scope_kind)sck_template_declaration,
-                        NO_SCOPE_NUMBER,
+                        scope_number,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
@@ -5455,6 +5459,19 @@ scope is for the rescan of a dependent template template parameter.
                         (an_object_lifetime_ptr)NULL,
                         (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                         ps_options);
+}  /* push_template_declaration_scope_full */
+
+
+void push_template_declaration_scope(
+		a_template_decl_info_ptr	decl_info,
+		a_boolean			is_template_param_rescan)
+/*
+Interface to push_template_declaration_scope_full that provides a
+default value for scope_number.
+*/
+{
+  push_template_declaration_scope_full(decl_info, NO_SCOPE_NUMBER,
+                                       is_template_param_rescan);
 }  /* push_template_declaration_scope */
 
 

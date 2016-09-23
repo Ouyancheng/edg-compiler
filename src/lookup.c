@@ -2589,10 +2589,11 @@ that do normal id lookup processing.
           } else {
             sym = assoc_pointers_block_of(&scope_stack[depth])->symbols;
           }  /* if */
-        } else if (scope_is(ssep, sck_template_instantiation)) {
-	  /* Template instantiation scopes don't have a lookup table or a
-	     scope list that can be used.  Go through the template parameter
-	     list of the instantiation scope. */
+        } else if (scope_is(ssep, sck_template_instantiation) ||
+                   scope_is(ssep, sck_template_declaration)) {
+	  /* Template instantiation and template declaration scopes don't
+             have a lookup table or a scope list that can be used.  Go
+             through the template parameter list of the scope. */
           a_template_param_ptr	tpp;
           tpp = ssep->template_decl_info->parameters;
           for (; tpp != NULL; tpp = tpp->next) {
@@ -3276,9 +3277,13 @@ that do normal id lookup processing.
     } else if (kind == (a_scope_kind)sck_class_struct_union &&
                lookup_state->skip_class_scopes) {
       /* This is a class scope and we are skipping class scopes. */
-    } else if (ssep->is_reactivation && is_local_scope_kind(kind)) {
-      /* A reactivated local scope.  The scope's symbol list is used
-         by inactive_scope_lookup for this case. */
+    } else if (ssep->is_reactivation &&
+               (is_local_scope_kind(kind) ||
+                kind == (a_scope_kind)sck_template_declaration)) {
+      /* For a reactivated local scope, the scope's symbol list is used
+         by inactive_scope_lookup for this case.  For a reactivated
+         template declaration scope, the template parameter list in
+         the template_decl_info is used. */
       sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
     } else {
       /* Not a class reactivation or a template instantiation,

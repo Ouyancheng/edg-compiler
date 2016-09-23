@@ -3473,19 +3473,33 @@ static void reactivate_template_declaration_scope(
 				a_template_decl_info_ptr	decl_info)
 /*
 Push a template declaration scope for the template declaration described
-by "decl_info".  Enter copies of the template parameter symbols into the
-symbol table.
+by "decl_info".
 */
 {
   a_template_param_ptr	tpp;
+  a_boolean			is_variadic = FALSE;
+  a_scope_number		scope_number = NO_SCOPE_NUMBER;
+  a_scope_stack_entry_ptr	ssep;
 
-  push_template_declaration_scope(decl_info,
-                                  /*is_template_param_rescan=*/FALSE);
-  for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
-    a_symbol_ptr	sym = tpp->param_symbol;
-    (void)enter_copy_of_symbol(sym, depth_scope_stack,
-                               /*suppress_error=*/TRUE);
+  tpp = decl_info->parameters;
+  /* Get the scope number to reactivate from the template parameter list.
+     In error cases, the list may be empty. */
+  if (tpp != NULL) {
+    scope_number = tpp->param_symbol->decl_scope;
+  } else {
+    expect_error();
+  }  /* if */
+  push_template_declaration_scope_full(decl_info, scope_number,
+                                      /*is_template_param_rescan=*/FALSE);
+  /* See if any of the parameters is variadic. */
+  for (; tpp != NULL; tpp = tpp->next) {
+    if (tpp->is_pack) is_variadic = TRUE;
   }  /* for */
+  ssep = &scope_stack_top();
+  if (is_variadic) {
+    ssep->in_variadic_template = TRUE;
+  }  /* if */
+  ssep->is_reactivation = TRUE;
 }  /* reactivate_template_declaration_scope */
 
 

@@ -1,5 +1,25 @@
 Version 4.12
 
+9/23/16  [EDGcpfe/17289]
+Problems with variadic partial specialization declared outside of its class
+
+A variadic member class template partial specialization that was defined
+outside of its parent class was not handled properly.  This could result
+in spurious errors or an internal error (in find_placeholder_arg_for_pack).
+Now fixed.
+
+  template <typename T> struct A {};
+  template <typename T> struct B {
+    template <template <typename...> class TT, typename... Ts> struct C;
+  };
+  template <typename T>
+  template <template <typename...> class TT, typename... Ts>
+  struct B<T>::C<TT, int, Ts...> {
+    const static int value = 1;
+  };
+  int i = B<int>::template C<A, int, char>::value;
+
+
 9/23/16  [EDGcpfe/17339]
 Spurious error on pack reference in lambda declarator
 

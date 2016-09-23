@@ -2088,6 +2088,11 @@ extern void pop_block_scope(a_boolean	is_final_pop);
 
 extern void push_block_scope(a_scope_pointers_block_ptr	pointers_block);
 
+extern void push_template_declaration_scope_full(
+		a_template_decl_info_ptr	decl_info,
+		a_scope_number			scope_number,
+		a_boolean			is_template_param_rescan);
+
 extern void push_template_declaration_scope(
 		a_template_decl_info_ptr	decl_info,
 		a_boolean			is_template_param_rescan);
