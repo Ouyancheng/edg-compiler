@@ -1,5 +1,48 @@
 Version 4.12
 
+9/22/16  [EDGcpfe/17417]
+Overload resolution and copy constructor templates
+
+The changes for EDGcpfe/16793 tweaked the overload resolution algorithm to
+avoid substituting a copy assignment template candidate if the front end can
+determine early that a nontemplate candidate will always be a better match
+than any potential candidate template.  Those changes have been extended
+slightly to handle cases involving move assignment operators.  For example:
+
+  template<class T> struct S {
+    typedef typename T::X Type;
+  };
+  struct X {
+    X& operator=(X&&);
+    template<class T> typename S<T>::Type operator=(T &&);
+  };
+  struct Y {
+    X x;
+  };
+
+Previously, the generation of a move assignment operator for Y resulted in an
+error due to the substitution of the member template.  Now this case is
+accepted.  Furthermore, similar changes have now been made to the algorithm
+that selects a copy constructor.  For example:
+
+  template<class T> struct S {
+    typedef typename T::X Type;
+  };
+  struct X {
+    X(X const&);
+    template<class T> X(T const&, typename S<T>::Type = 0);
+  };
+  struct Y {
+    X x;
+  };
+
+Previously, this example triggered an error while considering the constructors
+of X needed to generate the copy constructor of Y.  The error occurred while
+substituting the constructor template of X.  The error is now avoided because
+the nontemplate copy constructor of X is recognized as being a better match
+without substituting the member template.
+
+
 9/22/16  [EDGcpfe/17358]
 Spurious error on nested declarator in template static data member definition
 

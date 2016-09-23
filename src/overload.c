@@ -24759,11 +24759,15 @@ do access checking on the copy constructor.
                        "select_overloaded_copy_constructor: NULL constructor");
     cctor_sym = NULL;
   } else {
+    a_boolean  select_templates = FALSE, have_near_perfect_match = FALSE;
+    a_type_qualifier_set
+               near_perfect_match_added_tqs = ~TQ_NONE;
     overloaded_sym = cssp->constructor;
     /* Examine each constructor for this class to find a copy constructor.
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */
     candidate_functions = NULL;
+traversal_start:
     for (sym = set_up_overload_set_traversal(overloaded_sym,
                                              &candidate_functions,
                                              inaccessible_match,
@@ -24772,6 +24776,34 @@ do access checking on the copy constructor.
          sym = next_symbol_in_overload_set(&ostblock)) {
       a_boolean  local_uncallable;
       a_type_ptr routine_type;
+      if (select_templates != symbol_is(sym, sk_function_template)) {
+        /* sym should not be considered in this pass. */
+        goto next_function;
+      } else if (have_near_perfect_match &&
+                 symbol_is(sym, sk_function_template)) {
+        /* Rule out templates that cannot match better than a nontemplate
+           "exact match" we have already found.  We do this to avoid partially
+           instantiating these templates, thereby avoiding potential errors
+           resulting from those instantiations. */
+        a_routine_ptr     rp = sym->variant.template_info
+                                  ->variant.function.routine;
+        a_param_type_ptr  ptp = function_type_params(rp->type);
+        if (ptp != NULL &&
+            (is_lvalue_reference_type(ptp->type) ||
+             (!source_is_rvalue && is_rvalue_reference_type(ptp->type)))) {
+          /* We know that there is a non-template candidate that is a perfect
+             match, except perhaps for added qualifiers.  If the template
+             does not require strictly fewer qualifier additions, it won't be
+             a better match. */
+          a_type_ptr  param_type_under_ref = type_pointed_to(ptp->type);
+          a_type_qualifier_set
+                      param_tqs = get_type_qualifiers(param_type_under_ref);
+          if (!any_qualifier_in_set_missing(param_tqs,
+                                            near_perfect_match_added_tqs)) {
+            goto next_function;
+          }  /* if */
+        }  /* if */
+      }  /* if */
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
@@ -24819,6 +24851,17 @@ do access checking on the copy constructor.
                                                  overloaded_sym,
                                                  arg_match,
                                                  &candidate_functions);
+        if (arg_match->match_level == aml_exact &&
+            is_reference_type(arg_match->param_type)) {
+          /* Remember that we found a match among the ordinary member (i.e.,
+             nontemplate) operators with a reference parameter that is perfect,
+             except perhaps for added qualifiers.  We may use that to avoid
+             unneeded partial instantiations of member operator templates in
+             the second pass. */
+          have_near_perfect_match = TRUE;
+          near_perfect_match_added_tqs &= 
+                              arg_match->conversion.std.type_qualifiers_added;
+        }  /* if */
       }  /* if */
       goto next_function;
 reject_function:
@@ -24830,6 +24873,14 @@ reject_function:
 next_function:;
       /* Keep looping to try all the functions in the overload set. */
     }  /* for */
+    if (!select_templates &&
+        !(have_near_perfect_match &&
+          near_perfect_match_added_tqs == TQ_NONE)) {
+      /* We're done with the first pass (ordinary member operators).  Now
+         repeat the traversal for member operator templates (if any). */
+      select_templates = TRUE;
+      goto traversal_start;
+    }  /* if */
     /* Pick the best copy constructor. */
     select_best_candidate_functions(&candidate_functions, pos,
                                     &undecidable_because_of_error, ambiguous);
@@ -25085,7 +25136,9 @@ reject_function:
 next_function:;
       /* Keep looping to try all the functions in the overload set. */
     }  /* for */
-    if (!select_templates) {
+    if (!select_templates &&
+        !(have_near_perfect_match &&
+          near_perfect_match_added_tqs == TQ_NONE)) {
       /* We're done with the first pass (ordinary member operators).  Now
          repeat the traversal for member operator templates (if any). */
       select_templates = TRUE;
