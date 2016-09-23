@@ -829,6 +829,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_shufflevector_index_out_of_range)*/
 /*lint -esym(769,ec_invalid_vector_element_type)*/
 /*lint -esym(769,ec_vector_length_too_large)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_convertvector)*/
+/*lint -esym(769,ec_vector_type_required)*/
+/*lint -esym(769,ec_vector_types_differ_in_length)*/
 #endif /* !GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
