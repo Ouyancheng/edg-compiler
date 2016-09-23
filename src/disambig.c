@@ -1976,7 +1976,7 @@ indicate that the lambda is a C++14 generic lambda.
 
   /* Initialize the disambiguation state block. */
   init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
-                      /*suppress_packs=*/FALSE,
+                      /*suppress_packs=*/TRUE,
                       /*cache_tokens=*/TRUE);
   state.decl_parse_state = dps;
   state.record_auto_parameters = TRUE;

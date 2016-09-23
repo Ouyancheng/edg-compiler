@@ -1,5 +1,12 @@
 Version 4.12
 
+9/23/16  [EDGcpfe/17339]
+Spurious error on pack reference in lambda declarator
+
+A spurious error could be issued on a lambda declarator (for a generic or
+non-generic lambda) that contained a pack expansion in modes where
+generic lambdas are enabled.  Now fixed.
+
 9/23/16  [EDGcpfe/17560]
 Clang compatibility: __builtin_convertvector
 
