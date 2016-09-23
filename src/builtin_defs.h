@@ -3829,7 +3829,7 @@ enum a_builtin_function_condition_index {
   bfci_last /* final entry */
 };
 
-EXTERN const a_builtin_condition_string builtin_condition_strings[]
+EXTERN a_builtin_condition_string builtin_condition_strings[]
 #if VAR_INITIALIZERS
 = {
   /* bfci_006f3fe578 */ "gxLxmx(1600-)",
