@@ -16787,7 +16787,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       template_sym = NULL;
       sun_gpp_undefined_template = TRUE;
     } else if (!is_error_symbol &&
-               !lt_permitted_context && !is_expr_context) {
+               !lt_permitted_context && !is_expr_context &&
+               !caching_tokens) {
       /* A nontype symbol followed by a template argument list in a
          nonexpression context. */
       pos_sy_error(ec_sym_not_a_template, &start_position,
