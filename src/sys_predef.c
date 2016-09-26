@@ -1727,14 +1727,6 @@ Do initialization for each source file.
                    num_builtin_type_entries * sizeof(a_builtin_function_type));
   memzero((char *)builtin_type_table,
           num_builtin_type_entries * sizeof(a_builtin_function_type));
-  if (builtin_condition_table == NULL) {
-    /* Only one of these is needed for the front end (but alloc_fe can't
-       be called in sys_predef_one_time_init -- it's too early). */
-    builtin_condition_table = (a_builtin_function_condition*)alloc_fe(
-         num_builtin_condition_entries * sizeof(a_builtin_function_condition));
-    memzero((char *)builtin_condition_table,
-         num_builtin_condition_entries * sizeof(a_builtin_function_condition));
-  }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_trans_unit_init */
 
@@ -1776,7 +1768,10 @@ Do one-time initialization for data structures used in this file.
 #endif /* CHECKING && USE_X86_FUNCTION_MULTIVERSIONING */
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_type_table = NULL;
-  builtin_condition_table = NULL;
+  builtin_condition_table = (a_builtin_function_condition*)alloc_general(
+         num_builtin_condition_entries * sizeof(a_builtin_function_condition));
+  memzero((char *)builtin_condition_table,
+         num_builtin_condition_entries * sizeof(a_builtin_function_condition));
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_one_time_init */
 
