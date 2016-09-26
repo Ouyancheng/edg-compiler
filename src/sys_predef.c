@@ -1740,7 +1740,6 @@ Do one-time initialization for data structures used in this file.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
 #if BUILTIN_FUNCTIONS_ENABLED
-      pch_saved_var_array_elem(builtin_condition_table),
       pch_saved_var_array_elem(builtin_type_table),
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
       pch_saved_var_array_terminating_elem()
