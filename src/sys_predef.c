@@ -1736,7 +1736,7 @@ void sys_predef_one_time_init(void)
 Do one-time initialization for data structures used in this file.
 */
 {
-  /* Save variables that are needed for precompiled headers */
+  /* Save variables that are needed for precompiled headers. */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
 #if BUILTIN_FUNCTIONS_ENABLED

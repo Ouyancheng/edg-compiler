@@ -118,7 +118,7 @@ string.  Corresponds to the same index in builtin_type_strings.
 typedef struct a_builtin_function_type {
   a_type_ptr    type;
                         /* If non-NULL, contains the internal representation
-                           of the routine type specified by corresponding
+                           of the routine type specified by the corresponding
                            entry in builtin_type_strings.  In cases where the
                            function type has attributes, this can be a
                            tk_typeref (which records those attributes). */
