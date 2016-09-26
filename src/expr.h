@@ -123,9 +123,12 @@ typedef struct an_init_component {
 		next;	/* When this entity is on a list, a pointer to the
 			   next component on the list.  NULL if this is the
 			   last component or if the entry is not on a list. */
-  an_init_component_kind
-		kind;	/* The kind of initializer value (e.g., brace-enclosed
-			   list). */
+  a_bit_field
+		kind:8;	/* The kind of initializer value (e.g., brace-enclosed
+			   list).  (Originally, this field was declared as an
+			   ordinary field of type an_init_component_kind, but
+			   declaring it as a bit field produces a better layout
+			   with some compilers.)*/
   a_bit_field	bundled:1;
 			/* Set to TRUE if expressions within this component
 			   have been "bundled," meaning some things like

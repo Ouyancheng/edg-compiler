@@ -2746,16 +2746,10 @@ typedef struct a_template_symbol_supplement {
 			   for real instantiations, but do not for nonreal
 			   instantiations. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      a_wide_bit_field /* a_name_linkage_kind */
-		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-			/* The name linkage associated with this class
-			   template -- typically C++ linkage, but internal
-			   linkage if the template is declared inside an
-			   unnamed namespace. */
-      a_wide_bit_field
+      a_bit_field
 		is_alias_template:1;
 			/* TRUE if this is an alias template. */
-      a_wide_bit_field
+      a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
 			   class template or alias template has been completed.
@@ -2764,12 +2758,18 @@ typedef struct a_template_symbol_supplement {
 			   instantiation is in progress.  Used for alias
 			   templates to detect uses of the alias name within
 			   its definition. */
+      a_bit_field /* a_name_linkage_kind */
+		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* The name linkage associated with this class
+			   template -- typically C++ linkage, but internal
+			   linkage if the template is declared inside an
+			   unnamed namespace. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_wide_bit_field
+      a_bit_field
 		is_interface:1;
 			/* TRUE for Microsoft __interface class templates. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      a_wide_bit_field
+      a_bit_field
 		not_standalone_nested_class:1;
 			/* TRUE for nested classes of class templates in
 			   which the definition of the nested class cannot
@@ -2777,42 +2777,42 @@ typedef struct a_template_symbol_supplement {
 			   enclosing template because it is part of the
 			   declaration of some other entity in the enclosing
 			   class.  For example, "struct { ... } a;". */
-      a_wide_bit_field /* an_access_specifier */
+      a_bit_field /* an_access_specifier */
 		access:2;
 			/* If the template is a member of a class, this
                            specifies the access for the member. */
-      a_wide_bit_field
+      a_bit_field
 		template_template_param:1;
 			/* TRUE if this is a class template symbol associated
 			   with a template template parameter. */
-      a_wide_bit_field
+      a_bit_field
 		def_templ_templ_arg_check_delayed:1;
 			/* TRUE when template_template_param is TRUE and a
 			   default template argument was scanned, but its
 			   template parameter list was not yet checked against
 			   the parameter list of the template template
 			   parameter.  (Used to emulate g++ behavior.) */
-      a_wide_bit_field
+      a_bit_field
 		involves_template_param:1;
 			/* TRUE for template template parameters for which
 			   one or more template parameters depends on another
 			   template parameter. */
-      a_wide_bit_field
+      a_bit_field
 		any_full_instantiations:1;
 			/* TRUE if any full instantiations have been done of
 			   this class template or any of its partial
 			   specializations. */
-      a_wide_bit_field
+      a_bit_field
 		alias_uses_own_type:1;
 			/* TRUE if an alias template uses its own type in the
 			   type-id referred to by the alias.  This is used to
 			   suppress instantiations of the alias. */
-      a_wide_bit_field
+      a_bit_field
 		cannot_be_specialized:1;
 			/* TRUE if this template cannot be explicitly 
 			   specialized. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_wide_bit_field
+      a_bit_field
 		any_ms_instantiated_nonreal_classes:1;
 			/* TRUE if this template has any instantiations that
 			   are Microsoft mode instantiated nonreal classes. */

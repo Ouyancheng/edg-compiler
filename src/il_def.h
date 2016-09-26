@@ -1992,7 +1992,7 @@ typedef struct a_linkage_spec_block {
 		name_string;
 			/* A constant representing the string-literal in the
 			   construct. */
-  a_wide_bit_field /* a_name_linkage_kind */
+  a_bit_field /* a_name_linkage_kind */
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The name linkage associated with this construct. */
   a_source_position
@@ -2817,24 +2817,19 @@ typedef struct a_source_correspondence {
 			   used by back ends as it is sometimes cleared
 			   (when using multiple translation units, for
 			   example). */
-  a_wide_bit_field /* a_name_linkage_kind */
-		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-			/* Kind of linkage for the name, e.g., is it
-			   externally visible. */
-  a_wide_bit_field /* an_access_specifier */
+  a_bit_field /* an_access_specifier */
 		access:2;
 			/* The access control specified at the point of
 			   declaration.	 Restricted access may be indicated
 			   for class members only; all other entities are
 			   "public" by default.	 In C mode, always "public". */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field /* an_access_specifier */
+  a_bit_field /* an_access_specifier */
 		assembly_access:2;
 			/* Access outside of the parent assembly.  (C++/CLI
 			   only.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		referenced:1;
+  a_bit_field	referenced:1;
 			/* TRUE if the item is referenced in the
 			   intermediate language.  This is always TRUE
 			   for definitions of externally-visible entities,
@@ -2844,8 +2839,7 @@ typedef struct a_source_correspondence {
 			   from the flag in the symbol entry in that more
 			   than one symbol can point to the same IL entry. */
 #if MAINTAIN_NEEDED_FLAGS
-  a_wide_bit_field
-		needed:1;
+  a_bit_field	needed:1;
 			/* TRUE to indicate that an entity is referenced in
 			   such a way that it is "really needed" -- that is,
 			   it is referenced by something that is itself
@@ -2856,14 +2850,16 @@ typedef struct a_source_correspondence {
 			   optimization -- if it is FALSE, the entity is a
 			   candidate to be optimized away. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  a_wide_bit_field
-		has_associated_pragma:1;
+  a_bit_field /* a_name_linkage_kind */
+		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Kind of linkage for the name, e.g., is it
+			   externally visible. */
+  a_bit_field	has_associated_pragma:1;
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this entity.  The pragma entry, which
 			   will contain a pointer to this entity, is found by
 			   calling find_assoc_pragma. */
-  a_wide_bit_field
-		is_local_to_function:1;
+  a_bit_field	is_local_to_function:1;
 			/* TRUE if a function scope intervenes in the scope
 			   stack between the scope to which the entity belongs
 			   and the file scope.	In general, entities declared
@@ -2871,62 +2867,53 @@ typedef struct a_source_correspondence {
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
 			   have it set to FALSE. */
-  a_wide_bit_field
-		parent_via_local_scope_ref:1;
+  a_bit_field	parent_via_local_scope_ref:1;
 			/* TRUE if the parent scope is recorded in an entry of
 			   type a_local_scope_ref (because of memory region
 			   constraints).  This implies that parent_scope is
 			   NULL and enclosing_routine is non-NULL. */
-  a_wide_bit_field
-		is_class_member:1;
+  a_bit_field	is_class_member:1;
 			/* TRUE if the entry represents a C++ class member;
 			   also TRUE for fields in C.  (Note: it is set for
 			   anonymous union members even when their names are
 			   promoted to a non-class scope.)  */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		has_associated_attribute:1;
+  a_bit_field	has_associated_attribute:1;
 			/* TRUE if a Microsoft attribute entry that applies to
 			   this entity has been created. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
-  a_wide_bit_field
-		name_has_been_mangled:1;
+  a_bit_field	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
-  a_wide_bit_field
-		mangled_name_cannot_be_included_in_other_name:1;
+  a_bit_field	mangled_name_cannot_be_included_in_other_name:1;
 			/* TRUE if the name has been mangled in such a way that
 			   the mangled form cannot be used as part of another
 			   mangled name.  This happens for compressed and
 			   truncated names.  When this is TRUE,
 			   final_name_mangling_pending will be FALSE. */
-  a_wide_bit_field
-		final_name_mangling_pending:1;
+  a_bit_field	final_name_mangling_pending:1;
 			/* TRUE if part of the name mangling has been done,
 			   but the final name mangling, which may or may not
 			   change the name, has not been done yet.  Final name
 			   mangling might do compression or truncation.  This
 			   field will always be FALSE in configurations where
 			   final name mangling is not needed. */
-  a_wide_bit_field
-		unnamed_entity_given_fabricated_name:1;
+  a_bit_field	unnamed_entity_given_fabricated_name:1;
 			/* TRUE if a fabricated name has been assigned to this
 			   otherwise unnamed entity.  During mangling, the 
 			   fabricated name is used (if this field is TRUE), but
 			   other parts of the compiler use the unmangled name
 			   (NULL). */
 #if GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		entity_marked:1;
+  a_bit_field	entity_marked:1;
 			/* General-purpose flag used during the computation
 			   of implicit "abi_tag"s.  Nominally FALSE.  Could
 			   be used for other purposes. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
-  a_wide_bit_field
-		qualification_needed:1;
+  a_bit_field	qualification_needed:1;
 			/* A qualified name should be used when referring
 			   to this entity in the generated code.  This flag
 			   is generally set and cleared within the
@@ -2939,14 +2926,12 @@ typedef struct a_source_correspondence {
 			   processing to reflect the presence or absence of
 			   a qualifier in the corresponding source
 			   reference. */
-  a_wide_bit_field
-		partially_hidden_by_microsoft_injected_class_name:1;
+  a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
 			/* Used in Microsoft mode only, for injected class
 			   names.  They require qualification unless used
 			   to the left of "::".  Set/used only within the
 			   C++-generating back end. */
-  a_wide_bit_field
-		visible_as_unqualified_name:1;
+  a_bit_field	visible_as_unqualified_name:1;
 			/* This name is currently visible as an unqualified
 			   name, even if its class or namespace parent is
 			   not active.  This is used for injected class names
@@ -2954,8 +2939,7 @@ typedef struct a_source_correspondence {
 			   the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_wide_bit_field
-		is_decl_after_first_in_comma_list:1;
+  a_bit_field	is_decl_after_first_in_comma_list:1;
 			/* The primary declaration of this entity appeared in
 			   a comma-separated declarator list and was not the
 			   first in that list.  E.g., "j" in "int i, j;".
@@ -2963,8 +2947,7 @@ typedef struct a_source_correspondence {
 			   a_src_seq_secondary_decl. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ONE_INSTANTIATION_PER_OBJECT
-  a_wide_bit_field
-		static_used_by_instantiation:1;
+  a_bit_field	static_used_by_instantiation:1;
 			/* TRUE if this entity is a static variable or function
 			   that is referenced from an instantiation and
 			   therefore needs to be made external (unless the
@@ -2974,8 +2957,7 @@ typedef struct a_source_correspondence {
 			   at some point and was made external (e.g., by
 			   lowering). */
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-  a_wide_bit_field
-		duplicate_static_in_instantiation_slices:1;
+  a_bit_field	duplicate_static_in_instantiation_slices:1;
 			/* TRUE if this is a special internal entity that
 			   should be duplicated in instantiation slices
 			   (rather than externalized) when referenced from an
@@ -2983,30 +2965,26 @@ typedef struct a_source_correspondence {
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MAINTAIN_NEEDED_FLAGS
-  a_wide_bit_field
-		okay_to_walk_subtree_of_local_entity:1;
+  a_bit_field	okay_to_walk_subtree_of_local_entity:1;
 			/* TRUE if it is okay to walk the subtree of this
 			   entity (a local class or local variable) in "needed"
 			   flag or keep_in_il processing.  It's not okay to
 			   walk the subtree if it can still change, i.e., while
 			   the containing function is still being processed. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  a_wide_bit_field
-		copied_from_secondary_trans_unit:1;
+  a_bit_field	copied_from_secondary_trans_unit:1;
 			/* TRUE if this entity was copied from the IL of a
 			   secondary translation unit into the primary
 			   translation unit IL.  That might mean that its
 			   name conflicts with the name of another entity
 			   in the IL. */
-  a_wide_bit_field
-		same_name_as_external_entity_in_secondary_trans_unit:1;
+  a_bit_field	same_name_as_external_entity_in_secondary_trans_unit:1;
 			/* TRUE if this is an entity in the primary translation
 			   unit IL that doesn't have external linkage but that
 			   has the same name as an entity with external linkage
 			   from a secondary translation unit with external
 			   linkage. */
-  a_wide_bit_field
-		member_of_unknown_base:1;
+  a_bit_field	member_of_unknown_base:1;
 			/* When a name is looked up in a class with
 			   a dependent base class and is not found in the
 			   derived class or in a nondependent base, the name
@@ -3018,8 +2996,7 @@ typedef struct a_source_correspondence {
 			   front end assigns a member to the first dependent
 			   base) or the name could come from a base class
 			   of the dependent base. */
-  a_wide_bit_field
-		qualified_unknown_base_member:1;
+  a_bit_field	qualified_unknown_base_member:1;
 			/* If member_of_unknown_base is TRUE, this flag
 			   reflects whether the reference to the member was
 			   qualified or unqualified.  This is important to
@@ -3034,40 +3011,34 @@ typedef struct a_source_correspondence {
 			   but the distinction is unimportant in such
 			   cases.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		member_of_unknown_super:1;
+  a_bit_field	member_of_unknown_super:1;
 			/* When a reference to the Microsoft __super keyword
 			   is made in a class template with dependent base
 			   classes the entity cannot be looked up during the
 			   prototype instantiation.  This flag is TRUE for
 			   entities created to represent members of an
 			   unknown super class. */
-  a_wide_bit_field
-		microsoft_identifier_used:1;
+  a_bit_field	microsoft_identifier_used:1;
 			/* TRUE if the name was specified using a
 			   Microsoft __identifier operator. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
-  a_wide_bit_field
-		marked_as_gnu_extension:1;
+  a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the primary declaration was preceded by the
 			   GNU keyword __extension__.  (For other declarations
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_wide_bit_field
-		is_deprecated:1;
+  a_bit_field   is_deprecated:1;
 			/* TRUE if this entity was marked as deprecated
 			   (using an attribute). */
-  a_wide_bit_field
-		externalized:1;
+  a_bit_field	externalized:1;
 			/* TRUE if this is a variable or routine that was
 			   originally static and has been made external, e.g.,
 			   so that it can be referenced from multiple
 			   instantiation slices. */
 #if IA64_ABI
-  a_wide_bit_field
-		on_mangling_substitution_list:1;
+  a_bit_field	on_mangling_substitution_list:1;
 			/* TRUE if this is an entity that's currently on a
 			   list of available mangling substitutions. */
 #endif /* IA64_ABI */
@@ -4075,15 +4046,13 @@ typedef struct a_constant {
                            wide string literal constants that are rewritten to
                            refer to a variable.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
-  a_wide_bit_field
-		character_kind:NUM_BITS_FOR_CHARACTER_KIND;
+  a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
 			   (e.g., chk_wchar_t for L"..." strings).  Otherwise,
 			   the field is set to chk_default (which equals
 			   chk_char). */
-  a_wide_bit_field
-		implicit_cast:1;
+  a_bit_field	implicit_cast:1;
                         /* If this is TRUE, then the value indicated by the
                            representation has been cast to the type
                            indicated above and it's not a "natural" fit.
@@ -4094,8 +4063,7 @@ typedef struct a_constant {
                            no casting involved.  Note that, despite the
                            name, this cast is not necessarily implicit in
                            the source; it might be an explicit cast. */
-  a_wide_bit_field
-		explicit_cast_applied:1;
+  a_bit_field	explicit_cast_applied:1;
 			/* TRUE when implicit_cast is TRUE and some part of
 			   the type change is explicit in the source code.
 			   Also set for tpck_cast constructs (see the
@@ -4104,40 +4072,34 @@ typedef struct a_constant {
 			   indicated by the representation to the type
 			   indicated above.  Also TRUE for functional notation
 			   casts applied to braced lists ("T{}"). */
-  a_wide_bit_field
-		is_reinterpret_cast:1;
+  a_bit_field	is_reinterpret_cast:1;
 			/* If this is TRUE, implicit_cast will also be
 			   TRUE, and the cast was a reinterpret_cast in
 			   the source code.  Only TRUE in C++. */
-  a_wide_bit_field
-		non_arithmetic:1;
+  a_bit_field	non_arithmetic:1;
                         /* This constant should not be considered to be
                            arithmetic; it's probably a bit mask of some kind.
                            Set for hexadecimal and octal constants, and
                            for results of folding constant bit operations.
                            Used to suppress some warnings on implicit type
                            changes. */
-  a_wide_bit_field
-		is_simple_zero:1;
+  a_bit_field	is_simple_zero:1;
 			/* TRUE if the original version of this constant
 			   was simply "0".  This is significant for the
 			   case of a virtual function pure specifier in C++. */
-  a_wide_bit_field
-		null_pointer_constant_ruled_out:1;
+  a_bit_field	null_pointer_constant_ruled_out:1;
 			/* If TRUE, this constant has been subjected to casts
 			   or other operations that rule it out as a null
 			   pointer constant.  This is unrelated to whether
 			   the constant actually has the value zero. */
 #if GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		null_keyword:1;
+  a_bit_field	null_keyword:1;
 			/* If TRUE, this constant was expressed with a
 			   special GNU keyword ("__null") in the source.
 			   Although it is semantically equivalent to a plain
 			   "0", it is meant to be a null pointer constant. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		nullptr_keyword:1;
+  a_bit_field	nullptr_keyword:1;
 			/* If TRUE, this constant was expressed with the
 			   nullptr keyword (in both C++/CLI and non-C++/CLI
 			   modes; i.e., this flag reflects only the
@@ -4147,88 +4109,74 @@ typedef struct a_constant {
 			   direct uses of nullptr from other expressions
 			   with a nullptr type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		native_nullptr_keyword:1;
+  a_bit_field	native_nullptr_keyword:1;
 			/* if TRUE, this constant was expressed with the
 			   __nullptr keyword.  This is used to distinguish
 			   between nullptr and __nullptr in C++/CLI mode,
 			   where the keywords have different types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		explicit_braces_on_aggregate:1;
+  a_bit_field	explicit_braces_on_aggregate:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the values were surrounded by explicit
 			   braces { ... }.  This affects the meaning of
 			   some designated initializers. */
-  a_wide_bit_field
-		from_undefined_preproc_id:1;
+  a_bit_field	from_undefined_preproc_id:1;
 			/* This constant was generated from a reference to
 			   an undefined preprocessing identifier (i.e.,
 			   it's zero). */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		flexible_array_initializer:1;
+  a_bit_field	flexible_array_initializer:1;
 			/* For a ck_aggregate or ck_string constant in an
 			   initializer, TRUE if the initializer is for a
 			   flexible array member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		uses_designated_initializers:1;
+  a_bit_field	uses_designated_initializers:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the initializer contains designated
 			   initializers (possibly within a nested aggregate
 			   constant). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		is_literal_field:1;
+  a_bit_field	is_literal_field:1;
 			/* TRUE if this entry represents a C++/CLI literal
 			   field (i.e., a member declared with the context-
 			   sensitive keyword "literal"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		is_pack_expansion:1;
+  a_bit_field	is_pack_expansion:1;
 			/* TRUE if (in an aggregate initializer list) this
 			   constant represents a variadic template pack
 			   expansion.  When that's the case, the correspondence
 			   between initializer constants and initialized
 			   members can't be maintained. */
 #if BACK_END_IS_C_GEN_BE
-  a_wide_bit_field
-		elide_aggregate_braces:1;
+  a_bit_field	elide_aggregate_braces:1;
 			/* TRUE for a ck_aggregate constant that should not
 			   be enclosed in braces in the output of the
 			   C-generating back end. */
 #endif /* BACK_END_IS_C_GEN_BE */
-  a_wide_bit_field
-		is_named_constant_definition:1;
+  a_bit_field	is_named_constant_definition:1;
 			/* TRUE if this constant is the definition of a
 			   named constant (the enumerator in the definition
 			   of an enumeration or a non-standard class member
 			   constant). */
-  a_wide_bit_field
-		partial_aggr_value:1;
+  a_bit_field	partial_aggr_value:1;
 			/* TRUE for a ck_aggregate constant whose list of
 			   constants does not cover all the elements of the
 			   destination type. */
-  a_wide_bit_field
-		is_partially_initialized:1;
+  a_bit_field	is_partially_initialized:1;
 			/* Similar to partial_aggr_value but also TRUE if a
 			   direct or indirect subaggregate constant has
 			   partial_aggr_value set to TRUE, or if this constant
 			   involves a designator into a non-union aggregate
 			   (possibly in a subaggregate) */
-  a_wide_bit_field
-		implicit_aggr_element:1;
+  a_bit_field	implicit_aggr_element:1;
 			/* TRUE if this constant was generated implicitly for
 			   an aggregate initializer that does not explicitly
 			   specify values for all the elements of the
 			   destination type. */
-  a_wide_bit_field
-		is_compound_literal:1;
+  a_bit_field	is_compound_literal:1;
 			/* TRUE if this is an aggregate constant resulting
 			   from a compound literal construct. */
-  a_wide_bit_field
-		is_result_of_constexpr_call:1;
+  a_bit_field	is_result_of_constexpr_call:1;
 			/* TRUE if this constant is the result of calling
 			   a constexpr function or constexpr constructor.
 			   The interesting case is when the constant is
@@ -4237,32 +4185,27 @@ typedef struct a_constant {
 			   like "A()" when expanded to a constant for a
 			   trivial default constructor. */
 #if DO_IL_LOWERING
-  a_wide_bit_field
-		has_been_prelowered:1;
+  a_bit_field	has_been_prelowered:1;
 			/* Flag that is used during lowering to ensure that
 			   ck_aggregate constants are pre-lowered only once.
 			   TRUE if the ck_aggregate has been pre-lowered. */
-  a_wide_bit_field
-		vptr_has_been_lowered:1;
+  a_bit_field	vptr_has_been_lowered:1;
 			/* Flag that is used during lowering to ensure that
 			   ck_aggregate constants are only visited one time.
 			   TRUE for ck_aggregate constants that have had
 			   an initializer for the __vptr field inserted. */
-  a_wide_bit_field
-		empty_base_classes_have_been_removed:1;
+  a_bit_field	empty_base_classes_have_been_removed:1;
 			/* Flag that is used during lowering to ensure that
 			   ck_aggregate constants only have their empty
 			   base classes removed one time.  TRUE for
 			   ck_aggregate constants that have had empty base
 			   classes removed. */
 #endif /* DO_IL_LOWERING */
-  a_wide_bit_field
-		constant_for_base_class_from_constexpr_folding:1;
+  a_bit_field	constant_for_base_class_from_constexpr_folding:1;
 			/* TRUE if this constant (under a ck_aggregate) is
 			   the value for a base class subject generated by
 			   constexpr folding of a constructor call. */
-  a_wide_bit_field
-		part_of_constexpr_master_expr:1;
+  a_bit_field	part_of_constexpr_master_expr:1;
 			/* TRUE if this constant was created as part of the
 			   master copy of an expression to be used later to
 			   do constexpr evaluation.  As such, if should never
@@ -5453,17 +5396,7 @@ typedef struct a_param_type {
   a_const_char  *name;
 			/* Pointer to null-terminated name, or NULL if none
 			   was declared. */
-  a_wide_bit_field
-		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Top-level type qualifiers that have been removed
-			   from the parameter type; always TQ_NONE except in
-			   C++ mode when remove_qualifiers_from_param_types
-			   is TRUE.  If the routine type to which this
-			   param-type entry belongs is associated with a
-			   defined function, then this field reflects how
-			   the function was defined. */
-  a_wide_bit_field
-		passed_via_copy_constructor:1;
+  a_bit_field	passed_via_copy_constructor:1;
 			/* If TRUE, the parameter has a type that requires
 			   a copy constructor to be called.  For a parameter
 			   of type T, the actual argument will be the address
@@ -5471,42 +5404,35 @@ typedef struct a_param_type {
 			   value has been copied.  Also set for parameter
 			   types that allow by-value copy construction if
 			   the type has a destructor. */
-  a_wide_bit_field
-		has_default_arg:1;
+  a_bit_field	has_default_arg:1;
              		/* TRUE if a default argument has been declared for
 			   this parameter.  Because of delayed token scanning
 			   of default arguments for member functions, this
 			   flag may be set even though default_arg_expr
                            remains NULL. */
-  a_wide_bit_field
-		default_arg_appeared_in_class_definition:1;
+  a_bit_field	default_arg_appeared_in_class_definition:1;
 			/* TRUE if has_default_arg is TRUE, and the default
 			   argument appeared on the in-class declaration of a
 			   member function. */
-  a_wide_bit_field
-		has_unevaluated_template_default:1;
+  a_bit_field	has_unevaluated_template_default:1;
 			/* Default arguments of template functions and
 			   member functions of class templates are evaluated
 			   (and semantically checked) only if the default
 		           value is needed.  This flag is TRUE if the default
 			   value is present, but has not yet been evaluated. */
-  a_wide_bit_field
-		default_being_instantiated:1;
+  a_bit_field	default_being_instantiated:1;
 			/* TRUE if the default argument is in the process of
 			   being instantiated. */
-  a_wide_bit_field
-		type_involves_deduced_template_param:1;
+  a_bit_field	type_involves_deduced_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter involves a template parameter in a
 			   context in which a template argument value can
 			   be deduced. */
-  a_wide_bit_field
-		type_involves_template_param:1;
+  a_bit_field	type_involves_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter involves a template parameter in any
 			   context. */
-  a_wide_bit_field
-		is_parameter_pack:1;
+  a_bit_field	is_parameter_pack:1;
 			/* TRUE if this entry represents a C++11 function
 			   parameter pack of a variadic template.  This is
 			   set for the prototype instantiation of variadic
@@ -5523,40 +5449,41 @@ typedef struct a_param_type {
 			   is_pack_element set to TRUE.  That allows "p..." in
 			   the return type to be recognized as a valid pack
 			   expansion. */
-  a_wide_bit_field
-		is_pack_element:1;
+  a_bit_field	is_pack_element:1;
 			/* TRUE for parameters of an actual instantiation of
 			   a variadic template for those parameters that are
 			   associated with a parameter pack of the original
 			   variadic template. */
-  a_wide_bit_field
-		is_auto_param:1;
+  a_bit_field	is_auto_param:1;
 			/* TRUE if the parameter is declared with an "auto"
 			   type specifier (i.e., a parameter of a generic
 			   lambda). */
+  a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Top-level type qualifiers that have been removed
+			   from the parameter type; always TQ_NONE except in
+			   C++ mode when remove_qualifiers_from_param_types
+			   is TRUE.  If the routine type to which this
+			   param-type entry belongs is associated with a
+			   defined function, then this field reflects how
+			   the function was defined. */
 #if GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		is_transparent:1;
+  a_bit_field	is_transparent:1;
 			/* For a parameter of union type, TRUE if the
 			   union is transparent. */
-  a_wide_bit_field
-		nonnull:1;
+  a_bit_field	nonnull:1;
 			/* TRUE if this represents a parameter of pointer type
 			   that must be passed a non-NULL argument. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		duplicate_name:1;
+  a_bit_field	duplicate_name:1;
 			/* TRUE if the name of this parameter is the same as
 			   that of an earlier parameter, which is allowed in
 			   some GNU modes and for variadic parameters. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		is_cli_param_array:1;
+  a_bit_field	is_cli_param_array:1;
 			/* TRUE if this parameter is a C++/CLI "parameter
 			   array" (declared with a leading ellipsis). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		move_ctor_or_assign_parameter:1;
+  a_bit_field	move_ctor_or_assign_parameter:1;
 			/* TRUE if this is the first parameter of a move
 			   constructor or a move assignment operator. */
   bitfield_to_avoid_codecenter_warnings()
@@ -6453,33 +6380,14 @@ typedef struct a_routine_type_supplement {
 			   a special member with an "indeterminate" exception
 			   specification, this points to the associated
 			   function.  Otherwise, it is NULL. */
-  a_wide_bit_field
-		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Used for nonstatic member functions: the cv-
-			   qualification of the function type (e.g., the
-			   "const" in "void f(int) const").  Can contain
-			   qualifiers even when this_class (declared below) is
-			   NULL in the case of a function typedef. */
-  a_wide_bit_field
-		this_qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Used for nonstatic member functions: The type
-			   qualifiers that apply to the "this" pointer itself
-			   (unlike "qualifiers" which describe type qualifiers
-			   applicable to the object pointed to by "this").
-			   In the unmodified front end, only the TQ_RESTRICT
-			   qualifier is recorded here (for restrict-qualified
-			   member functions). */
-  a_wide_bit_field
-		has_ellipsis:1;
+  a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a
                            variable number of arguments. */
-  a_wide_bit_field
-		prototyped:1;
+  a_bit_field	prototyped:1;
                         /* TRUE if the function interface is a prototyped
                            interface, FALSE if it is old-style. */
-  a_wide_bit_field
-		old_style_params_scanned:1;
+  a_bit_field	old_style_params_scanned:1;
 			/* For functions with old-style parameter declarations,
 			   TRUE if the parameter list has been scanned.
 			   This allows one to tell when param_type_list is
@@ -6491,21 +6399,18 @@ typedef struct a_routine_type_supplement {
 			   is used and MAKE_ALL_FUNCTIONS_UNPROTOTYPED is
 			   TRUE, there will be functions with prototyped FALSE
 			   and old_style_params_scanned also FALSE. */
-  a_wide_bit_field
-		trailing_return_type:1;
+  a_bit_field	trailing_return_type:1;
 			/* TRUE for function declarators specifying a trailing
 			   return type (a C++11 feature).  E.g. "f()->int".
 			   The composite type based on two routine types has
 			   this flag TRUE if either of the two original types
 			   has this flag set to TRUE. */
-  a_wide_bit_field
-		lint_argsused_flag:1;
+  a_bit_field	lint_argsused_flag:1;
                         /* TRUE if this function declaration is subject
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
-  a_wide_bit_field
-		value_returned_by_cctor:1;
+  a_bit_field	value_returned_by_cctor:1;
 			/* If TRUE, the caller provides a place for the return
 			   value (by passing its address as a parameter), and
 			   the called routine must place its result in that
@@ -6513,8 +6418,7 @@ typedef struct a_routine_type_supplement {
 			   return C++ class types, for cases where the
 			   class type returned requires a copy constructor. */
 #if DO_IL_LOWERING
-  a_wide_bit_field
-		value_returned_as_parameter:1;
+  a_bit_field	value_returned_as_parameter:1;
 			/* If TRUE, the routine is modified to accept an
 			   additional parameter that is used in place of the
 			   return value.  The caller places an address of
@@ -6523,8 +6427,7 @@ typedef struct a_routine_type_supplement {
 			   Currently used only when value_returned_by_cctor
 			   is TRUE, but could be used in cases where
 			   large structs are being returned. */
-  a_wide_bit_field
-		return_value_parameter_follows_this:1;
+  a_bit_field	return_value_parameter_follows_this:1;
 			/* In cases where value_returned_as_parameter
 			   is TRUE, this flag controls whether the newly added
 			   parameter comes after the 'this' parameter (TRUE)
@@ -6534,28 +6437,24 @@ typedef struct a_routine_type_supplement {
 			   to be FALSE, and the Cfront-like ABI requiring
 			   a setting of TRUE. */
 #endif /* DO_IL_LOWERING */
-  a_wide_bit_field
-		assoc_routine_is_ctor:1;
+  a_bit_field	assoc_routine_is_ctor:1;
 			/* TRUE if associated with a constructor, even if the
 			   assoc_routine pointer has not yet been supplied. */
-  a_wide_bit_field
-		assoc_routine_is_dtor:1;
+  a_bit_field	assoc_routine_is_dtor:1;
 			/* TRUE if associated with a destructor, even if the
 			   assoc_routine pointer has not yet been supplied. */
-  a_wide_bit_field
-		assoc_routine_is_lambda_body:1;
+  a_bit_field	assoc_routine_is_lambda_body:1;
 			/* TRUE if associated with a lambda call operator,
 			   even if the assoc_routine pointer has not yet been
 			   supplied. */
-  a_wide_bit_field
-		suppress_diagnostic_on_incomplete_return_type:1;
+  a_bit_field	suppress_diagnostic_on_incomplete_return_type:1;
 			/* TRUE if, upon calling the function or taking its
 			   address, a diagnostic has been put out because the
 			   return type is incomplete; when this flag is set,
 			   diagnostics will not be issued on subsequent uses
 			   (though diagnostics on function definitions are not
 			   affected).  (Intended for front-end use only.) */
-  a_wide_bit_field /* a_name_linkage_kind */
+  a_bit_field /* a_name_linkage_kind */
 		routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The default name linkage at the point the function
 			   type was declared.  The front end makes this
@@ -6571,46 +6470,52 @@ typedef struct a_routine_type_supplement {
 			   to which FT points is nlk_external, but those for
 			   functions f and g are nlk_cplusplus_external and
 			   nlk_internal, respectively.) */
-  a_wide_bit_field
-		routine_name_linkage_is_explicit:1;
+  a_bit_field	routine_name_linkage_is_explicit:1;
 			/* TRUE when the routine_name_linkage is set based
 			   on an explicit linkage specifier in the source. */
-  a_wide_bit_field
-	 /* a_ref_qualifier_kind */
+  a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Used for nonstatic member functions: the cv-
+			   qualification of the function type (e.g., the
+			   "const" in "void f(int) const").  Can contain
+			   qualifiers even when this_class (declared below) is
+			   NULL in the case of a function typedef. */
+  a_bit_field	this_qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Used for nonstatic member functions: The type
+			   qualifiers that apply to the "this" pointer itself
+			   (unlike "qualifiers" which describe type qualifiers
+			   applicable to the object pointed to by "this").
+			   In the unmodified front end, only the TQ_RESTRICT
+			   qualifier is recorded here (for restrict-qualified
+			   member functions). */
+  a_bit_field /* a_ref_qualifier_kind */
 		ref_qualifiers:2;
 			/* Used for nonstatic member functions: The
 			   ref-qualification of the member function type.
 			   (See a_ref_qualifier_kind_tag above for details.) */
-  a_wide_bit_field
-		does_not_return:1;
+  a_bit_field	does_not_return:1;
 			/* TRUE if this is the type of function that is known
 			   not to return normally (it can still "return" via an
 			   exception).  Usually, the type was declared with the
 			   GNU attribute "noreturn" or "volatile". */
 #if GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		result_should_be_used:1;
+  a_bit_field	result_should_be_used:1;
 			/* TRUE if the type was declared with the attribute
 			   "warn_unused_result". */ 
-  a_wide_bit_field
-		is_const:1;
+  a_bit_field	is_const:1;
 			/* TRUE if the type was declared with the "const"
 			   attribute.  Note that this flag is not set on the
 			   type of a const member function (unless the "const"
 			   attribute is also specified). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		is_variadic_instance:1;
+  a_bit_field	is_variadic_instance:1;
 			/* TRUE for types of template instances generated from
 			   variadic function templates. */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-  a_wide_bit_field
-		explicit_calling_convention:1;
+  a_bit_field	explicit_calling_convention:1;
 			/* TRUE is a calling convention was specified
 			   explicitly. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-  a_wide_bit_field
-		had_been_implicitly_const:1;
+  a_bit_field	had_been_implicitly_const:1;
 			/* TRUE if the (non-static member function) type had
 			   been implicitly considered "const" in C++11 mode
 			   but is no longer in C++14.  Member functions with
@@ -7795,99 +7700,81 @@ typedef struct a_class_type_supplement {
 			   Microsoft ABI compatibility.  An inheritance kind
 			   of ihk_none means no specific inheritance kind
 			   has been set. */
-#if NEAR_AND_FAR_ALLOWED
-  a_wide_bit_field
-		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Qualifiers that apply to the class as a whole,
-			   as in "class __far A {}". */
-#endif /* NEAR_AND_FAR_ALLOWED */
-  a_wide_bit_field
-		inheritance_kind_is_explicit:1;
+  a_bit_field	inheritance_kind_is_explicit:1;
 			/* TRUE if the inheritance_kind field was set as the
 			   result of an explicit specification on the class
 			   declaration. */
-  a_wide_bit_field
-		has_direct_property_or_event:1;
+  a_bit_field	has_direct_property_or_event:1;
 			/* TRUE if this class contains a direct (i.e., not
 			   inherited) C++/CLI property or event. */
-  a_wide_bit_field
-	   declared_assembly_visibility:2;
+  a_bit_field   declared_assembly_visibility:2;
                         /* Visibility of this type at the assembly level as
 			   explicitly declared in the source (av_none if no
 			   visibility was explicitly specified).  
 			   (C++/CLI only.) */
-  a_wide_bit_field
-	   assembly_visibility:2;
+  a_bit_field   assembly_visibility:2;
                         /* Effective visibility of this type at the assembly
 			   level.  (C++/CLI only.) */
-  a_wide_bit_field
-	   cli_class_type_kind:3;
+  a_bit_field   cli_class_type_kind:3;
 			/* The class type kind of this class.  In non-C++/CLI
 			   modes, it is always cctk_standard.  In C++/CLI mode,
 			   other kinds of classes (e.g., "ref classes") are
 			   possible: See a_cli_class_type_kind. */
-  a_wide_bit_field
-		is_hide_by_sig:1;
+  a_bit_field	is_hide_by_sig:1;
 			/* TRUE if lookup in this class should follow the
 			   C++/CLI "hidebysig" rules (which is normally the
 			   case for managed class types). */
-  a_wide_bit_field
-		is_cli_array:1;
+  a_bit_field	is_cli_array:1;
 			/* TRUE if this represents a C++/CLI array type. */
-  a_wide_bit_field
-		is_cli_attribute:1;
+  a_bit_field	is_cli_attribute:1;
 			/* TRUE if this represents a C++/CLI attribute type. */
-  a_wide_bit_field
-		is_cppcx_write_only_array:1;
+  a_bit_field	is_cppcx_write_only_array:1;
 			/* TRUE if this represents a C++/CX write-only array
 			   type. */
-  a_wide_bit_field
-		is_cppcx_box:1;
+  a_bit_field	is_cppcx_box:1;
 			/* TRUE if this represents a C++/CX Platform::Box<T>
 			   type. */
-  a_wide_bit_field
-		is_partial:1;
+  a_bit_field	is_partial:1;
 			/* TRUE if this is a partial class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_wide_bit_field
-	   ELF_visibility:3;
+  a_bit_field   ELF_visibility:3;
 			/* The visibility of the class members in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Qualifiers that apply to the class as a whole,
+			   as in "class __far A {}". */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
-  a_wide_bit_field
-		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+  a_bit_field	surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this class was defined.
 			   Used by the C++-generating back end to reconstruct
 			   name linkage blocks when appropriate. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if DO_IL_LOWERING
-  a_wide_bit_field
-	  compiler_generated:1;
+  a_bit_field  compiler_generated:1;
 			/* TRUE if this class is compiler-generated.
 			   Specifically, this is TRUE for the "types
 			   as subobjects" generated during IL lowering. */
-  a_wide_bit_field
-	  has_subobject_type:1;
+  a_bit_field  has_subobject_type:1;
 			/* TRUE if this class has been pre-lowered and a
 			   subobject type has been generated for this type
 			   (for cases where the type is used as a subobject).
 			   The subobject type is given by subobject_partner. */
 #endif /* DO_IL_LOWERING */
 #if RECORD_HIDDEN_NAMES_IN_IL
-  a_wide_bit_field
-		hidden_names_processed:1;
+  a_bit_field	hidden_names_processed:1;
 			/* Used only in the front end: TRUE if the names in
 			   this class have been examined for hiding and should
 			   not be processed again.  This is needed because
 			   classes are traversed during hidden name processing
 			   both in inheritance order and while processing the
 			   namespaces in which they are defined. */
-  a_wide_bit_field
-		base_class_hiding_in_progress:1;
+  a_bit_field	base_class_hiding_in_progress:1;
 			/* Used only in the front end: TRUE if this class
 			   is currently being processed for hiding by
 			   inherited names.  This is needed to prevent
@@ -7896,62 +7783,51 @@ typedef struct a_class_type_supplement {
 			   (presumably the recursion is limited during
 			   instantiation by an explicit specialization). */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-  a_wide_bit_field
-		is_lambda_closure_class:1;
+  a_bit_field	is_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as
 			   the representation of a lambda. */
-  a_wide_bit_field
-		is_generic_lambda_closure_class:1;
+  a_bit_field	is_generic_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as
 			   the representation of a generic lambda. */
-  a_wide_bit_field
-		has_lambda_conversion_function:1;
+  a_bit_field	has_lambda_conversion_function:1;
 			/* TRUE for a closure class for which a lambda
 			   conversion function exists. */
-  a_wide_bit_field
-		is_initializer_list:1;
+  a_bit_field	is_initializer_list:1;
 			/* TRUE if the class is an instance of the C++11
 			   template std::initializer_list. */
-  a_wide_bit_field
-		has_initializer_list_ctor:1;
+  a_bit_field	has_initializer_list_ctor:1;
 			/* TRUE if the class has an initializer_list
 			   constructor. */
-  a_wide_bit_field
-		has_anonymous_union_member:1;
+  a_bit_field	has_anonymous_union_member:1;
 			/* TRUE if the class contains an anonymous union
 			   member (which makes it a union-like class in C++11
 			   parlance). */
 #if NEED_NAME_MANGLING
-  a_wide_bit_field
-		defined_in_variable_initializer:1;
+  a_bit_field	defined_in_variable_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a static data member
 			   or variable (closure classes nested in such closure
 			   classes do not necessarily have this flag set to
 			   TRUE). */
-  a_wide_bit_field
-		defined_in_field_initializer:1;
+  a_bit_field	defined_in_field_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a field (closure
 			   classes nested in such closure classes do not
 			   necessarily have this flag set to TRUE). */
 #endif /* NEED_NAME_MANGLING */
-  a_wide_bit_field
-		named_in_inline_template_directive:1;
+  a_bit_field	named_in_inline_template_directive:1;
 			/* TRUE if the class was named in a GNU
 			   "inline template" directive, which is used to
 			   cause a vtable to be emitted in a given translation
 			   unit. */
-  a_wide_bit_field
-	   is_va_list_tag:1;
+  a_bit_field   is_va_list_tag:1;
 			/* TRUE if this class is the __va_list_tag class used
 			   to implement __builtin_va_list on some 64-bit
 			   systems.  This class is given special treatment
 			   during name lookup (where it is exempt from
 			   argument-dependent name lookup) and in the
 			   C-generating back end. */
-  a_wide_bit_field
-		defined_in_parent_class:1;
+  a_bit_field	defined_in_parent_class:1;
 			/* TRUE for nested classes defined in their parent
 			   class. */
   an_anonymous_union_kind
@@ -8965,33 +8841,33 @@ typedef struct a_type {
       a_type_ptr
                 element_type;
                         /* Type of the elements of the array type. */
-      a_wide_bit_field
+      a_bit_field
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit set with bits set to indicate the presence
 			   of one or more type qualifiers in an array
 			   declarator (const, volatile, or other(s) as defined
 			   by the implementation).  This is a C99 feature.*/
-      a_wide_bit_field
+      a_bit_field
 		is_template_dependent_size_array:1;
 			/* TRUE only in C++ and if the array size is constant
 			   and depends on a template parameter.  If this flag
 			   is TRUE, the flag is_variable_size_array must be
 			   FALSE, and the variant "element_count_constant"
 			   can be accessed. */
-      a_wide_bit_field
+      a_bit_field
 		is_variable_size_array:1;
 			/* TRUE if the array size depends on the evaluation
 			   of an expression at run time (for a new with a
 			   nonconstant first bound or for a variable length
 			   array).  Except for VLAs, this field will never
   			   be TRUE in the IL passed to the back end. */
-      a_wide_bit_field
+      a_bit_field
 		is_vla:1;
 			/* TRUE if this array is a "variable length array",
 			   one whose dimension is computed at run time.  This
 			   field may be TRUE in the IL passed to the back end.
 			   Only used in modes that allow VLAs. */
-      a_wide_bit_field
+      a_bit_field
 		constant_bound_expr_in_local_expr_node_ref:1;
 			/* TRUE if the expression for a constant bound
 			   contains a reference to a local variable.
@@ -9000,7 +8876,7 @@ typedef struct a_type {
 			   as an a_local_expr_node_ref in the function
 			   scope and the associated expr field will be
 			   NULL.  This applies to bound_constant.expr. */
-      a_wide_bit_field
+      a_bit_field
 		dep_constant_bound_expr_in_local_expr_node_ref:1;
 			/* Like constant_bound_expr_in_local_expr_node_ref,
 			   but for the expressions inside the
@@ -9008,24 +8884,24 @@ typedef struct a_type {
 			   constant, i.e., the expr and templ_sizeof.expr
 			   fields of element_count_constant->variant
 			   .template_param.variant. */
-      a_wide_bit_field
+      a_bit_field
 		has_assoc_vla_dimension:1;
 			/* TRUE if the variable length array has an associated
 			   vla_dimension entry.	 FALSE for cases like [*].
 			   (Only set when is_vla is TRUE.)  */
-      a_wide_bit_field
+      a_bit_field
 		bound_is_zero:1;
 			/* TRUE if this array actually has a zero bound.  This
 			   is used to distinguish zero-length array types ([0])
 			   from array types with unspecified bounds ([]). */
-      a_wide_bit_field
+      a_bit_field
 		is_static:1;
 			/* TRUE if this array is tagged with the C99 keyword
 			   static, which indicates for a parameter that the
 			   argument passed must have at least as many members
 			   as the array size. */
 #if UPC_EXTENSIONS_ALLOWED
-      a_wide_bit_field
+      a_bit_field
 		is_threads_dimension:1;
 			/* TRUE if this dimension is a THREADS dimension of
 			   a UPC shared array. */
@@ -9414,45 +9290,45 @@ typedef struct a_type {
 			   otherwise.  For internal use in IL lowering
 			   only. */
 #endif /* DO_IL_LOWERING */
-      a_wide_bit_field
+      a_bit_field
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit set with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
-      a_wide_bit_field
+      a_bit_field
 		predeclared:1;
 			/* TRUE for predeclared typedefs. */
 #if NEAR_AND_FAR_ALLOWED
-      a_wide_bit_field
+      a_bit_field
 		explicit_memory_attribute_made_implicit:1;
 			/* TRUE if an explicit memory attribute (e.g., near)
 			   was omitted from this typeref because it is the
 			   default.  Used only when near and far are
 			   enabled (e.g., Microsoft 16-bit mode). */
 #endif /* NEAR_AND_FAR_ALLOWED */
-      a_wide_bit_field
+      a_bit_field
 		has_variably_modified_type:1;
 			/* The type referred to is a variably modified type,
 			   i.e., is or contains a VLA type. */
 #if BACK_END_IS_CP_GEN_BE
-      a_wide_bit_field
+      a_bit_field
 		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this typedef
 			   appeared. */
 #endif /* BACK_END_IS_CP_GEN_BE */
-      a_wide_bit_field
+      a_bit_field
 		is_decltype:1;
 			/* The type was created by a decltype(<expr>)
 			   operator. */
-      a_wide_bit_field
+      a_bit_field
 		is_deduced_decltype_auto:1;
 			/* The type resulted from deducing a "decltype(auto)"
 			   specifier. */
-      a_wide_bit_field
+      a_bit_field
 		is_deduced_auto:1;
 			/* The type resulted from deducing an "auto" type
 			   specifier. */
-      a_wide_bit_field
+      a_bit_field
 		decltype_expr_not_parenthesized:1;
 			/* This is a decltype entry and its argument
 			   expression is not parenthesized.  TRUE only if
@@ -9463,54 +9339,54 @@ typedef struct a_type {
 			   id-expressions and member access operators).
 			   So, for example, TRUE for "decltype(x.y)" and
 			   FALSE for "decltype((x.y))". */
-      a_wide_bit_field
+      a_bit_field
 		is_underlying_type:1;
 			/* The type was created by an __underlying_type
 			   operator (a Microsoft extension). */
 #if GNU_EXTENSIONS_ALLOWED
-      a_wide_bit_field
+      a_bit_field
 		is_typeof:1;
 			/* The type was created by a typeof operator
                            (a GNU C extension). */
-      a_wide_bit_field
+      a_bit_field
 		is_typeof_with_type_operand:1;
 			/* The type was created by a typeof operator applied to
 			   a type rather than an expression, i.e.,
 			   typeof(type-name) rather than typeof(expr). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      a_wide_bit_field
+      a_bit_field
 		is_dependent_type_operator:1;
 			/* TRUE if the type was created by decltype,
 			   __underlying_type, or typeof, and it's dependent
 			   (including cases where there are dependent
 			   subexpressions but the final result has a
 			   non-dependent type). */
-      a_wide_bit_field
+      a_bit_field
 		for_type_attributes:1;
 			/* When TRUE, the underlying type has type-transforming
 			   attributes applied to it and this entry's attributes
 			   field (in source_corresp) describes those
 			   attributes. */
-      a_wide_bit_field
+      a_bit_field
 		is_alias:1;
 			/* TRUE for typedefs declared using the alias syntax;
 			   e.g., "using T = int;".  (This reflects the primary
 			   declaration of a typedef.  For subsequent
 			   declarations, see the corresponding
 			   a_src_seq_secondary_decl entry.) */
-      a_wide_bit_field
+      a_bit_field
 		is_template_alias:1;
 			/* TRUE for types created for instantiations of
 			   alias templates, including the prototype
 			   instantiation. */
-      a_wide_bit_field
+      a_bit_field
 		is_nonreal:1;
 			/* TRUE if the result of an alias instantiation is
 			   a dependent type.  It is not TRUE if the alias
 			   instantiation has a dependent argument that is
 			   not used in the resulting type (see is_dependent
 			   below). */
-      a_wide_bit_field
+      a_bit_field
 		is_dependent:1;
 			/* TRUE if the type is an instantiation of a template
 			   alias based on template arguments that include
@@ -9518,20 +9394,20 @@ typedef struct a_type {
 			   In addition, types from alias templates that
 			   are nested within nonreal classes are marked as
 			   nonreal. */
-      a_wide_bit_field
+      a_bit_field
 		is_prototype_instantiation:1;
 			/* TRUE when this type is a nonreal type that
 		 	   is a prototype instantiation. */
-      a_wide_bit_field
+      a_bit_field
 		is_bases:1;
 			/* TRUE for a typeref entry for a g++ __bases or
 			   __direct_bases operator. */
-      a_wide_bit_field
+      a_bit_field
 		direct_bases:1;
 			/* If is_bases is TRUE, this is FALSE for __bases
 			   and TRUE for __direct_bases. */
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
-      a_wide_bit_field
+      a_bit_field
 		is_lowered_complex_type:1;
 			/* TRUE if this typeref represents a lowered complex
 			   type. */
@@ -10823,55 +10699,45 @@ typedef struct a_routine {
 			/* The lambda call operator for which this entry is
 			   an alternate entry point. */
   } variant;
-  a_wide_bit_field
-		address_taken:1;
+  a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
 			   taken somewhere. */
-  a_wide_bit_field
-		is_virtual:1;
+  a_bit_field	is_virtual:1;
 			/* TRUE for virtual member functions (i.e., member
 			   functions declared with a "virtual" specifier or
 			   member functions that are virtual because they
 			   match a virtual member function in a base class).
 			   (C++ only.) */
-  a_wide_bit_field
-		overrides_base_member:1;
+  a_bit_field	overrides_base_member:1;
 			/* TRUE for virtual member functions that are known to
 			   override at least one virtual function in a base
 			   class.  (To find the overridden functions, see
 			   overriding_virtual_functions in a_base_class.) */
-  a_wide_bit_field
-		pure_virtual:1;
+  a_bit_field	pure_virtual:1;
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
-  a_wide_bit_field
-		final:1;
+  a_bit_field	final:1;
 			/* TRUE for a virtual member function that cannot be
 			   overridden in a derived class.  (Declared using the
 			   context-sensitive keyword "final" or "sealed", or
 			   using the attribute "final".) */
-  a_wide_bit_field
-		override:1;
+  a_bit_field	override:1;
 			/* TRUE for a virtual member function that was
 			   declared with the function-modifier "override". */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		abstract:1;
+  a_bit_field	abstract:1;
 			/* TRUE for a virtual member function that was
 			   declared with the function-modifier "abstract" (in
 			   that case pure_virtual is TRUE too). */
-  a_wide_bit_field
-		sealed:1;
+  a_bit_field	sealed:1;
 			/* TRUE for a virtual member function that was
 			   declared with the function-modifier "sealed" (in
 			   that case final is TRUE too). */
-  a_wide_bit_field
-		new_member:1;
+  a_bit_field	new_member:1;
 			/* TRUE for a member function that was declared with
 			   the function-modifier "new". */
-  a_wide_bit_field
-		interface_slot:1;
+  a_bit_field	interface_slot:1;
 			/* TRUE for member functions generated to represent a
 			   compiler-generated "slot" in a Microsoft interface
 			   class.  For example:
@@ -10883,8 +10749,7 @@ typedef struct a_routine {
 			        void C2::f();  // Creates a "slot" in C2.
 			      };
 			   */
-  a_wide_bit_field
-		definition_cannot_be_generated:1;
+  a_bit_field	definition_cannot_be_generated:1;
 			/* TRUE for compiler-generated special members whose
 			   definition cannot be generated because the
 			   corresponding special member in a subobject is
@@ -10893,13 +10758,11 @@ typedef struct a_routine {
 			   whether the definition of such members should be
 			   forced for dllexported classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		covariant_return_virtual_override:1;
+  a_bit_field	covariant_return_virtual_override:1;
 			/* TRUE if is_virtual is TRUE and this routine is an
 			   overriding virtual function with a covariant
 			   return type (C++ only). */
-  a_wide_bit_field
-		is_inline:1;
+  a_bit_field	is_inline:1;
 			/* TRUE for functions that were specified in the
 			   source as candidates for inlining (either by the
 			   "inline" keyword or definition within a C++ class
@@ -10915,12 +10778,10 @@ typedef struct a_routine {
 			   determine if a routine would be inline if
 			   instantiated, the is_inline_template_function and
 			   rout_is_inline_template_function can be used. */
-  a_wide_bit_field
-		is_declared_constexpr:1;
+  a_bit_field	is_declared_constexpr:1;
 			/* TRUE for functions that were declared with the
 			   C++11 "constexpr" specifier. */
-  a_wide_bit_field
-		is_constexpr:1;
+  a_bit_field	is_constexpr:1;
 			/* TRUE for "constexpr" functions.  For non-template
 			   user-declared functions this usually equals the
 			   is_declared_constexpr flag, but for template
@@ -10929,8 +10790,7 @@ typedef struct a_routine {
 			   It can also be TRUE for generated default
 			   constructors (for which is_declared_constexpr is
 			   FALSE). */
-  a_wide_bit_field
-		compiler_generated:1;
+  a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,
 			   e.g., default constructors in C++.  If a valid
@@ -10938,8 +10798,7 @@ typedef struct a_routine {
 			   example be true of "operator delete" -- the flag
 			   will be cleared; hence the bit is not necessarily
 			   TRUE for "intrinsic" routines. */
-  a_wide_bit_field
-		defined:1;
+  a_bit_field	defined:1;
 			/* TRUE once the definition of the function has been
 			   completed.  (While the function body is being
 			   scanned, "defined" remains FALSE.)  Note that
@@ -10947,62 +10806,51 @@ typedef struct a_routine {
 			   constructors), the body is removed immediately after
 			   it has been processed, so defined is TRUE when
 			   assoc_scope == NULL_region_number. */
-  a_wide_bit_field
-		called:1;
+  a_bit_field	called:1;
 			/* TRUE if this routine is directly called.
 			   For virtual functions in C++, this indicates that
 			   the routine was named in a call, although maybe
 			   an overriding routine might be called instead. */
-  a_wide_bit_field
-		is_explicit_constructor:1;
+  a_bit_field	is_explicit_constructor:1;
 			/* TRUE if this routine is a constructor (i.e., its
 			   special_kind is sfk_constructor) and the "explicit"
 			   keyword appeared in its declaration.  C++ only. */
-  a_wide_bit_field
-		is_explicit_conversion_function:1;
+  a_bit_field	is_explicit_conversion_function:1;
 			/* TRUE if this routine is a conversion function in
 			   C++/CLI mode and the "explicit" keyword appeared in
 			   its declaration. */
-  a_wide_bit_field
-		is_trivial_default_constructor:1;
+  a_bit_field	is_trivial_default_constructor:1;
 			/* TRUE if this routine is a trivial default
 			   constructor (implicitly generated or defaulted).
 			   Such a constructor has no effect, and hence calls
 			   to it can be elided.  C++ only. */
-  a_wide_bit_field
-		is_trivial_copy_function:1;
+  a_bit_field	is_trivial_copy_function:1;
 			/* TRUE if this routine is a trivial copy or move
 			   constructor or a trivial copy or move assignment
 			   operator.  The operation performed by such a
 			   routine is a bitwise copy.  C++ only. */
-  a_wide_bit_field
-		is_trivial_destructor:1;
+  a_bit_field	is_trivial_destructor:1;
 			/* TRUE if this routine is a trivial destructor
 			   (implicitly generated or defaulted).  Such a 
 			   constructor has no effect, and hence calls to it
 			   can be elided.  C++ only. */
-  a_wide_bit_field
-		is_initializer_list_ctor:1;
+  a_bit_field	is_initializer_list_ctor:1;
 			/* TRUE if this routine is an initializer list
 			   constructor. */
-  a_wide_bit_field
-		is_delegating_ctor:1;
+  a_bit_field	is_delegating_ctor:1;
 			/* TRUE if this routine is a delegating constructor
 			   (which can only be known if the constructor
 			   definition has been seen). */
-  a_wide_bit_field
-		is_inheriting_ctor:1;
+  a_bit_field	is_inheriting_ctor:1;
 			/* TRUE if this routine is an inheriting
 			   constructor. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  a_wide_bit_field
-		assignment_to_this_done:1;
+  a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
 			   was done in this function.  C++ member functions
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  a_wide_bit_field
-		is_template_function:1;
+  a_bit_field	is_template_function:1;
 			/* TRUE for instances and specializations of function
 			   templates, instances and specializations of member
 			   function templates, and instances and
@@ -11012,8 +10860,7 @@ typedef struct a_routine {
 			   including a function that is a member (but not a
 			   member template) of a class that is a specialization
 			   of a template class. */
-  a_wide_bit_field
-		is_specialized:1;
+  a_bit_field	is_specialized:1;
 			/* TRUE when is_template_function is TRUE but the
 			   function definition is supplied independently of
 			   the template with which it is associated.  This
@@ -11022,13 +10869,11 @@ typedef struct a_routine {
 			   one using the template<> syntax), or if the
 			   function was specified in a do-not-instantiate
 			   pragma. */
-  a_wide_bit_field
-		specialized_with_old_syntax:1;
+  a_bit_field	specialized_with_old_syntax:1;
 			/* TRUE if is_specialized is TRUE but the function
 			   was not explicitly declared with the template<>
 			   syntax. */
-  a_wide_bit_field
-		is_prototype_instantiation:1;
+  a_bit_field	is_prototype_instantiation:1;
 			/* TRUE if this routine represents the prototype
 			   instantiation of a function template or a member
 			   function of a class template.  It is also TRUE
@@ -11037,45 +10882,37 @@ typedef struct a_routine {
 			   is defined in a dependent context, and block extern
 			   functions that are declared with dependent
 			   types. */
-  a_wide_bit_field
-		never_throws:1;
+  a_bit_field	never_throws:1;
 			/* TRUE for routines declared with the attribute
 			   "nothrow" or the C++11-style "noexcept" construct;
 			   this is an assertion by the programmer that the
 			   routine will not throw an exception (the front end
 			   does not check that assertion). */
-  a_wide_bit_field
-	
-		is_in_class_specialization:1;
+  a_bit_field	is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance
 			   and the specialization was declared within the
 			   enclosing class using the Microsoft/Sun in-class
 			   specialization syntax. */
-  a_wide_bit_field
-		explicit_instantiation:1;
+  a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using an explicit instantiation directive
 			   or an instantiation pragma. */
-  a_wide_bit_field
-		class_explicitly_instantiated:1;
+  a_bit_field	class_explicitly_instantiated:1;
 			/* TRUE if the instantiation request specified the
 			   class (meaning that all its members should be
 			   instantiated). */
-  a_wide_bit_field
-		explicit_do_not_instantiate:1;
+  a_bit_field	explicit_do_not_instantiate:1;
 			/* TRUE if instantiation has been explicitly 
 			   suppressed by an "extern template" directive or
 			   a do_not_instantiate pragma. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		never_inline:1;
+  a_bit_field	never_inline:1;
 			/* TRUE for routines declared with the "noinline"
 			   attribute; this indicates that a code generator
 			   should never attempt to inline calls to this
 			   routine. */
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		is_naked:1;
+  a_bit_field	is_naked:1;
 			/* TRUE if this routine was declared with the "naked"
 			   attribute (indicating that a code generator should
 			   not generate a prologue or epilogue for this
@@ -11083,20 +10920,17 @@ typedef struct a_routine {
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		declared_only_as_friend:1;
+  a_bit_field	declared_only_as_friend:1;
 			/* TRUE if this routine has only been declared as a
 			   friend.  In that case, Microsoft compilers will
 			   not treat this as a specialization of any
 			   template. */
-  a_wide_bit_field
-		explicit_extern_inline:1;
+  a_bit_field	explicit_extern_inline:1;
 			/* TRUE if the routine was explicitly declared with
 			   both the "extern" and "inline" specifiers.  In
 			   Microsoft C++ mode, this forces the definition to
 			   be spilled. */
-  a_wide_bit_field
-		direct_linkage_specifier_on_nondef_decl:1;
+  a_bit_field	direct_linkage_specifier_on_nondef_decl:1;
 			/* TRUE if any non-definition declaration of the
 			   routine has a direct (i.e., non-brace form)
 			   linkage specification.  In Microsoft C++ mode,
@@ -11105,58 +10939,45 @@ typedef struct a_routine {
 			   effect of the preceding flag.  (The presence,
 			   absence, and form of a linkage specification on
 			   the definition has no effect.) */
-  a_wide_bit_field
-		is_reverse_conversion_function:1;
+  a_bit_field	is_reverse_conversion_function:1;
 			/* TRUE for a C++/CLI static conversion operator that
 			   converts from the argument to the enclosing class
 			   type. */
-  a_wide_bit_field
-	
-		is_generic_definition:1;
+  a_bit_field 	is_generic_definition:1;
 			/* TRUE if this is the routine that resulted from
 			   the initial scanning of a C++/CLI generic function.
 			   This is similar to a prototype instantiation of
 			   a template except that generics do not make use
 			   of dependent types. */
-  a_wide_bit_field
-	
-		is_generic_instance:1;
+  a_bit_field	is_generic_instance:1;
 			/* TRUE if this is an instantiation of a C++/CLI
 			   generic function. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_wide_bit_field
-		ELF_visibility:3;
+  a_bit_field	ELF_visibility:3;
 			/* The visibility of the routine in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-  a_wide_bit_field
-		is_initialization_routine:1;
+  a_bit_field	is_initialization_routine:1;
 			/* TRUE if this routine was declared with the
 			   constructor attribute. */
-  a_wide_bit_field
-		is_finalization_routine:1;
+  a_bit_field	is_finalization_routine:1;
 			/* TRUE if this routine was declared with the
 			   destructor attribute. */
-  a_wide_bit_field
-		is_pure:1;
+  a_bit_field	is_pure:1;
 			/* TRUE if this routine was declared with the
 			   pure attribute. */
-  a_wide_bit_field
-		is_weak:1;
+  a_bit_field	is_weak:1;
 			/* TRUE if this routine was declared with the
 			   weak or weakref attribute. */
-  a_wide_bit_field
-		is_weakref:1;
+  a_bit_field	is_weakref:1;
 			/* TRUE if this routine was declared with the
 			   weakref attribute. */
-  a_wide_bit_field
-		is_gnu_alias:1;
+  a_bit_field	is_gnu_alias:1;
 			/* TRUE if this routine was declared with the
 			   alias attribute. */
-  a_wide_bit_field
-		is_ifunc:1;
+  a_bit_field	is_ifunc:1;
 			/* TRUE if this routine was declared with the
 			   ifunc attribute.  When TRUE,
 			   gnu_extra_info->aliased_routine points to the
@@ -11165,54 +10986,43 @@ typedef struct a_routine {
 			/* is_ifunc (and gnu_extra_info->aliased_routine) stay
 			   set even when the routine has been lowered. */
 #endif /* LOWER_IFUNC */
-  a_wide_bit_field
-	   has_gnu_unused_attribute:1;
+  a_bit_field	has_gnu_unused_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "unused" attribute. */
-  a_wide_bit_field
-	   has_gnu_used_attribute:1;
+  a_bit_field	has_gnu_used_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "used" attribute. */
-  a_wide_bit_field
-	   has_gnu_abi_tag_attribute:1;
+  a_bit_field	has_gnu_abi_tag_attribute:1;
 			/* TRUE if this routine was declared with an explicit
 			   GNU "abi_tag" attribute, or has implicit "abi_tag"
 			   attributes. */
-  a_wide_bit_field
-		in_gnu_abi_tag_namespace:1;
+  a_bit_field	in_gnu_abi_tag_namespace:1;
 			/* TRUE if this routine has a parent inline namespace
 			   with a GNU "abi_tag" attribute. */
-  a_wide_bit_field
-		implicit_abi_tags_added:1;
+  a_bit_field	implicit_abi_tags_added:1;
 			/* TRUE if the processing to determine implicit
 			   "abi_tag" attributes has been performed for this
 			   routine. */
-  a_wide_bit_field
-		allocates_memory:1;
+  a_bit_field	allocates_memory:1;
 			/* TRUE if this routine was declared with the
 			   malloc attribute.  Such a routine should
 			   return a pointer to newly allocated
 			   storage. */
-  a_wide_bit_field
-		no_instrument_function:1;
+  a_bit_field	no_instrument_function:1;
 			/* TRUE if a code generator should not instrument the
 			   routine for execution profiling. */
-  a_wide_bit_field
-		no_check_memory_usage:1;
+  a_bit_field	no_check_memory_usage:1;
 			/* TRUE if a code generator should not instrument the
 			   routine for checking memory access. */
-  a_wide_bit_field
-		always_inline:1;
+  a_bit_field	always_inline:1;
 			/* TRUE for routines declared with the GNU attribute
 			   "always_inline"; this indicates that a code
 			   generator should attempt to inline calls to this
 			   routine even at the lowest optimization levels. */
-  a_wide_bit_field
-		gnu_c89_inline:1;
+  a_bit_field	gnu_c89_inline:1;
 			/* TRUE if this is an "inline" routine declared with
 			   the GNU attribute "gnu_inline". */
-  a_wide_bit_field
-		implicit_alias:1;
+  a_bit_field	implicit_alias:1;
 			/* TRUE if this routine is implicitly an alias for
 			   another routine (indicated by
 			   gnu_extra_info->aliased_routine).
@@ -11220,8 +11030,7 @@ typedef struct a_routine {
 			   treated as an alias for "__builtin_strlen".) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  a_wide_bit_field
-		can_be_instantiated:1;
+  a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template function
 			   that could be instantiated by this compilation.
 			   FALSE if is_template_function is FALSE.
@@ -11231,8 +11040,7 @@ typedef struct a_routine {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
-  a_wide_bit_field
-		do_not_instantiate:1;
+  a_bit_field	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template function.
 			   FALSE if is_template_function is FALSE.
@@ -11242,8 +11050,7 @@ typedef struct a_routine {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
-  a_wide_bit_field
-		instance_required:1;
+  a_bit_field	instance_required:1;
 			/* TRUE for a template function or member function of
 			   a template class for which a definition (either
 			   template generated or a specific definition)
@@ -11259,31 +11066,26 @@ typedef struct a_routine {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  a_wide_bit_field
-		contains_try_block:1;
+  a_bit_field	contains_try_block:1;
 			/* TRUE if the routine has a definition that contains
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
-  a_wide_bit_field
-		contains_local_class_type:1;
+  a_bit_field	contains_local_class_type:1;
 			/* TRUE if the routine has a definition that contains
 			   a local class, struct, or union declaration. */
-  a_wide_bit_field
-		superseded_external:1;
+  a_bit_field	superseded_external:1;
 			/* TRUE (in some C modes only) if the current routine
 			   was created to represent a block extern declaration
 			   or implicit declaration whose type is incompatible
 			   with that of file-scope routine with the same name.
 			   The latter is treated as the "official" routine. */
-  a_wide_bit_field
-		defined_in_friend_decl:1;
+  a_bit_field	defined_in_friend_decl:1;
 			/* TRUE when the routine definition appears in a
 			   friend declaration.  When this flag is set, a
 			   source sequence entry pointing to this routine
 			   will correspond to a friend declaration. */
-  a_wide_bit_field
-		defined_outside_of_parent:1;
+  a_bit_field	defined_outside_of_parent:1;
 			/* TRUE for a routine that is defined in a scope other
 			   than the scope to which it really belongs -- i.e.,
 			   a class member function defined outside the class
@@ -11291,8 +11093,7 @@ typedef struct a_routine {
 			   the namespace definition.  It does not apply to a
 			   friend declaration that supplies a definition. */
 #if DO_IL_LOWERING && MINIMAL_INLINING
-  a_wide_bit_field
-		inlinable:1;
+  a_bit_field	inlinable:1;
 			/* TRUE if this routine can be inlined.  Starts out as
 			   TRUE if is_inline is TRUE, then turned off if an
 			   attempt to inline the routine discovers something
@@ -11302,47 +11103,40 @@ typedef struct a_routine {
 			   inlined. */
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
 #if MAINTAIN_NEEDED_FLAGS
-  a_wide_bit_field
-		definition_needed:1;
+  a_bit_field	definition_needed:1;
 			/* TRUE if this routine is "needed" (see the flag by
 			   that name in the source_corresp field), but not
 			   merely as a declaration -- a definition of the
 			   routine is needed in the current translation
 			   unit. */
-  a_wide_bit_field
-		keep_definition_in_il:1;
+  a_bit_field	keep_definition_in_il:1;
 			/* TRUE if this routine's definition should be kept in
 			   the IL tree (i.e., should not be discarded before
 			   the IL is passed to the back end).  It is for
 			   front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  a_wide_bit_field
-		expl_template_arg_list_used:1;
+  a_bit_field	expl_template_arg_list_used:1;
 			/* TRUE if an explicit template argument list was ever
 			   used in naming this (template) function. */
 #if BACK_END_IS_CP_GEN_BE
-  a_wide_bit_field
-		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+  a_bit_field	surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this routine was
 			   defined.  Used by the C++-generating back end to
 			   reconstruct name linkage blocks when appropriate
 			   (e.g., extern "C" { static int f() { ... } }). */
-  a_wide_bit_field
-		definition_C_name_linkage_specified:1;
+  a_bit_field	definition_C_name_linkage_specified:1;
 			/* TRUE if C name linkage for the definition was
 			   specified explicitly (i.e., in a direct linkage
 			   specifier or via a containing linkage block), as
 			   opposed to being inherited from a preceding
 			   declaration. */
-  a_wide_bit_field
-		definition_has_direct_linkage_specifier:1;
+  a_bit_field	definition_has_direct_linkage_specifier:1;
 			/* TRUE if the definition itself has a linkage
 			   specifier (extern "C" void f() { }) rather than
 			   simply inheriting it from a preceding declaration
 			   or from the surrounding linkage block. */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  a_wide_bit_field
-		has_been_defined:1;
+  a_bit_field	has_been_defined:1;
 			/* TRUE if the definition for this function has been
 			   emitted.  This is used to work around a Microsoft
 			   bug that does not allow an explicit specialization
@@ -11350,8 +11144,7 @@ typedef struct a_routine {
 			   but not defined. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
-  a_wide_bit_field
-		definition_for_inlining_only:1;
+  a_bit_field	definition_for_inlining_only:1;
 			/* TRUE for an inline function that has been defined
 			   in a way that indicates that the definition is only 
 			   to be used for inlining purposes; i.e., a back end
@@ -11367,8 +11160,7 @@ typedef struct a_routine {
 			   attribute.  See also the suppress_inline_body flag
 			   below. */
 #if INSTANTIATE_EXTERN_INLINE
-  a_wide_bit_field
-		inline_instance_required:1;
+  a_bit_field	inline_instance_required:1;
 			/* TRUE for an inline function if the function was
 			   referenced in a way that requires a definition of
 			   the body of the inline function somewhere in the
@@ -11376,8 +11168,7 @@ typedef struct a_routine {
 			   routines because a routine can be declared inline
 			   after it has been called. */
 #endif /* INSTANTIATE_EXTERN_INLINE */
-  a_wide_bit_field
-		suppress_inline_body:1;
+  a_bit_field	suppress_inline_body:1;
 			/* This flag is TRUE when definition_for_inlining_only
 			   (see above) is TRUE, but also when the front end
 			   has determined for reasons not directly apparent in
@@ -11387,72 +11178,59 @@ typedef struct a_routine {
 			   when inline functions are instantiated using a
 			   mechanism similar to the template instantiation
 			   mechanism). */
-  a_wide_bit_field
-		on_inline_function_list:1;
+  a_bit_field	on_inline_function_list:1;
 			/* TRUE if this routine has been added to the inline
 			   function list. */
-  a_wide_bit_field
-		need_out_of_line_copy:1;
+  a_bit_field	need_out_of_line_copy:1;
 			/* TRUE if an out-of-line copy of this inline routine
 			   is needed, e.g., because its address was taken, or
 			   it was named in an explicit instantiation
 			   directive. */
-  a_wide_bit_field
-		fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fp_contract mode
 			   at the point that this routine was defined. */
-  a_wide_bit_field
-		fenv_access:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fenv_access:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fenv_access mode
 			   at the point that this routine was defined. */
-  a_wide_bit_field
-		cx_limited_range:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	cx_limited_range:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the cx_limited_range
 			   mode at the point that this routine was defined. */
 #if FIXED_POINT_ALLOWED
-  a_wide_bit_field
-		fx_full_precision:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fx_full_precision:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_full_precision state at the
 			   the point that this routine was defined. */
-  a_wide_bit_field
-		fx_fract_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fx_fract_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_fract_overflow state at the
 			   the point that this routine was defined. */
-  a_wide_bit_field
-		fx_accum_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fx_accum_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_accum_overflow state at the
 			   the point that this routine was defined. */
 #endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		upc_access_method:2;
+  a_bit_field	upc_access_method:2;
 			/* In UPC mode, the UPC access method set at the
 			   point this routine was defined. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		contains_statement_expression:1;
+  a_bit_field	contains_statement_expression:1;
 			/* TRUE if this routine's body contains one or more
 			   statement expressions, i.e., ({...}), a GNU
 			   extension. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
-  a_wide_bit_field
-		inline_in_class_definition:1;
+  a_bit_field	inline_in_class_definition:1;
 			/* TRUE if this routine is a member of a class and was
 			   declared inline (explicitly or implicitly) in
 			   the class definition. */
 #endif /* IA64_ABI */
 #if DO_IL_LOWERING && IA64_ABI
-  a_wide_bit_field
-		use_comdat:1;
+  a_bit_field	use_comdat:1;
 			/* TRUE if this routine should be placed in a COMDAT
 			   group.  The group used should be the same as the
 			   mangled name of the routine.	 TRUE only for
 			   routines with definitions, never for (e.g.)
 			   external references. */
-  a_wide_bit_field
-	 /* a_ctor_or_dtor_kind */
+  a_bit_field /* a_ctor_or_dtor_kind */
 		ctor_dtor_kind:3;
 			/* The kind of constructor or destructor.  cdk_none
 			   for other kinds of routines.  All constructors and
@@ -11462,8 +11240,7 @@ typedef struct a_routine {
 			   to an appropriate kind during lowering, and entry
 			   points added by lowering are created with the right
 			   kind. */
-  a_wide_bit_field
-		is_alias_entry:1;
+  a_bit_field	is_alias_entry:1;
 			/* TRUE if this routine is an entry point that is an
 			   alias for the primary routine pointed to by
 			   primary_ctor_or_dtor.  In other words, the
@@ -11472,13 +11249,11 @@ typedef struct a_routine {
 			   parameters. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if DO_IL_LOWERING
-  a_wide_bit_field
-		lowering_delayed_on_nested_function:1;
+  a_bit_field	lowering_delayed_on_nested_function:1;
 			/* TRUE if the lowering for this routine is to be
 			   delayed because lowering of a nested function was
 			   delayed. */
-  a_wide_bit_field
-	   has_no_effect:1;
+  a_bit_field   has_no_effect:1;
                         /* TRUE if this routine (a constructor or destructor)
                            is known to have no effect and therefore calls to it
                            can be eliminated during lowering.  Set to FALSE
@@ -11487,40 +11262,33 @@ typedef struct a_routine {
                            have no effect. */
 #endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-  a_wide_bit_field
-		statics_have_been_promoted:1;
+  a_bit_field	statics_have_been_promoted:1;
 			/* TRUE if, in C++, statics have already been promoted
 			   from the scope associated with this routine. */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-  a_wide_bit_field
-		is_lambda_body:1;
+  a_bit_field	is_lambda_body:1;
 			/* TRUE if this is the operator() member function
 			   generated for the body of a lambda. */
-  a_wide_bit_field
-		declared_using_type_without_linkage:1;
+  a_bit_field	declared_using_type_without_linkage:1;
 			/* In C++, TRUE for routines with linkage (but not
 			   extern "C" linkage) that were declared using
 			   types without linkage. */
-  a_wide_bit_field
-		is_defaulted:1;
+  a_bit_field	is_defaulted:1;
 			/* In C++, TRUE if this is a special member function
 			   declared with the "= default" syntax.  If
 			   defined_outside_of_parent is FALSE, the "= default"
 			   appeared on the in-class declaration; otherwise, it
 			   appeared on the out-of-class definition. */
-  a_wide_bit_field
-		is_deleted:1;
+  a_bit_field	is_deleted:1;
 			/* In C++, TRUE if this is a function declared with
 			   the "= delete" syntax.  Also TRUE for compiler-
 			   generated functions that should behave as if they
 			   had been declared with that syntax. */
-  a_wide_bit_field
-		contains_local_static_variable:1;
+  a_bit_field	contains_local_static_variable:1;
 			/* TRUE if the function body contains at least one
 			   local static variable. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_wide_bit_field
-		embedded_source_sequence_entries:1;
+  a_bit_field	embedded_source_sequence_entries:1;
 			/* TRUE if the definition of this routine embeds in its
 			   declarator another construct with associated source
 			   sequence entries.  For example:
@@ -11533,8 +11301,7 @@ typedef struct a_routine {
 			   declarations of functions that are not
 			   definitions. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_wide_bit_field
-		considered_decider_function_at_some_point:1;
+  a_bit_field	considered_decider_function_at_some_point:1;
 			/* TRUE if at some point in the compilation this
 			   function was considered the decider ("key")
 			   function of a class for the virtual function table
@@ -11542,20 +11309,17 @@ typedef struct a_routine {
 			   use only, to catch cases where a function was the
 			   decider and then becomes not the decider because of
 			   an out-of-class inline definition. */
-  a_wide_bit_field
-		is_raw_literal_operator:1;
+  a_bit_field	is_raw_literal_operator:1;
 			/* TRUE if this routine is a raw literal operator,
 			   i.e., a literal operator with one parameter of
 			   type const char*, and FALSE otherwise. */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-  a_wide_bit_field
-		is_tls_init_alias:1;
+  a_bit_field	is_tls_init_alias:1;
                         /* TRUE if this routine is an alias for the
                            thread_local initialization routine for the
                            translation unit. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
-  a_wide_bit_field
-		is_tls_init_routine:1;
+  a_bit_field	is_tls_init_routine:1;
                         /* TRUE if this routine is used to initialize
                            thread_local variables.  Typically there is
                            at most one such routine per translation
@@ -11563,16 +11327,14 @@ typedef struct a_routine {
                            ONE_INSTANTIATION_PER_OBJECT is TRUE (in which case
                            there may be one per slice). */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  a_wide_bit_field
-	   has_ctor_priority:1;
+  a_bit_field   has_ctor_priority:1;
                         /* TRUE if the GNU "constructor" attribute has been
                            used to assign a numeric priority to the routine.
                            The gnu_extra_info->ctor_priority field contains the
                            priority.  FALSE if the attribute was not specified,
                            or if the attribute was specified without an
                            argument. */
-  a_wide_bit_field
-	   has_dtor_priority:1;
+  a_bit_field   has_dtor_priority:1;
                         /* TRUE if the GNU "destructor" attribute has been
                            used to assign a numeric priority to the routine.
                            The gnu_extra_info->dtor_priority field contains the
@@ -11580,37 +11342,31 @@ typedef struct a_routine {
                            or if the attribute was specified without an
                            argument. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  a_wide_bit_field
-		has_deducible_return_type:1;
+  a_bit_field	has_deducible_return_type:1;
 			/* TRUE if the return type of this function contains
 			   "auto" or "decltype(auto)" (this excludes the "auto"
 			   specifier followed by a matching trailing return
 			   type). */
-  a_wide_bit_field
-		has_deduced_return_type:1;
+  a_bit_field	has_deduced_return_type:1;
 			/* TRUE if has_deducible_return_type is TRUE and the
 			   actual return type has been deduced. */
-  a_wide_bit_field
-		contains_generic_lambda:1;
+  a_bit_field	contains_generic_lambda:1;
 			/* TRUE if the routine contains a generic lambda
 			   (directly or in another lambda or local class). */
 #if COROUTINES_ALLOWED
-  a_wide_bit_field
-		is_coroutine:1;
+  a_bit_field	is_coroutine:1;
 			/* TRUE if the definition of this function is
 			   resumable (i.e., it is a coroutine).   Additional
 			   information is recorded in the first statement of
 			   the function's top-level compound statement (a
 			   stmk_coroutine entry). */
 #endif /* COROUTINES_ALLOWED */
-  a_wide_bit_field
-		is_top_level_in_mem_region:1;
+  a_bit_field	is_top_level_in_mem_region:1;
 			/* TRUE if this is the top-level function in a
 			   memory region.  The memory region can be
 			   freed when the processing of this routine is
 			   finished. */
-  a_wide_bit_field
-		friend_defined_in_instantiation:1;
+  a_bit_field	friend_defined_in_instantiation:1;
 			/* TRUE if this routine was defined in a friend
 			   declaration in an instantiated class.  This
 			   is primarily intended to identify functions
@@ -13137,10 +12893,14 @@ typedef struct an_expr_node {
                         /* When this node is part of a list of operands, this
                            field is used to link them together; otherwise it is
                            NULL. */
-  an_expr_node_kind
-		kind;
+  a_bit_field
+		kind:8;
                         /* Identifies what kind of node this is.  This field
-                           determines which member of the union to use. */
+                           determines which member of the union to use.
+			   (Originally, this field was declared as an ordinary
+			   field of type an_expr_node_kind, but declaring it as
+			   a bit field produces a better layout with some
+			   compilers.) */
   a_bit_field	is_lvalue:1;
 			/* TRUE if the expression is an lvalue.  FALSE if the
 			   expression is something else, e.g., an rvalue or an

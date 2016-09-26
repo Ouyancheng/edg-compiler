@@ -437,32 +437,9 @@ typedef char a_const_char;
 #endif /* USE_POINTER_TO_CONST_CHAR */
 
 /*
-Type to be used for small bit fields.  Usually this is "unsigned int,"
-but on compilers that follow the Microsoft bit-field allocation convention
-that results in poor packing, so use "unsigned char".
+Type to be used for bit fields.
 */
-#if __MSC__
-typedef unsigned char a_bit_field;
-#ifndef WIDE_BIT_FIELD_TYPE
-#define WIDE_BIT_FIELD_TYPE unsigned short
-#endif /* ifndef WIDE_BIT_FIELD_TYPE */
-#else /* !__MSC__ */
 typedef unsigned int a_bit_field;
-#endif /* __MSC__ */
-
-/*
-Type to be used for bit fields if at least one bit field in a sequence of bit
-fields may exceed the width of a_bit_field in some configurations.  (Such
-configurations should set WIDE_BIT_FIELD_TYPE accordingly.  This is mostly
-needed when compiling with a Microsoft compiler a configuration that enables
-many name linkages and/or type qualifiers.)
-*/
-#ifndef WIDE_BIT_FIELD_TYPE
-typedef a_bit_field a_wide_bit_field;
-#else /* !defined(WIDE_BIT_FIELD_TYPE) */
-typedef WIDE_BIT_FIELD_TYPE a_wide_bit_field;
-#endif /* defined(WIDE_BIT_FIELD_TYPE) */
-
 
 #if __ANSIC__
 #include <limits.h>

@@ -646,17 +646,7 @@ typedef struct a_scope_stack_entry {
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  See the definition of
 			   a_scope_kind in il_def.h. */
-  a_wide_bit_field /* a_name_linkage_kind */
-		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-			/* The default language linkage (e.g., extern "C++" or
-			   extern "C") for declarations in the current scope
-			   (used in C++ mode only).  In general, when a scope
-			   is pushed, the setting is copied from the enclosing
-			   scope; it may then be modified and later restored
-			   when a linkage specification is seen.  However,
-			   template instantiation scopes take the setting for
-			   the template declaration. */
-  a_wide_bit_field /*an_access_specifier*/
+  a_bit_field /*an_access_specifier*/
 		current_access:2;
 			/* The access control specification that currently
 			   prevails for declarations in the current scope;
@@ -667,33 +657,29 @@ typedef struct a_scope_stack_entry {
 			   constants may be derived from the setting of this
 			   field.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field /*an_access_specifier*/
+  a_bit_field /*an_access_specifier*/
 		current_assembly_access:2;
 			/* The assembly access that currently prevails for
 			   declarations in the current scope: as_protected for
 			   assembly family access, as_private for assembly
 			   access, and as_public for universal access.
 			   (C++/CLI only.) */
-  a_wide_bit_field
-		defer_constraint_checks:1;
+  a_bit_field	defer_constraint_checks:1;
 			/* TRUE if checking of generic constraints should be
 			   deferred and performed later.  This is used to
 			   defer checking of constraints of base-specifiers
 			   and generic "where" clauses. */
-  a_wide_bit_field
-		scanning_cli_delegate_definition:1;
+  a_bit_field	scanning_cli_delegate_definition:1;
 			/* TRUE if we are currently scanning the definition of
 			   a C++/CLI delegate type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		inactive_symbols_may_be_visible:1;
+  a_bit_field	inactive_symbols_may_be_visible:1;
 			/* TRUE if the scope stack to this depth contains any
 			   class reactivation entries or class entries for
 			   classes with base classes.  In either case,
 			   symbols on a symbol header's inactive list may be
 			   visible from the current scope. */
-  a_wide_bit_field
-		inside_local_class:1;
+  a_bit_field	inside_local_class:1;
 			/* TRUE if the current scope level is that of a local
 			   class or is (logically) within the scope of a local
 			   class.  Once this flag is set it is usually
@@ -701,125 +687,105 @@ typedef struct a_scope_stack_entry {
 			   the stack; the exception is when a template
 			   instantiation scope is pushed, in which case the
 			   flag is cleared. */
-  a_wide_bit_field
-		template_param_decl_scope:1;
+  a_bit_field	template_param_decl_scope:1;
 			/* TRUE if this is the first scope that
 			   affects the declarative level after a template
 			   instantiation scope. */
-  a_wide_bit_field
-		is_loop_scope:1;
+  a_bit_field	is_loop_scope:1;
 			/* TRUE if this scope is associated with the compound
 			   statement of a for, do, while, or "for each"
 			   loop. */
-  a_wide_bit_field
-		is_dissociated_from_loop_scope:1;
+  a_bit_field	is_dissociated_from_loop_scope:1;
 			/* TRUE for for-init scopes and loop condition scopes
 			   that are dissociated from the loop scopes within
 			   them because of a nested for-statement.  Also set
 			   in "for each" loops.  Used in Microsoft mode
 			   only. */
-  a_wide_bit_field
-		slow_lookup_required:1;
+  a_bit_field	slow_lookup_required:1;
 			/* TRUE if this is a scope for which a slow lookup
 			   is required because the scope stack contains a
 			   scope in which certain symbols on the active list
 			   must not be visible. */
-  a_wide_bit_field
-		return_value_optimization_possible:1;
+  a_bit_field	return_value_optimization_possible:1;
 			/* TRUE if this scope is a function scope and return
 			   value optimization is possible for the routine.
 			   That is, the routine returns a class value via
 			   a copy constructor, and all return statements
 			   return a single local variable. */
-  a_wide_bit_field
-		in_prototype_instantiation:1;
+  a_bit_field	in_prototype_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template.  Also true for scopes nested within
 			   a prototype instantiation. */
-  a_wide_bit_field
-		in_nonreal_instantiation:1;
+  a_bit_field	in_nonreal_instantiation:1;
 			/* TRUE for instantiations based on template-dependent
 			   template arguments and for rescan operations (to
 			   implement C++11 SFINAE rules) where template-
 			   dependent constructs may arise. */
-  a_wide_bit_field
-		in_generic_definition:1;
+  a_bit_field	in_generic_definition:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the definition of a
 			   C++/CLI generic.  Also TRUE for scopes nested within
 			   a generic definition. */
-  a_wide_bit_field
-		alias_in_template_decl:1;
+  a_bit_field	alias_in_template_decl:1;
 			/* TRUE if kind is sck_template_instantiation and this
 			   is an alias template being instantiated with
 			   dependent template arguments in a template
 			   declaration scope. */
-  a_wide_bit_field
-		exception_specification:1;
+  a_bit_field	exception_specification:1;
 			/* TRUE if this is a scope within the instantiation
 			   of an exception specification. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		instantiation_from_metadata:1;
+  a_bit_field	instantiation_from_metadata:1;
 			/* TRUE for instantiation scopes for C++/CLI generic
 			   entities that were imported from metadata. */
-  a_wide_bit_field
-		in_generic_instantiation:1;
+  a_bit_field	in_generic_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   a C++/CLI generic is being instantiated (but not
 			   TRUE when in_generic_definition is TRUE).  Also
 			   TRUE for scopes nested within a generic
 			   instantiation. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_wide_bit_field
-		in_class_specialization:1;
+  a_bit_field	in_class_specialization:1;
 			/* TRUE for scopes that are template class explicit
 			   specialization scopes or scopes nested within such
 			   scopes.  This is typically used to identify
 			   contexts within prototype instantiations that
 			   represent explicit instantiations (which must be
 			   handled specially in certain contexts). */
-  a_wide_bit_field
-		in_template_deduction_context:1;
+  a_bit_field	in_template_deduction_context:1;
 			/* TRUE if we are in a context in which an expression
 			   is being scanned that could later potentially
 			   participate in template argument deduction
 			   and/or template argument substitution into an
 			   expression. */
-  a_wide_bit_field
-		in_variadic_template:1;
+  a_bit_field	in_variadic_template:1;
 			/* TRUE if we are in the context of a variadic
 			   template.  This is TRUE both in the context of the
 			   original definition of the template and in actual
 			   instantiations. */
-  a_wide_bit_field
-		record_form_of_name_reference:1;
+  a_bit_field	record_form_of_name_reference:1;
 			/* TRUE if the form of name references should be
 			   recorded in this scope. */
-  a_wide_bit_field
-		record_dependent_name_references:1;
+  a_bit_field	record_dependent_name_references:1;
 			/* Dependent name references are not usually recorded
 			   unless prototype_instantiations_in_il is TRUE.
 			   This forces name references to be recorded in
 			   dependent contexts. */
-  a_wide_bit_field
-		defer_access_checks:1;
+  a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
                            declaration.  Access checks for names
 			   scanned while this is TRUE cannot be done
 			   until the declarator has been scanned. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_wide_bit_field
-		source_sequence_entries_disallowed:1;
+  a_bit_field	source_sequence_entries_disallowed:1;
 			/* TRUE if the current scope establishes or belongs to
 			   a context in which source sequence entries should
 			   not be issued -- e.g. a template declaration, a
 			   a template instantiation, or a pragma. */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  a_wide_bit_field
-		src_seq_entries_from_prototype_instantiation:1;
+  a_bit_field	src_seq_entries_from_prototype_instantiation:1;
 			/* TRUE if source sequence entries from a prototype
 			   instantiations have been recorded in this scope
 			   stack entry.  This affects where these entries
@@ -827,8 +793,7 @@ typedef struct a_scope_stack_entry {
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  a_wide_bit_field
-		create_ms_if_exists_entries:1;
+  a_bit_field	create_ms_if_exists_entries:1;
 			/* TRUE if Microsoft __if_exist entries should be
 			   created for this scope.  Such entries are created
 			   for __if_exist directives in class scopes.  This
@@ -836,8 +801,7 @@ typedef struct a_scope_stack_entry {
 			   with class scopes so that the use of an __if_exists
 			   in that context may be diagnosed. */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  a_wide_bit_field
-		nested_instantiation:1;
+  a_bit_field	nested_instantiation:1;
                         /* TRUE for a template instantiation scope that
 			   is expected to be nested inside of another
 			   instantiation scope.  This occurs when a friend
@@ -846,169 +810,148 @@ typedef struct a_scope_stack_entry {
 			   continue on past the nested instantiation scope so
 			   that names from the outer instantiation scope can
 			   be visible. */
-  a_wide_bit_field
-		is_try_block:1;
+  a_bit_field	is_try_block:1;
 			/* TRUE if the scope is that of the compound statement
 			   of a try block (sck_block only).  Note: not set
 			   for the scope pushed for a catch clause. */
-  a_wide_bit_field
-		within_try_block:1;
+  a_bit_field	within_try_block:1;
 			/* TRUE if is_try_block is TRUE or if this scope is
 			   an sck_block scope nested within a scope for which
 			   is_try_block is set. */
-  a_wide_bit_field
-		is_catch_in_function_try:1;
+  a_bit_field	is_catch_in_function_try:1;
 			/* TRUE if this is the block scope pushed for a catch
 			   clause in a function try block.  Some special error
 			   tests are required for variables declared in such
 			   blocks. */
-  a_wide_bit_field
-		within_unnamed_namespace:1;
+  a_bit_field	within_unnamed_namespace:1;
 			/* TRUE if the current entry on the scope stack is
 			   itself an unnamed namespace or is a named
 			   namespace contained within an unnamed namespace. */
-  a_wide_bit_field
-		reactivated_class_being_defined:1;
+  a_bit_field	reactivated_class_being_defined:1;
 			/* TRUE for class reactivation scopes if the class
 			   being reactivated is in the process of being
 			   defined.  This causes the lookup to look on the
 			   active list instead of the inactive list for
 			   the class members. */
-  a_wide_bit_field
-		is_for_init_block:1;
+  a_bit_field	is_for_init_block:1;
 			/* TRUE if the scope is pushed for a C++ for-init
 			   declaration (sck_block only). */
-  a_wide_bit_field
-		namespace_pushed:1;
+  a_bit_field	namespace_pushed:1;
     		        /* TRUE for class reactivation scopes if the
                            parent namespace was pushed. */
-  a_wide_bit_field
-		exclude_from_context_output:1;
+  a_bit_field	exclude_from_context_output:1;
 			/* TRUE for scopes that would normally result in
 			   the creation of error context information
 			   (such as template instantiation scopes),
 			   but for which the context information should
 			   be suppressed. */
-  a_wide_bit_field
-		instantiation_scope_pushed:1;
+  a_bit_field	instantiation_scope_pushed:1;
 			/* TRUE if, when pushing a class and template
 			   reactivation scope, a template instantiation
 			   scope was pushed. */
-  a_wide_bit_field
-		microsoft_specialization_scope_pushed:1;
+  a_bit_field	microsoft_specialization_scope_pushed:1;
 			/* TRUE if, when pushing a class and template
 			   reactivation scope, a template instantiation
 			   scope was pushed for a Microsoft specialization
 			   scope.  This is also used in Sun mode. */
-  a_wide_bit_field
-		lexical_state_stack_pushed:1;
+  a_bit_field	lexical_state_stack_pushed:1;
 			/* TRUE if, when pushing a template instantiation
 			   scope, a new lexical state stack entry was pushed.
 			   This flag is set in the last scope pushed by
 			   push_template_instantiation_scope, which is
 			   not necessarily a template instantiation scope. */
-  a_wide_bit_field
-		name_linkage_is_explicit:1;
+  a_bit_field /* a_name_linkage_kind */
+		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* The default language linkage (e.g., extern "C++" or
+			   extern "C") for declarations in the current scope
+			   (used in C++ mode only).  In general, when a scope
+			   is pushed, the setting is copied from the enclosing
+			   scope; it may then be modified and later restored
+			   when a linkage specification is seen.  However,
+			   template instantiation scopes take the setting for
+			   the template declaration. */
+  a_bit_field	name_linkage_is_explicit:1;
 			/* TRUE if the default name linkage was explicitly
 			   specified in the source; FALSE for the default
 			   setting for the translation unit as a whole. */
-  a_wide_bit_field
-		explicitly_declared_namespace_extension:1;
+  a_bit_field	explicitly_declared_namespace_extension:1;
 			/* TRUE for sck_namespace_extension scopes that
 			   correspond to explicit declarations. */
-  a_wide_bit_field
-		microsoft_specialization_instantiation_scope:1;
+  a_bit_field	microsoft_specialization_instantiation_scope:1;
 			/* TRUE for an sck_template_instantiation scope pushed
 			   for compatibility with the Microsoft compiler,
 			   which permits the body of a class specialization to
 			   reference template parameters of the template.  This
 			   is also used in Sun mode. */
-  a_wide_bit_field
-		is_instantiation_context:1;
+  a_bit_field	is_instantiation_context:1;
 			/* TRUE for an sck_template_instantiation scope that
 			   should be considered to be an instantiation context.
 			   This is true for most instantiation scopes, but not
 			   for Microsoft specialization scopes that are not
 			   enclosed by an instantiation scope. */
-  a_wide_bit_field
-		pragma_pack_is_local:1;
+  a_bit_field	pragma_pack_is_local:1;
 			/* TRUE for an sck_function scope of a routine in
 			   which a "#pragma pack" directive is local in
 			   effect -- i.e., does not affect the packing of
 			   structs declared outside the function body. */
-  a_wide_bit_field
-		is_reactivation:1;
+  a_bit_field	is_reactivation:1;
 			/* File scopes can be pushed, popped, and then pushed
 			   again later.  When generic lambdas are used this is
 			   also true of function and other local scopes.  This
 			   is TRUE when a scope has been re-pushed. */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-  a_wide_bit_field
-		assign_string_literal_sequence_numbers:1;
+  a_bit_field	assign_string_literal_sequence_numbers:1;
 			/* TRUE if this is a function scope for which
 			   string literal sequence numbers should be
 			   assigned. */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-  a_wide_bit_field
-		discard_when_popped:1;
+  a_bit_field	discard_when_popped:1;
 			/* TRUE if this is a scope that should be discarded 
 			   when popped.  Specifically, this is used for
 			   function scopes of duplicate definitions of explicit
 			   specializations in some Microsoft modes. */
-  a_wide_bit_field
-		fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_wide_bit_field
-		fenv_access_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_wide_bit_field
-		cx_limited_range_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fenv_access_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	cx_limited_range_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* Saved values of the current state of the C99
 			   STDC pragma values.  These are saved when a scope
 			   is entered and restored when the scope is left. */
 #if FIXED_POINT_ALLOWED
-  a_wide_bit_field
-		fx_full_precision_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_wide_bit_field
-		fx_fract_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_wide_bit_field
-		fx_accum_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fx_full_precision_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fx_fract_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fx_accum_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* Saved values of the current state of the fixed-
 			   point STDC pragma values.  These are saved when a
 			   scope is entered and restored when the scope is
 			   left. */
 #endif /* FIXED_POINT_ALLOWED */
-  a_wide_bit_field
-		qualified_conversion_operator:1;
+  a_bit_field	qualified_conversion_operator:1;
 			/* TRUE when conversion_parent_type is set and the
 			   conversion type was specified using the form
 			   "A::operator B". */
-  a_wide_bit_field
-		initial_decl_of_namespace_std:1;
+  a_bit_field	initial_decl_of_namespace_std:1;
 			/* TRUE if this is the first explicit declaration of
 			   namespace std.  This flag is needed because the
 			   std namespace is predeclared and as a result the
 			   first use in the program results in a namespace
 			   extension scope stack entry instead of the
 			   expected namespace scope stack entry. */
-  a_wide_bit_field
-		ignore_during_normal_lookup:1;
+  a_bit_field	ignore_during_normal_lookup:1;
 			/* TRUE if this scope should be skipped during normal
 			   lookups. */
-  a_wide_bit_field
-		force_decl_seq_check:1;
+  a_bit_field	force_decl_seq_check:1;
 			/* TRUE if, for a template instantiation scope,
 			   declaration sequence numbers should be checked
 			   during the instantiation context lookup even in
 			   modes where such checks would not normally be
 			   done. */
-  a_wide_bit_field
-		outside_parameter_list:1;
+  a_bit_field	outside_parameter_list:1;
 			/* TRUE if, for a function prototype scope, the closing
 			   parenthesis of the associated function declarator
 			   has been seen.  (Additional elements may follow in
 			   C++, including trailing return types and exception
 			   specifications.) */
-  a_wide_bit_field
-		in_field_initializer:1;
+  a_bit_field	in_field_initializer:1;
 			/* TRUE while scanning a field initializer.  This flag
 			   is set to TRUE in the class (reactivation) scope for
 			   the field initializer, and is "sticky" for scopes
@@ -1016,51 +959,41 @@ typedef struct a_scope_stack_entry {
 			   created for lambda expressions, but not template
 			   instantiation scopes kicked of by the field
 			   initializer expression). */
-  a_wide_bit_field
-		in_template_arg_list:1;
+  a_bit_field	in_template_arg_list:1;
 			/* TRUE while scanning a template argument list.  This
 			   flag is inherited by most scopes pushed on the
 			   stack, except template instantiation and
 			   instantiation context scopes. */
-  a_wide_bit_field
-		implicit_typename:1;
+  a_bit_field	implicit_typename:1;
 			/* TRUE if, in this scope, implicit typename processing
 			   should be done. */
-  a_wide_bit_field
-		in_disambiguation:1;
+  a_bit_field	in_disambiguation:1;
 			/* TRUE if we are currently doing disambiguation
 			   processing. */
-  a_wide_bit_field
-		is_rescan:1;
+  a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
-  a_wide_bit_field
-		in_decltype_context:1;
+  a_bit_field	in_decltype_context:1;
 			/* TRUE when scanning the expression in a decltype
 			   operator. */
-  a_wide_bit_field
-		function_partial_instantiation:1;
+  a_bit_field	function_partial_instantiation:1;
 			/* TRUE for template instantiation scopes when the
 			   tokens of a function template are being rescanned
 			   to create a partial instantiation of the
 			   function. */
-  a_wide_bit_field
-		has_at_least_one_return:1;
+  a_bit_field	has_at_least_one_return:1;
 			/* TRUE if the function has at least one return
 			   statement (constexpr functions are required to
 			   have exactly one return statement). */
-  a_wide_bit_field
-		constexpr_ruled_out:1;
+  a_bit_field	constexpr_ruled_out:1;
 			/* TRUE if the constexpr constructor or constexpr
 			   function has an invalid body (which precludes
 			   it from being considered constexpr). */
-  a_wide_bit_field
-		make_access_errors_warnings:1;
+  a_bit_field	make_access_errors_warnings:1;
 			/* Turn access errors into warnings while this flag
 			   is set. */
 #if GNU_EXTENSIONS_ALLOWED
-  a_wide_bit_field
-		in_gnu_abi_tag_namespace:1;
+  a_bit_field	in_gnu_abi_tag_namespace:1;
 			/* TRUE if this scope is an inline namespace with
 			   the abi_tag attribute, or the scope has some parent
 			   that is an inline namespace with the abi_tag
