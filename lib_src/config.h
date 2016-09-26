@@ -393,8 +393,8 @@ stack is unwound in this case.
 #endif /* EXCEPTION_HANDLING */
 
 /*
-Define a macro are used to define exception specifications.  The macro is
-used so that the throw specifications can be discarded when exception handling
+Define a macro used to define exception specifications.  The macro is used
+so that the throw specifications can be discarded when exception handling
 is not being used.
 */
 #if EXCEPTION_HANDLING
