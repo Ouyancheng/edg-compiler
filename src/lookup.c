@@ -2591,7 +2591,7 @@ that do normal id lookup processing.
           }  /* if */
         } else if (scope_is(ssep, sck_template_instantiation) ||
                    scope_is(ssep, sck_template_declaration)) {
-	  /* Template instantiation and template declaration scopes don't
+          /* Template instantiation and template declaration scopes don't
              have a lookup table or a scope list that can be used.  Go
              through the template parameter list of the scope. */
           a_template_param_ptr	tpp;
