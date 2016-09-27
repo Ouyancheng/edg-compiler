@@ -1,5 +1,19 @@
 Version 4.12
 
+9/27/16  [EDGcpfe/17379]
+Spurious error on aggregate initialization with default member initializers
+
+In C++14 mode, some braced initializations of aggregate classes with default
+member initializers produced a spurious error.  For example:
+
+  template<typename T> struct A { T m = 0; };
+  void g() {
+    A<int> x{};  // Previously triggered a spurious error in C++14 mode.
+  }              // Now okay.
+
+This is now fixed.
+
+
 9/27/16  [EDGcpfe/17300]
 Abort on generic lambda in range-based "for" loop
 

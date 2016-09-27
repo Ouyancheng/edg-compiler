@@ -1334,6 +1334,7 @@ Issue any diagnostics at the given position.
 
   if (fp->has_initializer) {
     scan_field_initializer_if_needed(fp, aggr_type);
+    dip = fp->initializer;
   } else {
     check_assertion(fp->is_init_capture);
   }  /* if */
