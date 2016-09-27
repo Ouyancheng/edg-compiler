@@ -209,7 +209,7 @@ the initializer until it is actually used if the global variable
 always_delay_field_initializer_processing is set to TRUE (which can be achieved
 with the command-line option "--set_flag lazy_field_initializers").  Doing so
 means that the IL will have no representation of the initializer, however,
-which in turn implies that the C++-generating back end can not render it.
+which in turn implies that the C++-generating back end cannot render it.
 
 
 9/20/16  [EDGcpfe/17546]

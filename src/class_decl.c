@@ -3941,7 +3941,7 @@ after a class instantiation.
               !is_immediate_managed_class_type(class_type)) {
             /* The Microsoft compiler doesn't fully process field initializers
                at the end of the enclosing class definition.  (Static data
-               member initializers of managed classes are processed however.)
+               member initializers of managed classes are processed, however.)
                We currently approximate that behavior when the global variable
                always_delay_field_initializer_processing is TRUE. */
             continue;
