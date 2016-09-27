@@ -2367,7 +2367,7 @@ For example (with --c++11):
   };
 
 
-6/7/16   [EDGcpfe/17275]
+6/7/16   [EDGcpfe/17251,EDGcpfe/17275,EDGcpfe/17529]
 Abort in define_member_function on attempt to define invalid class member
 
 The changes for EDGcpfe/16170 introduced a regression in GNU C++ modes with
