@@ -19,9 +19,9 @@ considered to start a template argument list in some cases.  Now fixed.
 9/23/16  [EDGcpfe/17511]
 Constructor initializers for virtual bases of abstract base classes
 
-The front end no longer issues an error when omitting a virtual base with
-no default constructor in the ctor-initializer for an abstract class type.
-For example:
+The front end no longer issues an error if the constructor for an abstract
+class fails to provide an initializer for a virtual base class that has no
+default constructor.
 
   struct V { V(int); };
   struct D: virtual V {
