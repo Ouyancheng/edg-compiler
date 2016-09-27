@@ -128,7 +128,7 @@ typedef struct an_init_component {
 			   list).  (Originally, this field was declared as an
 			   ordinary field of type an_init_component_kind, but
 			   declaring it as a bit field produces a better layout
-			   with some compilers.)*/
+			   with some compilers.) */
   a_bit_field	bundled:1;
 			/* Set to TRUE if expressions within this component
 			   have been "bundled," meaning some things like
