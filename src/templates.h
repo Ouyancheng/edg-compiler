@@ -773,6 +773,9 @@ typedef int an_equiv_templates_options_set;
 			/* TRUE if, when comparing template template
 			   parameters and nonreal templates, the template
 			   pointers must match, not just the coordinates. */
+#define ET_OLD_IS_PACK		0x2
+			/* TRUE if the old list parameter is associated
+			   with a template parameter that is a pack. */
 
 extern a_boolean equiv_templates(a_template_ptr			templ1,
 				 a_template_ptr			templ2,

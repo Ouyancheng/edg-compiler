@@ -1,5 +1,18 @@
 Version 4.12
 
+9/27/16  [EDGcpfe/16554,EDGcpfe/17152,EDGcpfe/17332]
+Failure matching template template argument with template parameter pack
+
+In some cases, the front end failed to allow a template template argument
+to match a template template parameter.  This occurred when the template
+template argument had multiple template parameters that were matched with
+a template parameter pack of the template template parameter.  Now fixed.
+
+  template <char, template <class> class, template <class> class> struct A {};
+  template <template <char, template <class> class ...> class> struct B {};
+  B<A> b;
+ 
+
 9/26/16  [EDGcpfe/17538]
 GNU C++ compatibility: spurious error on static data member initializer
 

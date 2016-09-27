@@ -6392,13 +6392,16 @@ called from this routine.
       }  /* if */
     } else if (tssp1->variant.class_template.template_template_param &&
                tssp2->variant.class_template.template_template_param) {
-      /* Template template parameters must be at the same coordinates. */
+      /* Template template parameters must be at the same coordinates.
+         Allow a position mismatch if the parameter from the old list
+         is a parameter pack. */
       a_template_param_coordinate_ptr	coordinates1;
       a_template_param_coordinate_ptr	coordinates2;
       coordinates1 = &tssp1->il_template_entry->coordinates;
       coordinates2 = &tssp2->il_template_entry->coordinates;
       must_be_identical = FALSE;
-      if (coordinates1->position != coordinates2->position ||
+      if ((coordinates1->position != coordinates2->position &&
+           (options & ET_OLD_IS_PACK) == 0) ||
           !equiv_nesting_depths(coordinates1->depth, coordinates2->depth)) {
         /* The coordinates do not match. */
         okay_so_far = FALSE;
@@ -16854,10 +16857,13 @@ can match zero or more parameters from new_list.
       }  /* if */
     } else {
       /* Template template parameters.  Compare the two templates. */
+      an_equiv_templates_options_set et_options;
       check_assertion(old_sym->kind == (a_symbol_kind)sk_class_template);
+      et_options = old_tpp->is_pack ? ET_OLD_IS_PACK
+                                    : ET_NO_OPTIONS;
       err = !equiv_templates_given_supplement(old_tpp->variant.templ,
                                               new_tpp->variant.templ,
-                                              ET_NO_OPTIONS, options);
+                                              et_options, options);
     }  /* if */
     if (err) {
       if (issue_errors) {
