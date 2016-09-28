@@ -217,7 +217,8 @@ resulting resolver function.
 
 A couple of other bugs were also fixed: spaces in "target" attribute strings
 are now skipped in clang mode and the handling of the a_mv_target_bitset type
-(so that the type can grow to 64 bits if 32 bits is not enough).
+has been updated (so that the type can grow to 64 bits if 32 bits is not
+enough).
 
 
 9/21/16  [EDGcpfe/17551]

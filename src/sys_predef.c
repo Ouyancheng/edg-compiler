@@ -1522,7 +1522,7 @@ result to an allocated area.
   if (is_unknown_targ_bitset(bs)) {
     /* An unknown target attribute; just copy it to the mangled name.  The
        attribute is in "raw token" form, so it has quotation marks.  Note that
-       the string is not sorted there may be problems if the string contains
+       the string is not sorted; there may be problems if the string contains
        multiple target attributes. */
     a_const_char     *start, *end;
     size_t           len;
@@ -1554,7 +1554,7 @@ result to an allocated area.
         break;
       }  /* if */
     }  /* for */
-    /* This loop adds the ISA architecture name(s), if any in alphabetical
+    /* This loop adds the ISA architecture name(s), if any, in alphabetical
        order. */
     for (i = 0;
          i < sizeof(isa_alphabetic_order)/sizeof(isa_alphabetic_order[0]);
@@ -1619,7 +1619,7 @@ attribute processing to check for re-declarations.
                 gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset) {
       if (is_unknown_targ_bitset(
                gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset)) {
-        /* Both routines have a unknown target attributes; they're the same
+        /* Both routines have unknown target attributes; they're the same
            only if the target attributes are also the same. */
         an_attribute_ptr ap;
         ap = find_attribute(ak_target, rp->source_corresp.attributes);
@@ -1672,8 +1672,8 @@ str_len should be used to determine the end of the argument.
     /* An unknown target attribute.  The list of "target" attributes used in
        system headers is continually growing and the front end only recognizes
        those needed to create a resolver routine, so accept unknown attributes
-       in system headers(the back end may know what to do with these).  Issue a
-       discretionary error otherwise. */
+       in system headers (the back end may know what to do with these).  Issue
+       a discretionary error otherwise. */
     if (!seq_is_in_system_header(aap->position.seq)) {
       an_error_severity es = C_mode() ? es_warning : es_discretionary_error;
       pos_diagnostic(es, ec_unrecognized_target_attribute,
