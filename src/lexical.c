@@ -8872,15 +8872,17 @@ the kind of token.
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
 a warning if an apostrophe is seen when digit separators are not enabled
-(to explain the inevitable syntax error that will follow) and an error if a
-digit separator appears immediately following a prefix or radix point (as
-indicated by the value of first_digit_seen).  N is either 0 or 1,
-indicating whether the character to be tested is at curr_char_loc or the
-following position.
+(to explain the inevitable syntax error that will follow, but suppressed in
+C and in skipped conditionally-compiled code, where digit separators are
+either not expected or aren't considered) and an error if a digit separator
+appears immediately following a prefix or radix point (as indicated by the
+value of first_digit_seen).  N is either 0 or 1, indicating whether the
+character to be tested is at curr_char_loc or the following position.
 */
 #define skip_digit_separator(N)                                             \
   if (*(curr_char_loc + (N)) == '\'') {                                     \
-    if (!digit_separators_enabled) {                                        \
+    if (!digit_separators_enabled && !C_mode() &&                           \
+        !currently_in_pp_if_skip) {                                         \
       warning_at_line_pos(ec_digit_separators_not_enabled,                  \
                           curr_char_loc + (N));                             \
     } else {                                                                \

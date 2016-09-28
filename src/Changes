@@ -1,5 +1,20 @@
 Version 4.12
 
+9/27/16  [EDGcpfe/17565]
+Spurious warnings about digit separators
+
+The front end previously unconditionally issued a warning when an
+apostrophe occurs within a numeric literal and digit separators are not
+enabled.  This was true even in text appearing in the unselected branch of
+a conditional compilation directive and in C modes, where such apostrophes
+should not be considered as a failed attempt to use a C++-14 digit
+separator.  This is now fixed.  For example, with --c:
+
+  #if 0
+  float f = 0x0'0.0p0;  /* Previously elicited a warning. */
+  #endif
+
+
 9/27/16  [EDGcpfe/17376]
 Dependent decltypes and overloaded function template declarations
 
