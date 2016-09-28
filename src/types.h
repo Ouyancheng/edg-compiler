@@ -987,15 +987,17 @@ extern a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  error_matches_anything,
                                    a_boolean  exact_templ_arg_match_required,
-                                   a_boolean  contextual_generic_parameters);
+                                   a_boolean  contextual_generic_parameters,
+                                   a_boolean  exact_decltype_exprs_required);
+
 
 extern a_boolean is_address_of_string_constant(a_constant *constant);
 
-extern a_boolean same_type_with_added_qualifiers
-                                    (a_type_ptr source_type,
-				     a_type_ptr dest_type,
-				     a_boolean  ignore_qualifiers,
-				     a_boolean  *p_qualifiers_added);
+extern a_boolean same_type_with_added_qualifiers(
+                                     a_type_ptr source_type,
+                                     a_type_ptr dest_type,
+                                     a_boolean  ignore_qualifiers,
+                                     a_boolean  *p_qualifiers_added);
 
 extern
 a_boolean exception_spec_conversion_possible(a_type_ptr source_type,

@@ -7490,12 +7490,13 @@ entry pointer.  Return TRUE if the key matches the entry.
   template_sym = key_ikp->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   /* Get the options to be passed to equiv_template_arg_lists. */
-  eta_options = eta_options_for_template(template_sym, tssp);
+  eta_options = eta_options_for_template(template_sym, tssp) |
+                ETA_EXACT_MATCH_REQUIRED |
+                ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
   entry_sym = (a_symbol_ptr)entry;
   entry_tap = orig_template_arg_list_for_symbol(entry_sym);
   key_tap = key_ikp->template_arg_list;
-  result = equiv_template_arg_lists(entry_tap, key_tap,
-                                    eta_options | ETA_EXACT_MATCH_REQUIRED);
+  result = equiv_template_arg_lists(entry_tap, key_tap, eta_options);
   return result;
 }  /* compare_instantiation */
 

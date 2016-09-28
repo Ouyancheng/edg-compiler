@@ -5336,7 +5336,8 @@ a_boolean equiv_class_types(a_type_ptr type_1,
                             a_type_ptr type_2,
                             a_boolean  error_matches_anything,
                             a_boolean  exact_templ_arg_match_required,
-                            a_boolean  contextual_generic_parameters)
+                            a_boolean  contextual_generic_parameters,
+                            a_boolean  exact_decltype_exprs_required)
 /*
 type_1 and type_2 are class/struct/union types.  Return TRUE if they are
 equivalent types.  In general, classes, structs, and unions that aren't
@@ -5352,7 +5353,10 @@ point to the same type or constant).  FALSE if only equivalence is required.
 If contextual_generic_parameters parameters is TRUE, generic parameters are
 compared not purely based on their "coordinates", but on the generic context
 in which they are declared (see flags ITF_CONTEXTUAL_GENERIC_PARAMETERS and
-TCF_CONTEXTUAL_GENERIC_PARAMETERS).
+TCF_CONTEXTUAL_GENERIC_PARAMETERS).  If exact_decltype_exprs_required is TRUE,
+dependent decltype constructs must have matching operands (see also the flags
+ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED, TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED,
+and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
 */
 {
   a_boolean                     equiv = FALSE;
@@ -5427,11 +5431,9 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
                                            exact_templ_arg_match_required)) {
           /* Both types are template classes, and they are based on the same
              class template, or equivalent nonreal templates. */
-          an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
-          a_symbol_ptr			templ_sym_1;
-          a_symbol_ptr			templ_sym_2;
-          a_template_symbol_supplement_ptr	tssp_1;
-          a_template_symbol_supplement_ptr	tssp_2;
+          an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+          a_symbol_ptr                      templ_sym_1, templ_sym_2;
+          a_template_symbol_supplement_ptr  tssp_1, tssp_2;
           templ_sym_1 = cssp_1->class_template;
           templ_sym_2 = cssp_2->class_template;
           templ_sym_1 = primary_template_of(templ_sym_1);
@@ -5453,6 +5455,9 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
             /* Template argument lists must match exactly, not just be
                equivalent. */
             eta_options |= ETA_EXACT_MATCH_REQUIRED;
+          }  /* if */
+          if (exact_decltype_exprs_required) {
+            eta_options |= ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
           }  /* if */
           if (equiv_template_arg_lists(
                                  class_type_supp(type_1)->template_arg_list,
@@ -6179,9 +6184,10 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (parametered &&  /* For speed. */
               equiv_class_types(
-                        type_1, type_2, /*error_matches_anything=*/FALSE,
-                        (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0,
-                        (flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
+                     type_1, type_2, /*error_matches_anything=*/FALSE,
+                     (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0,
+                     (flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0,
+                     (flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0)) {
             identical = TRUE;
           }  /* if */
         }  /* if */
@@ -6381,14 +6387,13 @@ check_typerefs:
             case tptk_member:
               /* Members types are the same if their names are the same
                  and if they are members of identical types. */
-              sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
-              sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
+              sym_1 = symbol_for(type_1);
+              sym_2 = symbol_for(type_2);
               if (in_front_end) {
                 check_assertion(sym_1 != NULL && sym_2 != NULL);
                 if (sym_1->header == sym_2->header) {
                   /* The names are the same. */
-                  identical = (identical_types(parent_class_of(type_1),
-                                               parent_class_of(type_2)));
+                  identical = TRUE;
                 }  /* if */
               } else {
                 check_assertion(prototype_instantiations_in_il);
@@ -6397,8 +6402,8 @@ check_typerefs:
                 identical = (sym_1 == sym_2);
               }  /* if */
               if (identical &&
-                  !identical_types(parent_class_of(type_1),
-                                   parent_class_of(type_2))) {
+                  !f_identical_types(parent_class_of(type_1),
+                                     parent_class_of(type_2), flags)) {
                 identical = FALSE;
               }  /* if */
               break;
@@ -7022,9 +7027,10 @@ check_typerefs:
              classes.  Check for those. */
           if (!C_mode() &&
               equiv_class_types(
-                          type_1, type_2, error_matches_anything,
-                          /*exact_templ_arg_match_required=*/FALSE,
-                          (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
+                     type_1, type_2, error_matches_anything,
+                     /*exact_templ_arg_match_required=*/FALSE,
+                     (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0,
+                     (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0)) {
             compat = TRUE;
           }  /* if */
           break;
@@ -7150,6 +7156,9 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (flags & TCF_IGNORE_NESTING_DEPTH) {
               it_flags |= ITF_IGNORE_NESTING_DEPTH;
+            }  /* if */
+            if (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+              it_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
             }  /* if */
             compat = f_identical_types(type_1, type_2, it_flags);
           }
