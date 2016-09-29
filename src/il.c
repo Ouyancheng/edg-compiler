@@ -9912,6 +9912,9 @@ front end proper (i.e., when in_front_end is TRUE).
     result = alloc_type((a_type_kind)tk_array);
     result->variant.array.element_type = elem_type;
     result->variant.array.variant.number_of_elements = num_chars;
+    if (num_chars == 0) {
+      result->variant.array.bound_is_zero = TRUE;
+    }  /* if */
     set_type_size(result);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH && in_front_end) {
       string_types[kind][num_chars] = result;

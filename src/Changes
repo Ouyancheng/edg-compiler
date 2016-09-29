@@ -1,5 +1,17 @@
 Version 4.12
 
+9/28/16  [EDGcpfe/17562]
+Internal error on zero-length array string initializer
+
+In GNU C mode, a zero-length array can be declared and initialized with a
+string initializer.  This previously triggered an internal error in il.c
+("num_array_elements: array with unspecified bound").  For example:
+
+  char x[0] = { "" };  // Previously triggered an internal error.  Now okay.
+
+This is now fixed.
+
+
 9/27/16  [EDGcpfe/17565]
 Spurious warnings about digit separators
 

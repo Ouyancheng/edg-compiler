@@ -610,6 +610,14 @@ its length.
   a_boolean          is_string_entry = is_string_entry_kind(entry_kind);
   char               entry_copy[MAX_SIZEOF_IL_ENTRY];
 
+  if (entry_length == 0) {
+    /* Zero-length arrays initialized with string literals can lead to
+       zero-length entries.  E.g., in GNU C mode:
+         char x[0] = { "" };
+       Deal with them as one-byte entries to avoid problems. */
+    check_assertion(is_string_entry);
+    entry_length = 1;
+  }  /* if */
   /* Give this entry an entry number if it does not have one yet.  The entry
      number is stored just ahead of the entry. */
   epp = assign_entry_number(entry_ptr, entry_kind, is_string_entry,
