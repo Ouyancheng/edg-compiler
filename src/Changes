@@ -1,5 +1,24 @@
 Version 4.12
 
+9/29/16  [EDGcpfe/17021]
+Deduction failure on pointer-to-member with member class mismatch
+
+A core issue 1153 eliminated the requirement that the member class of a
+pointer to member function type be the same as the destination type when
+forming a pointer-to-member function.  Instead, the types are checked later
+(e.g., in the example below, when the assignment is done).  Previously,
+examples like the one below failed in template argument deduction, but
+are now accepted.
+
+  class A {};
+  struct B : public A {
+    template <class T> void f(T);
+  };
+  int main () {
+    void (A::*pmf)(int) = &B::f;
+  }
+
+
 9/29/16  [EDGcpfe/17553]
 IL write-read error on scoped enumerator constant used as template argument
 

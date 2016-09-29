@@ -11040,9 +11040,18 @@ points to the template parameter list.
                   tp =  implicit_this_param_type_of(type);
                   ttp =  implicit_this_param_type_of(templ_type);
                 }  /* if */
-                match = matches_template_type(tp, ttp, templ_arg_list,
-                                              templ_param_list,
-                                              new_flags);
+                if (!is_template_dependent_type(ttp)) {
+                  /* The implicit this can be deduced, but there is not
+                     a requirement that the types match at this point.
+                     So if the template type is not dependent, consider this
+                     a match at this point if the qualifiers match. */
+                  match = type->variant.routine.extra_info->qualifiers ==
+                          templ_type->variant.routine.extra_info->qualifiers;
+                } else {
+                  match = matches_template_type(tp, ttp, templ_arg_list,
+                                                templ_param_list,
+                                                new_flags);
+                }  /* if */
                 if (!match && inexact_ptr_to_member_deduction_enabled) {
                   /* If the this types don't match, check whether the one
                      type is a base class of the other type.  In some cases,
@@ -15659,6 +15668,7 @@ matching process.
         }  /* if */
         match = f_types_are_compatible(curr_type, new_type,
                                        TCF_IMPLICIT_CONVERSION |
+                                       TCF_IGNORE_THIS_CLASS_TYPE |
                                        TCF_ALLOW_BASE_DERIVED_THIS_MATCH |
                                        TCF_CHECKING_DEDUCTION_RESULT);
       }  /* if */
