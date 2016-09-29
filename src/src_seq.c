@@ -951,15 +951,18 @@ entry that has already been created and linked in for this entity.
                (sometimes done when a class body is unneeded). */
             update_source_corresp = FALSE;
           }  /* if */
-          if (!nonclass_prototype_instantiations &&
+          if ((!nonclass_prototype_instantiations ||
+               defer_function_prototype_instantiations) &&
               scope_is(&scope_stack_top(), sck_func_prototype) &&
               scope_is(&scope_stack_top()-1, sck_template_declaration)) {
             /* For example:
                  template<class V> void g(struct C*) {}
                If we don't perform prototype instantiations of function
-               templates, don't create a link from a class type declared in a
-               function prototype to the source sequence entry, since the
-               source sequence entry will be discarded. */
+               templates (or there is a possibility that such a prototype
+               instantiation is indefinitely deferred), don't create a link
+               from a class type declared in a function prototype to the
+               source sequence entry, since the source sequence entry will
+               be discarded. */
             update_source_corresp = FALSE;
           }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
