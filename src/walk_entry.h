@@ -941,14 +941,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
         }  /* switch */
-        {
-          a_boolean  do_walk = FALSE;
-          if (constant_is(ptr, ck_template_param) ||
-              ptr->is_named_constant_definition) {
-            do_walk = TRUE;
-          }  /* if */
-          walk_source_corresp_full(ptr->source_corresp, do_walk);
-        }
+        walk_source_corresp_full(ptr->source_corresp,
+                                 (constant_is(ptr, ck_template_param) ||
+                                  ptr->is_named_constant_definition));
       }
       break;
     case iek_param_type:
