@@ -21171,7 +21171,7 @@ the conversion.
          diagnose this.) */
       if (!exception_spec_conversion_possible(source_operand->type,
                                               base_dest_type)) {
-        expr_pos_diagnostic(((gpp_mode && !clang_mode) ?
+        expr_pos_diagnostic((gpp_mode && !clang_mode) ?
                                           es_warning : es_discretionary_error,
                             ec_incompatible_exception_specs,
                             &source_operand->position);
