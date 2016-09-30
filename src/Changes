@@ -1,5 +1,23 @@
 Version 4.12
 
+9/30/16  [EDGcpfe/17535]
+GNU C++ compatibility: Conversion of function and exception specifications
+
+Consider the following example:
+
+  void g();
+  void g(int);
+  void (*pf)() throw(int) = g;
+
+Although the initialization is invalid due to an exception specification
+mismatch, GCC does not diagnose it.  The front end now emulates that
+behavior in GNU C++ mode by just issuing a warning in cases like these.
+The front end already emulated similar GCC behavior in other contexts, but
+it accidentally extended that emulation to Clang modes also; that is now
+fixed (i.e., the invalid conversions that are accepted in GNU C++ mode are
+not treated as errors in Clang mode).
+
+
 9/30/16  [EDGcpfe/17542]
 Abort when testing trivial copyability of a class with a using-declaration
 

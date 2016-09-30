@@ -18192,7 +18192,7 @@ source_type to dest_type.
        must obey certain rules, but they don't in this case.  (GNU
        compilers don't diagnose this: We issue a warning when emulating
        those compilers.) */
-    expr_pos_diagnostic(gpp_mode ? es_warning : es_error,
+    expr_pos_diagnostic((gpp_mode && !clang_mode) ? es_warning : es_error,
                         ec_incompatible_exception_specs, err_pos);
   }  /* if */
   /* Warn on oddball conversions. */
@@ -18340,8 +18340,11 @@ conversion.
         if (conversion->std.exception_spec_incompatibility) {
           /* In assignments and initializations, exception specifications
              under pointers-to-functions and pointers-to-member-functions
-             must obey certain rules, but they don't in this case. */
-          expr_pos_error(ec_incompatible_exception_specs, err_pos);
+             must obey certain rules, but they don't in this case.  (GCC
+             does not diagnose this.) */
+          expr_pos_diagnostic((gpp_mode && !clang_mode) ? es_warning
+                                                        : es_error,
+                              ec_incompatible_exception_specs, err_pos);
         }  /* if */
       } else if (unknown_dependent_function) {
         okay = TRUE;
@@ -21168,7 +21171,8 @@ the conversion.
          diagnose this.) */
       if (!exception_spec_conversion_possible(source_operand->type,
                                               base_dest_type)) {
-        expr_pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
+        expr_pos_diagnostic(((gpp_mode && !clang_mode) ?
+                                          es_warning : es_discretionary_error,
                             ec_incompatible_exception_specs,
                             &source_operand->position);
       }  /* if */
