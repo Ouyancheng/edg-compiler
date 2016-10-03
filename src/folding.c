@@ -10047,8 +10047,15 @@ evaluation (e.g., parameter values).
               if (result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
                 /* This constant represents some number of elements of the
                    array.  Get the cumulative size of those elements and
-                   check if the offset designates one of them. */
-                a_targ_size_t this_initializer_size =
+                   check if the offset designates one of them.  Because the
+                   init-repeat may represent the elements of a subarray
+                   rather than the elements of the array at this level, set
+                   curr_type to the type of the repeated elements instead
+                   of the elements at this level. */
+                a_targ_size_t this_initializer_size;
+                curr_type = skip_typerefs(
+                               result_con->variant.init_repeat.constant->type);
+                this_initializer_size =
                        result_con->variant.init_repeat.count * curr_type->size;
                 if (cum_offset <= offset &&
                     (a_targ_ptrdiff_t)(cum_offset + this_initializer_size) >
@@ -10064,7 +10071,7 @@ evaluation (e.g., parameter values).
                                       result_con->variant.init_repeat.constant;
                     possible_result_offset =
                            cum_offset + ((a_targ_size_t)(offset - cum_offset) /
-                                         curr_type->size) * curr_type->size;
+                                            curr_type->size) * curr_type->size;
                     result_con = result_con->variant.init_repeat.constant;
                     cum_offset += ((a_targ_size_t)(offset - cum_offset) /
                                             curr_type->size) * curr_type->size;
