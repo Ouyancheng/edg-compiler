@@ -15,7 +15,7 @@ behavior in GNU C++ mode by just issuing a warning in cases like these.
 The front end already emulated similar GCC behavior in other contexts, but
 it accidentally extended that emulation to Clang modes also; that is now
 fixed (i.e., the invalid conversions that are accepted in GNU C++ mode are
-not treated as errors in Clang mode).
+now treated as errors in Clang mode).
 
 
 9/30/16  [EDGcpfe/17542]
