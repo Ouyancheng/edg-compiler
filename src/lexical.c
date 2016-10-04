@@ -12900,10 +12900,11 @@ restart:
         /* Give this string literal a sequence number, if needed. */
         assign_string_literal_sequence_number();
 #if BUILTIN_FUNCTIONS_ENABLED
-      } else if (!fetch_pp_tokens && ctoken == tok_identifier &&
+      } else if (ctoken == tok_identifier &&
                  locator_for_curr_id.symbol_header != NULL &&
                  builtin_needs_to_be_loaded(
-                                          locator_for_curr_id.symbol_header)) {
+                                          locator_for_curr_id.symbol_header) &&
+                 !fetch_pp_tokens) {
         /* If this cached identifier is for a builtin function that has not yet
            been loaded (because loading is disabled during caching), load it
            now. */
@@ -13574,9 +13575,9 @@ id_scan:
         sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);
 #if BUILTIN_FUNCTIONS_ENABLED
-        if (!fetch_pp_tokens &&
-            !fetching_tokens_from_insert_string() &&
-            builtin_needs_to_be_loaded(sym_hdr)) {
+        if (builtin_needs_to_be_loaded(sym_hdr) &&
+            !fetch_pp_tokens &&
+            !fetching_tokens_from_insert_string()) {
           /* Load a builtin function once it's referenced (though not during
              preprocessing nor when creating token caches). */
           load_matching_builtin_function(sym_hdr);
