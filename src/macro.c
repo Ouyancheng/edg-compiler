@@ -4097,6 +4097,10 @@ SG10 SD-6 and clang version 3.5.
 */
 static a_feature_support feature_support_list[] = {
   { "",
+    &nested_namespace_definitions_enabled,
+    "__cpp_nested_namespace_definitions",
+    "201411" },
+  { "",
     &char16_t_and_char32_t_are_keywords,
     "__cpp_unicode_characters",
     "200704" },
