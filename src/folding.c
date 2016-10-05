@@ -33,6 +33,15 @@ folding.c -- Folding routines.
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
+/*
+While constexpr_remap_list_for_args is executing, the list being created is
+rooted in new_remap_list so that the mappings for earlier parameters are
+available for use by later ones.  This is used to support enk_reuse_value
+nodes (as used in the invocation of the std::initializer_list constructor)
+so that the temporary constant can be found for folding.
+*/
+static a_constexpr_remap_ptr new_remap_list;
+
 static a_boolean fold_constant_field_selection(a_constant   *object_con,
                                                a_boolean    object_is_pointer,
                                                a_field_ptr  field,
@@ -10998,8 +11007,20 @@ pm_field_selection:
                                ceblock,
                                result_con);
   } else if (expr->kind == (an_expr_node_kind)enk_reuse_value) {
-    folded = fold_dynamic_init(expr->variant.reused_value_init,
-                               expr->type, ceblock, result_con);
+    a_constexpr_remap_ptr crp;
+    for (crp = new_remap_list; crp != NULL; crp = crp->next) {
+      if (crp->arg_expr != NULL &&
+          crp->arg_expr->kind == (an_expr_node_kind)enk_temp_init &&
+          crp->arg_expr->variant.init.dynamic_init ==
+                                             expr->variant.reused_value_init) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (crp != NULL &&
+        crp->constant_value.kind == (a_constant_repr_kind)ck_address) {
+      *result_con = crp->constant_value;
+      folded = TRUE;
+    }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
     /* Fold a builtin operation if possible. */
     a_boolean not_a_constant;
@@ -11333,11 +11354,12 @@ there is some kind of failure.
 {
   a_routine_ptr         routine;
   a_type_ptr            routine_type;
-  a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
+  a_constexpr_remap_ptr retval, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
   a_variable_ptr        param_var, this_param_var, first_real_param = NULL;
   a_constexpr_remap_ptr crp;
 
+  new_remap_list = NULL;
   *not_foldable = FALSE;
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
   routine = routine_scope->variant.routine.ptr;
@@ -11430,7 +11452,9 @@ there is some kind of failure.
       param_var = param_var->next;
     }  /* if */
   }  /* for */
-  return new_remap_list;
+  retval = new_remap_list;
+  new_remap_list = NULL;
+  return retval;
 }  /* constexpr_remap_list_for_args */
 
 
