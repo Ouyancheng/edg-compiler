@@ -8763,7 +8763,7 @@ use the current global value of the template template parameter.
   a_template_symbol_supplement_ptr	tssp;
   an_equiv_templ_arg_options_set	eta_options;
   a_boolean				is_alias_template;
-  a_boolean				orig_list_is_dependent;
+  a_boolean				orig_list_is_dependent = FALSE;
   a_boolean				stripped_list_is_dependent;
   a_boolean				dependent_arg_list;
   a_boolean				list_copied = FALSE;

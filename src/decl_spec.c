@@ -2727,7 +2727,7 @@ type.
 {
   a_type_ptr      vtype, etype;
   a_boolean       err = FALSE;
-  a_targ_size_t   n_elems, esize;
+  a_targ_size_t   n_elems, esize = 0;
 #if GNU_VECTOR_TYPES_ALLOWED
   a_constant_ptr  size_con = NULL;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

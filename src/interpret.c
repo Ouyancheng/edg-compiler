@@ -4767,7 +4767,7 @@ test function (a boolean integer value) and return TRUE, or, if the test
 cannot be evaluated, return FALSE.
 */
 {
-  a_boolean  val, result = TRUE;
+  a_boolean  val = FALSE, result = TRUE;
 
   switch (callee->variant.builtin_function_kind) {
     case bfk_isnan:

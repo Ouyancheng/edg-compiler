@@ -7746,7 +7746,7 @@ entry_for_expand_buffer:
            *cp == ' ' || *cp == '\t' || *cp == '\f' ||
                                                  *cp == VERTICAL_TAB_CHARACTER;
            cp--) {
-        if (loc_in_line - cp == curr_column) {
+        if ((uint32_t)(loc_in_line - cp) == curr_column) {
           /* We fell off the beginning of the line without seeing a "\".
              Just keep the white-space characters. */
           goto add_newline_and_line_end_and_return;

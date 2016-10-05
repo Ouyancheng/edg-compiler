@@ -2970,7 +2970,7 @@ argument to a macro that takes exactly one parameter, it is included; in
 all other cases, it is skipped.
 */
 {
-  a_token_kind tok;
+  a_token_kind tok = tok_error;
   a_boolean    skip_comma;
 
   do {
