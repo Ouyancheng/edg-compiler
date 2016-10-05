@@ -11359,7 +11359,7 @@ there is some kind of failure.
 {
   a_routine_ptr         routine;
   a_type_ptr            routine_type;
-  a_constexpr_remap_ptr new_remap_list, *last_ptr = &new_remap_list;
+  a_constexpr_remap_ptr new_remap_list = NULL, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
   a_variable_ptr        param_var, this_param_var, first_real_param = NULL;
   a_constexpr_remap_ptr crp;
