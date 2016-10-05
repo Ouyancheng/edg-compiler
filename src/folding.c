@@ -35,12 +35,13 @@ folding.c -- Folding routines.
 
 /*
 While constexpr_remap_list_for_args is executing, the list being created is
-rooted in new_remap_list so that the mappings for earlier parameters are
-available for use by later ones.  This is used to support enk_reuse_value
-nodes (as used in the invocation of the std::initializer_list constructor)
-so that the temporary constant can be found for folding.
+rooted in in_process_remap_list so that the mappings for earlier parameters
+are available for use by later ones.  This is used to support
+enk_reuse_value nodes (as used in the invocation of the
+std::initializer_list constructor) so that the temporary constant can be
+found for folding.
 */
-static a_constexpr_remap_ptr new_remap_list;
+static a_constexpr_remap_ptr in_process_remap_list;
 
 static a_boolean fold_constant_field_selection(a_constant   *object_con,
                                                a_boolean    object_is_pointer,
@@ -11008,7 +11009,10 @@ pm_field_selection:
                                result_con);
   } else if (expr->kind == (an_expr_node_kind)enk_reuse_value) {
     a_constexpr_remap_ptr crp;
-    for (crp = new_remap_list; crp != NULL; crp = crp->next) {
+    /* An enk_reuse_value node can be folded if it refers to a constant
+       folded earlier in the same function invocation, represented by the
+       remap entries rooted in in_process_remap_list. */
+    for (crp = in_process_remap_list; crp != NULL; crp = crp->next) {
       if (crp->arg_expr != NULL &&
           crp->arg_expr->kind == (an_expr_node_kind)enk_temp_init &&
           crp->arg_expr->variant.init.dynamic_init ==
@@ -11018,6 +11022,7 @@ pm_field_selection:
     }  /* for */
     if (crp != NULL &&
         crp->constant_value.kind == (a_constant_repr_kind)ck_address) {
+      /* Map the result onto the earlier constant. */
       *result_con = crp->constant_value;
       folded = TRUE;
     }  /* if */
@@ -11354,12 +11359,12 @@ there is some kind of failure.
 {
   a_routine_ptr         routine;
   a_type_ptr            routine_type;
-  a_constexpr_remap_ptr retval, *last_ptr = &new_remap_list;
+  a_constexpr_remap_ptr new_remap_list, *last_ptr = &new_remap_list;
   an_expr_node_ptr      arg;
   a_variable_ptr        param_var, this_param_var, first_real_param = NULL;
   a_constexpr_remap_ptr crp;
 
-  new_remap_list = NULL;
+  in_process_remap_list = NULL;
   *not_foldable = FALSE;
   check_assertion(routine_scope->kind == (a_scope_kind)sck_function);
   routine = routine_scope->variant.routine.ptr;
@@ -11379,6 +11384,7 @@ there is some kind of failure.
          aggregate constant being initialized to provide the value for the
          mapping. */
       crp = alloc_constexpr_remap(this_param_var, NULL);
+      in_process_remap_list = crp;
       *last_ptr = crp;
       last_ptr = &crp->next;
     } else {
@@ -11400,6 +11406,9 @@ there is some kind of failure.
     }  /* if */
     ptp = param_var->assoc_param_type;  /* Might be NULL. */
     crp = alloc_constexpr_remap(param_var, arg);
+    if (in_process_remap_list == NULL) {
+      in_process_remap_list = crp;
+    }  /* if */
     /* See if the argument expression is a constant or can be folded to one. */
     if (param_var->is_this_parameter && !this_arg_is_pointer) {
       /* For a non-pointer object expression (for the "this" parameter),
@@ -11452,9 +11461,8 @@ there is some kind of failure.
       param_var = param_var->next;
     }  /* if */
   }  /* for */
-  retval = new_remap_list;
-  new_remap_list = NULL;
-  return retval;
+  in_process_remap_list = NULL;
+  return new_remap_list;
 }  /* constexpr_remap_list_for_args */
 
 
