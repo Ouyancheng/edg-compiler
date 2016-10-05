@@ -4086,34 +4086,122 @@ static a_boolean
 			   decltype_enabled is TRUE when __decltype is
 			   enabled but the "decltype" keyword is not. */
 
+static a_boolean
+		initializer_lists_enabled;
+			/* TRUE if C++11 initializer lists are enabled.
+			   Used to support the __cpp_initializer_lists
+			   feature test macro. */
+
+static a_boolean
+		nontype_template_arg_conversions_enabled;
+			/* TRUE if the conversions described in N4268 are
+			   permitted in nontype template arguments.  Used
+			   to support the __cpp_nontype_template_args
+			   feature test macro. */
+
+static a_boolean
+		c_alignas_enabled;
+			/* TRUE if the _Alignas specifier is enabled in C
+			   mode.  Used to support
+			   __has_feature(c_alignas). */
+
+static a_boolean
+		c_alignof_enabled;
+			/* TRUE if the _Alignof operator is enabled in C
+			   mode.  Used to support
+			   __has_feature(c_alignof). */
+
+static a_boolean
+		c_generic_enabled;
+			/* TRUE if _Generic expressions are enabled in C
+			   mode.  Used to support
+			   __has_feature(c_generic_selections). */
+
+static a_boolean
+		c_static_assert_enabled;
+			/* TRUE if _Static_assert is enabled in C mode.
+			   Used to support
+			   __has_feature(c_static_assert). */
+
+static a_boolean
+		c_thread_local_enabled;
+			/* TRUE if the _Thread_local specifier is enabled
+			   in C mode.  Used to support
+			   __has_feature(c_thread_local). */
+
+
 /*
 The following array describes all the clang __has_feature/__has_extension
 feature strings and WG21 SG10 feature-test macros (type trait helpers can
 also be tested by the clang macros, but those are represented by a separate
 table).  It is sorted by the clang __has_feature string so it can be used
 with bsearch when the __has_feature or __has_extension macro is
-encountered.  The current contents reflect the 2013-11-27 version of WG21
-SG10 SD-6 and clang version 3.5.
+encountered.  The current contents reflect WG21 P0096R2 (2016-02-23) and
+the clang 4.0 documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
 static a_feature_support feature_support_list[] = {
+  { "",
+    &enumerator_attributes_enabled,
+    "__cpp_enumerator_attributes",
+    "201411" },
+  { "",
+    NULL,
+    "__cpp_fold_expressions",
+    "201411" },
+  { "",
+    &initializer_lists_enabled,
+    "__cpp_initializer_lists",
+    "200806" },
+  { "",
+    &namespace_attributes_enabled,
+    "__cpp_namespace_attributes",
+    "201411" },
   { "",
     &nested_namespace_definitions_enabled,
     "__cpp_nested_namespace_definitions",
     "201411" },
   { "",
-    &char16_t_and_char32_t_are_keywords,
-    "__cpp_unicode_characters",
-    "200704" },
+    NULL,
+    "__cpp_noexcept_function_type",
+    "201510" },
+  { "",
+    &nontype_template_arg_conversions_enabled,
+    "__cpp_nontype_template_args",
+    "201411" },
   { "",
     &sized_deallocation_enabled,
     "__cpp_sized_deallocation",
     "201309" },
+  { "",
+    &char16_t_and_char32_t_are_keywords,
+    "__cpp_unicode_characters",
+    "200704" },
   { "attribute_deprecated_with_message",
     &attribute_deprecated_with_message,
     NULL,
     NULL },
+  { "c_alignas",
+    &c_alignas_enabled,
+    NULL,
+    NULL },
+  { "c_alignof",
+    &c_alignof_enabled,
+    NULL,
+    NULL },
   { "c_atomic",
     &c11_atomic_enabled,
+    NULL,
+    NULL },
+  { "c_generic_selections",
+    &c_generic_enabled,
+    NULL,
+    NULL },
+  { "c_static_assert",
+    &c_static_assert_enabled,
+    NULL,
+    NULL },
+  { "c_thread_local",
+    &c_thread_local_enabled,
     NULL,
     NULL },
   { "cxx_access_control_sfinae",
@@ -4126,10 +4214,18 @@ static a_feature_support feature_support_list[] = {
     "201304" },
   { "cxx_alias_templates",
     &alias_declarations_enabled,
-    NULL,
-    NULL },
+    "__cpp_alias_templates",
+    "200704" },
   { "cxx_alignas",
     &alignas_enabled,
+    NULL,
+    NULL },
+  { "cxx_alignof",
+    &alignof_enabled,
+    NULL,
+    NULL },
+  { "cxx_atomic",
+    &c11_atomic_enabled,
     NULL,
     NULL },
   { "cxx_attributes",
@@ -4176,16 +4272,16 @@ static a_feature_support feature_support_list[] = {
     NULL },
   { "cxx_delegating_constructors",
     &delegating_constructors_enabled,
-    NULL,
-    NULL },
+    "__cpp_delegating_constructors",
+    "200604" },
   { "cxx_deleted_functions",
     &deleted_functions_enabled,
     NULL,
     NULL },
   { "cxx_exceptions",
     &exceptions_enabled,
-    NULL,
-    NULL },
+    "__cpp_exceptions",
+    "199711" },
   { "cxx_explicit_conversions",
     &explicit_conversion_functions_enabled,
     NULL,
@@ -4204,8 +4300,8 @@ static a_feature_support feature_support_list[] = {
     NULL },
   { "cxx_inheriting_constructors",
     &inheriting_constructors_enabled,
-    NULL,
-    NULL },
+    "__cpp_inheriting_constructors",
+    "200802" },
   { "cxx_init_capture",
     &init_capture_enabled,
     "__cpp_init_captures",
@@ -4228,8 +4324,8 @@ static a_feature_support feature_support_list[] = {
     NULL },
   { "cxx_nonstatic_member_init",
     &field_initializers_enabled,
-    NULL,
-    NULL },
+    "__cpp_nsdmi",
+    "200809" },
   { "cxx_nullptr",
     &nullptr_enabled,
     NULL,
@@ -4249,8 +4345,8 @@ static a_feature_support feature_support_list[] = {
     "200710" },
   { "cxx_reference_qualified_functions",
     &ref_qualifiers_enabled,
-    NULL,
-    NULL },
+    "__cpp_ref_qualifiers",
+    "200710" },
   { "cxx_relaxed_constexpr",
     &relaxed_constexpr_enabled,
     NULL,		/* __cpp_constexpr must be handled specially, as
@@ -4263,8 +4359,8 @@ static a_feature_support feature_support_list[] = {
     "201304" },
   { "cxx_rtti",
     &rtti_enabled,
-    NULL,
-    NULL },
+    "__cpp_rtti",
+    "199711" },
   { "cxx_runtime_array",
     NULL,
     "__cpp_runtime_arrays",
@@ -10041,6 +10137,14 @@ command line -D options.
     attribute_deprecated_with_message = (gnu_version >= 40500);
     decltype_keyword_enabled = decltype_enabled &&
                                               !enable_underscore_decltype_only;
+    initializer_lists_enabled = cpp11_mode;
+    nontype_template_arg_conversions_enabled = cpp17_mode;
+    c_alignas_enabled = C_mode() && alignas_enabled;
+    c_alignof_enabled = C_mode() && alignof_enabled;
+    c_generic_enabled = c11_mode;
+    c_static_assert_enabled = C_mode() && static_assert_enabled;
+    c_thread_local_enabled = C_mode() &&
+                                    std_thread_local_storage_specifier_enabled;
     if (define_portable_feature_test_macros) {
       /* Add definitions as described by WG21 SG10 SD-6 for the features
          that are enabled in the current execution of the front end. */

@@ -1,5 +1,14 @@
 Version 4.12, October 5, 2016
 
+10/3/16  [EDGcpfe/17216]
+Feature test macro refresh
+
+The list of clang and standard feature test macros supported by the front
+end has been updated to reflect the latest versions of the relevant
+documents: version 4.0 of the clang documentation at
+clang.llvm.org/docs/LanguageExtensions.html and WG21 P0096R2 (2016-02-23).
+
+
 10/3/16  [EDGcpfe/17319]
 Repeated elements of constant arrays
 
