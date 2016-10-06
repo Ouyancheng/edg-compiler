@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# This script creates a file named g++_incl_paths, which is
+# used by the edg_eccp_config file to locate the g++ header files.
+# It must be run from $EDG_BASE/lib
+
+out=g++_incl_paths
+tmp=/tmp/$$.c
+tmp2=/tmp/$$.out
+echo "#include <iostream>" >$tmp
+g++ -v $tmp >$tmp2 2>&1
+sed -e "1,/#include <...>/ d" -e "/End of search/,$ d" <$tmp2 >$tmp
+dirs=`cat $tmp`
+dirs=`echo $dirs | sed -e "s/ /:/g"`
+echo $dirs >$out
+rm -f $tmp $tmp2
