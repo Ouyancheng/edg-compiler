@@ -11822,10 +11822,15 @@ to an alias template, the substituted type is returned in *new_type
     a_type_ptr	tp;
     proto_type = tssp->variant.class_template.prototype_instantiation->
                                                               variant.type.ptr;
+    /* Push a new instantiation context scope for the alias.  This is
+       needed to make sure that the visibility of functions used by
+       the alias is based on the alias declaration position. */
+    push_instantiation_scope_for_rescan(template_sym);
     tp = copy_type_with_substitution(proto_type,
                                    new_list, tpp,
                                    source_pos,
                                    options, copy_error, ctws_state);
+    pop_instantiation_scope_for_rescan();
     if (tp == proto_type) {
       /* If no substitution was done, keep the original type. */
       tp = orig_type;

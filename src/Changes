@@ -1,5 +1,30 @@
 Version 4.13
 
+10/6/16  [EDGcpfe/17583]
+Substitution failure during substitution of alias in SFINAE context
+
+A change in 4.11 (see EDGcpfe/16743 on 1/24/16) could result in substitution
+failure as a result of an incorrect position being used to determine
+the visibility of functions in overload resolution.  Now fixed.  The example
+below was accepted (because of an unrelated GNU compatibility feature) in g++
+mode with gnu_version >= 40400.
+
+  struct A  { static constexpr bool b = true;  };
+  struct B { static constexpr bool b = false; };
+  template <template <class...> class TT1, class... T> struct C {
+    template <template <class...> class TT2, class = TT2<T...>>
+      static A f(int);
+    template <template <class...> class>
+      static B f(...);
+    using X = decltype(f<TT1>(0));
+  };
+  template <typename T> T&& declval() noexcept;
+  template <class T1> using D = decltype(declval<T1>());
+  int main() {
+    static_assert(C<D, int>::X::b, "");
+  }
+
+
 -------------------------------------------------------------------------------
 Version 4.12, October 5, 2016
 
