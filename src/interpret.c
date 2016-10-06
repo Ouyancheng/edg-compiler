@@ -3575,33 +3575,31 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_base_class_ptr  bcp = base_classes_of(tp);
           a_constant_ptr    elem_con;
           elem_con = con->variant.aggregate.first_constant;
-          if (bcp != NULL &&
-              elem_con->constant_for_base_class_from_constexpr_folding) {
-            for (;;) {
-              a_byte_count  offset;
-              while (!bcp->direct) {
-                bcp = bcp->next;
-              }  /* while */
-              get_mapped_byte_count(&persistent_map, bcp, offset);
+          /* Initialize base subobjects first. */
+          for (;;) {
+            a_byte_count  offset;
+            while (bcp != NULL && !bcp->direct) {
+              bcp = bcp->next;
+            }  /* while */
+            if (bcp == NULL) break;
+            get_mapped_byte_count(&persistent_map, bcp, offset);
+            if (elem_con != NULL &&
+                elem_con->constant_for_base_class_from_constexpr_folding) {
               if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
-              /* Record the derivation step (not really needed if this is for
-                 an assignment rather than for an initialization, but it is 
-                 easier -- and probably cheaper -- to do this
-                 indiscriminately). */
-              record_subobject_derivation(value+offset, bcp);
-              mark_subobject_initialized(value+offset, complete_object);
-              bcp = bcp->next;
               elem_con = elem_con->next;
-              if (bcp == NULL ||
-                  !elem_con->constant_for_base_class_from_constexpr_folding) {
-                break;
-              }  /* if */
-            }  /* for */
-          }  /* if */
+            }  /* if */
+            /* Record the derivation step (not really needed if this is for
+               an assignment rather than for an initialization, but it is 
+               easier -- and probably cheaper -- to do this
+               indiscriminately). */
+            record_subobject_derivation(value+offset, bcp);
+            mark_subobject_initialized(value+offset, complete_object);
+            bcp = bcp->next;
+          }  /* for */
           for (;;) {
             a_byte_count  offset;
             fp = next_alloc_field(fp);

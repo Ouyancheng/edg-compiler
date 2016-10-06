@@ -1,5 +1,14 @@
 Version 4.13
 
+10/6/16  [EDGcpfe/17573]
+Abort in interpreter on invalid code with empty base class
+
+In somewhat complex invalid cases involving a template-dependent empty base
+class the front end could abort in the C++14 constexpr interpreter (null
+pointer indirection in function extract_value_from_constant).  This is now
+fixed.
+
+
 10/6/16  [EDGcpfe/17583]
 Substitution failure during substitution of alias in SFINAE context
 
