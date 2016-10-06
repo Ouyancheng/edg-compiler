@@ -1,5 +1,28 @@
 Version 4.13
 
+10/6/16  [EDGcpfe/17589]
+Abort in interpreter on invalid access to anonymous union member
+
+The C++14 interpreter could abort (e.g., with an internal error in diagnostic
+processing) on certain cases involving invalid uses of anonymous union
+members.  For example:
+
+  struct A { union { int z = 59 ; } ; 
+    union {
+      int x;
+      long y;
+    };
+    constexpr A(int i): x(i) {}
+    constexpr A(long i): A(y) {} 
+    constexpr operator int() {return x;}
+    constexpr operator long() {return y;}
+  };
+  int x[int(A(37)) + long(A(47L))];  // Previously triggered an abort.
+
+This is now fixed (the interpreter now checks that an anonymous union is
+initialized before checking whether its active member is correctly accessed).
+
+
 10/6/16  [EDGcpfe/17573]
 Abort in interpreter on invalid code with empty base class
 

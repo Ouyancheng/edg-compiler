@@ -5968,11 +5968,6 @@ nodes.
         do_constexpr_fail(result);                                            \
         info_with_pos(ec_constexpr_access_to_expired_storage, &expr->position,\
                       ips);                                                   \
-      } else if (is_variant_path(opnd) &&                                     \
-                 !check_variant_path(ips, (a_constexpr_address*)opnd,         \
-                                     /*release=*/TRUE, &expr->position)) {    \
-        /* An attempt to dereference an inactive variant path. */             \
-        do_constexpr_fail(result);                                            \
       } else if (((a_constexpr_address*)(opnd))->address == NULL) {           \
         do_constexpr_fail(result);                                            \
         info_with_pos(ec_constexpr_null_dereference, &expr->position, ips);   \
@@ -5982,6 +5977,11 @@ nodes.
       } else if (!is_initialized((a_constexpr_address*)(opnd))) {             \
         do_constexpr_fail(result);                                            \
         info_with_pos(ec_object_not_initialized, &expr->position, ips);       \
+      } else if (is_variant_path(opnd) &&                                     \
+                 !check_variant_path(ips, (a_constexpr_address*)opnd,         \
+                                     /*release=*/TRUE, &expr->position)) {    \
+        /* An attempt to dereference an inactive variant path. */             \
+        do_constexpr_fail(result);                                            \
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
