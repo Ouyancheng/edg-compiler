@@ -1,5 +1,27 @@
 Version 4.13
 
+10/7/16  [EDGcpfe/17581]
+Unevaluated operands in constant expressions vs overloaded operators
+
+An unevaluated operand of a short-circuiting logical operator (|| or &&)
+does not contribute to the determination of whether the expression is
+constant or not and thus should not be evaluated.  The front end followed
+this rule except when a declaration of a corresponding overloaded operator
+is in scope.  In that case, the front end previously unconditionally
+evaluated the second operand, even if the first operand is such that the
+second will not be evaluated.  This could result in spurious errors.  This
+is now fixed.  In the following example, the expression 1 << 1000 cannot
+appear in a constant expression because the result is undefined, but the
+first operand of && evaluates to false and thus should suppress
+consideration of the second operand.  It now does so, even in the presence
+of the overloaded operator&& declaration.
+
+  struct A {
+     bool operator&& (A const& rhs);
+  };
+  constexpr bool b = 0 && (1 << 1000);  // Previously an error
+
+
 10/7/16  [EDGcpfe/17590]
 Clang compatibility: __builtin_va_arg missing
 

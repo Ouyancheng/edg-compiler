@@ -1777,9 +1777,11 @@ diagnostic is issued, do so with source position *err_pos.  Set
     /* Discard a warning or error in a not-evaluated context. */
     err_severity = es_none;
     *did_not_fold = TRUE;
-  } else if (!constant_context) {
-    /* Nonconstant context, so an error will not be issued.  It will be
-       downgraded to a warning. */
+  } else if (!constant_context || curr_expr_is_potentially_unevaluated()) {
+    /* Nonconstant or potentially unevaluated context, so an error will not
+       be issued.  It will be downgraded to a warning.  If the expression
+       actually does end up being evaluated in a constant context, the fact
+       that folding was not done will result in an error at that point. */
     if (err_severity == es_error) {
       /* Reduce an error to a warning. */
       err_severity = es_warning;

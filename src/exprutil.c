@@ -13156,7 +13156,7 @@ of a subscript operation).
         template_constant = TRUE;
       }  /* if */
       if (!template_constant && curr_expr_kind_is_evaluated_const() &&
-          !result_is_lvalue) {
+          !result_is_lvalue && !curr_expr_is_potentially_unevaluated()) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
            same object can't be represented as a constant.  In a
@@ -13164,7 +13164,10 @@ of a subscript operation).
            lvalues (like eok_subscript) are let by; that allows folding of
            "abc"[1] later, and there will be an lvalue-to-rvalue
            conversion that will flag an error if the address of the
-           entity is not taken. */
+           entity is not taken.  In addition, potentially-unevaluated
+           expressions are permitted not to fold; if the expression turns
+           out eventually to be evaluated, the unfolded expression will
+           result in an error at that point. */
         expr_pos_error(ec_expr_not_constant, operator_position);
         make_error_operand(result);
       } else {
