@@ -1,5 +1,13 @@
 Version 4.13
 
+10/7/16  [EDGcpfe/17590]
+Clang compatibility: __builtin_va_arg missing
+
+Due to the recent changes to builtin functions (see the Changes entry for
+EDGcpfe/16431 et al.), the __builtin_va_arg builtin feature was missing
+in clang emulation mode.  Now fixed.
+
+
 10/7/16  [EDGcpfe/17575]
 Slight performance tweak
 

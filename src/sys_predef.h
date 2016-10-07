@@ -232,8 +232,9 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   /* __builtin_choose_expr is available in all gcc modes. */
   { "__builtin_choose_expr", "gc", "int (...)", bufk_choose_expr },
 
-  /* __builtin_va_arg is not picked up by the automatic tools. */
-  { "__builtin_va_arg", "gx(40500-)", "void (...)", bfk_va_arg },
+  /* __builtin_va_arg is not picked up by the automatic tools because it
+     is implemented as a keyword by GCC and clang. */
+  { "__builtin_va_arg", "gx(40500-)Lx", "void (...)", bfk_va_arg },
 
   /* __builtin_stdarg_start is also not picked up for GCC. */
   { "__builtin_stdarg_start", "gx(40500-)", "void (...)", bfk_stdarg_start },
