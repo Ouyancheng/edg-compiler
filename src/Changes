@@ -1,5 +1,12 @@
 Version 4.13
 
+10/7/16  [EDGcpfe/17575]
+Slight performance tweak
+
+A change has been made to move some code out of get_token to give a slight
+increase in performance.
+
+
 10/6/16  [EDGcpfe/17589]
 Abort in interpreter on invalid access to anonymous union member
 

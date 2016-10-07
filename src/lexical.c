@@ -2830,6 +2830,15 @@ an equivalent change.
                                     (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
     locator_for_curr_id = ctp->variant.locator;
+#if BUILTIN_FUNCTIONS_ENABLED
+    if (locator_for_curr_id.symbol_header != NULL &&
+        builtin_needs_to_be_loaded(locator_for_curr_id.symbol_header)) {
+      /* If this cached identifier is for a builtin function that has not yet
+         been loaded (because loading is disabled during caching), load it
+         now. */
+      load_matching_builtin_function(locator_for_curr_id.symbol_header);
+    }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   } else if (ctp->extra_info_kind == 
                                     (a_token_extra_info_kind)teik_asm_string) {
     /* For a Microsoft asm token, restore the asm string pointer. */
@@ -12899,17 +12908,6 @@ restart:
       if (ctoken == tok_string_literal) {
         /* Give this string literal a sequence number, if needed. */
         assign_string_literal_sequence_number();
-#if BUILTIN_FUNCTIONS_ENABLED
-      } else if (ctoken == tok_identifier &&
-                 locator_for_curr_id.symbol_header != NULL &&
-                 builtin_needs_to_be_loaded(
-                                          locator_for_curr_id.symbol_header) &&
-                 !fetch_pp_tokens) {
-        /* If this cached identifier is for a builtin function that has not yet
-           been loaded (because loading is disabled during caching), load it
-           now. */
-        load_matching_builtin_function(locator_for_curr_id.symbol_header);
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
       }  /* if */
       goto return_from_token_scan;
     }  /* if */
