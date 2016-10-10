@@ -11251,7 +11251,7 @@ has already been lowered.
     src_copy->next = vptr_expr;
     vptr_expr->next = desired_type_node;
 #if ABI_COMPATIBILITY_VERSION >= 241
-    desired_type_node->next = orig_src_copy;
+    desired_type_node->next = add_cast(orig_src_copy, void_star_type());
     orig_src_copy->next = static_type_node;
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 #else /* IA64_ABI */
