@@ -2498,6 +2498,45 @@ Mark the complete object at the given address as fully initialized.
 }
 
 
+static void mark_whole_subobject_initialized(
+                                          an_interpreter_state  *ips,
+                                          a_byte                *subobj,
+                                          a_type_ptr            tp,
+                                          a_byte                *complete_obj)
+/*
+If tp is a scalar type, this routine does the same work as
+mark_subobject_initialized.  If tp is a class or array type, it marks the
+indicated subobject and all its subobject as initialized.
+*/
+{
+  if (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array) {
+    a_boolean     result = TRUE;
+    a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+    a_byte_count  off = subobj - complete_obj;
+    a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
+    a_byte_count  bit_pos = off%CHAR_BIT;
+    while (n_bytes > 0) {
+      if (bit_pos == 0 && byte_pos >= CHAR_BIT) {
+        /* Mark a whole byte at a time. */
+        complete_obj[-(int)byte_pos] = ~(a_byte)0;
+        byte_pos += 1;
+        n_bytes -= CHAR_BIT;
+      } else {
+        complete_obj[-(int)byte_pos] |= (a_byte)(1<<bit_pos);
+        bit_pos += 1;
+        if (bit_pos == CHAR_BIT) {
+          bit_pos = 0;
+          byte_pos += 1;
+        }  /* if */
+        n_bytes -= 1;
+      }  /* if */
+    }  /* while */
+  } else {
+    mark_subobject_initialized(subobj, complete_obj);
+  }  /* if */
+}  /* mark_whole_subobject_initialized */
+
+
 static void init_subobject_to_zero(an_interpreter_state  *ips,
                                    a_byte                *subobj,
                                    a_type_ptr            tp,
@@ -5985,13 +6024,14 @@ nodes.
       } else {                                                                \
         (void)memcpy(result_storage, value_bytes_at(opnd),                    \
                      size_t_arg(n_bytes));                                    \
-        /* Mark the destination storage as fully initialized. */              \
-        mark_complete_object_initialized(complete_object);                    \
+        if (result_storage == complete_object) {                              \
+          /* Mark the destination storage as fully initialized. */            \
+          mark_complete_object_initialized(complete_object);                  \
+        }  /* if */                                                           \
         if (is_immediate_class_type(tp) ||                                    \
             tp->kind == (a_type_kind)tk_array) {                              \
-          a_byte_count  bitmap_size = (n_bytes-1)/CHAR_BIT+1;                 \
-          (void)memset(complete_object-bitmap_size-sizeof(a_type_ptr)-1,      \
-                       ~0, bitmap_size);                                      \
+          mark_whole_subobject_initialized(ips, result_storage, tp,           \
+                                           complete_object);                  \
         }  /* if */                                                           \
       }  /* if */                                                             \
     }  /* if */                                                               \
