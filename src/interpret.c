@@ -2515,8 +2515,8 @@ indicated subobject and all its subobject as initialized.
     a_byte_count  off = subobj - complete_obj;
     a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
     a_byte_count  bit_pos = off%CHAR_BIT;
-    while (n_bytes > 0) {
-      if (bit_pos == 0 && byte_pos >= CHAR_BIT) {
+    while (n_bytes != 0) {
+      if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
         /* Mark a whole byte at a time. */
         complete_obj[-(int)byte_pos] = ~(a_byte)0;
         byte_pos += 1;
