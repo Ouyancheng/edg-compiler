@@ -7141,6 +7141,7 @@ code at *insert_location and update *insert_location accordingly.
 #else /* !IA64_ABI */
   a_variable_ptr         var;
   a_constant_ptr         aggr_con, next_con;
+  an_expr_node_ptr       addr_expr;
 #endif /* IA64_ABI */
   a_constant_ptr         object_con, dtor_con;
   a_boolean              complex_cleanup, complex_address;
@@ -7310,18 +7311,19 @@ code at *insert_location and update *insert_location accordingly.
   /* Make a call of __record_needed_destruction or
      __record_needed_thread_destruction as appropriate.  Their argument is the
      address of the structure variable created above. */
+  addr_expr = var_addr_expr(var);
   if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
     call_node = make_prototyped_runtime_call(
                              "__record_needed_thread_destruction",
                              &record_needed_thread_destruction_routine,
                              void_type(),
                              make_pointer_type(make_needed_destruction_type()),
-                             NULL, var_addr_expr(var));
+                             NULL, addr_expr);
   } else {
     call_node = make_prototyped_runtime_call("__record_needed_destruction",
                              &record_needed_destruction_routine, void_type(),
                              make_pointer_type(make_needed_destruction_type()),
-                             NULL, var_addr_expr(var));
+                             NULL, addr_expr);
   }  /* if */
 #endif /* IA64_ABI */
   /* Make a statement containing the call and insert it at the right
