@@ -7615,19 +7615,20 @@ location is the insert_location2 value (after the assignment statement).
        This is done as two "if"s so that once the variable is
        initialized one doesn't pay the cost of calling the runtime
        routine. */
+    an_expr_node_ptr guard_addr = var_addr_expr(*test_var);
     an_expr_node_ptr acquire_node =
             make_prototyped_runtime_call("__cxa_guard_acquire",
                                          &guard_acquire_routine,
                                          integer_type((an_integer_kind)ik_int),
                                          make_pointer_type((*test_var)->type),
-                                         NULL, var_addr_expr(*test_var));
+                                         NULL, guard_addr);
     an_insert_location outer_block_insert_location,
                        release_insert_location;
     an_expr_node_ptr release_node =
                      make_prototyped_runtime_call("__cxa_guard_release",
                                          &guard_release_routine, void_type(),
                                          make_pointer_type((*test_var)->type),
-                                         NULL, var_addr_expr(*test_var));
+                                         NULL, guard_addr);
     /* Make the acquire call a boolean controlling expression. */
     acquire_node = boolean_controlling_expr(acquire_node);
     set_block_start_insert_location(outer_then, &outer_block_insert_location);
@@ -10304,6 +10305,12 @@ the position to insert the necessary code.
   a_boolean           err;
   a_variable_ptr      temp;
   a_type_ptr          num_elements_type= skip_typerefs((*num_elem_node)->type);
+  a_const_char        *array_new_length_name =
+#if IA64_ABI
+                                           "__cxa_throw_bad_array_new_length";
+#else /* !IA64_ABI */
+                                           "__throw_bad_array_new_length";
+#endif /* IA64_ABI */
 
   check_assertion(exceptions_enabled);
   /* Create a temporary for the number of elements in the array (because
@@ -10430,16 +10437,11 @@ the position to insert the necessary code.
                       (a_statement_ptr *)NULL,
                       &then_insert_location,
                       (an_insert_location *)NULL);
-  call_node = make_prototyped_runtime_call(
-#if IA64_ABI
-                                     "__cxa_throw_bad_array_new_length",
-#else /* !IA64_ABI */
-                                     "__throw_bad_array_new_length",
-#endif /* IA64_ABI */
-                                     &throw_bad_array_new_length_routine,
-                                     void_type(),
-                                     NULL, NULL,
-                                     (an_expr_node_ptr)NULL);
+  call_node = make_prototyped_runtime_call(array_new_length_name,
+                                           &throw_bad_array_new_length_routine,
+                                           void_type(),
+                                           NULL, NULL,
+                                           (an_expr_node_ptr)NULL);
   insert_expr(call_node, &then_insert_location);
   release_local_constant(&zero_constant);
   release_local_constant(&elem_size_constant);

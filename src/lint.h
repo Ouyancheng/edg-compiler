@@ -317,6 +317,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,constant_fully_initializes_type)*/
 /*lint -esym(759,copy_array_type_replacing_element_type)*/
 /*lint -esym(765,copy_array_type_replacing_element_type)*/
+/*lint -esym(759,make_routine_type_full)*/
+/*lint -esym(765,make_routine_type_full)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,clang_target_version_number)*/
