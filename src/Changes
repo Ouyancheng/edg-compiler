@@ -1,5 +1,15 @@
 Version 4.13
 
+10/10/16 [EDGcpfe/17576]
+C++14: Empty class member declarations
+
+In C++14 modes, the front end now silently accepts empty class member
+declarations.  In other modes it still elicits a warning or (in strict mode)
+an error.  For example:
+
+  struct S { ; };  // Now silently accepted in C++14 mode.
+
+
 10/10/16 [EDGcpfe/17592]
 Spurious constexpr evaluation failure when subtracting null pointer values
 

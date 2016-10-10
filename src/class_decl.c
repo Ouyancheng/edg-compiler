@@ -29624,13 +29624,16 @@ classes.
         if (curr_token == tok_semicolon && 
             (C_dialect == C_dialect_cplusplus ||
              !(class_state.is_first_field && next_token() == tok_rbrace))) {
-          /* No declaration -- just a semicolon.  Issue a warning (or error in
-             strict ANSI mode).  Note: in C mode we bypass the "extra ';'"
-             diagnostic when there are no fields in the struct -- i.e.,
-             "struct S { ; };" is treated just like "struct S { };". */
-          pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_discretionary_severity : es_warning,
-                         ec_extra_semicolon, &pos_curr_token);
+          /* No declaration -- just a semicolon.  That is valid in C++14 mode.
+             In earlier C++ modes, issue a warning (or error in strict ANSI
+             mode).  Note: in C mode we bypass the "extra ';'" diagnostic when
+             there are no fields in the struct -- i.e., "struct S { ; };" is
+             treated just like "struct S { };". */
+          if (!cpp14_mode) {
+            pos_diagnostic(strict_ansi_mode ?
+                             strict_ansi_discretionary_severity : es_warning,
+                           ec_extra_semicolon, &pos_curr_token);
+          }  /* if */
           cannot_bind_to_curr_construct();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
