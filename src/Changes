@@ -1,5 +1,14 @@
 Version 4.13
 
+10/10/16 [EDGcpfe/17592]
+Spurious constexpr evaluation failure when subtracting null pointer values
+
+The C++14 interpreter previously treated the subtraction of two null pointers
+as undefined behavior (due to a misreading of the standard), and failed
+constexpr evaluation in such cases.  This is now fixed: Subtracting two null
+pointer values now produces a zero result, as required by the standard.
+
+
 10/10/16 [EDGcpfe/17593]
 Spurious constexpr evaluation failure when accessing certain subobjects
 

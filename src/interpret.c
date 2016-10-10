@@ -7264,6 +7264,9 @@ the value representation of the integer value.
                   ovfl = FALSE;
                   CHECK_int_range((an_integer_value*)result_storage, tp);
                 }  /* if */
+              } else if (addr1->address == NULL && addr2->address == NULL) {
+                /* Subtracting two null pointers produces zero. */
+                *(an_integer_value *)result_storage = zero_int;
               } else {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
