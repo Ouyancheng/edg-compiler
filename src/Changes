@@ -1,5 +1,15 @@
 Version 4.13
 
+10/10/16 [EDGcpfe/17482]
+Prototyping of library routines used by lowering
+
+Previously some of the library routines invoked by lowering had been declared
+in the IL as prototyped routines and some were unprototyped; a change has been
+made to make all of the library routines invoked by lowering prototyped (when
+MAKE_ALL_FUNCTIONS_UNPROTOTYPED is FALSE) and to add casts when necessary to
+coerce arguments to the proper types.
+
+
 10/10/16 [EDGcpfe/17576]
 C++14: Empty class member declarations
 

@@ -73,60 +73,6 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
 #endif /* DO_C99_IL_LOWERING */
 
-#if LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT
-
-static an_expr_node_ptr make_prototyped_runtime_call_full(
-                                               a_const_char     *name,
-                                               a_routine_ptr    *routine,
-                                               a_type_ptr       return_type,
-                                               a_type_ptr       param1_type,
-                                               a_type_ptr       param2_type,
-                                               a_type_ptr       param3_type,
-                                               an_expr_node_ptr arg_expr_list)
-/*
-Create a call node to a runtime routine with arguments given by arg_expr_list.
-The called routine is *routine and is created with the given name and types if
-*routine is NULL (*routine is updated to point to the new routine).  Parameters
-can be left out by passing NULL parameter types (e.g., a non-NULL param1_type
-and a NULL param2_type creates a prototype for a function taking a single
-argument).
-*/
-{
-  an_expr_node_ptr  result;
-  if (*routine == NULL) {
-    /* Make the routine entry if it does not exist already. */
-    (void)make_prototyped_runtime_routine(name, routine, return_type,
-                                          param1_type, param2_type,
-                                          param3_type);
-  }  /* if */
-  /* Make the call node. */
-  result = make_call_node(*routine, arg_expr_list);
-  return result;
-}  /* make_prototyped_runtime_call_full */
-
-
-static
-an_expr_node_ptr make_prototyped_runtime_call(a_const_char     *name,
-                                              a_routine_ptr    *routine,
-                                              a_type_ptr       return_type,
-                                              a_type_ptr       param1_type,
-                                              a_type_ptr       param2_type,
-                                              an_expr_node_ptr arg_expr_list)
-/*
-Wrapper for make_prototyped_runtime_call_full to handle one or two parameter
-types.
-*/
-{
-  an_expr_node_ptr result;
-
-  result = make_prototyped_runtime_call_full(name, routine, return_type,
-                                             param1_type, param2_type,
-                                             (a_type_ptr)NULL, arg_expr_list);
-  return result;
-}  /* make_prototyped_runtime_call */
- 
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT */
-
 void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp)
 /*
 Lower the expression in a VLA dimension entry.
@@ -2810,6 +2756,7 @@ Lower a fixed-point operation expression.
                                                integer_type(fxmask_int_kind),
                                                fxvalue_type(),
                                                op2_arg_type,
+                                               NULL, NULL, NULL, NULL,
                                                fxmask_expr);
   /* Cast the value returned by the runtime routine to the final
      desired type (probably does nothing except add a typedef if

@@ -117,17 +117,57 @@ extern a_routine_ptr make_prototyped_runtime_routine(
                                                a_type_ptr       return_type,
                                                a_type_ptr       param1_type,
                                                a_type_ptr       param2_type,
-                                               a_type_ptr       param3_type);
+                                               a_type_ptr       param3_type,
+                                               a_type_ptr       param4_type,
+                                               a_type_ptr       param5_type,
+                                               a_type_ptr       param6_type,
+                                               a_type_ptr       param7_type);
 
 extern void make_call_statement(a_routine_ptr      routine,
                                 an_expr_node_ptr   arg_list,
                                 an_expr_node_ptr   return_value,
                                 an_insert_location *insert_location);
 
-extern an_expr_node_ptr make_runtime_rout_call(a_const_char     *name,
+extern an_expr_node_ptr f_make_prototyped_runtime_call_full(
+                                               a_const_char     *name,
                                                a_routine_ptr    *routine,
                                                a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               a_type_ptr       param3_type,
+                                               a_type_ptr       param4_type,
+                                               a_type_ptr       param5_type,
+                                               a_type_ptr       param6_type,
+                                               a_type_ptr       param7_type,
                                                an_expr_node_ptr arg_expr_list);
+
+/*
+Macro to avoid evaluating all of the parameter type arguments in the (usual)
+case where the routine has already been created.
+*/
+#define make_prototyped_runtime_call_full(name, rout, ret, p1, p2, p3, p4, p5,\
+                                          p6, p7, args)                       \
+  ((*(rout) == NULL) ? f_make_prototyped_runtime_call_full                    \
+                        (name, rout, ret, p1, p2, p3, p4, p5, p6, p7, args) : \
+                       make_call_node(*(rout), args))
+
+extern an_expr_node_ptr f_make_prototyped_runtime_call(
+                                              a_const_char     *name,
+                                              a_routine_ptr    *routine,
+                                              a_type_ptr       return_type,
+                                              a_type_ptr       param1_type,
+                                              a_type_ptr       param2_type,
+                                              an_expr_node_ptr arg_expr_list);
+/*
+Macro to avoid evaluating all of the parameter type arguments in the (usual)
+case where the routine has already been created.
+*/
+#define make_prototyped_runtime_call(name, rout, ret, p1, p2, args)           \
+  ((*(rout) == NULL) ? f_make_prototyped_runtime_call                         \
+                                            (name, rout, ret, p1, p2, args) : \
+                       make_call_node(*(rout), args))
+
+extern a_type_ptr make_dtor_type(void);
 
 extern void turn_statement_into_noop(a_statement_ptr statement);
 

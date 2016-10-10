@@ -302,7 +302,11 @@ a_routine_ptr make_prototyped_runtime_routine(a_const_char     *name,
                                               a_type_ptr       return_type,
                                               a_type_ptr       param1_type,
                                               a_type_ptr       param2_type,
-                                              a_type_ptr       param3_type)
+                                              a_type_ptr       param3_type,
+                                              a_type_ptr       param4_type,
+                                              a_type_ptr       param5_type,
+                                              a_type_ptr       param6_type,
+                                              a_type_ptr       param7_type)
 /*
 Make a routine entry for the runtime routine named "name" and return a
 pointer to it.  Also save the pointer in *routine.  If *routine is non-NULL
@@ -321,8 +325,9 @@ calling sequence.
     /* See if a routine entry already exists before we create one.  This
        happens only when compiling the run time library and prevents
        multiple routine entries for the same routine. */
-    rout_type = make_routine_type(return_type, param1_type, param2_type,
-                                  param3_type, (a_type_ptr)NULL);
+    rout_type = make_routine_type_full(return_type, param1_type, param2_type,
+                                       param3_type, param4_type, param5_type,
+                                       param6_type, param7_type);
     *routine = find_existing_runtime_routine(name, rout_type);
   }  /* if */
   if (*routine == NULL) {
@@ -331,20 +336,34 @@ calling sequence.
                                (a_type_ptr)NULL);
     (*routine)->compiler_generated = TRUE;
     rout_type = (*routine)->type;
-    rout_type->variant.routine.extra_info->prototyped = TRUE;
+    rout_type->variant.routine.extra_info->prototyped =
+                                              !make_all_functions_unprototyped;
     if (param1_type != NULL) {
-      a_param_type_ptr first_param = alloc_param_type(param1_type);
-      rout_type->variant.routine.extra_info->param_type_list = first_param;
+      a_param_type_ptr last_param = alloc_param_type(param1_type);
+      rout_type->variant.routine.extra_info->param_type_list = last_param;
       if (param2_type != NULL) {
-        first_param->next = alloc_param_type(param2_type);
+        last_param->next = alloc_param_type(param2_type);
+        last_param = last_param->next;
         if (param3_type != NULL) {
-          first_param->next->next = alloc_param_type(param3_type);
+          last_param->next = alloc_param_type(param3_type);
+          last_param = last_param->next;
+          if (param4_type != NULL) {
+            last_param->next = alloc_param_type(param4_type);
+            last_param = last_param->next;
+            if (param5_type != NULL) {
+              last_param->next = alloc_param_type(param5_type);
+              last_param = last_param->next;
+              if (param6_type != NULL) {
+                last_param->next = alloc_param_type(param6_type);
+                last_param = last_param->next;
+                if (param7_type != NULL) {
+                  last_param->next = alloc_param_type(param7_type);
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
-      } else {
-        check_assertion(param3_type == NULL);
       }  /* if */
-    } else {
-      check_assertion(param2_type == NULL && param3_type == NULL);
     }  /* if */
   }  /* if */
   return *routine;
@@ -688,27 +707,63 @@ of the call is assigned.
 }  /* make_call_statement */
 
 
-an_expr_node_ptr make_runtime_rout_call(a_const_char     *name,
-                                        a_routine_ptr    *routine,
-                                        a_type_ptr       return_type,
-                                        an_expr_node_ptr arg_expr_list)
+an_expr_node_ptr f_make_prototyped_runtime_call_full(
+                                               a_const_char     *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               a_type_ptr       param3_type,
+                                               a_type_ptr       param4_type,
+                                               a_type_ptr       param5_type,
+                                               a_type_ptr       param6_type,
+                                               a_type_ptr       param7_type,
+                                               an_expr_node_ptr arg_expr_list)
 /*
-Make an expression node that calls the runtime routine "name" with the
-arguments given by arg_expr_list.  *routine is set to point to the runtime
-routine entry; if it is non-NULL on entry, it is used.  The routine has
-unprototyped arguments and its return type is return_type.  arg_expr_list
-is assumed to be lowered already.
+Create a call node to a runtime routine with arguments given by arg_expr_list.
+The called routine is *routine and is created with the given name and types if
+*routine is NULL (*routine is updated to point to the new routine).  Parameters
+can be left out by passing NULL parameter types (e.g., a non-NULL param1_type
+and a NULL param2_type creates a prototype for a function taking a single
+argument).  Typically invoked through the make_prototyped_runtime_call_full
+macro.
 */
 {
-  an_expr_node_ptr node;
-
-  /* Make the routine entry if it does not exist already. */
-  (void)make_runtime_routine(name, routine, return_type);
+  an_expr_node_ptr  result;
+  if (*routine == NULL) {
+    /* Make the routine entry if it does not exist already. */
+    (void)make_prototyped_runtime_routine(name, routine, return_type,
+                                          param1_type, param2_type,
+                                          param3_type, param4_type,
+                                          param5_type, param6_type,
+                                          param7_type);
+  }  /* if */
   /* Make the call node. */
-  node = make_call_node(*routine, arg_expr_list);
-  return node;
-}  /* make_runtime_rout_call */
+  result = make_call_node(*routine, arg_expr_list);
+  return result;
+}  /* f_make_prototyped_runtime_call_full */
 
+
+an_expr_node_ptr f_make_prototyped_runtime_call(a_const_char     *name,
+                                                a_routine_ptr    *routine,
+                                                a_type_ptr       return_type,
+                                                a_type_ptr       param1_type,
+                                                a_type_ptr       param2_type,
+                                                an_expr_node_ptr arg_expr_list)
+/*
+Wrapper for make_prototyped_runtime_call_full to handle one or two parameter
+types.  Typically invoked through the make_prototyped_runtime_call macro.
+*/
+{
+  an_expr_node_ptr result;
+
+  result = make_prototyped_runtime_call_full(name, routine, return_type,
+                                             param1_type, param2_type,
+                                             NULL, NULL, NULL, NULL, NULL,
+                                             arg_expr_list);
+  return result;
+}  /* f_make_prototyped_runtime_call */
+ 
 
 void turn_statement_into_noop(a_statement_ptr statement)
 /*
@@ -2725,7 +2780,49 @@ static a_type_ptr
 		dtor_ptr_type,
 		cctor_ptr_type,
 		new_routine_ptr_type,
+#if IA64_ABI
+                two_operand_delete_routine_ptr_type,
+                cxa_dtor_type,
+#endif /* IA64_ABI */
 		delete_routine_ptr_type;
+
+#if IA64_ABI
+/*
+Macro that defines the type of a DSO pointer.
+*/
+#define make_dso_handle_type() void_star_type()
+
+#else /* !IA64_ABI */
+/*
+Macro that defines the type of an element count parameter.
+*/
+#define make_element_count_type() \
+                                 integer_type(targ_runtime_elem_count_int_kind)
+#endif /* IA64_ABI */
+
+
+static a_type_ptr make_ctor_type(void)
+/*
+Make the generic constructor pointer type.  It is
+   void  (*)(void *);  // IA-64 ABI
+   void *(*)(void *);  // IA-64 ABI (where CTORS_RETURN_THIS is TRUE)
+   void *(*)(void *);  // Cfront-like ABI
+*/
+{
+  if (ctor_ptr_type == NULL) {
+    a_type_ptr function_type;
+    function_type = make_function_type(
+#if !IA64_ABI || CTORS_RETURN_THIS
+                                       void_star_type(),
+#else /* IA64_ABI && !CTORS_RETURN_THIS */
+                                       void_type(),
+#endif /* !IA64_ABI || CTORS_RETURN_THIS */
+                                       void_star_type(),
+                                       (a_type_ptr)NULL);
+    ctor_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  return ctor_ptr_type;
+}  /* make_ctor_type */
 
 
 static an_expr_node_ptr expr_for_pointer_to_constructor(a_routine_ptr routine)
@@ -2738,26 +2835,39 @@ expression that is a null function pointer and return that.
 {
   an_expr_node_ptr expr;
 
-  if (ctor_ptr_type == NULL) {
-    /* Make the generic constructor pointer type.  It is
-         void  (*)(void *);  // IA-64 ABI
-         void *(*)(void *);  // Cfront-like ABI
-    */
+  expr = expr_for_pointer_to_routine(routine, make_ctor_type());
+  return expr;
+}  /* expr_for_pointer_to_constructor */
+
+
+a_type_ptr make_dtor_type(void)
+/*
+Make the generic destructor pointer type.  It is
+   void (*)(void *);       // IA-64 ABI
+   void *(*)(void *);      // IA-64 ABI (where DTORS_RETURN_THIS)
+   void (*)(void *, int);  // Cfront-like ABI
+*/
+{
+  if (dtor_ptr_type == NULL) {
     a_type_ptr function_type;
 #if IA64_ABI
-    function_type = make_function_type(void_type(),
+    function_type = make_function_type(
+#if DTORS_RETURN_THIS
+                                       void_star_type(),
+#else /* !DTORS_RETURN_THIS */
+                                       void_type(),
+#endif /* DTORS_RETURN_THIS */
                                        void_star_type(),
                                        (a_type_ptr)NULL);
 #else /* !IA64_ABI */
-    function_type = make_function_type(void_star_type(),
+    function_type = make_function_type(void_type(),
                                        void_star_type(),
-                                       (a_type_ptr)NULL);
+                                       integer_type((an_integer_kind)ik_int));
 #endif /* IA64_ABI */
-    ctor_ptr_type = make_pointer_type(function_type);
+    dtor_ptr_type = make_pointer_type(function_type);
   }  /* if */
-  expr = expr_for_pointer_to_routine(routine, ctor_ptr_type);
-  return expr;
-}  /* expr_for_pointer_to_constructor */
+  return dtor_ptr_type;
+}  /* make_dtor_type */
 
 
 static an_expr_node_ptr expr_for_pointer_to_destructor(a_routine_ptr routine)
@@ -2770,26 +2880,33 @@ expression that is a null function pointer and return that.
 {
   an_expr_node_ptr expr;
 
-  if (dtor_ptr_type == NULL) {
-    /* Make the generic destructor pointer type.  It is
-         void (*)(void *);       // IA-64 ABI
-         void (*)(void *, int);  // Cfront-like ABI
-    */
-    a_type_ptr function_type;
-#if IA64_ABI
-    function_type = make_function_type(void_type(),
-                                       void_star_type(),
-                                       (a_type_ptr)NULL);
-#else /* !IA64_ABI */
-    function_type = make_function_type(void_type(),
-                                       void_star_type(),
-                                       integer_type((an_integer_kind)ik_int));
-#endif /* IA64_ABI */
-    dtor_ptr_type = make_pointer_type(function_type);
-  }  /* if */
-  expr = expr_for_pointer_to_routine(routine, dtor_ptr_type);
+  expr = expr_for_pointer_to_routine(routine, make_dtor_type());
   return expr;
 }  /* expr_for_pointer_to_destructor */
+
+
+static a_type_ptr make_copy_ctor_type(void)
+/*
+Make the generic copy constructor pointer type.  It is
+   void  (*)(void *, void *);  // IA-64 ABI
+   void *(*)(void *, void *);  // IA-64 ABI (where CTORS_RETURN_THIS is TRUE)
+   void *(*)(void *, void *);  // Cfront-like ABI
+*/
+{
+  if (cctor_ptr_type == NULL) {
+    a_type_ptr function_type;
+    function_type = make_function_type(
+#if !IA64_ABI || CTORS_RETURN_THIS
+                                       void_star_type(),
+#else /* IA64_ABI && !CTORS_RETURN_THIS */
+                                       void_type(),
+#endif /* !IA64_ABI || CTORS_RETURN_THIS */
+                                       void_star_type(),
+                                       void_star_type());
+    cctor_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  return cctor_ptr_type;
+}  /* make_copy_ctor_type */
 
 
 static an_expr_node_ptr expr_for_pointer_to_copy_constructor(
@@ -2803,26 +2920,26 @@ expression that is a null function pointer and return that.
 {
   an_expr_node_ptr expr;
 
-  if (cctor_ptr_type == NULL) {
-    /* Make the generic copy constructor pointer type.  It is
-         void  (*)(void *, void *);  // IA-64 ABI
-         void *(*)(void *, void *);  // Cfront-like ABI
-    */
-    a_type_ptr function_type;
-#if IA64_ABI
-    function_type = make_function_type(void_type(),
-                                       void_star_type(),
-                                       void_star_type());
-#else /* !IA64_ABI */
-    function_type = make_function_type(void_star_type(),
-                                       void_star_type(),
-                                       void_star_type());
-#endif /* IA64_ABI */
-    cctor_ptr_type = make_pointer_type(function_type);
-  }  /* if */
-  expr = expr_for_pointer_to_routine(routine, cctor_ptr_type);
+  expr = expr_for_pointer_to_routine(routine, make_copy_ctor_type());
   return expr;
 }  /* expr_for_pointer_to_copy_constructor */
+
+
+static a_type_ptr make_new_type(void)
+/*
+Make the generic operator new routine pointer type.  It is
+  void *(*)(size_t);
+*/
+{
+  if (new_routine_ptr_type == NULL) {
+    a_type_ptr function_type;
+    function_type = make_function_type(void_star_type(),
+                                       integer_type(targ_size_t_int_kind),
+                                       (a_type_ptr)NULL);
+    new_routine_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  return new_routine_ptr_type;
+}  /* make_new_type */
 
 
 static an_expr_node_ptr expr_for_pointer_to_new(a_routine_ptr routine)
@@ -2835,19 +2952,60 @@ expression that is a null function pointer and return that.
 {
   an_expr_node_ptr expr;
 
-  if (new_routine_ptr_type == NULL) {
-    /* Make the generic operator new routine pointer type.  It is
-         void *(*)(size_t);
-    */
-    a_type_ptr function_type;
-    function_type = make_function_type(void_star_type(),
-                                       integer_type(targ_size_t_int_kind),
-                                       (a_type_ptr)NULL);
-    new_routine_ptr_type = make_pointer_type(function_type);
-  }  /* if */
-  expr = expr_for_pointer_to_routine(routine, new_routine_ptr_type);
+  expr = expr_for_pointer_to_routine(routine, make_new_type());
   return expr;
 }  /* expr_for_pointer_to_new */
+
+#if IA64_ABI
+
+static a_type_ptr make_two_operand_delete_type(void)
+/*
+Make the two operand operator delete routine pointer type.  It is
+  void (*)(void *, size_t);
+*/
+{
+  if (two_operand_delete_routine_ptr_type == NULL) {
+    a_type_ptr function_type;
+    function_type = make_function_type(void_type(),
+                          void_star_type(),
+                          integer_type((an_integer_kind)targ_size_t_int_kind));
+    two_operand_delete_routine_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  return two_operand_delete_routine_ptr_type;
+}  /* make_two_operand_delete_type */
+
+
+static a_type_ptr make_cxa_dtor_type(void)
+/*
+Make the generic typedef for a destructor passed to cxa_atexit.  It is
+  void (*)(void *);
+*/
+{
+  if (cxa_dtor_type == NULL) {
+    a_type_ptr function_type;
+    function_type = make_function_type(void_type(), void_star_type(), NULL);
+    cxa_dtor_type = make_pointer_type(function_type);
+  }  /* if */
+  return cxa_dtor_type;
+}  /* make_cxa_dtor_type */
+
+#endif /* IA64_ABI */
+
+static a_type_ptr make_delete_type(void)
+/*
+Make the generic operator delete routine pointer type.  It is
+  void (*)(void *);
+*/
+{
+  if (delete_routine_ptr_type == NULL) {
+    a_type_ptr function_type;
+    function_type = make_function_type(void_type(),
+                                       void_star_type(),
+                                       (a_type_ptr)NULL);
+    delete_routine_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  return delete_routine_ptr_type;
+}  /* make_delete_type */
 
 
 static an_expr_node_ptr expr_for_pointer_to_delete(a_routine_ptr routine)
@@ -2860,17 +3018,7 @@ expression that is a null function pointer and return that.
 {
   an_expr_node_ptr expr;
 
-  if (delete_routine_ptr_type == NULL) {
-    /* Make the generic operator delete routine pointer type.  It is
-         void (*)(void *);
-    */
-    a_type_ptr function_type;
-    function_type = make_function_type(void_type(),
-                                       void_star_type(),
-                                       (a_type_ptr)NULL);
-    delete_routine_ptr_type = make_pointer_type(function_type);
-  }  /* if */
-  expr = expr_for_pointer_to_routine(routine, delete_routine_ptr_type);
+  expr = expr_for_pointer_to_routine(routine, make_delete_type());
   return expr;
 }  /* expr_for_pointer_to_delete */
 
@@ -3021,6 +3169,7 @@ IA-64 ABI; see comments below.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
+  a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
 #if IA64_ABI
   an_expr_node_ptr padding_size_node = NULL;
 #endif /* IA64_ABI */
@@ -3114,26 +3263,51 @@ IA-64 ABI; see comments below.
          constructor, for value-initialization. */
       dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
       ctor_addr_node->next = dtor_addr_node;
-      call_node = make_runtime_rout_call("__vec_new_eh_zero",
-                                         &vec_new_eh_zero_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__vec_new_eh_zero",
+                                                    &vec_new_eh_zero_routine,
+                                                    void_star_type(),
+                                                    void_star_type(),
+                                                    make_element_count_type(),
+                                                    size_t_type,
+                                                    make_ctor_type(),
+                                                    make_dtor_type(), NULL,
+                                                    NULL, arg_expr_list);
     } else if (exceptions_enabled && dtor_routine != NULL) {
       /* __vec_new_eh call, with destructor. */
       dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
       ctor_addr_node->next = dtor_addr_node;
-      call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__vec_new_eh",
+                                                    &vec_new_eh_routine,
+                                                    void_star_type(),
+                                                    void_star_type(),
+                                                    make_element_count_type(),
+                                                    size_t_type,
+                                                    make_ctor_type(),
+                                                    make_dtor_type(), NULL,
+                                                    NULL, arg_expr_list);
     } else {
       /* __vec_new call, without destructor. */
-      call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__vec_new",
+                                                    &vec_new_routine,
+                                                    void_star_type(),
+                                                    void_star_type(),
+                                                    make_element_count_type(),
+                                                    size_t_type,
+                                                    make_ctor_type(), NULL,
+                                                    NULL, NULL, arg_expr_list);
     }  /* if */
 #else /* IA64_ABI */
     dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     ctor_addr_node->next = dtor_addr_node;
     if (entity_node != NULL) {
-      call_node = make_runtime_rout_call("__cxa_vec_ctor", &vec_ctor_routine,
-                                         void_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_ctor",
+                                                    &vec_ctor_routine,
+                                                    void_type(),
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    make_ctor_type(),
+                                                    make_dtor_type(), NULL,
+                                                    NULL, arg_expr_list);
       /* Unfortunately, __cxa_vec_ctor actually returns void, so we can't
          use its return value.  Instead we have to return the value of the
          entity_node. */
@@ -3144,8 +3318,14 @@ IA-64 ABI; see comments below.
         call_node = make_comma_node(call_node, entity_copy);
       }
     } else {
-      call_node = make_runtime_rout_call("__cxa_vec_new", &vec_new_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_new",
+                                                    &vec_new_routine,
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    size_t_type,
+                                                    make_ctor_type(),
+                                                    make_dtor_type(), NULL,
+                                                    NULL, arg_expr_list);
     }  /* if */
 #endif /* !IA64_ABI */
   } else {
@@ -3215,6 +3395,10 @@ IA-64 ABI; see comments below.
 #else /* IA64_ABI */
     check_assertion(padding_size_node != NULL);
     padding_size_node->next = ctor_addr_node;
+    if (is_two_arg_delete) {
+      delete_addr_node = add_cast(delete_addr_node,
+                                  make_two_operand_delete_type());
+    }  /* if */
 #endif /* IA64_ABI */
     ctor_addr_node->next = dtor_addr_node;
     dtor_addr_node->next = new_addr_node;
@@ -3222,22 +3406,49 @@ IA-64 ABI; see comments below.
 #if !IA64_ABI
     delete_addr_node->next = is_two_arg_node;
     if (!zero_storage) {
-      call_node = make_runtime_rout_call("__array_new", &array_new_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__array_new",
+                                         &array_new_routine, void_star_type(),
+                                         make_element_count_type(),
+                                         size_t_type, make_ctor_type(),
+                                         make_dtor_type(), make_new_type(),
+                                         make_delete_type(),
+                                         integer_type((an_integer_kind)ik_int),
+                                         arg_expr_list);
     } else {
-      call_node = make_runtime_rout_call("__array_new_zero",
+      call_node = make_prototyped_runtime_call_full("__array_new_zero",
                                          &array_new_zero_routine,
-                                         void_star_type(), arg_expr_list);
+                                         void_star_type(),
+                                         make_element_count_type(),
+                                         size_t_type, make_ctor_type(),
+                                         make_dtor_type(), make_new_type(),
+                                         make_delete_type(),
+                                         integer_type((an_integer_kind)ik_int),
+                                         arg_expr_list);
     }  /* if */
 #else /* IA64_ABI */
     if (is_two_arg_delete) {
-      call_node = make_runtime_rout_call("__cxa_vec_new3", &vec_new3_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_new3",
+                                                &vec_new3_routine,
+                                                void_star_type(), size_t_type,
+                                                size_t_type, size_t_type,
+                                                make_ctor_type(),
+                                                make_dtor_type(),
+                                                make_new_type(),
+                                                make_two_operand_delete_type(),
+                                                arg_expr_list);
     } else {
-      call_node = make_runtime_rout_call("__cxa_vec_new2", &vec_new2_routine,
-                                         void_star_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_new2",
+                                                    &vec_new2_routine,
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    size_t_type,
+                                                    make_ctor_type(),
+                                                    make_dtor_type(),
+                                                    make_new_type(),
+                                                    make_delete_type(),
+                                                    arg_expr_list);
     }  /* if */
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
   }  /* if */
 #if !IA64_ABI
   release_local_constant(&null_constant);
@@ -3281,6 +3492,7 @@ IA-64 ABI, the routines called are different.
 #if !IA64_ABI
   an_expr_node_ptr arg_expr_list, size_elem_node;
   an_expr_node_ptr ctor_addr_node, dtor_addr_node;
+  a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
 
   /* The call looks like
          __placement_array_new(entity_node, num_elems, size_elem,
@@ -3299,13 +3511,24 @@ IA-64 ABI, the routines called are different.
   size_elem_node->next = ctor_addr_node;
   ctor_addr_node->next = dtor_addr_node;
   if (!zero_storage) {
-    call_node = make_runtime_rout_call("__placement_array_new",
-                                       &placement_array_new_routine,
-                                       void_star_type(), arg_expr_list);
+    call_node = make_prototyped_runtime_call_full("__placement_array_new",
+                                                  &placement_array_new_routine,
+                                                  void_star_type(),
+                                                  void_star_type(),
+                                                  make_element_count_type(),
+                                                  size_t_type,
+                                                  make_ctor_type(),
+                                                  make_dtor_type(), NULL, NULL,
+                                                  arg_expr_list);
   } else {
-    call_node = make_runtime_rout_call("__placement_array_new_zero",
-                                       &placement_array_new_zero_routine,
-                                       void_star_type(), arg_expr_list);
+    call_node = make_prototyped_runtime_call_full("__placement_array_new_zero",
+                                             &placement_array_new_zero_routine,
+                                             void_star_type(),
+                                             void_star_type(),
+                                             make_element_count_type(),
+                                             size_t_type, make_ctor_type(),
+                                             make_dtor_type(), NULL, NULL,
+                                             arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
   an_expr_node_ptr assign_node = NULL, arg_entity_node = entity_node;
@@ -3439,6 +3662,8 @@ A pointer to the expression created is returned.
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
   an_expr_node_ptr delete_addr_node;
+  a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
+  a_type_ptr       entity_type = entity_node->type;
 #if !IA64_ABI
   an_expr_node_ptr is_two_arg_node, free_storage_node;
 #else /* IA64_ABI */
@@ -3446,7 +3671,7 @@ A pointer to the expression created is returned.
 #endif /* IA64_ABI */
 
   /* Build a constant node for the size of the array elements. */
-  size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
+  size_elem_node = size_elem_node_from_pointer_type(entity_type);
 #if !IA64_ABI
   if (num_elem_node == NULL) {
     /* -1 tells the runtime to use the array size from the "new[]". */
@@ -3464,12 +3689,19 @@ A pointer to the expression created is returned.
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
+    dtor_addr_node = add_cast_if_necessary(dtor_addr_node, make_delete_type());
     size_elem_node->next = dtor_addr_node;
     dtor_addr_node->next = free_storage_node;
     free_storage_node->next = node_for_integer_constant(0L,
                                                       (an_integer_kind)ik_int);
-    call_node = make_runtime_rout_call("__vec_delete", &vec_delete_routine,
-                                       void_type(), arg_expr_list);
+    call_node = make_prototyped_runtime_call_full("__vec_delete",
+                                         &vec_delete_routine, void_type(),
+                                         void_star_type(),
+                                         make_element_count_type(),
+                                         size_t_type, make_delete_type(),
+                                         integer_type((an_integer_kind)ik_int),
+                                         integer_type((an_integer_kind)ik_int),
+                                         NULL, arg_expr_list);
   } else {
     /* There's a special delete routine, so use the call
        __array_delete(entity_node, num_elems, size_elem, dtor_addr_node,
@@ -3487,19 +3719,26 @@ A pointer to the expression created is returned.
     size_elem_node->next = dtor_addr_node;
     dtor_addr_node->next = delete_addr_node;
     delete_addr_node->next = is_two_arg_node;
-    call_node = make_runtime_rout_call("__array_delete", &array_delete_routine,
-                                       void_type(), arg_expr_list);
+    call_node = make_prototyped_runtime_call_full("__array_delete",
+                                         &array_delete_routine, void_type(),
+                                         void_star_type(),
+                                         make_element_count_type(),
+                                         size_t_type, make_dtor_type(),
+                                         make_delete_type(),
+                                         integer_type((an_integer_kind)ik_int),
+                                         NULL, arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
+  entity_node = add_cast(entity_node, void_star_type());
   arg_expr_list = entity_node;
   entity_node->next = size_elem_node;
+  dtor_addr_node = add_cast(dtor_addr_node, make_dtor_type());
   if (num_elem_node != NULL) {
     size_elem_node->next = dtor_addr_node;
   } else {
-    prefix_size_node = get_array_new_padding(
-                                           type_pointed_to(entity_node->type),
-                                           (a_routine_ptr)NULL,
-                                           /*even_if_zero=*/TRUE);
+    prefix_size_node = get_array_new_padding(type_pointed_to(entity_type),
+                                             (a_routine_ptr)NULL,
+                                             /*even_if_zero=*/TRUE);
     size_elem_node->next = prefix_size_node;
     prefix_size_node->next = dtor_addr_node;
   }  /* if */
@@ -3512,21 +3751,29 @@ A pointer to the expression created is returned.
       /* Splice in the node for the number of elements. */
       entity_node->next = num_elem_node;
       num_elem_node->next = size_elem_node;
-      call_node = make_runtime_rout_call("__cxa_vec_dtor", &vec_dtor_routine,
-                                         void_type(), arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_dtor",
+                                                    &vec_dtor_routine,
+                                                    void_type(),
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    make_dtor_type(), NULL,
+                                                    NULL, NULL, arg_expr_list);
     } else {
       /* The call looks like
            __cxa_vec_delete(entity_node, size_elem, padding, addr_node)
          The runtime uses a cookie to determine the array size.
       */
       check_assertion(free_storage);
-      call_node = make_runtime_rout_call("__cxa_vec_delete", 
-                                         &vec_delete_routine, void_type(),
-                                         arg_expr_list);
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_delete",
+                                                    &vec_delete_routine,
+                                                    void_type(),
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    make_dtor_type(), NULL,
+                                                    NULL, NULL, arg_expr_list);
     }  /* if */
   } else {
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
-    dtor_addr_node->next = delete_addr_node;
     check_assertion(num_elem_node == NULL && free_storage);
     if (is_two_argument_delete(delete_routine)) {
       /* The call looks like
@@ -3535,21 +3782,33 @@ A pointer to the expression created is returned.
          The runtime uses a cookie to determine the array size.  The
          delete routine is a two-argument version.
       */
-      call_node = make_runtime_rout_call("__cxa_vec_delete3",
-                                         &vec_delete3_routine, void_type(),
-                                         arg_expr_list);
+      dtor_addr_node->next = add_cast(delete_addr_node,
+                                      make_two_operand_delete_type());
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_delete3",
+                                                &vec_delete3_routine,
+                                                void_type(), void_star_type(),
+                                                size_t_type, size_t_type,
+                                                make_dtor_type(),
+                                                make_two_operand_delete_type(),
+                                                NULL, NULL, arg_expr_list);
     } else {
       /* The call looks like
            __cxa_vec_delete2(entity_node, size_elem, padding, dtor_addr_node,
                              delete_routine)
          The runtime uses a cookie to determine the array size.
       */
-      call_node = make_runtime_rout_call("__cxa_vec_delete2",
-                                         &vec_delete2_routine, void_type(),
-                                         arg_expr_list);
+      dtor_addr_node->next = delete_addr_node;
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_delete2",
+                                                    &vec_delete2_routine,
+                                                    void_type(),
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    make_dtor_type(),
+                                                    make_delete_type(), NULL,
+                                                    NULL, arg_expr_list);
     }  /* if */
   } /* if */
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
   return call_node;
 }  /* make_vec_delete_call */
 
@@ -3574,6 +3833,7 @@ to the expression created is returned.
 {
   an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
   an_expr_node_ptr func_addr_node, dtor_addr_node;
+  a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
 
   /* Build a node for the number of array elements. */
   num_elem_node = num_elem_node_if_array(ipdp);
@@ -3582,7 +3842,7 @@ to the expression created is returned.
   /* The num_elems parameter of __vec_cctor has type size_t, which
      is different than most of the similar routines. */
   num_elem_node = add_cast_if_necessary(num_elem_node,
-                                        integer_type(targ_size_t_int_kind));
+                                        size_t_type);
 #endif /* !IA64_ABI */
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
@@ -3598,18 +3858,34 @@ to the expression created is returned.
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
+  func_addr_node = add_cast_if_necessary(func_addr_node,
+                                         make_copy_ctor_type());
   size_elem_node->next = func_addr_node;
+  source_node = add_cast(source_node, void_star_type());
   func_addr_node->next = source_node;
   if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_cctor_eh call, with destructor. */
     dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     source_node->next = dtor_addr_node;
-    call_node = make_runtime_rout_call("__vec_cctor_eh", &vec_cctor_eh_routine,
-                                       void_type(), arg_expr_list);
+    call_node = make_prototyped_runtime_call_full("__vec_cctor_eh",
+                                                  &vec_cctor_eh_routine,
+                                                  void_type(),
+                                                  void_star_type(),
+                                                  size_t_type, size_t_type,
+                                                  make_copy_ctor_type(),
+                                                  void_star_type(),
+                                                  make_dtor_type(), NULL,
+                                                  arg_expr_list);
   } else {
     /* __vec_cctor call, without destructor. */
-    call_node = make_runtime_rout_call("__vec_cctor", &vec_cctor_routine,
-                                       void_type(), arg_expr_list);
+    call_node = make_prototyped_runtime_call_full("__vec_cctor",
+                                                  &vec_cctor_routine,
+                                                  void_type(),
+                                                  void_star_type(),
+                                                  size_t_type, size_t_type,
+                                                  make_copy_ctor_type(),
+                                                  void_star_type(), NULL, NULL,
+                                                  arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
   /* The call looks like
@@ -3618,13 +3894,20 @@ to the expression created is returned.
   */
   dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
   arg_expr_list = entity_node;
+  source_node = add_cast(source_node, make_copy_ctor_type());
   entity_node->next = source_node;
   source_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
   func_addr_node->next = dtor_addr_node;
-  call_node = make_runtime_rout_call("__cxa_vec_cctor", &vec_cctor_routine,
-                                     void_type(), arg_expr_list);
+  call_node = make_prototyped_runtime_call_full("__cxa_vec_cctor",
+                                                &vec_cctor_routine,
+                                                void_type(), void_star_type(),
+                                                void_star_type(), size_t_type,
+                                                size_t_type,
+                                                make_copy_ctor_type(),
+                                                make_dtor_type(), NULL,
+                                                arg_expr_list);
 #endif /* IA64_ABI */
   return call_node;
 }  /* make_vec_cctor_call */
@@ -6965,7 +7248,8 @@ code at *insert_location and update *insert_location accordingly.
   } else {
     object_node = alloc_node_for_constant(object_con);
   }  /* if */
-  dtor_node = alloc_node_for_constant(dtor_con);
+  dtor_node = add_cast(alloc_node_for_constant(dtor_con),
+                       make_cxa_dtor_type());
   if (dso_handle_var == NULL) {
     /* Make the hidden variable that identifies the current DSO, i.e. it
        discriminates between user code and dynamically loaded libraries. */
@@ -6983,15 +7267,20 @@ code at *insert_location and update *insert_location accordingly.
   /* Make a call of __cxa_atexit or __cxa_thread_atexit as appropriate.
      Their arguments are the expressions created above. */
   if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
-    call_node = make_runtime_rout_call("__cxa_thread_atexit", 
+    call_node = make_prototyped_runtime_call_full("__cxa_thread_atexit",
                                      &record_needed_thread_destruction_routine,
                                      integer_type((an_integer_kind)ik_int),
-                                     dtor_node);
+                                     make_cxa_dtor_type(), void_star_type(),
+                                     make_dso_handle_type(), NULL, NULL, NULL,
+                                     NULL, dtor_node);
   } else {
-    call_node = make_runtime_rout_call("__cxa_atexit", 
-                                       &record_needed_destruction_routine,
-                                       integer_type((an_integer_kind)ik_int),
-                                       dtor_node);
+    call_node = make_prototyped_runtime_call_full("__cxa_atexit",
+                                         &record_needed_destruction_routine,
+                                         integer_type((an_integer_kind)ik_int),
+                                         make_cxa_dtor_type(),
+                                         void_star_type(),
+                                         make_dso_handle_type(), NULL, NULL,
+                                         NULL, NULL, dtor_node);
   }  /* if */
 #else /* !IA64_ABI */
   implicit_cast(dtor_con, make_vptp_type());
@@ -7022,13 +7311,17 @@ code at *insert_location and update *insert_location accordingly.
      __record_needed_thread_destruction as appropriate.  Their argument is the
      address of the structure variable created above. */
   if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
-    call_node = make_runtime_rout_call("__record_needed_thread_destruction",
-                                     &record_needed_thread_destruction_routine,
-                                     void_type(), var_addr_expr(var));
+    call_node = make_prototyped_runtime_call(
+                             "__record_needed_thread_destruction",
+                             &record_needed_thread_destruction_routine,
+                             void_type(),
+                             make_pointer_type(make_needed_destruction_type()),
+                             NULL, var_addr_expr(var));
   } else {
-    call_node = make_runtime_rout_call("__record_needed_destruction",
-                                       &record_needed_destruction_routine,
-                                       void_type(), var_addr_expr(var));
+    call_node = make_prototyped_runtime_call("__record_needed_destruction",
+                             &record_needed_destruction_routine, void_type(),
+                             make_pointer_type(make_needed_destruction_type()),
+                             NULL, var_addr_expr(var));
   }  /* if */
 #endif /* IA64_ABI */
   /* Make a statement containing the call and insert it at the right
@@ -7323,15 +7616,18 @@ location is the insert_location2 value (after the assignment statement).
        initialized one doesn't pay the cost of calling the runtime
        routine. */
     an_expr_node_ptr acquire_node =
-      make_runtime_rout_call("__cxa_guard_acquire", &guard_acquire_routine,
-                             integer_type((an_integer_kind)ik_int),
-                             var_addr_expr(*test_var));
+            make_prototyped_runtime_call("__cxa_guard_acquire",
+                                         &guard_acquire_routine,
+                                         integer_type((an_integer_kind)ik_int),
+                                         make_pointer_type((*test_var)->type),
+                                         NULL, var_addr_expr(*test_var));
     an_insert_location outer_block_insert_location,
                        release_insert_location;
     an_expr_node_ptr release_node =
-       make_runtime_rout_call("__cxa_guard_release", &guard_release_routine,
-                             void_type(),
-                             var_addr_expr(*test_var));
+                     make_prototyped_runtime_call("__cxa_guard_release",
+                                         &guard_release_routine, void_type(),
+                                         make_pointer_type((*test_var)->type),
+                                         NULL, var_addr_expr(*test_var));
     /* Make the acquire call a boolean controlling expression. */
     acquire_node = boolean_controlling_expr(acquire_node);
     set_block_start_insert_location(outer_then, &outer_block_insert_location);
@@ -7641,20 +7937,28 @@ expression can be either an lvalue or rvalue and lvalueness is preserved.
       if (entity_size != class_type->size) {
         /* A class with tail padding.  Rewrite the copy as a memcpy call. */
         an_expr_node_ptr call_node;
+        a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
+        a_type_ptr       const_void_star = make_pointer_type(
+                                               make_qualified_type(void_type(),
+                                                                   TQ_CONST));
         check_assertion(entity_size != 0);
         op1->next = NULL;
         op1 = add_address_of_to_node(op1);
         op1 = add_cast(op1, void_star_type());
         /* op2 is an rvalue, but we need a pointer for the memcpy. */
         op2 = rvalue_pointer_for_class_rvalue(op2);
-        op2 = add_cast(op2, make_pointer_type(
-                                make_qualified_type(void_type(), TQ_CONST)));
+        op2 = add_cast(op2, const_void_star);
         op1->next = op2;
         op2->next = node_for_host_large_integer(
                                            (a_host_large_integer)entity_size,
                                            targ_size_t_int_kind);
-        call_node = make_runtime_rout_call("memcpy", &memcpy_routine,
-                                           void_star_type(), op1);
+        call_node = make_prototyped_runtime_call_full("memcpy",
+                                                      &memcpy_routine,
+                                                      void_star_type(),
+                                                      void_star_type(),
+                                                      const_void_star,
+                                                      size_t_type, NULL, NULL,
+                                                      NULL, NULL, op1);
         if (!expr->result_is_not_used) {
           /* Make sure the node has the correct type. */
           call_node = add_cast(call_node, make_pointer_type(expr->type));
@@ -7883,11 +8187,12 @@ entity_size_node.  Insert the code at *insert_location.
 */
 {
   an_expr_node_ptr memzero_call;
+  a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
 
   check_assertion(!entity_node->is_lvalue &&
                   is_pointer_type(entity_node->type));
   entity_size_node = add_cast_if_necessary(entity_size_node,
-                                           integer_type(targ_size_t_int_kind));
+                                           size_t_type);
 #if IA64_ABI
   /* We cannot rely on "__memzero"; the ABI does not provide this routine in
      the runtime library. */
@@ -7895,20 +8200,27 @@ entity_size_node.  Insert the code at *insert_location.
   entity_node = add_cast_if_necessary(entity_node, void_star_type());
   entity_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
   entity_node->next->next = entity_size_node;
-  memzero_call = make_runtime_rout_call("memset", &memzero_routine,
-                                        void_star_type(), entity_node);
+  memzero_call = make_prototyped_runtime_call_full("memset", &memzero_routine,
+                                         void_star_type(), void_star_type(),
+                                         integer_type((an_integer_kind)ik_int),
+                                         size_t_type, NULL, NULL, NULL, NULL,
+                                         entity_node);
 
 #else /* __BSD__ */
   entity_node = add_cast_if_necessary(entity_node, char_star_type());
   entity_node->next = entity_size_node;
-  memzero_call = make_runtime_rout_call("bzero", &memzero_routine,
-                                        void_type(), entity_node);
+  memzero_call = make_prototyped_runtime_call("bzero", &memzero_routine,
+                                        void_type(),
+                                        void_star_type(), size_t_type,
+                                        entity_node);
 #endif /* __BSD__ */
 #else /* !IA64_ABI */
   entity_node = add_cast_if_necessary(entity_node, void_star_type());
   entity_node->next = entity_size_node;
-  memzero_call = make_runtime_rout_call("__memzero", &memzero_routine,
-                                        void_type(), entity_node);
+  memzero_call = make_prototyped_runtime_call("__memzero", &memzero_routine,
+                                        void_type(),
+                                        void_star_type(), size_t_type,
+                                        entity_node);
 #endif /* !IA64_ABI */
   (void)insert_expr_statement(memzero_call, insert_location);
 }  /* insert_runtime_zeroing_call */
@@ -10118,7 +10430,7 @@ the position to insert the necessary code.
                       (a_statement_ptr *)NULL,
                       &then_insert_location,
                       (an_insert_location *)NULL);
-  call_node = make_runtime_rout_call(
+  call_node = make_prototyped_runtime_call(
 #if IA64_ABI
                                      "__cxa_throw_bad_array_new_length",
 #else /* !IA64_ABI */
@@ -10126,6 +10438,7 @@ the position to insert the necessary code.
 #endif /* IA64_ABI */
                                      &throw_bad_array_new_length_routine,
                                      void_type(),
+                                     NULL, NULL,
                                      (an_expr_node_ptr)NULL);
   insert_expr(call_node, &then_insert_location);
   release_local_constant(&zero_constant);
@@ -18433,6 +18746,10 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(cctor_ptr_type),
       pch_saved_var_array_elem(new_routine_ptr_type),
       pch_saved_var_array_elem(delete_routine_ptr_type),
+#if IA64_ABI
+      pch_saved_var_array_elem(two_operand_delete_routine_ptr_type),
+      pch_saved_var_array_elem(cxa_dtor_type),
+#endif /* IA64_ABI */
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
       pch_saved_var_array_elem(throw_bad_array_new_length_routine),
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
@@ -18500,6 +18817,10 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(cctor_ptr_type);
   register_trans_unit_variable(new_routine_ptr_type);
   register_trans_unit_variable(delete_routine_ptr_type);
+#if IA64_ABI
+  register_trans_unit_variable(two_operand_delete_routine_ptr_type);
+  register_trans_unit_variable(cxa_dtor_type);
+#endif /* IA64_ABI */
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
   register_trans_unit_variable(throw_bad_array_new_length_routine);
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
@@ -18577,6 +18898,10 @@ for each translation unit.
   throw_bad_array_new_length_routine = NULL;
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
   delete_routine_ptr_type = NULL;
+#if IA64_ABI
+  two_operand_delete_routine_ptr_type = NULL;
+  cxa_dtor_type = NULL;
+#endif /* IA64_ABI */
   aggregate_this_stack = NULL;
   ctor_init_this = NULL;
 #if USE_X86_FUNCTION_MULTIVERSIONING

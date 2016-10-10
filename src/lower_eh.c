@@ -392,6 +392,26 @@ Return TRUE if the given type is a typeinfo type created by IL lowering.
 #endif /* CHECKING */
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+a_type_ptr make_runtime_typeinfo_type(void)
+/*
+The type returned is suitable to use as the type of a typeinfo pointer
+parameter used by the runtime library.  In the IA-64 ABI, the type of the
+structure varies, so "const void *" is used.  make_typeinfo_type should be
+used for cases where a typeinfo variable is being created.
+*/
+{
+  a_type_ptr result;
+
+#if IA64_ABI
+  result = void_type();
+#else /* !IA64_ABI */
+  result = make_typeinfo_type(tik_implementation, NULL);
+#endif /* IA64_ABI */
+  result = make_pointer_type(make_qualified_type(result, TQ_CONST));
+  return result;
+}  /* make_runtime_typeinfo_type */
+
+
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- type is not used in all configurations. */
 #endif /* !IA64_ABI */
@@ -2460,6 +2480,10 @@ conversion in cases where their value is not used.
                                             void_type(),
                                             (a_type_ptr)NULL,
                                             (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL,
                                             (a_type_ptr)NULL);
       bad_typeid_expr = make_call_node(bad_typeid_routine,
                                        (an_expr_node_ptr)NULL);
@@ -2486,9 +2510,10 @@ conversion in cases where their value is not used.
                                        vptr_expr->type,
                                        test_node);
     /* Make the __get_typeid call. */
-    new_expr = make_runtime_rout_call("__get_typeid", &get_typeid_routine,
+    new_expr = make_prototyped_runtime_call("__get_typeid",
+                                 &get_typeid_routine,
                                  make_pointer_type(make_user_typeinfo_type()),
-                                      question_node);
+                                 pointer_to_vtbl_type(), NULL, question_node);
 #endif /* !IA64_ABI */
     new_expr = add_indirection_to_node(new_expr);
   }  /* if */
@@ -3619,6 +3644,10 @@ return a pointer to it.
                                              void_type(),
                                              (a_type_ptr)NULL,
                                              (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
                                              (a_type_ptr)NULL);
   return routine;
 }  /* make_destroy_exception_object_routine */
@@ -3750,6 +3779,10 @@ table entry.
                                                 &vla_dealloc_eh_routine,
                                                 void_type(),
                                                 void_star_type(),
+                                                (a_type_ptr)NULL,
+                                                (a_type_ptr)NULL,
+                                                (a_type_ptr)NULL,
+                                                (a_type_ptr)NULL,
                                                 (a_type_ptr)NULL,
                                                 (a_type_ptr)NULL);
     }  /* if */
@@ -5344,8 +5377,9 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   try_frame_setjmp_buffer = make_array_to_pointer_node(
                                                       try_frame_setjmp_buffer);
   /* Make the setjmp call. */
-  setjmp_call = make_runtime_rout_call("setjmp", &setjmp_routine,
+  setjmp_call = make_prototyped_runtime_call("setjmp", &setjmp_routine,
                                        integer_type((an_integer_kind)ik_int),
+                                       make_jmp_buf_type(), NULL,
                                        try_frame_setjmp_buffer);
   /* Generate the comparison against zero. */
   setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
@@ -5590,10 +5624,15 @@ be passed down.
     a_statement_ptr    block_stmt, call_stmt, goto_stmt;
     an_expr_node_ptr   call_node;
     an_insert_location block_insert_location;
-    call_node = make_runtime_rout_call("__suppress_optim_on_vars_in_try",
+    call_node = make_prototyped_runtime_call("__suppress_optim_on_vars_in_try",
                                        &suppress_optim_on_vars_in_try_routine,
                                        void_type(),
+                                       NULL, NULL,
                                        modified_var_arg_list);
+    /* This routine cannot have a prototype (unless is contains an ellipsis
+       because it takes a variable number of arguments). */
+    suppress_optim_on_vars_in_try_routine->
+                          type->variant.routine.extra_info->prototyped = FALSE;
     call_stmt = alloc_expr_statement(call_node);
     /* Add a block statement as the "else" of the last "if" for a catch
        handler. */
@@ -5642,8 +5681,10 @@ Make an expression that does a rethrow, and return a pointer to it.
 */
 {
   an_expr_node_ptr rethrow_node =
-                 make_runtime_rout_call("__rethrow", &rethrow_routine,
-                                        void_type(), (an_expr_node_ptr)NULL);
+                 make_prototyped_runtime_call("__rethrow", &rethrow_routine,
+                                        void_type(),
+                                        NULL, NULL,
+                                        (an_expr_node_ptr)NULL);
 
   rethrow_routine->type->variant.routine.extra_info->does_not_return = TRUE;
   return rethrow_node;
@@ -5658,9 +5699,11 @@ pointer to it.
 */
 {
   an_expr_node_ptr rethrow_node =
-                 make_runtime_rout_call("__internal_rethrow",
+                 make_prototyped_runtime_call("__internal_rethrow",
                                         &internal_rethrow_routine,
-                                        void_type(), (an_expr_node_ptr)NULL);
+                                        void_type(),
+                                        NULL, NULL,
+                                        (an_expr_node_ptr)NULL);
 
   internal_rethrow_routine->type
                           ->variant.routine.extra_info->does_not_return = TRUE;
@@ -5913,6 +5956,7 @@ Lower an enk_throw expression node.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   } else {
     /* Throw of an object. */
+    a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
     throw_type = tsp->type;
     lower_os_type(throw_type);
     throw_type = f_skip_typerefs(throw_type);
@@ -5982,8 +6026,14 @@ Lower an enk_throw expression node.
     /* Make the __throw_setup call. */
 #if !ABI_CHANGES_FOR_RTTI
     /* Old interface */
-    call_node = make_runtime_rout_call("__throw_alloc", &throw_setup_routine,
-                                       void_star_type(), typeinfo_node);
+    call_node = make_prototyped_runtime_call_full("__throw_alloc",
+                                         &throw_setup_routine,
+                                         void_star_type(),
+                                         make_runtime_typeinfo_type(),
+                                         size_t_type,
+                                         integer_type((an_integer_kind)ik_int),
+                                         char_star_type(), NULL, NULL, NULL,
+                                         typeinfo_node);
 #else /* ABI_CHANGES_FOR_RTTI */
 #if PASS_DTOR_POINTER_TO_THROW
     if (tsp->destructor != NULL) {
@@ -5996,26 +6046,37 @@ Lower an enk_throw expression node.
                                          /*define_now=*/FALSE);
 #endif /* IA64_ABI */
       /* coverity[uninit_use] */
-      flags_node->next = function_addr_expr(destructor);
-      call_node = make_runtime_rout_call("__throw_setup_dtor",
+      flags_node->next = add_cast(function_addr_expr(destructor),
+                                  make_dtor_type());
+      call_node = make_prototyped_runtime_call_full("__throw_setup_dtor",
                                          &throw_setup_dtor_routine,
-                                         void_star_type(), typeinfo_node);
+                                         void_star_type(),
+                                         make_runtime_typeinfo_type(),
+                                         size_t_type,
+                                         integer_type((an_integer_kind)ik_int),
+                                         make_dtor_type(), NULL, NULL, NULL,
+                                         typeinfo_node);
     } else
 #endif /* PASS_DTOR_POINTER_TO_THROW */
     /* Do not insert code here; this is the "else" of an "if". */
     {
       if (ptr_flags_var != NULL) {
         /* A multi-level pointer.  Use __throw_setup_ptr. */
-        call_node = make_runtime_rout_call("__throw_setup_ptr",
-                                           &throw_setup_ptr_routine,
-                                           void_star_type(),
-                                           typeinfo_node);
+        call_node = make_prototyped_runtime_call_full("__throw_setup_ptr",
+            &throw_setup_ptr_routine, void_star_type(),
+            make_runtime_typeinfo_type(), size_t_type,
+            make_pointer_type(integer_type((an_integer_kind)ik_unsigned_char)),
+            NULL, NULL, NULL, NULL, typeinfo_node);
       } else {
         /* Not a multi_level pointer. */
-        call_node = make_runtime_rout_call("__throw_setup",
-                                           &throw_setup_routine,
-                                           void_star_type(),
-                                           typeinfo_node);
+        call_node = make_prototyped_runtime_call_full("__throw_setup",
+                                         &throw_setup_routine,
+                                         void_star_type(),
+                                         make_runtime_typeinfo_type(),
+                                         size_t_type,
+                                         integer_type((an_integer_kind)ik_int),
+                                         NULL, NULL, NULL, NULL,
+                                         typeinfo_node);
       }  /* if */
     }  /* if */
 #endif /* !ABI_CHANGES_FOR_RTTI */
@@ -6025,8 +6086,10 @@ Lower an enk_throw expression node.
     assign_node = make_var_assignment_expr(temp_var, call_node);
     /* Make the call to the __throw routine, which actually does the
        throw.  It has no arguments. */
-    call_node = make_runtime_rout_call("__throw", &throw_routine,
-                                       void_type(), (an_expr_node_ptr)NULL);
+    call_node = make_prototyped_runtime_call("__throw", &throw_routine,
+                                       void_type(),
+                                       NULL, NULL,
+                                       (an_expr_node_ptr)NULL);
     throw_routine->type->variant.routine.extra_info->does_not_return = TRUE;
     /* Overwrite the original node with a comma expression joining the
        __throw_setup and __throw expressions:

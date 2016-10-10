@@ -11262,18 +11262,44 @@ has already been lowered.
     /* Generate the proper call. */
 #if !IA64_ABI
     if (reference_case) {
-      call_node = make_runtime_rout_call("__dynamic_cast_ref",
-                                         &dynamic_cast_ref_routine,
-                                         void_star_type(),
-                                         src_copy);
+      a_type_ptr param3_type = NULL, param4_type = NULL;
+#if ABI_COMPATIBILITY_VERSION >= 241
+      param3_type = void_star_type();
+      param4_type = static_type_node->type;
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+      call_node = make_prototyped_runtime_call_full("__dynamic_cast_ref",
+                                                    &dynamic_cast_ref_routine,
+                                                    void_star_type(),
+                                                    void_star_type(),
+                                                    pointer_to_vtbl_type(),
+                                                    desired_type_node->type,
+                                                    param3_type, param4_type,
+                                                    NULL, NULL, src_copy);
     } else 
 #endif /* !IA64_ABI */
     /* Do not add code here. */
     {
-      call_node = make_runtime_rout_call("__dynamic_cast",
-                                         &dynamic_cast_routine,
-                                         void_star_type(),
-                                         src_copy);
+      a_type_ptr param2_type, param3_type, param4_type = NULL;
+      a_type_ptr param5_type = NULL;
+#if IA64_ABI
+      param2_type = make_runtime_typeinfo_type();
+      param3_type = make_runtime_typeinfo_type();
+      param4_type = integer_type(targ_ptrdiff_t_int_kind);
+#else /* !IA64_ABI */
+      param2_type = pointer_to_vtbl_type();
+      param3_type = make_runtime_typeinfo_type();
+#if ABI_COMPATIBILITY_VERSION >= 241
+      param4_type = void_star_type();
+      param5_type = make_runtime_typeinfo_type();
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+#endif /* IA64_ABI */
+      call_node = make_prototyped_runtime_call_full("__dynamic_cast",
+                                                    &dynamic_cast_routine,
+                                                    void_star_type(),
+                                                    void_star_type(),
+                                                    param2_type, param3_type,
+                                                    param4_type, param5_type,
+                                                    NULL, NULL, src_copy);
     }  /* if */
 #if IA64_ABI
     if (reference_case) {
@@ -11284,9 +11310,10 @@ has already been lowered.
       call_copy = make_reusable_copy(call_node, /*vars_can_change=*/FALSE);
       call_copy = add_cast_if_necessary(call_copy, ptr_type);
       /* Build "__cxa_bad_cast()" */
-      bad_cast_node = make_runtime_rout_call("__cxa_bad_cast",
+      bad_cast_node = make_prototyped_runtime_call("__cxa_bad_cast",
                                              &bad_cast_routine,
                                              void_type(),
+                                             NULL, NULL,
                                              (an_expr_node_ptr)NULL);
       make_zero_of_proper_type(ptr_type, constant);
       bad_cast_node = make_comma_node(bad_cast_node,

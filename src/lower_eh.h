@@ -28,6 +28,8 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 #include "lower_il.h"
 #endif /* ifndef LOWER_IL_H */
 
+extern a_type_ptr make_runtime_typeinfo_type(void);
+
 extern a_type_ptr make_typeinfo_type(a_type_info_kind kind, 
                                      a_type_ptr       type);
 

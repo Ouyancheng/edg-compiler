@@ -900,6 +900,14 @@ extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
 
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
+extern a_type_ptr make_routine_type_full(a_type_ptr        return_type,
+                                         a_type_ptr        param1_type,
+                                         a_type_ptr        param2_type,
+                                         a_type_ptr        param3_type,
+                                         a_type_ptr        param4_type,
+                                         a_type_ptr        param5_type,
+                                         a_type_ptr        param6_type,
+                                         a_type_ptr        param7_type);
 extern a_type_ptr make_routine_type(a_type_ptr        return_type,
                                     a_type_ptr        param1_type,
                                     a_type_ptr        param2_type,

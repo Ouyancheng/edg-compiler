@@ -8396,11 +8396,14 @@ to it.  *decl_position is used for issuing diagnostics.
 }  /* make_param_type */
 
 
-a_type_ptr make_routine_type(a_type_ptr        return_type,
-                             a_type_ptr        param1_type,
-                             a_type_ptr        param2_type,
-                             a_type_ptr        param3_type,
-                             a_type_ptr        param4_type)
+a_type_ptr make_routine_type_full(a_type_ptr        return_type,
+                                  a_type_ptr        param1_type,
+                                  a_type_ptr        param2_type,
+                                  a_type_ptr        param3_type,
+                                  a_type_ptr        param4_type,
+                                  a_type_ptr        param5_type,
+                                  a_type_ptr        param6_type,
+                                  a_type_ptr        param7_type)
 /*
 Create a routine type with the given return type (which cannot be NULL) and
 the given parameter types (which may be NULL).
@@ -8432,6 +8435,24 @@ the given parameter types (which may be NULL).
           ptp = ptp->next;
           ptp->next = make_param_type(param4_type, np);
           ptp->next->param_num = 4;
+          /* Set the fifth parameter, if any. */
+          if (param5_type != NULL) {
+            ptp = ptp->next;
+            ptp->next = make_param_type(param5_type, np);
+            ptp->next->param_num = 5;
+            /* Set the sixth parameter, if any. */
+            if (param6_type != NULL) {
+              ptp = ptp->next;
+              ptp->next = make_param_type(param6_type, np);
+              ptp->next->param_num = 6;
+              /* Set the seventh parameter, if any. */
+              if (param7_type != NULL) {
+                ptp = ptp->next;
+                ptp->next = make_param_type(param7_type, np);
+                ptp->next->param_num = 7;
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8439,6 +8460,21 @@ the given parameter types (which may be NULL).
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type, np);
   return rout_type;
+}  /* make_routine_type_full */
+
+
+a_type_ptr make_routine_type(a_type_ptr        return_type,
+                             a_type_ptr        param1_type,
+                             a_type_ptr        param2_type,
+                             a_type_ptr        param3_type,
+                             a_type_ptr        param4_type)
+/*
+Wrapper for make_routine_type_full above.
+*/
+{
+  return make_routine_type_full(return_type, param1_type, param2_type,
+                                param3_type, param4_type, NULL,
+                                NULL, NULL);
 }  /* make_routine_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
