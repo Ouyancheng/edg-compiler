@@ -9357,9 +9357,6 @@ static void init_new_c_predefined_macros(void)
 Enter symbols for the predefined macros in C99 and later revisions.
 */
 {
-  /* Predefine the C99 __STDC_HOSTED__ macro based on the STDC_HOSTED
-     configuration flag. */
-  enter_predef_num_macro_noredef(STDC_HOSTED, "__STDC_HOSTED__");
 #if STDC_IEC_559
   (void)enter_predef_macro("1", "__STDC_IEC_559__",
                            /*cannot_be_redefined=*/TRUE,
@@ -9931,6 +9928,12 @@ command line -D options.
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
+  /* Predefine the __STDC_HOSTED__ macro based on the STDC_HOSTED
+     configuration flag.  Strictly speaking, this only needs to be defined
+     in C99 and later C modes and C++11 and later C++ modes, but define it
+     (to the value of STDC_HOSTED) in all cases since some header files may
+     look for it. */
+  enter_predef_num_macro_noredef(STDC_HOSTED, "__STDC_HOSTED__");
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus
      can be redefined as this is needed in some environments.  In Microsoft
@@ -9984,11 +9987,6 @@ command line -D options.
       (void)enter_predef_macro("1", "c_plusplus",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
-    }  /* if */
-    if (cpp11_mode) {
-      /* Predefine the __STDC_HOSTED__ macro based on the STDC_HOSTED
-         configuration flag. */
-      enter_predef_num_macro_noredef(STDC_HOSTED, "__STDC_HOSTED__");
     }  /* if */
     if (report_embedded_cplusplus_noncompliance) {
       /* Define a macro indicating this is an Embedded C++ application. */

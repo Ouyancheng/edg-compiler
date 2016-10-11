@@ -1,5 +1,13 @@
 Version 4.13
 
+10/11/16 [EDGcpfe/17528]
+Predefine __STDC_HOSTED__ in all modes
+
+Previously the __STDC_HOSTED__ macro had only been defined in C99 and later
+C modes and C++11 and later C++ modes.  The macro is now defined in all cases
+(to the value of the STDC_HOSTED configuration macro).
+
+
 10/10/16 [EDGcpfe/17482]
 Prototyping of library routines used by lowering
 
