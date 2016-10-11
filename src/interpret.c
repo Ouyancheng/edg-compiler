@@ -3820,22 +3820,30 @@ Evaluate the given dynamic initialization for the given storage.
 
   switch (dip->kind) {
     case dik_nonconstant_aggregate:
-      { /* Set up a "this" pointer in case we run into enk_param_ref nodes.
-           It is associated with &ips->curr_call_frame. */
-        a_constant_ptr  con = dip->variant.constant;
-        a_type_ptr      this_type = make_pointer_type(con->type);
+      { a_constant_ptr  con = dip->variant.constant;
+        a_type_ptr      con_type = skip_typerefs(con->type);
         a_byte          *this_bytes;
-        alloc_complete_object(ips, sizeof(a_constexpr_address), this_type,
-                             this_bytes);
-        clear_address(this_bytes, result_storage);
-        ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
-        ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+        if (is_immediate_class_type(con_type)) {
+          /* Set up a "this" pointer in case we run into enk_param_ref nodes.
+             It is associated with &ips->curr_call_frame. */
+          a_type_ptr  this_type = make_pointer_type(con_type);
+          alloc_complete_object(ips, sizeof(a_constexpr_address), this_type,
+                               this_bytes);
+          clear_address(this_bytes, result_storage);
+          ((a_constexpr_address *)this_bytes)->complete_object =
+                                                              complete_object;
+          ((a_constexpr_address *)this_bytes)->alloc_seq_number =
                                                    ips->curr_alloc_seq_number;
-        mark_complete_object_initialized(this_bytes);
-        map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+          mark_complete_object_initialized(this_bytes);
+          map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+        } else {
+          this_bytes = NULL;
+        }  /* if */
         result = copy_val_from_constant(ips, dip->variant.constant,
                                         result_storage, complete_object);
-        unmap_stack_bytes(ips, &ips->curr_call_frame);
+        if (this_bytes != NULL) {
+          unmap_stack_bytes(ips, &ips->curr_call_frame);
+        }  /* if */
       }
       break;
     case dik_constant:
