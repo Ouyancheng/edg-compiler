@@ -5629,8 +5629,8 @@ be passed down.
                                        void_type(),
                                        NULL, NULL,
                                        modified_var_arg_list);
-    /* This routine cannot have a prototype (unless is contains an ellipsis
-       because it takes a variable number of arguments). */
+    /* This routine must be treated as unprototyped because it takes a variable
+       number of arguments. */
     suppress_optim_on_vars_in_try_routine->
                           type->variant.routine.extra_info->prototyped = FALSE;
     call_stmt = alloc_expr_statement(call_node);
