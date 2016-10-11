@@ -5956,7 +5956,9 @@ Lower an enk_throw expression node.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   } else {
     /* Throw of an object. */
+#if DO_FULL_PORTABLE_EH_LOWERING
     a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
     throw_type = tsp->type;
     lower_os_type(throw_type);
     throw_type = f_skip_typerefs(throw_type);
