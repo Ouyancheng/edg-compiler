@@ -32,7 +32,7 @@ pointer values now produces a zero result, as required by the standard.
 10/10/16 [EDGcpfe/17593]
 Spurious constexpr evaluation failure when accessing certain subobjects
 
-The C++14 interpreter keeps track for which parts of an object have been
+The C++14 interpreter keeps track of which parts of an object have been
 initialized, and attempting to access an uninitialized part of an object during
 constexpr evaluation causes that evaluation to fail (possibly eliciting an
 error later on).  A bug in the interpreter caused it to fail to mark subobjects
