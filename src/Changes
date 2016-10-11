@@ -1,5 +1,24 @@
 Version 4.13
 
+10/11/16 [EDGcpfe/17603]
+Abort on certain constexpr evaluations of default member initializers
+
+In some cases, default member initializers involving a std::initializer_list
+instance could trigger memory corruption in the C++14 constexpr interpreter,
+often leading to aborts.  For example:
+
+  #include <initializer_list>
+  typedef std::initializer_list<int const> &&L;
+  struct X {
+    int x;
+    X(): x(1) {}
+    L y = { x, 2, 3 };
+    L z = { 4, y.begin()[1] };  // Previously could trigger an abort on
+  };                            // some platforms.
+
+This is now fixed.
+
+
 10/11/16 [EDGcpfe/17528]
 Predefine __STDC_HOSTED__ in all modes
 
