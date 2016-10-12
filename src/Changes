@@ -1,5 +1,24 @@
 Version 4.13
 
+10/12/16 [EDGcpfe/17613]
+Array binding failure in C++14 constexpr interpreter
+
+The C++14 constexpr interpreter previously failed to handle binding an array
+to a reference to array parameter if the reference includes added type
+qualifiers.  For example:
+
+  using A = int[2];
+  constexpr bool f(A const&) { return true; }
+  constexpr bool g() {
+    A x = { 1, 2 };
+    return f(x);  // The parameter bound to x adds a "const" qualifier.
+  }               // Previously, this caused interpretation to fail.
+  constexpr bool r = g();  // Previously triggered an error because the call
+                           // to g() did not produce a constant.  Now okay.
+
+This is now fixed.
+
+
 10/11/16 [EDGcpfe/17603]
 Abort on certain constexpr evaluations of default member initializers
 

@@ -6270,7 +6270,7 @@ the value representation of the integer value.
                later "decayed" to a pointer-to-function type (to match the
                expectations of a parent node); that case is valid, too. */
             if (expr->variant.operation.is_reinterpret_cast ||
-                (tp != opnd1_type &&
+                (!identical_types_ignoring_qualifiers(tp, opnd1_type) &&
                  !(opnd1_type->kind == (a_type_kind)tk_routine &&
                    tp->kind == (a_type_kind)tk_pointer &&
                    skip_typerefs(tp->variant.pointer.type) == opnd1_type))) {
