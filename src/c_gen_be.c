@@ -7589,7 +7589,21 @@ block with state information for the processing.
       start_initializer_constants(icbp);
       if (constant == NULL) {
         /* Initialize to zero. */
-        write_tok_ch('0');
+#if GNU_VECTOR_TYPES_ALLOWED
+        if (is_vector_type(type)) {
+          a_targ_size_t i;
+          write_tok_ch('{');
+          for (i = num_vector_elements(type); i > 0; i--) {
+            write_tok_ch('0');
+            if (i != 1) write_tok_ch(',');
+          }  /* for */
+          write_tok_ch('}');
+        } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+        /* Do not insert code here. */
+        {
+          write_tok_ch('0');
+        }  /* if */
       } else if (constant->kind == (a_constant_repr_kind)ck_string &&
                  !is_normal_character_kind(constant->character_kind)) {
         /* If the initial value is a wide string constant, the string must
@@ -8025,6 +8039,9 @@ rendered as executable code.
   a_boolean  gen_assignments = FALSE;
   an_init_control_block
              icb;
+#if GNU_VECTOR_TYPES_ALLOWED
+  a_type_ptr saved_type = NULL;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
   if (!gen_assignments) {
@@ -8045,9 +8062,30 @@ rendered as executable code.
   /* Set flags to indicate that nothing (either constant or executable) has
      been put out yet for this initializer. */
   clear_initialization_flags(&icb);
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (constant != NULL &&
+      variable->type != constant->type &&
+      gcc_is_generated_code_target &&
+      is_vector_type(constant->type)) {
+    /* GCC doesn't allow an initialization of a variable with vector type
+       to a vector constant with a cast where the cast is not identical to the
+       variable's type (not even a typedef).  form_constant always emits
+       an explicit cast on any constant with vector type, so temporarily set
+       the constant's type to that of the variable to ensure the cast will
+       be accepted by the GCC back end (clang back ends accept this). */
+    check_assertion(is_vector_type(variable->type));
+    saved_type = constant->type;
+    constant->type = variable->type;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Generate the initialization (constants and/or assignments). */
   dump_initializer_part(variable, type, constant, &gen_assignments,
                         (a_gen_init_pos_descr_ptr)NULL, &icb);
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (saved_type != NULL) {
+    constant->type = saved_type;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* If any assignments were generated, do any wrapup required. */
   end_initializer_assignments(variable, &icb);
 }  /* dump_initializer */

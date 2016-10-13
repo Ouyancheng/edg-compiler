@@ -1,5 +1,21 @@
 Version 4.13
 
+10/13/16 [EDGcpfe/17347,EDGcpfe/17348,EDGcpfe/17549]
+GNU compatibility: Lowering now re-writes individual vector elements
+
+Prior to the changes for EDGcpfe/14580, the IL didn't have the capability to
+address individual vector elements, so lowering of vector elements was limited.
+Lowering now uses the eok_vector_subscript operation to enable assignment to
+vector elements as needed.  The following example (with --c++11 --g++) had
+failed an assertion check and now generates valid lowered IL:
+
+  struct A {
+    int __attribute__((vector_size(8))) m;
+    A(int x) : m{x,x} {};
+  };
+  A a(1);
+
+
 10/13/16 [EDGcpfe/17612]
 C++14 constexpr: Internal error in find_subobject_for_interpreter_address
 
