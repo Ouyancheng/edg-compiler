@@ -11858,9 +11858,7 @@ enum an_expr_node_kind_tag {
 #endif /* GNU_EXTENSIONS_ALLOWED */
   enk_reuse_value,	/* Reuse a value computed elsewhere in the current
 			   expression tree.  Used for cases where a single
-			   expression is used twice but evaluated only once
-			   (all of them extensions in GNU or Microsoft mode).
-			   Eliminated by IL lowering. */
+			   expression is used twice but evaluated only once. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception

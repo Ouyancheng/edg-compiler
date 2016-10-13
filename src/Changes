@@ -1,5 +1,20 @@
 Version 4.13
 
+10/12/16 [EDGcpfe/17614]
+Microsoft-style std::initializer_list and C++14 constexpr interpreter
+
+The <initializer_list> implementation that ships with the front end includes
+a constructor that produces a std::initializer_list object from a pointer to
+the underlying array and the length of that array (this is also what GCC and
+Clang implementations use).  The front end can also handle an alternative
+std::initializer_list constructor which takes a pointer to the same array and
+another pointer one position past the last element of that array (this is what
+the Microsoft compiler uses; see the entry of 5/30/13 for EDGcpfe/14088).
+However, the C++14 interpreter did not correctly handle the latter alternative
+(it never produced a constant std::initializer_list object in that case).  That
+is now fixed.
+
+
 10/12/16 [EDGcpfe/17073]
 C++-generating back end: pointers to members of lambda closure classes
 

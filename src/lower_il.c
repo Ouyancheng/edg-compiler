@@ -13978,11 +13978,13 @@ operand, the bit after that corresponding to the second operand, etc.
 
 void lower_reuse_value_expr(an_expr_node_ptr expr)
 /*
-Lower an enk_reuse_value expression, used to indicate a reuse of a
-value previously computed elsewhere in the current expression.
-This is used for some nonstandard extensions (e.g., the GNU
-two-operand "?") that use an expression twice but evaluate
-it only once.
+Lower an enk_reuse_value expression, used to indicate a reuse of a value
+previously computed elsewhere in the current expression.  This is used for
+some nonstandard extensions (e.g., the GNU two-operand "?") that use an
+expression twice but evaluate it only once, as well as for certain generated
+calls of a std::initializer_list constructor (when, as is the case with the
+Microsoft implementation, that constructor takes two pointers delimiting the
+underlying array).
 */
 {
   a_dynamic_init_ptr dip = expr->variant.reused_value_init;

@@ -5618,7 +5618,25 @@ the body of the (constructor) function proper.
             arg->is_xvalue = FALSE;
           }  /* if */
         }  /* if */
-        if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
+        if (arg == args->next &&
+            class_type_supp(class_type)->is_initializer_list &&
+            is_operation_node(arg) && node_operator_is(arg, eok_padd) &&
+            arg->variant.operation.operands->kind ==
+                                         (an_expr_node_kind)enk_reuse_value) {
+          /* The interpreter does not generally handle enk_reuse_value nodes.
+             There is only one standard use for them and that is in some
+             invocations of the std::initializer_list constructor: That use is
+             handled as a special case here. */
+          /* The first argument is the address of an array (and has been
+             evaluated already).  The second argument represents the address
+             one position past the end of that array. */
+          a_constexpr_address  *arg1, *arg2;
+          arg1 = (a_constexpr_address*)p_arg_ptr[-2];
+          arg2 = (a_constexpr_address*)p_arg_ptr[-1];
+          *arg2 = *arg1;
+          check_assertion(is_array_element(arg2));
+          arg2->address += arg2->length;
+        } else if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
         mark_complete_object_initialized(arg_bytes);
