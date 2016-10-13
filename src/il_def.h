@@ -11858,7 +11858,13 @@ enum an_expr_node_kind_tag {
 #endif /* GNU_EXTENSIONS_ALLOWED */
   enk_reuse_value,	/* Reuse a value computed elsewhere in the current
 			   expression tree.  Used for cases where a single
-			   expression is used twice but evaluated only once. */
+			   expression is used twice but evaluated only once.
+			   In standard C++, this is only used for certain
+			   calls to a std::initializer_list constructor (and
+			   that is the only case handled by the C++14
+			   constexpr interpreter).  All other uses are for
+			   extensions such as GNU two-operand "?:" operator.
+			   Eliminated by IL lowering. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception
