@@ -2874,6 +2874,7 @@ ec_must_introduce_attribute;;"two consecutive left square brackets can only intr
 ec_invalid_target_attribute;;"unrecognized \"target\" attribute disqualifies this routine from being used by resolver routine"
 ec_vector_type_required;;"%t is not a vector type"
 ec_vector_types_differ_in_length;;"vector types %t1 and %t2 must have the same length"
+ec_member_special_after_class_definition;;"default arguments cannot be added to a constructor after its class definition if doing so makes it a default constructor or copy constructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

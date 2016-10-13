@@ -2135,15 +2135,22 @@ member declaration (allowed in some Microsoft modes only).
          be that this has not yet been recorded in the symbol.  (This becomes
          possible if there are default arguments in the definition.) */
       a_class_symbol_supplement_ptr  cssp;
-      cssp = symbol_supplement_for_class(class_type);
+      cssp = class_symbol_supp(symbol_for(class_type));
       if (!cssp->has_nontrivial_default_constructor &&
           is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
         /* This is a default constructor, so set the flag. */
         cssp->has_nontrivial_default_constructor = TRUE;
+        if (cpp14_mode) {
+          /* The resolution of Core issue 1344 makes it invalid to produce a
+             special member by adding default arguments to an out-of-class
+             definition. */
+          pos_error(ec_member_special_after_class_definition,
+                    &locator->source_position);
+        }  /* if */
       }  /* if */
-      /* There are three flags associated with copy constructors. */
       if (!cssp->has_copy_constructor_for_const_object ||
           cssp->construction_by_bitwise_copy_allowed) {
+        /* There are three flags associated with copy constructors. */
         a_type_qualifier_set  qualifiers;
         if (is_copy_constructor(rp, class_type, &qualifiers,
                                 /*include_move_ctors=*/TRUE,
@@ -2155,6 +2162,13 @@ member declaration (allowed in some Microsoft modes only).
           cssp->has_copy_constructor_for_const_object =
                                             ((qualifiers & TQ_CONST) != 0);
           cssp->construction_by_bitwise_copy_allowed = FALSE;
+          if (cpp14_mode) {
+            /* The resolution of Core issue 1344 makes it invalid to produce a
+               special member by adding default arguments to an out-of-class
+               definition. */
+            pos_error(ec_member_special_after_class_definition,
+                      &locator->source_position);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
