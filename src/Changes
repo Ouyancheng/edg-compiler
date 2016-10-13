@@ -1,5 +1,14 @@
 Version 4.13
 
+10/13/16 [EDGcpfe/14942,EDGcpfe/17618]
+GNU compatibility: Accept __final as a synonym for "final"
+
+In g++ emulation mode when gnu_version >= 40700, the __final keyword is
+now accepted as a synonym for "final".  For example (with --gnu_version 40700):
+
+  struct A __final {};
+
+
 10/13/16 [EDGcpfe/17621]
 Assertion failure when attribute is applied to variable template
 

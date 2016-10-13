@@ -175,8 +175,10 @@ Macro that is TRUE when class modifiers (denoted by context-sensitive keywords
 */
 #define class_modifiers_allowed()                                           \
   (cpp11_mode ||                                                            \
-   (!C_mode() && ms_extensions &&                                           \
-    (microsoft_version >= 1400 || cli_or_cx_enabled)))
+   (!C_mode() &&                                                            \
+    ((ms_extensions &&                                                      \
+      (microsoft_version >= 1400 || cli_or_cx_enabled)) ||                  \
+     (gnu_mode && gnu_version >= 40700))))
     
 extern void check_for_class_modifiers(a_token_kind  *next_tok,
                                       a_token_kind  body_start,

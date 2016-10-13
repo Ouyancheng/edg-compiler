@@ -991,6 +991,9 @@ Install the keywords in the symbol table.
     if (gnu_version >= 40700) {
       enter_keyword((a_token_kind)tok_bases, "__bases");
       enter_keyword((a_token_kind)tok_direct_bases, "__direct_bases");
+      if (!C_mode()) {
+        enter_keyword((a_token_kind)tok_final, "__final");
+      }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
