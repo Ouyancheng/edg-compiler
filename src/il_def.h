@@ -11863,7 +11863,7 @@ enum an_expr_node_kind_tag {
 			   calls to a std::initializer_list constructor (and
 			   that is the only case handled by the C++14
 			   constexpr interpreter).  All other uses are for
-			   extensions such as GNU two-operand "?:" operator.
+			   extensions such as GCC's two-operand "?:" operator.
 			   Eliminated by IL lowering. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
