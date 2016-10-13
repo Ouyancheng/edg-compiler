@@ -2373,12 +2373,22 @@ if the constraint list from parameters from list2 is empty.
     if ((!ignore_empty_gclist2 || gclist2 != NULL) &&
         !equivalent_generic_constraint_lists(gclist1, gclist2,
                                              p_mismatch_in_list1)) {
-      result = FALSE;
-      /* If we are not issuing errors, we can stop at the first mismatch. */
-      if (!issue_error) break;
-      pos2_ty_diagnostic(es_error, ec_constraint_mismatch,
-                         &tpp2->param_symbol->decl_position,
-                         &tpp1->param_symbol->decl_position, generic_param2);
+      if (scanning_generated_code_from_metadata) {
+        /* In some cases the constraint from the initial declaration cannot
+           be processed correctly.  For example, if the constraint is A<T>::B
+           on the declaration of A where B is not yet known.  If there is
+           a mismatch from metadata, take the later constraint list. */
+        generic_param1->variant.template_param.extra_info->
+                                                 generic_constraints = gclist2;
+        
+      } else {
+        result = FALSE;
+        /* If we are not issuing errors, we can stop at the first mismatch. */
+        if (!issue_error) break;
+        pos2_ty_diagnostic(es_error, ec_constraint_mismatch,
+                           &tpp2->param_symbol->decl_position,
+                           &tpp1->param_symbol->decl_position, generic_param2);
+      }  /* if */
     }  /* if */
   }  /* for */
   return result;
@@ -27321,7 +27331,7 @@ of the list.
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     /* Constraint checks will be done when the cache is rescanned later. */
     begin_deferral_of_constraint_checks();
-    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    (void)is_generalized_identifier_start(GID_IS_CPPCLI_CONSTRAINT);
     end_caching_fetched_tokens();
     last_tsn = last_token_sequence_number_of_token;
     switch (curr_token) {
@@ -27329,7 +27339,7 @@ of the list.
         /* A type name constraint.  Look up the name and make sure it is
            a type. */
         sym = coalesce_and_lookup_generalized_identifier(
-                                            GID_NO_OPTIONS, ilm_normal, &err);
+                                   GID_IS_CPPCLI_CONSTRAINT, ilm_normal, &err);
         if (sym != NULL) {
           record_potential_pack_reference(
                                     sym, &locator_for_curr_id.source_position);

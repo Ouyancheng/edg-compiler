@@ -192,6 +192,8 @@ typedef int an_identifier_options_set;
 			   argument list context. */
 #define GID_IS_BASE_CLASS 0x1000000
 			/* TRUE when scanning a base class specifier. */
+#define GID_IS_CPPCLI_CONSTRAINT 0x2000000
+			/* TRUE when scanning C++/CLI generic constraint. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

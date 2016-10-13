@@ -1,5 +1,15 @@
 Version 4.13
 
+10/13/16 [EDGcpfe/17095]
+Microsoft compatibility: abort importing C++/CLI type with nested constraint
+
+The front end could abort (as a result of unbound recursion) when importing
+a type with a constraint that referred to a nested class of the containing
+type.  Now fixed.  Such a type can't be written in C++, but can be written
+in C#.  The C# definition would be of the form:
+  class A<T> where T : A<T>.B { class B { } }
+
+
 10/13/16 [EDGcpfe/14942,EDGcpfe/17618]
 GNU compatibility: Accept __final as a synonym for "final"
 

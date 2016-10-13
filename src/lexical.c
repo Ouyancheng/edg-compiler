@@ -20376,7 +20376,20 @@ See also coalesce_and_lookup_generalized_identifier.
                a class/struct/union type is needed because the type may
                also be a template parameter type. */
             okay = FALSE;
-            if (!in_if_exists) {
+            if (in_if_exists) {
+              /* An incomplete type is silently ignored in this cases. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (scanning_generated_code_from_metadata &&
+                       (options & GID_IS_CPPCLI_CONSTRAINT) != 0 &&
+                        qualifier_type->variant.class_struct_union.
+                                                    is_open_constructed_type) {
+              /* In some C++/CLI cases the constraint from the initial
+                 declaration cannot be processed correctly.  For example,
+                 if the constraint is A<T>::B on the declaration of A where
+                 B is not yet known.  We ignore the error here.  The
+                 constraint from the later declaration will be used. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            } else {
               pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
             }  /* if */
           } else {
@@ -21903,7 +21916,7 @@ C++/CLI delegate class types.)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   class_sym = symbol_for(class_type);
-  if (class_type->incomplete) {
+  if (class_type->incomplete && !class_type->definition_pending) {
     if (ctsp->assembly_scope_index != 0 &&
         ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
@@ -21935,6 +21948,7 @@ C++/CLI delegate class types.)
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  class_type->definition_pending = TRUE;
   class_sym_for_context = class_sym;
   /* The template instantiation scope stack management infrastructure is used
      to reestablish the context in which the tokens of the class definition
@@ -22072,6 +22086,7 @@ C++/CLI delegate class types.)
                                                   /*for_instantiation=*/TRUE);
     (void)get_token();
   }  /* if */
+  class_type->definition_pending = FALSE;
   non_local_class_fixup_depth = saved_non_local_class_fixup_depth;
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
