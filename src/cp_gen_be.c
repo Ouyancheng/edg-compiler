@@ -17326,6 +17326,21 @@ this one is such a continuation.
     adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
   var->declaration_has_been_put_out = TRUE;
+  if (var->declared_with_auto_type_specifier &&
+      is_immediate_class_type(var->type) &&
+      var->type->variant.class_struct_union.extra_info->
+                                                     is_lambda_closure_class) {
+    /* The type of the variable is an unnamed closure class.  If a
+       pointer-to-member referring to a member of that class is formed
+       using a decltype construct, e.g., &decltype(v)::operator(), we need
+       a way to refer to the closure type, so put out a typedef for it now
+       while we still have access to the variable. */
+    write_tok_str("typedef decltype(");
+    gen_unqualified_name(&var->source_corresp, (an_il_entry_kind)iek_variable);
+    write_tok_str(") ");
+    gen_temp_name((char *)var->type);
+    write_tok_ch(';');
+  }  /* if */
 }  /* gen_variable_decl */
 
 

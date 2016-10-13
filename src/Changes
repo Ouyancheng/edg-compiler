@@ -1,5 +1,29 @@
 Version 4.13
 
+10/12/16 [EDGcpfe/17073]
+C++-generating back end: pointers to members of lambda closure classes
+
+In C++-generating back end configurations, the front end previously
+produced uncompilable code for a pointer-to-member expression in which the
+class of the member is a lambda closure class: because the closure class is
+unnamed, the qualifier for the member name was generated as an undeclared
+temporary name (a name of the form __T12345678).  This has now been fixed;
+whenever a variable is declared with the auto specifier to have a lambda
+closure class type, a typedef is emitted using a decltype specifier to
+declare the temporary name that would be used in a subsequent
+pointer-to-member expression.  For example, with --c++11:
+
+  void f() {
+    auto l = [] { };
+    decltype(&decltype(l)::operator()) pmf;
+  }
+
+This is now generated as:
+
+    auto l = [] { }; typedef decltype(l) __T12345678;
+    decltype(&__T12345678::operator()) pmf;
+
+
 10/12/16 [EDGcpfe/17613]
 Array binding failure in C++14 constexpr interpreter
 
