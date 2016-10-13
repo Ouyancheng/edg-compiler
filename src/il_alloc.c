@@ -2158,10 +2158,10 @@ variant fields to default values.
   pte->type_processed_for_ordering = FALSE;
   pte->type_processed_as_complete_for_ordering = FALSE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
+  pte->definition_pending = FALSE;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   pte->visited_for_vla_lowering = FALSE;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  pte->definition_pending = FALSE;
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
   set_type_kind(pte, kind);
