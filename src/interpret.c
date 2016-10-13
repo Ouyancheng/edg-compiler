@@ -2302,7 +2302,7 @@ the end" of a field subobject, that field is returned.
     a_field_ptr       fp = parent_type->variant.class_struct_union.field_list;
     a_field_ptr       last_fp = next_alloc_field(fp);
     a_base_class_ptr  bcp, last_bcp;
-    a_boolean         okay = TRUE;
+    a_boolean         okay = TRUE, check_virtual_bases = FALSE;
     a_byte_count      offset = cap->address - parent_address, sub_offset,
                       type_size;
     sub_offset = sizeof(a_type_ptr);
@@ -2338,22 +2338,11 @@ search_base_subobjects:
     check_assertion(bcp != NULL);
     last_bcp = NULL;
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && !bcp->is_virtual) {
-        if (last_bcp != NULL) {
-          get_mapped_byte_count(&persistent_map, bcp, sub_offset);
-          if (offset < sub_offset) {
-            *p_field = NULL;
-            *p_bcp = last_bcp;
-            goto done;
-          }  /* if */
-        }  /* if */
-        last_bcp = bcp;
-      }  /* if */
-    }  /* for */
-    for (bcp = base_classes_of(parent_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
+        check_virtual_bases = TRUE;
+      } else if (bcp->direct) {
+        get_mapped_byte_count(&persistent_map, bcp, sub_offset);
         if (last_bcp != NULL) {
-          get_mapped_byte_count(&persistent_map, bcp, sub_offset);
           if (offset < sub_offset) {
             *p_field = NULL;
             *p_bcp = last_bcp;
@@ -2363,6 +2352,21 @@ search_base_subobjects:
         last_bcp = bcp;
       }  /* if */
     }  /* for */
+    if (check_virtual_bases) {
+      for (bcp = base_classes_of(parent_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual) {
+          get_mapped_byte_count(&persistent_map, bcp, sub_offset);
+          if (last_bcp != NULL) {
+            if (offset < sub_offset) {
+              *p_field = NULL;
+              *p_bcp = last_bcp;
+              goto done;
+            }  /* if */
+          }  /* if */
+          last_bcp = bcp;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     if (offset-sub_offset < value_bytes_for_type(ips, last_bcp->type, &okay)) {
       check_assertion(okay);
       *p_field = NULL;
