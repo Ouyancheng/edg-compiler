@@ -2152,13 +2152,13 @@ variant fields to default values.
   pte->has_gnu_abi_tag_attribute = FALSE;
   pte->in_gnu_abi_tag_namespace = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  pte->definition_pending = FALSE;
 #if DO_IL_LOWERING
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   pte->process_for_ordering = FALSE;
   pte->type_processed_for_ordering = FALSE;
   pte->type_processed_as_complete_for_ordering = FALSE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
-  pte->definition_pending = FALSE;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   pte->visited_for_vla_lowering = FALSE;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */

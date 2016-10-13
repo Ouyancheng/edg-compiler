@@ -8608,6 +8608,9 @@ typedef struct a_type {
 			/* TRUE if this type has some parent that is an inline
 			   namespace with a GNU "abi_tag" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	definition_pending:1;
+			/* TRUE if the definition of this class is being
+			   processed by get_definition_of_class. */
 #if DO_IL_LOWERING
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   a_bit_field	process_for_ordering:1;
@@ -8630,9 +8633,6 @@ typedef struct a_type {
 			   typedefs type_processed_for_ordering may be TRUE
 			   while this flag is still FALSE. */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
-  a_bit_field	definition_pending:1;
-			/* TRUE if the definition of this class is being
-			   processed by get_definition_of_class. */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   a_bit_field	visited_for_vla_lowering:1;
 			/* Flag to optimize the traversal of types to lower
