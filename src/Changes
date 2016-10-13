@@ -1,5 +1,14 @@
 Version 4.13
 
+10/13/16 [EDGcpfe/17612]
+C++14 constexpr: Internal error in find_subobject_for_interpreter_address
+
+In some cases involving the evaluation of a constant object of a class type
+with one data member and one base class, the front end aborted with an
+internal error in find_subobject_for_interpreter_address (interpret.c).
+This is now fixed.
+
+
 10/12/16 [EDGcpfe/17614]
 Microsoft-style std::initializer_list and C++14 constexpr interpreter
 
