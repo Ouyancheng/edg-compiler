@@ -682,6 +682,10 @@ set to TRUE before they are attached.
       a_template_symbol_supplement_ptr  tssp = dps->sym->variant.template_info;
       entity = (char*)tssp->variant.function.routine;
       entity_kind = iek_routine;
+    } else if (dps->sym->kind == (a_symbol_kind)sk_variable_template) {
+      entity = (char*)dps->sym->variant.template_info->
+                                           variant.variable.prototype_variable;
+      entity_kind = iek_variable;
     } else {
       entity = il_entry_for_symbol(dps->sym, &entity_kind);
     }  /* if */

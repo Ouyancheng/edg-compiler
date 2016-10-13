@@ -1,5 +1,17 @@
 Version 4.13
 
+10/13/16 [EDGcpfe/17621]
+Assertion failure when attribute is applied to variable template
+
+An assertion failure (in get_attribute_link) had occurred in cases where
+an attribute is applied to a variable template.  Now fixed.  For example
+(with --c++14 --g++):
+
+  struct A {
+    template <typename T> static __attribute__((aligned(2))) T m;
+  };
+
+
 10/13/16 [EDGcpfe/17347,EDGcpfe/17348,EDGcpfe/17549]
 GNU compatibility: Lowering now re-writes individual vector elements
 
