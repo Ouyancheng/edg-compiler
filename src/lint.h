@@ -748,6 +748,7 @@ extern int fileno(FILE *);
 /*lint -esym(759,check_internal_template_instantiation)*/
 /*lint -esym(765,check_internal_template_instantiation)*/
 /*lint -esym(757,make_make_integer_seq_internal_template)*/
+/*lint -esym(755,GID_IS_CPPCLI_CONSTRAINT)*/
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/
