@@ -19424,7 +19424,8 @@ variant field (i.e., a member of a union or anonymous union).
     if (ambiguous ||
         (rout_sym == NULL ? !bitwise_copy
                           : is_unusable_member_sym(rout_sym)) ||
-        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy &&
+         !rout_sym->variant.routine.ptr->is_trivial_copy_function)) {
       /* A base or member with an ambiguous or inaccessible copy assignment
          operator prevents this copy assignment operator from being
          generated. */
@@ -19461,7 +19462,8 @@ variant field (i.e., a member of a union or anonymous union).
     if (ambiguous ||
         (rout_sym == NULL ? !bitwise_copy
                           : is_unusable_member_sym(rout_sym)) ||
-        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy &&
+         !rout_sym->variant.routine.ptr->is_trivial_copy_function)) {
       /* A base or member with an ambiguous or inaccessible move assignment
          operator prevents this move assignment operator from being
          generated. */
@@ -19507,7 +19509,8 @@ variant field (i.e., a member of a union or anonymous union).
     if (ambiguous ||
         (rout_sym == NULL ? !bitwise_copy
                           : is_unusable_member_sym(rout_sym)) ||
-        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy &&
+         !rout_sym->variant.routine.ptr->is_trivial_copy_function)) {
       /* A base or member with an ambiguous or inaccessible copy constructor
          prevents this one from being generated. */
       gsfd->suppress_copy_ctor = TRUE;
@@ -19544,7 +19547,8 @@ variant field (i.e., a member of a union or anonymous union).
     if (ambiguous ||
         (rout_sym == NULL ? !bitwise_copy
                           : is_unusable_member_sym(rout_sym)) ||
-        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy &&
+         !rout_sym->variant.routine.ptr->is_trivial_copy_function)) {
       /* A base or member that cannot be moved (or copied) prevents the move
          constructor from being generated. */
       gsfd->suppress_move_ctor = TRUE;

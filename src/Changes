@@ -1,5 +1,22 @@
 Version 4.13
 
+10/15/16 [EDGcpfe/17622]
+Trivial copy/move members and variant members
+
+The front end previously erroneously "deleted" generated move constructor of
+a class that has a variant member with a trivial move constructor.  For
+example:
+
+  struct M {
+    M() = default;
+    M(M&&) = default;
+  };
+  struct S { union { M m; }; };
+  S&& g();
+  S x{g()};  // Previously elicited an error because the move constructor
+             // of S was considered "deleted".  Now okay.
+
+
 10/15/16 [EDGcpfe/17619,EDGcpfe/17627]
 Abort with dependent nontype template argument
 
