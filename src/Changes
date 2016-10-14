@@ -1,5 +1,21 @@
 Version 4.13
 
+10/15/16 [EDGcpfe/17623]
+Incorrect name lookup in generic lambda instantiation
+
+Name lookup sometimes produced an incorrect results for a generic lambda
+defined in a function in a namespace.  Now fixed.
+
+  namespace N {
+    template <class> using A = void;
+    template <class T> constexpr void f(const T& t) { t(1); }
+    void g() {
+      // Formerly: A is not a template
+      f([](const auto&) { using T = A<int>; });
+    }
+  }
+
+
 10/15/16 [EDGcpfe/17622]
 Trivial copy/move members and variant members
 

@@ -4010,7 +4010,8 @@ the previous scope of the first scope pushed by this routine.
 
 
 static
-a_namespace_ptr referencing_namespace_for_instance(a_symbol_ptr instance_sym)
+a_namespace_ptr referencing_namespace_for_instance(a_symbol_ptr	instance_sym,
+                                                   a_boolean	is_lambda_body)
 /*
 Given a symbol that points to a particular instance of a template, return
 the namespace pointer of the namespace in which an instantiation of
@@ -4018,13 +4019,15 @@ the template was first required.
 
 instance_sym points to a symbol for an instance of a template.  It may also
 be NULL if we don't yet know which instance we are dealing with.
+is_lambda_body is TRUE if the instance is a generic lambda instantiation.
 */
 {
   a_namespace_ptr	nsp = NULL;
 
-  if (instance_sym == NULL) {
+  if (instance_sym == NULL || is_lambda_body) {
     /* We don't know which instance is being used yet.  Determine the
-       referencing namespace from the scope stack. */
+       referencing namespace from the scope stack.  There is not always
+       a referencing namespace for lambdas, so they are also handled here. */
     nsp = determine_referencing_namespace();
   } else if (instance_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
              instance_sym->kind == (a_symbol_kind)sk_union_tag) {
@@ -4060,6 +4063,7 @@ be NULL if we don't yet know which instance we are dealing with.
 static
 void get_parent_information_for_template(
 					a_scope_ptr	sp,
+					a_boolean	is_lambda_body,
 					a_symbol_ptr	template_sym,
 					a_symbol_ptr	instance_sym,
 					a_namespace_ptr	*p_nsp,
@@ -4069,7 +4073,8 @@ Determine the namespace and class scopes that must be reactivated in
 order for a given instantiation to be done.  sp points to the enclosing
 scope of the template declaration, template_sym is the symbol of the
 template, instance_sym is the symbol for the instance being created
-and may be NULL.  *nsp and *tp are returned by this routine, and point
+and may be NULL.  is_lambda_body is TRUE if the instance is a generic
+lambda instantiation.  *nsp and *tp are returned by this routine, and point
 to the namespace and class that must be reactivated.
 */
 {
@@ -4103,7 +4108,7 @@ to the namespace and class that must be reactivated.
       }  /* if */
     }  /* while */
   }  /* if */
-  if (instance_sym == NULL &&
+  if ((instance_sym == NULL || is_lambda_body) &&
       (template_sym == NULL ||
        template_sym->kind == (a_symbol_kind)sk_function_template ||
        template_sym->kind == (a_symbol_kind)sk_variable_template)) {
@@ -5038,7 +5043,7 @@ class to be defined.
   if (!use_existing_context) {
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
-    get_parent_information_for_template(context_scope,
+    get_parent_information_for_template(context_scope, is_lambda_body,
                                         template_sym, instance_sym,
                                         &parent_nsp, &parent_class);
     if (parent_class != NULL) {
@@ -5047,7 +5052,8 @@ class to be defined.
                        (options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
                        (options & PS_NONREAL_INSTANTIATION) != 0);
     }  /* if */
-    reference_nsp = referencing_namespace_for_instance(instance_sym);
+    reference_nsp = referencing_namespace_for_instance(instance_sym,
+                                                       is_lambda_body);
     if (is_lambda_body) options |= PS_IS_GENERIC_LAMBDA;
     push_instantiation_context(enclosing_tdip,
                                parent_nsp, parent_class,
