@@ -1,5 +1,19 @@
 Version 4.13
 
+10/14/16 [EDGcpfe/17626]
+Missing diagnostic on use of ambiguous injected class name in template
+
+The front end failed to issue a diagnostic if a class template made use
+of an ambiguous injected class name.  An error was issued if the template
+was ever instantiated.  The error is now diagnosed when the template
+is defined.
+
+  template <class T> struct A { };
+  template <class T> struct B : A<int>, A<char> {
+    B::A b;
+  };
+
+
 10/13/16 [EDGcpfe/17607]
 Core issue 1344: Special members and default arguments
 

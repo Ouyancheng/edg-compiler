@@ -4794,8 +4794,7 @@ bypass_normal_search:
                             /*tentative_template_lookup=*/FALSE,
                             (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
                             (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0 ||
-                            class_type->variant.class_struct_union.
-                                              is_nonreal_class,
+                            cssp->any_nonreal_base_classes,
                             add_to_active_list, insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE);
         if (use_nonreal_in_curr_class && sym != NULL &&
