@@ -20664,7 +20664,8 @@ sets tblock->result to TRUE and terminates the traversal if expr is an
 enk_variable node that refers to a variable in a local scope.
 */
 {
-  if (is_variable_node(expr) && !in_file_scope(node_variable(expr))) {
+  if (expr != NULL && is_variable_node(expr) &&
+      !in_file_scope(node_variable(expr))) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
@@ -20673,19 +20674,24 @@ enk_variable node that refers to a variable in a local scope.
 
 a_boolean expr_has_reference_to_routine_scope_variable(an_expr_node_ptr expr)
 /*
-Return TRUE if any of the nodes in the expression tree rooted in expr is an
-enk_variable node that refers to a variable in a local scope.
+Return TRUE if any of the nodes in the expression tree rooted in expr
+(which may be NULL) is an enk_variable node that refers to a variable in a
+local scope.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
+  a_boolean                       result = FALSE;
 
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_routine_scope_variable;
-  tblock.process_non_dynamic_constants = TRUE;
-  tblock.process_expressions_for_constants = TRUE;
-  tblock.process_template_parameter_constants_and_expressions = TRUE;
-  traverse_expr(expr, &tblock);
-  return tblock.result;
+  if (expr != NULL) {
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_for_routine_scope_variable;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
 }  /* expr_has_reference_to_routine_scope_variable */
 
 
