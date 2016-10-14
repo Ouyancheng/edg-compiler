@@ -2375,8 +2375,8 @@ if the constraint list from parameters from list2 is empty.
                                              p_mismatch_in_list1)) {
       if (scanning_generated_code_from_metadata) {
         /* In some cases the constraint from the initial declaration cannot
-           be processed correctly.  For example, if the constraint is A<T>::B
-           on the declaration of A where B is not yet known.  If there is
+           be processed correctly (for example, if the constraint is A<T>::B
+           on the declaration of A where B is not yet known).  If there is
            a mismatch from metadata, take the later constraint list. */
         generic_param1->variant.template_param.extra_info->
                                                  generic_constraints = gclist2;

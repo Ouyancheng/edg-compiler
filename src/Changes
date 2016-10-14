@@ -22,6 +22,7 @@ The front end could abort (as a result of unbound recursion) when importing
 a type with a constraint that referred to a nested class of the containing
 type.  Now fixed.  Such a type can't be written in C++, but can be written
 in C#.  The C# definition would be of the form:
+
   class A<T> where T : A<T>.B { class B { } }
 
 

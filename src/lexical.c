@@ -20384,9 +20384,9 @@ See also coalesce_and_lookup_generalized_identifier.
                         qualifier_type->variant.class_struct_union.
                                                     is_open_constructed_type) {
               /* In some C++/CLI cases the constraint from the initial
-                 declaration cannot be processed correctly.  For example,
+                 declaration cannot be processed correctly (for example,
                  if the constraint is A<T>::B on the declaration of A where
-                 B is not yet known.  We ignore the error here.  The
+                 B is not yet known).  We ignore the error here.  The
                  constraint from the later declaration will be used. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             } else {
