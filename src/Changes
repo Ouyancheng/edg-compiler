@@ -5,7 +5,7 @@ Core issue 1344: Special members and default arguments
 
 In C++14 mode, the front end now issues an error if an out-of-class definition
 of a constructor adds default arguments in such a way that the constructor
-becomes a special member functions (i.e., a default constructor or copy/move
+becomes a special member function (i.e., a default constructor or copy/move
 constructor).  For example:
 
   struct S { S(int); };
