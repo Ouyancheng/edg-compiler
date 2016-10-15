@@ -16270,7 +16270,9 @@ all arguments were explicit.
     orig_param_ptr = param_ptr;
   }  /* if */
   for (; param_ptr != NULL && orig_param_ptr != NULL;
-         param_ptr = param_ptr->next, orig_param_ptr = orig_param_ptr->next) {
+         param_ptr = param_ptr->next,
+           orig_param_ptr = orig_param_ptr->is_pack ? orig_param_ptr
+                                                    : orig_param_ptr->next) {
     a_template_param_ptr	param_for_default = orig_param_ptr;
     a_symbol_ptr		templ_sym_for_default = template_sym;
     if (orig_param_ptr->is_pack && param_ptr->has_default_arg) {

@@ -1,5 +1,20 @@
 Version 4.13
 
+10/15/16 [EDGcpfe/17596]
+Error on use of template template argument with multiple default arguments
+
+An "unexpected function type" error could result if a template template
+argument has more than one default template argument that is used for a
+given reference and those default arguments correspond to a template
+parameter pack of the template template parameter.  Now fixed.
+
+  template<typename T1, typename T2 = int, typename T3 = char> class A {};
+  template <template <class...> class T> T<int> f() { return T<int>(); }
+  int main() {
+    auto a = f<A>();
+  }
+
+
 10/14/16 [EDGcpfe/17628]
 C++14 constexpr: Derived-to-base conversions on address constants
 
