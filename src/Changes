@@ -27,7 +27,7 @@ Previously, that triggered a spurious error.  Now it is accepted (because
 the value referred to is never accessed).
 
 
-10/15/16 [EDGcpfe/17623]
+10/14/16 [EDGcpfe/17623]
 Incorrect name lookup in generic lambda instantiation
 
 Name lookup sometimes produced an incorrect results for a generic lambda
