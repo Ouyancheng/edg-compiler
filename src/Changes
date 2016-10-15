@@ -1,5 +1,32 @@
 Version 4.13
 
+10/14/16 [EDGcpfe/17628]
+C++14 constexpr: Derived-to-base conversions on address constants
+
+When attempting to interpret a derived-to-base conversion (eok_base_class_cast)
+applied to an address constant for a run-time entity, the front end always
+failed interpretation.  In fact, such casts can often be folded to produce
+another address constant.  For example:
+
+struct B { constexpr bool f() const { return true; } };
+struct D: B {};
+struct X {
+  constexpr X(D const &p): x(p) { }
+  constexpr bool f() const { return x.f(); }
+  D x;
+};
+int main() {
+  constexpr D d{};
+  const X z(d);
+  constexpr bool r = z.f();
+}
+
+The call "x.f()" during the evaluation of "z.f()" requires a cast of the
+address constant representing a reference to z.x cast to a reference to B.
+Previously, that triggered a spurious error.  Now it is accepted (because
+the value referred to is never accessed).
+
+
 10/15/16 [EDGcpfe/17623]
 Incorrect name lookup in generic lambda instantiation
 

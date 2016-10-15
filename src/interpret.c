@@ -6312,16 +6312,6 @@ the value representation of the integer value.
               a_type_ptr           dtp, btp;
               a_base_class_ptr     bcp;
               a_byte_count         offset;
-              if (is_runtime_data_address(result_addr)) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &expr->position, ips);
-                break;
-              }  /* if */
-              if (result_addr->address == NULL) {
-                /* No adjustment needed. */
-                break;
-              }  /* if */
               if (tp->kind == (a_type_kind)tk_pointer) {
                 dtp = skip_typerefs(opnd1_type->variant.pointer.type);
                 btp = skip_typerefs(tp->variant.pointer.type);
@@ -6330,6 +6320,33 @@ the value representation of the integer value.
                 btp = tp;
               }  /* if */
               bcp = find_direct_base_class_of(dtp, btp);
+              if (is_runtime_data_address(result_addr)) {
+                /* Attempt a "symbolic" derived-to-base cast using the
+                   constant folding routines. */
+                a_constant_ptr  new_con = local_constant();
+                a_boolean       nonconstant;
+                an_error_code   err_code;
+                fold_base_class_cast(
+                    result_addr->variant.addr_con, bcp, btp, new_con,
+                    /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
+                    expr->variant.operation.compiler_generated,
+                    /*is_object_pointer=*/TRUE, &nonconstant, &expr->position,
+                    &err_code);
+                if (nonconstant || err_code != ec_no_error) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                } else {
+                  result_addr->variant.addr_con =
+                              make_interpreter_copy_of_constant(ips, new_con);
+                  *(a_constexpr_address*)result_storage = *result_addr;
+                  release_local_constant(&new_con);
+                }  /* if */
+                break;
+              } else if (result_addr->address == NULL) {
+                /* No adjustment needed. */
+                break;
+              }  /* if */
               get_mapped_byte_count(&persistent_map, bcp, offset);
               result_addr->address += offset;
               result_addr->flags &= ~CA_ARRAY_ELEMENT;
