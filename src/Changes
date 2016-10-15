@@ -60,7 +60,7 @@ example:
              // of S was considered "deleted".  Now okay.
 
 
-10/15/16 [EDGcpfe/17619,EDGcpfe/17627]
+10/14/16 [EDGcpfe/17619,EDGcpfe/17627]
 Abort with dependent nontype template argument
 
 A change in version 4.12 (see EDGcpfe/17088, 7/11/16) caused the front end
