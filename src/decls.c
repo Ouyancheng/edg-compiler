@@ -14136,32 +14136,34 @@ NULL otherwise).
         }  /* while */
       }  /* if */
     }  /* if */
-  } else if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
-    /* Check for non-identifier error cases. */
-    is_unnamed_namespace = FALSE;
-    locator = locator_for_curr_id;
-    if (locator.is_error) {
-      /* An error has already been issued. */
-      expect_error();
-    } else if (locator.is_operator_name || locator.is_conversion_name ||
-               locator.is_udl_operator_name) {
-      /* Can't be an operator. */
-      pos_error(ec_operator_name_not_allowed, &error_position);
-      set_to_error_locator(locator);
-      err = TRUE;
-    } else if (locator.is_qualified_name) {
-      /* A qualified name is not allowed. */
-      pos_error(ec_qualified_name_not_allowed, &error_position);
-      set_to_error_locator(locator);
-      err = TRUE;
-    } else {
-      unexpected_condition();
-    }  /* if */
-    /* Skip over bad identifier. */
-    (void)get_token();
+  } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     identifier_end_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
+      /* Check for non-identifier error cases. */
+      is_unnamed_namespace = FALSE;
+      locator = locator_for_curr_id;
+      if (locator.is_error) {
+        /* An error has already been issued. */
+        expect_error();
+      } else if (locator.is_operator_name || locator.is_conversion_name ||
+                 locator.is_udl_operator_name) {
+        /* Can't be an operator. */
+        pos_error(ec_operator_name_not_allowed, &error_position);
+        set_to_error_locator(locator);
+        err = TRUE;
+      } else if (locator.is_qualified_name) {
+        /* A qualified name is not allowed. */
+        pos_error(ec_qualified_name_not_allowed, &error_position);
+        set_to_error_locator(locator);
+        err = TRUE;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      /* Skip over bad identifier. */
+      (void)get_token();
+    }  /* if */
   }  /* if */
   if (curr_token == tok_attribute && gnu_attributes_enabled &&
       (!gpp_mode || gnu_version >= 40200)) {

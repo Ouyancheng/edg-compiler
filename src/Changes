@@ -1,5 +1,13 @@
 Version 4.13
 
+10/17/16 [EDGcpfe/17639]
+Undefined "end" source position for inline namespaces
+
+As a result of the changes for EDGcpfe/16712, the "end" source position for
+inline namespaces had been uninitialized in configurations where
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  Now fixed.
+
+
 10/17/16 [EDGcpfe/17634]
 Possible use of invalid scope stack pointer
 
