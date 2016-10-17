@@ -2489,7 +2489,7 @@ directory.
 /*
 WIN32 (e.g., Windows-NT) version.
 */
-a_boolean is_directory(char *file_name)
+a_boolean is_directory(a_const_char *file_name)
 {
   a_boolean	result = FALSE;
   DWORD		attr;
@@ -2554,7 +2554,7 @@ a_boolean is_directory(a_const_char *file_name)
 #endif /* EDG_WIN32 */
 
 #ifndef IS_DIRECTORY_DEFINED
-a_boolean is_directory(char *file_name)
+a_boolean is_directory(a_const_char *file_name)
 /*
 This is a portable version of is_directory that should work on any
 system that supports chdir.
