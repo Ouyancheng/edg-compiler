@@ -195,7 +195,7 @@ tk_routine type -- possibly with a typeref that describes attributes).  The
 builtin function corresponds to the (a_builtin_function_kind_tag or
 a_builtin_user_function_kind_tag) kind.  If non-NULL, loc specifies the symbol
 locator for name.  The routine is given C name linkage (and the routine type is
-updated accordingly).  Return the symbol for the function.
+updated accordingly).
 */
 {
   a_symbol_ptr        sym;
