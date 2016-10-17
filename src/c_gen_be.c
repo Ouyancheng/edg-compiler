@@ -6023,6 +6023,7 @@ process_assignment:
             write_tok_ch(']');
           }  /* if */
           goto done_with_binary_operation;
+#if GNU_VECTOR_TYPES_ALLOWED
         case eok_vector_subscript:
           if (operand_1->is_lvalue) {
             /* GCC 4.6.0 and later accept "v[n]" as an lvalue, but earlier
@@ -6043,6 +6044,7 @@ process_assignment:
           dump_expr_with_parens(operand_2);
           write_tok_ch(']');
           goto done_with_binary_operation;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         case eok_dot_field:
         case eok_points_to_field:
 #if !C_GEN_BE_GENERATES_ANSI_C
