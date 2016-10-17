@@ -8432,7 +8432,15 @@ is the one associated with the definition of the class.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (type->variant.class_struct_union.final && !gen_sealed) {
-      write_tok_str("final ");
+      /* GCC accepts both __final and final as keywords and that distinction
+         is not kept in the front end.  Use __final in that case because
+         it is more generally accepted (i.e., it is accepted by GCC in
+         non-C++11 modes). */
+      if (gpp_mode) {
+        write_tok_str("__final ");
+      } else {
+        write_tok_str("final ");
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Put out the class definition. */
