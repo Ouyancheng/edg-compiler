@@ -69,8 +69,8 @@ defined in a function in a namespace.  Now fixed.
 10/14/16 [EDGcpfe/17622]
 Trivial copy/move members and variant members
 
-The front end previously erroneously "deleted" generated move constructor of
-a class that has a variant member with a trivial move constructor.  For
+The front end previously erroneously "deleted" the generated move constructor
+of a class that has a variant member with a trivial move constructor.  For
 example:
 
   struct M {
