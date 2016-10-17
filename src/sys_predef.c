@@ -483,6 +483,8 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
                                             next_token_is_top_level_decl_start;
   a_boolean         saved_allow_ellipsis_only_param_in_C_mode =
                                          allow_ellipsis_only_param_in_C_mode;
+  a_const_char      *saved_start_of_curr_token = start_of_curr_token;
+  a_const_char      *saved_end_of_curr_token = end_of_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean         saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
@@ -524,6 +526,8 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   scope_stack_top().source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  start_of_curr_token = saved_start_of_curr_token;
+  end_of_curr_token = saved_end_of_curr_token;
   return result;
 }  /* builtin_function_type */
 
