@@ -6024,7 +6024,21 @@ process_assignment:
           }  /* if */
           goto done_with_binary_operation;
         case eok_vector_subscript:
-          dump_expr_with_parens(operand_1);
+          if (operand_1->is_lvalue) {
+            /* GCC 4.6.0 and later accept "v[n]" as an lvalue, but earlier
+               versions don't, so use "((T *)&v)[n]" instead. */
+            a_type_ptr element_type;
+            check_assertion(is_vector_type(operand_1->type));
+            element_type = skip_typerefs(operand_1->type);
+            element_type = element_type->variant.vector.element_type;
+            write_tok_ch('(');
+            dump_cast(make_pointer_type(element_type));
+            write_tok_ch('&');
+            dump_expr_with_parens(operand_1);
+            write_tok_ch(')');
+          } else {
+            dump_expr_with_parens(operand_1);
+          }  /* if */
           write_tok_ch('[');
           dump_expr_with_parens(operand_2);
           write_tok_ch(']');
