@@ -20827,6 +20827,60 @@ temporary is added.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean is_invalid_nontype_arg_object(an_operand  *source_operand)
+/*
+The given operand represents an lvalue expression to be bound to a nontype
+template parameter of reference type.  Return TRUE if it is not a valid
+operand for such a binding.
+*/
+{
+  a_boolean  invalid = FALSE;
+
+  if (is_expression_operand(source_operand)) {
+    an_expr_node_ptr  expr = skip_parens(source_operand->variant.expression);
+    /* Assume for now. */
+    invalid = TRUE;
+    /* Skip eok_ref_indirect nodes. */
+    while (is_operation_node(expr) &&
+           node_operator_is(expr, eok_ref_indirect)) {
+      expr = skip_parens(expr->variant.operation.operands);
+    }  /* while */
+    if (is_variable_node(expr) &&
+        !is_any_reference_type(node_variable(expr)->type)) {
+      /* A non-reference variable is okay. */
+      invalid = FALSE;
+    } else if (is_constant_node(expr)) {
+      a_constant_ptr  acp = node_constant(expr);
+      if (constant_is(acp, ck_template_param)) {
+        /* A matching nontype template parameter is okay. */
+        invalid = FALSE;
+      } else if (constant_is(acp, ck_address)) {
+        if (acp->variant.address.kind == (an_address_base_kind)abk_variable &&
+            !is_any_reference_type(acp->variant.address.variant.variable
+                                      ->type)) {
+          /* A nonreference variable whose "address" has been folded. */
+          invalid = FALSE;
+        }  /* if */
+      }  /* if */
+    } else if (is_error_node(expr)) {
+      invalid = FALSE;
+    }  /* if */
+    if (microsoft_mode && invalid && is_operation_node(expr) &&
+        node_operator_is(expr, eok_indirect)) {
+      /* Check for the "typeid" address constant case in Microsoft mode. */
+      expr = skip_parens(expr->variant.operation.operands);
+      if (is_constant_node(expr) &&
+          constant_is(node_constant(expr), ck_address) &&
+          node_constant(expr)->variant.address.kind ==
+                                           (an_address_base_kind)abk_typeid) {
+        invalid = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return invalid;
+}  /* is_invalid_nontype_arg_object */
+
+
 void prep_reference_initializer_operand(an_operand         *source_operand,
                                         a_type_ptr         dest_type,
                                         a_conv_descr       *conversion,
@@ -21119,7 +21173,6 @@ the conversion.
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */
     } else if (curr_expr_kind_is(ek_template_arg) &&
-               curr_expr_kind_is_traditional_const() &&
                is_class_struct_union_type(base_dest_type) &&
                find_base_class_of(orig_source_type, base_dest_type) != NULL) {
       /* A derived-base binding is not allowed in a nontype template
@@ -21129,6 +21182,15 @@ the conversion.
         pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
                            &source_operand->position, orig_source_type,
                            dest_type);
+      }  /* if */
+    } else if (curr_expr_kind_is(ek_template_arg) &&
+               is_invalid_nontype_arg_object(source_operand)) {
+      /* An expression that doesn't simply designate a variable is invalid. */
+      if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                           incompatible_err)) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_template_arg_cannot_point_to_subobject,
+                       &source_operand->position);
       }  /* if */
     }  /* if */
     /* Do any base-class or cv-qualifier adjustment. */
