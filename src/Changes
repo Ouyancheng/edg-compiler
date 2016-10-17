@@ -53,7 +53,7 @@ the value referred to is never accessed).
 10/14/16 [EDGcpfe/17623]
 Incorrect name lookup in generic lambda instantiation
 
-Name lookup sometimes produced incorrect results for a generic lambda
+Name lookup sometimes produced an incorrect results for a generic lambda
 defined in a function in a namespace.  Now fixed.
 
   namespace N {
