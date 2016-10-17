@@ -33697,6 +33697,8 @@ directive_start_pos points to the beginning of the directive or declaration
     template_or_specialization_declaration(final_token, export_present,
                                            &export_pos, is_generic);
     if (err) {
+      /* Get a new pointer in case the scope stack was reallocated. */
+      ssep = &scope_stack[depth_scope_stack];
       /* Restore the linkage. */
       ssep->default_name_linkage = saved_name_linkage;
       ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;

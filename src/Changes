@@ -1,5 +1,13 @@
 Version 4.13
 
+10/17/16 [EDGcpfe/17634]
+Possible use of invalid scope stack pointer
+
+template_directive_or_declaration could potentially make use of a scope
+stack pointer after a call that could cause the scope stack to be resized,
+resulting in an invalid memory access.  Now fixed.
+
+
 10/15/16 [EDGcpfe/17596]
 Error on use of template template argument with multiple default arguments
 
