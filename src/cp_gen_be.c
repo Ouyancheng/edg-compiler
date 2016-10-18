@@ -8436,7 +8436,7 @@ is the one associated with the definition of the class.
          is not kept in the front end.  Use __final in that case because
          it is more generally accepted (i.e., it is accepted by GCC in
          non-C++11 modes). */
-      if (gpp_mode) {
+      if (gcc_is_generated_code_target) {
         write_tok_str("__final ");
       } else {
         write_tok_str("final ");
