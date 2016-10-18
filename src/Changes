@@ -1,5 +1,17 @@
 Version 4.13
 
+10/18/16 [EDGcpfe/17638]
+Segfault in instantiate_make_integer_seq
+
+As a result of the changes for EDGcpfe/17282, a segfault could occur in some
+configurations when using __make_integer_seq.  This is now fixed.  For example
+(with --microsoft_version 1900):
+
+  template<class T, T... v> struct I {};
+  template<class T, T s> using X = __make_integer_seq<I, T, s>;
+  X<int, 5> x;
+
+
 10/17/16 [EDGcpfe/17610]
 Logical operators and constexpr conversion functions
 

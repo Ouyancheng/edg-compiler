@@ -7150,37 +7150,45 @@ dependent, A1<A2, A3> is returned.
         /* Count cannot be negative. */
         expect_error();
         err = TRUE;
-      } else if (templ->template_decl->param_list->next == NULL) {
-        /* The template has a single template parameter (typically two
-           are provided with the second being a template parameter pack). */
-        if (val == 0) {
-          /* Okay; the pack expands to nothing (and there's no parameter to
-             pass it to) so skip it. */
-        } else {
-          pos_sy_error(ec_too_many_template_arguments,
-                       &con->source_corresp.decl_position, symbol_for(templ));
-          err = TRUE;
-        }  /* if */
       } else {
-        /* Indicate that the nontype template arguments are part of a pack
-           expansion. */
-        tap =
+        a_template_symbol_supplement_ptr tssp;
+        a_template_param_ptr tpp;
+        tssp = template_supplement_for_template(templ);
+        tpp = tssp->cache.decl_info->parameters;
+        check_assertion(tpp != NULL);
+        if (tpp->next == NULL) {
+          /* The template has a single template parameter (typically two
+             are provided with the second being a template parameter pack). */
+          if (val == 0) {
+            /* Okay; the pack expands to nothing (and there's no parameter to
+               pass it to) so skip it. */
+          } else {
+            pos_sy_error(ec_too_many_template_arguments,
+                         &con->source_corresp.decl_position,
+                         symbol_for(templ));
+            err = TRUE;
+          }  /* if */
+        } else {
+          /* Indicate that the nontype template arguments are part of a pack
+             expansion. */
+          tap =
              alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-        new_template_arg_list->next = tap;
-        prev = tap;
-        /* Constants for non-type template arguments in a template argument
-           list must be allocated in the file scope. */
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        for (i = 0; i < val; i++) {
-          tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
-          con = alloc_constant((a_constant_repr_kind)ck_integer);
-          set_integer_constant(con, i, int_type->variant.integer.int_kind);
-          tap->variant.constant = con;
-          tap->is_pack_element = TRUE;
-          prev->next = tap;
+          new_template_arg_list->next = tap;
           prev = tap;
-        }  /* for */
-        switch_back_to_original_region(region_to_switch_back_to);
+          /* Constants for non-type template arguments in a template argument
+             list must be allocated in the file scope. */
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          for (i = 0; i < val; i++) {
+            tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+            con = alloc_constant((a_constant_repr_kind)ck_integer);
+            set_integer_constant(con, i, int_type->variant.integer.int_kind);
+            tap->variant.constant = con;
+            tap->is_pack_element = TRUE;
+            prev->next = tap;
+            prev = tap;
+          }  /* for */
+          switch_back_to_original_region(region_to_switch_back_to);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
