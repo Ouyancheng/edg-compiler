@@ -5748,8 +5748,12 @@ folding failed.  Return TRUE if an error was issued.
            unevaluated subexpressions, including dead operands of "?", "&&",
            and "||". */
         expr_stack->constant_expr_ruled_out = TRUE;
-        if (curr_expr_kind_is_const()) {
-          /* We're in a constant expression, so this construct is an error. */
+        if (curr_expr_kind_is_const() &&
+            !expr_stack->inside_conditional_expression) {
+          /* We're in a constant expression, so this construct is an error.
+             (That is not necessarily the case in some operands of "?", "&&",
+             and "||".  Leave any diagnostic to be emitted for a higher-level
+             operation.) */
           if (expr_error_should_be_issued()) {
             emit_diagnostic = TRUE;
           }  /* if */

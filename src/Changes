@@ -1,5 +1,23 @@
 Version 4.13
 
+10/17/16 [EDGcpfe/17610]
+Logical operators and constexpr conversion functions
+
+The front end previously issued a spurious error when a built-in logical
+operator included a short-circuited second operand convertible to bool via a
+constexpr conversion function that would not evaluate to a constant (but need
+not be evaluated at all since it is short-circuited).  For example:
+
+  struct V {
+    int v;
+    constexpr operator bool() const { return v; }
+  };
+  V x;
+  constexpr bool r = 0 && x;  // Previously a spurious error.  Now okay.
+
+This is now fixed.
+
+
 10/17/16 [EDGcpfe/17630,EDGcpfe/17635]
 Internal error with macro definition of builtin function name
 
