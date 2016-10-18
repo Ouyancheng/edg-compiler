@@ -6340,8 +6340,8 @@ the value representation of the integer value.
                   result_addr->variant.addr_con =
                               make_interpreter_copy_of_constant(ips, new_con);
                   *(a_constexpr_address*)result_storage = *result_addr;
-                  release_local_constant(&new_con);
                 }  /* if */
+                release_local_constant(&new_con);
                 break;
               } else if (result_addr->address == NULL) {
                 /* No adjustment needed. */
