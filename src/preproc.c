@@ -3454,15 +3454,18 @@ Process a "#pragma GCC ..." construct.
 */
 {
   a_boolean     recognized = FALSE;
-  a_boolean     ignore_in_back_end = TRUE;
+  a_boolean     ignore_in_back_end;
   a_pragma_ptr  il_pragma_entry;
 
+  /* By default, don't ignore these pragmas in C++-generating configurations.*/
+  ignore_in_back_end = !BACK_END_IS_CP_GEN_BE;
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     a_const_char *str = locator_for_curr_id.symbol_header->identifier;
     recognized = TRUE;
     if (strcmp(str, "system_header") == 0) {
       process_gnu_system_header_pragma(ppp);
+      ignore_in_back_end = TRUE;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     } else if (strcmp(str, "visibility") == 0) {
       ignore_in_back_end = FALSE;

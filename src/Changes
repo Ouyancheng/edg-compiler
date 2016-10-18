@@ -1,5 +1,21 @@
 Version 4.13
 
+10/18/16 [EDGcpfe/17644]
+GCC pragmas in C++-generating configurations
+
+A change has been made to process most "GCC" pragmas in C++-generating
+configurations.  Some "GCC" pragmas (i.e., system_header) are still ignored
+by the back end.  For example (with --gnu_version 50200):
+
+  #pragma GCC push_options
+  #pragma GCC target("xsavec")
+  extern __inline void
+  __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+  _xsavec (void *__P, long long __M) {
+    __builtin_ia32_xsavec (__P, __M);
+  }
+
+
 10/18/16 [EDGcpfe/17638]
 Segfault in instantiate_make_integer_seq
 
