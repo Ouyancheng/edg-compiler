@@ -485,6 +485,7 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
                                          allow_ellipsis_only_param_in_C_mode;
   a_const_char      *saved_start_of_curr_token = start_of_curr_token;
   a_const_char      *saved_end_of_curr_token = end_of_curr_token;
+  a_symbol_locator  saved_locator_for_curr_id = locator_for_curr_id;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean         saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
@@ -498,6 +499,8 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   allow_ellipsis_only_param_in_C_mode = TRUE;
   check_assertion(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE);
+  /* Save the lexical state. */
+  push_lexical_state_stack();
   /* Inject an end-of-source token into the token stream to prevent
      reading past the end. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -512,6 +515,8 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   /* Get the injected end of source token. */
   check_assertion(curr_token == tok_end_of_source);
   (void)get_token();
+  /* Restore the lexical state. */
+  pop_lexical_state_stack();
   /* Restore the flags. */
   allow_ellipsis_only_param_in_C_mode =
                                      saved_allow_ellipsis_only_param_in_C_mode;
@@ -528,6 +533,7 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   start_of_curr_token = saved_start_of_curr_token;
   end_of_curr_token = saved_end_of_curr_token;
+  locator_for_curr_id = saved_locator_for_curr_id;
   return result;
 }  /* builtin_function_type */
 
@@ -560,7 +566,6 @@ routine is created (and potentially a routine type is parsed).
 */
 {
   a_scope_depth    saved_decl_scope_level = decl_scope_level;
-  a_symbol_locator saved_locator_for_curr_id;
   a_boolean        name_linkage_pushed = FALSE;
   a_type_ptr       builtin_type;
   a_builtin_function_kind builtin_kind;
@@ -577,9 +582,6 @@ routine is created (and potentially a routine type is parsed).
       push_name_linkage((a_name_linkage_kind)nlk_external);
       name_linkage_pushed = TRUE;
     }  /* if */
-    /* Save the lexical state. */
-    push_lexical_state_stack();
-    saved_locator_for_curr_id = locator_for_curr_id;
     if (sym_hdr->is_user_builtin_function) {
       a_builtin_user_descr_ptr budp =
                           &builtin_user_table[sym_hdr->builtin_function_index];
@@ -592,9 +594,7 @@ routine is created (and potentially a routine type is parsed).
     }  /* if */
     enter_builtin_function(sym_hdr->identifier, builtin_type, builtin_kind,
                            (a_symbol_locator *)NULL);
-    /* Restore the lexical state, name linkage, and scope. */
-    locator_for_curr_id = saved_locator_for_curr_id;
-    pop_lexical_state_stack();
+    /* Restore name linkage and scope. */
     if (name_linkage_pushed) {
       pop_name_linkage();
     }  /* if */
