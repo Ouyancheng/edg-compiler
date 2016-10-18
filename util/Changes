@@ -1,3 +1,24 @@
+Version 4.13
+
+10/18/16 [EDGcpfe/17433]
+Demangling of nested template parameters in the Cfront ABI
+
+Previously the invented names of template parameters used during the demangling
+Cfront mangled names had been re-used for some nested template cases, causing
+demangled strings with the likes of "[with T1=T1]".  A change has been made to
+use different template parameter names in such cases.  For example, the mangled
+name f2__tm__2_i__FZ1Z_YOcl_2_18foo__tm__4_Z1Z__1NI1IO had been demangled as:
+
+  decltype((N::foo<T1> [with T1=T1](param#1))) f2<T1>(T1) [with T1=int]
+
+and is now:
+
+  decltype((N::foo<U1> [with U1=T1](param#1))) f2<T1>(T1) [with T1=int]
+
+There are no changes to mangled names.
+
+
+-------------------------------------------------------------------------------
 Version 4.12, October 5, 2016
 
 8/25/16  [EDGcpfe/17455]

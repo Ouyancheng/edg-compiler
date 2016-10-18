@@ -117,6 +117,12 @@ typedef struct a_decode_control_block {
 			   the mangled name.  When sections with indicated
 			   lengths are scanned, set temporarily to just after
 			   that section of the name. */
+  unsigned long	mangling_nesting_level;
+			/* The nesting level of calls to
+                           full_demangle_identifier.  Used to ensure that
+                           template parameter names for recursive calls are
+                           given different nesting_levels (and therefore
+                           different template parameter names). */
 #else /* IA64_ABI */
   unsigned long	suppress_substitution_recording;
 			/* If > 0, suppress recording of substitutions. */
@@ -149,6 +155,7 @@ Clear a decoding control block.
   dctl->uncompressed_length = 0;
 #if !IA64_ABI
   dctl->end_of_name = NULL;
+  dctl->mangling_nesting_level = 0;
 #else /* IA64_ABI */
   dctl->suppress_substitution_recording = 0;
   dctl->contains_conversion_operator = FALSE;
@@ -1685,7 +1692,9 @@ controls output of extra information on template parameters.
         }  /* if */
       }  /* if */
       /* Write the template parameter name. */
-      write_template_parameter_name(temp_par_info->nesting_level, position,
+      write_template_parameter_name(temp_par_info->nesting_level +
+                                              dctl->mangling_nesting_level - 1,
+                                    position,
                                     nontype, dctl);
       if (temp_par_info->output_only_correspondences) {
         /* This is the second pass, to write out correspondences, so put the
@@ -3451,6 +3460,7 @@ information.
   a_boolean     has_function_local_info = FALSE;
   unsigned long instance;
 
+  dctl->mangling_nesting_level++;
   clear_template_param_block(&temp_par_info);
   if (nchars != 0) {
     prev_end = dctl->end_of_name;
@@ -3669,6 +3679,7 @@ end_of_routine:
     while (get_char(end_ptr, dctl) != '\0') end_ptr++;
   }  /* if */
   if (prev_end != NULL) dctl->end_of_name = prev_end;
+  dctl->mangling_nesting_level--;
   return end_ptr;
 }  /* full_demangle_identifier */
 
