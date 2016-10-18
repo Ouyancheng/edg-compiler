@@ -5161,9 +5161,11 @@ for the scope of the handler.
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* Portable scheme: */
   /* Make a call of the runtime routine __exception_caught. */
-  make_call_statement(make_runtime_routine("__exception_caught",
-                                           &exception_caught_routine,
-                                           void_type()),
+  make_call_statement(make_prototyped_runtime_routine("__exception_caught",
+                                                     &exception_caught_routine,
+                                                     void_type(), void_type(),
+                                                     NULL, NULL, NULL, NULL,
+                                                     NULL, NULL),
                       (an_expr_node_ptr)NULL,
                       (an_expr_node_ptr)NULL,
                       &insert_location);
@@ -5234,9 +5236,11 @@ generated is inserted at insert_location.
                       (an_expr_node_ptr)NULL,
                       insert_location);
 #else /* ABI_COMPATIBILITY_VERSION <= 310 */
-  make_call_statement(make_runtime_routine("__free_thrown_object",
-                                           &free_thrown_object_routine,
-                                           void_type()),
+  make_call_statement(make_prototyped_runtime_routine("__free_thrown_object",
+                                                   &free_thrown_object_routine,
+                                                   void_type(), void_type(),
+                                                   NULL, NULL, NULL, NULL,
+                                                   NULL, NULL),
                       (an_expr_node_ptr)NULL,
                       (an_expr_node_ptr)NULL,
                       insert_location);
@@ -5629,10 +5633,9 @@ be passed down.
                                        void_type(),
                                        NULL, NULL,
                                        modified_var_arg_list);
-    /* This routine must be treated as unprototyped because it takes a variable
-       number of arguments. */
+    /* This routine takes a variable number of arguments. */
     suppress_optim_on_vars_in_try_routine->
-                          type->variant.routine.extra_info->prototyped = FALSE;
+                         type->variant.routine.extra_info->has_ellipsis = TRUE;
     call_stmt = alloc_expr_statement(call_node);
     /* Add a block statement as the "else" of the last "if" for a catch
        handler. */
@@ -6158,9 +6161,11 @@ the throw, whereas the rest of the throw expression evaluation is
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* Portable scheme: */
   /* Make a call of the runtime routine __exception_started. */
-  make_call_statement(make_runtime_routine("__exception_started",
-                                           &exception_started_routine,
-                                           void_type()),
+  make_call_statement(make_prototyped_runtime_routine("__exception_started",
+                                                    &exception_started_routine,
+                                                    void_type(), void_type(),
+                                                    NULL, NULL, NULL, NULL,
+                                                    NULL, NULL),
                       (an_expr_node_ptr)NULL,
                       (an_expr_node_ptr)NULL,
                       insert_location);

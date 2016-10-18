@@ -276,27 +276,6 @@ otherwise return NULL.
 }  /* find_existing_runtime_routine */
 
 
-a_routine_ptr make_runtime_routine(a_const_char  *name,
-                                   a_routine_ptr *routine,
-                                   a_type_ptr    return_type)
-/*
-Make a routine entry for the runtime routine named "name" and return a
-pointer to it.  Also save the pointer in *routine.  If *routine is non-NULL
-on entry, use that pointer.  The routine has unprototyped arguments and
-its return type is return_type.  Note that an existing routine definition
-may exist for this function (e.g., when compiling the run time library),
-in which case this will create a second routine entry for the same function.
-*/
-{
-  if (*routine == NULL) {
-    *routine = make_rout_entry(name, (a_storage_class)sc_extern, return_type,
-                               (a_type_ptr)NULL);
-    (*routine)->type->variant.routine.extra_info->prototyped = FALSE;
-  }  /* if */
-  return *routine;
-}  /* make_runtime_routine */
-
-
 a_routine_ptr make_prototyped_runtime_routine(a_const_char     *name,
                                               a_routine_ptr    *routine,
                                               a_type_ptr       return_type,

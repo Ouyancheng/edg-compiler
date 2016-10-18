@@ -6668,25 +6668,27 @@ class_type is the class type whose vtbl is being constructed
     if (func_to_call->pure_virtual) {
       /* A pure virtual function.  Put the address of runtime routine
          __pure_virtual_called in the table. */
-      func_to_call = make_runtime_routine(
+      func_to_call = make_prototyped_runtime_routine(
 #if !IA64_ABI
                                           "__pure_virtual_called",
 #else /* IA64_ABI */
                                           "__cxa_pure_virtual",
 #endif /* IA64_ABI */
                                           &pure_virtual_called_routine,
-                                          void_type());
+                                          void_type(), void_type(), NULL, NULL,
+                                          NULL, NULL, NULL, NULL);
     } else if (func_to_call->is_deleted) {
       /* A deleted virtual function.  Put the address of a special runtime
          routine (that presumably causes termination) in the table. */
-      func_to_call = make_runtime_routine(
+      func_to_call = make_prototyped_runtime_routine(
 #if !IA64_ABI
                                           "__deleted_virtual_called",
 #else /* IA64_ABI */
                                           "__cxa_deleted_virtual",
 #endif /* IA64_ABI */
                                           &deleted_virtual_called_routine,
-                                          void_type());
+                                          void_type(), void_type(), NULL, NULL,
+                                          NULL, NULL, NULL, NULL);
     }  /* if */
     /* Put the pointer to the function into the table. */
     set_routine_address_constant(func_to_call, func_con,
@@ -20812,7 +20814,9 @@ Do IL lowering of the indicated scope and everything under it.
     if (routine == il_header.main_routine) {
       a_routine_ptr      underscore_main = NULL;
       an_insert_location insert_location;
-      (void)make_runtime_routine("_main", &underscore_main, void_type());
+      (void)make_prototyped_runtime_routine("_main", &underscore_main,
+                                            void_type(), void_type(), NULL,
+                                            NULL, NULL, NULL, NULL, NULL);
       set_block_start_insert_location(scope->assoc_block, &insert_location);
       make_call_statement(underscore_main, (an_expr_node_ptr)NULL,
                           (an_expr_node_ptr)NULL, &insert_location);
