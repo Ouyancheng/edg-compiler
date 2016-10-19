@@ -3,7 +3,7 @@ Version 4.13
 10/18/16 [EDGcpfe/17433]
 Demangling of nested template parameters in the Cfront ABI
 
-Previously the invented names of template parameters used during the demangling
+Previously the invented names of template parameters used when demangling
 Cfront mangled names had been re-used for some nested template cases, causing
 demangled strings with the likes of "[with T1=T1]".  A change has been made to
 use different template parameter names in such cases.  For example, the mangled

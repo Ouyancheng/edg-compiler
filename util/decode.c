@@ -119,10 +119,10 @@ typedef struct a_decode_control_block {
 			   that section of the name. */
   unsigned long	mangling_nesting_level;
 			/* The nesting level of calls to
-                           full_demangle_identifier.  Used to ensure that
-                           template parameter names for recursive calls are
-                           given different nesting_levels (and therefore
-                           different template parameter names). */
+			   full_demangle_identifier.  Used to ensure that
+			   template parameter names for recursive calls are
+			   given different nesting_levels (and therefore
+			   different template parameter names). */
 #else /* IA64_ABI */
   unsigned long	suppress_substitution_recording;
 			/* If > 0, suppress recording of substitutions. */
