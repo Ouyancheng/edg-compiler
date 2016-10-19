@@ -6111,6 +6111,20 @@ al_tag_name attributes (if any).
       }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info->is_lambda_closure_class) {
+      /* A closure class has no name.  In order to refer to such a type
+         directly, a variable must be declared to have the type of the
+         lambda, e.g., "auto v = []{};", after which decltype(v) will refer
+         to the closure type.  Since such a reference appears in the IL as
+         simply the closure type, with no way of retrieving the original
+         decltype-specifier, gen_variable_decl puts out a typedef for the
+         the closure type using gen_temp_name.  Since we cannot refer to
+         that typedef using an elaborated-type-specifier, suppress the
+         class-key for this reference and just use the temporary name by
+         itself. */
+      tag_kind_str = "";
+    }  /* if */
     write_tok_str(tag_kind_str);
     if ((options & GN_DECLARATION) != 0) {
       gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
@@ -17338,11 +17352,12 @@ this one is such a continuation.
       is_immediate_class_type(var->type) &&
       var->type->variant.class_struct_union.extra_info->
                                                      is_lambda_closure_class) {
-    /* The type of the variable is an unnamed closure class.  If a
-       pointer-to-member referring to a member of that class is formed
-       using a decltype construct, e.g., &decltype(v)::operator(), we need
-       a way to refer to the closure type, so put out a typedef for it now
-       while we still have access to the variable. */
+    /* The type of the variable is an unnamed closure class.  If the
+       closure class is later referred to in the source using a
+       decltype-specifier, we need a name with which to refer to it in the
+       generated code, since the IL will simply point to the type with no
+       way to reconstruct the original decltype-specifier, so put out a
+       typedef for it now while we still have access to the variable. */
     write_tok_str("typedef decltype(");
     gen_unqualified_name(&var->source_corresp, (an_il_entry_kind)iek_variable);
     write_tok_str(") ");
