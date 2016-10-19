@@ -1324,8 +1324,6 @@ static an_expr_node_ptr drop_const_on_init_entity_node(
 The entity given by the expression entity_node is to be initialized by
 executable code.  entity_node can be either an rvalue pointer or an lvalue.
 If it is "const", drop the const by casting so the entity can be written to.
-ipdp is the init position description for the complete entity being initialized
-(or NULL for an internal adjustment, e.g., for an array element).
 */
 {
   a_type_ptr entity_type = entity_node->type;
@@ -1403,15 +1401,20 @@ is a variable-length array.
     } else if (modifiers->is_vector_element) {
       /* Generate an lvalue entity node that represents the specific vector
          element of the vector. */
-      check_assertion(is_vector_type(entity_node->type));
+      a_type_ptr vec_type = skip_typerefs(entity_node->type);
+      check_assertion(is_vector_type(vec_type));
       elem_num_node = node_for_host_large_integer(
              (a_host_large_integer)modifiers->curr_elem, targ_size_t_int_kind);
       entity_node->next = elem_num_node;
       entity_node = make_lvalue_operator_node(
                                    (an_expr_operator_kind)eok_vector_subscript,
-                                   entity_node->type,
+                                   vec_type->variant.vector.element_type,
                                    entity_node);
-
+      if (using_as_dest) {
+        /* The entity will be used as the destination of an initialization, so
+           drop "const" (if present) from the type to make it modifiable. */
+        entity_node = drop_const_on_init_entity_node(entity_node);
+      }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       /* Add an array element selection. */
@@ -9032,12 +9035,9 @@ The caller should then make sure that this only happens in function scope
 On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
 be kept, FALSE if it should be deleted.  If the caller passes in
 keep_dynamic_init == NULL, no value is returned; the value determined
-in this routine must be FALSE in that case.  *keep_dynamic_init will always
-be set to TRUE if the dynamic init is for an element of a vector type;
-these are kept in the aggregate because vector elements are not individually
-addressable.  The caller should only provide a non-NULL keep_dynamic_init
-value if it's okay to have an initial value for the variable (i.e., not
-in the case of a temporary variable that may be reused).
+in this routine must be FALSE in that case.  The caller should only provide a
+non-NULL keep_dynamic_init value if it's okay to have an initial value for the
+variable (i.e., not in the case of a temporary variable that may be reused).
 
 On return, *constant_to_keep is set to point to a constant part of the
 initialization that should be kept.  If this feature is not needed,
@@ -9721,11 +9721,6 @@ do_assignment:;
             /* Keep a (now-)constant aggregate value as the static initial
                value of the variable.  The nonconstant parts have been put out
                as code and replaced with placeholder constants. */
-#if GNU_VECTOR_TYPES_ALLOWED
-            /* The constant may still have non-constant pieces (because vector
-               elements can't be individually assigned to).  This "constant"
-               will still be used as a static initial value. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
             simple_constant_init = TRUE;
             simple_constant = dip->variant.constant;
             if (variable->promoted_local_static &&
