@@ -2479,7 +2479,8 @@ of a class template that has been created, or a nested class of a
 class template.
 */
 {
-  register a_boolean                    result = FALSE;
+  a_boolean  result = FALSE;
+
   tp = skip_typerefs(tp);
   if (is_immediate_class_type(tp)) {
     result = tp->variant.class_struct_union.is_template_class;
@@ -2494,7 +2495,8 @@ Return TRUE if the given type is a class type with virtual functions
 (including any that may be in base classes).
 */
 {
-  register a_boolean                    result = FALSE;
+  a_boolean  result = FALSE;
+
   tp = skip_typerefs(tp);
   if (tp->kind == (a_type_kind)tk_class ||
       tp->kind == (a_type_kind)tk_struct ||
@@ -5916,7 +5918,7 @@ type comparisons are done.  See the definition of the ITF flags in types.h
 for more information.
 */
 {
-  register a_boolean            identical = FALSE;
+  a_boolean                     identical = FALSE;
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_symbol_ptr                  sym_1, sym_2;

@@ -3493,7 +3493,7 @@ appears in a source modification (i.e., the caller probably has had to
 check already that within_curr_source_line(loc_in_line) == FALSE).
 */
 {
-  register a_source_line_modif_ptr slmp, prev_slmp;
+  a_source_line_modif_ptr slmp, prev_slmp;
 
   for (prev_slmp = NULL, slmp = source_line_modif_list;
        slmp != NULL;
@@ -3725,14 +3725,14 @@ necessary.  This routine should be called only if generate_pp_output
 is TRUE.
 */
 {
-  register a_const_char            *loc_in_line;
-  register char                    ch;
-  register a_source_line_modif_ptr slmp;
-           a_source_line_modif_ptr ins_slmp;
-           char                    prev_ch;
-           char                    prev_prev_ch;
-           a_boolean               token_start;
-           an_orig_line_modif_ptr  next_raw_string_modif;
+  a_const_char            *loc_in_line;
+  char                    ch;
+  a_source_line_modif_ptr slmp;
+  a_source_line_modif_ptr ins_slmp;
+  char                    prev_ch;
+  char                    prev_prev_ch;
+  a_boolean               token_start;
+  an_orig_line_modif_ptr  next_raw_string_modif;
 
 #if UNICODE_SOURCE_SUPPORTED
   /* Determine whether the Unicode encoding of the current file matches the
@@ -4249,13 +4249,13 @@ See gen_raw_listing_output_for_curr_line and cpp_driver, which control
 the calls to this routine.
 */
 {
-  register a_const_char            *loc_in_line;
-  register char                    ch;
-  register a_source_line_modif_ptr slmp;
-           a_source_line_modif_ptr ins_slmp;
-           char                    prev_ch;
-           char                    prev_prev_ch;
-           a_boolean               token_start;
+  a_const_char            *loc_in_line;
+  char                    ch;
+  a_source_line_modif_ptr slmp;
+  a_source_line_modif_ptr ins_slmp;
+  char                    prev_ch;
+  char                    prev_prev_ch;
+  a_boolean               token_start;
 
   /* The output line is generated in raw_listing_buffer first, then
      written to output.  This expensive and unfortunate technique is
@@ -7317,8 +7317,8 @@ literals in C++11.
     } else {
       /* Use local variables in the inner loop, because some compilers
          have trouble optimizing this otherwise. */
-      register char *local_loc_in_line = loc_in_line;
-      register int local_ch = ch;
+      char *local_loc_in_line = loc_in_line;
+      int local_ch = ch;
       for (;;) {
        /* Check for question marks and LE_ESCAPE (i.e., null) characters.
           The presence of two question marks in a row suggests there may be a
@@ -8168,8 +8168,8 @@ This routine also handles the special marker characters that appear in
 source text (end of token, start of expansion, end of expansion).
 */
 {
-  register char      ch;
-  register int	     kind_skipped;
+  char              ch;
+  int	             kind_skipped;
   a_const_char       *comment_start_loc, *saved_curr_char_loc;
   a_boolean          comment_pos_determined;
   a_source_position  comment_start_pos;
@@ -8847,13 +8847,13 @@ Scan a numeric token (integer, fixed-point, or floating constant).  Return
 the kind of token.
 */
 {
-  register char ch;
-  register enum {k_decimal, k_octal, k_hex, k_binary,
+  char          ch;
+  enum          {k_decimal, k_octal, k_hex, k_binary,
 #if FIXED_POINT_ALLOWED
                  k_fixed_point,
 #endif /* FIXED_POINT_ALLOWED */
                  k_float} kind;
-  register a_token_kind 
+  a_token_kind 
                 ctoken = tok_error;
   a_boolean     err = FALSE;
   a_const_char  *err_pos;
@@ -10158,7 +10158,7 @@ string was not terminated before the end of the line, FALSE if it was.  The
 caller is responsible for issuing error messages.
 */
 {
-  register char          ch;
+  char                   ch;
   unsigned long          nchars;
   a_boolean              unterminated = FALSE;
   an_orig_line_modif_ptr olmp = NULL;
@@ -12835,21 +12835,23 @@ been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
 {
-  register a_token_kind ctoken = tok_error;
-  register char         ch;
-  register a_symbol_ptr	assoc_symbol;
-  a_symbol_kind		id_kind;
-  a_boolean		rescan, is_inert_macro = FALSE;
-  a_boolean             is_temporarily_inert_macro = FALSE;
-  a_boolean		continue_scan;
+  a_token_kind  ctoken = tok_error;
+  char          ch;
+  a_symbol_ptr	assoc_symbol;
+  a_symbol_kind	id_kind;
+  a_boolean     rescan, is_inert_macro = FALSE;
+  a_boolean     is_temporarily_inert_macro = FALSE;
+  a_boolean     continue_scan;
 #if MICROSOFT_EXTENSIONS_ALLOWED 
-  a_token_kind                  token_kind;
+  a_token_kind  token_kind;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean                     gotten_from_cache = FALSE;
-  a_symbol_header_ptr           sym_hdr;
-  sizeof_t                      id_length;
-  a_const_char                  *id_ptr;
-  a_string_or_char_literal_kind lit_kind;
+  a_boolean     gotten_from_cache = FALSE;
+  a_symbol_header_ptr
+                sym_hdr;
+  sizeof_t      id_length;
+  a_const_char  *id_ptr;
+  a_string_or_char_literal_kind
+                lit_kind;
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -18093,8 +18095,8 @@ is clearly not a qualified name delimiter, some expensive processing
 can be avoided.
 */
 {
-  a_boolean     delim_does_not_follow = FALSE;
-  register char ch;
+  a_boolean  delim_does_not_follow = FALSE;
+  char       ch;
 
   if (rescanning_cached_tokens()) {
     /* Tokens are coming from a token cache.  The optimization cannot be

@@ -1826,7 +1826,7 @@ static a_symbol_header_ptr alloc_symbol_header(void)
 Allocate a new symbol header, and return a pointer to it.
 */
 {
-  register a_symbol_header_ptr ptr;
+  a_symbol_header_ptr ptr;
 
   db_enter(5, "alloc_symbol_header");
 
@@ -1873,7 +1873,7 @@ static a_conversion_header_ptr alloc_conversion_header(void)
 Allocate a new conversion header and return a pointer to it.
 */
 {
-  register a_conversion_header_ptr ptr;
+  a_conversion_header_ptr ptr;
 
   db_enter(5, "alloc_conversion_header");
   ptr = (a_conversion_header_ptr)alloc_fe(sizeof(a_conversion_header));
@@ -1901,7 +1901,7 @@ null terminator is added to the header's copy of the string, even though it
 is not needed by make_literal_opname_locator.
 */
 {
-  register a_literal_operator_header_ptr ptr;
+  a_literal_operator_header_ptr ptr;
 
   db_enter(5, "alloc_literal_operator_header");
   ptr = (a_literal_operator_header_ptr)
@@ -1944,7 +1944,7 @@ a_symbol_list_entry_ptr alloc_symbol_list_entry(void)
 Allocate a new symbol list entry and return a pointer to it.
 */
 {
-  register a_symbol_list_entry_ptr ptr;
+  a_symbol_list_entry_ptr ptr;
 
   db_enter(5, "alloc_symbol_list_entry");
   if (avail_symbol_list_entries != NULL) {
@@ -2583,7 +2583,7 @@ a_type_list_entry_ptr alloc_type_list_entry(void)
 Allocate a new type list entry and return a pointer to it.
 */
 {
-  register a_type_list_entry_ptr ptr;
+  a_type_list_entry_ptr ptr;
 
   db_enter(5, "alloc_type_list_entry");
   if (avail_type_list_entries != NULL) {
@@ -2636,13 +2636,13 @@ been set by get_token when an identifier is scanned, but sometimes the
 caller may have to set it directly.
 */
 {
-  register a_hash_value        hash_value = 0;
-  register a_const_char        *ptr;
-  register sizeof_t            a;
-  register a_symbol_header_ptr hdr_ptr;
-  a_symbol_header_ptr	       prev_hdr_ptr;
-  a_symbol_ptr                 sym_ptr    = NULL;
-  int                          bucket_number;
+  a_hash_value        hash_value = 0;
+  a_const_char        *ptr;
+  sizeof_t            a;
+  a_symbol_header_ptr hdr_ptr;
+  a_symbol_header_ptr prev_hdr_ptr;
+  a_symbol_ptr        sym_ptr    = NULL;
+  int                 bucket_number;
 
   db_enter(4, "find_symbol");
 #if DEBUG
@@ -3596,8 +3596,8 @@ This function should normally only be called through the macro get_sdm_supp.
 }  /* alloc_static_data_member_supplement */
 
 
-void set_symbol_kind(register a_symbol_ptr sym_ptr,
-		     a_symbol_kind         sym_kind)
+void set_symbol_kind(a_symbol_ptr   sym_ptr,
+		     a_symbol_kind  sym_kind)
 /*
 Set the symbol's kind and initialize the associated variant fields to a safe
 state.
@@ -3955,7 +3955,7 @@ kind to kind, the header to hdr_ptr, and the decl_position to *position.
 hdr_ptr == NULL indicates that an error symbol should be constructed.
 */
 {
-  register a_symbol_ptr sym_ptr;
+  a_symbol_ptr sym_ptr;
 
   db_enter(5, "alloc_symbol");
 
@@ -4004,8 +4004,8 @@ Remove a symbol from the symbol table, i.e., unlink it from either the main
 (active) symbol list or the inactive list of its symbol header.
 */
 {
-  register a_symbol_ptr        ptr, prev_ptr;
-  register a_symbol_header_ptr hdr_ptr;
+  a_symbol_ptr        ptr, prev_ptr;
+  a_symbol_header_ptr hdr_ptr;
 
   db_enter(4, "unlink_symbol_from_symbol_table");
   if (sym_ptr->is_error) {
@@ -5022,13 +5022,13 @@ a symbol is added to a sck_namespace_extension scope, however, the
 symbol must be added to the inactive list.
 */
 {
-  register a_symbol_ptr        old_sym_ptr, hidden_sym = NULL;
-  register a_scope_number      scope_number;
-  register a_name_space_kind   sym_name_space_kind;
-  a_symbol_header_ptr          hdr_ptr = sym_ptr->header;
-  a_symbol_ptr                 insert_after;
-  a_scope_depth                curr_depth;
-  a_boolean                    redecl_err = FALSE;
+  a_symbol_ptr        old_sym_ptr, hidden_sym = NULL;
+  a_scope_number      scope_number;
+  a_name_space_kind   sym_name_space_kind;
+  a_symbol_header_ptr hdr_ptr = sym_ptr->header;
+  a_symbol_ptr        insert_after;
+  a_scope_depth       curr_depth;
+  a_boolean           redecl_err = FALSE;
 
   if (sym_ptr->is_error) {
     /* Error symbols are never added to the symbol table. */
@@ -6063,7 +6063,7 @@ If this routine is changed, enter_namespace_projection_symbol may need to
 be changed too.
 */
 {
-  register a_symbol_ptr sym_ptr;
+  a_symbol_ptr sym_ptr;
 
   db_enter(4, "enter_symbol");
 
@@ -7450,8 +7450,8 @@ is being entered regardless of any previous definition), like for keywords
 entered during initialization.
 */
 {
-  a_symbol_locator      location;
-  register a_symbol_ptr sym_ptr;
+  a_symbol_locator  location;
+  a_symbol_ptr      sym_ptr;
 
   db_enter(4, "full_enter_symbol");
   clear_locator(&location, &null_source_position);
@@ -7470,7 +7470,7 @@ Enter a keyword.  keyword is the keyword string, token is the lexical
 token that corresponds to it.
 */
 {
-  register a_symbol_ptr sym_ptr;
+  a_symbol_ptr sym_ptr;
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
@@ -9345,7 +9345,7 @@ static an_ms_attr_alt_name_entry_ptr alloc_ms_attr_alt_name_entry(void)
 Allocate a new alternate name entry and return a pointer to it.
 */
 {
-  register an_ms_attr_alt_name_entry_ptr ptr;
+  an_ms_attr_alt_name_entry_ptr ptr;
 
   db_enter(5, "alloc_ms_attr_alt_name_entry");
   ptr = (an_ms_attr_alt_name_entry_ptr)alloc_fe(
@@ -14106,7 +14106,7 @@ return a pointer to it.  The locator field of the entry is set to
 locator_for_curr_id.
 */
 {
-  register a_param_id_ptr pip;
+  a_param_id_ptr pip;
 
   db_enter(5, "alloc_param_id");
   if (avail_param_ids != NULL) {
@@ -14190,7 +14190,7 @@ given by *locator is on it.  If so, return a pointer to the entry; if not,
 return NULL.
 */
 {
-  register a_param_id_ptr param_id = param_id_list;
+  a_param_id_ptr param_id = param_id_list;
 
   while (param_id != NULL) {
     if (param_id->symbol != NULL &&
@@ -14965,7 +14965,7 @@ Allocate a new template parameter list entry, initialize it,
 and return a pointer to it.
 */
 {
-  register a_template_param_ptr ptr;
+  a_template_param_ptr ptr;
 
   db_enter(5, "alloc_template_param");
   ptr = (a_template_param_ptr)alloc_fe(sizeof(a_template_param));
@@ -15035,7 +15035,7 @@ a_template_instance_ptr alloc_template_instance(void)
 Allocate a new function instantiation entry and return a pointer to it.
 */
 {
-  register a_template_instance_ptr  tip;
+  a_template_instance_ptr  tip;
 
   db_enter(5, "alloc_template_instance");
   tip = (a_template_instance_ptr)alloc_fe(sizeof(a_template_instance));

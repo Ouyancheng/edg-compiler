@@ -35,8 +35,9 @@ void set_integer_value(an_integer_value		*intval,
 Set the integer value entry *intval to the signed value "value".
 */
 {
-  register int i;
-  register a_host_large_integer this_part;
+  int                  i;
+  a_host_large_integer this_part;
+
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
     this_part = value & MAX_UINT_VALUE_PART;
     intval->part[i] = (an_int_value_part)this_part;
@@ -51,8 +52,9 @@ void set_unsigned_integer_value(an_integer_value	*intval,
 Set the integer value entry *intval to the unsigned value "value".
 */
 {
-  register int i;
-  register a_host_large_integer this_part;
+  int                  i;
+  a_host_large_integer this_part;
+
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
     this_part = value & MAX_UINT_VALUE_PART;
     intval->part[i] = (an_int_value_part)this_part;
@@ -570,7 +572,7 @@ and FALSE otherwise.
   a_boolean		sign_1 = sign_of(*op_1);
 
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
-    register a_host_large_integer work;
+    a_host_large_integer work;
     work = (a_host_large_integer)op_1->part[i] +
            (a_host_large_integer)op_2->part[i] + carry;
     if (work > MAX_UINT_VALUE_PART) {
@@ -791,8 +793,8 @@ shift count is a legal value.
   first_part_shift = op_2 % (int)BITS_IN_INT_VALUE_PART;
   second_part_shift = BITS_IN_INT_VALUE_PART - first_part_shift;
   for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-    register a_host_large_unsigned	work;
-    an_int_value_part			fill_value = 0;
+    a_host_large_unsigned  work;
+    an_int_value_part      fill_value = 0;
     work = op_1->part[i];
     if (i < part_offset && work != 0) {
       overflow = TRUE;
@@ -851,7 +853,7 @@ shift count is a legal value.
     fill_value = 0;
   }  /* if */
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
-    register a_host_large_unsigned	work;
+    a_host_large_unsigned  work;
     work = get_part(*op_1, i - part_offset) >> first_part_shift |
            get_part(*op_1, i - part_offset - 1) << second_part_shift;
     op_1->part[i] = (an_int_value_part)(work & MAX_UINT_VALUE_PART);
@@ -895,7 +897,7 @@ underflow occurred.
   a_boolean		sign_1 = sign_of(*op_1);
 
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
-    register a_host_large_integer work;
+    a_host_large_integer work;
     work = (a_host_large_integer)op_1->part[i] -
            (a_host_large_integer)op_2->part[i] - borrow;
     if (work < 0) {
@@ -943,7 +945,7 @@ Complement an integer value.  The result is returned in the
 operand (op_1 = ~op_1).
 */
 {
-  register int	i;
+  int	i;
 
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
     op_1->part[i] = ~op_1->part[i] & MAX_UINT_VALUE_PART;
@@ -956,8 +958,8 @@ Clear an array of integer value parts.
 */
 #define clear_parts(to_arg, parts_cp)					\
   {									\
-    register int i_cp;							\
-    register an_int_value_part	*to_cp = to_arg;			\
+    int                i_cp;						\
+    an_int_value_part  *to_cp = to_arg;					\
     for (i_cp = 0; i_cp < (int)(parts_cp); ++i_cp) to_cp[i_cp] = 0;	\
   }
 
@@ -968,9 +970,9 @@ of elements in an array of parts.
 */
 #define copy_parts(from_arg, to_arg, parts_cp)				\
   {									\
-    register int i_cp;							\
-    register an_int_value_part	*from_cp = from_arg;			\
-    register an_int_value_part	*to_cp = to_arg;			\
+    int                i_cp;						\
+    an_int_value_part  *from_cp = from_arg;				\
+    an_int_value_part  *to_cp = to_arg;					\
     for (i_cp = 0; i_cp < (int)(parts_cp); ++i_cp) {			\
       to_cp[i_cp] = from_cp[i_cp];					\
     }  /* for */							\
@@ -1114,10 +1116,9 @@ otherwise.
      II, by Donald Knuth, page 253. */
   for (j = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; j >= 0; --j) {
     carry = 0;
-    for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1;
-                                                  i >= 0; --i) {
-      register a_host_large_integer work_slot = i + j + 1;
-      register a_host_large_unsigned work_value = work_area[work_slot];
+    for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
+      a_host_large_integer  work_slot = i + j + 1;
+      a_host_large_unsigned work_value = work_area[work_slot];
       work_value = ((a_host_large_unsigned)op_1->part[i] *
                     (a_host_large_unsigned)op_2->part[j]) + carry + work_value;
       /* The carry value is work_value divided by the size of each integer
@@ -1173,9 +1174,9 @@ as is normally done.  This is done to allow the division routine to pass
 a pointer to its work area which is larger than a normal integer value.
 */
 {
-  register int				i;
-  register a_host_large_unsigned	work;
-  register a_host_large_unsigned	carry = 0;
+  int			i;
+  a_host_large_unsigned	work;
+  a_host_large_unsigned	carry = 0;
 
   for (i = parts - 1; i >= 0; --i) {
     work = ((a_host_large_unsigned)value[i] *
@@ -1198,9 +1199,9 @@ normally done.  This is done to allow the division routine to pass a
 pointer to its work area which is larger than a normal integer value.
 */
 {
-  register int				i;
-  register a_host_large_unsigned	work;
-  register a_host_large_unsigned	borrow = 0;
+  int			i;
+  a_host_large_unsigned	work;
+  a_host_large_unsigned	borrow = 0;
 
   for (i = 0; i < parts; ++i) {
     work = value[i];
@@ -1222,7 +1223,7 @@ part of a work area rather than a normal integer value.
   a_host_large_unsigned	borrow = 0;
   
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE; i >= 0; --i) {
-    register a_host_large_integer work;
+    a_host_large_integer work;
     work = (a_host_large_integer)work_area[i] -
            (a_host_large_integer)subtrahend[i] - borrow;
     if (work < 0) {
@@ -1414,7 +1415,7 @@ are done with op_1.
          overflow problems. */
       done = TRUE;
       for (i = 0; i < (int)(INT_VALUE_PARTS_PER_INTEGER_VALUE + 1); ++i) {
-        register int diff = work_area[i + j] - temp_product[i];
+        int diff = work_area[i + j] - temp_product[i];
         if (diff == 0) continue;
         if (diff < 0 ) {
           done = FALSE;

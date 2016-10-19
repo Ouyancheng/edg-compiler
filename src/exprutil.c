@@ -11933,7 +11933,7 @@ Return FALSE and issue an error message if the operand is not of integral type
 error change "operand" to an error operand.
 */
 {
-  register a_boolean okay = TRUE;
+  a_boolean okay = TRUE;
 
   if (is_error_operand(operand)) {
     /* If the operand has a type of error, an error message has already been
@@ -11956,7 +11956,7 @@ unscoped enumeration, or fixed-point type (scoped enumeration types are not
 accepted).  If there is an error change "operand" to an error operand.
 */
 {
-  register a_boolean okay = TRUE;
+  a_boolean okay = TRUE;
 
   if (is_error_operand(operand)) {
     /* If the operand has a type of error, an error message has already been
@@ -12046,7 +12046,7 @@ Return FALSE if the operand is not of arithmetic type (including unscoped
 enum types).  If there is an error, change the operand to an error operand.
 */
 {
-  register a_boolean okay = TRUE;
+  a_boolean okay = TRUE;
 
   if (is_error_operand(operand)) {
     /* If it is an error type, an error message has already been issued. */

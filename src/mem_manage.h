@@ -89,7 +89,7 @@ divisible by HOST_ALIGNMENT_REQUIRED.
 #else /* ALIGNMENT_BITS != 0 */
 
 #define do_host_alignment(value)                                      \
-{ register int excess_bytes = (int)(align_expr(value));               \
+{ int excess_bytes = (int)(align_expr(value));                        \
   if (excess_bytes != 0) {                                            \
     value += HOST_ALIGNMENT_REQUIRED - excess_bytes;                  \
   }  /* if */                                                         \

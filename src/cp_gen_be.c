@@ -2816,8 +2816,8 @@ Write the indicated string to the output file.  It is not necessarily a
 complete token.  This is the macro version.
 */
 #define m_write_str(str)                                              \
-{ register a_const_char *p = (str);                                   \
-  register char         ch;                                           \
+{ a_const_char *p = (str);                                            \
+  char         ch;                                                    \
   check_pending_output_position();                                    \
   while ((ch = *p++) != '\0') m_write_ch_no_pending_check(ch);        \
 }  /* m_write_str */
@@ -2910,9 +2910,9 @@ The normal version checks output_position_is_pending; the "_no_pending_check"
 version does not.  Both are macros.
 */
 #define m_write_tok_str_no_pending_check(str)                         \
-{ register a_const_char *p = (str);                                   \
-  sizeof_t              len = (sizeof_t)strlen(p);                    \
-  register char         ch;                                           \
+{ a_const_char *p = (str);                                            \
+  sizeof_t     len = (sizeof_t)strlen(p);                             \
+  char         ch;                                                    \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
   curr_output_column += (uint32_t)len;                                \
@@ -2952,8 +2952,8 @@ Write the indicated unsigned number to the output file.  The number is assumed
 to be a complete token.
 */
 {
-  register char         digitch;
-  register unsigned int digit;
+  char         digitch;
+  unsigned int digit;
 
   check_pending_output_position();
   /* Do smaller numbers in a fast way. */

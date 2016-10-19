@@ -1468,9 +1468,9 @@ ensure_macro_buffer_space.
 {
   sizeof_t                total_needed, old_size, old_len, new_size, increment;
   char                    *new_macro_buffer;
-  register a_const_char   *src;
-  register char           *dst;
-  register char           ch;
+  a_const_char            *src;
+  char                    *dst;
+  char                    ch;
   a_const_char            *old_start_for_remapping;
   char                    *new_start_for_remapping;
   a_source_line_modif_ptr slmp;
@@ -3083,12 +3083,12 @@ produce a "charized" version of the argument (i.e., a character literal).
 In such cases, charize is TRUE.
 */
 {
-  register sizeof_t len = 0;
-  register char     *p;
-  register char     ch;
-  a_boolean         within_char_literal = FALSE;
-  a_boolean         start_of_token = TRUE;
-  char              quote_char = (charize ? '\'' : '"');
+  sizeof_t   len = 0;
+  char       *p;
+  char       ch;
+  a_boolean  within_char_literal = FALSE;
+  a_boolean  start_of_token = TRUE;
+  char       quote_char = (charize ? '\'' : '"');
 
   /* Put out initial quote. */
   len++;

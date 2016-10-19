@@ -279,7 +279,7 @@ The current source position is just after the "#" of the directive, with
 the "#" the current token (at least logically).
 */
 {
-  register a_pp_directive_kind kind;
+  a_pp_directive_kind kind;
 
   some_error_in_curr_directive = FALSE;
   /* If preprocessing output is being produced, delete this directive.

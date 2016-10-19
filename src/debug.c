@@ -130,7 +130,7 @@ static a_debug_request_ptr alloc_debug_request(void)
 Allocate and initialize a debug request record.
 */
 {
-  register a_debug_request_ptr ptr;
+  a_debug_request_ptr ptr;
 
   ptr = (a_debug_request_ptr)alloc_general(sizeof(a_debug_request));
   ptr->next   = NULL;
@@ -213,17 +213,17 @@ from the list of flags.
 Returns TRUE if there was an error during parsing of the debug option.
 */
 {
-  register a_const_char *curr_char;
-  char                  curr_name[128];
-  register char         *curr_name_ptr;
-  a_debug_request_ptr   head;
-  a_debug_request_ptr   request;
-  int                   level;
-  a_debug_action        action;
-  a_boolean             do_not_print_message;
-  a_boolean             dump_list = FALSE;
-  a_boolean             done;
-  a_boolean	        remove_flag = FALSE;
+  a_const_char         *curr_char;
+  char                 curr_name[128];
+  char                 *curr_name_ptr;
+  a_debug_request_ptr  head;
+  a_debug_request_ptr  request;
+  int                  level;
+  a_debug_action       action;
+  a_boolean            do_not_print_message;
+  a_boolean            dump_list = FALSE;
+  a_boolean            done;
+  a_boolean	       remove_flag = FALSE;
 
   db_active = TRUE;
   if (isdigit((unsigned char)*debug_option)) {
@@ -660,8 +660,8 @@ appears in the debug request list, do what the request indicates and remember
 what was done in the stack entry.
 */
 {
-  register a_debug_request_ptr request_ptr;
-  register a_debug_stack_entry *stack_ptr;
+  a_debug_request_ptr request_ptr;
+  a_debug_stack_entry *stack_ptr;
 
   if (depth_debug_stack >= ((int)debug_stack_size) - 1) {
     sizeof_t	new_size;
@@ -689,7 +689,7 @@ what was done in the stack entry.
      exit from a routine as they were on entry. */
   stack_ptr->stop_token_checksum = 0;
   if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
-    register int i;
+    int				i;
     a_token_set_array_element	*stop_token_ptr;
     stop_token_ptr = curr_stop_token_stack_entry->stop_tokens;
     for (i = 0; i <= (int)tok_last; i++) {
@@ -774,8 +774,8 @@ was printed on entry.  Remove the entry from the stack.
 #if STOP_TOKEN_CHECKSUM_TEST_NEEDED
   /* Check the stop token array checksum if one was computed on entry. */
   if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
-    register int      i;
-    register unsigned test_checksum = 0;
+    int      i;
+    unsigned test_checksum = 0;
     a_token_set_array_element	*stop_token_ptr;
     stop_token_ptr = curr_stop_token_stack_entry->stop_tokens;
     for (i = 0; i <= (int)tok_last; i++) {

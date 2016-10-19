@@ -529,7 +529,7 @@ the available list), set its fields to default values, and return a pointer
 to it.
 */
 {
-  register a_control_flow_descr_ptr  cfdp;
+  a_control_flow_descr_ptr  cfdp;
 
   db_enter(5, "alloc_control_flow_descr");
   if (avail_control_flow_descrs != NULL) {
@@ -2803,8 +2803,8 @@ current structured statement.  is_statement_expr is TRUE if this
 statement is the top block of a GNU statement expression ({ ... }).
 */
 {
-  register a_struct_stmt_stack_entry_ptr sssep;
-  a_control_flow_descr_ptr               cfdp;
+  a_struct_stmt_stack_entry_ptr sssep;
+  a_control_flow_descr_ptr      cfdp;
 
 
   db_enter(4, "push_stmt_stack_full");
@@ -5480,9 +5480,9 @@ GNU allows a syntax similar to Fortran's assigned goto:
 */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 {
-  register a_statement_ptr sp;
-  a_source_position        goto_pos;
-  a_statement_kind	   stmk;
+  a_statement_ptr    sp;
+  a_source_position  goto_pos;
+  a_statement_kind   stmk;
 
   db_enter(3, "goto_statement");
   check_for_unreachable_code();

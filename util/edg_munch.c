@@ -117,10 +117,10 @@ input is being returned.  Returns FALSE at end-of-file.  Sets "line_size"
 to the number of characters read not including the trailing null character.
 */
 {
-  register char*    buffer_pos = &input_line_buffer[0];
-  register int      size = 0;
-  register int      ch;
-  int               result;
+  char*  buffer_pos = &input_line_buffer[0];
+  int    size = 0;
+  int    ch;
+  int    result;
 
   while (ch = getchar(), ch != EOF && ch != '\n') {
     if (++size > INPUT_LINE_SIZE) {
@@ -153,11 +153,11 @@ should be processed and returns the starting position and
 length of the name.
 */
 {
-  int             result = FALSE;
-  register char*  pos = &input_line_buffer[0];
-  register char   ch;
-  char*           local_name_pos;
-  char            type;
+  int    result = FALSE;
+  char*  pos = &input_line_buffer[0];
+  char   ch;
+  char*  local_name_pos;
+  char   type;
   static sizeof_t ctor_prefix_length = 0;
   static sizeof_t dtor_prefix_length = 0;
 
@@ -212,7 +212,7 @@ length of the name.
     /* We have found an entry that needs processing. */
     if (result) {
       /* Set name length. */
-      register int length = 0;
+      int length = 0;
       while (ch = *pos++, is_id_char(ch)) ++length;
       *name_length = length;
       /* Return the starting position of the name. */
@@ -236,7 +236,7 @@ static void create_output(a_list_entry_ptr list_ptr,
 Generate the output for this list of functions.
 */
 {
-  register a_list_entry_ptr    entry;
+  a_list_entry_ptr    entry;
 
   /* Constructor declarations. */
   entry = list_ptr;

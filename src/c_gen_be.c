@@ -843,7 +843,7 @@ If line wrapping is disabled, do nothing.
 Print a number of spaces for indentation.
 */
 #define do_indentation()					      \
-{ register int a;						      \
+{ int a;						              \
   for (a = 0; a < (int)indent; a++) {				      \
     (void)putc(' ', f_C_output);				      \
   }  /* for */							      \
@@ -985,8 +985,8 @@ Write the indicated string to the output file.  It is not necessarily a
 complete token.  This is the macro version.
 */
 #define m_write_str(str)                      \
-{ register a_const_char *p = (str);           \
-  register char         ch;                   \
+{ a_const_char *p = (str);                    \
+  char         ch;                            \
   while ((ch = *p++) != '\0') m_write_ch(ch); \
 }  /* m_write_str */
 
@@ -1053,9 +1053,9 @@ several), which means a long line could be broken before or after it.
 This is the macro version.
 */
 #define m_write_tok_str(str)                                          \
-{ register a_const_char *p = (str);                                   \
+{ a_const_char *p = (str);                                            \
   sizeof_t              len = (sizeof_t)strlen(p);                    \
-  register char         ch;                                           \
+  char         ch;                                                    \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
   curr_output_column += (uint32_t)len;                                \
@@ -1091,8 +1091,8 @@ Write the indicated unsigned number to the output file.  The number is assumed
 to be a complete token.
 */
 {
-  register char         digitch;
-  register unsigned int digit;
+  char         digitch;
+  unsigned int digit;
 
   /* Do smaller numbers in a fast way. */
   if (num <= 9) {
@@ -6891,8 +6891,8 @@ Copy the contents of the file *f_ptr into the current C output, and delete
 the file.
 */
 {
-  register int c;
-  FILE     *f = *f_ptr;
+  int   c;
+  FILE  *f = *f_ptr;
 
   /* Seek to the beginning of the file. */
   if (fseek(f, 0L, SEEK_SET) != 0) {

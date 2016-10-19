@@ -940,7 +940,7 @@ Allocate a constant entry of the indicated kind, set its fields to default
 values, and return a pointer to it.
 */
 {
-  register a_constant_ptr cp;
+  a_constant_ptr cp;
 
   db_enter(5, "alloc_constant");
 
@@ -3506,7 +3506,7 @@ an_expr_node_ptr alloc_expr_node(an_expr_node_kind kind)
 Allocate and initialize an expression node.
 */
 {
-  register an_expr_node_ptr ptr;
+  an_expr_node_ptr ptr;
 
   db_enter(5, "alloc_expr_node");
 
@@ -3740,7 +3740,7 @@ Allocate an accessible_base_class, clear it to default values and set the
 base class to bcp, and return a pointer to it.
 */
 {
-  register an_accessible_base_class_ptr abcp;
+  an_accessible_base_class_ptr abcp;
 
   abcp = (an_accessible_base_class_ptr)alloc_cil(
                                             sizeof(an_accessible_base_class));

@@ -543,7 +543,7 @@ Enter a keyword for a token that is not yet implemented.  error_code
 specifies a diagnostic message to be issued if the keyword is used.
 */
 {
-  register a_symbol_ptr sym_ptr;
+  a_symbol_ptr sym_ptr;
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
@@ -559,7 +559,7 @@ Like enter_keyword but for keywords that also have a meaning when parsing
 preprocessing directives (i.e., operators like "and").
 */
 {
-  register a_symbol_ptr sym_ptr;
+  a_symbol_ptr sym_ptr;
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
