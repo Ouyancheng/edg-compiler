@@ -9428,8 +9428,10 @@ the C11 _Noreturn specifier.  Record the _Noreturn property if needed.
   }  /* if */
   epp = *eppp;
   *eppp = epp->next;
-  if (dps->sym == NULL || !symbol_is(dps->sym, sk_routine) ||
-      is_main_function(dps->sym->variant.routine.ptr)) {
+  if (dps->sym == NULL || !symbol_is(dps->sym, sk_routine)) {
+    pos_error(ec_bad_c11_noreturn, &epp->position);
+    err = TRUE;
+  } else if (is_main_function(dps->sym->variant.routine.ptr)) {
     if (gnu_mode) {
       /* GCC (and clang) allow _Noreturn on main (with a warning). */
       pos_warning(ec_bad_c11_noreturn, &epp->position);
