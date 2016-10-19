@@ -3261,7 +3261,7 @@ static void disp_ctor_or_dtor_kind_name(a_ctor_or_dtor_kind kind)
 Display the name of the indicated constructor or destructor kind.
 */
 {
-  char *s;
+  a_const_char *s;
   
   switch (kind) {
     case cdk_none:      s = "none";                      break;
