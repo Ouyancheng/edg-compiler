@@ -20844,6 +20844,8 @@ stop_tokens is the stop token set to be used.  After this routine is
 called the current token is the right brace, except for error cases.
 */
 {
+  push_lexical_state_stack();
+  caching_tokens = TRUE;
   check_assertion(curr_token == tok_lbrace);
   /* Cache the "{" and advance past it. */
   cache_curr_token(p_token_cache);
@@ -20857,6 +20859,7 @@ called the current token is the right brace, except for error cases.
     /* A get_token is intentionally not done -- the caller will
        advance past the end of the template declaration. */
   }  /* if */
+  pop_lexical_state_stack();
 }  /* cache_compound_stmt */
 
 

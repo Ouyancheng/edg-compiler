@@ -2771,8 +2771,6 @@ Note that the value returned through *pragma_descr can be NULL.
        symbol header could be unset). */
     if (curr_token != tok_end_of_source) curr_token = tok_error;
   }  /* if */
-  /* If the pragma was an immediate pragma, process it now. */
-  process_immediate_pragmas();
 }  /* scan_pragma_operator */
 
 
@@ -4816,6 +4814,7 @@ associated global variables will also have been set).
   a_boolean       saved_in_macro_arg_list = in_macro_arg_list;
   unsigned long   saved_macro_name_modif_seq = macro_name_modif_seq;
   a_boolean       saved_single_param_macro = single_param_macro;
+  a_boolean       pragma_operator_seen = FALSE;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5270,7 +5269,8 @@ make_inert_macro:
           a_pragma_kind_description_ptr	pkdp;
           is_macro_call = FALSE;
           delete_source_from_loc = NULL;
-          scan_pragma_operator(&got_proper_closing_token, &pkdp); 
+          scan_pragma_operator(&got_proper_closing_token, &pkdp);
+          pragma_operator_seen = TRUE;
           rescan_loc = curr_char_loc;
         }  /* if */
         goto return_point;
@@ -5289,6 +5289,7 @@ make_inert_macro:
           is_macro_call = FALSE;
           delete_source_from_loc = NULL;
           scan_microsoft_pragma_operator(&got_proper_closing_token, &pkdp);
+          pragma_operator_seen = TRUE;
           rescan_loc = curr_char_loc;
         }  /* if */
         goto return_point;
@@ -6937,6 +6938,10 @@ return_point:
   num_macro_invocations_in_process--;
   /* Restore the lexical state. */
   pop_lexical_state_stack();
+  if (pragma_operator_seen && !caching_tokens) {
+    /* If the pragma was an immediate pragma, process it now. */
+    process_immediate_pragmas();
+  }  /* if */
   db_exit();
   return (ctoken);
 }  /* macro_invocation */
