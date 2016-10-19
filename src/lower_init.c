@@ -5777,6 +5777,9 @@ expression).
       }  /* if */
     }  /* if */
     if (is_aggregate_or_union_type(desired_type)
+#if GNU_VECTOR_TYPES_ALLOWED
+        || is_vector_type(desired_type)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if DO_C99_IL_LOWERING && LOWER_COMPLEX
         || is_complex_type(desired_type)
 #endif /* DO_C99_IL_LOWERING && LOWER_COMPLEX */
