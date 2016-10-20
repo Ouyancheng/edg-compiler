@@ -6112,17 +6112,18 @@ al_tag_name attributes (if any).
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     if (is_immediate_class_type(type) &&
-        type->variant.class_struct_union.extra_info->is_lambda_closure_class) {
+        type->variant.class_struct_union.extra_info->is_lambda_closure_class &&
+        type->has_been_declared) {
       /* A closure class has no name.  In order to refer to such a type
          directly, a variable must be declared to have the type of the
          lambda, e.g., "auto v = []{};", after which decltype(v) will refer
          to the closure type.  Since such a reference appears in the IL as
          simply the closure type, with no way of retrieving the original
          decltype-specifier, gen_variable_decl puts out a typedef for the
-         the closure type using gen_temp_name.  Since we cannot refer to
-         that typedef using an elaborated-type-specifier, suppress the
-         class-key for this reference and just use the temporary name by
-         itself. */
+         the closure type using gen_temp_name and sets its
+         has_been_declared flag.  Since we cannot refer to that typedef
+         using an elaborated-type-specifier, suppress the class-key for
+         this reference and just use the temporary name by itself. */
       tag_kind_str = "";
     }  /* if */
     write_tok_str(tag_kind_str);
@@ -17363,6 +17364,7 @@ this one is such a continuation.
     write_tok_str(") ");
     gen_temp_name((char *)var->type);
     write_tok_ch(';');
+    var->type->has_been_declared = TRUE;
   }  /* if */
 }  /* gen_variable_decl */
 
