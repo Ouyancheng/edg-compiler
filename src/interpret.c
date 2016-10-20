@@ -5550,8 +5550,6 @@ the body of the (constructor) function proper.
     a_constexpr_address  implied_src_address;
     an_alloc_seq_number  alloc_seq_number;
     a_type_ptr           class_type = parent_class_of(callee);
-    a_class_symbol_supplement_ptr
-                         cssp;
     unsigned long        up_front_cost;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
@@ -5562,14 +5560,6 @@ the body of the (constructor) function proper.
       do_constexpr_fail(result);
       info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                         symbol_for(callee), ips);
-      goto done;
-    }  /* if */
-    /* If the constructor has an associated nontrivial destructor, don't
-       attempt interpretation either since the lifetime won't be right. */
-    cssp = class_symbol_supp(symbol_for(class_type));
-    if (has_nontrivial_destructor(cssp)) {
-      do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
       goto done;
     }  /* if */
     /* Account a relatively high cost for the call up-front, to limit the

@@ -1,5 +1,24 @@
 Version 4.13
 
+10/20/16 [EDGcpfe/17657]
+Spurious error on constexpr constructor constructing a member with a destructor
+
+The front end previously diagnosed an error for a constexpr constructor that
+relies on a default member initializer for a member with a nontrivial
+destructor.  For example:
+
+  struct N {
+    constexpr N() {}
+    ~N() {}
+  };
+  struct S {
+    N n{};
+    constexpr S() {}  // Previously elicited an error.
+  };
+
+This is now fixed.
+
+
 10/19/16 [EDGcpfe/17655]
 Use of "register" storage class eliminated from the front end
 
