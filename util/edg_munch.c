@@ -153,11 +153,11 @@ should be processed and returns the starting position and
 length of the name.
 */
 {
-  int    result = FALSE;
-  char*  pos = &input_line_buffer[0];
-  char   ch;
-  char*  local_name_pos;
-  char   type;
+  int             result = FALSE;
+  char*           pos = &input_line_buffer[0];
+  char            ch;
+  char*           local_name_pos;
+  char            type;
   static sizeof_t ctor_prefix_length = 0;
   static sizeof_t dtor_prefix_length = 0;
 
@@ -172,7 +172,7 @@ length of the name.
 
   /* Skip over the first field which is expected to contain the
      value field.  Skip to a blank. */
-   while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+  while((ch = *pos), ch != ' ' && ch != '\0') pos++;
 
   /* Look for blank after value. */
   if (*pos++ != ' ') goto invalid_input;

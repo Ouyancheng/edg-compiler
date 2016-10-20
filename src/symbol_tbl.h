@@ -5132,7 +5132,7 @@ EXTERN a_boolean
 void declare_builtin_va_list_type(a_boolean	is_cstdarg);
 
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
-			    a_symbol_kind sym_kind);
+                            a_symbol_kind sym_kind);
 
 extern void unlink_symbol_from_symbol_table(a_symbol_ptr sym_ptr);
 

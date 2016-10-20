@@ -7318,7 +7318,7 @@ literals in C++11.
       /* Use local variables in the inner loop, because some compilers
          have trouble optimizing this otherwise. */
       char *local_loc_in_line = loc_in_line;
-      int local_ch = ch;
+      int  local_ch = ch;
       for (;;) {
        /* Check for question marks and LE_ESCAPE (i.e., null) characters.
           The presence of two question marks in a row suggests there may be a
@@ -8168,15 +8168,15 @@ This routine also handles the special marker characters that appear in
 source text (end of token, start of expansion, end of expansion).
 */
 {
-  char              ch;
-  int	             kind_skipped;
+  char               ch;
+  int                kind_skipped;
   a_const_char       *comment_start_loc, *saved_curr_char_loc;
   a_boolean          comment_pos_determined;
   a_source_position  comment_start_pos;
   a_const_char       *delete_from;
   a_const_char       *delete_to;
   a_source_line_modif_ptr
-		     slmp;
+                     slmp;
   a_boolean          delete_only_for_comment = FALSE;
 
 /* Macro used later to test if comments must be deleted.  Except for the

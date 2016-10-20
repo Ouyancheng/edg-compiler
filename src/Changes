@@ -4,8 +4,8 @@ Version 4.13
 Use of "register" storage class eliminated from the front end
 
 The front end no longer uses the keyword "register" (a storage class specifier)
-because that feature was deprecated in C++11 (modern compiler mostly ignore the
-keyword).
+because that feature was deprecated in C++11 (modern compilers mostly ignore
+the keyword).
 
 
 10/19/16 [EDGcpfe/16990,EDGcpfe/17648]

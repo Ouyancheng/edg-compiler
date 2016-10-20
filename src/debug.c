@@ -223,7 +223,7 @@ Returns TRUE if there was an error during parsing of the debug option.
   a_boolean            do_not_print_message;
   a_boolean            dump_list = FALSE;
   a_boolean            done;
-  a_boolean	       remove_flag = FALSE;
+  a_boolean            remove_flag = FALSE;
 
   db_active = TRUE;
   if (isdigit((unsigned char)*debug_option)) {
@@ -776,8 +776,8 @@ was printed on entry.  Remove the entry from the stack.
   if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
     int      i;
     unsigned test_checksum = 0;
-    a_token_set_array_element	*stop_token_ptr;
-    stop_token_ptr = curr_stop_token_stack_entry->stop_tokens;
+    a_token_set_array_element
+             *stop_token_ptr = curr_stop_token_stack_entry->stop_tokens;
     for (i = 0; i <= (int)tok_last; i++) {
       test_checksum += *stop_token_ptr++;
     }  /* for */
