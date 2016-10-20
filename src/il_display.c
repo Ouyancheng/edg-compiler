@@ -716,7 +716,7 @@ Display the indicated source correspondence entry.
       disp_source_range("  declarator_range",
                         &scp->decl_pos_info->variant.declarator_range);
     }  /* if */
-    disp_ptr("extra_positions", (char*)scp->decl_pos_info->extra_positions,
+    disp_ptr("  extra_positions", (char*)scp->decl_pos_info->extra_positions,
              iek_element_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
