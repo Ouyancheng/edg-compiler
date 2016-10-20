@@ -5635,11 +5635,16 @@ the body of the (constructor) function proper.
              evaluated already).  The second argument represents the address
              one position past the end of that array. */
           a_constexpr_address  *arg1, *arg2;
+          a_type_ptr           elem_type;
+          a_byte_count         elem_size;
+          elem_type = skip_typerefs(tp->variant.pointer.type);
+          elem_size = value_bytes_for_type(ips, elem_type, &result);
           arg1 = (a_constexpr_address*)p_arg_ptr[-2];
           arg2 = (a_constexpr_address*)p_arg_ptr[-1];
           *arg2 = *arg1;
           check_assertion(is_array_element(arg2));
-          arg2->address += arg2->length;
+          arg2->address += arg2->length * elem_size;
+          arg2->flags |= CA_CANNOT_DEREFERENCE;
         } else if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -9505,7 +9510,13 @@ diagnostic in *ips.
                same variable). */
             a_constant_ptr  prev_con = (a_constant_ptr)mptr;
             a_type_ptr      top_type;
-            if (prev_con->variant.address.kind ==
+            if (!constant_is(prev_con, ck_address)) {
+              /* Presumably this is an array constant created for an
+                 abk_constant address by the code below. */
+              cp = prev_con;
+              top_type = cp->type;
+              check_assertion(top_type->kind == (a_type_kind)tk_array);
+            } else if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               vp = prev_con->variant.address.variant.variable;
               if (vp == NULL) {
@@ -9539,7 +9550,8 @@ diagnostic in *ips.
               /* If we're pointing into an array, a constant for the whole
                  array must be allocated. */
               a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
-              a_byte_count  offset = cap->address - get_base_address(cap);
+              a_byte        *base_address = get_base_address(cap);
+              a_byte_count  offset = cap->address - base_address;
               if (offset != 0) {
                 con->variant.address.offset =
                   utp->size * (offset/value_bytes_for_type(ips, utp, &result));
@@ -9548,6 +9560,10 @@ diagnostic in *ips.
               atp->variant.array.variant.number_of_elements = cap->length;
               set_type_size(atp);
               utp = atp;
+              /* Set up a reverse mapping, so other address constants into
+                 this array can use the same constant entry (see the case
+                 where mptr points to a non-ck_address entry above). */
+              map_stack_bytes(ips, base_address, (a_byte*)cp);
             }  /* if */
             if (!copy_interpreter_object_to_constant(
                           ips, cap->address, cap->complete_object, utp, cp)) {
