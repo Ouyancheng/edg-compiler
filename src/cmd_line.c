@@ -4591,6 +4591,8 @@ before this routine is called.
     }  /* if */
   }  /* if */
   if (clang_mode) {
+    /* All versions of clang appear to accept attributes on enumerators. */
+    enumerator_attributes_enabled = TRUE;
     if (clang_version >= 30000) {
       inline_namespaces_enabled = TRUE;
       if (clang_version >= 30100) {
@@ -4609,6 +4611,8 @@ before this routine is called.
     if (gnu_version < 60000) {
       /* GCC 5.x and earlier accept "false" as a null pointer constant. */
       false_literal_is_not_null_pointer_constant = FALSE;
+    } else {
+      enumerator_attributes_enabled = TRUE;
     }  /* if */
     if (cpp11_mode && gnu_version >= 60000) {
       /* Later versions of GNU appear to enable this by default. */

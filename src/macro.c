@@ -4139,10 +4139,6 @@ the clang 4.0 documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
 static a_feature_support feature_support_list[] = {
   { "",
-    &enumerator_attributes_enabled,
-    "__cpp_enumerator_attributes",
-    "201411" },
-  { "",
     NULL,
     "__cpp_fold_expressions",
     "201411" },
@@ -4404,6 +4400,10 @@ static a_feature_support feature_support_list[] = {
     &variadic_templates_enabled,
     "__cpp_variadic_templates",
     "200704" },
+  { "enumerator_attributes",
+    &enumerator_attributes_enabled,
+    "__cpp_enumerator_attributes",
+    "201411" },
   { "nullability",
     &nullability_qualifiers_enabled,
     NULL,

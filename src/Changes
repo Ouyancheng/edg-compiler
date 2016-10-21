@@ -1,5 +1,19 @@
 Version 4.13
 
+10/21/16 [EDGcpfe/14798,EDGcpfe/15093]
+Attributes on enumerators
+
+The C++17 standard allows for attributes on enumerators (see the Changes entry
+for EDGcpfe/16270) and now the front end enables support for these in all
+clang emulation modes as well as GNU emulation mode when gnu_version >= 60000.
+__has_extension(enumerator_attributes) is now enabled in clang modes.
+The following is now accepted with --clang or --gnu_version 60000:
+
+  enum {
+    e __attribute__((deprecated))
+  };
+
+
 10/20/16 [EDGcpfe/17649]
 Clang compatibility: builtin signatures for concrete __sync_* builtins
 
