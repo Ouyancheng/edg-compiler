@@ -8703,6 +8703,76 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+static void determine_templ_arg_lists_to_use(
+		a_boolean		is_alias_template,
+		a_template_arg_ptr	new_list,
+		a_template_arg_ptr	*p_new_list_without_local_types,
+		a_template_arg_ptr	*p_list_for_instantiation,
+		a_boolean		*p_list_copied,
+		a_boolean		*p_dependent_arg_list)
+/*
+new_list is a template argument list about to be used to find or create
+a class, alias, or variable template instance.  Depending on the
+arguments and the context local and/or nonreal types are removed from
+the list.  Values are returned in these parameters:
+
+*p_new_list_without_local_types: This is new_list without local types.
+
+*p_list_for_instantiation: This is the template argument list to be used
+to look for a prior instantiation, and do a new instantiation, if needed.
+In certain dependent contexts this preserves nonreal typerefs.
+
+*p_list_copied is set to TRUE *p_new_list_without_local_types points to
+a copy of the list pointed to by new_list.  If the list is copied and
+*p_list_for_instantiation does not point to *p_new_list_without_local_types,
+the caller should free *p_new_list_without_local_types.
+
+*p_dependent_arg_list is set to TRUE if the list for instantiation
+is dependent.
+*/
+{
+  a_template_arg_ptr	new_list_without_local_types = NULL;
+  a_template_arg_ptr	list_for_instantiation;
+  a_boolean		orig_list_is_dependent = FALSE;
+  a_boolean		stripped_list_is_dependent;
+  a_boolean		list_copied = FALSE;
+
+  if (is_template_dependent_context()) {
+    /* Make a copy of the original list before stripping certain typerefs. */
+    new_list_without_local_types = copy_template_arg_list(new_list);
+    list_copied = TRUE;
+    strip_types_from_template_arg_list(new_list_without_local_types,
+                                       /*local_only=*/TRUE);
+    orig_list_is_dependent = template_arg_list_is_dependent(
+                                                 new_list_without_local_types);
+  }  /* if */
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(new_list, /*local_only=*/FALSE);
+  stripped_list_is_dependent = template_arg_list_is_dependent(new_list);
+  if (new_list_without_local_types == NULL) {
+    new_list_without_local_types = new_list;
+    orig_list_is_dependent = stripped_list_is_dependent;
+  }  /* if */
+  if (is_alias_template ||
+      (is_template_declaration_context() &&
+       orig_list_is_dependent && stripped_list_is_dependent)) {
+    /* For alias templates, and for dependent argument lists in other
+       contexts, use the original list to see if this refers to the
+       prototype instantiation and also for any new instantiations done. */
+    list_for_instantiation = new_list_without_local_types;
+  } else {
+    /* In other contexts, use what is now the list stripped of local
+       and nonreal types. */
+    list_for_instantiation = new_list;
+  }  /* if */
+  *p_new_list_without_local_types = new_list_without_local_types;
+  *p_list_for_instantiation = list_for_instantiation;
+  *p_list_copied = list_copied;
+  *p_dependent_arg_list = stripped_list_is_dependent;
+}  /* determine_templ_arg_lists_to_use */
+
+
 a_symbol_ptr find_template_class(
 			     a_symbol_ptr        template_sym,
                              a_template_arg_ptr  *new_list,
@@ -8775,16 +8845,13 @@ use the current global value of the template template parameter.
   a_symbol_ptr				sym;
   a_symbol_ptr				prototype_sym;
   a_template_arg_ptr			old_list;
-  a_template_arg_ptr			new_list_without_local_types = NULL;
-  a_template_arg_ptr			list_for_prototype_check;
+  a_template_arg_ptr			new_list_without_local_types;
   a_template_arg_ptr			list_for_instantiation;
   a_template_symbol_supplement_ptr	tssp;
   an_equiv_templ_arg_options_set	eta_options;
   a_boolean				is_alias_template;
-  a_boolean				orig_list_is_dependent = FALSE;
-  a_boolean				stripped_list_is_dependent;
   a_boolean				dependent_arg_list;
-  a_boolean				list_copied = FALSE;
+  a_boolean				list_copied;
 
   db_enter(3, "find_template_class");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
@@ -8807,37 +8874,14 @@ use the current global value of the template template parameter.
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
   eta_options = eta_options_for_template(template_sym, tssp);
-  if (is_template_dependent_context()) {
-    /* Make a copy of the original list before stripping certain typerefs. */
-    new_list_without_local_types = copy_template_arg_list(*new_list);
-    list_copied = TRUE;
-    strip_types_from_template_arg_list(new_list_without_local_types,
-                                       /*local_only=*/TRUE);
-    orig_list_is_dependent = template_arg_list_is_dependent(
-                                                 new_list_without_local_types);
-  }  /* if */
-  /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(*new_list, /*local_only=*/FALSE);
-  stripped_list_is_dependent = template_arg_list_is_dependent(*new_list);
-  dependent_arg_list = stripped_list_is_dependent;
-  if (new_list_without_local_types == NULL) {
-    new_list_without_local_types = *new_list;
-    orig_list_is_dependent = stripped_list_is_dependent;
-  }  /* if */
-  if (is_alias_template ||
-      (is_template_declaration_context() &&
-       orig_list_is_dependent && stripped_list_is_dependent)) {
-    /* For alias templates, and for dependent argument lists in other
-       contexts, use the original list to see if this refers to the
-       prototype instantiation and also for any new instantiations done. */
-    list_for_prototype_check = new_list_without_local_types;
-    list_for_instantiation = new_list_without_local_types;
-  } else {
-    /* In other contexts, use what is now the list stripped of local
-       and nonreal types. */
-    list_for_prototype_check = *new_list;
-    list_for_instantiation = *new_list;
-  }  /* if */
+  /* This routine strips certain typerefs from the arguments and determines
+     if the resulting list is dependent.  If list_copied is TRUE,
+     new_list_without_local_types points to a copy of the argument
+     list. */
+  determine_templ_arg_lists_to_use(is_alias_template, *new_list,
+                                   &new_list_without_local_types,
+                                   &list_for_instantiation, &list_copied,
+                                   &dependent_arg_list);
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (any_prototype_allowed || specific_prototype_allowed != NULL) {
@@ -8850,7 +8894,7 @@ use the current global value of the template template parameter.
          instantiation of the primary template.  See if the list passed
          in matches it. */
       old_list = orig_template_arg_list_for_symbol(prototype_sym);
-      if (equiv_template_arg_lists(old_list, list_for_prototype_check,
+      if (equiv_template_arg_lists(old_list, list_for_instantiation,
                                    eta_options | ETA_IS_PROTOTYPE)) {
         /* A match.  Set sym which will suppress any further search. */
         sym = prototype_sym;
@@ -8874,7 +8918,7 @@ use the current global value of the template template parameter.
              the list passed in matches it. */
           old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
-          if (equiv_template_arg_lists(old_list, list_for_prototype_check,
+          if (equiv_template_arg_lists(old_list, list_for_instantiation,
                                        eta_options | ETA_IS_PROTOTYPE)) {
             sym = ps_prototype_sym;
             break;
@@ -8899,12 +8943,12 @@ use the current global value of the template template parameter.
       is_template_dependent_context() &&
       (sym == NULL || !is_ms_instantiated_nonreal_class_symbol(sym)) &&
        (sym == NULL || !is_prototype_instantiation_symbol(sym)) &&
-      template_arg_list_is_dependent(list_for_prototype_check)) {
+      template_arg_list_is_dependent(list_for_instantiation)) {
     /* Check whether the scope stack contains any classes that have
        Microsoft mode nonreal instantiations as base classes.  If so, this
        reference should use a Microsoft mode instantiated nonreal class. */
     if (scope_stack_has_ms_instantiated_nonreal_class(template_sym,
-                                                      list_for_prototype_check,
+                                                      list_for_instantiation,
                                                       eta_options)) {
       instantiate_nonreal = TRUE;
       if (sym != NULL) {
@@ -8920,18 +8964,13 @@ use the current global value of the template template parameter.
 #if DEBUG
   if (db_flag_is_set("ftc")) {
     fprintf(f_debug, "find_template_class: for arg list ");
-    db_template_arg_list(list_for_prototype_check);
+    db_template_arg_list(list_for_instantiation);
     if (sym != NULL) {
       fprintf(f_debug, ", found ");
       db_symbol_name(sym);
       fprintf(f_debug, "\n");
     } else {
       fprintf(f_debug, ", not found\n");
-    }  /* if */
-    if (list_for_prototype_check != list_for_instantiation) {
-      fprintf(f_debug, "  list_for_instantiation: ");
-      db_template_arg_list(list_for_instantiation);
-      fprintf(f_debug, "\n");
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -9117,16 +9156,25 @@ use of the argument list in case it has been freed.
   a_template_instance_ptr		tip = NULL;
   a_boolean				is_nonreal = FALSE;
   an_equiv_templ_arg_options_set	eta_options;
+  a_template_arg_ptr			new_list_without_local_types;
+  a_template_arg_ptr			list_for_instantiation;
+  a_boolean				dependent_arg_list;
+  a_boolean				list_copied;
 
   check_assertion(symbol_is(template_sym, sk_variable_template));
   template_sym = fundamental_symbol_of(template_sym);
   tssp = template_sym->variant.template_info;
-  /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(*new_templ_arg_list,
-                                     /*local_only=*/FALSE);
+  /* This routine strips certain typerefs from the arguments and determines
+     if the resulting list is dependent.  If list_copied is TRUE,
+     new_list_without_local_types points to a copy of the argument
+     list (and needs to be freed later). */
+  determine_templ_arg_lists_to_use(/*is_alias_template=*/FALSE,
+                                   *new_templ_arg_list,
+                                   &new_list_without_local_types,
+                                   &list_for_instantiation, &list_copied,
+                                   &dependent_arg_list);
   /* See if the template argument list contains any dependent types. */
-  if (is_template_dependent_context() &&
-      template_arg_list_is_dependent(*new_templ_arg_list)) {
+  if (dependent_arg_list) {
     is_nonreal = TRUE;
   }  /* if */
   /* The template symbol must be for the primary template. */
@@ -9146,7 +9194,7 @@ use of the argument list in case it has been freed.
          prototype instantiation of the partial specialization.  See if
          the list passed in matches it. */
       old_list = ps_var->template_info->template_arg_list;
-      if (equiv_template_arg_lists(old_list, *new_templ_arg_list,
+      if (equiv_template_arg_lists(old_list, list_for_instantiation,
                                    eta_options | ETA_IS_PROTOTYPE)) {
         sym = ps_sym;
         break;
@@ -9157,7 +9205,7 @@ use of the argument list in case it has been freed.
     a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
     hash_table_sym = find_instantiation(template_sym, tssp,
-                                        *new_templ_arg_list,
+                                        list_for_instantiation,
                                         /*create=*/FALSE);
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
@@ -9171,7 +9219,7 @@ use of the argument list in case it has been freed.
        create a symbol entry, a variable entry, and a template instance
        entry, and linking all these appropriately. */
     a_variable_ptr	var;
-    sym = make_template_variable(template_sym, *new_templ_arg_list);
+    sym = make_template_variable(template_sym, list_for_instantiation);
     var = variable_for_symbol(sym);
     tip = sym->variant.variable.instance_ptr;
     add_instantiation(tip->template_sym, tssp, sym,
@@ -9184,6 +9232,10 @@ use of the argument list in case it has been freed.
       /* Create a nonreal variable. */
       make_nonreal_variable_instance(var);
     }  /* if */
+    /* If the new list without local types was not used above, free it now. */
+    if (list_for_instantiation != new_list_without_local_types) {
+      free_template_arg_list(new_list_without_local_types);
+    }  /* if */
 #if DEBUG
     if (db_flag_is_set("instantiations")) {
       db_symbol(sym, "created: ", 2);
@@ -9195,8 +9247,12 @@ use of the argument list in case it has been freed.
         !master_instance_of(tip)->already_instantiated) {
       instantiate_template_variable(tip, /*is_new=*/FALSE, is_use);
     }  /* if */
-    /* We are reusing a template function that already exists, so
-       *new_templ_arg_list will not be used. */
+    /* We are reusing a variable that already exists, so *new_templ_arg_list
+       list will not be used.  Return the entries to the available list.
+       Also free a copy if one was made. */
+    if (list_copied) {
+      free_template_arg_list(new_list_without_local_types);
+    }  /* if */
     free_template_arg_list(*new_templ_arg_list);
   }  /* if */
   /* The list is cleared in all cases.  The caller cannot use the list
@@ -14462,6 +14518,7 @@ static void scan_template_declaration(
                                 a_decl_parse_state         *state,
                                 a_boolean                  is_initial_decl,
                                 a_boolean                  is_member_decl,
+                                a_symbol_ptr               template_sym,
                                 a_type_ptr                 parent_class,
                                 a_boolean                  decl_scope_err,
                                 a_boolean                  is_specialization,
@@ -14475,7 +14532,8 @@ Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
 is being called to scan the original declaration and is FALSE when
 rescanning the tokens to generate a type for a specific instance
-of a function template.  templ_rout points to the routine associated
+of a function template.  template_sym is the symbol of the template
+or NULL is_initial_decl is TRUE.  templ_rout points to the routine associated
 with the original declaration of a template and is only present
 (non-NULL) when is_initial_decl is FALSE.  tip points to the template
 instance and is also only present when is_initial_decl is FALSE.
@@ -14532,6 +14590,11 @@ information.
     if (is_initial_decl) {
       di_flags |= DI_IS_TEMPLATE_DECLARATION;
       if (is_specialization) di_flags |= DI_IS_SPECIALIZATION;
+    } else if (template_sym != NULL &&
+               symbol_is(template_sym, sk_variable_template)) {
+      /* Explicit template arguments are allowed on variable template
+         instantiations. */
+      di_flags |= DI_EXPLICIT_TEMPLATE_ARGS_ALLOWED;
     }  /* if */
     if (is_member_decl && (state->dso_flags & DSO_CONSTRUCTOR) != 0) {
       di_flags |= DI_IS_CONSTRUCTOR;
@@ -14675,7 +14738,8 @@ by this routine.
   dps->sym = sym;
   rescan_reusable_cache(&tssp->variant.variable.decl_cache.tokens);
   scan_template_declaration(dps, /*is_initial_decl=*/FALSE,
-                            /*is_member_decl=*/FALSE, (a_type_ptr)NULL,
+                            /*is_member_decl=*/FALSE,
+                            tip->template_sym, (a_type_ptr)NULL,
                             /*decl_scope_err=*/FALSE,
                             /*is_specialization=*/FALSE, &locator, &func_info,
                             (a_routine_ptr)NULL, tip, &decl_pos_block);
@@ -15193,7 +15257,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       init_decl_parse_state(&state);
       state.trailing_return_type_allowed = trailing_return_types_enabled;
       scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
-                                is_member_decl, parent_class,
+                                is_member_decl, templ_sym, parent_class,
   			        /*decl_scope_err=*/FALSE,
 				/*is_specialization=*/FALSE, &locator,
                                 &func_info, templ_rout, tip, &decl_pos_block);
@@ -25267,6 +25331,7 @@ any non-empty template parameter lists that were scanned.
       clear_func_info(&func_info);
       scan_template_declaration(dps, /*is_initial_decl=*/TRUE,
                                 decl_state->is_member_decl,
+                                (a_symbol_ptr)NULL,
                                 decl_state->class_declared_in,
                                 decl_state->decl_scope_err,
                                 decl_state->is_specialization,

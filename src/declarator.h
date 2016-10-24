@@ -202,7 +202,12 @@ abstract or real declarator.
 			   nonconstant bounds are only allowed if the final
 			   type is not that of a VLA.  E.g., "(a[3])[n]" would
 			   not be allowed, but "(*a)[n]" would be okay. */
-#define DI_LAST DI_VARIABLY_MODIFIED_DECL_ALLOWED
+#define DI_EXPLICIT_TEMPLATE_ARGS_ALLOWED ((a_decl_flag_set)0x80000)
+			/* If this bit is set, an explicit template argument
+			   list is allowed.  An explicit argument list might
+			   also be allowed as the result of other flags in
+			   some cases. */
+#define DI_LAST DI_EXPLICIT_TEMPLATE_ARGS_ALLOWED
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DI_LAST)*/
 /* Constants defining bits in the output bit vector used in calls to

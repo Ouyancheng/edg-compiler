@@ -5706,6 +5706,7 @@ declared entity is known to not be a function.
        we need to allow for that case. */
     explicit_template_args_allowed = TRUE;
   } else if (is_specialization_or_instantiation ||
+             (input_flags & DI_EXPLICIT_TEMPLATE_ARGS_ALLOWED) ||
              ((input_flags & DI_IS_FRIEND_DECL) &&
              !(options & GID_IS_TEMPLATE_DECLARATION))) {
     explicit_template_args_allowed = TRUE;

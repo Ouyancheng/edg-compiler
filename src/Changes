@@ -1,5 +1,21 @@
 Version 4.13
 
+10/24/16 [EDGcpfe/17659]
+Variable template partial specialization issues
+
+A partial specialization of a variable template could result in a spurious
+"explicit template argument list is not allowed" error.  In addition,
+the partial specialization processing did not properly handle certain
+aliases, such as void_t, in which the result of the alias is not dependent.
+These are now fixed
+
+  template <class...> using void_t = void;
+  template <class, class = void> constexpr bool test = false;
+  template <class T> constexpr bool test<T, void_t<typename T::type>> = true;
+  struct A {};
+  static_assert(!test<A>, "");
+
+
 10/24/16 [EDGcpfe/17670]
 GCC compatibility: warning on redeclaration of builtin function
 
