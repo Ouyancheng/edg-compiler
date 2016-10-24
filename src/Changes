@@ -5,7 +5,7 @@ C++11 constexpr folding and values returned by copy constructor
 
 With constexpr functions in which copy elision is not performed and the
 value is returned by means of a constexpr copy constructor, the front end
-previous issued spurious "must have a constant value" diagnostics when the
+previously issued spurious "must have a constant value" diagnostics when the
 program was compiled in C++11 mode.  This is now fixed.  For example, with
 --c++11:
 
