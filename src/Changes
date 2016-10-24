@@ -1,7 +1,7 @@
 Version 4.13
 
-10/23/16 [EDGcpfe/17668]
-C++-11 constexpr folding and values returned by copy constructor
+10/23/16 [EDGcpfe/17668,EDGcpfe/17504,EDGcpfe/17320]
+C++11 constexpr folding and values returned by copy constructor
 
 With constexpr functions in which copy elision is not performed and the
 value is returned by means of a constexpr copy constructor, the front end
