@@ -1,5 +1,15 @@
 Version 4.13
 
+10/24/16 [EDGcpfe/17670]
+GCC compatibility: warning on redeclaration of builtin function
+
+Previously, a redeclaration of a builtin function with a different function
+signature in gcc emulation mode triggered an error; now a warning is given.
+For example (with --gcc):
+
+  void _Exit() {}
+
+
 10/23/16 [EDGcpfe/17668,EDGcpfe/17504,EDGcpfe/17320]
 C++11 constexpr folding and values returned by copy constructor
 

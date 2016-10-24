@@ -7394,6 +7394,9 @@ is_function_def is TRUE if the redeclaration is a definition.
 
   if (gcc_mode &&
       !skip_typerefs(new_type)->variant.routine.extra_info->prototyped &&
+#if BUILTIN_FUNCTIONS_ENABLED
+      !is_gnu_builtin_function(rp) &&
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       skip_typerefs(rp->type)->variant.routine.extra_info->prototyped) {
     /* GNU C compilers relax compatibility requirements when an old-style
        definition follows a prototyped declaration.  (Calling conventions are
