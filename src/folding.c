@@ -9732,6 +9732,7 @@ evaluation.
                                              result_con);
       folded = TRUE;
       break;
+    case dik_class_result_via_ctor:
     case dik_expression:
       folded = fold_expr(dip->variant.expression, ceblock, result_con);
       break;
@@ -9760,7 +9761,6 @@ evaluation.
     case dik_zero:
       folded = make_value_initialized_constant(dest_type, result_con);
       break;
-    case dik_class_result_via_ctor:
     case dik_bitwise_copy:
     default:
       /* These cases don't fold. */
