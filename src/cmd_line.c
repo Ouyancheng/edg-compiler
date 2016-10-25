@@ -8263,6 +8263,16 @@ file.
 #else /* !defined(TARG_SIZEOF_FLOAT) */
   comment_undefined_macro_name(TARG_SIZEOF_FLOAT);
 #endif /* defined(TARG_SIZEOF_FLOAT) */
+#if defined(TARG_SIZEOF_FLOAT80)
+  define_numeric_valued_macro(TARG_SIZEOF_FLOAT80);
+#else /* !defined(TARG_SIZEOF_FLOAT80) */
+  comment_undefined_macro_name(TARG_SIZEOF_FLOAT80);
+#endif /* defined(TARG_SIZEOF_FLOAT80) */
+#if defined(TARG_SIZEOF_FLOAT128)
+  define_numeric_valued_macro(TARG_SIZEOF_FLOAT128);
+#else /* !defined(TARG_SIZEOF_FLOAT128) */
+  comment_undefined_macro_name(TARG_SIZEOF_FLOAT128);
+#endif /* defined(TARG_SIZEOF_FLOAT128) */
 #if defined(TARG_SIZEOF_INT)
   define_numeric_valued_macro(TARG_SIZEOF_INT);
 #else /* !defined(TARG_SIZEOF_INT) */
@@ -8571,6 +8581,11 @@ file.
 #else /* !defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS) */
   comment_undefined_macro_name(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS);
 #endif /* defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS) */
+#if defined(USE_DOUBLE_FOR_HOST_FP_VALUE)
+  define_numeric_valued_macro(USE_DOUBLE_FOR_HOST_FP_VALUE);
+#else /* !defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
+  comment_undefined_macro_name(USE_DOUBLE_FOR_HOST_FP_VALUE);
+#endif /* defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
 #if defined(USE_EMPTY_STRUCT_IN_GENERATED_C)
   define_numeric_valued_macro(USE_EMPTY_STRUCT_IN_GENERATED_C);
 #else /* !defined(USE_EMPTY_STRUCT_IN_GENERATED_C) */
@@ -8581,6 +8596,11 @@ file.
 #else /* !defined(USE_FIXED_ADDRESS_FOR_MMAP) */
   comment_undefined_macro_name(USE_FIXED_ADDRESS_FOR_MMAP);
 #endif /* defined(USE_FIXED_ADDRESS_FOR_MMAP) */
+#if defined(USE_FLOAT128_FOR_HOST_FP_VALUE)
+  define_numeric_valued_macro(USE_FLOAT128_FOR_HOST_FP_VALUE);
+#else /* !defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
+  comment_undefined_macro_name(USE_FLOAT128_FOR_HOST_FP_VALUE);
+#endif /* defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
 #if defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE)
   define_numeric_valued_macro(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE);
 #else /* !defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */

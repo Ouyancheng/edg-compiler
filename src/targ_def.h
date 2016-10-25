@@ -2197,6 +2197,8 @@ typedef double a_host_fp_value;
 #define USE_DOUBLE_FOR_HOST_FP_VALUE FALSE
 #endif /* defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
 
+#undef HOST_FP_TYPE_SELECTED
+
 /*
 If not host floating-point type is configured use "long double" with ISO C
 compilers, and "double" with pre-ISO compilers.
