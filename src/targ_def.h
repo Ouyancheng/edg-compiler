@@ -2205,8 +2205,9 @@ typedef long double a_host_fp_value;
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #if !defined(HOST_FP_TYPE_SELECTED)
 /* Implicitly select "double". */
-typedef double a_host_fp_value;
+#undef USE_DOUBLE_FOR_HOST_FP_VALUE
 #define USE_DOUBLE_FOR_HOST_FP_VALUE TRUE
+typedef double a_host_fp_value;
 #define HOST_FP_TYPE_SELECTED FALSE
 #endif /* !defined(HOST_FP_TYPE_SELECTED) */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
