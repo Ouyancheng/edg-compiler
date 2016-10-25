@@ -1936,6 +1936,16 @@ EXTERN a_boolean
 #endif /* INT128_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
+		float80_enabled;
+			/* TRUE if __float80 is enabled.  Always FALSE if
+			   FLOAT80_ENABLING_POSSIBLE is FALSE. */
+
+EXTERN a_boolean
+		float128_enabled;
+			/* TRUE if __float128 is enabled.  Always FALSE if
+			   FLOAT128_ENABLING_POSSIBLE is FALSE. */
+
+EXTERN a_boolean
 		hex_floating_point_constants_allowed;
 			/* TRUE if hexadecimal floating point constants
 			   are allowed (e.g., 0xabc.def).  This is true in

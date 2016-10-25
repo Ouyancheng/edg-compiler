@@ -1155,6 +1155,8 @@ with "**BAD" for a bad float kind.
     case fk_float:       p = "float";              break;
     case fk_double:      p = "double";             break;
     case fk_long_double: p = "long double";        break;
+    case fk_float80:     p = "__float80";          break;
+    case fk_float128:    p = "__float128";         break;
     default:             p = "**BAD-FLOAT-KIND**";
   }  /* switch */
   return p;
@@ -4684,6 +4686,10 @@ it represents a backing expression for the floating-point constant value.
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
+    } else if (fkind == (a_float_kind)fk_float80) {
+      suffix = "W";
+    } else if (fkind == (a_float_kind)fk_float128) {
+      suffix = "Q";
 #if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
       /* No suffix when generating long double as double in the

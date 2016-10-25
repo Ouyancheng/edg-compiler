@@ -4298,6 +4298,14 @@ set, leave it alone.  Also compute and set the alignment requirement.
             size = targ_sizeof_long_double;
             alignment = targ_alignof_long_double;
             break;
+          case fk_float80:
+            size = targ_sizeof_float80;
+            alignment = targ_alignof_float80;
+            break;
+          case fk_float128:
+            size = targ_sizeof_float128;
+            alignment = targ_alignof_float128;
+            break;
           default:
             unexpected_condition_str("set_type_size: bad float kind");
         }  /* switch */
@@ -9739,6 +9747,12 @@ type.
         break;
       case fk_long_double:
         num_bits = targ_ldbl_mant_dig;
+        break;
+      case fk_float80:
+        num_bits = targ_flt80_mant_dig;
+        break;
+      case fk_float128:
+        num_bits = targ_flt128_mant_dig;
         break;
       default:
         unexpected_condition();

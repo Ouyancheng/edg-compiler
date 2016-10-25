@@ -4827,12 +4827,20 @@ typedef struct a_fixed_point_type_descr {
 #endif /* FIXED_POINT_ALLOWED */
 
 enum a_float_kind_tag {
-  /* Enumeration of the possible float kinds.  Some of these may be the
-     same on the target, but they are kept distinct in the front end. */
-  /* These must be listed in order of increasing precision. */
+  /* Enumeration of the possible float kinds.  The first three designate
+     distinct standard types (that may or may not share a target
+     representation).  Some platforms support or __float80 and __float128
+     keywords to designate floating point types.  If those types are
+     distinct from the standard types, they are represented using
+     fk_float80 and/or fk_float128 respectively; otherwise, the standard
+     float kinds are used (e.g., it is not uncommon for __float80 and
+     "long double" to designate the same type -- if so, fk_long_double
+     is used in both cases). */
   fk_float,
   fk_double,
   fk_long_double,
+  fk_float80,		/* __float80, if distinct. */
+  fk_float128,		/* __float128, if distinct. */
   fk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */

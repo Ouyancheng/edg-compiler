@@ -9520,15 +9520,6 @@ still provided).
 
 /* Type predicates used by determine_arithmetic_conversions_full. */
 
-#define is_long_double(fkind)                                         \
-  ((fkind) == (a_float_kind)fk_long_double)
-
-#define is_double(fkind)                                              \
-  ((fkind) == (a_float_kind)fk_double)
-
-#define is_float(fkind)                                               \
-  ((fkind) == (a_float_kind)fk_float)
-
 #if INT128_EXTENSIONS_ALLOWED
 #define is_unsigned_int128(ikind)                                     \
   ((ikind) == (an_integer_kind)ik_unsigned_int128)
@@ -9554,6 +9545,39 @@ still provided).
 #define is_unsigned_int(ikind)                                        \
   ((ikind) == (an_integer_kind)ik_unsigned_int)
 
+static a_targ_size_t num_mantissa_bits(a_float_kind  fk)
+/*
+Return the number of mantissa bits associated with the given floating-point
+kind, or zero if fk == fk_last.
+*/
+{
+  a_targ_size_t  result;
+  
+  switch(fk) {
+    case fk_float:
+      result = targ_flt_mant_dig;
+      break;
+    case fk_double:
+      result = targ_dbl_mant_dig;
+      break;
+    case fk_long_double:
+      result = targ_ldbl_mant_dig;
+      break;
+    case fk_float80:
+      result = targ_flt80_mant_dig;
+      break;
+    case fk_float128:
+      result = targ_flt128_mant_dig;
+      break;
+    case fk_last:
+      result = 0;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* num_mantissa_bits */
+
 
 static a_float_kind promoted_float_kind(a_float_kind  fkind_1,
                                         a_float_kind  fkind_2)
@@ -9565,24 +9589,17 @@ result (i.e., the precision to which both operands should be promoted).
 If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
 */
 {
-  a_float_kind result = (a_float_kind)fk_last;
-  if (is_long_double(fkind_1) || is_long_double(fkind_2)) {
-    /* If either operand has type "long double", the other operand is
-       converted to "long double". */
-    result = (a_float_kind)fk_long_double;
-  } else if (is_double(fkind_1) || is_double(fkind_2)) {
-    /* If either operand has type "double", the other operand is converted to
-       "double". */
+  a_float_kind  result;
+
+  /* The promoted kind is the one with the highest precision, except that
+     fk_float is replaced by fk_double in pcc mode. */
+  if (num_mantissa_bits(fkind_1) >= num_mantissa_bits(fkind_2)) {
+    result = fkind_1;
+  } else {
+    result = fkind_2;
+  }  /* if */
+  if (C_dialect == C_dialect_pcc && result == (a_float_kind)fk_float) {
     result = (a_float_kind)fk_double;
-  } else if (is_float(fkind_1) || is_float(fkind_2)) {
-    /* If either operand has type "float", the other operand is converted to
-       "float". */
-    if (C_dialect == C_dialect_pcc) {
-      /* When in pcc mode, all float operations are done as double. */
-      result = (a_float_kind)fk_double;
-    } else {
-      result = (a_float_kind)fk_float;
-    }  /* if */
   }  /* if */
   return result;
 }  /* promoted_float_kind */

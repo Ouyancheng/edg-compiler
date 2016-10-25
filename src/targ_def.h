@@ -838,6 +838,31 @@ Otherwise, supply a reasonable default value.
 #endif /* ifdef LDBL_MAX_EXP */
 #endif /* ifndef TARG_LDBL_MAX_EXP */
 
+#ifndef TARG_FLT80_MANT_DIG
+#define TARG_FLT80_MANT_DIG 64
+#endif /* ifndef TARG_FLT80_MANT_DIG */
+
+#ifndef TARG_FLT80_MIN_EXP
+#define TARG_FLT80_MIN_EXP (-16381)
+#endif /* ifndef TARG_FLT80_MIN_EXP */
+
+#ifndef TARG_FLT80_MAX_EXP
+#define TARG_FLT80_MAX_EXP (16384)
+#endif /* ifndef TARG_FLT80_MAX_EXP */
+
+#ifndef TARG_FLT128_MANT_DIG
+#define TARG_FLT128_MANT_DIG 113
+#endif /* ifndef TARG_FLT128_MANT_DIG */
+
+#ifndef TARG_FLT128_MIN_EXP
+#define TARG_FLT128_MIN_EXP (-16381)
+#endif /* ifndef TARG_FLT128_MIN_EXP */
+
+#ifndef TARG_FLT128_MAX_EXP
+#define TARG_FLT128_MAX_EXP (16384)
+#endif /* ifndef TARG_FLT128_MAX_EXP */
+
+
 /*
 Maximum floating-point values.  If a TARG_ macro has been defined, we use that.
 Otherwise, if the corresponding standard C macros are defined, we use those.
@@ -2105,25 +2130,90 @@ Float types:
 			   targ_alignof_long_double. */
 #endif /* !defined(TARG_ALIGNOF_LONG_DOUBLE) */
 
+#ifndef TARG_SIZEOF_FLOAT80
+#define TARG_SIZEOF_FLOAT80 16
+			/* Default value, used to initialize global variable
+			   targ_sizeof_float80. */
+#endif /* !defined(TARG_SIZEOF_FLOAT80) */
+#ifndef TARG_ALIGNOF_FLOAT80
+#define TARG_ALIGNOF_FLOAT80 16
+			/* Default value, used to initialize global variable
+			   targ_alignof_float80. */
+#endif /* !defined(TARG_ALIGNOF_FLOAT128) */
+
+#ifndef TARG_SIZEOF_FLOAT128
+#define TARG_SIZEOF_FLOAT128 16
+			/* Default value, used to initialize global variable
+			   targ_sizeof_float128. */
+#endif /* !defined(TARG_SIZEOF_FLOAT128) */
+#ifndef TARG_ALIGNOF_FLOAT128
+#define TARG_ALIGNOF_FLOAT128 16
+			/* Default value, used to initialize global variable
+			   targ_alignof_float128. */
+#endif /* !defined(TARG_ALIGNOF_FLOAT128) */
+
 
 /*
-Type used to perform host floating point computations.  In general,
-if long double is available, it should be used.  But if long double
-and double are the same size, double may be used.
+Configure the type used to perform host floating point computations.  To
+support __float128, that type should be __float128.  Otherwise, long double
+should be used if possible.  On hosts where long double and double have the
+same precision (and __float128 is not available), type double can be used
+instead.
 */
-#ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#if USING_ISO_C
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE TRUE
-#else /* !USING_ISO_C */
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE FALSE
-#endif /* !USING_ISO_C */
-#endif /* ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#undef HOST_FP_TYPE_SELECTED
 
+#if defined(USE_FLOAT128_FOR_HOST_FP_VALUE)
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+typedef __float128 a_host_fp_value;
+#define HOST_FP_TYPE_SELECTED TRUE
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#else /* !defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
+#define USE_FLOAT128_FOR_HOST_FP_VALUE FALSE
+#endif /* defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
+
+#if defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE)
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if defined(HOST_FP_TYPE_SELECTED)
+ #error -- more than one host floating-point value type selected
+#else /* !defined(HOST_FP_TYPE_SELECTED) */
 typedef long double a_host_fp_value;
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-typedef double a_host_fp_value;
+#define HOST_FP_TYPE_SELECTED TRUE
+#endif /* defined(HOST_FP_TYPE_SELECTED) */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE FALSE
+#endif /* defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
+
+#if defined(USE_DOUBLE_FOR_HOST_FP_VALUE)
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
+#if defined(HOST_FP_TYPE_SELECTED)
+ #error -- more than one host floating-point value type selected
+#else /* !defined(HOST_FP_TYPE_SELECTED) */
+typedef double a_host_fp_value;
+#define HOST_FP_TYPE_SELECTED TRUE
+#endif /* defined(HOST_FP_TYPE_SELECTED) */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
+#define USE_DOUBLE_FOR_HOST_FP_VALUE FALSE
+#endif /* defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
+
+/*
+If not host floating-point type is configured use "long double" with ISO C
+compilers, and "double" with pre-ISO compilers.
+*/
+#if !defined(HOST_FP_TYPE_SELECTED)
+#if USING_ISO_C
+#undef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE TRUE
+typedef long double a_host_fp_value;
+#else /* !USING_ISO_C */
+#undef USE_DOUBLE_FOR_HOST_FP_VALUE
+#define USE_DOUBLE_FOR_HOST_FP_VALUE TRUE
+typedef double a_host_fp_value;
+#endif /* !USING_ISO_C */
+#define HOST_FP_TYPE_SELECTED FALSE
+#endif /* !defined(HOST_FP_TYPE_SELECTED) */
+
 
 /*
 TRUE if the target supports IEEE floating point, i.e., it has NaNs
@@ -2150,6 +2240,41 @@ default float_pt.c support uses the host floating point.
 #endif /* ifdef NAN */
 #endif /* defined(__sparc) || ... */
 #endif /* ifndef TARG_HAS_IEEE_FLOATING_POINT */
+
+/*
+Flags that control whether the type specifiers __float80 and/or __float128 can
+be enabled.  (If true, they will, e.g., be enabled in GNU modes.)  Actually
+enabling these extensions is achieved by setting the global variables
+float80_enabled and float128_enabled to TRUE.
+*/
+#ifndef FLOAT80_ENABLING_POSSIBLE
+#define FLOAT80_ENABLING_POSSIBLE FALSE
+#endif /* ifndef FLOAT80_ENABLING_POSSIBLE */
+
+#ifndef FLOAT128_ENABLING_POSSIBLE
+#define FLOAT128_ENABLING_POSSIBLE FALSE
+#endif /* ifndef FLOAT128_ENABLING_POSSIBLE */
+
+#if FLOAT128_ENABLING_POSSIBLE && !USE_FLOAT128_FOR_HOST_FP_VALUE
+ #error -- __float128 support requires __float128 host floating-point type
+#endif /* FLOAT128_ENABLING_POSSIBLE && !USE_FLOAT128_FOR_HOST_FP_VALUE */
+
+
+/*
+Default floating-point representations for __float80 and __float128.  Some
+compilers make __float80 equivalent to "long double" on some common platforms,
+for example (made the default here by setting DEFAULT_FLOAT_KIND_FOR_FLOAT80
+to fk_long_double rather than fk_float80).  Used as default initializers for
+the global variables float_kind_for_float80 and float_kind_for_float128.
+*/
+#ifndef DEFAULT_FLOAT_KIND_FOR_FLOAT80
+#define DEFAULT_FLOAT_KIND_FOR_FLOAT80 fk_long_double
+#endif /* ifndef DEFAULT_FLOAT_KIND_FOR_FLOAT80 */
+
+#ifndef DEFAULT_FLOAT_KIND_FOR_FLOAT128
+#define DEFAULT_FLOAT_KIND_FOR_FLOAT128 fk_float128
+#endif /* ifndef DEFAULT_FLOAT_KIND_FOR_FLOAT128 */
+
 
 /*
 Type used to represent float quantities internally:
@@ -3682,6 +3807,13 @@ we define these equal to the corresponding intrinsic alignments.
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT TARG_ALIGNOF_LONG_DOUBLE
 #endif /* TARG_LONG_DOUBLE_FIELD_ALIGNMENT */
 
+#ifndef TARG_FLOAT80_FIELD_ALIGNMENT
+#define TARG_FLOAT80_FIELD_ALIGNMENT TARG_ALIGNOF_FLOAT80
+#endif /* TARG_FLOAT80_FIELD_ALIGNMENT */
+
+#ifndef TARG_FLOAT128_FIELD_ALIGNMENT
+#define TARG_FLOAT128_FIELD_ALIGNMENT TARG_ALIGNOF_FLOAT128
+#endif /* TARG_FLOAT128_FIELD_ALIGNMENT */
 
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or

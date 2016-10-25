@@ -79,6 +79,8 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_ALIGNOF_FAR_POINTER, targ_alignof_far_pointer, _TC)
 #endif /* NEAR_AND_FAR_ALLOWED */
   TARGET_MAP_MACRO(TARG_ALIGNOF_FLOAT, targ_alignof_float, _TC)
+  TARGET_MAP_MACRO(TARG_ALIGNOF_FLOAT128, targ_alignof_float128, _TC)
+  TARGET_MAP_MACRO(TARG_ALIGNOF_FLOAT80, targ_alignof_float80, _TC)
   TARGET_MAP_MACRO(TARG_ALIGNOF_INT, targ_alignof_int, _TC)
 #if INT128_EXTENSIONS_ALLOWED
   TARGET_MAP_MACRO(TARG_ALIGNOF_INT128, targ_alignof_int128, _TC)
@@ -158,10 +160,20 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_enum_types_can_be_smaller_than_int, _TC)
   TARGET_MAP_MACRO(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE,
                    targ_field_alloc_sequence_equals_decl_sequence, _TC)
-  TARGET_MAP_MACRO(TARG_FLOAT_FIELD_ALIGNMENT, targ_float_field_alignment, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MANT_DIG, targ_flt_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MAX_EXP, targ_flt_max_exp, _TC)
   TARGET_MAP_MACRO(TARG_FLT_MIN_EXP, targ_flt_min_exp, _TC)
+  TARGET_MAP_MACRO(TARG_FLOAT_FIELD_ALIGNMENT, targ_float_field_alignment, _TC)
+  TARGET_MAP_MACRO(TARG_FLOAT128_FIELD_ALIGNMENT,
+                   targ_float128_field_alignment, _TC)
+  TARGET_MAP_MACRO(TARG_FLOAT80_FIELD_ALIGNMENT, targ_float80_field_alignment,
+                   _TC)
+  TARGET_MAP_MACRO(TARG_FLT128_MANT_DIG, targ_flt128_mant_dig, _TC)
+  TARGET_MAP_MACRO(TARG_FLT128_MAX_EXP, targ_flt128_max_exp, _TC)
+  TARGET_MAP_MACRO(TARG_FLT128_MIN_EXP, targ_flt128_min_exp, _TC)
+  TARGET_MAP_MACRO(TARG_FLT80_MANT_DIG, targ_flt80_mant_dig, _TC)
+  TARGET_MAP_MACRO(TARG_FLT80_MAX_EXP, targ_flt80_max_exp, _TC)
+  TARGET_MAP_MACRO(TARG_FLT80_MIN_EXP, targ_flt80_min_exp, _TC)
   TARGET_MAP_MACRO(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED,
                    targ_force_one_bit_bit_field_to_be_unsigned, _TC)
 #if FIXED_POINT_ALLOWED
@@ -280,6 +292,8 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_SIZEOF_FAR_POINTER, targ_sizeof_far_pointer, _TC)
 #endif /* NEAR_AND_FAR_ALLOWED */
   TARGET_MAP_MACRO(TARG_SIZEOF_FLOAT, targ_sizeof_float, _TC)
+  TARGET_MAP_MACRO(TARG_SIZEOF_FLOAT128, targ_sizeof_float128, _TC)
+  TARGET_MAP_MACRO(TARG_SIZEOF_FLOAT80, targ_sizeof_float80, _TC)
   TARGET_MAP_MACRO(TARG_SIZEOF_INT, targ_sizeof_int, _TC)
 #if INT128_EXTENSIONS_ALLOWED
   TARGET_MAP_MACRO(TARG_SIZEOF_INT128, targ_sizeof_int128, _TC)

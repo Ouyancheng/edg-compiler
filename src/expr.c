@@ -14103,6 +14103,15 @@ if the type is not appropriate.
     } else if (!is_arithmetic_type(tp)) {
       expr_pos_error(expr_not_arithmetic_code(), &operand.position);
       tp = error_type();
+    } else {
+      check_assertion(is_floating_type(tp));
+      if (tp->variant.float_kind == (a_float_kind)fk_float80 ||
+          tp->variant.float_kind == (a_float_kind)fk_float128) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_type_not_allowed_here, &operand.position, tp);
+        }  /* if */
+        tp = error_type();
+      }  /* if */
     }  /* if */
   }  /* if */
   return tp;
@@ -14141,8 +14150,11 @@ accordingly.  Set *err to TRUE if there is an error.
       } else if ((*arg_type)->variant.float_kind == (a_float_kind)fk_double ||
                  new_type   ->variant.float_kind == (a_float_kind)fk_double) {
         fkind = (a_float_kind)fk_double;
-      } else {
+      } else if ((*arg_type)->variant.float_kind == (a_float_kind)fk_float ||
+                 new_type   ->variant.float_kind == (a_float_kind)fk_float) {
         fkind = (a_float_kind)fk_float;
+      } else {
+        unexpected_condition();
       }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (is_complex_type(*arg_type) || is_complex_type(new_type)) {

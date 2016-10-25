@@ -4246,12 +4246,27 @@ This function is also called in clang mode.
     if (clang_version >= 30700) {
       nullability_qualifiers_enabled = TRUE;
     }  /* if */
-#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+    if (clang_version >= 30900) {
+#if FLOAT128_ENABLING_POSSIBLE
+      /* Clang 3.9 added support for __float128, but not __float80. */
+      float128_enabled = TRUE;
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+    }  /* if */
   } else {
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     /* GNU produces wrappers only for dynamically-initialized thread_local
        variables; clang provides wrappers for all. */
     all_thread_locals_have_wrappers = FALSE;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+    if (gnu_version >= 30400) {
+      /* GCC has supported __float80 and __float128 since GCC 3.4. */
+#if FLOAT80_ENABLING_POSSIBLE
+      float80_enabled = TRUE;
+#endif /* FLOAT80_ENABLING_POSSIBLE */
+#if FLOAT128_ENABLING_POSSIBLE
+      float128_enabled = TRUE;
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
@@ -5728,6 +5743,16 @@ file.
 #else /* !defined(DEFAULT_FIXED_POINT_ENABLED) */
   comment_undefined_macro_name(DEFAULT_FIXED_POINT_ENABLED);
 #endif /* defined(DEFAULT_FIXED_POINT_ENABLED) */
+#if defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80)
+  define_string_valued_macro(DEFAULT_FLOAT_KIND_FOR_FLOAT80);
+#else /* !defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80) */
+  comment_undefined_macro_name(DEFAULT_FLOAT_KIND_FOR_FLOAT80);
+#endif /* defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80) */
+#if defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128)
+  define_string_valued_macro(DEFAULT_FLOAT_KIND_FOR_FLOAT128);
+#else /* !defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128) */
+  comment_undefined_macro_name(DEFAULT_FLOAT_KIND_FOR_FLOAT128);
+#endif /* defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128) */
 #if defined(DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED)
   define_numeric_valued_macro(
                            DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED);
@@ -6457,6 +6482,16 @@ file.
 #else /* !defined(FIXED_POINT_ALLOWED) */
   comment_undefined_macro_name(FIXED_POINT_ALLOWED);
 #endif /* defined(FIXED_POINT_ALLOWED) */
+#if defined(FLOAT128_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(FLOAT128_ENABLING_POSSIBLE);
+#else /* !defined(FLOAT128_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(FLOAT128_ENABLING_POSSIBLE);
+#endif /* defined(FLOAT128_ENABLING_POSSIBLE) */
+#if defined(FLOAT80_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(FLOAT80_ENABLING_POSSIBLE);
+#else /* !defined(FLOAT80_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(FLOAT80_ENABLING_POSSIBLE);
+#endif /* defined(FLOAT80_ENABLING_POSSIBLE) */
 #if defined(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS)
   define_numeric_valued_macro(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS);
 #else /* !defined(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS) */
@@ -7616,6 +7651,16 @@ file.
 #else /* !defined(TARG_ALIGNOF_FLOAT) */
   comment_undefined_macro_name(TARG_ALIGNOF_FLOAT);
 #endif /* defined(TARG_ALIGNOF_FLOAT) */
+#if defined(TARG_ALIGNOF_FLOAT128)
+  define_numeric_valued_macro(TARG_ALIGNOF_FLOAT128);
+#else /* !defined(TARG_ALIGNOF_FLOAT128) */
+  comment_undefined_macro_name(TARG_ALIGNOF_FLOAT128);
+#endif /* defined(TARG_ALIGNOF_FLOAT128) */
+#if defined(TARG_ALIGNOF_FLOAT80)
+  define_numeric_valued_macro(TARG_ALIGNOF_FLOAT80);
+#else /* !defined(TARG_ALIGNOF_FLOAT80) */
+  comment_undefined_macro_name(TARG_ALIGNOF_FLOAT80);
+#endif /* defined(TARG_ALIGNOF_FLOAT80) */
 #if defined(TARG_ALIGNOF_INT)
   define_numeric_valued_macro(TARG_ALIGNOF_INT);
 #else /* !defined(TARG_ALIGNOF_INT) */
@@ -7863,6 +7908,16 @@ file.
 #else /* !defined(TARG_FLOAT_FIELD_ALIGNMENT) */
   comment_undefined_macro_name(TARG_FLOAT_FIELD_ALIGNMENT);
 #endif /* defined(TARG_FLOAT_FIELD_ALIGNMENT) */
+#if defined(TARG_FLOAT128_FIELD_ALIGNMENT)
+  define_numeric_valued_macro(TARG_FLOAT128_FIELD_ALIGNMENT);
+#else /* !defined(TARG_FLOAT128_FIELD_ALIGNMENT) */
+  comment_undefined_macro_name(TARG_FLOAT128_FIELD_ALIGNMENT);
+#endif /* defined(TARG_FLOAT128_FIELD_ALIGNMENT) */
+#if defined(TARG_FLOAT80_FIELD_ALIGNMENT)
+  define_numeric_valued_macro(TARG_FLOAT80_FIELD_ALIGNMENT);
+#else /* !defined(TARG_FLOAT80_FIELD_ALIGNMENT) */
+  comment_undefined_macro_name(TARG_FLOAT80_FIELD_ALIGNMENT);
+#endif /* defined(TARG_FLOAT80_FIELD_ALIGNMENT) */
 #if defined(TARG_FLT_MANT_DIG)
   define_numeric_valued_macro(TARG_FLT_MANT_DIG);
 #else /* !defined(TARG_FLT_MANT_DIG) */
@@ -7878,6 +7933,36 @@ file.
 #else /* !defined(TARG_FLT_MIN_EXP) */
   comment_undefined_macro_name(TARG_FLT_MIN_EXP);
 #endif /* defined(TARG_FLT_MIN_EXP) */
+#if defined(TARG_FLT128_MANT_DIG)
+  define_numeric_valued_macro(TARG_FLT128_MANT_DIG);
+#else /* !defined(TARG_FLT128_MANT_DIG) */
+  comment_undefined_macro_name(TARG_FLT128_MANT_DIG);
+#endif /* defined(TARG_FLT128_MANT_DIG) */
+#if defined(TARG_FLT128_MAX_EXP)
+  define_numeric_valued_macro(TARG_FLT128_MAX_EXP);
+#else /* !defined(TARG_FLT128_MAX_EXP) */
+  comment_undefined_macro_name(TARG_FLT128_MAX_EXP);
+#endif /* defined(TARG_FLT128_MAX_EXP) */
+#if defined(TARG_FLT128_MIN_EXP)
+  define_numeric_valued_macro(TARG_FLT128_MIN_EXP);
+#else /* !defined(TARG_FLT128_MIN_EXP) */
+  comment_undefined_macro_name(TARG_FLT128_MIN_EXP);
+#endif /* defined(TARG_FLT128_MIN_EXP) */
+#if defined(TARG_FLT80_MANT_DIG)
+  define_numeric_valued_macro(TARG_FLT80_MANT_DIG);
+#else /* !defined(TARG_FLT80_MANT_DIG) */
+  comment_undefined_macro_name(TARG_FLT80_MANT_DIG);
+#endif /* defined(TARG_FLT80_MANT_DIG) */
+#if defined(TARG_FLT80_MAX_EXP)
+  define_numeric_valued_macro(TARG_FLT80_MAX_EXP);
+#else /* !defined(TARG_FLT80_MAX_EXP) */
+  comment_undefined_macro_name(TARG_FLT80_MAX_EXP);
+#endif /* defined(TARG_FLT80_MAX_EXP) */
+#if defined(TARG_FLT80_MIN_EXP)
+  define_numeric_valued_macro(TARG_FLT80_MIN_EXP);
+#else /* !defined(TARG_FLT80_MIN_EXP) */
+  comment_undefined_macro_name(TARG_FLT80_MIN_EXP);
+#endif /* defined(TARG_FLT80_MIN_EXP) */
 #if defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED)
   define_numeric_valued_macro(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED);
 #else /* !defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED) */

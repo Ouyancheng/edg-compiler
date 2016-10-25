@@ -556,6 +556,47 @@ EXTERN a_targ_alignment
 			/* Alignment of a long double.  Initialized to the
 			   default value but reconfigurable. */
 
+EXTERN a_targ_size_t
+		targ_sizeof_float80;
+			/* Size of a __float80.  Initialized to the default
+			   value but reconfigurable. */
+
+EXTERN a_targ_alignment
+		targ_alignof_float80;
+			/* Alignment of a __float80.  Initialized to the
+			   default value but reconfigurable. */
+
+EXTERN a_targ_size_t
+		targ_sizeof_float128;
+			/* Size of a __float128.  Initialized to the default
+			   value but reconfigurable. */
+
+EXTERN a_targ_alignment
+		targ_alignof_float128;
+			/* Alignment of a __float128.  Initialized to the
+			   default value but reconfigurable. */
+
+EXTERN a_float_kind
+		float_kind_for_float80
+#if VAR_INITIALIZERS
+			= DEFAULT_FLOAT_KIND_FOR_FLOAT80
+#endif /* VAR_INITIALIZERS */
+			                                ;
+			/* Mapping of the type denoted by __float80.  It may
+			   be its own type (fk_float80), or it may be a
+			   synonym for another type (e.g., fk_long_double). */
+
+EXTERN a_float_kind
+		float_kind_for_float128
+#if VAR_INITIALIZERS
+			= DEFAULT_FLOAT_KIND_FOR_FLOAT128
+#endif /* VAR_INITIALIZERS */
+			                                 ;
+			/* Mapping of the type denoted by __float128.  It may
+			   be its own type (fk_float128), or it may be a
+			   synonym for another type (e.g., fk_long_double). */
+
+
 #if GNU_EXTENSIONS_ALLOWED
 
 EXTERN a_type_mode_kind
@@ -631,6 +672,14 @@ EXTERN a_targ_alignment
 EXTERN a_targ_alignment
 		targ_long_double_field_alignment;
 			/* Default alignment for fields of type long double. */
+
+EXTERN a_targ_alignment
+		targ_float80_field_alignment;
+			/* Default alignment for fields of type __float80. */
+
+EXTERN a_targ_alignment
+		targ_float128_field_alignment;
+			/* Default alignment for fields of type __float128. */
 
 
 /*
@@ -836,6 +885,26 @@ EXTERN int	targ_ldbl_min_exp;
 
 EXTERN int	targ_ldbl_max_exp;
 			/* The maximum exponent value of a long double. */
+
+EXTERN int	targ_flt80_mant_dig;
+			/* The number of bits in the mantissa of a
+                           __float80. */
+
+EXTERN int	targ_flt80_min_exp;
+			/* The minimum exponent value of a __float80. */
+
+EXTERN int	targ_flt80_max_exp;
+			/* The maximum exponent value of a __float80. */
+
+EXTERN int	targ_flt128_mant_dig;
+			/* The number of bits in the mantissa of a
+                           __float128. */
+
+EXTERN int	targ_flt128_min_exp;
+			/* The minimum exponent value of a __float128. */
+
+EXTERN int	targ_flt128_max_exp;
+			/* The maximum exponent value of a __float128. */
 
 EXTERN a_boolean
 		remove_qualifiers_from_param_types;
@@ -1359,6 +1428,12 @@ EXTERN an_integer_kind
 #define TARG_LDBL_MANT_DIG targ_ldbl_mant_dig
 #define TARG_LDBL_MIN_EXP targ_ldbl_min_exp
 #define TARG_LDBL_MAX_EXP targ_ldbl_max_exp
+#define TARG_FLT80_MANT_DIG targ_flt80_mant_dig
+#define TARG_FLT80_MIN_EXP targ_flt80_min_exp
+#define TARG_FLT80_MAX_EXP targ_flt80_max_exp
+#define TARG_FLT128_MANT_DIG targ_flt128_mant_dig
+#define TARG_FLT128_MIN_EXP targ_flt128_min_exp
+#define TARG_FLT128_MAX_EXP targ_flt128_max_exp
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
 #define MSVC_TARGET_VERSION_NUMBER msvc_target_version_number
 #if !IA64_ABI

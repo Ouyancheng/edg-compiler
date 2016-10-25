@@ -1008,10 +1008,18 @@ Enter predeclared symbols as required by the implementation.
     }  /* if */
   
     /* An example of entering a predefined type: */
-    enter_predefined_type(integer_type((an_integer_kind)ik_long_long),
-                          "__long_long");
+    enter_predefined_typedef(
+                  "__long_long", integer_type((an_integer_kind)ik_long_long));
   }  /* if */
 #endif /* 0 */
+  if (float80_enabled) {
+    enter_predefined_typedef(
+               "__float80", float_type((a_float_kind)float_kind_for_float80));
+  }  /* if */
+  if (float128_enabled) {
+    enter_predefined_typedef(
+             "__float128", float_type((a_float_kind)float_kind_for_float128));
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
 #if GCC_BUILTIN_VARARGS

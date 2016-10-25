@@ -71,10 +71,14 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
+#define MANGLING_STRING_FOR_FLOAT80 "u7float80"
+#define MANGLING_STRING_FOR_FLOAT128 "g"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "Cf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "Cd"
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "Ce"
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT80 "Cu7float80"
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT128 "Cg"
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
 #define MANGLING_STRING_FOR_RVALUE_REFERENCE "O"
@@ -218,10 +222,14 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
+#define MANGLING_STRING_FOR_FLOAT80 "mf10"
+#define MANGLING_STRING_FOR_FLOAT128 "mf16"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "xf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "xd"
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "xr"
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT80 "xmf10"
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT128 "xmf16"
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
 #define MANGLING_STRING_FOR_RVALUE_REFERENCE "E"
@@ -9516,14 +9524,20 @@ top_of_loop:
 #endif /* FIXED_POINT_ALLOWED */
       case tk_float:
         switch (type->variant.float_kind) {
-          case fk_float:          
+          case fk_float:
             s = MANGLING_STRING_FOR_FLOAT;
             break;
-          case fk_double:         
+          case fk_double:
             s = MANGLING_STRING_FOR_DOUBLE;
             break;
-          case fk_long_double:    
+          case fk_long_double:
             s = MANGLING_STRING_FOR_LONG_DOUBLE;
+            break;
+          case fk_float80:
+            s = MANGLING_STRING_FOR_FLOAT80;
+            break;
+          case fk_float128:
+            s = MANGLING_STRING_FOR_FLOAT80;
             break;
           default:
             unexpected_condition_str(
@@ -9533,14 +9547,22 @@ top_of_loop:
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
         switch (type->variant.float_kind) {
-          case fk_float:          
+          case fk_float:
             s = MANGLING_STRING_FOR_COMPLEX_FLOAT;
             break;
-          case fk_double:         
+          case fk_double:
             s = MANGLING_STRING_FOR_COMPLEX_DOUBLE;
             break;
-          case fk_long_double:    
+          case fk_long_double:
             s = MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE;
+            break;
+#if !IA64_ABI
+          case fk_float80:    
+            s = MANGLING_STRING_FOR_COMPLEX_FLOAT80;
+            break;
+#endif /* !IA64_ABI */
+          case fk_float128:
+            s = MANGLING_STRING_FOR_COMPLEX_FLOAT128;
             break;
           default:
             unexpected_condition_str(
