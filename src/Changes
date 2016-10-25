@@ -1,5 +1,12 @@
 Version 4.13
 
+10/25/16 [EDGcpfe/17672]
+GNU compatibility: Additional builtin functions
+
+Builtin functions available with the -mavx512er, -mavx512pf, and -mtbm command-
+line options to GCC have now been added.
+
+
 10/24/16 [EDGcpfe/17659]
 Variable template partial specialization issues
 
