@@ -2197,7 +2197,6 @@ typedef double a_host_fp_value;
 #define USE_DOUBLE_FOR_HOST_FP_VALUE FALSE
 #endif /* defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
 
-#undef HOST_FP_TYPE_SELECTED
 
 /*
 If not host floating-point type is configured use "long double" with ISO C
@@ -2216,6 +2215,8 @@ typedef double a_host_fp_value;
 #define HOST_FP_TYPE_SELECTED FALSE
 #endif /* !defined(HOST_FP_TYPE_SELECTED) */
 
+
+#undef HOST_FP_TYPE_SELECTED
 
 /*
 TRUE if the target supports IEEE floating point, i.e., it has NaNs
