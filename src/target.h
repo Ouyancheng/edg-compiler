@@ -579,9 +579,9 @@ EXTERN a_targ_alignment
 EXTERN a_float_kind
 		float_kind_for_float80
 #if VAR_INITIALIZERS
-			= DEFAULT_FLOAT_KIND_FOR_FLOAT80
+			= (a_float_kind)DEFAULT_FLOAT_KIND_FOR_FLOAT80
 #endif /* VAR_INITIALIZERS */
-			                                ;
+			                                              ;
 			/* Mapping of the type denoted by __float80.  It may
 			   be its own type (fk_float80), or it may be a
 			   synonym for another type (e.g., fk_long_double). */
@@ -589,9 +589,9 @@ EXTERN a_float_kind
 EXTERN a_float_kind
 		float_kind_for_float128
 #if VAR_INITIALIZERS
-			= DEFAULT_FLOAT_KIND_FOR_FLOAT128
+			= (a_float_kind)DEFAULT_FLOAT_KIND_FOR_FLOAT128
 #endif /* VAR_INITIALIZERS */
-			                                 ;
+			                                               ;
 			/* Mapping of the type denoted by __float128.  It may
 			   be its own type (fk_float128), or it may be a
 			   synonym for another type (e.g., fk_long_double). */

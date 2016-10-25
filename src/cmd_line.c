@@ -11290,6 +11290,8 @@ variables declared in cmd_line.h.
 #if INT128_EXTENSIONS_ALLOWED
   int128_extensions_enabled = FALSE;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  float80_enabled = FALSE;
+  float128_enabled = FALSE;
   hex_floating_point_constants_allowed = FALSE;
   binary_literals_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE

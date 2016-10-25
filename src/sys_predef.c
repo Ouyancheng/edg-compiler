@@ -755,7 +755,6 @@ builtin_has_been_loaded has this information for the primary translation unit).
 }  /* builtin_needs_to_be_loaded_in_secondary_translation_unit */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if GNU_EXTENSIONS_ALLOWED
 
 static void enter_predefined_type(a_type_ptr   type,
                                   a_const_char *name)
@@ -790,7 +789,6 @@ Enter these in the file scope and return the type entry.
   return result;
 }  /* enter_predefined_typedef */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
 
 static void enter_upc_predefined_macros(void)
@@ -1013,11 +1011,11 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* 0 */
   if (float80_enabled) {
-    enter_predefined_typedef(
+    (void)enter_predefined_typedef(
                "__float80", float_type((a_float_kind)float_kind_for_float80));
   }  /* if */
   if (float128_enabled) {
-    enter_predefined_typedef(
+    (void)enter_predefined_typedef(
              "__float128", float_type((a_float_kind)float_kind_for_float128));
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED

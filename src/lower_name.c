@@ -9537,7 +9537,7 @@ top_of_loop:
             s = MANGLING_STRING_FOR_FLOAT80;
             break;
           case fk_float128:
-            s = MANGLING_STRING_FOR_FLOAT80;
+            s = MANGLING_STRING_FOR_FLOAT128;
             break;
           default:
             unexpected_condition_str(
@@ -9556,11 +9556,9 @@ top_of_loop:
           case fk_long_double:
             s = MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE;
             break;
-#if !IA64_ABI
           case fk_float80:    
             s = MANGLING_STRING_FOR_COMPLEX_FLOAT80;
             break;
-#endif /* !IA64_ABI */
           case fk_float128:
             s = MANGLING_STRING_FOR_COMPLEX_FLOAT128;
             break;
