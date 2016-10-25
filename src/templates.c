@@ -8713,9 +8713,10 @@ static void determine_templ_arg_lists_to_use(
 		a_boolean		*p_dependent_arg_list)
 /*
 new_list is a template argument list about to be used to find or create
-a class, alias, or variable template instance.  Depending on the
-arguments and the context local and/or nonreal types are removed from
-the list.  Values are returned in these parameters:
+a class, alias, or variable template instance; is_alias_template is TRUE
+in the alias template case.  Depending on the arguments and the context,
+local and/or nonreal types are removed from the list.  Values are returned
+in these parameters:
 
 *p_new_list_without_local_types: This is new_list without local types.
 
@@ -8723,7 +8724,7 @@ the list.  Values are returned in these parameters:
 to look for a prior instantiation, and do a new instantiation, if needed.
 In certain dependent contexts this preserves nonreal typerefs.
 
-*p_list_copied is set to TRUE *p_new_list_without_local_types points to
+*p_list_copied is set to TRUE if *p_new_list_without_local_types points to
 a copy of the list pointed to by new_list.  If the list is copied and
 *p_list_for_instantiation does not point to *p_new_list_without_local_types,
 the caller should free *p_new_list_without_local_types.
