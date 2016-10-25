@@ -2159,6 +2159,15 @@ support __float128, that type should be __float128.  Otherwise, long double
 should be used if possible.  On hosts where long double and double have the
 same precision (and __float128 is not available), type double can be used
 instead.
+
+Ideally, a configuration should set one of USE_FLOAT128_FOR_HOST_FP_VALUE,
+USE_LONG_DOUBLE_FOR_HOST_FP_VALUE, or USE_DOUBLE_FOR_HOST_FP_VALUE to TRUE.
+However, older versions of the front end did not support __float128 and the
+single macro USE_LONG_DOUBLE_FOR_HOST_FP_VALUE decided whether to use double
+(when the macro was FALSE) or long double (when it was TRUE).  To maintain
+backward compatibility with older settings, USE_DOUBLE_FOR_HOST_FP_VALUE is
+set implicitly to TRUE if no other type is selected and
+USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is configured to FALSE.
 */
 #undef HOST_FP_TYPE_SELECTED
 
@@ -2170,19 +2179,6 @@ typedef __float128 a_host_fp_value;
 #else /* !defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
 #define USE_FLOAT128_FOR_HOST_FP_VALUE FALSE
 #endif /* defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
-
-#if defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE)
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#if defined(HOST_FP_TYPE_SELECTED)
- #error -- more than one host floating-point value type selected
-#else /* !defined(HOST_FP_TYPE_SELECTED) */
-typedef long double a_host_fp_value;
-#define HOST_FP_TYPE_SELECTED TRUE
-#endif /* defined(HOST_FP_TYPE_SELECTED) */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#else /* !defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE FALSE
-#endif /* defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
 
 #if defined(USE_DOUBLE_FOR_HOST_FP_VALUE)
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
@@ -2198,8 +2194,28 @@ typedef double a_host_fp_value;
 #endif /* defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
 
 
+#if defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE)
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if defined(HOST_FP_TYPE_SELECTED)
+ #error -- more than one host floating-point value type selected
+#else /* !defined(HOST_FP_TYPE_SELECTED) */
+typedef long double a_host_fp_value;
+#define HOST_FP_TYPE_SELECTED TRUE
+#endif /* defined(HOST_FP_TYPE_SELECTED) */
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if !defined(HOST_FP_TYPE_SELECTED)
+/* Implicitly select "double". */
+typedef double a_host_fp_value;
+#define USE_DOUBLE_FOR_HOST_FP_VALUE TRUE
+#define HOST_FP_TYPE_SELECTED FALSE
+#endif /* !defined(HOST_FP_TYPE_SELECTED) */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE FALSE
+#endif /* defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
+
 /*
-If not host floating-point type is configured use "long double" with ISO C
+If no host floating-point type is configured use "long double" with ISO C
 compilers, and "double" with pre-ISO compilers.
 */
 #if !defined(HOST_FP_TYPE_SELECTED)
