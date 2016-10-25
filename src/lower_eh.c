@@ -5631,7 +5631,7 @@ be passed down.
     call_node = make_prototyped_runtime_call("__suppress_optim_on_vars_in_try",
                                        &suppress_optim_on_vars_in_try_routine,
                                        void_type(),
-                                       NULL, NULL,
+                                       void_star_type(), NULL,
                                        modified_var_arg_list);
     /* This routine takes a variable number of arguments. */
     suppress_optim_on_vars_in_try_routine->
