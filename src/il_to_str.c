@@ -4686,10 +4686,6 @@ it represents a backing expression for the floating-point constant value.
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
-    } else if (fkind == (a_float_kind)fk_float80) {
-      suffix = "W";
-    } else if (fkind == (a_float_kind)fk_float128) {
-      suffix = "Q";
 #if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
       /* No suffix when generating long double as double in the
@@ -4701,6 +4697,20 @@ it represents a backing expression for the floating-point constant value.
     BUILTIN_FUNCTIONS_ENABLED
       gnu_builtin_suffix = "l";
       max_exp = targ_ldbl_max_exp;
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
+    } else if (fkind == (a_float_kind)fk_float80) {
+      suffix = "W";
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
+      gnu_builtin_suffix = "w";
+      max_exp = targ_flt80_max_exp;
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
+    } else if (fkind == (a_float_kind)fk_float128) {
+      suffix = "Q";
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
+      gnu_builtin_suffix = "q";
+      max_exp = targ_flt128_max_exp;
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     }  /* if */
     if (octl->part_of_ud_literal) {

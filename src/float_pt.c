@@ -1331,6 +1331,16 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
       max_exp = targ_ldbl_max_exp;
       mant_dig = targ_ldbl_mant_dig;
       break;
+    case fk_float80:
+      min_exp = targ_flt80_min_exp;
+      max_exp = targ_flt80_max_exp;
+      mant_dig = targ_flt80_mant_dig;
+      break;
+    case fk_float128:
+      min_exp = targ_flt128_min_exp;
+      max_exp = targ_flt128_max_exp;
+      mant_dig = targ_flt128_mant_dig;
+      break;
     default:
       unexpected_condition_str2("check_and_denormalize_hex_fp_value:",
                                 "bad float kind");
