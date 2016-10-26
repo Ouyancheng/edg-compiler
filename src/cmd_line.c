@@ -10584,6 +10584,20 @@ enable_microsoft_mode:
        sequence of tokens as its input). */
     no_token_separators_in_pp_output = pcc_preprocessing_mode;
   }  /* if */
+#if FLOAT80_ENABLING_POSSIBLE
+  if (building_runtime) {
+    /* Make sure __float80 is enabled if the front end supports it and we're
+       building the runtime library. */
+    float80_enabled = TRUE;
+  }  /* if */
+#endif /* FLOAT80_ENABLING_POSSIBLE */
+#if FLOAT128_ENABLING_POSSIBLE
+  if (building_runtime) {
+    /* Make sure __float128 is enabled if the front end supports it and we're
+       building the runtime library. */
+    float128_enabled = TRUE;
+  }  /* if */
+#endif /* FLOAT128_ENABLING_POSSIBLE */
 #if RUNTIME_SUPPORTS_SIZED_DEALLOCATION
   if (building_runtime) {
     if (cpp14_mode) {
