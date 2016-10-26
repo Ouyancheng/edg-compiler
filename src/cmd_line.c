@@ -2212,20 +2212,6 @@ option values if they were not already set by a command line option.
       typename_enabled = microsoft_version >= 1100;
     }  /* if */
 #endif /* !RUNTIME_USES_TYPENAME */
-    if (!option_kind_used[(int)optk_implicit_typename]) {
-      /* In non-permissive mode, implicit typename processing is not done
-         unless dependent name processing was disabled. */
-      if (ms_permissive || !do_dependent_name_processing) {
-        implicit_typename_enabled = TRUE;
-      } else {
-        implicit_typename_enabled = FALSE;
-      }  /* if */
-    }  /* if */
-    if (!ms_permissive && !do_dependent_name_processing) {
-      /* Only do the special nonreal base class processing in permissive
-         mode, and if dependent name processing was not enabled. */
-      no_ms_nonreal_base_classes = TRUE;
-    }  /* if */
     if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
       /* If nonstandard instantiation lookup was not set on the command line,
          turn it off now. */
@@ -2294,13 +2280,21 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
-      /* In non-permissive mode, parse non-class templates unless dependent
-         name processing was disabled. */
-      if (ms_permissive || !do_dependent_name_processing) {
-        nonclass_prototype_instantiations = FALSE;
-      } else {
-        nonclass_prototype_instantiations = TRUE;
-      }  /* if */
+      /* Parse nonclass templates if dependent name processing is being
+         done.  Note that --no_ms_permissive will force dependent name
+         processing to be done unless it is disabled explicitly by
+         the --no_dep_name option. */
+      nonclass_prototype_instantiations = do_dependent_name_processing;
+    }  /* if */
+    if (!option_kind_used[(int)optk_implicit_typename]) {
+      /* Implicit typename processing is not done unless dependent name
+         processing was disabled. */
+      implicit_typename_enabled = !do_dependent_name_processing;
+    }  /* if */
+    if (!ms_permissive && !do_dependent_name_processing) {
+      /* Only do the special nonreal base class processing in permissive
+         mode, and if dependent name processing was not enabled. */
+      no_ms_nonreal_base_classes = TRUE;
     }  /* if */
     dependent_lookup_finds_static_functions = TRUE;
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
