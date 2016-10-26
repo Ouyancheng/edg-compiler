@@ -2296,7 +2296,7 @@ option values if they were not already set by a command line option.
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
       /* In non-permissive mode, parse non-class templates unless dependent
          name processing was disabled. */
-      if (ms_permissive && !do_dependent_name_processing) {
+      if (ms_permissive || !do_dependent_name_processing) {
         nonclass_prototype_instantiations = FALSE;
       } else {
         nonclass_prototype_instantiations = TRUE;
