@@ -2213,16 +2213,17 @@ option values if they were not already set by a command line option.
     }  /* if */
 #endif /* !RUNTIME_USES_TYPENAME */
     if (!option_kind_used[(int)optk_implicit_typename]) {
-      /* In non-permissive mode, implicit typename processing is not done. */
-      if (ms_permissive) {
+      /* In non-permissive mode, implicit typename processing is not done
+         unless dependent name processing was disabled. */
+      if (ms_permissive || !do_dependent_name_processing) {
         implicit_typename_enabled = TRUE;
       } else {
         implicit_typename_enabled = FALSE;
       }  /* if */
     }  /* if */
-    if (!ms_permissive) {
+    if (!ms_permissive && !do_dependent_name_processing) {
       /* Only do the special nonreal base class processing in permissive
-         mode. */
+         mode, and if dependent name processing was not enabled. */
       no_ms_nonreal_base_classes = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
@@ -2293,9 +2294,9 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
-      /* In non-permissive mode, parse non-class templates (this is needed
-         for dependent name processing). */
-      if (ms_permissive) {
+      /* In non-permissive mode, parse non-class templates unless dependent
+         name processing was disabled. */
+      if (ms_permissive && !do_dependent_name_processing) {
         nonclass_prototype_instantiations = FALSE;
       } else {
         nonclass_prototype_instantiations = TRUE;
