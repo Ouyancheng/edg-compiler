@@ -9573,6 +9573,7 @@ kind, or zero if fk == fk_last.
       result = 0;
       break;
     default:
+      result = 0;
       unexpected_condition();
   }  /* switch */
   return result;

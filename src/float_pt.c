@@ -721,8 +721,12 @@ a float kind).
         size = targ_sizeof_double;
       } else if (kind == (a_float_kind)fk_long_double) {
         size = targ_sizeof_long_double;
+      } else if (kind == (a_float_kind)fk_float80) {
+        size = targ_sizeof_float80;
+      } else if (kind == (a_float_kind)fk_float128) {
+        size = targ_sizeof_float128;
       } else {
-        unexpected_condition_str("make_fp_nan: NYI: __float80/__float128");
+        unexpected_condition("make_fp_nan: invalid float kind");
       }  /* if */
       part += size/4 - 1;
     }  /* if */

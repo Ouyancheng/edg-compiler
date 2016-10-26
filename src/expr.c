@@ -14154,6 +14154,7 @@ accordingly.  Set *err to TRUE if there is an error.
                  new_type   ->variant.float_kind == (a_float_kind)fk_float) {
         fkind = (a_float_kind)fk_float;
       } else {
+        fkind = (a_float_kind)fk_last;
         unexpected_condition();
       }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
