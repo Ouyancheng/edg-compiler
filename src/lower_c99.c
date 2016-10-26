@@ -1981,26 +1981,26 @@ Transform the given complex cast expression into a function call
                       dst_type->variant.float_kind);
       switch (src_type->variant.float_kind) {
         case fk_float:
-          library_routine_name = &cast_float_routine_name;
+          library_routine_name = /*lint -e(545)*/&cast_float_routine_name;
           routine_ptr = cast_float_routine;
           break;
         case fk_double:
-          library_routine_name = &cast_double_routine_name;
+          library_routine_name = /*lint -e(545)*/&cast_double_routine_name;
           routine_ptr = cast_double_routine;
           break;
         case fk_long_double:
-          library_routine_name = &cast_long_double_routine_name;
+          library_routine_name =/*lint -e(545)*/&cast_long_double_routine_name;
           routine_ptr = cast_long_double_routine;
           break;
 #if FLOAT80_ENABLING_POSSIBLE
         case fk_float80:
-          library_routine_name = &cast_float80_routine_name;
+          library_routine_name = /*lint -e(545)*/&cast_float80_routine_name;
           routine_ptr = cast_float80_routine;
           break;
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
         case fk_float128:
-          library_routine_name = &cast_float128_routine_name;
+          library_routine_name = /*lint -e(545)*/&cast_float128_routine_name;
           routine_ptr = cast_float128_routine;
           break;
 #endif /* FLOAT128_ENABLING_POSSIBLE */
