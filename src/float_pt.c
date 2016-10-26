@@ -726,7 +726,7 @@ a float kind).
       } else if (kind == (a_float_kind)fk_float128) {
         size = targ_sizeof_float128;
       } else {
-        unexpected_condition("make_fp_nan: invalid float kind");
+        unexpected_condition_str("make_fp_nan: invalid float kind");
       }  /* if */
       part += size/4 - 1;
     }  /* if */
