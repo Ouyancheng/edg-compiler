@@ -4743,6 +4743,13 @@ of the file name.  Return TRUE if an existing entry was returned.
      on Unix-like systems) to search for a previous include. */
   if (ifhp == NULL) {
     get_unique_id_for_file(full_name, &key_ifh.unique_id);
+    if (unique_file_id_hash_table == NULL) {
+      unique_file_id_hash_table = alloc_hash_table(
+                                FRONT_END_REGION_NUMBER,
+                                (a_hash_table_size)1024,
+                                fn_for_function(hash_unique_file_id_for_table),
+                                fn_for_function(compare_unique_file_id));
+    }  /* if */
     ifhp_in_unique_id_table = (an_include_file_history_ptr*)hash_find(
 					unique_file_id_hash_table,
 					(a_void_ptr)&key_ifh, create);
@@ -22723,6 +22730,17 @@ are handled in lexical_init.)
 }  /* lexical_one_time_init */
 
 
+void lexical_pch_reset(void)
+/*
+Initialize any values that must be reset after a PCH files has been loaded.
+*/
+{
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  unique_file_id_hash_table = NULL;
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+}  /* lexical_pch_reset */
+
+
 void lexical_reset(void)
 /*
 Initialize variables that are used to record the state of the lexical
@@ -22796,11 +22814,7 @@ Initialize variables that are specific to a given translation unit.
                                 fn_for_function(hash_include_file_history),
                                 fn_for_function(compare_include_file_history));
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
-  unique_file_id_hash_table = alloc_hash_table(
-                                FRONT_END_REGION_NUMBER,
-                                (a_hash_table_size)1024,
-                                fn_for_function(hash_unique_file_id_for_table),
-                                fn_for_function(compare_unique_file_id));
+  unique_file_id_hash_table = NULL;
 #endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;

@@ -2724,6 +2724,7 @@ void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
 void init_name_linkage_constants(void);
 
 /* Initialize the lexical routines. */
+extern void lexical_pch_reset(void);
 extern void lexical_reset(void);
 extern void lexical_one_time_init(void);
 extern void lexical_trans_unit_init(void);

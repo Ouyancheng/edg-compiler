@@ -2137,6 +2137,8 @@ from the PCH file) to reflect the information loaded from the file.
      dir_name_list_general does not need to be reset because the entries
      and strings are in general memory. */
   dir_name_list_il = NULL;
+  /* Reset lexical information to make sure it does not refer to the PCH. */
+  lexical_pch_reset();
   /* Reconstruct any data structures that must be rebuilt from the IL
      that was just read. */
   rebuild_structures_on_il_read();

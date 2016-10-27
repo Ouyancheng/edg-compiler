@@ -1,5 +1,15 @@
 Version 4.13
 
+10/27/16 [EDGcpfe/17689]
+Precompiled headers and unique file IDs
+
+When using unique file identifiers (e.g., inode numbers) to see if a
+file has already been included, a file could incorrectly be considered
+as a match if a PCH file was created on one machine and used on another,
+and the program included a file that matched the unique file ID of
+a file included when the PCH was generated.  Now fixed.
+
+
 10/27/16 [EDGcpfe/17650]
 Internal error on string initializer for variable-length array in GNU mode
 
