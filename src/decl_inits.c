@@ -142,13 +142,14 @@ standard C behavior of trimming the terminating null character if needed),
       set_initialized_array_size(&array_type, num_elems,
                                  /*unknown_dependent=*/FALSE);
       *dst_type = array_type;
-    } else if (array_type->variant.array.is_template_dependent_size_array) {
+    } else if (has_unknown_specified_bound(array_type)) {
       /* This should only happen during prototype instantiations where the
-         array length is a template parameter dependent constant. */
+         array length is a template parameter dependent constant, or with
+         variable-length arrays (in modes that accept initializers for
+         them). */
     } else {
       /* The object being initialized is an array that has a definite
          size.  See if the string will fit in the array. */
-      check_assertion(!has_unknown_specified_bound(array_type));
       array_length = array_type->variant.array.variant.number_of_elements;
       if (num_elems > array_length) {
         /* The string is longer than the array.  Check to see if the

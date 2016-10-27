@@ -1,5 +1,22 @@
 Version 4.13
 
+10/27/16 [EDGcpfe/17650]
+Internal error on string initializer for variable-length array in GNU mode
+
+The changes for EDGcpfe/16811 permit variable-length array declarations to
+include an initializer in some GNU C++ modes.  However, those changes failed
+to update code handling the case of an array initializer with a string
+literal, causing the front end to abort with an internal error in function
+check_string_constant_initializer_full (decl_inits.c) in such cases.  For
+example:
+
+  void f(int n) {
+    char str[n] = "";
+  }
+
+This is now fixed.
+
+
 10/26/16 [EDGcpfe/17676]
 Microsoft compatibility: enabling/disabling dependent name lookup
 
