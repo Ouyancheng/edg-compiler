@@ -2005,7 +2005,7 @@ Transform the given complex cast expression into a function call
           break;
 #endif /* FLOAT128_ENABLING_POSSIBLE */
         default:
-          unexpected_condition_str("invalid floating-point kind");
+          internal_error("invalid floating-point kind");
       }  /* switch */
       routine_name = select_name_from_float_kind(dst_type->variant.float_kind,
                                                  *library_routine_name);
