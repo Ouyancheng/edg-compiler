@@ -9581,10 +9581,13 @@ diagnostic in *ips.
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
               if (mptr != NULL) {
-                /* Record the associated dynamic init entry so an escaping
-                   temporary address can be caught. */
-                con->variant.address.assoc_dyn_init =
-                       ((a_constant_ptr)mptr)->variant.address.assoc_dyn_init;
+                a_constant_ptr  prev_con = (a_constant_ptr)mptr;
+                if (constant_is(prev_con, ck_address)) {
+                  /* Record the associated dynamic init entry so an escaping
+                     temporary address can be caught. */
+                  con->variant.address.assoc_dyn_init =
+                                     prev_con->variant.address.assoc_dyn_init;
+                }  /* if */
               }  /* if */
             }  /* if */
             con->variant.address.variant.constant = cp;
