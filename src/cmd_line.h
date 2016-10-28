@@ -294,6 +294,7 @@ typedef enum /*an_option_kind*/ {
   optk_using_framework_directory,
   optk_mscorlib_file_name,
   optk_ms_permissive,
+  optk_ms_rvalue_cast,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,

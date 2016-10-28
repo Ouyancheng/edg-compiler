@@ -579,6 +579,12 @@ Initialize the option information table.
   add_option_description(optk_ms_permissive, "no_ms_permissive",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_rvalue_cast, "ms_rvalue_cast",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_rvalue_cast, "no_ms_rvalue_cast",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -2580,7 +2586,8 @@ option values if they were not already set by a command line option.
      preserving lvalueness of the operand.  (Recent versions of the compiler
      have an option -- /Zc:rvalueCast -- to enable the standard behavior
      instead, but that option only applies to C++ mode.) */
-  if (!option_kind_used[(int)optk_preserve_lvalues_with_same_type_casts]) {
+  if (!option_kind_used[(int)optk_preserve_lvalues_with_same_type_casts] &&
+      !option_kind_used[(int)optk_ms_rvalue_cast]) {
     preserve_lvalues_with_same_type_casts = TRUE;
   }  /* if */
   /* MSVC doesn't treat bit fields in any special way wrt. promotion, much
@@ -3529,7 +3536,9 @@ otherwise implicitly enabled Microsoft mode.
         option_kind_used[(int)optk_microsoft_16_mode] ||
 #endif /* NEAR_AND_FAR_ALLOWED */
         option_kind_used[(int)optk_microsoft_bugs] ||
-        option_kind_used[(int)optk_cppcli]) {
+        option_kind_used[(int)optk_cppcli] ||
+        option_kind_used[(int)optk_ms_permissive] ||
+        option_kind_used[(int)optk_ms_rvalue_cast]) {
       /* Microsoft mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
@@ -9392,6 +9401,12 @@ enable_microsoft_mode:
         /* Emulate Microsoft's /permissive[-] switch (which also implies
            Microsoft mode). */
         ms_permissive = opt_value;
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
+      case optk_ms_rvalue_cast:
+        /* Emulate Microsoft's /Zc:rvalueCast[-] switch (which also implies
+           Microsoft mode). */
+        preserve_lvalues_with_same_type_casts = !opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
