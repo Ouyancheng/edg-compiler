@@ -31,11 +31,11 @@ This is now fixed.
 Microsoft compatibility: enabling/disabling dependent name lookup
 
 The effect of the --[no_]dep_name options when used in Microsoft mode have
-been changed.  Formerly, --dep_name not cause nonclass prototype
+been changed.  Formerly, --dep_name did not cause nonclass prototype
 instantiations to be enabled, but should have.  In addition, --no_dep_name
 can now be used in conjunction with --no_ms_permissive to prohibit mode
-permissive behavior, but still allow the normal (non-standard) dependent
-name processing that is done in permissive Microsoft mode to be used.
+permissive behavior, but still allow the normal template lookup processing
+that is done in permissive Microsoft mode to be used.
 
 
 10/25/16 [EDGcpfe/17672]
