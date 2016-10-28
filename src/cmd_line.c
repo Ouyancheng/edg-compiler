@@ -2588,7 +2588,7 @@ option values if they were not already set by a command line option.
      instead, but that option only applies to C++ mode.) */
   if (!option_kind_used[(int)optk_preserve_lvalues_with_same_type_casts] &&
       !option_kind_used[(int)optk_ms_rvalue_cast]) {
-    preserve_lvalues_with_same_type_casts = TRUE;
+    preserve_lvalues_with_same_type_casts = ms_permissive;
   }  /* if */
   /* MSVC doesn't treat bit fields in any special way wrt. promotion, much
      less operations applied to bit fields. */
