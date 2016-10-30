@@ -1,5 +1,28 @@
 Version 4.13
 
+10/30/16 [EDGcpfe/17711]
+Regression with pack expansion in non-top-level function declarator
+
+A change in version 4.12 could result in incorrect behavior when a
+template declaration contained a function declarator, other than the
+top-level one in a function declaration, and that function declarator
+included a pack expansion.  Now fixed.
+
+  struct C { void f(int); };
+  template <typename T> struct A {
+    template <typename, typename> class B;
+    template <typename T2, typename... Args_>
+    struct B<T2, void (Args_...)> {
+      template <typename U, void (U::*)(Args_...)> struct D;
+      template <typename U> static constexpr int g(D<C, &U::f>*) { return 1; }
+      template <typename> static constexpr int g(...) { return 0; }
+      constexpr static int i = g<T2>(0);
+    };
+    static constexpr int i = B<T, void(int)>::i;
+  };
+  static_assert(A<C>::i, "wrong i");
+
+
 10/28/16 [EDGcpfe/17677]
 Microsoft compatibility: --ms_rvalue_cast/--no_ms_rvalue_cast
 

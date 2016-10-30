@@ -3166,6 +3166,7 @@ an error if a default argument expression is encountered.
           if (is_non_initial_pack_element) {
             ptp->duplicate_name = TRUE;
           } else if (param_state.has_pack_ellipsis &&
+                     !(di_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) &&
                      is_template_dependent_context()) {
             /* Consider a case like the following:
                  template<class ... Ts> struct S {
@@ -3176,7 +3177,10 @@ an error if a default argument expression is encountered.
                "p..." is rescanned in the return type, we'll need to know that
                p was a parameter pack (to validate the ellipsis and set up
                another context for expansion).  We therefore mark the first
-               parameter of the expansion as a "parameter pack". */
+               parameter of the expansion as a "parameter pack". Don't do this
+               if the function declarator could be an abstract declarator
+               (e.g., a type-id or parameter declaration) and therefore not a
+               top-level declaration. */
             ptp->is_parameter_pack = TRUE;
           }  /* if */
           if (is_pack_element &&
