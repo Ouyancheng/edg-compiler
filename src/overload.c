@@ -23665,6 +23665,7 @@ describes the context of the conversion.
 {
   a_boolean orig_is_copy_initialization = is_copy_initialization;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft VC++ treats
        return expr;
      and
@@ -23680,6 +23681,7 @@ describes the context of the conversion.
         (conv_context & CCO_TYPE_TRAITS_CHECK))) {
     is_copy_initialization = FALSE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_error_operand(source_operand)) {
     /* Previous error.  Leave the operand alone. */
   } else if (is_any_reference_type(dest_type)) {
