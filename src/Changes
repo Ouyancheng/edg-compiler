@@ -1,5 +1,17 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17713]
+Regression with builtin referenced in preprocessing directive
+
+As a result of the changes for the new builtin mechanism (Changes entry
+EDGcpfe/16431 et al.), referring to a builtin function name in a
+preprocessing directive had resulted in a segfault in normal_id_lookup and is
+now fixed.  For example (with --gcc):
+
+  #if defined(alloca) && (alloca == __builtin_alloca)
+  #endif
+
+
 10/31/16 [EDGcpfe/17716]
 Argument-dependent lookup not done in some constant contexts
 

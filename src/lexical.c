@@ -13584,6 +13584,7 @@ id_scan:
 #if BUILTIN_FUNCTIONS_ENABLED
         if (builtin_needs_to_be_loaded(sym_hdr) &&
             !fetch_pp_tokens &&
+            !in_preprocessing_directive &&
             !fetching_tokens_from_insert_string()) {
           /* Load a builtin function once it's referenced (though not during
              preprocessing nor when creating token caches). */
