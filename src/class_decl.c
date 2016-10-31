@@ -19401,7 +19401,8 @@ member of a union or anonymous union).
       gsfd->suppress_copy_ctor = TRUE;
     }  /* if */
   }  /* if */
-  if (!clang_mode && base_class->is_virtual && !base_class->direct &&
+  if (!clang_mode && base_class != NULL &&
+      base_class->is_virtual && !base_class->direct &&
       virtual_base_class_is_indirect(base_class, class_type)) {
     /* Indirect virtual bases have their assignment handled by the assignment
        operators of a direct virtual base.  (See make_default_assignment_body.)
