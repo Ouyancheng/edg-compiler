@@ -3177,7 +3177,7 @@ an error if a default argument expression is encountered.
                "p..." is rescanned in the return type, we'll need to know that
                p was a parameter pack (to validate the ellipsis and set up
                another context for expansion).  We therefore mark the first
-               parameter of the expansion as a "parameter pack". Don't do this
+               parameter of the expansion as a "parameter pack".  Don't do this
                if the function declarator could be an abstract declarator
                (e.g., a type-id or parameter declaration) and therefore not a
                top-level declaration. */
