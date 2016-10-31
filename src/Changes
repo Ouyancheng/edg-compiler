@@ -1,5 +1,26 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17716]
+Argument-dependent lookup not done in some constant contexts
+
+When an identifier is used in what looks like a function call and the
+identifier is undefined, argument-dependent lookup should be done to
+possibly find a function or function template from a namespace.  This
+was not done in some contexts in which a constant was required.  Now fixed.
+
+  void g();
+  namespace N {
+    struct A {};
+    template <class T> constexpr int f(T) { return 0; }
+    template <class T> constexpr int g(T) { return 0; }
+  }
+  int main() {
+    constexpr N::A a;
+    constexpr int i = f(a);  // failed
+    constexpr int j = g(a);  // worked, first found ::g then later N::g
+  }
+
+
 10/30/16 [EDGcpfe/17711]
 Regression with pack expansion in non-top-level function declarator
 

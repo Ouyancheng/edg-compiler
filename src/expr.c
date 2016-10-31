@@ -29686,29 +29686,14 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       sym_ptr = alloc_symbol((a_symbol_kind)sk_undefined,
                              locator.symbol_header,
                              &locator.source_position);
-      if (curr_expr_kind_is_const()) {
-        /* In a constant expression, an undefined identifier is still
-           flagged as "undefined" -- it makes the error message clearer. */
-        enter_undefined_symbol(sym_ptr);
-        if (expr_error_should_be_issued()) {
-          str_error(ec_undefined_identifier,
-                    locator.symbol_header->identifier);
-        }  /* if */
-        record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
-                                                          SRK_ERROR),
-                                sym_ptr, &locator.source_position,
-                                /*update_il_entry=*/FALSE);
-        make_error_operand(result);
-      } else {
-        /* Make a transient undefined symbol operand that will be either
-           turned into an implicitly declared function (in C) or ignored
-           (in C++, with argument-dependent lookup), or diagnosed as an
-           error. */
-        make_undefined_symbol_operand(sym_ptr,
-                                      ref_entry(sym_ptr, &start_position),
-                                      &locator.source_position,
-                                      result);
-      }  /* if */
+      /* Make a transient undefined symbol operand that will be either
+         turned into an implicitly declared function (in C) or ignored
+         (in C++, with argument-dependent lookup), or diagnosed as an
+         error. */
+      make_undefined_symbol_operand(sym_ptr,
+                                    ref_entry(sym_ptr, &start_position),
+                                    &locator.source_position,
+                                    result);
     }  /* if */
   } else {
     /* The symbol is defined. */
