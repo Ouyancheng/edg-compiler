@@ -19362,19 +19362,22 @@ static void check_base_or_mbr_class_type_for_suppression(
                             a_type_ptr                          class_type,
                             a_generated_special_function_descr  *gsfd,
                             a_type_ptr                          type,
+                            a_base_class_ptr                    base_class,
                             a_boolean                           is_mutable,
                             a_boolean                           variant_field)
 /*
-This is a helper routine for check_suppressed_special_functions.  It checks a
-base class or the class type ("type") of a member of class_type to see if any
+This is a helper routine for check_suppressed_special_functions.  For the given
+class type is checks a base class or field of class type "type" to see if any
 conditions exist that would prevent the successful generation of the implicit
 definition of a copy/move assignment operator, copy/move constructor, or
-destructor for the specified class_type.  type may be const/volatile qualified
-but if the corresponding subobject is an array, type is the underlying class
-type (possibly qualified).  *gsfd is updated accordingly and warnings or
-remarks may be issued in some cases.  is_mutable is TRUE if the given type is
-that of a mutable field.  variant_field is TRUE if the given type is that of a
-variant field (i.e., a member of a union or anonymous union).
+destructor.  type may be const/volatile qualified but if the corresponding
+subobject is an array, type is the underlying class type (possibly qualified).
+For base class subobject base_class designates the base class.
+
+*gsfd is updated accordingly and warnings or remarks may be issued in some
+cases.  is_mutable is TRUE if the given type is that of a mutable field.
+variant_field is TRUE if the given type is that of a variant field (i.e., a
+member of a union or anonymous union).
 */
 {
   a_class_symbol_supplement_ptr  cssp;
@@ -19397,6 +19400,13 @@ variant field (i.e., a member of a union or anonymous union).
     if (cssp->construction_by_bitwise_copy_allowed) {
       gsfd->suppress_copy_ctor = TRUE;
     }  /* if */
+  }  /* if */
+  if (!clang_mode && base_class->is_virtual && !base_class->direct &&
+      virtual_base_class_is_indirect(base_class, class_type)) {
+    /* Indirect virtual bases have their assignment handled by the assignment
+       operators of a direct virtual base.  (See make_default_assignment_body.)
+       (Clang does not allow for this.) */
+    goto skip_assignment_operators;
   }  /* if */
   /* Check the copy assignment operator. */
   if (gsfd->suppress_copy_assign) {
@@ -19484,6 +19494,7 @@ variant field (i.e., a member of a union or anonymous union).
       }  /* if */
     }  /* if */
   }  /* if */
+skip_assignment_operators:
   /* Check the copy constructor. */
   if (gsfd->suppress_copy_ctor) {
     /* If we already know the copy constructor should be suppressed, no further
@@ -19681,6 +19692,7 @@ warnings or remarks may be issued.
         variant_field = class_type->kind == (a_type_kind)tk_union ||
                         sym->variant.field.anonymous_parent_object != NULL;
         check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp,
+                                                     (a_base_class_ptr)NULL,
                                                      fp->is_mutable,
                                                      variant_field);
       }  /* if */
@@ -19701,7 +19713,7 @@ warnings or remarks may be issued.
          prevent the corresponding derived class functions from being
          generated. */
       check_base_or_mbr_class_type_for_suppression(class_type, gsfd, bcp->type,
-                                                   /*is_mutable=*/FALSE,
+                                                   bcp, /*is_mutable=*/FALSE,
                                                    /*variant_field=*/FALSE);
     }  /* if */
   }  /* for */

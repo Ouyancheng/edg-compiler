@@ -1,5 +1,31 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17674]
+Generated assignment operators and indirect virtual base classes
+
+Consider the following example:
+
+  struct B { B& operator=(B const&) = delete; };
+  struct C: virtual B {
+    C& operator=(C const&);
+  };
+  struct D: C {
+    void f(D const &rhs) {
+      *this = rhs;  // Previously an error.  Now okay.
+    }
+  };
+
+Previously, the generated assignment operator for type D was marked as deleted
+because the corresponding operator in the virtual base class is inaccessible.
+However, since the virtual base class is indirect, the generated C::operator=
+can assume that the direct base class C's assignment operator will implement
+the assignment of the virtual base class subobject.  Therefore D's inability
+to access B::operator=(B const&) does not impede the generation of D's copy
+assignment operator and the case above is valid.  The front end now implements
+that observation (except in Clang mode, because Clang issues an error for this
+case).
+
+
 10/31/16 [EDGcpfe/17682]
 Incorrect lowered code generated for inlined operator new []
 
