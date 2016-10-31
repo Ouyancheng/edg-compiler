@@ -1,5 +1,18 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17717]
+Spurious error using template template parameter as template template argument
+
+A spurious error could result when a variadic template template parameter
+of one template was passed as a template template argument to another
+template.  Now fixed.
+
+  template <typename T, template <typename, T...> class> struct A;
+  template <template <typename U, U...> class TT> struct B {
+    using X = A<char, TT>;
+  };
+
+
 10/31/16 [EDGcpfe/17675]
 GNU C++ compatibility: operator names and using-directives
 

@@ -16932,10 +16932,10 @@ can match zero or more parameters from new_list.
          coordinates need not match when comparing with a template
          parameter pack.  If we have already detected a nesting depth
          mismatch (indicated by ETP_NESTING_DEPTH_MISMATCH_OKAY), allow
-         a coordinate mismatch when comparing constants. */
+         more flexible matching of the constants. */
       if ((old_tpp->is_pack && is_templ_templ_param_match) ||
           (options & ETP_NESTING_DEPTH_MISMATCH_OKAY) != 0) {
-        cc_options |= CC_COORDINATE_MISMATCH_OKAY;
+        cc_options |= CC_TEMPLATE_TEMPLATE_PARAM;
       }  /* if */
       err = !compare_constants(old_tpp->variant.constant.ptr,
                                new_tpp->variant.constant.ptr,

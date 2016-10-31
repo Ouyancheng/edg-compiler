@@ -6861,6 +6861,16 @@ definition of the CC flags in il.h for more information.
          differently to match between declarations.  See
          check_gpp_template_redecl_match for more information. */
       same_types = check_gpp_template_redecl_match(cp1_type, eff_cp2_type);
+    } else if ((options & CC_TEMPLATE_TEMPLATE_PARAM) != 0) {
+      /* When matching a template template parameter constant, consider this
+         a match if the second type is from a template template parameter. */
+      same_types = !is_template_param_type(eff_cp1_type) &&
+                   is_template_param_type(eff_cp2_type) &&
+                   eff_cp2_type->kind == (a_type_kind)tk_template_param &&
+                   eff_cp2_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+                   eff_cp2_type->variant.template_param.extra_info->
+                                         coordinates.depth == NO_NESTING_DEPTH;
     }  /* if */
     if (!same_types) {
       same_types = f_types_are_compatible(eff_cp1_type,
@@ -7083,11 +7093,11 @@ definition of the CC flags in il.h for more information.
         if (cp1->variant.template_param.kind ==
                                             cp2->variant.template_param.kind) {
           switch (cp1->variant.template_param.kind) {
-            /* Don't compare coordinates when CC_COORDINATE_MISMATCH_OKAY
+            /* Don't compare coordinates when CC_TEMPLATE_TEMPLATE_PARAM
                is specified. */
             case tpck_param:
               eq = (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
-                   ((options & CC_COORDINATE_MISMATCH_OKAY) != 0 ||
+                   ((options & CC_TEMPLATE_TEMPLATE_PARAM) != 0 ||
                     (cp1->
                          variant.template_param.variant.coordinates.position ==
                      cp2->

@@ -1512,10 +1512,11 @@ typedef int a_compare_constants_options_set;
 			/* TRUE if, when checking that the types of expressions
 			   match, one should check for an exact match of the
 			   expressions under any dependent decltypes. */
-#define CC_COORDINATE_MISMATCH_OKAY 0x8
+#define CC_TEMPLATE_TEMPLATE_PARAM 0x8
 			/* TRUE if, when comparing template parameters of
 			   tpck_param kind, the coordinates are not
-			   required to match. */
+			   required to match and certain type mismatches
+			   are allowed. */
 #define CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED 0x10
 			/* TRUE if, when comparing template constant
 			   identities, they must match exactly. */
