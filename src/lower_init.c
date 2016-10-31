@@ -11289,6 +11289,8 @@ The subtree of the node has not yet been lowered.
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   } else {
     /* Non-array case, or array case that does not require special handling. */
+    an_expr_node_ptr num_bytes_expr;
+    a_variable_ptr   num_bytes_temp;
     /* Lower the arguments for the "new" call.  If the arguments need
        sequencing, that'll be handled later when the dip is lowered. */
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type, ndsp->routine,
@@ -11302,8 +11304,16 @@ The subtree of the node has not yet been lowered.
     }  /* if */
     /* The first argument (number of bytes to allocate) needs to be
        computed. */
-    args = size_arg_for_new(ndsp, eff_num_elem_node,
-                            &pre_call_insert_location);
+    num_bytes_expr = size_arg_for_new(ndsp, eff_num_elem_node,
+                                      &pre_call_insert_location);
+    /* Assign the number of bytes to allocate to a temporary variable.  This
+       value may be used after the call to the operator new, and assigning it
+       to a temporary avoids issues if the call to operator new is inlined and
+       the argument is unused (and therefore removed from the IL tree). */
+    num_bytes_temp = make_local_temporary(num_bytes_expr->type);
+    insert_expr(make_var_assignment_expr(num_bytes_temp, num_bytes_expr),
+                &pre_call_insert_location);
+    args = var_rvalue_expr(num_bytes_temp);
     args->next = ndsp->arg;
     delete_args = NULL;
     if (ndsp->placement_new && dip != NULL &&
@@ -11363,11 +11373,8 @@ The subtree of the node has not yet been lowered.
           skip_typerefs(ndsp->type)->size == 0) {
         /* lower_dynamic_init can't handle a variable-length array, so
            do that specially. */
-        an_expr_node_ptr entity_size_node =
-                                  make_reusable_copy(args,
-                                                     /*vars_can_change=*/TRUE);
         insert_runtime_zeroing_call(var_rvalue_expr(temp_var),
-                                    entity_size_node,
+                                    var_rvalue_expr(num_bytes_temp),
                                     &insert_location);
       } else {
         /* Build a description of the entity to be initialized.  Adjust the
@@ -11398,7 +11405,8 @@ The subtree of the node has not yet been lowered.
         /* Now that the entity is initialized, turn off the freeing on
            exception. */
         turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                             args, (a_routine_ptr)NULL,
+                                             var_rvalue_expr(num_bytes_temp),
+                                             (a_routine_ptr)NULL,
                                              init_insert_location.variant.expr,
                                              &insert_location);
       }  /* if */
