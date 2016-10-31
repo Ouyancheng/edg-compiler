@@ -2200,6 +2200,9 @@ Call #2 is accepted in g++ 4.1 because the presence of a symbol found by the
 normal lookup suppresses the visibility of certain symbols that would be
 found by a using-directive lookup.
 
+Operator names seem to be visible regardless of the location of the
+using-directive.
+
 ssep is the scope is the scope stack entry at which the using-directives apply
 that are being considered for this lookup.  locator identifies the kind of name
 being looked up.  new_sym is the symbol being considered.  nssp is the
@@ -2218,6 +2221,8 @@ in the scope in which the using-directives apply.
             (unsigned long)nssp->using_dir_decl_seq);
     fprintf(f_debug, "  lookup_state->using_dir_decl_seq=%lu\n",
             (unsigned long)lookup_state->using_dir_decl_seq);
+    fprintf(f_debug, "  lookup_state->decl_seq=%lu\n",
+            (unsigned long)lookup_state->decl_seq);
     for (audp = ssep->using_directives_that_apply_here;
          audp != NULL; audp = audp->next_that_applies_at_depth) {
       if (nssp == audp->namespace_supplement) {
@@ -2228,8 +2233,9 @@ in the scope in which the using-directives apply.
   }  /* if */
 #endif /* DEBUG */
   visible_using_dir = 
-            (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
-            lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER);
+            nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
+            lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER ||
+            locator->is_operator_name;
   if (is_function_or_template_symbol(new_sym) || visible_using_dir) {
     /* For gnu_versions < 40700, non-template symbols are visible but
        templates are not.  The symbol_is_or_contains_template test is

@@ -1,5 +1,30 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17675]
+GNU C++ compatibility: operator names and using-directives
+
+The front end does quite a bit of processing to emulate the behavior
+of using-directives in g++ mode.  g++ seems to handle overloaded
+operator functions differently than other functions.  In particular,
+the location of the using-directive does not seem to matter.  We now
+emulate this behavior in g++ mode.
+
+  class A {};
+  template <class T> struct B { T f(); };
+  class C {};
+  template <class T> inline void operator<<(C& c, B<T>& b) {
+    // Formerly, no match for C << A
+    c << b.f();
+  }
+  namespace N { void operator<<(C& c, const A& a); }
+  using namespace N;
+  int main() {
+    C c;
+    B<A> b;
+    c << b;
+  }
+
+
 10/31/16 [EDGcpfe/17674]
 Generated assignment operators and indirect virtual base classes
 
