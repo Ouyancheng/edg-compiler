@@ -1445,6 +1445,12 @@ EXTERN a_boolean
 			   DEFAULT_MS_PERMISSIVE.  Can be used with C, C++,
 			   C++/CLI, and C++/CX modes. */
 
+EXTERN a_boolean
+		ms_treat_copy_init_as_direct_init;
+			/* TRUE if MSVC's behavior of often treating copy
+			   initialization as direct initialization should be
+			   emulated. */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean

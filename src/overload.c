@@ -19885,10 +19885,12 @@ was done.
         goto conversion_done;
       }  /* if */
     }  /* if */
-    /* Microsoft VC++ treats copy-initialization as direct-initialization in
-       some cases.  All the cases that come through here are treated that
-       way. */
-    is_copy_initialization = FALSE;
+    if (ms_treat_copy_init_as_direct_init) {
+      /* Microsoft VC++ treats copy-initialization as direct-initialization in
+         some cases.  All the cases that come through here are treated that
+         way. */
+      is_copy_initialization = FALSE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Look for a constructor to convert the expression to the required
@@ -23671,7 +23673,7 @@ describes the context of the conversion.
      the outcome of the type traits checking operation __is_convertible_to,
      which is normally defined in terms of a return operation, is not affected
      by this oddity. */
-  if (microsoft_bugs &&
+  if (ms_treat_copy_init_as_direct_init &&
       (conv_context &
        (CCO_INITIALIZING_RETURN_VALUE | CCO_INITIALIZING_VARIABLE)) &&
       !(microsoft_version >= 1900 &&

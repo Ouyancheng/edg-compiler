@@ -2595,6 +2595,9 @@ option values if they were not already set by a command line option.
   bit_field_promotion_applies_to_some_operations = FALSE;
   /* MSVC still accepts "false" as a null pointer constant. */
   false_literal_is_not_null_pointer_constant = FALSE;
+  if (microsoft_bugs && ms_permissive) {
+    ms_treat_copy_init_as_direct_init = TRUE;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11440,6 +11443,7 @@ variables declared in cmd_line.h.
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
   ms_permissive = DEFAULT_MS_PERMISSIVE;
+  ms_treat_copy_init_as_direct_init = FALSE;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;

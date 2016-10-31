@@ -1,5 +1,25 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17678]
+Microsoft non-permissive mode: Copy- vs. direct-initialization
+
+In Microsoft mode, the front end treats common cases of "copy-initialization"
+as if they were "direct-initialization" (see the entry of 1/18/98).  In
+"non-permissive" Microsoft mode (see the entry for EDGcpfe/17455) that
+nonstandard behavior is now disabled.  For example:
+
+  struct A {
+    operator const char*() ;
+  };
+  struct B {
+    B(const char*) ;
+  };
+  B f(A a) {
+    B x = a;   // Accepted in permissive Microsoft mode only.
+    return a;  // Accepted in permissive Microsoft mode only.
+  }
+
+
 10/31/16 [EDGcpfe/17713]
 Regression with builtin referenced in preprocessing directive
 
