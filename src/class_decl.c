@@ -19367,7 +19367,7 @@ static void check_base_or_mbr_class_type_for_suppression(
                             a_boolean                           variant_field)
 /*
 This is a helper routine for check_suppressed_special_functions.  For the given
-class type is checks a base class or field of class type "type" to see if any
+class type it checks a base class or field of class type "type" to see if any
 conditions exist that would prevent the successful generation of the implicit
 definition of a copy/move assignment operator, copy/move constructor, or
 destructor.  type may be const/volatile qualified but if the corresponding
@@ -19404,9 +19404,9 @@ member of a union or anonymous union).
   if (!clang_mode && base_class != NULL &&
       base_class->is_virtual && !base_class->direct &&
       virtual_base_class_is_indirect(base_class, class_type)) {
-    /* Indirect virtual bases have their assignment handled by the assignment
-       operators of a direct virtual base.  (See make_default_assignment_body.)
-       (Clang does not allow for this.) */
+    /* An indirect virtual base will have its assignment handled by one of the
+       assignment operators of a direct base.  (Clang does not allow for this.)
+       See also make_default_assignment_body. */
     goto skip_assignment_operators;
   }  /* if */
   /* Check the copy assignment operator. */

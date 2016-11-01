@@ -75,11 +75,11 @@ Consider the following example:
   };
 
 Previously, the generated assignment operator for type D was marked as deleted
-because the corresponding operator in the virtual base class is inaccessible.
-However, since the virtual base class is indirect, the generated C::operator=
+because the corresponding operator in the virtual base class is deleted.
+However, since the virtual base class is indirect, the generated D::operator=
 can assume that the direct base class C's assignment operator will implement
 the assignment of the virtual base class subobject.  Therefore D's inability
-to access B::operator=(B const&) does not impede the generation of D's copy
+to call B::operator=(B const&) does not impede the generation of D's copy
 assignment operator and the case above is valid.  The front end now implements
 that observation (except in Clang mode, because Clang issues an error for this
 case).
