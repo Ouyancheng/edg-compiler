@@ -5322,13 +5322,22 @@ make_inert_macro:
            has_include_next macro.  Has the value 1 if the named header
            file would be found by #include or #include_next, respectively,
            and 0 otherwise. */
-        a_boolean file_found;
+        a_boolean    file_found;
+        a_seq_number org_seq = curr_seq_number;
         ++macro_depth;
         save_delete_source_from_loc = delete_source_from_loc;
         delete_source_from_loc = NULL;
         file_found =
                scan_has_include(macro_symbol == clang_has_include_next_symbol);
-        delete_source_from_loc = save_delete_source_from_loc;
+        if (curr_seq_number != org_seq) {
+          /* We moved to a new source line while scanning the macro
+             invocation; delete from the beginning of the current source
+             line and not from the now-obsolete position of the macro
+             name. */
+          delete_source_from_loc = curr_source_line;
+        } else {
+          delete_source_from_loc = save_delete_source_from_loc;
+        }  /* if */
         --macro_depth;
         strcpy(repl_text, file_found ? "1" : "0");
       } else {
@@ -6801,8 +6810,12 @@ copy_done:
      insertion with one modification. */
   /* The text logically deleted here is either the entire macro invocation
      (if it is all on one line), or the part of it on this line (if it
-     spans several lines). */
-  slmp = add_source_line_modif(delete_source_from_loc,
+     spans several lines).  If no characters are being deleted, make the
+     replacement a hanging insertion (before the first character of the
+     current source line). */
+  slmp = add_source_line_modif((delete_source_from_loc == curr_char_loc)
+                                                      ? NULL
+                                                      : delete_source_from_loc,
                                (sizeof_t)(curr_char_loc -
                                                        delete_source_from_loc),
                                rescan_loc, rescan_loc + repl_text_len +

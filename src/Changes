@@ -1,5 +1,16 @@
 Version 4.13
 
+10/31/16 [EDGcpfe/17712]
+Unbounded loop with malformed __has_include invocation
+
+If the __has_include operator fails to have the correct syntax (i.e., it
+is not followed by a parenthesized file name), the front end could
+sometimes enter a non-terminating loop.  This is now fixed.  For example,
+the front end looped continuously with a file containing the single line,
+
+  __has_include
+
+
 10/31/16 [EDGcpfe/17717]
 Spurious error using template template parameter as template template argument
 
