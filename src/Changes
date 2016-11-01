@@ -1,5 +1,15 @@
 Version 4.13
 
+11/1/16  [EDGcpfe/17718]
+File closed more than once with MAKE_FRONT_END_CALLABLE
+
+A file could be closed more than once (which could cause an abort or other
+undefined behavior) in a version configured with MAKE_FRONT_END_CALLABLE.
+The problem occurred when compiling a file containing #line directives
+if the front end terminated via a catastrophic error (e.g., if the error
+limit was reached).  Now fixed.
+
+
 10/31/16 [EDGcpfe/17712]
 Unbounded loop with malformed __has_include invocation
 

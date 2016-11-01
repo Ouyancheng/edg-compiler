@@ -22941,7 +22941,14 @@ the point at which the compilation was terminated.
   if (input_stack != NULL) {
     /* Close any files on the input stack that are currently open. */
     for (depth = depth_input_stack; depth >= 0; --depth) {
-      close_file_if_open(&input_stack[depth].file);
+      an_input_stack_entry_ptr ise = &input_stack[depth];
+      if (ise->cloned_for_line_directive) {
+        /* A cloned entry will refer to the same file as the original,
+           so don't attempt to close the cloned copy. */
+        ise->file = NULL;
+      } else {
+        close_file_if_open(&ise->file);
+      }  /* if */
     }  /* for */
   }  /* if */
   /* Make sure we don't go through the loop above if this routine is called
