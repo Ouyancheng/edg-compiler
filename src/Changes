@@ -80,9 +80,9 @@ Incorrect lowered code generated for inlined operator new []
 
 In some cases where an operator new [] is inlined and the body of the inlined
 function doesn't refer to the first argument (i.e., the number of bytes to
-allocate), the lowered code that is generated may use an uninitialized variable
-when initializing the allocated storage, thereby having undefined results at
-run time.  For example (with --c++11):
+allocate), the lowered code that was previously generated might use an
+uninitialized variable when initializing the allocated storage, thereby having
+undefined results at run time.  This is now fixed.  For example (with --c++11):
 
   typedef __EDG_SIZE_TYPE__ size_t;
   inline void* operator new[](size_t, void* p) noexcept {
