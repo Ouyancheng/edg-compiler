@@ -1,5 +1,42 @@
 Version 4.13
 
+11/2/16  [EDGcpfe/6091,EDGcpfe/6874,EDGcpfe/12710,EDGcpfe/12965,EDGcpfe/13971,
+          EDGcpfe/14218,EDGcpfe/16440,EDGcpfe/16488,EDGcpfe/16497,
+          EDGcpfe/17067,EDGcpfe/17667]
+__float128 and __float80
+
+The front end now includes support for __float128 and __float80 floating-point
+types.  These are patterned after the similar feature in GCC (and, to some
+extent, Clang): When enabled, __float128 and __float80 are predefined typedefs
+for floating-point types with, respectively, 128- and 80-bit value
+representations.  Associated floating-point literal suffixes are also
+supported ('q' and 'Q' for __float128 literals, 'w' and 'W' for __float80
+literals).  Configuration macros FLOAT80_ENABLING_POSSIBLE and
+FLOAT128_ENABLING_POSSIBLE control whether these extensions can be enabled
+at all; when they can, GNU modes enable for __float128 and __float80, whereas
+Clang modes enable __float128 only.
+
+The new types can map to existing floating-point kinds or to the new kinds
+fk_float128 and fk_float80.  This is controlled by the global variables
+float_kind_for_float128 and float_kind_for_float80, which are initialized by
+default with the configuration macros DEFAULT_FLOAT_KIND_FOR_FLOAT128 and
+DEFAULT_FLOAT_KIND_FOR_FLOAT80.  If not configured explicitly, __float128 maps
+to fk_float128 and __float80 maps to fk_long_double (i.e., __float80 is a
+synonym for type "long double).
+
+To enable support for __float128, USE_FLOAT128_FOR_HOST_FP_VALUE (another new
+configuration macro) must be set to TRUE and, as a result, the front end must
+be built with a host compiler that itself supports __float128.  In addition,
+routines are needed to convert to and from string representations of 128-bit
+floating-point values.  Currently, the front end relies on strtoflt128 and
+quadmath_snprintf, which are APIs implemented by the GNU QuadMath library
+(called when USE_QUADMATH_LIBRARY is configured TRUE).  If that library is not
+available or usable, the functions fp_to_string and str_to_float128 must be
+modified to make use of an alternative.  (For testing purposes, a configuration
+macro APPROXIMATE_QUADMATH can be set to TRUE; it uses the "long double"
+routines to perform approximate conversions instead).
+
+
 11/2/16  [EDGcpfe/17723]
 Build issue on Windows when not using UNICODE_SOURCE_SUPPORTED
 
