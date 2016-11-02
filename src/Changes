@@ -1,5 +1,11 @@
 Version 4.13
 
+11/2/16  [EDGcpfe/17723]
+Build issue on Windows when not using UNICODE_SOURCE_SUPPORTED
+
+Building the front end with UNICODE_SOURCE_SUPPORTED == 0 on Windows
+would result in a compilation error in CreateFile_interface.  Now fixed.
+
 11/1/16  [EDGcpfe/17718]
 File closed more than once with MAKE_FRONT_END_CALLABLE
 

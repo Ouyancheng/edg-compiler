@@ -3040,7 +3040,6 @@ file_name.
                       dwCreationDisposition,
                       dwFlagsAndAttributes,
                       hTemplateFile);
-  file = fopen(file_name, mode);
 #endif /* UNICODE_SOURCE_SUPPORTED */
   return f_file;
 }  /* CreateFile_interface */
