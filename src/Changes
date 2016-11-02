@@ -1,5 +1,14 @@
 Version 4.13
 
+11/2/16  [EDGcpfe/17725]
+C++14 constexpr interpreter: Base-class casts and null pointers
+
+The C++14 constexpr interpreter contained a bug causing it to access
+uninitialized storage when handling eok_base_class_cast nodes applied to
+null pointers.  The bug could result in invalid evaluations or aborts,
+depending on the overall state of the front end.
+
+
 11/2/16  [EDGcpfe/6091,EDGcpfe/6874,EDGcpfe/12710,EDGcpfe/12965,EDGcpfe/13971,
           EDGcpfe/14218,EDGcpfe/16440,EDGcpfe/16488,EDGcpfe/16497,
           EDGcpfe/17067,EDGcpfe/17667]

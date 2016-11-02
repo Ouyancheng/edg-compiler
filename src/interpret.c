@@ -6340,11 +6340,11 @@ the value representation of the integer value.
                 break;
               } else if (result_addr->address == NULL) {
                 /* No adjustment needed. */
-                break;
+              } else {
+                get_mapped_byte_count(&persistent_map, bcp, offset);
+                result_addr->address += offset;
+                result_addr->flags &= ~CA_ARRAY_ELEMENT;
               }  /* if */
-              get_mapped_byte_count(&persistent_map, bcp, offset);
-              result_addr->address += offset;
-              result_addr->flags &= ~CA_ARRAY_ELEMENT;
               if (tp->kind == (a_type_kind)tk_pointer) {
                 *(a_constexpr_address*)result_storage = *result_addr;
               } else {
@@ -7427,7 +7427,7 @@ the value representation of the integer value.
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
                 if (is_function_address(ptr1) || is_function_address(ptr2)) {
-                  if (is_function_address(ptr2) && is_function_address(ptr2) &&
+                  if (is_function_address(ptr1) && is_function_address(ptr2) &&
                       ptr1->variant.routine == ptr2->variant.routine) {
                     *(an_integer_value *)result_storage = one_int;
                   } else {
