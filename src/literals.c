@@ -704,6 +704,14 @@ the character position of the error.
     /* "L" suffix, indicates long double. */
     kind = (a_float_kind)fk_long_double;
     --actual_end;
+  } else if (float80_enabled && (*actual_end == 'w' || *actual_end == 'W')) {
+    /* "W" suffix, indicates __float80. */
+    kind = (a_float_kind)float_kind_for_float80;
+    --actual_end;
+  } else if (float128_enabled && (*actual_end == 'q' || *actual_end == 'Q')) {
+    /* "Q" suffix, indicates __float128. */
+    kind = (a_float_kind)float_kind_for_float128;
+    --actual_end;
   } else {
     /* No suffix.  Default is double. */
     kind = (a_float_kind)fk_double;

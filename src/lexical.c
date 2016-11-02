@@ -9228,7 +9228,9 @@ end_float_accum:
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L') {
+  if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L' ||
+      (float80_enabled && (ch == 'w' || ch == 'W')) ||
+      (float128_enabled && (ch == 'q' || ch == 'Q'))) {
     possible_start_of_ud_suffix = curr_char_loc;
     curr_char_loc++;
 #if FIXED_POINT_ALLOWED
