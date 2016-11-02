@@ -1627,10 +1627,11 @@ adjusted to make the implicit bit explicit.
     if (val != 0) is_zero = FALSE;
     mp->parts[0] |= (val >> 20);
     mp->parts[1] = val << 12;
-  } else if ((kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 64) ||
-             (kind == (a_float_kind)fk_float80 &&
-              targ_flt80_mant_dig == 64)) {
+  } else if (((kind == (a_float_kind)fk_long_double &&
+               targ_ldbl_mant_dig == 64) ||
+              (kind == (a_float_kind)fk_float80 &&
+               targ_flt80_mant_dig == 64)) &&
+             /*lint --e(506)*/sizeof(a_host_fp_value) >= sizeof(val)*3) {
     /* 80-bit representation in a 96-bit container. */
     /* The code below constructs the value from fp_temp.  Copy the source to
        fp_temp. */
@@ -1651,7 +1652,7 @@ adjusted to make the implicit bit explicit.
                targ_ldbl_mant_dig == 113) ||
               (kind == (a_float_kind)fk_float128 &&
                targ_flt128_mant_dig == 113)) &&
-             sizeof(a_host_fp_value) == sizeof(val)*4) {
+             /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
     /* 128-bit representation. */
     /* The code below constructs the value from fp_temp.  Copy the source to
        fp_temp. */
@@ -1794,7 +1795,7 @@ the long double kind will have already been mapped to double by the caller.
                targ_ldbl_mant_dig == 113) ||
               (kind == (a_float_kind)fk_float128 &&
                targ_flt128_mant_dig == 113)) &&
-             sizeof(a_host_fp_value) == sizeof(val)*4) {
+             /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
     /* 128-bit representation. */
     /* Update the pointer to refer to the last 32-bit word of the value. */
     if (host_little_endian) fp_ptr += 3;

@@ -5174,6 +5174,11 @@ file.
 #else /* !defined(ALWAYS_SET_MULTIBYTE_LOCALE) */
   comment_undefined_macro_name(ALWAYS_SET_MULTIBYTE_LOCALE);
 #endif /* defined(ALWAYS_SET_MULTIBYTE_LOCALE) */
+#if defined(APPROXIMATE_QUADMATH)
+  define_numeric_valued_macro(APPROXIMATE_QUADMATH);
+#else /* !defined(APPROXIMATE_QUADMATH) */
+  comment_undefined_macro_name(APPROXIMATE_QUADMATH);
+#endif /* defined(APPROXIMATE_QUADMATH) */
 #if defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE)
   define_numeric_valued_macro(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE);
 #else /* !defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE) */
@@ -8650,6 +8655,11 @@ file.
 #else /* !defined(USE_POINTER_TO_CONST_CHAR) */
   comment_undefined_macro_name(USE_POINTER_TO_CONST_CHAR);
 #endif /* defined(USE_POINTER_TO_CONST_CHAR) */
+#if defined(USE_QUADMATH_LIBRARY)
+  define_numeric_valued_macro(USE_QUADMATH_LIBRARY);
+#else /* !defined(USE_QUADMATH_LIBRARY) */
+  comment_undefined_macro_name(USE_QUADMATH_LIBRARY);
+#endif /* defined(USE_QUADMATH_LIBRARY) */
 #if defined(USE_TEMPLATE_INFO_FILE)
   define_numeric_valued_macro(USE_TEMPLATE_INFO_FILE);
 #else /* !defined(USE_TEMPLATE_INFO_FILE) */
