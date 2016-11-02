@@ -2236,6 +2236,32 @@ typedef double a_host_fp_value;
 #undef HOST_FP_TYPE_SELECTED
 
 /*
+TRUE if the front end can use the GNU QuadMath library to support operations
+on __float128 (in configurations where a_host_hp_value is __float128).
+*/
+#ifndef USE_QUADMATH_LIBRARY
+#define USE_QUADMATH_LIBRARY FALSE
+#endif /* USE_QUADMATH_LIBRARY */
+
+/*
+TRUE if the front end can approximate some conversions involving __float128
+with long double conversions instead (in configurations where a_host_fp_value
+is __float128).
+*/
+#ifndef APPROXIMATE_QUADMATH
+#define APPROXIMATE_QUADMATH FALSE
+#endif /* APPROXIMATE_QUADMATH */
+
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if !USE_QUADMATH_LIBRARY && !APPROXIMATE_QUADMATH
+ #error -- either USE_QUADMATH_LIBRARY or APPROXIMATE_QUADMATH must be TRUE
+#endif /* !USE_QUADMATH_LIBRARY && !APPROXIMATE_QUADMATH */
+#if USE_QUADMATH_LIBRARY && APPROXIMATE_QUADMATH
+ #error -- USE_QUADMATH_LIBRARY cannot APPROXIMATE_QUADMATH cannot both be TRUE
+#endif /* USE_QUADMATH_LIBRARY && APPROXIMATE_QUADMATH */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+
+/*
 TRUE if the target supports IEEE floating point, i.e., it has NaNs
 and Infinities.  Note that unless float_pt.c is rewritten this also
 implies that the host supports IEEE floating point, because the
@@ -2344,15 +2370,21 @@ When fixed-point is enabled, make sure a host floating-point value has enough
 mantissa digits to represent all of the bits of the largest fixed-point type.
 */
 #if !ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
+#if DBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT)
+ #error -- double is not large enough to represent a long _Accum value
+#endif /* DBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT) */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #if LDBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT)
  #error -- long double is not large enough to represent a long _Accum value
 #endif /* LDBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT) */
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#if DBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT)
- #error -- double is not large enough to represent a long _Accum value
-#endif /* DBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT) */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /*  USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if TARG_FLT128_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT)
+ #error -- __float128 is not large enough to represent a long _Accum value
+#endif /* TARG_FLT128_MANT_DIG < ... */
+#endif /*  USE_FLOAT128_FOR_HOST_FP_VALUE */
 #endif /* !ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE */
 #endif /* FIXED_POINT_ALLOWED */
 
@@ -3544,13 +3576,13 @@ in generated C code.
 */
 #ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if C_GEN_BE_GENERATES_ANSI_C
-/* Generating ANSI C.  If "long double" is used as the host floating point
-   representation, put out "long double" in the generated C. */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C FALSE
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+/* Generating ANSI C.  If "long double" or "__float128" is used as the host
+floating point representation, put out "long double" in the generated C. */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C FALSE
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
 /* Generating K&R C. */
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE

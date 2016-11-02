@@ -32,6 +32,11 @@ for a production version.
 #include <float.h>
 #endif /* __ANSIC__ || defined(__cplusplus) */
 #include <errno.h>
+
+#if USE_QUADMATH_LIBRARY
+#include <quadmath.h>
+#endif /* USE_QUADMATH_LIBRARY */
+
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
@@ -44,27 +49,25 @@ EXTERN_C double strtod(char *, char **);
    a_host_fp_value (typically double or long double). */
 #if EDG_WIN32
 /* Windows, all versions. */
+
 #ifdef __MWERKS__
 #include <math.h>
-#define is_NaN(x) (isnan((double)(x)))
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#define is_finite(x) (isfinite((double)(x)))
-#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
-#define is_finite(x) (isfinite((long double)(x)))
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
+#define is_NaN(x) (isnan(x))
+#define is_finite(x) (isfinite(x))
 #else /* !defined(__MWERKS__) */
 #include <float.h>
-#define is_NaN(x) (_isnan((double)(x)))
+#define is_NaN(x) (_isnan(x))
 /* Note that MSVC has long double the same size as double so _finite
    will work for long double also. */
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || DBL_MAX_EXP == LDBL_MAX_EXP
+#if USE_DOUBLE_FOR_HOST_FP_VALUE || \
+    (USE_LONG_DOUBLE_FOR_HOST_FP_VALUE && DBL_MAX_EXP == LDBL_MAX_EXP)
 #define is_finite(x) (_finite((double)(x))) 
-#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
-/* This must be a compiler other than MSVC++ on Windows, one that uses
-   80-bit long doubles. */
-/* See definition of long_double_is_finite below. */
-#define is_finite(x) (long_double_is_finite(x))
-#define NEED_LONG_DOUBLE_IS_FINITE 1
+#else /* !(USE_DOUBLE_FOR_HOST_FP_VALUE ... ) */
+/* This must be a compiler other than MSVC++ on Windows, likely one that
+   uses 80-bit long doubles. */
+/* See definition of host_fp_value_is_finite below. */
+#define is_finite(x) (host_fp_value_is_finite(x))
+#define NEED_HOST_FP_VALUE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #endif /* ifdef __MWERKS__ */
 #else /* !EDG_WIN32 */
@@ -77,7 +80,7 @@ declaration in such cases.
 */
 EXTERN_C int isnan(double x);
 #endif /* isnan */
-#define is_NaN(x) (isnan((double)(x)))
+#define is_NaN(x) (isnan((x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
@@ -85,9 +88,9 @@ EXTERN_C int isnan(double x);
 EXTERN_C int finite(double x);
 #define is_finite(x) (finite(x))
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-/* See definition of long_double_is_finite below. */
-#define is_finite(x) (long_double_is_finite(x))
-#define NEED_LONG_DOUBLE_IS_FINITE 1
+/* See definition of host_fp_value_is_finite below. */
+#define is_finite(x) (host_fp_value_is_finite(x))
+#define NEED_HOST_FP_VALUE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !defined(__sun) */
 /* Not Windows, not Solaris, not SunOS. */
@@ -96,9 +99,9 @@ EXTERN_C int finite(double x);
 #define is_NaN(x) (isnan(x))
 #else /* !defined(isnan) */
 #if __linux__
-#define is_NaN(x) (__isnan((double)(x)))
+#define is_NaN(x) (__isnan((x)))
 #else /* !__linux__ */
-#define is_NaN(x) (isnan((double)(x)))
+#define is_NaN(x) (isnan((x)))
 #endif /* __linux__ */
 #endif /* ifdef isnan */
 /* C99 has the "isfinite" macro.  Linux headers do, too.  Cygwin has it, but
@@ -110,17 +113,17 @@ EXTERN_C int finite(double x);
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
 #if __linux__
 #define is_finite(x) (__finite(x))
 #else /* !__linux__ */
 #define is_finite(x) (finite(x))
 #endif /* __linux__ */
-#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-/* See definition of long_double_is_finite below. */
-#define is_finite(x) (long_double_is_finite(x))
-#define NEED_LONG_DOUBLE_IS_FINITE 1
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
+/* See definition of host_fp_value_is_finite below. */
+#define is_finite(x) (host_fp_value_is_finite(x))
+#define NEED_HOST_FP_VALUE_IS_FINITE 1
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* ifdef isfinite */
 #endif /* ifdef __sun */
 #endif /* EDG_WIN32 */
@@ -133,7 +136,7 @@ diagnostics.
 */
 #undef is_finite /*lint !e750*/
 #undef is_NaN /*lint !e750*/
-#undef NEED_LONG_DOUBLE_IS_FINITE  /*lint !e750*/
+#undef NEED_HOST_FP_VALUE_IS_FINITE  /*lint !e750*/
 #define is_finite(x) lint_is_finite((long double)x)
 #define is_NaN(x) lint_is_NaN((long double)x)
 static a_boolean lint_is_finite(long double x) /*lint !e528*/
@@ -156,13 +159,13 @@ static a_boolean
 			/* TRUE if the long double floating point type does
 			   not make use of an implicit mantissa bit. */
 
-#ifdef NEED_LONG_DOUBLE_IS_FINITE
+#ifdef NEED_HOST_FP_VALUE_IS_FINITE
 
-static a_boolean long_double_is_finite(long double value)
+static a_boolean host_fp_value_is_finite(a_host_fp_value  value)
 /*
-Test a long double to see whether it is finite (i.e., not a NaN or Infinity).
-Used only when standard approaches like the C99 macro isfinite are not
-available.
+Test a floating-point value (long double or __float128) to see whether it is
+finite (i.e., not a NaN or Infinity).  Used when standard approaches like the
+C99 macro isfinite are not available.
 */
 {
   a_boolean     ld_finite;
@@ -170,9 +173,10 @@ available.
   unsigned int  exponent;
 
   /* As written, this routine supports only the size of exponent that
-     comes up commonly in long doubles. */
-  check_assertion_str(LDBL_MAX_EXP == 16384, /*lint !e506*/
-                      "long_double_is_finite: unsupported exponent size");
+     comes up commonly in long doubles and __float128. */
+  check_assertion_str(LDBL_MAX_EXP == 16384 || /*lint !e506*/
+                      USE_FLOAT128_FOR_HOST_FP_VALUE,
+                      "host_fp_value_is_finite: unsupported exponent size");
   if (host_little_endian) {
     /* Some long doubles don't use all of the allocated space.  This routine
        is only used when the host floating point value is long double, so we
@@ -188,24 +192,25 @@ available.
      or Infinity. */
   ld_finite = (exponent & 0x7fff) != 0x7fff;
   return ld_finite;
-}  /* long_double_is_finite */
+}  /* host_fp_value_is_finite */
 
-#endif /* ifdef NEED_LONG_DOUBLE_IS_FINITE */
+#endif /* ifdef NEED_HOST_FP_VALUE_IS_FINITE */
 
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
 #ifdef SUNOS_STRTOD_BUG
+
+static void init_strtod(void)
 /*
 Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
 variable is referenced.  Calling this routine ensures that the variable
 is cleared.
 */
-static void init_strtod(void)
 {
   int temp[200]; /* Magic numbers. */
   temp[55] = 0;
 }  /* init_strtod */
-#endif /* ifdef SUNOS_STRTOD_BUG */
 
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#endif /* ifdef SUNOS_STRTOD_BUG */
 
 static double strtod_interface(a_const_char *str)
 /*
@@ -229,8 +234,8 @@ value for any error.
   return temp;
 }  /* strtod_interface */
 
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
 
 #if DEBUG
 void db_long_double(long double d)
@@ -288,7 +293,53 @@ radix point (set in host_envir_early_init).
   return temp;
 }  /* str_to_long_double */
 
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+
+static __float128 str_to_float128(a_const_char * str)
+/*
+Convert a string to a __float128.  This routine either relies on the GNU
+quadmath library (when USE_QUADMATH_LIBRARY is TRUE) or it approximates the
+result by using str_to_long_double (when APPROXIMATE_QUADMATH is TRUE).
+*/
+{
+  __float128    result;
+#if USE_QUADMATH_LIBRARY
+  a_boolean     err = FALSE;
+  a_const_char  *ptr;
+
+  result = strtoflt128(str, (char**)NULL);
+  if (result == 0.0L) {
+    /* Check for underflow by checking whether the input string was all
+       zeros. */
+    a_boolean	nonzero = FALSE;
+    ptr = str;
+    if (*ptr == '-') ptr++;
+    for (;;) {
+      char	ch = *ptr++;
+      if (ch == '\0') break;
+      if (ch == '.') continue;
+      if (!isdigit((unsigned char)ch)) break;
+      if (ch != '0') {
+        nonzero = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    err = nonzero;
+  } else {
+    /* Check for overflow. */
+    err = !is_finite(result);
+  }  /* if */
+  /* Set errno to indicate an error. */
+  errno = err ? ERANGE : 0;
+#else /* !USE_QUADMATH_LIBRARY */
+  /* Use an approximate conversion. */
+  result = str_to_long_double(str);
+#endif /* USE_QUADMATH_LIBRARY */
+  return result;
+}  /* str_to_float128 */
+
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
 
 #if DEBUG
 
@@ -311,11 +362,21 @@ static void conv_host_fp_to_float(a_host_fp_value	temp,
 				  a_boolean		*err,
 				  float			*result)
 /*
-Convert "temp" from a_host_fp_value (double or long double) to float.
-Set "err" if an overload would result from the conversion.  If the
-conversion can be done, return the result in "result".
+Convert "temp" from a_host_fp_value (double, long double, or __float128) to
+float.    Set "err" if the conversion would result in overflow or underflow.
+If the conversion can be done, return the result in "result".
 */
 {
+  /* Ideally, we'd like to check that the conversion will not overflow before
+     performing the conversion (to avoid floating-point exceptions).  If we
+     have FLT_MAX (which we can stringize) and a routine to convert a string
+     into a host floating-point value, we do the "up conversion" of FLT_MAX
+     and compare it to the given value to detect overflow.  If the host type
+     is __float128, we currently have no string-to-value conversion routine
+     and that approach is not viable. */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#define CAN_DO_FLT_MAX_TEST FALSE
+#else /* !USE_FLOAT128_FOR_HOST_FP_VALUE */
 #if USING_ISO_C
 #ifdef FLT_MAX
 #define CAN_DO_FLT_MAX_TEST TRUE
@@ -324,10 +385,11 @@ conversion can be done, return the result in "result".
 #ifndef CAN_DO_FLT_MAX_TEST
 #define CAN_DO_FLT_MAX_TEST FALSE
 #endif /* ifndef CAN_DO_FLT_MAX_TEST */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+
 #if CAN_DO_FLT_MAX_TEST
-  /* FLT_MAX is available, so we can use it to test for overflow.  We do
-     this before converting to float in case an overflow on such a
-     conversion would cause a float exception. */
+  /* We can test for conversion overflow before doing the actual conversion,
+     as outlined above. */
   static a_boolean		init_done = FALSE;
   static a_host_fp_value	host_fp_flt_max;
   static float			float_flt_max;
@@ -425,6 +487,13 @@ conversion can be done, return the result in "result".
       } else if (temp < 10000.0 && temp > -10000.0) {
         /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
            overflow. */
+#if TARG_HAS_IEEE_FLOATING_POINT
+      } else if (!is_finite(temp)) {
+        /* Don't test NaNs and Infinities. */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      } else if (gnu_mode && is_finite(temp)) {
+        /* GNU C and C++ silently uses infinity for values that are too
+           large. */
       } else {
         /* One last shot -- on machines with NaNs and infinities, printing
            such a thing often prints "Infinity" or the like.  Print the
@@ -446,17 +515,27 @@ conversion can be done, return the result in "result".
 #undef CAN_DO_FLT_MAX_TEST
 }  /* conv_host_fp_to_float */
 
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if !USE_DOUBLE_FOR_HOST_FP_VALUE
 
 static void conv_host_fp_to_double(a_host_fp_value	temp,
 				   a_boolean		*err,
 		 		   double		*result)
 /*
-Convert "temp" from a_host_fp_value (which is long double in this case) to
-double.  Set "err" if an overload would result from the conversion.  If the
-conversion can be done, return the result in "result".
+Convert "temp" from a_host_fp_value (which is long double or __float128 in
+this case) to double.  Set "err" if the conversion would result in overflow or
+underflow.  If the conversion can be done, return the result in "result".
 */
 {
+  /* Ideally, we'd like to check that the conversion will not overflow before
+     performing the conversion (to avoid floating-point exceptions).  If we
+     have DBL_MAX (which we can stringize) and a routine to convert a string
+     into a host floating-point value, we do the "up conversion" of DBL_MAX
+     and compare it to the given value to detect overflow.  If the host type
+     is __float128, we currently have no string-to-value conversion routine
+     and that approach is not viable. */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#define CAN_DO_DBL_MAX_TEST FALSE
+#else /* !USE_FLOAT128_FOR_HOST_FP_VALUE */
 #if USING_ISO_C
 #ifdef DBL_MAX
 #define CAN_DO_DBL_MAX_TEST TRUE
@@ -465,6 +544,8 @@ conversion can be done, return the result in "result".
 #ifndef CAN_DO_DBL_MAX_TEST
 #define CAN_DO_DBL_MAX_TEST FALSE
 #endif /* ifndef CAN_DO_DBL_MAX_TEST */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+
 #if CAN_DO_DBL_MAX_TEST
   /* DBL_MAX is available, so we can use it to test for overflow.  We do
      this before converting to double in case an overflow on such a
@@ -552,6 +633,13 @@ conversion can be done, return the result in "result".
       } else if (temp < 10000.0 && temp > -10000.0) {
         /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
            overflow. */
+#if TARG_HAS_IEEE_FLOATING_POINT
+      } else if (!is_finite(temp)) {
+        /* Don't test NaNs and Infinities. */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      } else if (gnu_mode && is_finite(temp)) {
+        /* GNU C and C++ silently uses infinity for values that are too
+           large. */
       } else {
         /* One last shot -- on machines with NaNs and infinities, printing
            such a thing often prints "Infinity" or the like.  Print the
@@ -573,8 +661,29 @@ conversion can be done, return the result in "result".
 #undef CAN_DO_DBL_MAX_TEST
 }  /* conv_host_fp_to_double */
 
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
 
+static void conv_host_fp_to_long_double(a_host_fp_value  val,
+                                        a_boolean        *err,
+                                        long double      *result)
+/*
+Convert val from a_host_fp_value (__float128 in this case) to long double.
+Set "err" if the conversion would result in overflow or underflow.  If the
+conversion can be done, return the result in "result".
+*/
+{
+  long double      ldbl_val = (long double)val;
+  a_host_fp_value  round_trip_val = ldbl_val;
+
+  if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
+    *err = TRUE;
+  } else {
+    *result = ldbl_val;
+  }  /* if */
+}  /* conv_host_fp_to_long_double */
+
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
 
 static void store_host_fp_value(a_host_fp_value         temp,
 	                        a_float_kind            kind,
@@ -601,16 +710,26 @@ before setting it if there are unused bits.
       if (!*err) {
         (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
       }  /* if */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if !USE_DOUBLE_FOR_HOST_FP_VALUE
     } else if (kind == (a_float_kind)fk_double) {
-      /* Convert from an internal long double to a double. */
+      /* Convert from an internal long double or __float128 to a double. */
       double	double_temp;
       conv_host_fp_to_double(temp, err, &double_temp);
       if (!*err) {
         (void)memcpy((char *)float_value, (char *)&double_temp,
                      sizeof(double));
       }  /* if */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+    } else if (kind == (a_float_kind)fk_long_double) {
+      /* Convert from an internal __float128 to a long double. */
+      long double  long_double_temp;
+      conv_host_fp_to_long_double(temp, err, &long_double_temp);
+      if (!*err) {
+        (void)memcpy((char *)float_value, (char *)&long_double_temp,
+                     sizeof(long double));
+      }  /* if */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
     } else {
       /* Store a host floating value into a float_value of the same kind
          (either double or long double). */
@@ -642,7 +761,7 @@ Fetch the value from float_value (of kind kind) and return it.
        aligned. */
     (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
     temp = float_temp;
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if !USE_DOUBLE_FOR_HOST_FP_VALUE
   } else if (kind == (a_float_kind)fk_double) {
     double	double_temp;
     /* Convert from double to a_host_fp_value. */
@@ -650,10 +769,19 @@ Fetch the value from float_value (of kind kind) and return it.
        aligned. */
     (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
     temp = double_temp;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+  } else if (kind == (a_float_kind)fk_long_double) {
+    long double	long_double_temp;
+    /* Convert from long double to a_host_fp_value (i.e., __float128). */
+    /* Use memcpy to copy the value since float_value might not be correctly
+       aligned. */
+    (void)memcpy((char *)&long_double_temp, (char *)float_value,
+                 sizeof(long double));
+    temp = long_double_temp;
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
   } else {
-    /* float_value can be double or long double, depending on
-       USE_LONG_DOUBLE_FOR_HOST_FP_VALUE. */
+    /* float_value can be double, long double, or __float128. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&temp, (char *)float_value, sizeof(a_host_fp_value));
@@ -726,6 +854,7 @@ a float kind).
       } else if (kind == (a_float_kind)fk_float128) {
         size = targ_sizeof_float128;
       } else {
+        size = 0;
         unexpected_condition_str("make_fp_nan: invalid float kind");
       }  /* if */
       part += size/4 - 1;
@@ -838,7 +967,7 @@ Otherwise, return FALSE.
     if (host_little_endian) fp_bytes += sizeof(fp_part);
     memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
     *biased_exp = (long)((fp_part & 0x7fffffff) >> 20);
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if !USE_DOUBLE_FOR_HOST_FP_VALUE
   } else if (kind == (a_float_kind)fk_long_double) {
     if (targ_ldbl_mant_dig == 64) {
       /* In little-endian 80/96-bit long double representations, the most
@@ -856,11 +985,32 @@ Otherwise, return FALSE.
       *biased_exp = -1;
       success = FALSE;
     }  /* if */
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE  */
+  } else if (kind == (a_float_kind)fk_float80) {
+    if (targ_flt80_mant_dig == 64) {
+      /* In little-endian 80/96-bit __float80 representations, the most
+         significant part is the third (i.e., last) word. */
+      if (host_little_endian) fp_bytes += 2*sizeof(fp_part);
+      memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+      *biased_exp = (long)(fp_part & 0x7fff);
+    } else {
+      *biased_exp = -1;
+      success = FALSE;
+    }  /* if */
+  } else if (kind == (a_float_kind)fk_float128) {
+    if (targ_flt128_mant_dig == 113) {
+      /* In little-endian __float128 representations, the most significant
+         part is the fourth (i.e., last) word. */
+      if (host_little_endian) fp_bytes += 3*sizeof(fp_part);
+      memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+      *biased_exp = (long)((fp_part & 0x7fffffff) >> 16);
+    } else {
+      *biased_exp = -1;
+      success = FALSE;
+    }  /* if */
+#endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
   } else {
     *biased_exp = -1;
     success = FALSE;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   }  /* if */
   return success;
 }  /* get_biased_exponent_if_possible */
@@ -968,10 +1118,10 @@ point targets, the maximum value is positive infinity.
 {
   a_boolean  result;
 
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if TARG_HAS_IEEE_FLOATING_POINT
   {
     /* With IEEE floating point, the generated value should be positive
@@ -1315,10 +1465,10 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   int	mant_dig = 0;
   int	bits;
 
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
   switch (kind) {
     case fk_float:
       min_exp = targ_flt_min_exp;
@@ -1433,10 +1583,10 @@ adjusted to make the implicit bit explicit.
 
   /* Clear the mantissa value. */
   init_mantissa(mp);
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, load this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
   fp_ptr = &fp_temp[0];
   if (host_little_endian) {
     /* On little endian systems, we start storing with the last 32-bit value
@@ -1477,58 +1627,63 @@ adjusted to make the implicit bit explicit.
     if (val != 0) is_zero = FALSE;
     mp->parts[0] |= (val >> 20);
     mp->parts[1] = val << 12;
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  } else if (kind == (a_float_kind)fk_long_double) {
-    if (targ_ldbl_mant_dig == 64) {
-      /* The code below constructs the value from fp_temp.  Copy the source to
-         fp_temp. */
-      memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 3);
-      /* Update the pointer to refer to the last 32-bit word of the value. */
-      if (host_little_endian) fp_ptr += 2;
-      val = *fp_ptr;
-      if ((val & 0x7fffffff) != 0) is_zero = FALSE;
-      *exponent = (long)((val & 0x7fff)) - 16383;
-      *is_negative = (val & 0x8000) != 0;
-      fp_ptr += offset;
-      if (*fp_ptr != 0) is_zero = FALSE;
-      mp->parts[0] = *fp_ptr;
-      fp_ptr += offset;
-      if (*fp_ptr != 0) is_zero = FALSE;
-      mp->parts[1] = *fp_ptr;
-    } else if (targ_ldbl_mant_dig == 113) {
-      /* The code below constructs the value from fp_temp.  Copy the source to
-         fp_temp. */
-      memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 4);
-      /* Update the pointer to refer to the last 32-bit word of the value. */
-      if (host_little_endian) fp_ptr += 3;
-      val = *fp_ptr;
-      if ((val & 0x7fffffff) != 0) is_zero = FALSE;
-      *exponent = (long)(((val & 0x7fffffff) >> 16)) - 16383;
-      *is_negative = (val & 0x80000000) != 0;
-      mp->parts[0] = val << 16;
-      fp_ptr += offset;
-      if (*fp_ptr != 0) is_zero = FALSE;
-      val = *fp_ptr;
-      mp->parts[0] |= val >> 16;
-      mp->parts[1] = val << 16;
-      fp_ptr += offset;
-      if (*fp_ptr != 0) is_zero = FALSE;
-      val = *fp_ptr;
-      mp->parts[1] |= val >> 16;
-      mp->parts[2] = val << 16;
-      val = *fp_ptr;
-      fp_ptr += offset;
-      if (*fp_ptr != 0) is_zero = FALSE;
-      val = *fp_ptr;
-      mp->parts[2] |= val >> 16;
-      mp->parts[3] = val << 16;
-      val = *fp_ptr;
-    } else {
-      unexpected_condition_str("load_hex_fp_value: bad long double size");
-    }  /* if */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  } else if ((kind == (a_float_kind)fk_long_double &&
+              targ_ldbl_mant_dig == 64) ||
+             (kind == (a_float_kind)fk_float80 &&
+              targ_flt80_mant_dig == 64)) {
+    /* 80-bit representation in a 96-bit container. */
+    /* The code below constructs the value from fp_temp.  Copy the source to
+       fp_temp. */
+    memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 3);
+    /* Update the pointer to refer to the last 32-bit word of the value. */
+    if (host_little_endian) fp_ptr += 2;
+    val = *fp_ptr;
+    if ((val & 0x7fffffff) != 0) is_zero = FALSE;
+    *exponent = (long)((val & 0x7fff)) - 16383;
+    *is_negative = (val & 0x8000) != 0;
+    fp_ptr += offset;
+    if (*fp_ptr != 0) is_zero = FALSE;
+    mp->parts[0] = *fp_ptr;
+    fp_ptr += offset;
+    if (*fp_ptr != 0) is_zero = FALSE;
+    mp->parts[1] = *fp_ptr;
+  } else if (((kind == (a_float_kind)fk_long_double &&
+               targ_ldbl_mant_dig == 113) ||
+              (kind == (a_float_kind)fk_float128 &&
+               targ_flt128_mant_dig == 113)) &&
+             sizeof(a_host_fp_value) == sizeof(val)*4) {
+    /* 128-bit representation. */
+    /* The code below constructs the value from fp_temp.  Copy the source to
+       fp_temp. */
+    memcpy((char*)fp_temp, (char*)float_value, sizeof(val) * 4);
+    /* Update the pointer to refer to the last 32-bit word of the value. */
+    if (host_little_endian) fp_ptr += 3;
+    val = *fp_ptr;
+    if ((val & 0x7fffffff) != 0) is_zero = FALSE;
+    *exponent = (long)(((val & 0x7fffffff) >> 16)) - 16383;
+    *is_negative = (val & 0x80000000) != 0;
+    mp->parts[0] = val << 16;
+    fp_ptr += offset;
+    if (*fp_ptr != 0) is_zero = FALSE;
+    val = *fp_ptr;
+    mp->parts[0] |= val >> 16;
+    mp->parts[1] = val << 16;
+    fp_ptr += offset;
+    if (*fp_ptr != 0) is_zero = FALSE;
+    val = *fp_ptr;
+    mp->parts[1] |= val >> 16;
+    mp->parts[2] = val << 16;
+    val = *fp_ptr;
+    fp_ptr += offset;
+    if (*fp_ptr != 0) is_zero = FALSE;
+    val = *fp_ptr;
+    mp->parts[2] |= val >> 16;
+    mp->parts[3] = val << 16;
+    val = *fp_ptr;
   } else {
-    unexpected_condition_str("load_hex_fp_value: bad float kind");
+    unexpected_condition_str(kind == (a_float_kind)fk_long_double ?
+                                "load_hex_fp_value: bad long double size" :
+                                "load_hex_fp_value: bad float kind");
   }  /* if */
   if (is_zero) {
     /* Reset the exponent and the is_negative flag if the value is zero. */
@@ -1616,44 +1771,50 @@ the long double kind will have already been mapped to double by the caller.
     /* The code above constructs the value in fp_temp.  Copy this to the
        destination value. */
     memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 2);
+  } else if ((kind == (a_float_kind)fk_long_double &&
+              targ_ldbl_mant_dig == 64) ||
+             (kind == (a_float_kind)fk_float80 &&
+              targ_flt80_mant_dig == 64)) {
+    /* 80-bit representation in a 96-bit container. */
+    /* Update the pointer to refer to the last 32-bit word of the value. */
+    if (host_little_endian) fp_ptr += 2;
+    val = (exponent + 16383);
+    if (is_negative) val |= 0x8000;
+    *fp_ptr = val;
+    fp_ptr += offset;
+    val = mp->parts[0];
+    *fp_ptr = val;
+    fp_ptr += offset;
+    val = mp->parts[1];
+    *fp_ptr = val;
+    /* The code above constructs the value in fp_temp.  Copy this to the
+       destination value. */
+    memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 3);
+  } else if (((kind == (a_float_kind)fk_long_double &&
+               targ_ldbl_mant_dig == 113) ||
+              (kind == (a_float_kind)fk_float128 &&
+               targ_flt128_mant_dig == 113)) &&
+             sizeof(a_host_fp_value) == sizeof(val)*4) {
+    /* 128-bit representation. */
+    /* Update the pointer to refer to the last 32-bit word of the value. */
+    if (host_little_endian) fp_ptr += 3;
+    val = ((exponent + 16383) << 16) | (mp->parts[0] >> 16);
+    if (is_negative) val |= 0x80000000;
+    *fp_ptr = val;
+    fp_ptr += offset;
+    val = (mp->parts[0] << 16) | (mp->parts[1] >> 16);
+    *fp_ptr = val;
+    fp_ptr += offset;
+    val = (mp->parts[1] << 16) | (mp->parts[2] >> 16);
+    *fp_ptr = val;
+    fp_ptr += offset;
+    val = (mp->parts[2] << 16) | (mp->parts[3] >> 16);
+    *fp_ptr = val;
+    /* The code above constructs the value in fp_temp.  Copy this to the
+       destination value. */
+    memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 4);
   } else {
-    check_assertion(kind == (a_float_kind)fk_long_double);
-    if (targ_ldbl_mant_dig == 64) {
-      /* Update the pointer to refer to the last 32-bit word of the value. */
-      if (host_little_endian) fp_ptr += 2;
-      val = (exponent + 16383);
-      if (is_negative) val |= 0x8000;
-      *fp_ptr = val;
-      fp_ptr += offset;
-      val = mp->parts[0];
-      *fp_ptr = val;
-      fp_ptr += offset;
-      val = mp->parts[1];
-      *fp_ptr = val;
-      /* The code above constructs the value in fp_temp.  Copy this to the
-         destination value. */
-      memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 3);
-    } else if (targ_ldbl_mant_dig == 113) {
-      /* Update the pointer to refer to the last 32-bit word of the value. */
-      if (host_little_endian) fp_ptr += 3;
-      val = ((exponent + 16383) << 16) | (mp->parts[0] >> 16);
-      if (is_negative) val |= 0x80000000;
-      *fp_ptr = val;
-      fp_ptr += offset;
-      val = (mp->parts[0] << 16) | (mp->parts[1] >> 16);
-      *fp_ptr = val;
-      fp_ptr += offset;
-      val = (mp->parts[1] << 16) | (mp->parts[2] >> 16);
-      *fp_ptr = val;
-      fp_ptr += offset;
-      val = (mp->parts[2] << 16) | (mp->parts[3] >> 16);
-      *fp_ptr = val;
-      /* The code above constructs the value in fp_temp.  Copy this to the
-         destination value. */
-      memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 4);
-    } else {
-      unexpected_condition_str("store_hex_fp_value: bad long double size");
-    }  /* if */
+    unexpected_condition_str("store_hex_fp_value: bad long double size");
   }  /* if */
 }  /* store_hex_fp_value */
 
@@ -1671,7 +1832,6 @@ The number is known to be syntactically correct, but may not be representable
 (it may be too large or too small).  Most errors must be detected later when
 we know what kind of constant we are dealing with.  exponent_overflow is
 set to TRUE if the exponent is too large to represent.
-
 */
 {
   long				exponent = 0;
@@ -1797,10 +1957,10 @@ because the exponent was out of range).
   int		mant_dig = 0;
 
   *err = FALSE;
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
   switch (kind) {
     case fk_float:
       mant_dig = targ_flt_mant_dig;
@@ -1810,6 +1970,12 @@ because the exponent was out of range).
       break;
     case fk_long_double:
       mant_dig = targ_ldbl_mant_dig;
+      break;
+    case fk_float80:
+      mant_dig = targ_flt80_mant_dig;
+      break;
+    case fk_float128:
+      mant_dig = targ_flt128_mant_dig;
       break;
     default:
       unexpected_condition();
@@ -1926,16 +2092,19 @@ before setting it if there are unused bits.
      something "real" for a given implementation. */
   a_host_fp_value	temp;
 
+  /* Convert the number to a host floating-point value first. */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+  temp = str_to_float128(str);
+#else /* !USE_FLOAT_128_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* Clear temp: Don't use assignment because on some platforms the
      non-significant bytes wouldn't be cleared. */
   memzero((char *)&temp, sizeof(a_host_fp_value));
-  /* Convert the number. */
   temp = str_to_long_double(str);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  /* Convert the number. */
   temp = strtod_interface(str);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
   if (errno == ERANGE) {
     if (gnu_mode) {
       errno = 0;
@@ -2038,12 +2207,41 @@ be NULL if the corresponding return value is not needed.
   if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
                                          neg_infinity, not_a_number, str,
                                          &temp)) {
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if USE_QUADMATH_LIBRARY
+    if (kind == (a_float_kind)fk_float) {
+      (void)quadmath_snprintf(str, sizeof(str), "%.10Qf", temp);
+    } else if (kind == (a_float_kind)fk_double) {
+      (void)quadmath_snprintf(str, sizeof(str), "%.19Qf", temp);
+    } else if (kind == (a_float_kind)fk_float128) {
+      (void)quadmath_snprintf(str, sizeof(str), "%.34Qf", temp);
+    } else {
+      /* fk_long_double or fk_float80. */
+      /* In theory LDBL_DIG+1 digits should be enough as the precision,
+         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
+         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
+         LDBL_MIN in a funny place with regard to rounding and the Sun CC
+         compiler doesn't accept that value converted in that way.  So on
+         systems with 128-bit long double, just stick with LDBL_DIG+1
+         when using the C++-generating back end. */
+      int	ldbl_digits = LDBL_DIG + 2;
+#if BACK_END_IS_CP_GEN_BE
+      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+      (void)quadmath_snprintf(str, sizeof(str), "%.*Qf", ldbl_digits, temp);
+    }  /* if */
+#else /* !USE_QUADMATH_LIBRARY */
+  /* Use an approximate conversion. */
+  temp = str_to_long_double(str);
+#endif /* USE_QUADMATH_LIBRARY */
+#else /* !USE_FLOAT_128_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     if (kind == (a_float_kind)fk_float) {
       (void)sprintf(str, "%.10Lg", temp);
     } else if (kind == (a_float_kind)fk_double) {
       (void)sprintf(str, "%.19Lg", temp);
     } else {
+      /* fk_long_double or fk_float80. */
       /* In theory LDBL_DIG+1 digits should be enough as the precision,
          but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
          with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
@@ -2057,13 +2255,15 @@ be NULL if the corresponding return value is not needed.
 #endif /* BACK_END_IS_CP_GEN_BE */
       (void)sprintf(str, "%.*Lg", ldbl_digits, temp);
     }  /* if */
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
     if (kind == (a_float_kind)fk_float) {
       (void)sprintf(str, "%.10g", temp);
     } else {
       (void)sprintf(str, "%.19g", temp);
     }  /* if */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
     /* Add trailing ".0" if no decimal point was put out (meaning the
        value is a whole number). */
     if (strchr(str, '.') == NULL &&
@@ -2097,8 +2297,6 @@ corresponding return value is not needed.
 {
   static char           str[60];
   a_host_fp_value       temp;
-  float                 float_temp;
-  double                double_temp;
 
   if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
                                          neg_infinity, not_a_number, str,
@@ -2106,19 +2304,36 @@ corresponding return value is not needed.
     /* Copy the value to a properly aligned floating-point type and
        use sprintf to generate the appropriate hexadecimal string. */
     if (kind == (a_float_kind)fk_float) {
+      float  float_temp;
       (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
       (void)sprintf(str, "%a", float_temp);
     } else if (kind == (a_float_kind)fk_double) {
+      double  double_temp;
       (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
       (void)sprintf(str, "%la", double_temp);
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+    } else if (kind == (a_float_kind)fk_long_double ||
+               kind == (a_float_kind)fk_float80) {
+      long double ld_temp;
+      (void)memcpy((char *)&ld_temp, (char *)float_value, sizeof(long double));
+      (void)sprintf(str, "%La", ld_temp);
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
     } else {
       (void)memcpy((char *)&temp, (char *)float_value,
                    sizeof(a_host_fp_value));
+#if USE_DOUBLE_FOR_HOST_FP_VALUE */
+      (void)sprintf(str, "%la", temp);
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
       (void)sprintf(str, "%La", temp);
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-      (void)sprintf(str, "%la", temp);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if USE_QUADMATH_LIBRARY
+      (void)quadmath_snprintf(str, "%Qa", temp);
+#else /* !USE_QUADMATH_LIBRARY */
+      (void)sprintf(str, "%La", (long double)temp);
+#endif /* USE_QUADMATH_LIBRARY */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
     }  /* if */
   }  /* if */
   return str;
@@ -2587,10 +2802,11 @@ Initialize static variables related to float_pt.c.
 */
 {
   /* Compute the number of bytes of the host floating point value that are
-     actually used to represent the value.  This is usually the same size
-     as the host floating point value, but on some systems may be smaller.
-     For example, the Intel long double uses only 10 bytes (80 bits) of
-     the 12 bytes of allocated space. */
+     actually used to represent the value.  This is often the same size as
+     the host floating point value, but on some systems may be smaller if
+     the host floating point value type is long double.  For example, the
+     Intel long double (aka. __float80) uses only 10 bytes (80 bits) of the
+     12 bytes of allocated space. */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   data_size_of_host_fp_value = /*lint --e(506)*/ (LDBL_MANT_DIG == 64
                               ? ((LDBL_MANT_DIG + 16) / CHAR_BIT)
@@ -2610,13 +2826,11 @@ Initialize static variables related to float_pt.c.
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   data_size_of_host_fp_value = sizeof(a_host_fp_value);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* At least on Intel implementations, 80-bit floating-point values do not
      have an implicit mantissa bit. */
   if (targ_ldbl_mant_dig == 64) {
     long_double_has_no_implicit_bit = TRUE;
   } /* if */
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   /* Make sure that an_fp_value_part is 32 bits. */
   check_assertion_str(sizeof(an_fp_value_part) == 4,
          "float_pt_init: bad size for an_fp_value_part");  /*lint !e774*/
