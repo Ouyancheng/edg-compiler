@@ -1976,7 +1976,7 @@ Transform the given complex cast expression into a function call
     if (is_complex_type(src_type)) {
       /* A change in floating-point precision, complex to complex. */
       a_library_name_array *library_routine_name;
-      a_routine_ptr        *routine_ptr;
+      a_routine_ptr        *routine_ptr = cast_float_routine;
       check_assertion(src_type->variant.float_kind !=
                       dst_type->variant.float_kind);
       switch (src_type->variant.float_kind) {
@@ -2005,7 +2005,7 @@ Transform the given complex cast expression into a function call
           break;
 #endif /* FLOAT128_ENABLING_POSSIBLE */
         default:
-          internal_error("invalid floating-point kind");
+          unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
       routine_name = select_name_from_float_kind(dst_type->variant.float_kind,
                                                  *library_routine_name);
