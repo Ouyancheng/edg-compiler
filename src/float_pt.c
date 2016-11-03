@@ -2322,7 +2322,7 @@ corresponding return value is not needed.
     } else {
       (void)memcpy((char *)&temp, (char *)float_value,
                    sizeof(a_host_fp_value));
-#if USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
       (void)sprintf(str, "%la", temp);
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
