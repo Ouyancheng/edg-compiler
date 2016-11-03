@@ -23041,11 +23041,13 @@ declaration from a using-declaration.)
         reduce_projection_symbol_to_fundamental_symbol(existing_sym);
       }  /* if */
       if (existing_sym != NULL && existing_sym != fund_sym &&
-          (existing_sym->kind != (a_symbol_kind)sk_type ||
-           !existing_sym->variant.type.is_injected_class_name)) {
-        /* Except to introduce function names into an overload set, a
-           using declaration cannot usually coexist with another declaration
-           with the same name. */
+          !is_injected_class_symbol(existing_sym) &&
+          is_tag_symbol(fund_sym) == is_tag_symbol(existing_sym)) {
+        /* Except to introduce function names into an overload set, a using
+           declaration cannot usually coexist with another declaration with
+           the same name.  One exception is that a tag name can coexist with
+           a nontag name (i.e., something like "struct X" can coexist with
+           something like "int X();"). */
         if (is_function_or_template_symbol(fund_sym)) {
           /* Okay. */
         } else if (is_nontype_template_param_symbol(fund_sym)) {
@@ -23100,12 +23102,17 @@ declaration from a using-declaration.)
          this name in the current class: we will add the declared symbol or
          symbols to an overload set of the current class. */
       other_sym = locator.specific_symbol;
-      if (other_sym != NULL && is_nontype_template_param_symbol(other_sym)) {
+      if (other_sym == NULL) {
+        /* Nothing to do. */
+      } else if (is_nontype_template_param_symbol(other_sym)) {
         /* We're treating the template param symbol as if it were a function
            but we don't want it to be in the overload set. */
         other_sym = NULL;
+      } else if (is_tag_symbol(other_sym)) {
+        /* Tags and nontags coexist, but don't form overload sets. */
+        other_sym = NULL;
       }  /* if */
-      if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      if (symbol_is(fund_sym, sk_overloaded_function)) {
         /* The using-declaration specifies a base-class member function
            overload set. */
         is_overloaded = TRUE;
