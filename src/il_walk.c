@@ -1539,6 +1539,32 @@ declaration.
       set_routine_keep_definition_in_il(rout->primary_ctor_or_dtor);
     }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+    if (special_kind_is(rout, sfk_constructor)) {
+      a_type_ptr  class_type = parent_class_of(rout);
+      a_class_type_supplement_ptr
+                  ctsp = class_type_supp(class_type);
+      /* The constructor may contain a call to an associated "operator new",
+         but that may not be apparent in unlowered IL.  We therefore explicitly
+         mark the operator at this point. */
+      if (ctsp->assoc_operator_new_routine != NULL) {
+        set_routine_keep_definition_in_il(ctsp->assoc_operator_new_routine);
+      }  /* if */
+    }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+    if (special_kind_is(rout, sfk_destructor)) {
+      a_type_ptr  class_type = parent_class_of(rout);
+      a_class_type_supplement_ptr
+                  ctsp = class_type_supp(class_type);
+      /* The destructor may contain a call to an associated "operator delete",
+         but that may not be apparent in unlowered IL.  We therefore explicitly
+         mark the operator at this point. */
+      if (ctsp->assoc_operator_delete_routine != NULL) {
+        set_routine_keep_definition_in_il(ctsp->assoc_operator_delete_routine);
+      }  /* if */
+    }  /* if */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
     /* For a routine that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */

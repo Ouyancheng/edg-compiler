@@ -1,5 +1,35 @@
 Version 4.13
 
+11/3/16  [EDGcpfe/12825]
+Member operator new and delete definitions in secondary translation units
+
+In configurations with configuration macros NEW_CAN_BE_FOLDED_INTO_CTOR and/or
+DELETE_CAN_BE_FOLDED_INTO_DTOR set to TRUE, certain constructor and destructor
+entries call associated operator new and delete, respectively.  These calls are
+not always explicit in the IL, however; in particular, they are not present in
+the unlowered IL of a secondary translation unit.  That previously could result
+in the front end assuming that a definition for an operator new or delete is
+not needed when in fact it is needed for the implementation of a constructor
+or destructor.  For example, when simultaneous compiling the following two
+translation units:
+
+  // tu1.cpp:
+  // (empty)
+
+  // tu2.cpp:
+  typedef __EDG_SIZE_TYPE__ size_t;
+  struct X {
+    virtual ~X() {}
+    void operator delete(void *p, size_t sz) {}
+  };
+  int main() {
+    X x;
+  }
+
+a linker error was produced because the definition of "operator delete" was
+erroneously discarded.  This is now fixed.
+
+
 11/3/16  [EDGcpfe/17318]
 Member using-declarations and class/enum names
 
