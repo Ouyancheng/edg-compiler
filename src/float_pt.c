@@ -2211,11 +2211,11 @@ be NULL if the corresponding return value is not needed.
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
 #if USE_QUADMATH_LIBRARY
     if (kind == (a_float_kind)fk_float) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.10Qf", temp);
+      (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
     } else if (kind == (a_float_kind)fk_double) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.19Qf", temp);
+      (void)quadmath_snprintf(str, sizeof(str), "%.19Qg", temp);
     } else if (kind == (a_float_kind)fk_float128) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.34Qf", temp);
+      (void)quadmath_snprintf(str, sizeof(str), "%.34Qg", temp);
     } else {
       /* fk_long_double or fk_float80. */
       /* In theory LDBL_DIG+1 digits should be enough as the precision,
@@ -2229,7 +2229,7 @@ be NULL if the corresponding return value is not needed.
 #if BACK_END_IS_CP_GEN_BE
       if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
 #endif /* BACK_END_IS_CP_GEN_BE */
-      (void)quadmath_snprintf(str, sizeof(str), "%.*Qf", ldbl_digits, temp);
+      (void)quadmath_snprintf(str, sizeof(str), "%.*Qg", ldbl_digits, temp);
     }  /* if */
 #else /* !USE_QUADMATH_LIBRARY */
   /* Use an approximate conversion. */
