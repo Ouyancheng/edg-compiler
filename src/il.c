@@ -5698,8 +5698,14 @@ copy_constant_full should be called to start a copy.
                  options_unshared;
 
   if (new_constant != NULL) {
-    /* The caller has passed in the address for the copy. */
-    copy_constant(old_constant, new_constant);
+    /* The caller has passed in the address for the copy.  Sometimes, the
+       destination and source constant addresses are the same, because only
+       the constant substructure needs copying (to deal with memory region
+       issues).  Avoid the shallow copy in such cases because some tools
+       (notably: valgrind) complain. */
+    if (old_constant != new_constant) {
+      copy_constant(old_constant, new_constant);
+    }  /* if */
     may_be_shared = FALSE;
     new_constant_in_il = !(options & CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
   } else if (may_be_shared) {
