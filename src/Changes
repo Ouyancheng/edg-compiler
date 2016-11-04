@@ -1,5 +1,23 @@
 Version 4.13
 
+11/4/16  [EDGcpfe/17727]
+ELF visibility attribute and explicit class template instantiations
+
+The changes for EDGcpfe/17461 introduced a regression causing the front end to
+lose an ELF visibility attribute specified on an explicit class template
+instantiation directive.  For example:
+
+  template<typename T> struct S {
+    static int f();
+  };
+  template<typename T> int S<T>::f() { return sizeof(T); }
+  template struct __attribute__((visibility("hidden"))) S<int>;
+    // Previously, S<int>::f lost the "hidden" attribute.  Now it is
+    // preserved.
+
+This is now fixed.
+
+
 11/3/16  [EDGcpfe/12825]
 Member operator new and delete definitions in secondary translation units
 

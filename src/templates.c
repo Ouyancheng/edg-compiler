@@ -4182,7 +4182,9 @@ be completed here.
                                         /*is_definition=*/TRUE);
       }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      ctsp->ELF_visibility = class_type_supp(proto_type)->ELF_visibility;
+      if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+        ctsp->ELF_visibility = class_type_supp(proto_type)->ELF_visibility;
+      }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
@@ -33103,7 +33105,7 @@ instantiation.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* By pass "template". */
+    /* Bypass "template". */
     (void)get_token();
     *start_pos = pos_curr_token;
   }  /* if */    
