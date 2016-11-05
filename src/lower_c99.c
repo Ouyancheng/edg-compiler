@@ -1975,7 +1975,8 @@ Transform the given complex cast expression into a function call
   } else if (is_complex_type(dst_type)) {
     if (is_complex_type(src_type)) {
       /* A change in floating-point precision, complex to complex. */
-      a_library_name_array *library_routine_name;
+      a_library_name_array *library_routine_name =
+                                      /*lint -e(545)*/&cast_float_routine_name;
       a_routine_ptr        *routine_ptr = cast_float_routine;
       check_assertion(src_type->variant.float_kind !=
                       dst_type->variant.float_kind);
