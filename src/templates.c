@@ -12527,10 +12527,9 @@ a pointer over a reference type or creating an array of references.
               /* During substitution, MSVC 16.00 and earlier transform an
                  lvalue reference to an incomplete array type to an lvalue
                  reference to an array of size 1. */
-              a_type_ptr  new_tp = alloc_type(tp->kind), array_tp;
+              a_type_ptr  new_tp = alloc_type(tp->kind);
               copy_type(tp, new_tp);
-              array_tp = skip_typerefs(new_tp);
-              check_assertion(array_tp->kind == (a_type_kind)tk_array);
+              check_assertion(is_array_type(new_tp));
               new_tp->variant.array.variant.number_of_elements = 1;
               tp = new_tp;
               /* If the array is too large, set copy_error. */
@@ -28592,8 +28591,10 @@ specified by "tip" depend on a template parameter.
 */
 {
   a_symbol_ptr		sym;
-  a_template_arg_ptr	arg_list;
+  a_template_arg_ptr	arg_list = NULL;
+#if CHECKING
   a_boolean		is_prototype_instantiation = FALSE;
+#endif /* CHECKING */
 
   sym = tip->instance_sym;
   /* Get the template argument list for the routine or static data member. */
@@ -28601,7 +28602,9 @@ specified by "tip" depend on a template parameter.
     a_routine_ptr	rp;
     rp = sym->variant.routine.ptr;
     arg_list = rp->template_arg_list;
+#if CHECKING
     is_prototype_instantiation = rp->is_prototype_instantiation;
+#endif /* CHECKING */
   } else if (symbol_is(sym, sk_variable) ||
              symbol_is(sym, sk_static_data_member)) {
     /* A variable template or static data member of a class template. */
@@ -28609,7 +28612,9 @@ specified by "tip" depend on a template parameter.
     vp = variable_for_symbol(sym);
     check_assertion(vp->template_info != NULL);
     arg_list = vp->template_info->template_arg_list;
+#if CHECKING
     is_prototype_instantiation = vp->is_prototype_instantiation;
+#endif /* CHECKING */
   } else {
     unexpected_condition();
   }  /* if */

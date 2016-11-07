@@ -3304,7 +3304,7 @@ null-terminated.
     case 's': kind = dfk_string; break;
     case 't': kind = dfk_type; break;
     default:
-      unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
+      internal_error("process_fill_in:  bad fill-in kind");
   }  /* switch */
   /* Find the fill-in associated with the specified fill-in kind and
      sequence number. */

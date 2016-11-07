@@ -7950,11 +7950,10 @@ in the same order in which they were originally encountered.
   for (; waiting_for_module_id_list_head != NULL;
          waiting_for_module_id_list_head =
                                        waiting_for_module_id_list_head->next) {
-    a_scope_ptr			scope;
     a_routine_ptr		routine;
     routine = waiting_for_module_id_list_head->routine;
-    scope = scope_for_routine(routine);
-    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    check_assertion(scope_for_routine(routine)->kind ==
+                    (a_scope_kind)sck_function);
     finish_function_processing_for_function_def(routine->function_def_number,
                                                 /*only_inline=*/FALSE);
   }  /* for */
