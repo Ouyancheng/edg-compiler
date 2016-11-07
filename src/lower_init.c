@@ -1728,7 +1728,9 @@ initialization (when ipdp->array_element_sequence is TRUE).
              skip_typerefs(entity_type)->
                                    variant.class_struct_union.is_empty_class) {
     /* No need to create an assignment for an empty class. */
-    check_assertion(!node_has_side_effects(entity_node, (a_boolean *)NULL));
+    if (node_has_side_effects(entity_node, (a_boolean *)NULL)) {
+      (void)insert_expr_statement(entity_node, insert_location);
+    }  /* if */
   } else {
     /* Make an assignment statement.  Note that we know that no constructor
        (copy or other) is involved because we have this kind of dynamic
