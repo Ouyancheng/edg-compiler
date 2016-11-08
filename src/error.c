@@ -3293,7 +3293,7 @@ null-terminated.
 */
 {
   a_boolean		add_quotes = FALSE;
-  a_diag_fill_in_kind	kind;
+  a_diag_fill_in_kind	kind = dfk_number;
   a_diag_fill_in_ptr	dfip;
 
   /* Determine the fill-in kind associated with this fill-in character. */
@@ -3304,7 +3304,7 @@ null-terminated.
     case 's': kind = dfk_string; break;
     case 't': kind = dfk_type; break;
     default:
-      internal_error("process_fill_in:  bad fill-in kind");
+      unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
   }  /* switch */
   /* Find the fill-in associated with the specified fill-in kind and
      sequence number. */
