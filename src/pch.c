@@ -1121,7 +1121,6 @@ variable lists.
   int				i;
   a_pch_saved_variable_ptr	psvp;
 
-  db_enter(4, "read_saved_variables");
   check_file_section_id(pfs_saved_variables);
   for (i = 0; i < num_of_saved_variable_lists; ++i) {
     for (psvp = saved_variable_array_list[i];
@@ -1144,7 +1143,6 @@ variable lists.
       fread_with_check(address, psvp->var_size, f_pch_input);
     }  /* for */
   }  /* for */
-  db_exit();
 }  /* read_saved_variables */
 
 
@@ -2083,7 +2081,6 @@ from the PCH file) to reflect the information loaded from the file.
 {
   a_source_file_ptr	orig_sfp;
 
-  db_enter(3, "pch_fixup_part_1");
   il_reset();
   orig_sfp = il_header_from_pch.primary_source_file;
   /* Make the source file pointer for the file that created the
@@ -2142,7 +2139,6 @@ from the PCH file) to reflect the information loaded from the file.
   /* Reconstruct any data structures that must be rebuilt from the IL
      that was just read. */
   rebuild_structures_on_il_read();
-  db_exit();
 }  /* pch_fixup_part_1 */
 
 
@@ -2262,9 +2258,13 @@ may be used.
     }  /* if */
   }  /* if */
   if (can_use_pch) {
+    a_stop_token_stack_entry_ptr saved_curr_stop_token_stack_entry;
     pch_message(ec_using_pch, format_file_name(pch_input_file_name));
     using_a_pch_file = TRUE;
     read_saved_variables();
+    /* Clear curr_stop_token_stack_entry so db_enter/db_exit won't use it. */
+    saved_curr_stop_token_stack_entry = curr_stop_token_stack_entry;
+    curr_stop_token_stack_entry = NULL;
     read_memory_regions();
 #if EDG_WIN32 && USE_MMAP_FOR_MEMORY_REGIONS
     close_mapped_input_file();
@@ -2279,6 +2279,8 @@ may be used.
        used rather than curr_seq_number because in some cases curr_seq_number
        may not have been updated to reflect the latest seq_number read. */
     saved_curr_seq_number = seq_number_last_read;
+    /* Reset the stop token stack value to the one saved above. */
+    curr_stop_token_stack_entry = saved_curr_stop_token_stack_entry;
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
   }  /* if */

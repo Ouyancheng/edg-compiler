@@ -1,5 +1,14 @@
 Version 4.13
 
+11/8/16  [EDGcpfe/17742]
+Using debug code while reading a precompiled header
+
+If a debug option such as "-d3" is used in a compilation in which a
+PCH is used, an internal error could occur (in add_mem_alloc_history_entry)
+as a result of curr_stop_token_stack_entry referring to memory that has
+not yet been loaded.  Now fixed.
+
+
 11/4/16  [EDGcpfe/17727]
 ELF visibility attribute and explicit class template instantiations
 
