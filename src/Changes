@@ -1,5 +1,21 @@
 Version 4.13
 
+11/10/16  [EDGcpfe/17145]
+Attributes appertaining to declarator ids of friend member functions
+
+The attributes appertaining to the declarator id of a friend function that is a
+class member had previously not been applied to the member function.  That
+omission had caused the lack of a diagnostic in a case like the one below and
+is now fixed (with --c++11):
+
+  struct A {
+    void f(void) { }
+  };
+  struct B {
+    friend void A::f [[carries_dependency]] (void);
+  };
+
+
 11/10/16  [EDGcpfe/17734]
 Elide assignment of empty class in lowering
 

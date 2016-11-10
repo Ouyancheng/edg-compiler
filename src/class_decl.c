@@ -10856,6 +10856,7 @@ possibility.
                                SSSD_FRIEND_DECL, &decl_info->decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          attach_decl_attributes(state, /*is_primary_decl=*/FALSE);
         }  /* if */
       }  /* if */
     }  /* if */
