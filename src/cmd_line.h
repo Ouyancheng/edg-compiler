@@ -1446,6 +1446,14 @@ EXTERN a_boolean
 			   C++/CLI, and C++/CX modes. */
 
 EXTERN a_boolean
+		for_each_statement_enabled;
+			/* TRUE if the Microsoft "for each" statement is
+			   enabled.  Typically enabled in C++ mode when
+			   microsoft_version >= 1400.  Can be used with C++,
+			   C++/CLI, and C++/CX modes.  Disabled when
+			   ms_permissive is FALSE.  */
+
+EXTERN a_boolean
 		ms_treat_copy_init_as_direct_init;
 			/* TRUE if MSVC's behavior of often treating copy
 			   initialization as direct initialization should be
@@ -1536,7 +1544,9 @@ EXTERN a_boolean
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed.  This flag is automatically set
-			   in strict mode. */
+			   in strict mode.  Valid in both C and C++ modes
+			   (though operator keywords are only added in C++ mode
+			   -- macros defined in iso646.h are used in C mode).*/
 
 EXTERN a_boolean
 		trigraphs_allowed;

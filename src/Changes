@@ -1,5 +1,20 @@
 Version 4.13
 
+11/10/16  [EDGcpfe/17679]
+Microsoft compatibility: --no_ms_permissive compatibility
+
+The --no_ms_permissive flag (which emulates Visual Studio's /permissive-
+command-line option) now has these additional consequences when microsoft_mode
+>= 1910:
+
+- The deprecated string literal conversion (i.e., to a char* or wchar_t* type)
+  is disabled.  The --deprecated_string_conv command-line option can be used
+  to override this.
+- The "for each" statement is disallowed.
+- Alternative token representations are provided for some operators and
+  punctuators.
+
+
 11/10/16  [EDGcpfe/17145]
 Attributes appertaining to declarator ids of friend member functions
 

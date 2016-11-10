@@ -2324,7 +2324,10 @@ option values if they were not already set by a command line option.
       string_literals_are_const = microsoft_version >= 1310;
     }  /* if */
     if (!option_kind_used[(int)optk_deprecated_string_conv]) {
-      deprecated_string_literal_conv_allowed = TRUE;
+      /* A conversion from string literal to char is allowed in older
+         versions of Visual Studio or in permissive mode. */
+      deprecated_string_literal_conv_allowed = (microsoft_version < 1910 ||
+                                                ms_permissive);
     }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
@@ -2372,6 +2375,7 @@ option values if they were not already set by a command line option.
       right_shift_can_be_angle_brackets = TRUE;
       local_types_as_template_args_enabled = TRUE;
       decls_using_types_without_linkage_allowed = TRUE;
+      for_each_statement_enabled = (microsoft_version < 1910 || ms_permissive);
     }  /* if */
     if (microsoft_version >= 1600) {
       /* If the treatment of "auto" was not explicitly specified by the
@@ -2531,6 +2535,12 @@ option values if they were not already set by a command line option.
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
           terse_static_assert_enabled = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1910) {
+        /* Emulate Visual Studio "15". */
+        if (!(option_kind_used[(int)optk_alternative_tokens])) {
+          alternative_tokens_allowed = !ms_permissive;
         }  /* if */
       }  /* if */
     } else {
@@ -10528,6 +10538,7 @@ enable_microsoft_mode:
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     suppress_il_file_write = TRUE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    for_each_statement_enabled = TRUE;
   }  /* if */
 #endif /* DO_IL_LOWERING && (CPPCLI_ENABLING_POSSIBLE || ...) */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
@@ -11469,6 +11480,7 @@ variables declared in cmd_line.h.
   internal_templates_enabled = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  for_each_statement_enabled = FALSE;
   no_ms_nonreal_base_classes = FALSE;
   use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;

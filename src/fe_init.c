@@ -1127,7 +1127,8 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_false, "false");
       enter_keyword((a_token_kind)tok_true,  "true");
     }  /* if */
-    /* Enter C++ keywords used as synonyms for operators. */
+    /* Enter C++ keywords used as synonyms for operators.  In the C case, these
+       are defined as macros (in iso646.h), so no keywords are needed. */
     if (alternative_tokens_allowed) {
       enter_preproc_op_keyword((a_token_kind)tok_and_and,        "and");
       enter_preproc_op_keyword((a_token_kind)tok_and_assign,     "and_eq");

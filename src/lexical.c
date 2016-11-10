@@ -12421,8 +12421,7 @@ Return TRUE if we are getting tokens from an inserted token string.
                                   (a_token_extra_info_kind)teik_insert_string)
 
 /*
-Macro that is TRUE if digraph tokens should be recognized.  Note that
-alternative_tokens_allowed is only TRUE in C++ mode.
+Macro that is TRUE if digraph tokens should be recognized.
 */
 #define digraphs_allowed() (alternative_tokens_allowed)
 
@@ -12564,7 +12563,7 @@ modification will be added to restore the first token to the current line.
     if (next_word_len == len_of_each &&
         memcmp(curr_char_loc, "each", size_t_arg(len_of_each)) == 0) {
       check_assertion(ms_extensions || cli_or_cx_enabled);
-      if (cli_or_cx_enabled || microsoft_version >= 1400) {
+      if (for_each_statement_enabled) {
         /* "for each" statements (the STL and array versions) are available
            when emulating versions 1400 and later of the Microsoft compiler. */
         return_token = tok_for_each;
