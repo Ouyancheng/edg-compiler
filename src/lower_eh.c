@@ -5628,8 +5628,10 @@ be passed down.
     a_statement_ptr    block_stmt, call_stmt, goto_stmt;
     an_expr_node_ptr   call_node;
     an_insert_location block_insert_location;
+    a_type_ptr         first_arg_type;
     check_assertion(is_pointer_type(modified_var_arg_list->type));
-    if (is_qualified_type(type_pointed_to(modified_var_arg_list->type))) {
+    first_arg_type = type_pointed_to(modified_var_arg_list->type);
+    if (is_qualified_type(first_arg_type)) {
       /* __suppress_optim_on_vars_in_try is declared as (void *,...), but if
          the first argument is a pointer to a qualified type, a back end
          might reject the argument.  Since the arguments don't really matter,
