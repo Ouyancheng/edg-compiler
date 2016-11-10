@@ -11465,6 +11465,7 @@ variables declared in cmd_line.h.
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
   ms_permissive = DEFAULT_MS_PERMISSIVE;
   ms_treat_copy_init_as_direct_init = FALSE;
+  for_each_statement_enabled = FALSE;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;
@@ -11480,7 +11481,6 @@ variables declared in cmd_line.h.
   internal_templates_enabled = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  for_each_statement_enabled = FALSE;
   no_ms_nonreal_base_classes = FALSE;
   use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
