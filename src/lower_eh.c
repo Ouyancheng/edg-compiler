@@ -5628,6 +5628,20 @@ be passed down.
     a_statement_ptr    block_stmt, call_stmt, goto_stmt;
     an_expr_node_ptr   call_node;
     an_insert_location block_insert_location;
+    check_assertion(is_pointer_type(modified_var_arg_list->type));
+    if (is_qualified_type(type_pointed_to(modified_var_arg_list->type))) {
+      /* __suppress_optim_on_vars_in_try is declared as (void *,...), but if
+         the first argument is a pointer to a qualified type, a back end
+         might reject the argument.  Since the arguments don't really matter,
+         add a NULL argument to the beginning of the list. */
+      an_expr_node_ptr null_node;
+      a_constant_ptr   null_con = local_constant();
+      make_zero_of_proper_type(void_star_type(), null_con);
+      null_node = alloc_node_for_constant(null_con);
+      release_local_constant(&null_con);
+      null_node->next = modified_var_arg_list;
+      modified_var_arg_list = null_node;
+    }  /* if */
     call_node = make_prototyped_runtime_call("__suppress_optim_on_vars_in_try",
                                        &suppress_optim_on_vars_in_try_routine,
                                        void_type(),
