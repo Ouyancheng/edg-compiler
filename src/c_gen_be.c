@@ -9097,12 +9097,24 @@ a control block with state information about this initializer.
         /* Initialization to an expression.  Output
              variable = expression;
         */
-        dump_variable_name(variable);
-        write_tok_str(" = ");
-        /* Parentheses are required because of the possibility that the
-           top-level operator is a ",". */
-        dump_expr_with_parens(dip->variant.expression);
-        write_tok_ch(';');
+        if (is_class_struct_union_type(dip->variant.expression->type) &&
+            skip_typerefs(dip->variant.expression->type)->
+                                   variant.class_struct_union.is_empty_class) {
+          /* No need to assign an empty class, but make sure any side-effects
+             are performed. */
+          if (node_has_side_effects(dip->variant.expression,
+                                    (a_boolean*)NULL)) {
+            dump_expr_with_parens(dip->variant.expression);
+            write_tok_ch(';');
+          }  /* if */
+        } else {
+          dump_variable_name(variable);
+          write_tok_str(" = ");
+          /* Parentheses are required because of the possibility that the
+             top-level operator is a ",". */
+          dump_expr_with_parens(dip->variant.expression);
+          write_tok_ch(';');
+        }  /* if */
         break;
       default:
         unexpected_condition_str("dump_dynamic_init: bad kind");

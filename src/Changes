@@ -1,5 +1,30 @@
 Version 4.13
 
+11/10/16  [EDGcpfe/17734]
+Elide assignment of empty class in lowering
+
+Lowering typically elides assignments from types of empty classes, but that was
+not the case in the placement new case below.  In configurations where an empty
+base class has size 1, the assignment caused the ptr_ member to be overwritten.
+Now fixed.  For example (with --c++11):
+
+  extern "C" int printf(const char *,...);
+  inline void* operator new(__SIZE_TYPE__, void* p) {
+    return p;
+  }
+  struct B {};
+  struct D : B {
+    void *ptr_;
+    D(const B& __base, void* ptr) : ptr_(ptr) {
+      new(static_cast<B*>(this)) B(__base);
+      if (ptr != ptr_) {
+        printf("%p != %p\n", (void *)ptr, (void *)ptr_);
+      }
+    }
+  };
+  D d(B(), nullptr);
+
+
 11/8/16  [EDGcpfe/17742]
 Using debug code while reading a precompiled header
 

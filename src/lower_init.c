@@ -1724,6 +1724,13 @@ initialization (when ipdp->array_element_sequence is TRUE).
                                      ipdp->array_element_count,
                                      init_val_node,
                                      insert_location);
+  } else if (is_class_struct_union_type(entity_type) &&
+             skip_typerefs(entity_type)->
+                                   variant.class_struct_union.is_empty_class) {
+    /* No need to create an assignment for an empty class. */
+    if (node_has_side_effects(init_val_node, (a_boolean *)NULL)) {
+      (void)insert_expr_statement(init_val_node, insert_location);
+    }  /* if */
   } else {
     /* Make an assignment statement.  Note that we know that no constructor
        (copy or other) is involved because we have this kind of dynamic
