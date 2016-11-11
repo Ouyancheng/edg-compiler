@@ -143,6 +143,18 @@ standalone program, alloc_il is not available.
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
 /*
+Macro to check if a node has side-effects.  It's always safe to assume that
+nodes do have side-effects, so return TRUE in configurations where
+node_has_side_effects isn't available.
+*/
+#if STANDALONE_C_GEN_BE
+#define cp_gen_node_has_side_effects(arg1, arg2) TRUE
+#else /* !STANDALONE_C_GEN_BE */
+#define cp_gen_node_has_side_effects(arg1, arg2) \
+	node_has_side_effects(arg1, arg2)
+#endif /* STANDALONE_C_GEN_BE */
+
+/*
 Macros used to determine whether a given entity is needed in the generated
 C code.  They use the "needed" flag if that is being maintained and the
 "referenced" flag otherwise.
@@ -5582,7 +5594,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             check_assertion(gcc_is_generated_code_target &&
                             is_vector_type(expr_type) &&
                             !is_vector_type(operand_1->type));
-            if (node_has_side_effects(operand_1, (a_boolean *)NULL)) {
+            if (cp_gen_node_has_side_effects(operand_1, (a_boolean *)NULL)) {
               /* Expression has side-effects; use a temporary. */
               use_temp = TRUE;
               write_tok_str("({");
@@ -6254,7 +6266,7 @@ process_assignment:
             write_space();
             dump_temp_name((char *)expr);
             write_tok_str("; ");
-            if (node_has_side_effects(operand_1, (a_boolean *)NULL)) {
+            if (cp_gen_node_has_side_effects(operand_1, (a_boolean *)NULL)) {
               temp_for_op1 = TRUE;
               dump_type(operand_1->type, /*add_pointer_to=*/FALSE);
               write_space();
@@ -6263,7 +6275,7 @@ process_assignment:
               dump_expression(operand_1);
               write_tok_str("; ");
             }  /* if */
-            if (node_has_side_effects(operand_2, (a_boolean *)NULL)) {
+            if (cp_gen_node_has_side_effects(operand_2, (a_boolean *)NULL)) {
               temp_for_op2 = TRUE;
               dump_type(operand_2->type, /*add_pointer_to=*/FALSE);
               write_space();
@@ -6272,7 +6284,7 @@ process_assignment:
               dump_expression(operand_2);
               write_tok_str("; ");
             }  /* if */
-            if (node_has_side_effects(operand_3, (a_boolean *)NULL)) {
+            if (cp_gen_node_has_side_effects(operand_3, (a_boolean *)NULL)) {
               temp_for_op3 = TRUE;
               dump_type(operand_3->type, /*add_pointer_to=*/FALSE);
               write_space();
@@ -9102,8 +9114,8 @@ a control block with state information about this initializer.
                                    variant.class_struct_union.is_empty_class) {
           /* No need to assign an empty class, but make sure any side-effects
              are performed. */
-          if (node_has_side_effects(dip->variant.expression,
-                                    (a_boolean*)NULL)) {
+          if (cp_gen_node_has_side_effects(dip->variant.expression,
+					   (a_boolean*)NULL)) {
             dump_expr_with_parens(dip->variant.expression);
             write_tok_ch(';');
           }  /* if */
