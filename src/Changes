@@ -16,9 +16,9 @@ command-line option) now has these additional consequences when microsoft_mode
 
 
 11/10/16  [EDGcpfe/17145]
-Attributes appertaining to declarator ids of friend member functions
+Attributes appertaining to declarator-ids of friend member functions
 
-The attributes appertaining to the declarator id of a friend function that is a
+The attributes appertaining to the declarator-id of a friend function that is a
 class member had previously not been applied to the member function.  That
 omission had caused the lack of a diagnostic in a case like the one below and
 is now fixed (with --c++11):
