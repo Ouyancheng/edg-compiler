@@ -1057,6 +1057,20 @@ folded to another error constant.
                                          (an_address_base_kind)abk_variable &&
           !constant_1->implicit_cast) {
         expr = var_lvalue_expr(constant_1->variant.address.variant.variable);
+        if (is_array_type(expr->type)) {
+          /* If we are dealing with the address of an array variable, apply
+             the necessary array-to-pointer conversion.  E.g., in C++14 mode:
+               struct B { virtual double f(); };
+               struct D: B {};
+               int main () {
+                 D d[2];
+                 d[1] = d[0];
+                 return 0;
+               }
+             interpretation of D::operator= may get us here with such a
+             situation. */
+          expr = conv_array_expr_to_pointer(expr);
+        }  /* if */
       }  /* if */
       if (expr != NULL) {
         a_boolean local_error_detected;
