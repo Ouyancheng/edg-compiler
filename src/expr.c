@@ -21746,7 +21746,7 @@ indication in *rcblock).
          cv-qualifiers is ignored and can leave an lvalue. */
       do_lvalue_check = TRUE;
     }  /* if */
-    if (do_lvalue_check &&
+    if (do_lvalue_check && preserve_lvalues_with_same_type_casts &&
         is_an_lvalue(&operand) &&
         !is_bit_field_operand(&operand)) {
       /* The cast is an lvalue cast (its result is also an lvalue). */

@@ -1,5 +1,22 @@
 Version 4.13
 
+11/14/16  [EDGcpfe/17403]
+Internal error on same-type const_cast in Microsoft bugs mode
+
+In Microsoft C++ bugs mode with same-type lvalue casts disabled (i.e., with
+"--ms_rvalue_cast" or "--no_preserve_lvalues_with_same_type_casts" -- see the
+entries for EDGcpfe/14628 and EDGcpfe/17677) the front end aborted with an
+internal error in expr.c ("lvalue_cast: lvalue cast in unexpected mode") on
+certain const_cast constructs.  For example:
+
+  int *a;
+  int *b = const_cast<int*>(a);
+    // Previously triggered an internal error when command-line options
+    // "--microsoft --ms_rvalue_cast" are selected.
+
+This is now fixed.
+
+
 11/10/16  [EDGcpfe/17679]
 Microsoft compatibility: --no_ms_permissive compatibility
 
