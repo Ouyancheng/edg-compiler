@@ -2130,7 +2130,7 @@ member declaration (allowed in some Microsoft modes only).
                         /*preserve_rout_type=*/microsoft_out_of_class_redecl,
                         /*preserve_type_ptr=*/!microsoft_out_of_class_redecl,
                         dps);
-    if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+    if (special_kind_is(rp, sfk_constructor)) {
       /* If the routine is a default constructor or a copy constructor, it may
          be that this has not yet been recorded in the symbol.  (This becomes
          possible if there are default arguments in the definition.) */
@@ -2162,7 +2162,10 @@ member declaration (allowed in some Microsoft modes only).
           cssp->has_copy_constructor_for_const_object =
                                             ((qualifiers & TQ_CONST) != 0);
           cssp->construction_by_bitwise_copy_allowed = FALSE;
-          if (cpp14_mode) {
+          if (cpp14_mode &&
+              !is_copy_constructor_type(*old_type, class_type, &qualifiers,
+                                        /*include_move_ctors=*/TRUE,
+                                        /*is_declarative_context=*/FALSE)) {
             /* The resolution of Core issue 1344 makes it invalid to produce a
                special member by adding default arguments to an out-of-class
                definition. */
