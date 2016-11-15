@@ -21575,6 +21575,17 @@ indicates which.
                                               /*is_implicit_cast=*/FALSE,
                                               reinterpret_semantics);
             }  /* if */
+            if ((microsoft_mode || gpp_mode ||clang_mode) &&
+                is_template_dependent_context() &&
+                curr_expr_kind_is_const() &&
+                is_expression_operand(operand)) {
+              /* Other compilers are more relaxed in generic contexts: Some
+                 invalid casts (like reinterpret_cast constructs) are accepted
+                 when parsing templates.  (Although these can produce errors
+                 in real instantiations, special cases may be accepted, e.g.,
+                 to handle an offsetof macro implementation.) */
+              make_template_param_expr_constant_operand(operand);
+            }  /* if */
             if (reinterpret_semantics &&
                 !(cast_to_reference &&
                   (microsoft_mode || (gpp_mode && gnu_version >= 40600)))) {
@@ -22599,10 +22610,11 @@ indication in *rcblock).
                            result)) {
     err = TRUE;
   } else {
-    if (!(microsoft_mode || (gpp_mode && gnu_version >= 40600)) &&
+    if (!(microsoft_mode || clang_mode ||
+          (gpp_mode && gnu_version >= 40600)) &&
         operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
-      /* reinterpret_cast is not allowed in C++11 constant expressions
-         except in MSVC and recent versions of g++. */
+      /* reinterpret_cast is not allowed in C++11 constant expressions, but
+         MSVC, Clang and recent versions of g++ do accept it sometimes. */
       err = TRUE;
     }  /* if */
     operand_expression = expr_node_from_operand(result);
