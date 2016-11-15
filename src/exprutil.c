@@ -17576,12 +17576,13 @@ in the source (and *operator_position gives its position).
           test_expr = skip_parens(expr);
           /* In some modes, same-type casts have no effects.  Such casts may
              be represented using eok_lvalue_cast nodes: Skip over them for
-             testing purposes. */
+             testing purposes.  Also skip over eok_ref_cast nodes. */
           while (is_operation_node(test_expr) &&
-                 node_operator_is(test_expr, eok_lvalue_cast) &&
-                 identical_types(test_expr->type,
-                                 test_expr->variant.operation.operands
-                                          ->type)) {
+                 (node_operator_is(test_expr, eok_ref_cast) ||
+                  (node_operator_is(test_expr, eok_lvalue_cast) ||
+                   identical_types(test_expr->type,
+                                   test_expr->variant.operation.operands
+                                            ->type)))) {
             test_expr = test_expr->variant.operation.operands;
           }  /* while */
           if (curr_expr_kind_is_const()) {
