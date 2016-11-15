@@ -9250,10 +9250,10 @@ from the front end to the runtime.
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   /* Can the front end use __float80? */
   enter_predef_num_macro_noredef(FLOAT80_ENABLING_POSSIBLE,
-			         "__EDG_FLOAT80_ENABLING_POSSIBLE");
+                                 "__EDG_FLOAT80_ENABLING_POSSIBLE");
   /* Can the front end use __float128? */
   enter_predef_num_macro_noredef(FLOAT128_ENABLING_POSSIBLE,
-			         "__EDG_FLOAT128_ENABLING_POSSIBLE");
+                                 "__EDG_FLOAT128_ENABLING_POSSIBLE");
 }  /* init_runtime_macros */
 
 

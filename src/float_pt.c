@@ -83,7 +83,7 @@ EXTERN_C int isnan(double x);
 #define is_NaN(x) (isnan((x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
-   for long double (the conversion to double could produce an Infinity
+   for long double (the conversion to double could produce an infinity
    for a too-large value). */
 EXTERN_C int finite(double x);
 #define is_finite(x) (finite(x))
@@ -111,7 +111,7 @@ EXTERN_C int finite(double x);
 #define is_finite(x) (isfinite(x))
 #else /* !defined(isfinite) */
 /* The "finite" function takes a double argument, so it doesn't work
-   for long double (the conversion to double could produce an Infinity
+   for long double (the conversion to double could produce an infinity
    for a too-large value). */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
 #if __linux__
@@ -164,7 +164,7 @@ static a_boolean
 static a_boolean host_fp_value_is_finite(a_host_fp_value  value)
 /*
 Test a floating-point value (long double or __float128) to see whether it is
-finite (i.e., not a NaN or Infinity).  Used when standard approaches like the
+finite (i.e., not a NaN or infinity).  Used when standard approaches like the
 C99 macro isfinite are not available.
 */
 {
@@ -189,7 +189,7 @@ C99 macro isfinite are not available.
     exponent = (p[0] << CHAR_BIT) | p[1];
   }  /* if */
   /* Drop the sign bit, then all ones in the exponent field means a NaN
-     or Infinity. */
+     or infinity. */
   ld_finite = (exponent & 0x7fff) != 0x7fff;
   return ld_finite;
 }  /* host_fp_value_is_finite */
@@ -283,7 +283,7 @@ radix point (set in host_envir_early_init).
     err = nonzero;
   } else {
     /* If the result string is not numeric, assume it is something like
-       "Infinity". */
+       "infinity". */
     ptr = buf;
     if (*ptr == '-') ptr++;
     err = !isdigit((unsigned char)*ptr);
@@ -436,7 +436,7 @@ If the conversion can be done, return the result in "result".
   }  /* if */
   if (
 #if TARG_HAS_IEEE_FLOATING_POINT
-      /* Don't test NaNs and Infinities. */
+      /* Don't test NaNs and infinities. */
       is_finite(temp) &&
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
       ((temp >= 0.0) ? temp > host_fp_flt_max : temp < -host_fp_flt_max)) {
@@ -489,14 +489,14 @@ If the conversion can be done, return the result in "result".
            overflow. */
 #if TARG_HAS_IEEE_FLOATING_POINT
       } else if (!is_finite(temp)) {
-        /* Don't test NaNs and Infinities. */
+        /* Don't test NaNs and infinities. */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
       } else if (gnu_mode && is_finite(temp)) {
         /* GNU C and C++ silently uses infinity for values that are too
            large. */
       } else {
         /* One last shot -- on machines with NaNs and infinities, printing
-           such a thing often prints "Infinity" or the like.  Print the
+           such a thing often prints "infinity" or the like.  Print the
            number and see if the first character is a digit.  Note that
            above we ruled out the case where the source double is a NaN
            or infinity. */
@@ -593,7 +593,7 @@ underflow.  If the conversion can be done, return the result in "result".
   }  /* if */
   if (
 #if TARG_HAS_IEEE_FLOATING_POINT
-      /* Don't test NaNs and Infinities. */
+      /* Don't test NaNs and infinities. */
       is_finite(temp) &&
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
       ((temp >= 0.0) ? temp > host_fp_dbl_max
@@ -635,14 +635,14 @@ underflow.  If the conversion can be done, return the result in "result".
            overflow. */
 #if TARG_HAS_IEEE_FLOATING_POINT
       } else if (!is_finite(temp)) {
-        /* Don't test NaNs and Infinities. */
+        /* Don't test NaNs and infinities. */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
       } else if (gnu_mode && is_finite(temp)) {
         /* GNU C and C++ silently uses infinity for values that are too
            large. */
       } else {
         /* One last shot -- on machines with NaNs and infinities, printing
-           such a thing often prints "Infinity" or the like.  Print the
+           such a thing often prints "infinity" or the like.  Print the
            number and see if the first character is a digit.  Note that
            above we ruled out the case where the source long double is a NaN
            or infinity. */
@@ -878,7 +878,7 @@ a float kind).
 a_boolean make_fp_infinity(an_internal_float_value *value,
                            a_float_kind             kind)
 /*
-Make a positive Infinity value of the given floating-point kind in *value.
+Make a positive infinity value of the given floating-point kind in *value.
 Return FALSE if the operation did not succeed or if it is mode-dependent;
 return TRUE otherwise.
 */
@@ -895,7 +895,7 @@ return TRUE otherwise.
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
-    /* Convert the Infinity to the right type. */
+    /* Convert the infinity to the right type. */
     fp_change_kind(value, (a_float_kind)fk_float, value, kind,
                    &err, &fp_mode_dependent);
   }  /* if */
@@ -1125,7 +1125,7 @@ point targets, the maximum value is positive infinity.
 #if TARG_HAS_IEEE_FLOATING_POINT
   {
     /* With IEEE floating point, the generated value should be positive
-       Infinity. */
+       infinity. */
     result = make_fp_infinity(value, kind);
   }
 #else /* !TARG_HAS_IEEE_FLOATING_POINT */
@@ -2161,7 +2161,7 @@ space) will be unmodified if the routine returns FALSE.
     (void)strcpy(str, "NaN");
     if (not_a_number != NULL) *not_a_number = TRUE;
   } else if (!is_finite(*temp)) {
-    /* Infinity. */
+    /* infinity. */
     if (*temp < 0.0) {
       (void)strcpy(str, "-Infinity");
       if (neg_infinity != NULL) *neg_infinity = TRUE;
@@ -2465,7 +2465,7 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
   temp = fetch_host_fp_value(kind, float_value);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp)) {
-    /* A NaN or Infinity. */
+    /* A NaN or infinity. */
     *err = TRUE;
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
@@ -2687,7 +2687,7 @@ to TRUE.  If the result depends on the floating-point mode,
 #endif /* !TARG_HAS_IEEE_FLOATING_POINT */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    /* The following divide can produce NaN/Infinities, but should not
+    /* The following divide can produce NaN/infinities, but should not
        produce any host errors. */
     tempr = temp1 / temp2;
     store_host_fp_value(tempr, kind, result, err);

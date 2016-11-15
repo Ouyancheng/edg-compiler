@@ -4829,8 +4829,8 @@ typedef struct a_fixed_point_type_descr {
 enum a_float_kind_tag {
   /* Enumeration of the possible float kinds.  The first three designate
      distinct standard types (that may or may not share a target
-     representation).  Some platforms support or __float80 and __float128
-     keywords to designate floating point types.  If those types are
+     representation).  Some platforms support __float80 and __float128
+     typedefs to designate floating point types.  If those types are
      distinct from the standard types, they are represented using
      fk_float80 and/or fk_float128 respectively; otherwise, the standard
      float kinds are used (e.g., it is not uncommon for __float80 and

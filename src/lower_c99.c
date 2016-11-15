@@ -1164,8 +1164,7 @@ typedef a_const_char *a_library_name_array[(int)fk_last];
 static a_const_char* select_name_from_float_kind(a_float_kind         fkind,
                                                  a_library_name_array names)
 /*
-Return one of the three given strings depending on the given floating-point
-precision.
+Return names[fkind] (a string naming the given floating-point precision).
 */
 {
   a_const_char *result;

@@ -1,12 +1,14 @@
 Version 4.13
 
-10/26/16 [EDGcpfe/17667]
+10/26/16 [EDGcpfe/6091,EDGcpfe/6874,EDGcpfe/12710,EDGcpfe/12965,EDGcpfe/13971,
+          EDGcpfe/14218,EDGcpfe/16440,EDGcpfe/16488,EDGcpfe/16497,
+          EDGcpfe/17067,EDGcpfe/17667]
 GNU compatibility: adding __float80 and __float128 support
 
 When the front end supports __float80 and/or __float128, the run time library
 routines to support complex and imaginary numbers with those floating-point
 types as their underlying components are now available.  Note that the
-implementation requires that the target library has support for arithmetic
+implementation requires that the target platform has support for arithmetic
 operations on these types.
 
 
