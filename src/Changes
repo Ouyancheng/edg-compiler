@@ -864,7 +864,7 @@ is now fixed.
 C++14 constexpr interpreter and pointers into array constants
 
 If the constexpr interpreter produced a composite value with two pointers into
-a common array constants, it sometimes represented those pointers as two
+a common array constant, it sometimes represented those pointers as two
 ck_address entries pointing to two distinct ck_aggregate entries, when instead
 it should have made the two address constants refer to a single aggregate
 constant.  This is now fixed.
