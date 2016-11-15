@@ -1376,6 +1376,11 @@ typedef struct a_scope_stack_entry {
 			   depth_of_initial_lookup_scope when a new scope
 			   is pushed.  This value is restored when the
 			   scope is popped. */
+  uint32_t	empty_contexts_pushed;
+			/* In some cases, no scope will be pushed for an
+			   instantiation scope in a prototype instantiation.
+			   This is a count of such scopes that have been
+			   pushed. */
   a_scope_depth	orig_depth;
 			/* For nonnested template instantiation scopes,
 			   specifies the scope depth before the process

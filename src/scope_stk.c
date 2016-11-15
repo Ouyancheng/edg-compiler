@@ -2936,6 +2936,7 @@ the scope being pushed.
   ssep->instantiation_context_depth = NO_SCOPE_DEPTH;
   ssep->instantiation_common_depth = NO_SCOPE_DEPTH;
   ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
+  ssep->empty_contexts_pushed    = 0;
   ssep->orig_depth               = NO_SCOPE_DEPTH;
   ssep->saved_innermost_scope_that_affects_access = NO_SCOPE_DEPTH;
   ssep->first_template_cache_segment = NULL;
@@ -5132,24 +5133,32 @@ class to be defined.
     scope_stack[depth_scope_stack].nested_instantiation = TRUE;
   }  /* if */
   { a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
-    /* Save the original scope depth in the last scope pushed by this
-       routine.  This will be used later when popping the stack. */
-    ssep->orig_depth = orig_depth;
     /* Except in certain prototype instantiation cases, one or more scopes
        should always have been pushed by this process. */
     check_assertion(orig_depth != depth_scope_stack ||
                     (options & PS_PROTOTYPE_INSTANTIATION) != 0);
-    /* Save the original value of the depth of the innermost scope that affects
-       access control.  This is necessary because the scope fixup routine
-       may adjust some of the next scope that affects access control links
-       in the scope stack resulting in an incorrect value for the global
-       variable after the instantiation scopes have been popped. */
-    ssep->saved_innermost_scope_that_affects_access =
+    if (orig_depth != depth_scope_stack) {
+      /* Save the original scope depth in the last scope pushed by this
+         routine.  This will be used later when popping the stack. */
+      ssep->orig_depth = orig_depth;
+      /* Save the original value of the depth of the innermost scope that
+         affects access control.  This is necessary because the scope fixup
+         routine may adjust some of the next scope that affects access
+         control links in the scope stack resulting in an incorrect value
+         for the global variable after the instantiation scopes have been
+          popped. */
+      ssep->saved_innermost_scope_that_affects_access =
                                     saved_innermost_scope_that_affects_access;
-    if (push_lex_state) {
-      /* Start a new lexical context for the instantiation. */
-      push_lexical_state_stack();
-      ssep->lexical_state_stack_pushed = TRUE;
+      if (push_lex_state) {
+        /* Start a new lexical context for the instantiation. */
+        push_lexical_state_stack();
+        ssep->lexical_state_stack_pushed = TRUE;
+      }  /* if */
+    } else {
+      /* No scopes were pushed.  Keep a count of the number of empty
+         contexts in which the pop scope should not actually pop
+         any entries. */
+      ssep->empty_contexts_pushed++;
     }  /* if */
   }
 #if DEBUG
@@ -5178,35 +5187,41 @@ push_template_instantiation_scope.
 {
   a_scope_depth			orig_depth;
   a_scope_depth			saved_innermost_scope_that_affects_access;
+  a_scope_stack_entry_ptr	ssep =  &scope_stack_top();
 
-  orig_depth = scope_stack[depth_scope_stack].orig_depth;
-  saved_innermost_scope_that_affects_access =
+  if (ssep->empty_contexts_pushed != 0) {
+    /* If there were any empty contexts pushed, simply decrement the count. */
+    ssep->empty_contexts_pushed--;
+  } else {
+    orig_depth = scope_stack[depth_scope_stack].orig_depth;
+    saved_innermost_scope_that_affects_access =
       scope_stack[depth_scope_stack].saved_innermost_scope_that_affects_access;
-  check_assertion(saved_innermost_scope_that_affects_access <= orig_depth);
-  check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
-                       "pop_template_instantiation_scope:",
-                       "invalid orig_depth");
-  if (scope_stack[depth_scope_stack].lexical_state_stack_pushed) {
-    /* Restore the original lexical state context. */
-    pop_lexical_state_stack();
-  }  /* if */
-  /* Pop scopes until the depth of the scope stack is equal to orig_depth,
-     which is the depth before any of the instantiation context scopes were
-     pushed. */
-  while (orig_depth < depth_scope_stack) pop_scope();
-  /* Restore the original value of the depth of the innermost scope that
-     affects access control.  This is necessary because the scope fixup
-     routine used when an instantiation scope is pushed may adjust some
-     of the next scope that affects access control links in the scope stack
-     resulting in an incorrect value for the global variable after the
-     instantiation scopes have been popped. */
-  depth_of_innermost_scope_that_affects_access_control =
+    check_assertion(saved_innermost_scope_that_affects_access <= orig_depth);
+    check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
+                         "pop_template_instantiation_scope:",
+                         "invalid orig_depth");
+    if (scope_stack[depth_scope_stack].lexical_state_stack_pushed) {
+      /* Restore the original lexical state context. */
+      pop_lexical_state_stack();
+    }  /* if */
+    /* Pop scopes until the depth of the scope stack is equal to orig_depth,
+       which is the depth before any of the instantiation context scopes were
+       pushed. */
+    while (orig_depth < depth_scope_stack) pop_scope();
+    /* Restore the original value of the depth of the innermost scope that
+       affects access control.  This is necessary because the scope fixup
+       routine used when an instantiation scope is pushed may adjust some
+       of the next scope that affects access control links in the scope stack
+       resulting in an incorrect value for the global variable after the
+       instantiation scopes have been popped. */
+    depth_of_innermost_scope_that_affects_access_control =
                                     saved_innermost_scope_that_affects_access;
-  /* Reset the active using list flags to the values specified by
-     the previous scope stack entries. */
-  set_active_using_list_scope_depths(depth_scope_stack,
-                                     /*set_value=*/TRUE,
-                                     get_effective_decl_seq());
+    /* Reset the active using list flags to the values specified by
+       the previous scope stack entries. */
+    set_active_using_list_scope_depths(depth_scope_stack,
+                                       /*set_value=*/TRUE,
+                                       get_effective_decl_seq());
+  }  /* if */
 }  /* pop_template_instantiation_scope */
 
 

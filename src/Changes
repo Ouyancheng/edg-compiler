@@ -1,5 +1,14 @@
 Version 4.13
 
+11/15/16  [EDGcpfe/17760]
+Scope stack corruption from exception specification prototype instantiation
+
+In some unusual circumstances the scope stack could be left in an incorrect
+state after the prototype instantiation of an exception specification.  This
+could result in some kind of internal error or other incorrect behavior.
+Now fixed.
+
+
 11/14/16  [EDGcpfe/17403]
 Internal error on same-type const_cast in Microsoft bugs mode
 
