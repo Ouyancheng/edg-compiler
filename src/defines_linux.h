@@ -367,7 +367,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT128_linux_x86_64 16
-#define TARG_ALIGNOF_FLOAT80_linux_x86_64 4
+#define TARG_ALIGNOF_FLOAT80_linux_x86_64 16
 #define TARG_ALIGNOF_INT_linux_x86_64 4
 #define TARG_ALIGNOF_INT128_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_linux_x86_64 8
@@ -686,7 +686,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT_linux_x86_64 4
 #define TARG_ALIGNOF_FLOAT128_linux_x86_64 16
-#define TARG_ALIGNOF_FLOAT80_linux_x86_64 4
+#define TARG_ALIGNOF_FLOAT80_linux_x86_64 16
 #define TARG_ALIGNOF_INT_linux_x86_64 4
 #define TARG_ALIGNOF_INT128_linux_x86_64 16
 #define TARG_ALIGNOF_LONG_linux_x86_64 8
