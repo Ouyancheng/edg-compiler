@@ -3934,10 +3934,12 @@ be completed here.
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
        may be restored when we are done. */
-    a_source_position           saved_pos_curr_token, saved_error_position;
+    a_source_position		saved_pos_curr_token, saved_error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position           saved_curr_construct_end_position;
+    a_source_position		saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    a_constant			saved_const_for_curr_token,
+				saved_const_with_curr_tok_spelling;
     a_symbol_ptr		prototype_instantiation_sym;
 #if GNU_EXTENSIONS_ALLOWED
     a_gcc_pragma_options_entry_ptr save_gcc_pragma_options_stack;
@@ -3952,6 +3954,12 @@ be completed here.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (is_literal_token(curr_token)) {
+      saved_const_for_curr_token = const_for_curr_token;
+      if (curr_token == tok_ud_literal) {
+        saved_const_with_curr_tok_spelling = const_with_curr_tok_spelling;
+      }  /* if */
+    }  /* if */
     if (class_type->variant.class_struct_union.
                                             is_ms_instantiated_nonreal_class) {
       /* For a Microsoft instantiated nonreal class, indicate that this is
@@ -4351,6 +4359,12 @@ be completed here.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
+    }  /* if */
+    if (is_literal_token(curr_token)) {
+      const_for_curr_token = saved_const_for_curr_token;
+      if (curr_token == tok_ud_literal) {
+        const_with_curr_tok_spelling = saved_const_with_curr_tok_spelling;
+      }  /* if */
     }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
@@ -8228,11 +8242,19 @@ error type is used.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    a_constant                  saved_const_for_curr_token,
+                                saved_const_with_curr_tok_spelling;
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (is_literal_token(curr_token)) {
+      saved_const_for_curr_token = const_for_curr_token;
+      if (curr_token == tok_ud_literal) {
+        saved_const_with_curr_tok_spelling = const_with_curr_tok_spelling;
+      }  /* if */
+    }  /* if */
     if (body_cache->tokens.first_token == NULL) {
       /* The template definition is missing.  This should only occur in error
          cases. */
@@ -8356,7 +8378,13 @@ error type is used.
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
     }  /* if */
-    /* Restore the saved position information. */
+    /* Restore the saved lexical information. */
+    if (is_literal_token(curr_token)) {
+      const_for_curr_token = saved_const_for_curr_token;
+      if (curr_token == tok_ud_literal) {
+        const_with_curr_tok_spelling = saved_const_with_curr_tok_spelling;
+      }  /* if */
+    }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

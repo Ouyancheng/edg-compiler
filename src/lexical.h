@@ -2585,6 +2585,9 @@ because uses of the nonstandard spelling are warned about in some modes.)
    or_is_unaligned_token(tok)                                                 \
    or_is_upc_qual_token(tok))
 
+#define is_literal_token(tok)                                                 \
+ ((int)(tok) >= (int)tok_first_literal_token_kind &&                          \
+  (int)(tok) <= (int)tok_last_literal_token_kind)
 
 extern void push_next_preinclude_file(void);
 

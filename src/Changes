@@ -1,5 +1,22 @@
 Version 4.13
 
+11/16/16  [EDGcpfe/17743]
+Internal error on user-defined literal when instantiating class template
+
+The front end previously could abort with an internal error (in function
+make_func_operand_for_literal_operator_call) when a user-defined literal was
+the current token at the point of instantiation of a class template.  For
+example:
+
+  template<char...> int operator""_udl();
+  template<typename T> struct X {
+    X(T);
+  };
+  X<int> x(0_udl);  // Previously triggered an internal error.
+
+This is now fixed.
+
+
 11/15/16  [EDGcpfe/17211]
 Invalid casts in template-dependent constant-expression contexts
 
