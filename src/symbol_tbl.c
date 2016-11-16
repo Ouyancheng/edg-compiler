@@ -15501,19 +15501,19 @@ const_for_curr_token.
             }  /* if */
           } else {
             /* A regular token, neither being added to nor extracted from a
-               cache. */
+               cache.  Record the spelling of the token. */
+            create_constant_from_token_spelling(&const_with_curr_tok_spelling);
             if (!ambiguous) {
-              /* We need to put the spelling of the current token
-                 into const_for_curr_token for a raw literal operator or
-                 literal operator template. */
-              create_constant_from_token_spelling(&const_for_curr_token);
+              /* We need to put the spelling of the current token into
+                 const_for_curr_token for a raw literal operator or literal
+                 operator template. */
+              copy_constant(&const_with_curr_tok_spelling,
+                            &const_for_curr_token);
             } else {
               /* There was an ambiguity detected.  In some cases, that can
-                 be resolved by SFINAE, so we put the token spelling into
-                 const_with_curr_tok_spelling in case it is needed but
-                 leave const_for_curr_token unchanged. */
-              create_constant_from_token_spelling(
-                                                &const_with_curr_tok_spelling);
+                 be resolved by SFINAE, so we have the token spelling into
+                 const_with_curr_tok_spelling in case it is needed but leave
+                 const_for_curr_token unchanged. */
             }  /* if */
           }  /* if */
         }  /* if */
