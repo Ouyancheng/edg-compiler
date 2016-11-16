@@ -12,11 +12,11 @@ casts in template-dependent constant-expression contexts.  For example:
       (unsigned long)&reinterpret_cast<char&>(((B<T> *)0)->s) == 0, "");
   };
 
-Previously, this example triggered an error because reinterpret_casts
+Previously, this example triggered an error because reinterpret_cast
 constructs are not permitted in constant-expression contexts.  Now, however,
 it is accepted in some modes.  (Instantiating the template may also be
 accepted because this particular pattern is used for certain implementations
-of the "offsetof" macro, even though it is not standards-conforming.)
+of the "offsetof" macro, even though it is nonstandard.)
 
 
 11/15/16  [EDGcpfe/17760]
