@@ -17579,7 +17579,7 @@ in the source (and *operator_position gives its position).
              testing purposes.  Also skip over eok_ref_cast nodes. */
           while (is_operation_node(test_expr) &&
                  (node_operator_is(test_expr, eok_ref_cast) ||
-                  (node_operator_is(test_expr, eok_lvalue_cast) ||
+                  (node_operator_is(test_expr, eok_lvalue_cast) &&
                    identical_types(test_expr->type,
                                    test_expr->variant.operation.operands
                                             ->type)))) {
