@@ -8282,6 +8282,7 @@ error type is used.
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
+      a_boolean			saved_is_invisible;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_boolean                 saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8330,9 +8331,15 @@ error type is used.
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
+      /* The point of declaration of the alias template is not until after the
+         type-id is scanned.  Mark the template as invisible while the
+         instantiation is underway. */
+      saved_is_invisible = template_sym->is_invisible;
+      template_sym->is_invisible = TRUE;
       /* Scan the type. */
       type_name_full(&dps);
       check_type_definition_in_type_name(&dps);
+      template_sym->is_invisible = saved_is_invisible;
       if (type->variant.typeref.type == NULL) {
         /* The type pointed to by the typeref will normally be NULL except
            in the case where an existing_instance_sym is being used in
