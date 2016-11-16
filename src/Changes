@@ -1,5 +1,20 @@
 Version 4.13
 
+11/16/16  [EDGcpfe/17765]
+Point of declaration for an alias template (core issue 1044)
+
+The point of declaration of an alias template was changed by core issue
+1044 to be following the type-id in the alias (i.e., at the point of
+the semicolon in the declaration).  The front end now implements the
+revised rules.
+
+  class A {};
+  namespace N {
+    template <typename T1, typename T2> class B {};
+    template <typename T> using A = B<A, T>;  // formerly ill-formed
+  }
+
+
 11/16/16  [EDGcpfe/17743]
 Internal error on user-defined literal when instantiating class template
 

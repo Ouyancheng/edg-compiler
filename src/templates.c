@@ -24777,12 +24777,17 @@ can be diagnosed at template definition time.
   prototype_type->variant.typeref.extra_info->type_id_range.start =
                                                                 pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* The point of declaration of the alias template is not until after the
+     type-id is scanned.  Mark the template as invisible while the prototype
+     instantiation is underway. */
+  template_sym->is_invisible = TRUE;
   init_decl_parse_state(&dps);
   dps.is_alias_template_type = TRUE;
   /* Scan the type. */
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);
   tp = dps.type;
+  template_sym->is_invisible = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   prototype_type->variant.typeref.extra_info->type_id_range.end =
                                                    curr_construct_end_position;
