@@ -9590,11 +9590,17 @@ result (i.e., the precision to which both operands should be promoted).
 If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
 */
 {
-  a_float_kind  result;
+  a_float_kind   result;
+  a_targ_size_t  m_bits_1 = num_mantissa_bits(fkind_1),
+                 m_bits_2 = num_mantissa_bits(fkind_2);
 
   /* The promoted kind is the one with the highest precision, except that
-     fk_float is replaced by fk_double in pcc mode. */
-  if (num_mantissa_bits(fkind_1) >= num_mantissa_bits(fkind_2)) {
+     fk_float is replaced by fk_double in pcc mode.  If two different kinds
+     have equivalent precisions, return the "higher" kind (e.g., if fk_double
+     and fk_long_double are given, fk_long_double is returned even with
+     configurations that use the same representation for both). */
+  if (m_bits_1 > m_bits_2 ||
+      (m_bits_1 == m_bits_2 && fkind_1 > fkind_2)) {
     result = fkind_1;
   } else {
     result = fkind_2;
