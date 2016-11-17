@@ -39211,8 +39211,28 @@ The value of the constant is returned in *constant.
 */
 {
   an_operand result;
+  int        prec_level;
 
   db_enter(3, "scan_integral_constant_expression_full");
+  /* Both the C and C++ standards have the following production for
+     constant-expressions:
+         constant-expression:
+            conditional-expression
+     That excludes assignment forms like "x += 1", but until C++11 introduced
+     constexpr evaluation the grammatical distinction was moot because
+     assignment expressions couldn't produce constants.  As a result, many
+     implementations (including earlier versions of this front end) parsed
+     assignment-expressions in this context and diagnosed a semantic error
+     later on.  In C++11, however, this caused examples such as the following
+     to be erroneously accepted:
+       struct N {
+         constexpr N() {}
+         constexpr int operator=(int) const { return 5; }
+       };
+       constexpr N n{};
+       int x[n = 42];  // "n = 42" is not grammatically a constant-expression.
+     MSVC and GCC still allow such cases, however. */
+  prec_level = (gnu_mode || microsoft_mode) ? PREC_LOWEST : PREC_QUEST_MARK;
   if ((gcc_mode ||
        (gpp_mode && gnu_version < 40000) ||
        sun_mode ||
@@ -39223,7 +39243,7 @@ The value of the constant is returned in *constant.
                                                /*is_expr_list=*/FALSE,
                                                /*will_cast=*/FALSE,
                                                /*top_level=*/TRUE,
-                                               PREC_LOWEST,
+                                               prec_level,
                                                &result, constant,
                                                (a_boolean *)NULL);
   } else {
@@ -39237,7 +39257,7 @@ The value of the constant is returned in *constant.
                     /*suppress_object_lifetime=*/FALSE);
     transfer_expr_context_if_applicable(saved_expr_stack);
     /* Scan the constant expression. */
-    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    scan_expr(&result, prec_level, EOPT_DISALLOW_COMMA_OPERATOR);
     if (constexpr_enabled) {
       /* C++11 allows user-defined conversions and limits certain
          implicit conversions. */
