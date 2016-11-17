@@ -9522,10 +9522,11 @@ diagnostic in *ips.
               cp = prev_con->variant.address.variant.constant;
               top_type = skip_typerefs(cp->type);
               if (!in_file_scope(cp) && in_file_scope(con)) {
-                a_constant_ptr new_cp;
-                new_cp = fs_constant((a_constant_repr_kind)ck_error);
-                (void)copy_constant_full(cp, new_cp, CE_NO_OPTIONS);
-                cp = new_cp;
+                /* Copy cp (and its substructure) to file scope memory. */
+                a_memory_region_number orig_region = NULL_region_number;
+                switch_to_file_scope_region(&orig_region);
+                cp = copy_constant_full(cp, (a_constant*)NULL, CE_NO_OPTIONS);
+                switch_back_to_original_region(orig_region);
               }  /* if */
             }  /* if */
             if (cap->address != cap->complete_object) {
