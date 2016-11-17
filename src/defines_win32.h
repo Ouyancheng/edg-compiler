@@ -48,6 +48,14 @@ FALSE in this header file.
 
 #define FRONT_END_C_FILES_COMPILED_AS_CPP 0
 
+/*
+__float80 is usually a synonym for "long double" on Unix-like platforms.
+On Microsoft platforms, however, "long double" is a 64-bit type just like
+"double".  __float80 must therefore use its own floating-point kind in that
+case.
+*/
+#define DEFAULT_FLOAT_KIND_FOR_FLOAT80 fk_float80
+
 /* Configuration definitions determined by dettarg.c: */
 #define TARG_LITTLE_ENDIAN 1
 #define TARG_CHAR_BIT 8
@@ -349,7 +357,7 @@ the --target option is used).
 #define TARG_ALIGNOF_FAR_POINTER_win64 4
 #define TARG_ALIGNOF_FLOAT_win64 4
 #define TARG_ALIGNOF_FLOAT128_win64 16
-#define TARG_ALIGNOF_FLOAT80_win64 4
+#define TARG_ALIGNOF_FLOAT80_win64 16
 #define TARG_ALIGNOF_INT_win64 4
 #define TARG_ALIGNOF_INT128_win64 16
 #define TARG_ALIGNOF_LONG_win64 4
@@ -382,7 +390,7 @@ the --target option is used).
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE_win64 1
 #define TARG_FLOAT_FIELD_ALIGNMENT_win64 4
 #define TARG_FLOAT128_FIELD_ALIGNMENT_win64 16
-#define TARG_FLOAT80_FIELD_ALIGNMENT_win64 4
+#define TARG_FLOAT80_FIELD_ALIGNMENT_win64 16
 #define TARG_FLT_MANT_DIG_win64 24
 #define TARG_FLT_MAX_EXP_win64 128
 #define TARG_FLT_MIN_EXP_win64 (-125)
@@ -431,7 +439,7 @@ the --target option is used).
 #define TARG_SIZEOF_FAR_POINTER_win64 4
 #define TARG_SIZEOF_FLOAT_win64 4
 #define TARG_SIZEOF_FLOAT128_win64 16
-#define TARG_SIZEOF_FLOAT80_win64 12
+#define TARG_SIZEOF_FLOAT80_win64 16
 #define TARG_SIZEOF_INT_win64 4
 #define TARG_SIZEOF_INT128_win64 16
 #define TARG_SIZEOF_LONG_win64 4
