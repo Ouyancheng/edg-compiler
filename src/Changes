@@ -274,7 +274,10 @@ float_kind_for_float128 and float_kind_for_float80, which are initialized by
 default with the configuration macros DEFAULT_FLOAT_KIND_FOR_FLOAT128 and
 DEFAULT_FLOAT_KIND_FOR_FLOAT80.  If not configured explicitly, __float128 maps
 to fk_float128 and __float80 maps to fk_long_double (i.e., __float80 is a
-synonym for type "long double").
+synonym for type "long double").  This addition of new floating-point kinds
+means that the floating-point kinds are no longer necessarily numbered in
+increasing order of precision (e.g., fk_float80 comes after fk_long_double,
+but fk_long_double could be a 128-bit floating-point type).
 
 To enable support for __float128, USE_FLOAT128_FOR_HOST_FP_VALUE (another new
 configuration macro) must be set to TRUE and, as a result, the front end must
