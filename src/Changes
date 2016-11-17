@@ -1,5 +1,13 @@
 Version 4.13
 
+11/17/16  [EDGcpfe/17744]
+Erroneous folding of !X with X a template-dependent construct
+
+The front end sometimes erroneously folded the logical-not operator applied to
+a template-dependent construct (the folded result was "false").  This could
+lead to spurious errors while parsing template definitions.  This is now fixed.
+
+
 11/17/16  [EDGcpfe/17747]
 Constant-expressions
 

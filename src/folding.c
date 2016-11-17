@@ -2923,21 +2923,21 @@ for any diagnostics issued.
        constant and return. */
     set_error_constant(result);
   } else if (!C_mode() &&
-             (constant->kind == (a_constant_repr_kind)ck_template_param ||
+             (constant_is(constant, ck_template_param) ||
               (context_may_have_dependent_types() &&
-               is_template_dependent_type(result_type)))) {
+               is_template_dependent_type(constant->type)))) {
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
 #if UPC_EXTENSIONS_ALLOWED  
-  } else if (constant->kind == (a_constant_repr_kind)ck_upc_mythread ||  
-             constant->kind == (a_constant_repr_kind)ck_upc_threads) {  
+  } else if (constant_is(constant, ck_upc_mythread) ||  
+             constant_is(constant, ck_upc_threads)) {  
     /* The UPC pseudo-constants are not true constants.  As a result, we do
        not fold unary operations involving these constants. */
     *did_not_fold = TRUE;  
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (constant->kind == (a_constant_repr_kind)ck_label_difference) {
+  } else if (constant_is(constant, ck_label_difference)) {
     /* The representation for a GNU label difference (&&K-&&L) is not
        a constant known at compile time. */
     *did_not_fold = TRUE;
@@ -3024,7 +3024,7 @@ for any diagnostics issued.
        a null pointer constant. */
     result->null_pointer_constant_ruled_out =
                           constant->null_pointer_constant_ruled_out ||
-                          constant->kind != (a_constant_repr_kind)ck_integer ||
+                          constant_is(constant, ck_integer) ||
                           constant->implicit_cast;
     if (depends_on_fp_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
