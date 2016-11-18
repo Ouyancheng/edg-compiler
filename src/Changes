@@ -306,7 +306,7 @@ depending on the overall state of the front end.
 
 11/2/16  [EDGcpfe/6091,EDGcpfe/6874,EDGcpfe/12710,EDGcpfe/12965,EDGcpfe/13971,
           EDGcpfe/14218,EDGcpfe/16440,EDGcpfe/16488,EDGcpfe/16497,
-          EDGcpfe/17067,EDGcpfe/17667]
+          EDGcpfe/17067,EDGcpfe/17667,EDGcpfe/17733]
 __float128 and __float80
 
 The front end now includes support for __float128 and __float80 floating-point
