@@ -1,5 +1,22 @@
 Version 4.13
 
+11/17/16  [EDGcpfe/17756]
+Internal error in C++14 constexpr interpreter on use of subobject address
+
+In somewhat unusual situations where the address of a subobject is passed into
+a constexpr function or constructor, the front end could abort with an internal
+error in the C++14 constexpr interpreter (in extract_value_from_constant).
+For example:
+
+  struct B { int v[2]; };
+  struct D: B {
+    constexpr D(int *p): B() {}
+  } x(&x.v[1]);  // Previously triggered an abort while attempting to
+                 // process the address &x.v[1] in the interpreter.
+
+This is now fixed.
+
+
 11/17/16  [EDGcpfe/17744]
 Erroneous folding of !X with X a template-dependent construct
 
