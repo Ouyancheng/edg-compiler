@@ -28,7 +28,7 @@ lead to spurious errors while parsing template definitions.  This is now fixed.
 11/17/16  [EDGcpfe/17747]
 Constant-expressions
 
-The C and C++ standard describe a grammatical constructor constant-expression
+The C and C++ standard describe a grammatical construct constant-expression
 along with constraints that give such expressions a constant value.  The
 grammar actually excludes assignment-expressions like "n = 2", but the front
 end previously parsed such an expression as a constant-expression anyway,
@@ -36,7 +36,7 @@ assuming that semantic checking would later trigger a diagnostic as required
 by the standard because assignments don't usually produce constant values.
 However, with the introduction of constexpr evaluation it is possible for
 assignments to produce constant values and therefore leaving the diagnostic
-to semantic checking is not longer standard-conforming.  For example:
+to semantic checking is no longer standard-conforming.  For example:
 
   struct N {
     constexpr N() {}
