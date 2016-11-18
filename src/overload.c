@@ -13521,7 +13521,8 @@ not_direct_binding_case:
                                             ec_no_error, &std_conversion)) {
           /* This conversion function returns a type that can be converted
              via a standard conversion to the type we want. */
-          if (conv_context & CCO_CONVERTED_CONSTANT_EXPR) {
+          if ((conv_context & CCO_CONVERTED_CONSTANT_EXPR) != NULL &&
+              source_operand != NULL) {
             /* In a "converted constant expression" context, not all standard
                conversions are acceptable (e.g., a floating-point -> integer
                conversion should be rejected). */
