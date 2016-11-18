@@ -3024,7 +3024,7 @@ for any diagnostics issued.
        a null pointer constant. */
     result->null_pointer_constant_ruled_out =
                           constant->null_pointer_constant_ruled_out ||
-                          constant_is(constant, ck_integer) ||
+                          !constant_is(constant, ck_integer) ||
                           constant->implicit_cast;
     if (depends_on_fp_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
