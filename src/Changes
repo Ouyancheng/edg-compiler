@@ -56,10 +56,10 @@ Microsoft modes, since GCC and MSVC also have this defect.
 Memory region violation in constant produced by constexpr evaluation
 
 In some relatively complex cases, the C++14 constexpr interpreter could
-produce an address constant pointing to an aggregate constant that are both
-allocated in file scope memory, but with the aggregate constant pointing to
-a constant in a function scope memory region.  This memory region violation
-could then result in aborts later on.  This is now fixed.
+produce an address constant pointing to an aggregate constant, both allocated
+in file scope memory, but with the aggregate constant pointing to a constant
+in a function scope memory region.  This memory region violation could then
+result in aborts later on.  This is now fixed.
 
 
 11/16/16  [EDGcpfe/17746]
