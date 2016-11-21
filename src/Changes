@@ -10,7 +10,7 @@ construct was invoked through an inline function.  For example, in GNU C mode:
 
   struct S { int i[42]; };
   static inline int g(int n) {
-    return __builtin_offset(struct S, i[n]);
+    return __builtin_offsetof(struct S, i[n]);
   }
   int main() {
     return g(0);  // Previously triggered an abort in various
