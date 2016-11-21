@@ -342,6 +342,7 @@ restrictions).
         p++;
         res_ptr = p;
         p = strchr(p, ']');
+        check_assertion(p != NULL);
         p++;
       }  /* if */
       if (result) {
