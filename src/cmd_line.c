@@ -2539,6 +2539,8 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1910) {
         /* Emulate Visual Studio "15". */
+        relaxed_constexpr_enabled = TRUE;
+        constexpr_implies_const = FALSE;
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
         }  /* if */
