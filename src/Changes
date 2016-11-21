@@ -1,5 +1,21 @@
 Version 4.13
 
+11/21/16  [EDGcpfe/17741]
+Spurious failure on cast in template argument
+
+Consider the following example:
+
+  template<int I> struct S {};
+  template<unsigned U> void g(S<(int)~U>) {}
+  template void g<42U>(S<(int)~42>);  // Previously a spurious error.
+
+In strict C++11 mode, the previously triggered a spurious error because the
+front end treated the substitution of U = 42U into (int)~U as a narrowing
+conversion on a template parameter.  That shouldn't be the case since the
+conversion is done for the explicit cast and not the binding of the template
+parameter.  That is now fixed.
+
+
 11/17/16  [EDGcpfe/17756]
 Internal error in C++14 constexpr interpreter on use of subobject address
 

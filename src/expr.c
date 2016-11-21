@@ -41110,13 +41110,18 @@ function or template.
       /* For template arguments, certain conversions are not permitted.
          (For example, certain pointer-to-member function conversions.)
          Use prep_initializer_operand to catch such cases. */
+      a_conv_context_set  conv_context = CCO_NONTYPE_TEMPLATE_ARG;
+      if (rcblock->options & CTWS_CAST_OPERAND) {
+        conv_context |= CCO_CAST;
+      }  /* if */
       prep_initializer_operand(&result, guide_type, (a_boolean *)NULL,
                                (a_conv_descr_ptr)NULL,
                                /*is_copy_initialization=*/TRUE,
-                               CCO_NONTYPE_TEMPLATE_ARG,
+                               conv_context,
                                ec_bad_nontype_template_arg);
     } else {
-      cast_overloaded_function(guide_type, &result, /*is_cast=*/FALSE,
+      a_boolean  is_cast = (rcblock->options & CTWS_CAST_OPERAND) != 0;
+      cast_overloaded_function(guide_type, &result, is_cast,
                                /*is_static_cast=*/FALSE,
                                /*skip_final_adjustment=*/FALSE);
     }  /* if */

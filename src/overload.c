@@ -19090,13 +19090,20 @@ is_transparent.  conv_context describes the context of the conversion.
                                     incompatible_err, err_pos,
                                     &conversion,
                                     &local_conversion)) {
-    /* Some conversions are not allowed on a nontype template argument. */
+    /* The types are compatible.  Do the conversion. */
+    if (conv_context & CCO_CAST) {
+      conversion->is_explicit_cast = TRUE;
+    }  /* if */
     if (conv_context & CCO_NONTYPE_TEMPLATE_ARG) {
+      /* Some conversions are not allowed on a nontype template argument.
+         (Note that if an explicit cast was applied to the template argument,
+         those restrictions do not apply.) */
       a_type_ptr src_type = source_operand->type, eff_src_type = src_type;
       if (conversion->routine != NULL) {
         eff_src_type = return_type_of(conversion->routine->type);
       }  /* if */
-      if (!conversion_allowed_for_nontype_template_argument(
+      if (!conversion->is_explicit_cast &&
+          !conversion_allowed_for_nontype_template_argument(
                                            &conversion->std,
                                            eff_src_type,
                                            is_constant_operand(source_operand),
@@ -19114,8 +19121,6 @@ is_transparent.  conv_context describes the context of the conversion.
         wrap_in_template_constant_if_needed = TRUE;
       }  /* if */
     }  /* if */
-    /* The types are compatible.  Do the conversion. */
-    if (conv_context & CCO_CAST) conversion->is_explicit_cast = TRUE;
     /* Force the result to be a prvalue. */
     conversion->result_is_a_glvalue = FALSE;
     convert_operand(source_operand, dest_type, conversion);

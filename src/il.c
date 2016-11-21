@@ -17413,7 +17413,7 @@ name lookup options.
                                  template_param_list,
                                  new_type,
                                  source_pos,
-                                 options,
+                                 options | CTWS_CAST_OPERAND,
                                  copy_error,
                                  ctws_state,
                                  constant);
