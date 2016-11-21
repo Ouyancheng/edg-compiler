@@ -9433,7 +9433,7 @@ the folding mechanism is used as a way to validate argument values.
         }
         break;
       case bfk_atomic_always_lock_free:
-        if (!is_constant_node(args)) {
+        if (args == NULL || !is_constant_node(args)) {
           /* __atomic_always_lock_free's first argument must be a
              constant. */
           *err_code = ec_first_arg_must_be_integer_constant;
