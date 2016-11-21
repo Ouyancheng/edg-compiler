@@ -14573,7 +14573,8 @@ NULL otherwise).
       /* Pop the namespace or namespace-extension scope. */
       pop_namespace_scope();
     }  /* if */
-    if (is_enclosing_namespace_specifier && !in_nested_namespace_decl) {
+    if (is_enclosing_namespace_specifier && !in_nested_namespace_decl &&
+        *ns_definition_sym != NULL) {
       /* A nested namespace definition has just been processed; apply any
          pragmas to the most-nested level of the namespace definition
          (e.g., to "C" for "A::B::C").  This is somewhat arbitrary (i.e.,
