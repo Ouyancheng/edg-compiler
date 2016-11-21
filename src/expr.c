@@ -11496,9 +11496,7 @@ indication in *rcblock).
      field or array element access (e.g., "__builtin_offsetof(a, x.y[3])"),
      so we iterate over field selection and/or array subscript operations
      as needed. */
-  /* The selection operations should be scanned in a "sizeof" context since
-     they are not evaluated. */
-  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+  push_expr_stack_with_rcblock((an_expression_kind)ek_normal,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
                                /*suppress_object_lifetime=*/TRUE,

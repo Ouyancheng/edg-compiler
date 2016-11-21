@@ -1,5 +1,24 @@
 Version 4.13
 
+11/21/16  [EDGcpfe/17751]
+Abort with nonconstant __builtin_offsetof construct in inline function
+
+The GNU __builtin_offsetof construct can produce nonconstant results when
+referring to array elements.  Previously, the front end could abort (in
+different places, depending on the configuration) if such a nonconstant
+construct was invoked through an inline function.  For example, in GNU C mode:
+
+  struct S { int i[42]; };
+  static inline int g(int n) {
+    return __builtin_offset(struct S, i[n]);
+  }
+  int main() {
+    return g(0);  // Previously triggered an abort in various
+  }               // configurations.
+
+This is now fixed.
+
+
 11/21/16  [EDGcpfe/17773]
 Core issue 1579: Return statement and move-conversion
 
