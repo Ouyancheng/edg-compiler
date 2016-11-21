@@ -14538,7 +14538,7 @@ NULL otherwise).
          scope is popped and before add_end_of_construct_source_sequence_entry
          is called. */
       process_curr_token_pragmas();
-      if (in_nested_namespace_decl && ns_definition_sym != NULL) {
+      if (in_nested_namespace_decl) {
         /* Record the symbol of the (most nested) namespace definition. */
         *ns_definition_sym = ns_sym;
       }  /* if */
@@ -14573,8 +14573,7 @@ NULL otherwise).
       /* Pop the namespace or namespace-extension scope. */
       pop_namespace_scope();
     }  /* if */
-    if (is_enclosing_namespace_specifier && !in_nested_namespace_decl &&
-        *ns_definition_sym != NULL) {
+    if (is_enclosing_namespace_specifier && !in_nested_namespace_decl) {
       /* A nested namespace definition has just been processed; apply any
          pragmas to the most-nested level of the namespace definition
          (e.g., to "C" for "A::B::C").  This is somewhat arbitrary (i.e.,
