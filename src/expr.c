@@ -38174,7 +38174,7 @@ a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
                                                   a_boolean      move_case)
 /*
 Determine whether the variable var is eligible for an optimization that
-elides a copy as described in [class.copy] paragraph 15.  When return_case
+elides a copy as described in N4582 [class.copy] 12.8/31.  When return_case
 is TRUE, this routine returns TRUE if "return var;" is allowed to
 optimize away the return copy by constructing var directly in the
 space provided by the caller.  When return_case is FALSE, this routine
@@ -38198,7 +38198,12 @@ done for a move optimization.
       check_assertion(innermost_function_scope != NULL);
       func_type = innermost_function_scope->variant.routine.ptr->type;
       func_type = skip_typerefs(func_type);
-      if (types_are_compatible_ignoring_qualifiers(
+      if (move_case) {
+        /* When checking for move optimization (rather than complete copy
+           elision), the type of the returned variable and the return type
+           need not be compatible. */
+        eligible = TRUE;
+      } else if (types_are_compatible_ignoring_qualifiers(
                                      var->type,
                                      func_type->variant.routine.return_type)) {
         eligible = TRUE;

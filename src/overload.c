@@ -17807,35 +17807,26 @@ enclosing try statements.
 }  /* variable_scope_okay_for_throw_move_optimization */
 
 
-static a_boolean selected_function_is_move_constructor(
-                                                      a_conv_descr *conversion,
-                                                      a_type_ptr   class_type)
+static a_boolean selected_function_is_moving_constructor(
+                                                     a_conv_descr *conversion)
 /*
 Return TRUE if the function selected and indicated in *conversion is a
-move constructor for the class given by class_type.
+constructor whose first parameter type is an rvalue reference.
 */
 {
-  a_boolean     is_move_constructor = FALSE;
+  a_boolean     is_moving_constructor = FALSE;
   a_routine_ptr rout = conversion->routine;
 
-  class_type = skip_typerefs(class_type);
-  if (rout != NULL &&
-      rout->special_kind == (a_special_function_kind)sfk_constructor) {
+  if (rout != NULL && special_kind_is(rout, sfk_constructor)) {
     a_type_ptr       rout_type = skip_typerefs(rout->type);
     a_param_type_ptr ptp =
                         rout_type->variant.routine.extra_info->param_type_list;
-    check_assertion(identical_types(parent_class_of(rout), class_type));
-    if (ptp != NULL &&
-        is_rvalue_reference_type(ptp->type)) {
-      a_type_ptr param_type = type_pointed_to(ptp->type);
-      param_type = skip_typerefs(param_type);
-      if (identical_types_ignoring_qualifiers(param_type, class_type)) {
-        is_move_constructor = TRUE;
-      }  /* if */
+    if (ptp != NULL && is_rvalue_reference_type(ptp->type)) {
+      is_moving_constructor = TRUE;
     }  /* if */
   }  /* if */
-  return is_move_constructor;
-}  /* selected_function_is_move_constructor */
+  return is_moving_constructor;
+}  /* selected_function_is_moving_constructor */
 
 
 static a_boolean check_for_move_optimization(
@@ -17880,6 +17871,7 @@ FALSE is returned and the source operand is left unchanged.
          becomes
            A x;
            return static_cast<A &&>(x);
+         (See N4582 [class.copy] 12.8/32.)
       */
       a_boolean  ambiguous;
       an_operand rvalue_operand;
@@ -17903,8 +17895,9 @@ FALSE is returned and the source operand is left unchanged.
                                        &ambiguous,
                                        (a_candidate_function_ptr *)NULL)) {
         /* The conversion is possible.  Additionally, the selected function
-           has to be a move constructor. */
-        if (selected_function_is_move_constructor(conversion, dest_type)) {
+           has to be a constructor whose first parameter is an rvalue
+           reference. */
+        if (selected_function_is_moving_constructor(conversion)) {
           /* The move optimization applies. */
           *source_operand = rvalue_operand;
           conversion_done = TRUE;
