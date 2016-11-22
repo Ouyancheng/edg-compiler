@@ -53,8 +53,9 @@ as "B<T...>::x".
 Microsoft compatibility: constexpr compatibility
 
 When microsoft_version >= 1910 (i.e., when emulating Microsoft Visual Studio
-"15"), the C++14 relaxed constexpr feature is now enabled.  Also, in this mode
-"const" no longer implies constexpr (see the Changes entry for EDGcpfe/16092).
+"15"), the C++14 relaxed constexpr feature is now enabled.  Also, in this mode,
+a constexpr non-static member function is not implicitly const-qualified
+(see the Changes entry for EDGcpfe/16092).
 
 
 11/21/16  [EDGcpfe/17741]
