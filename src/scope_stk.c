@@ -11118,66 +11118,32 @@ associated template argument.  Otherwise, return NULL.
 */
 {
   a_pack_expansion_descr_ptr	result_pedp = NULL;
-  a_pack_reference_ptr		arg_prp;
-  a_pack_reference_ptr		arg_prp_list = NULL;
+  a_pack_reference_ptr		arg_prp = NULL;
   a_scope_stack_entry_ptr	instantiation_ssep;
-  a_scope_stack_entry_ptr	ssep;
 
   instantiation_ssep =
                     scope_stack_entry_for(depth_innermost_instantiation_scope);
   if (pesep != NULL && !pesep->is_suppression &&
       pesep->instantiation_descr != NULL && instantiation_ssep != NULL &&
       instantiation_ssep->alias_in_template_decl) {
-    arg_prp_list = pesep->instantiation_descr->pack_status;
+    arg_prp = pesep->instantiation_descr->pack_status;
   }  /* if */
-  if (arg_prp_list != NULL) {
-    for (ssep = instantiation_ssep; ssep != NULL;
-         ssep = previous_scope_of(ssep)) {
-      a_template_param_ptr	param_list;
-      a_template_arg_ptr	arg_list;
-      a_template_param_ptr	tpp;
-      a_template_arg_ptr	tap;
-      if (!scope_is(ssep, sck_template_instantiation)) continue;
-      param_list = ssep->template_decl_info->parameters;
-      arg_list = ssep->template_arg_list;
-      begin_special_variadic_template_arg_list_traversal(param_list,
-                                                         arg_list, &tpp, &tap);
-      for (arg_prp = arg_prp_list; arg_prp != NULL; arg_prp = arg_prp->next) {
-        a_template_arg_ptr	curr_tap;
-        /* Only process pack references for template parameters. */
-        if (arg_prp->kind != prk_template_param) continue;
-        /* If a template argument associated with the innermost instantiation
-           scope (i.e., the first scope stack entry we look at) has a pack
-           expansion descriptor, use that.  If not, look for a template
-           parameter in an enclosing instantiation scope that matches one
-           of the current pack expansions.  If one is found, use the current
-           pack expansion descriptor. */
-        if (ssep == instantiation_ssep) {
-          curr_tap = arg_prp->curr_argument.template_arg;
-          if (curr_tap != NULL && curr_tap->pack_expansion_descr != NULL) {
-            if (result_pedp == NULL) {
-              result_pedp = curr_tap->pack_expansion_descr;
-            } else {
-              /* If there is more than one pack expansion descriptor, this
-                 should be a context in which deduction can't be done.
-                 Return NULL. */
-              result_pedp = NULL;
-              goto done;
-            }  /* if */
-          }  /* if */
-        } else {
-          for (; tpp != NULL;
-               special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
-            if (arg_prp->template_param == tpp) {
-              result_pedp = pesep->expansion_descr;
-              goto done;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* for */
-    }  /* for */
-  }  /* if */
-done:
+  for (; arg_prp != NULL; arg_prp = arg_prp->next) {
+    a_template_arg_ptr	tap;
+    /* Only process pack references for template parameters. */
+    if (arg_prp->kind != prk_template_param) continue;
+    tap = arg_prp->curr_argument.template_arg;
+    if (tap != NULL && tap->pack_expansion_descr != NULL) {
+      if (result_pedp == NULL) {
+        result_pedp = tap->pack_expansion_descr;
+      } else {
+        /* If there is more than one pack expansion descriptor, this should be
+           a context in which deduction can't be done.  Return NULL. */
+        result_pedp = NULL;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
   return result_pedp;
 }  /* get_curr_pack_expansion_descr_for_param */
 
