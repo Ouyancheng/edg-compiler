@@ -26149,15 +26149,6 @@ and, in C++/CLI mode, vice versa.
     set_source_corresp(&(btp->source_corresp), bsym);
     set_name_linkage_for_type(btp);
     add_to_types_list(btp, DEPTH_OF_FILE_SCOPE);
-#if NEED_NAME_MANGLING
-    /* When multiple unnamed types appear in the same scope or context, their
-       mangled names are distinguished using a unique number ("discriminator").
-       Compute that number now if appropriate (in some contexts, such as
-       default arguments, the number will be determined elsewhere).  The notion
-       of "discriminator" here is a generalization of the one defined in the
-       IA-64 ABI. */
-    compute_name_collision_discriminator(bsym, DEPTH_OF_FILE_SCOPE);
-#endif /* NEED_NAME_MANGLING */
     /* Start the class definition (and associated class scope). */
     initialize_class_def_state(btp, &class_state);
     push_instantiation_scope_for_boxed_enum_type();

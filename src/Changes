@@ -1,5 +1,25 @@
 Version 4.13
 
+11/23/16  [EDGcpfe/17720]
+C++/CLI-mode abort due to handling of mangled names for boxed enum types
+
+In C++/CLI mode, the front end sometimes creates "box types" for enum types:
+These are C++/CLI value class types that wrap the enum type.  Previously, these
+box types were given a "name collision discriminator" value if the associated
+enum type is unnamed.  However, that violates assumptions made elsewhere in the
+front end about the order in which discriminator values are assigned.  That in
+turn could lead to an internal error in cancel_name_collision_discriminator
+(scope_stk.c) in some cases.  For example:
+
+  enum { e1 = 1 };
+  typedef enum { e2 = 1+e1 } E;  // Previously triggered an internal error.
+                                 // Now okay.
+
+Such box types are now no longer assigned a discriminator value (none is needed
+since lowering does not actually handle managed C++/CLI code).  That also fixes
+the internal error.
+
+
 11/23/16  [EDGcpfe/17784]
 Microsoft compatibility: using --ms_extensions/--ms_compatibility when
 DEFAULT_MICROSOFT_MODE is TRUE
