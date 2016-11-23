@@ -1,5 +1,37 @@
 Version 4.13
 
+11/23/16 [EDGcpfe/17767]
+Inadvertent destruction of rethrown object
+
+As a result of the changes dated 6/2/05, it's possible for a rethrown object to
+be inadvertently destroyed prematurely during the rethrow process.  This can
+happen if same automatic storage address is pointed to by __curr_eh_stack_entry
+when __throw and __rethrow are invoked.  In the following example (in some
+configurations), the same stack addresses are used in both foo and bar for
+the exception handling data structures, resulting in a run-time assertion
+failure in __destroy_exception_object:
+
+  void foo() {
+    try {
+      throw 0;
+    } catch (char) {
+    }
+  }
+  void bar() {
+    try {
+      throw;
+    } catch (int) {
+    }
+  }
+  int main() {
+    try {
+      foo();
+    } catch (int) {
+      bar();
+    }
+  }
+
+
 10/26/16 [EDGcpfe/6091,EDGcpfe/6874,EDGcpfe/12710,EDGcpfe/12965,EDGcpfe/13971,
           EDGcpfe/14218,EDGcpfe/16440,EDGcpfe/16488,EDGcpfe/16497,
           EDGcpfe/17067,EDGcpfe/17667]

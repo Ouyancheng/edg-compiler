@@ -1585,6 +1585,9 @@ a try block with a catch that matches the type of the object thrown.
       /* Mark the exception as caught now, if appropriate. */
       __exception_caught();
     }  /* if */
+    /* nearest_enclosing_try_block likely points to automatic storage that
+       will become invalid after the longjmp, so reset its value. */
+    curr_throw_stack_entry->nearest_enclosing_try_block = NULL;
     longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   } else if (destination_ehsep->kind ==
                                 (an_eh_stack_entry_kind)ehsek_throw_spec) {
