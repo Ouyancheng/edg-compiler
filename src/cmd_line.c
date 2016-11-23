@@ -3558,11 +3558,16 @@ otherwise implicitly enabled Microsoft mode.
       command_line_error(error_code);
     } else {
       /* Microsoft mode enabled by default.  Silently disable it since the
-         explicit mode setting on the command line overrides it. */
+         explicit mode setting on the command line overrides it (unless
+         explicit options were specified). */
       microsoft_mode = FALSE;
       microsoft_bugs = FALSE;
-      ms_extensions = FALSE;
-      ms_compat = FALSE;
+      if (!option_kind_used[(int)optk_microsoft_extensions]) {
+        ms_extensions = FALSE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_microsoft_compatibility]) {
+        ms_compat = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

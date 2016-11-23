@@ -1,5 +1,14 @@
 Version 4.13
 
+11/23/16  [EDGcpfe/17784]
+Microsoft compatibility: using --ms_extensions/--ms_compatibility when
+DEFAULT_MICROSOFT_MODE is TRUE
+
+In configurations where DEFAULT_MICROSOFT_MODE is TRUE, specifying
+--ms_extensions or --ms_compatibility command-line options did not work
+properly (when combined with another mode like --clang or --gcc).  Now fixed.
+
+
 11/22/16  [EDGcpfe/17776]
 Spurious correspondence failures for alias template instantiations
 
