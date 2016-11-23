@@ -2610,6 +2610,9 @@ option values if they were not already set by a command line option.
   if (microsoft_bugs && ms_permissive) {
     ms_treat_copy_init_as_direct_init = TRUE;
   }  /* if */
+  /* Visual Studio doesn't yet support these. */
+  register_is_deprecated = FALSE;
+  register_is_disallowed = FALSE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3271,6 +3274,7 @@ default mode (e.g., exception handling).
   std_thread_local_storage_specifier_enabled = value;
   std_override_modifiers_enabled = value;
   constexpr_implies_const = value;
+  register_is_deprecated = TRUE;
   if (cpp14_mode) {
     /* Features enabled in C++14 mode. */
     if (auto_type_specifier_enabled) {
@@ -3310,6 +3314,7 @@ default mode (e.g., exception handling).
       if (range_based_for_enabled) {
         relaxed_range_based_for_enabled = TRUE;
       }  /* if */
+      register_is_disallowed = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -4657,6 +4662,8 @@ before this routine is called.
       /* Later versions of GNU appear to enable this by default. */
       terse_static_assert_enabled = TRUE;
     }  /* if */
+    register_is_deprecated = FALSE;
+    register_is_disallowed = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -11156,6 +11163,8 @@ variables declared in cmd_line.h.
 #if NAMED_REGISTERS_ALLOWED
   named_registers_enabled = DEFAULT_NAMED_REGISTERS_ENABLED;
 #endif /* NAMED_REGISTERS_ALLOWED */
+  register_is_deprecated = FALSE;
+  register_is_disallowed = FALSE;
 #if DO_IL_LOWERING
   pointer_to_member_call_optimization_allowed =
                            DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED;

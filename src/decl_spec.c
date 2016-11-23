@@ -8942,6 +8942,26 @@ which is processed after any other specifiers have also been consumed.
                        ec_storage_class_not_first, &pos_first_token);
       }  /* if */
     }  /* if */
+    if (first_token == tok_register) {
+      /* The use of "register" was deprecated in C++11 and removed from the
+         language in C++17.  Issue a warning or error as appropriate, but only
+         on the first use outside of a system header. */
+      if (!seq_is_in_system_header(pos_first_token.seq)) {
+        if (register_is_disallowed) {
+          pos_error(ec_register_keyword_disallowed, &pos_first_token);
+          (void)set_severity_for_error_number(
+                                           (int)ec_register_keyword_disallowed,
+                                           es_once, /*make_default=*/FALSE);
+          *err = TRUE;
+          goto done;
+        } else if (register_is_deprecated) {
+          pos_warning(ec_register_keyword_deprecated, &pos_first_token);
+          (void)set_severity_for_error_number(
+                                           (int)ec_register_keyword_deprecated,
+                                           es_once, /*make_default=*/FALSE);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     *decl_specifiers_seen |= DS_STORAGE_CLASS;
     state->storage_class_pos = pos_first_token;
     if (decl_pos_block != NULL) {

@@ -832,6 +832,16 @@ EXTERN a_boolean
 			    should be accepted. */
 #endif /* NAMED_REGISTERS_ALLOWED */
 
+EXTERN a_boolean
+                register_is_deprecated;
+                        /* TRUE if the "register" storage class specifier is
+                           deprecated (i.e., C++11). */
+
+EXTERN a_boolean
+                register_is_disallowed;
+                        /* TRUE if the "register" storage class specifier is
+                           removed from the language (i.e., C++17). */
+
 #if DO_IL_LOWERING
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed;

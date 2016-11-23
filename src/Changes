@@ -1,5 +1,16 @@
 Version 4.13
 
+11/23/16  [EDGcpfe/17683]
+C++17 compatibility: Remove deprecated use of "register" keyword
+
+Use of the "register" keyword as a storage-class specifier was deprecated in
+C++11 and has been removed from the language in C++17 (P0001R1).  A change has
+been made to issue a warning (C++11 mode) or error (C++17 mode) on the first
+use of the "register" keyword when used outside of a system header file.  These
+diagnostics are suppressed in GNU and Microsoft emulation modes (until such
+time as those compilers issue similar diagnostics).
+
+
 11/23/16  [EDGcpfe/17720]
 C++/CLI-mode abort due to handling of mangled names for boxed enum types
 
