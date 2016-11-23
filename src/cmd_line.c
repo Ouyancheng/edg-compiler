@@ -2613,6 +2613,7 @@ option values if they were not already set by a command line option.
   /* Visual Studio doesn't yet support these. */
   register_is_deprecated = FALSE;
   register_is_disallowed = FALSE;
+  operator_bool_increment_allowed = TRUE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3315,6 +3316,7 @@ default mode (e.g., exception handling).
         relaxed_range_based_for_enabled = TRUE;
       }  /* if */
       register_is_disallowed = TRUE;
+      operator_bool_increment_allowed = FALSE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -4664,6 +4666,7 @@ before this routine is called.
     }  /* if */
     register_is_deprecated = FALSE;
     register_is_disallowed = FALSE;
+    operator_bool_increment_allowed = TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -11165,6 +11168,7 @@ variables declared in cmd_line.h.
 #endif /* NAMED_REGISTERS_ALLOWED */
   register_is_deprecated = FALSE;
   register_is_disallowed = FALSE;
+  operator_bool_increment_allowed = TRUE;
 #if DO_IL_LOWERING
   pointer_to_member_call_optimization_allowed =
                            DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED;

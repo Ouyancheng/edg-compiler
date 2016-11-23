@@ -1,5 +1,20 @@
 Version 4.13
 
+11/23/16  [EDGcpfe/17684]
+C++17 compatibility: Remove deprecated operator++ for bool types
+
+A change has been made in C++17 mode (except for GNU and Microsoft emulation
+modes) to give an error on the use of a pre- or post-increment operator for
+bool types.  Such usage has been deprecated since the original 1998 standard
+and is now removed (in C++17 mode).  This example now elicits two errors with
+--c++17:
+
+  void f(bool b) {
+    b++;
+    ++b;
+  }
+
+
 11/23/16  [EDGcpfe/17683]
 C++17 compatibility: Remove deprecated use of "register" keyword
 

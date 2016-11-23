@@ -2879,6 +2879,7 @@ ec_template_arg_cannot_point_to_subobject;;"a nontype template argument cannot p
 ec_type_not_allowed_here;;"%t not allowed here"
 ec_register_keyword_disallowed;;"use of the \"register\" storage class specifier is not allowed in this mode"
 ec_register_keyword_deprecated;;"use of the \"register\" storage class specifier is deprecated in this mode"
+ec_incr_of_bool_not_allowed;;"incrementing a bool value is not allowed in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

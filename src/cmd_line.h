@@ -842,6 +842,11 @@ EXTERN a_boolean
                         /* TRUE if the "register" storage class specifier is
                            removed from the language (i.e., C++17). */
 
+EXTERN a_boolean
+                operator_bool_increment_allowed;
+                        /* TRUE if a bool type can be incremented.  This was
+                           removed from the language in C++17. */
+
 #if DO_IL_LOWERING
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed;

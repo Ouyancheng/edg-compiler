@@ -8867,10 +8867,14 @@ case.
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand->type)) {
-          /* "++" on bool in C++ is allowed but deprecated.  "--" on bool
-             is not allowed. */
+          /* "++" on bool in C++ is allowed in modes earlier than C++17, but
+             deprecated.  "--" on bool is not allowed. */
           if (is_increment) {
-            expr_pos_warning(ec_incr_of_bool_deprecated, &operand->position);
+            if (operator_bool_increment_allowed) {
+              expr_pos_warning(ec_incr_of_bool_deprecated, &operand->position);
+            } else {
+              error_in_operand(ec_incr_of_bool_not_allowed, operand);
+            }  /* if */
           } else {
             error_in_operand(ec_bool_type_not_allowed, operand);
           }  /* if */
@@ -9146,10 +9150,14 @@ and return the result in *result (or an error indication in *rcblock).
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand.type)) {
-          /* "++" on bool in C++ is allowed but deprecated.  "--" on bool
-             is not allowed. */
+          /* "++" on bool in C++ is allowed in modes earlier than C++17, but
+             deprecated.  "--" on bool is not allowed. */
           if (is_increment) {
-            expr_pos_warning(ec_incr_of_bool_deprecated, &operand.position);
+            if (operator_bool_increment_allowed) {
+              expr_pos_warning(ec_incr_of_bool_deprecated, &operand.position);
+            } else {
+              error_in_operand(ec_incr_of_bool_not_allowed, &operand);
+            }  /* if */
           } else {
             error_in_operand(ec_bool_type_not_allowed, &operand);
           }  /* if */
