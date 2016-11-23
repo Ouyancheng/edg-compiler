@@ -6504,18 +6504,17 @@ way, determine to which other IL entry this might correspond.
         case iek_type:
           {
             a_type_ptr  type = (a_type_ptr)scp;
-            a_boolean   is_alias = FALSE;
             if ((is_immediate_class_type(type) &&
                  type->variant.class_struct_union.is_template_class &&
                  class_type_supp(type)->template_arg_list != NULL) ||
                 (type->kind == (a_type_kind)tk_typeref &&
-                 (is_alias = type->variant.typeref.is_template_alias))) {
+                 type->variant.typeref.is_template_alias)) {
               a_symbol_ptr  inst = symbol_for(type);
               /* Flush the pending instantiations list, in case the type we're
                  interested in is on that list. */
               process_instantiation_if_pending(inst);
               if (trans_unit_corresp_of(type) == NULL) {
-                if (is_alias) {
+                if (type->kind == (a_type_kind)tk_typeref) {
                   record_alias_template_instantiation(inst);
                 } else {
                   record_class_template_instantiation(inst);
