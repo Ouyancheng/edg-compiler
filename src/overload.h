@@ -150,8 +150,8 @@ for try_to_convert_class_operand_to_builtin_type and
 conversion_from_class_possible.
 */
 #define BTK_INTEGRAL 0x1
-			/* Any integral type (includes enum in C but not in
-			   C++). */
+			/* Any integral type other than bool (includes enum in
+			   C but not in C++). */
 #define BTK_FLOATING 0x2
 			/* Any floating type. */
 #define BTK_POINTER 0x4

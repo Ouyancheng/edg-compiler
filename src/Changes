@@ -1,5 +1,27 @@
 Version 4.13
 
+11/23/16  [EDGcpfe/17785]
+Increment/decrement operators and bool types
+
+Decrementing a bool value using the "--" operator is invalid in all C++ modes.
+Previously, this was handled by issuing an error whenever an attempt was made
+to do so.  However, that is not sufficient in more complex overload resolution
+contexts.  Consider the following example:
+
+  struct S {
+    operator int&();
+    operator bool&();
+  } s;
+  bool b1 = s--;  // Previously an error.  Now okay.
+
+Previously, the front end considered how to convert s to an arithmetic type
+to which the "--" operator would then be applied.  That is ambiguous, however,
+since both int and bool are arithmetic types.  The standard, however, specifies
+that only arithmetic types other than bool should be considered: That removes
+the ambiguity above.  The front end now implements the standard rule (also for
+"++" in C++17 modes -- see the entry for EDGcpfe/17684).
+
+
 11/23/16  [EDGcpfe/17684]
 C++17 compatibility: Remove deprecated operator++ for bool types
 

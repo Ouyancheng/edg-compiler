@@ -1857,6 +1857,8 @@ for overload resolution.
 			/* Promoted arithmetic type. */
 #define ARITH_TYPE_CODE 'a'
 			/* Arithmetic type. */
+#define NONBOOL_ARITH_TYPE_CODE 'n'
+			/* Arithmetic type other than bool. */
 #define POINTER_TYPE_CODE 'P'
 			/* Any pointer type. */
 #define NULLPTR_TYPE_CODE 'N'
@@ -1897,6 +1899,9 @@ the type set when the set indicates multiple types, return "built-in".
 
   switch (builtin_types) {
     case BTK_INTEGRAL:
+      result = "non-bool integral";
+      break;
+    case BTK_INTEGRAL | BTK_BOOL:
       result = "integral";
       break;
     case BTK_FLOATING:
@@ -12906,7 +12911,9 @@ builtin_types.
   a_boolean in_set = FALSE;
 
   if (((builtin_types & BTK_INTEGRAL) &&
-                            is_integral_type(type)) ||
+                             is_integral_type(type) &&
+                             ((builtin_types & BTK_BOOL) ||
+                              !is_bool_type(type))) ||
       ((builtin_types & BTK_ENUM) &&
                              is_enum_type(type)) ||
       ((builtin_types & BTK_UNSCOPED_ENUM) &&
@@ -14000,10 +14007,13 @@ as its first operand.
         operand_type_pattern = "O;F";
         break;
       case onk_plus_plus:
+        /* "++" and "--" (prefix) take an arithmetic or object pointer lvalue
+           (bool is possibly excluded).  See below for postfix (which shows up
+           as a two-operand operator). */
+        operand_type_pattern = cpp17_mode ? "Ln;O" : "La;O";
+        break;
       case onk_minus_minus:
-        /* "++" and "--" (prefix) take an arithmetic or object pointer lvalue.
-           See below for postfix (which shows up as a two-operand operator). */
-        operand_type_pattern = "La;O";
+        operand_type_pattern = "Ln;O";
         break;
       default:
         unexpected_condition_str(
@@ -14109,11 +14119,13 @@ as its first operand.
         }  /* if */
         break;
       case onk_plus_plus:
-      case onk_minus_minus:
         /* "++" and "--" (postfix, which show up as two-operand operators)
-           take an arithmetic or pointer lvalue.  A second implied
-           operand is integer. */
-        operand_type_pattern = "Lai;Oi";
+           take an arithmetic or pointer lvalue (bool is possibly excluded).
+           A second implied operand is integer. */
+        operand_type_pattern = cpp17_mode ? "Lna;Oi" : "Lai;Oi";
+        break;
+      case onk_minus_minus:
+        operand_type_pattern = "Lni;Oi";
         break;
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes two
@@ -14209,6 +14221,13 @@ it fits that type description or can be converted to it.
       matches = cli_or_cx_enabled ? is_arithmetic_or_enum_type(type)
                                   : is_arithmetic_or_unscoped_enum_type(type);
       break;
+    case NONBOOL_ARITH_TYPE_CODE:
+      /* Same as ARITH_TYPE_CODE, except that bool is excluded. */
+      matches = !is_bool_type(type) &&
+                (cli_or_cx_enabled ?
+                                   is_arithmetic_or_enum_type(type)
+                                 : is_arithmetic_or_unscoped_enum_type(type));
+      break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
       break;
@@ -14262,7 +14281,7 @@ type_code.
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
-      builtin_types_allowed = BTK_INTEGRAL;
+      builtin_types_allowed = BTK_INTEGRAL | BTK_BOOL;
       break;
     case PTRDIFF_T_TYPE_CODE:
       builtin_types_allowed = BTK_PTRDIFF_T;
@@ -14275,6 +14294,9 @@ type_code.
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
+      builtin_types_allowed = BTK_INTEGRAL | BTK_BOOL | BTK_FLOATING;
+      break;
+    case NONBOOL_ARITH_TYPE_CODE:
       builtin_types_allowed = BTK_INTEGRAL | BTK_FLOATING;
       break;
     case POINTER_TYPE_CODE:
@@ -14304,8 +14326,8 @@ type_code.
       builtin_types_allowed = BTK_BOOL;
       break;
     case BOOL_EQUIVALENT_TYPE_CODE:
-      builtin_types_allowed = BTK_INTEGRAL | BTK_FLOATING | BTK_ENUM |
-                              BTK_POINTER | BTK_PTR_TO_MEMBER;
+      builtin_types_allowed = BTK_BOOL | BTK_INTEGRAL | BTK_ENUM |
+                              BTK_FLOATING | BTK_POINTER | BTK_PTR_TO_MEMBER;
       break;
     case CLASS_TYPE_CODE:
       /* Class types are not built-in types. */
@@ -17529,11 +17551,13 @@ error and set *processed to TRUE if the conversion is ambiguous.
   if (is_class_struct_union_type(operand->type)) {
     /* See if the class type can be converted to an acceptable built-in
        type. */
+    a_boolean  allow_explicit_conv_functions =
+                      (conv_context & CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS) != 0;
     if (conversion_from_class_possible(operand, specific_type,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
-                                       (builtin_types_allowed & BTK_BOOL) == 0,
+                                       !allow_explicit_conv_functions,
                                        /*ref_binding_type=*/(a_type*)NULL,
                                        /*is_direct_binding=*/FALSE,
                                        conv_context,

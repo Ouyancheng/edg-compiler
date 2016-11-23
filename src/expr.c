@@ -9745,15 +9745,10 @@ address), in which case a conversion is not used.
   /* Convert from a class type to an integer if necessary. */
   if (!C_mode() && !is_memory_operand &&
       is_class_struct_union_type(result.type)) {
-    try_to_convert_class_operand_to_builtin_type(&result, 
-                                                 (a_type_ptr)NULL,
-                                                 BTK_INTEGRAL |
-                                                 BTK_ENUM |
-                                                 BTK_FLOATING |
-                                                 BTK_POINTER |
-                                                 BTK_BOOL,
-                                                 CCO_DEFAULT,
-                                                 &processed);
+    try_to_convert_class_operand_to_builtin_type(
+              &result, (a_type_ptr)NULL,
+              BTK_INTEGRAL | BTK_ENUM | BTK_FLOATING | BTK_POINTER | BTK_BOOL,
+              CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS, &processed);
   }  /* if */
   if (!processed) {
     /* Non-class (i.e., normal) case. */
@@ -26165,16 +26160,16 @@ class type if necessary.  In modern C++ modes, this routine implements
       type_kind_set = BTK_BOOL;
     } else {
       type_kind_set = (a_builtin_type_kind_set)(BTK_INTEGRAL |
+                                                BTK_BOOL |
                                                 BTK_ENUM |
                                                 BTK_FLOATING |
                                                 BTK_POINTER |
                                                 BTK_PTR_TO_MEMBER);
     }  /* if */
-    try_to_convert_class_operand_to_builtin_type(result,
-                                                 (a_type_ptr)NULL,
-                                                 type_kind_set,
-                                                 CCO_DEFAULT,
-                                                 &processed);
+    try_to_convert_class_operand_to_builtin_type(
+                                      result, (a_type_ptr)NULL, type_kind_set,
+                                      CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
+                                      &processed);
   }  /* if */
   if (!processed) {
     /* Do lvalue --> rvalue and other transformations for the non-class
@@ -33339,13 +33334,18 @@ used for constant expressions.
 
   /* Convert from a class type to an integer if necessary. */
   if (!C_mode() && is_class_struct_union_type(operand->type)) {
-    a_builtin_type_kind_set type_kind_set = BTK_INTEGRAL;
-    /* Switch statements allow enums, including scoped enums. */
-    if (is_switch_expr) type_kind_set |= BTK_ENUM;
+    a_builtin_type_kind_set type_kind_set = BTK_INTEGRAL | BTK_BOOL;
+    a_conv_context_set      conv_context = CCO_DEFAULT;
+    if (is_switch_expr) {
+      /* Switch statements allow enums, including scoped enums. */
+      type_kind_set |= BTK_ENUM;
+    } else {
+      conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
+    }  /* if */
     try_to_convert_class_operand_to_builtin_type(operand,
                                                  (a_type_ptr)NULL,
                                                  type_kind_set,
-                                                 CCO_DEFAULT,
+                                                 conv_context,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -33636,10 +33636,14 @@ an enumerator.
       is_literal_type(operand->type)) {
     /* Try to convert a class operand to one of the built-in types
        in the set given, or to dest_type if that's non-NULL. */
+    a_conv_context_set  conv_context = CCO_CONVERTED_CONSTANT_EXPR;
+    if (!(cpp11_mode && is_array_bound)) {
+      conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
+    }  /* if */
     try_to_convert_class_operand_to_builtin_type(operand,
                                                  dest_type,
                                                  builtin_types,
-                                                 CCO_CONVERTED_CONSTANT_EXPR,
+                                                 conv_context,
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -39276,7 +39280,7 @@ The value of the constant is returned in *constant.
       if (cpp11_mode && is_array_bound) {
         btks = BTK_SIZE_T;
       } else {
-        btks = BTK_INTEGRAL | BTK_ENUM;
+        btks = BTK_INTEGRAL | BTK_BOOL | BTK_ENUM;
       }  /* if */
       process_converted_constant_expression(&result, specific_type, btks,
                                             is_array_bound, is_enum, constant);
@@ -39445,10 +39449,12 @@ expression context.  Return either *is_constant TRUE and a constant value in
       /* Prior to C++11, we just look for conversion to an integral or
          enumeration type (which hopefully will be unambiguous). */
       specific_type = (a_type_ptr)NULL;
-      btks = (BTK_INTEGRAL | BTK_ENUM);
+      btks = (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM);
     }  /* if */
-    try_to_convert_class_operand_to_builtin_type(&result, specific_type, btks,
-                                                 CCO_DEFAULT, &processed);
+    try_to_convert_class_operand_to_builtin_type(
+                                            &result, specific_type, btks,
+                                            CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
+                                            &processed);
   }  /* if */
   if (!processed) {
     /* Do lvalue --> rvalue and other transformations for the non-overloaded
@@ -41044,12 +41050,13 @@ alternative callable from outside, see rescan_expr_with_substitution.
     a_constant_ptr  con = local_constant();
     an_operand      orig_result;
     copy_operand(result, &orig_result);
-    process_converted_constant_expression(result, orig_expr_type,
-                                          (a_builtin_type_kind_set)
-                                                     (BTK_INTEGRAL | BTK_ENUM),
-                                          /*is_array_bound=*/FALSE,
-                                          /*is_enum=*/FALSE,
-                                          con);
+    process_converted_constant_expression(
+                                       result, orig_expr_type,
+                                       (a_builtin_type_kind_set)
+                                         (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM),
+                                       /*is_array_bound=*/FALSE,
+                                       /*is_enum=*/FALSE,
+                                       con);
     make_constant_operand(con, result);
     restore_operand_details(result, &orig_result);
     release_local_constant(&con);
@@ -42077,7 +42084,7 @@ selector type.
                                             NULL :
                                             switch_type,
                                         (a_builtin_type_kind_set)
-                                                   (BTK_INTEGRAL | BTK_ENUM),
+                                         (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM),
                                         /*is_array_bound=*/FALSE,
                                         /*is_enum=*/FALSE,
                                         constant);
