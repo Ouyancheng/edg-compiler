@@ -1771,10 +1771,20 @@ unit to another.
     class_type_is_nonprototype_template_instance(tp))) 
 
 /*
+Return TRUE for "generated" aliases: These can differ from one translation
+unit to another.
+*/
+#define is_generated_alias(tp)                                         \
+  ((tp)->kind == (a_type_kind)tk_typeref &&                            \
+   (tp)->variant.typeref.is_template_alias &&                          \
+   !(tp)->variant.typeref.is_prototype_instantiation)
+/*
 Return TRUE for "generated" types: These can differ from one translation
 unit to another.
 */
-#define is_generated_type(tp)  is_generated_class_type(tp)
+#define is_generated_type(tp)                                          \
+  (is_generated_class_type(tp) ||                                      \
+   is_generated_alias(tp))
 
 static a_type_ptr skip_generated_type(a_type_ptr  type)
 /*
@@ -2038,12 +2048,13 @@ tssp.
   add_instantiation(tssp, inst);
   /* Make sure that the instance has a correspondence that reflects the fact
      that this instance is the canonical entry. */
-  if (is_class_struct_union_symbol(inst)) {
-    a_type_ptr  class_type = type_symbol_type(inst);
-    if (trans_unit_corresp_of(class_type) == NULL) {
-      clear_type_correspondence(class_type, /*visited=*/TRUE);
+  if (is_class_struct_union_symbol(inst) ||
+      symbol_is(inst, sk_type)) {
+    a_type_ptr  type = type_symbol_type(inst);
+    if (trans_unit_corresp_of(type) == NULL) {
+      clear_type_correspondence(type, /*visited=*/TRUE);
     } else {
-      check_assertion(canonical_il_entry_of(class_type) == (char*)class_type);
+      check_assertion(canonical_il_entry_of(type) == (char*)type);
     }  /* if */
   } else if (is_function_symbol(inst)) {
     a_routine_ptr  routine = inst->variant.routine.ptr;
@@ -5471,6 +5482,59 @@ symbol supplement.
 }  /* record_class_template_instantiation */
 
 
+static void record_alias_template_instantiation(a_symbol_ptr  inst)
+/*
+Search for an instantiation that corresponds to inst in a prior translation
+unit.  If there is one, record a correspondence pointer; otherwise, add
+the instantiation to the list of instantiations in the associated template
+symbol supplement.
+*/
+{
+  a_type_ptr      alias_type = type_symbol_type(inst);
+  a_typeref_type_supplement_ptr
+                  ttsp = alias_type->variant.typeref.extra_info;
+  a_symbol_ptr    templ_sym;
+  a_template_symbol_supplement_ptr
+                  tssp,
+                  corresp_tssp;
+  a_template_ptr  templ,
+                  corresp_templ;
+
+  templ_sym = symbol_for(ttsp->assoc_template);
+  tssp = template_supplement_for_symbol(templ_sym);
+  templ = tssp->il_template_entry;
+  if (correspondence_checking_done &&
+      templ->source_corresp.is_class_member &&
+      trans_unit_corresp_of(templ) == NULL) {
+    /* This is a member template whose correspondence has not been established
+       yet, but we are in a phase where normal correspondence checking is
+       done.  Presumably, the parent class is still in the process of being
+       instantiated and hence establish_class_instantiation_corresp has not
+       been called yet to determine the correspondences of its members
+       (including that of this member template).  Go ahead and establish the
+       correspondence of the template now. */
+    find_template_correspondence(templ, /*parent_found=*/FALSE);
+  }  /* if */
+  corresp_templ = canonical_template_entry_of(templ);
+  /* Note that the call to canonical_template_entry_of may have resulted in a
+     correspondence value being set already. */
+  if (trans_unit_corresp_of(alias_type) == NULL) {
+    a_symbol_list_entry_ptr
+                    sym_entry = NULL;
+    corresp_tssp = symbol_for(corresp_templ)->variant.template_info;
+    sym_entry = find_class_template_instantiation(corresp_tssp, inst);
+    if (sym_entry == NULL) {
+      /* The instantiation was not found on the canonical list.  Add it now. */
+      mark_canonical_instantiation(corresp_tssp, inst);
+    } else {
+      /* Record the necessary correspondences. */
+      a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
+      set_type_corresp(alias_type, corresp_type);
+    }  /* if */
+  }  /* if */
+}  /* record_alias_template_instantiation */
+
+
 static a_symbol_list_entry_ptr find_function_template_instantiation(
                                        a_template_symbol_supplement_ptr  tssp,
                                        a_symbol_ptr                      inst)
@@ -5667,6 +5731,8 @@ template.
       record_class_template_instantiation(inst);
     } else if (is_function_symbol(inst)) {
       record_function_template_instantiation(inst);
+    } else if (symbol_is(inst, sk_type)) {
+      record_alias_template_instantiation(inst);
     }  /* if */
   }  /* if */
 done:
@@ -5695,6 +5761,8 @@ for those.
         record_class_template_instantiation(inst);
       } else if (is_function_symbol(inst)) {
         record_function_template_instantiation(inst);
+      } else if (symbol_is(inst, sk_type)) {
+        record_alias_template_instantiation(inst);
       }  /* if */
     }  /* if */
     free_list_of_symbol_list_entries(entries);
@@ -5716,6 +5784,8 @@ correspondence must be found, process it now.
         record_class_template_instantiation(inst);
       } else if (is_function_symbol(inst)) {
         record_function_template_instantiation(inst);
+      } else if (symbol_is(inst, sk_type)) {
+        record_alias_template_instantiation(inst);
       }  /* if */
       /* Clear this instantiation so it doesn't get re-processed by
          process_pending instantiations. */
@@ -6434,16 +6504,22 @@ way, determine to which other IL entry this might correspond.
         case iek_type:
           {
             a_type_ptr  type = (a_type_ptr)scp;
-            if (is_immediate_class_type(type) &&
-                type->variant.class_struct_union.is_template_class &&
-                type->variant.class_struct_union.extra_info
-                                                ->template_arg_list != NULL) {
-              a_symbol_ptr  inst = (a_symbol_ptr)scp->assoc_info;
+            a_boolean   is_alias = FALSE;
+            if ((is_immediate_class_type(type) &&
+                 type->variant.class_struct_union.is_template_class &&
+                 class_type_supp(type)->template_arg_list != NULL) ||
+                (type->kind == (a_type_kind)tk_typeref &&
+                 (is_alias = type->variant.typeref.is_template_alias))) {
+              a_symbol_ptr  inst = symbol_for(type);
               /* Flush the pending instantiations list, in case the type we're
                  interested in is on that list. */
               process_instantiation_if_pending(inst);
               if (trans_unit_corresp_of(type) == NULL) {
-                record_class_template_instantiation(inst);
+                if (is_alias) {
+                  record_alias_template_instantiation(inst);
+                } else {
+                  record_class_template_instantiation(inst);
+                }  /* if */
               }  /* if */
             } else {
               find_type_correspondence(type, (a_boolean)scp->is_class_member);
@@ -6465,10 +6541,8 @@ way, determine to which other IL entry this might correspond.
     } else if (trans_unit_corresp_of(root) == NULL) {
       /* A member of a class that was not yet visited. */
       if (root->variant.class_struct_union.is_template_class &&
-          root->variant.class_struct_union.extra_info
-                                                ->template_arg_list != NULL) {
-        record_class_template_instantiation(
-                              (a_symbol_ptr)root->source_corresp.assoc_info);
+          class_type_supp(root)->template_arg_list != NULL) {
+        record_class_template_instantiation(symbol_for(root));
       } else {
         find_type_correspondence(root, /*parent_found=*/FALSE);
       }  /* if */
@@ -6479,11 +6553,13 @@ way, determine to which other IL entry this might correspond.
         a_type_ptr  type = (a_type_ptr)scp;
         if (is_immediate_class_type(type) &&
             type->variant.class_struct_union.is_template_class &&
-            type->variant.class_struct_union.extra_info
-                                                ->template_arg_list != NULL) {
+            class_type_supp(type)->template_arg_list != NULL) {
           /* A member class template instantiation. */
-          record_class_template_instantiation(
-                                (a_symbol_ptr)type->source_corresp.assoc_info);
+          record_class_template_instantiation(symbol_for(type));
+        } else if (type->kind == (a_type_kind)tk_typeref &&
+                   type->variant.typeref.is_template_alias) {
+          /* A member alias template instantiation. */
+          record_alias_template_instantiation(symbol_for(type));
         } else {
           /* A regular member class of a class template instantiation. */
           find_type_correspondence(type, /*parent_found=*/TRUE);

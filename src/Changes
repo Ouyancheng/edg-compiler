@@ -1,5 +1,30 @@
 Version 4.13
 
+11/22/16  [EDGcpfe/17776]
+Spurious correspondence failures for alias template instantiations
+
+The front end previously did not handle correspondence processing for alias
+template instantiations.  This resulted in spurious correspondence errors when
+simultaneously compiling multiple translation units.  For example:
+
+  // TU1:
+  template<class T> struct S {
+    template<class U> using A = U*;
+  };
+  S<int> x;  // S<int>::A not instantiated.
+
+  // TU2:
+  template<class T> struct S {
+    template<class U> using A = U*;
+  };
+  S<int> y;
+  S<int>::A<void> p = nullptr;
+    // Instantiation of S<int>::A previously cause a correspondence error
+    // claiming S<int> is incompatible with the version in TU1.
+
+This is now fixed.
+
+
 11/21/16  [EDGcpfe/17751]
 Abort with nonconstant __builtin_offsetof construct in inline function
 
