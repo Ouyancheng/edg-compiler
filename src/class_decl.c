@@ -5990,8 +5990,9 @@ return_types_are_override_compatible.
      overridden members must be checked, but we don't perform that check now
      because the exception specification may be incomplete (it may still have
      to be generated or its operand hasn't been parsed yet). */
-  if (rout->is_prototype_instantiation) {
-    /* This check cannot be done reliably for prototype instantiations. */
+  if (class_state->is_nonreal_instantiation ||
+      rout->is_prototype_instantiation) {
+    /* This check cannot be done reliably for dependent instantiations. */
   } else {
     record_override_exception_check(overrider_sym, overridden_sym, source_pos);
   }  /* if */
