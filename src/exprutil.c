@@ -16280,6 +16280,7 @@ top of the call), and if so return TRUE; otherwise, return FALSE.
     /* Some operators ([] and postfix ++/--) may have a token left in the
        upcoming token stream. */
     a_token_kind  expected_token;
+    check_assertion(rout != NULL);
     switch (rout->variant.opname_kind) {
       case onk_subscript:
         expected_token = (a_token_kind)tok_rbracket;
