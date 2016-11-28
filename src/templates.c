@@ -4877,6 +4877,7 @@ A pointer to the head of the list is returned in tcsp.
      same as the namespace in which the template was defined. */
   cssp->referencing_namespace = 
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+  if (decl_state->is_specialization) ps_options |= PS_IS_SPECIALIZATION;
   scope_pushed = push_template_instantiation_scope(
                                     tssp->cache.decl_info,
 				    prototype_type,
@@ -5073,6 +5074,9 @@ user later during real instantiations.
       rout_ptr->storage_class = (a_storage_class)sc_unspecified;
       rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    }  /* if */
+    if (tssp->is_specific_definition) {
+      ps_options |= PS_IS_SPECIALIZATION;
     }  /* if */
     /* Push the template instantiation scope. */
     tcp = cache_for_template(tssp);

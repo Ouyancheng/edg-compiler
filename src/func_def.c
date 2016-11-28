@@ -1245,7 +1245,9 @@ of lambda expressions.
           use_microsoft_specialization_scope = TRUE;
         }  /* if */
         push_class_and_template_reactivation_scope_full(
-                               class_type, reactivate_template_params,
+                               class_type,
+                               reactivate_template_params,
+                               rout_ptr->is_specialized,
                                /*extend_namespace=*/TRUE,
                                /*force_new_context=*/TRUE);
         use_microsoft_specialization_scope =
@@ -3266,6 +3268,7 @@ empty statement block.
     push_class_and_template_reactivation_scope_full(
                                            class_type,
                                            /*reactivate_template_params=*/TRUE,
+                                           /*is_specialized=*/FALSE,
                                            /*extend_namespace=*/TRUE,
                                            /*force_new_context=*/TRUE);
     /* Push the scope for the new function itself. */

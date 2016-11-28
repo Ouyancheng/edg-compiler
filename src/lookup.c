@@ -2808,7 +2808,8 @@ that do normal id lookup processing.
   check_assertion(!C_mode());
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
-                            lookup_state->look_in_dependent_bases,
+                            lookup_state->look_in_dependent_bases ||
+                                                 ssep->treat_as_specialization,
                             lookup_state->look_in_interfaces,
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,

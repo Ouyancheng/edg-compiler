@@ -5667,6 +5667,7 @@ declared entity is known to not be a function.
   a_namespace_ptr           nsp;
   a_boolean		    is_in_class_specialization = FALSE;
   a_boolean		    is_specialization_or_instantiation;
+  a_boolean                 is_specialization = FALSE;
   a_boolean		    explicit_template_args_allowed = FALSE;
   a_boolean		    template_args_allowed_only_on_func_decl = FALSE;
   a_boolean		    ignore_explicit_template_args = FALSE;
@@ -5697,6 +5698,7 @@ declared entity is known to not be a function.
     options |= GID_IS_TEMPLATE_DECLARATION;
     if (input_flags & DI_IS_SPECIALIZATION) {
       options |= GID_IS_TEMPLATE_SPECIALIZATION;
+      is_specialization = TRUE;
     }  /* if */
   }  /* if */
   if (input_flags & DI_IS_FRIEND_DECL) {
@@ -6017,8 +6019,12 @@ declared entity is known to not be a function.
           if (reactivate_scope) {
             /* Reactivate the scope of the parent class.  It will be
                deactivated once the entire declarator has been scanned. */
-            push_class_reactivation_scope(*p_member_parent_type,
-                                          /*extend_namespace=*/FALSE);
+            push_class_and_template_reactivation_scope_full
+                           (*p_member_parent_type,
+                            /*reactivate_template_params=*/FALSE,
+                            is_specialization,
+                            /*extend_namespace=*/FALSE,
+                            /*force_new_context=*/FALSE);
             *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
             if (any_deferred_access_checks()) {
               /* Discard any access errors that occurred while scanning

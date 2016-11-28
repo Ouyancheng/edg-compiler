@@ -1,5 +1,24 @@
 Version 4.13
 
+11/28/16  [EDGcpfe/17604]
+Incorrect lookup in specializations class template members
+
+In the specialization of a member of a class template, names from base
+classes that are no longer dependent (as a result of the specialization)
+should be visible.  This was not true in some cases.  Now fixed.
+
+  template <class T> struct B {
+    typedef int I;
+  };
+  template <class T> struct A : B<T> {
+    template <class U> void f(U);
+  };
+  template <> template <class U> void A<int>::f(U) {
+    // Formerly, "I" was considered undefined
+    I i = 1;
+  }
+
+
 11/23/16  [EDGcpfe/17785]
 Increment/decrement operators and bool types
 

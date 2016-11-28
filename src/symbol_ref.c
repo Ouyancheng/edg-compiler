@@ -786,7 +786,8 @@ class, too, and thus must be flagged as requiring qualification.
     a_scope_depth init_depth = depth_scope_stack;
     a_scope_depth saved_previous_scope;
     push_class_and_template_reactivation_scope_full(
-                              base_class, /*reactivate_template_params=*/FALSE,
+                              base_class, /*is_specialization=*/FALSE,
+                              /*reactivate_template_params=*/FALSE,
                               /*extend_namespace=*/FALSE,
                               /*force_new_entry_for_namespace=*/TRUE);
     /* Skip scopes that were previously pushed for hidden name processing. */

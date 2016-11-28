@@ -111,6 +111,10 @@ typedef int a_push_scope_options_set;
 #define PS_IS_GENERIC_LAMBDA		0x200000
 			/* TRUE for an instantiation of a generic lambda or
 			   a context scope pushed for a generic lambda. */
+#define PS_IS_SPECIALIZATION		0x400000
+			/* TRUE if any class scopes that are pushed should be
+			   treated as specializations for name lookup
+			   purposes. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -1000,6 +1004,12 @@ typedef struct a_scope_stack_entry {
 			   attribute (this has an effect on the mangled
 			   name). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	treat_as_specialization:1;
+			/* This can be true for class reactivation scopes.
+			   When it is TRUE the class should be treated as
+			   having been specialized for name lookup purposes
+			   (i.e., dependent base classes should be included
+			   in the lookup). */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
@@ -2126,6 +2136,7 @@ extern void push_class_and_template_reactivation_scope(
 extern void push_class_and_template_reactivation_scope_full(
                                  a_type_ptr	class_type,
                                  a_boolean      reactivate_template_params,
+                                 a_boolean      is_specialization,
                                  a_boolean	extend_namespace,
                                  a_boolean      force_new_entry_for_namespace);
 

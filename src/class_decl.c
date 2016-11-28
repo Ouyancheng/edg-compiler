@@ -3523,8 +3523,8 @@ type must be complete.
          force_new_context is used because initializers can be instantiated
          on-demand when the enclosing context may not be correct. */
       push_class_and_template_reactivation_scope_full(
-                     parent_type, is_template_based, /*extend_namespace=*/TRUE,
-                     /*force_new_context=*/TRUE);
+                     parent_type, is_template_based, /*is_specialized=*/FALSE,
+                     /*extend_namespace=*/TRUE, /*force_new_context=*/TRUE);
       class_reactivated = TRUE;
     }  /* if */
     /* Class reactivation doesn't automatically switch the current memory
@@ -29364,8 +29364,12 @@ classes.
          a template instantiation scope is pushed for a specialization
          in Microsoft mode (above) because that process reactivates the
          enclosing class. */
-      push_class_reactivation_scope(sym_parent_class(tag_sym),
-                                    /*extend_namespace=*/TRUE);
+      push_class_and_template_reactivation_scope_full
+                           (sym_parent_class(tag_sym),
+                            /*reactivate_template_params=*/FALSE,
+                            is_template_specialization,
+                            /*extend_namespace=*/TRUE,
+                            /*force_new_context=*/FALSE);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ctsp->assembly_scope_index != 0) {
