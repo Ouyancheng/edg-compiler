@@ -1926,6 +1926,7 @@ the type set when the set indicates multiple types, return "built-in".
       result = "enum";
       break;
     case BTK_INTEGRAL | BTK_ENUM:
+    case BTK_INTEGRAL | BTK_ENUM | BTK_BOOL:
       result = "integral or enum";
       break;
     case BTK_UNSCOPED_ENUM:
