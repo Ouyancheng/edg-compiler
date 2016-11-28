@@ -1982,6 +1982,9 @@ Return a printable string describing a type code.
     case PROMOTED_ARITH_TYPE_CODE:
       str = "arithmetic";
       break;
+    case NONBOOL_ARITH_TYPE_CODE:
+      str = "non-bool arithmetic";
+      break;
     case POINTER_TYPE_CODE:
       str = "pointer";
       break;
