@@ -6597,6 +6597,7 @@ list.
                                                 rcblock->template_arg_list,
                                                 rcblock->template_param_list,
                                                 &eriep->saved_operand.position,
+                                                rcblock->ctws_state,
                                                 options);
   
   return sym;

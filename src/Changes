@@ -1,5 +1,22 @@
 Version 4.13
 
+11/29/16  [EDGcpfe/17080,EDGcpfe/17149,EDGcpfe/17217,EDGcpfe/17360]
+Internal error on function parameter pack reference in decltype
+
+An internal error could occur (in create_pack_instantiation_descr) if a
+function parameter pack was referenced in a decltype in the function
+declarator of a function template.  Now fixed.
+
+  template <typename ...> void g ();
+  template <typename> struct A {
+    static int i;
+  };
+  template <typename> struct B;
+  template <typename ... Ts>
+      auto f(Ts & ... args) -> B<decltype(A<decltype(g(args ...))>::i)>;
+  auto f (int)->decltype (f());
+
+
 11/28/16  [EDGcpfe/17781]
 Microsoft nonreal instantiations and overriding exception specifications
 

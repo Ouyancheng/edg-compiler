@@ -16908,6 +16908,7 @@ a_symbol_ptr symbol_for_template_param_unknown_entity_con_after_substitution(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_source_position        *source_pos,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_ctws_options_set       options)
 /*
 con is a ck_template_param constant for an unknown template-dependent
@@ -16924,7 +16925,6 @@ for the copy/substitution.
   a_symbol_ptr   sym;
   a_type_ptr     parent_type;
   a_boolean      copy_error = FALSE;
-  a_ctws_state   ctws_state;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                   (con->variant.template_param.kind ==
@@ -16972,7 +16972,11 @@ for the copy/substitution.
          was unqualified.  Leave the constant as it is. */
       sym = orig_sym;
     } else {
-      init_ctws_state(&ctws_state);
+      /* We don't want to inherit the parent_levels setting from the
+         ctws_state passed in. */
+      a_ctws_state   local_ctws_state;
+      local_ctws_state = *ctws_state;
+      local_ctws_state.parent_levels = 0;
       sym = copy_parent_type_with_substitution(orig_sym, parent_type,
                                                template_arg_list,
                                                template_param_list,
@@ -16980,7 +16984,7 @@ for the copy/substitution.
                                                /*is_type=*/FALSE,
                                                options,
                                                &copy_error,
-                                               &ctws_state);
+                                               &local_ctws_state);
       if (sym != NULL) sym = fundamental_symbol_of(sym);
       if (sym == orig_sym) {
         /* A reference like "X::operator T" will not be substituted by the call
@@ -16990,12 +16994,11 @@ for the copy/substitution.
         conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
         if (conv_type != NULL) {
           /* Substitute any template parameters in the conversion type. */
-          init_ctws_state(&ctws_state);
           conv_type = copy_type_with_substitution(conv_type, template_arg_list,
                                                   template_param_list,
                                                   source_pos,
                                                   options, &copy_error,
-                                                  &ctws_state);
+                                                  ctws_state);
           /* Look for a conversion function that converts to the new type. */
           sym = look_up_conversion_function(parent_type, conv_type,
                                             source_pos);
@@ -17063,6 +17066,7 @@ static a_constant_ptr copy_template_param_unknown_entity_con(
                                   a_boolean                is_template_ref,
                                   a_template_arg_ptr       ref_arg_list,
                                   a_source_position        *source_pos,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant)
@@ -17100,6 +17104,7 @@ name lookup options.
                                                            template_arg_list,
                                                            template_param_list,
                                                            source_pos,
+                                                           ctws_state,
                                                            options);
   if (sym == NULL) {
     /* The substituted parent class has no member of the specified name. */
@@ -17382,7 +17387,8 @@ name lookup options.
                                                   /*is_address=*/FALSE,
                                                   /*is_template_ref=*/FALSE,
                                                   (a_template_arg_ptr)NULL,
-                                                  source_pos, options,
+                                                  source_pos, ctws_state,
+                                                  options,
                                                   copy_error, constant);
         break;
       case tpck_unknown_function:
@@ -17394,7 +17400,8 @@ name lookup options.
                                                   /*is_address=*/TRUE,
                                                   /*is_template_ref=*/FALSE,
                                                   (a_template_arg_ptr)NULL,
-                                                  source_pos, options,
+                                                  source_pos, ctws_state,
+                                                  options,
                                                   copy_error, constant);
         break;
       case tpck_cast:
@@ -17473,7 +17480,8 @@ name lookup options.
                                  /*is_address=*/TRUE,
                                  /*is_template_ref=*/FALSE,
                                  (a_template_arg_ptr)NULL,
-                                 source_pos, options,
+                                 source_pos, ctws_state,
+                                 options,
                                  copy_error, constant);
         break;
       case tpck_sizeof:
@@ -17628,7 +17636,8 @@ name lookup options.
                                  /*is_address=*/TRUE,
                                  /*is_template_ref=*/TRUE,
                                  arg_list,
-                                 source_pos, options,
+                                 source_pos, ctws_state,
+                                 options,
                                  copy_error, constant);
         }
         break;

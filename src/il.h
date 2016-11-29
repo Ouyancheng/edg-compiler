@@ -1944,6 +1944,7 @@ symbol_for_template_param_unknown_entity_con_after_substitution(
                                  a_template_arg_ptr       template_arg_list,
                                  struct a_template_param  *template_param_list,
                                  a_source_position        *source_pos,
+                                 a_ctws_state_ptr         ctws_state,
                                  a_ctws_options_set       options);
 
 extern a_constant_ptr copy_template_param_con_with_substitution(
