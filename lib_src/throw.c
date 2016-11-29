@@ -1460,11 +1460,14 @@ a try block with a catch that matches the type of the object thrown.
         destroy_thrown_object(tsep);
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
-      /* nearest_enclosing_try_block likely points to automatic storage that
-         will become invalid after the longjmp, so reset its value. */
-      if (curr_throw_stack_entry->nearest_enclosing_try_block == ehsep) {
-        curr_throw_stack_entry->nearest_enclosing_try_block = NULL;
-      }  /* if */
+      /* Make sure that nearest_enclosing_try_block is reset (it likely points
+         to automatic storage that will become invalid after the longjmp). */
+      a_throw_stack_entry_ptr	tsep;
+      for (tsep = curr_throw_stack_entry; tsep != NULL; tsep = tsep->next) {
+        if (tsep->nearest_enclosing_try_block == ehsep) {
+          tsep->nearest_enclosing_try_block = NULL;
+        }  /* if */
+      }  /* for */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Do nothing. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
