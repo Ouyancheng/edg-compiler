@@ -1,5 +1,20 @@
 Version 4.13
 
+11/29/16 [EDGcpfe/17491]
+constexpr pointer-to-member expressions
+
+The front end previously issued a spurious "must have a constant value"
+diagnostic for a pointer-to-member expression in which the object expression
+is a constexpr value. This is now fixed. For example, with --c++11:
+
+  struct A {
+   int i;
+   static constexpr int A::*p = &A::i;
+  };
+  constexpr A a = { 42 };
+  static_assert(a.*A::p == 42, "");  // Previously an error, now accepted
+
+
 11/29/16  [EDGcpfe/17080,EDGcpfe/17149,EDGcpfe/17217,EDGcpfe/17360]
 Internal error on function parameter pack reference in decltype
 

@@ -19135,6 +19135,27 @@ it might produce an error).
             processed = TRUE;
           }  /* if */
           break;
+        case eok_pm_field:
+          { a_boolean saved_is_lvalue = node->is_lvalue;
+            a_boolean saved_is_xvalue = node->is_xvalue;
+            /* Set the node to be a prvalue for the attempt at folding. */
+            node->is_lvalue = FALSE;
+            node->is_xvalue = FALSE;
+            if (constexpr_enabled && allow_folding != NULL &&
+                fold_constexpr_expr(node, /*treat_as_object=*/FALSE,
+                                    err_pos, result_con)) {
+              /* x.*y, where x is a constexpr object. */
+              con_expr_value = alloc_shareable_constant(result_con);
+              node->type = prvalue_node_type;
+              processed = TRUE;
+            } else {
+              /* The expression could not be folded; restore the original
+                 value category. */
+              node->is_lvalue = saved_is_lvalue;
+              node->is_xvalue = saved_is_xvalue;
+            }  /* if */
+          }
+          break;
         case eok_indirect:
           op1 = skip_parens(op1);
           if (allow_folding != NULL &&
