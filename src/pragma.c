@@ -934,6 +934,12 @@ there is additional processing to be done.
       pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
       pp->entity.ptr = entity_ptr;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("add_pragma_to_il")) {
+      fprintf(f_debug, "Adding pragma at seq=%u, col=%u to depth %d\n",
+              pp->position.seq, pp->position.column, scope_depth);
+    }  /* if */
+#endif /* DEBUG */
     /* coverity[var_deref_model] */
     add_to_pragma_list(pp, scope_depth, scp);
     if (scope_depth != NO_SCOPE_DEPTH) {

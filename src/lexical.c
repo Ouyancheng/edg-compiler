@@ -14750,7 +14750,6 @@ identifier, else to NULL.
   a_token_cache 	cache;
   a_token_kind 		ntoken;
   a_cached_token_ptr	ctp = NULL;
-  a_boolean		saved_caching_tokens = caching_tokens;
 
   db_enter(5, "next_token_full");
   if (in_preprocessing_directive && curr_token == tok_newline) {
@@ -14807,7 +14806,6 @@ identifier, else to NULL.
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
-    caching_tokens = TRUE;
     /* Fetch the next token and remember its kind. */
     ntoken = get_token();
     /* If seq is not NULL, return the sequence number of the next token. */
@@ -14824,7 +14822,6 @@ identifier, else to NULL.
        the rescan list. */
     rescan_cached_tokens(&cache);
     error_position = saved_error_position;
-    caching_tokens = saved_caching_tokens;
   }  /* if */
 done:
   db_exit();
