@@ -5,11 +5,11 @@ Inadvertent destruction of rethrown object
 
 As a result of the changes dated 6/2/05, it's possible for a rethrown object to
 be inadvertently destroyed prematurely during the rethrow process.  This can
-happen if same automatic storage address is pointed to by __curr_eh_stack_entry
-when __throw and __rethrow are invoked.  In the following example (in some
-configurations), the same stack addresses are used in both foo and bar for
-the exception handling data structures, resulting in a run-time assertion
-failure in __destroy_exception_object:
+happen if the same automatic storage address is pointed to by
+__curr_eh_stack_entry when __throw and __rethrow are invoked.  In the following
+example (in some configurations), the same stack addresses are used in both foo
+and bar for the exception handling data structures, resulting in a run-time
+assertion failure in __destroy_exception_object:
 
   void foo() {
     try {
