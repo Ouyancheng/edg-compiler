@@ -9703,11 +9703,11 @@ the class symbol supplement points to the partial specialization).
 
 
 void push_class_and_template_reactivation_scope_full(
-                                 a_type_ptr	class_type,
-                                 a_boolean      reactivate_template_params,
-                                 a_boolean      is_specialization,
-				 a_boolean	extend_namespace,
-                                 a_boolean      force_new_context)
+				a_type_ptr	class_type,
+				a_boolean	reactivate_template_params,
+				a_boolean	is_specialization,
+				a_boolean	extend_namespace,
+				a_boolean	force_new_context)
 /*
 Push the scopes needed to reactivate the context of the specified class.
 If the class is a template class, or a class defined within a template class,

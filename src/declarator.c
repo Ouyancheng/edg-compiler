@@ -5667,7 +5667,7 @@ declared entity is known to not be a function.
   a_namespace_ptr           nsp;
   a_boolean		    is_in_class_specialization = FALSE;
   a_boolean		    is_specialization_or_instantiation;
-  a_boolean                 is_specialization = FALSE;
+  a_boolean		    is_specialization = FALSE;
   a_boolean		    explicit_template_args_allowed = FALSE;
   a_boolean		    template_args_allowed_only_on_func_decl = FALSE;
   a_boolean		    ignore_explicit_template_args = FALSE;

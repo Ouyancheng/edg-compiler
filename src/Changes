@@ -56,7 +56,7 @@ instantiations.
 
 
 11/28/16  [EDGcpfe/17604]
-Incorrect lookup in specializations class template members
+Incorrect lookup in specializations of class template members
 
 In the specialization of a member of a class template, names from base
 classes that are no longer dependent (as a result of the specialization)
