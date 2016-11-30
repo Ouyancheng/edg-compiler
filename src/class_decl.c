@@ -10023,7 +10023,7 @@ When templates_only is TRUE, only function templates members are considered.
 
   if (other_match != NULL) *other_match = NULL;
   /* Get the symbol list if this is an overloaded function. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+  if (symbol_is(sym, sk_overloaded_function)) {
     sym = sym->variant.overloaded_function.symbols;
     is_overloaded_function = TRUE;
   } else {
@@ -10058,7 +10058,7 @@ When templates_only is TRUE, only function templates members are considered.
       new_rts->this_class = new_this_class;
       new_function_is_qualified = (new_quals != TQ_NONE);
     }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_projection) {
+    if (symbol_is(sym, sk_projection)) {
       /* Ignore projection symbols, except those resulting from a using-
          declaration that project a member function or member function
          template. */
@@ -10067,22 +10067,22 @@ When templates_only is TRUE, only function templates members are considered.
            may have to remove this symbol. */
         fund_sym = fundamental_symbol_of(sym);
       }  /* if */
-      if (fund_sym->kind != (a_symbol_kind)sk_function_template &&
-          fund_sym->kind != (a_symbol_kind)sk_member_function) {
+      if (symbol_is(fund_sym, sk_function_template) &&
+          symbol_is(fund_sym, sk_member_function)) {
         continue;
       }  /* if */
+    } else {
+      check_assertion(symbol_is(fund_sym, sk_function_template) ||
+                      symbol_is(fund_sym, sk_member_function));
     }  /* if */
-    check_assertion(fund_sym->kind == (a_symbol_kind)sk_function_template ||
-                    fund_sym->kind == (a_symbol_kind)sk_member_function);
     /* If looking only for templates, ignore nontemplates.  When looking
        for nontemplates, ignore templates. */
-    if ((fund_sym->kind == (a_symbol_kind)sk_function_template) !=
-                                                             templates_only) {
+    if (symbol_is(fund_sym, sk_function_template) != templates_only) {
       continue;
     }  /* if */
     /* Get the routine pointer associated with either the routine symbol
        or the function template symbol. */
-    if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+    if (symbol_is(fund_sym, sk_function_template)) {
       routine = fund_sym->variant.template_info->variant.function.routine;
       orig_type = routine->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED

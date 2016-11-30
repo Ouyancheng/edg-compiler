@@ -6841,7 +6841,7 @@ check_typerefs:
         compat = TRUE;
         goto done;
       } else if ((flags & TCF_CHECKING_DEDUCTION_RESULT) &&
-          adjust_comparison_types_for_decltype(&type_1, &type_2)) {
+                 adjust_comparison_types_for_decltype(&type_1, &type_2)) {
         /* When checking a deduction result, we have to allow some slight
            differences around a typeref for a decltype.  The decltype might
            have been applied to an lvalue in one case and an rvalue in the

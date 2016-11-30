@@ -1,5 +1,27 @@
 Version 4.13
 
+11/30/16 [EDGcpfe/17714]
+Spurious GNU-mode error on functional-notation cast in function signature
+
+For certain member functions of class templates whose signature involves a
+functional-notation cast, the front end was unable to match an out-of-class
+definition with the corresponding in-class declaration in GNU C++ mode.
+For example:
+
+  struct I { I(int); };
+  struct X { int f(I); };
+  template<typename T> struct S {
+    X x();
+    auto m(int i)->decltype(x().f(I(i)));
+  };
+  template <typename T>
+    auto S<T>::m(int i)->decltype(x().f(I(i))) { return 0; }
+      // Previously triggered a spurious error because the "I(i)" cast could
+      // not be matched to the identical cast in the in-class declaration.
+
+This is now fixed.
+
+
 11/30/16 [EDGcpfe/17804]
 Abort on invocation of compute_has_nothrow_copy
 
