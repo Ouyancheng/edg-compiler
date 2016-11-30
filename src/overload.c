@@ -14126,7 +14126,7 @@ as its first operand.
         /* "++" and "--" (postfix, which show up as two-operand operators)
            take an arithmetic or pointer lvalue (bool is possibly excluded).
            A second implied operand is integer. */
-        operand_type_pattern = cpp17_mode ? "Lna;Oi" : "Lai;Oi";
+        operand_type_pattern = cpp17_mode ? "Lni;Oi" : "Lai;Oi";
         break;
       case onk_minus_minus:
         operand_type_pattern = "Lni;Oi";
@@ -14227,10 +14227,7 @@ it fits that type description or can be converted to it.
       break;
     case NONBOOL_ARITH_TYPE_CODE:
       /* Same as ARITH_TYPE_CODE, except that bool is excluded. */
-      matches = !is_bool_type(type) &&
-                (cli_or_cx_enabled ?
-                                   is_arithmetic_or_enum_type(type)
-                                 : is_arithmetic_or_unscoped_enum_type(type));
+      matches = !is_bool_type(type) && is_arithmetic_type(type);
       break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
