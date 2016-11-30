@@ -6615,6 +6615,14 @@ which these types are lacking).
     /* An anonymous union.  The front end does not generate discriminators
        for these. */
     result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_immediate_class_type(type) &&
+             cli_class_type_kind_is(type, cctk_value) &&
+             class_type_supp(type)->corresponding_basic_type != NULL) {
+    /* Box types created for C++/CLI enum types are not given discriminators
+       by the front end. */
+    result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
 }  /* unnamed_type_has_no_discriminator */
