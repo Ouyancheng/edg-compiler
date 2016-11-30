@@ -5961,6 +5961,7 @@ check_typerefs:
       if (tp1->variant.typeref.is_nonreal) is_nonreal1 = TRUE;
       tp1 = tp1->variant.typeref.type;
     } /* while */
+    if (tp1->kind == (a_type_kind)tk_template_param) is_nonreal1 = TRUE;
     while (tp2->kind == (a_type_kind)tk_typeref) {
       if (!has_name(tp2)) {
         if (typeref_is_type_operator(tp2)) {
@@ -5972,10 +5973,25 @@ check_typerefs:
       if (tp2->variant.typeref.is_nonreal) is_nonreal2 = TRUE;
       tp2 = tp2->variant.typeref.type;
     } /* while */
-    if (is_nonreal1 != is_nonreal2 &&
-        type_1->kind == (a_type_kind)tk_typeref &&
+    if (tp2->kind == (a_type_kind)tk_template_param) is_nonreal2 = TRUE;
+    if (type_1->kind == (a_type_kind)tk_typeref &&
         type_2->kind == (a_type_kind)tk_typeref) {
-      goto done;
+      if (is_nonreal1 != is_nonreal2) {
+        goto done;
+      } else if (is_nonreal1 &&
+                 type_1->source_corresp.is_class_member &&
+                 (!type_2->source_corresp.is_class_member ||
+                  !f_identical_types(parent_class_of(type_1),
+                                     parent_class_of(type_2), flags))) {
+        /* Nonreal alias template instances are considered different if their
+           parent types are different.  E.g.:
+             template<class T> struct S {
+               template<class U> using A = decltype(U()+T());
+             };
+           In a case like this, S<int>::A<X> and S<char>::A<X> are considered
+           distinct if X is dependent. */
+        goto done;
+      }  /* if */
     }  /* if */
     if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
         !matching_type_qualifier_sets(tqs1, tqs2)) {

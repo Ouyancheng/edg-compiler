@@ -1,5 +1,14 @@
 Version 4.13
 
+11/30/16 [EDGcpfe/17737]
+Incorrect type comparisons for certain dependent alias template instantiations
+
+The front end sometimes treated as identical two distinct template-dependent
+alias template instantiations.  This issue is now fixed.  Known situations
+where this bug manifested itself are fairly complex and involve simultaneously
+compiling multiple translation units.
+
+
 11/29/16 [EDGcpfe/17491]
 constexpr pointer-to-member expressions
 
