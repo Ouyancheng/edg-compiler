@@ -2742,15 +2742,6 @@ extern void fix_type_list_ordering_problems(void);
 
 extern a_targ_alignment field_alignment_for(a_type_ptr  type);
 
-extern void il_reset(void);
-
-extern void il_one_time_init(void);
-
-extern void il_trans_unit_init(void);
-
-extern void il_init(void);
-
-
 #if UPC_EXTENSIONS_ALLOWED
 
 #define upc_dynamic_threads() (upc_num_threads == 0)
@@ -2947,6 +2938,19 @@ extern void walk_parents(a_source_correspondence      *scp,
                          a_walk_parent_callback       callback,
                          a_walk_parents_control_block *wpcb,
                          a_walk_parents_flag_set      options);
+
+extern void register_delayed_object_lifetime_pop(void);
+
+extern void perform_delayed_object_lifetime_pop(void);
+
+extern void il_reset(void);
+
+extern void il_one_time_init(void);
+
+extern void il_trans_unit_init(void);
+
+extern void il_init(void);
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

@@ -8814,10 +8814,20 @@ being popped.
                            "for function or block scope");
       if ((kind == (a_scope_kind)sck_block &&
            (options & PS_NOT_FINAL_POP) != 0) ||
-          ssep->is_reactivation) {
+          ssep->is_reactivation ||
+          scope_stack[depth_innermost_function_scope].assoc_routine
+                                                  ->contains_generic_lambda) {
         /* This is not the "final pop" of the local scope, and so we shouldn't
            perform the usual cleanup operations associated with popping the
            lifetime. */
+        if (scope_stack[depth_innermost_function_scope].assoc_routine
+                                                  ->contains_generic_lambda &&
+            !ssep->is_reactivation) {
+          /* For scopes containing generic lambdas we cannot determine a
+             specific "final pop".  We therefore record an entry to perform
+             the cleanup at the end of compilation. */
+          register_delayed_object_lifetime_pop();
+        }  /* if */
         curr_object_lifetime = curr_object_lifetime->parent_lifetime;
         if (kind == (a_scope_kind)sck_function) {
           curr_object_lifetime->has_implicit_child = TRUE;

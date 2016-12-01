@@ -3636,12 +3636,9 @@ Do processing required when done with a block scope.
 {
   /* Terminate the control flow block that was previously started. */
   add_to_control_flow_descr_list(
-      alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
-  /* Pop the block scope.  If there is a possibility that the scope contains
-     a generic lambda, do not assert that this is the "final pop" since the
-     scope may be reactivated to instantiate that generic lambda. */
-  pop_block_scope(/*is_final_pop=*/
-                           !current_routine_entry()->contains_generic_lambda);
+       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
+  /* Pop the block scope. */
+  pop_block_scope(/*is_final_pop=*/TRUE);
 }  /* finish_block_scope_for_enhanced_for */
 
 

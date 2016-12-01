@@ -1,5 +1,17 @@
 Version 4.13
 
+12/1/16  [EDGcpfe/17608]
+Generic lambdas and local object lifetimes
+
+The front end previously did not correctly handle object lifetimes in local
+scopes that may be reactivated due to the presences of generic lambdas.  This
+manifested itself typically as an internal error in pop_scope_full (in file
+scope_stk.c, with message "unexpected curr_object_lifetime for function or
+block scope").  The changes for EDGcpfe/17300 attempted to address this issue,
+but did so incompletely (fixing some cases, but breaking some others).  A more
+comprehensive change is now implemented.
+
+
 12/1/16  [EDGcpfe/17812]
 Performance issue with hashing of template argument lists
 
