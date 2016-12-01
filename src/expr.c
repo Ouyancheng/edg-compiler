@@ -23790,15 +23790,20 @@ freed by this routine.
          (scope_is(&scope_stack_top(), sck_func_prototype) &&
           expr_stack->is_default_arg_expression))) ||
        (!expr_stack->potentially_evaluated &&
-        scope_is(&scope_stack_top(), sck_template_declaration))) &&
+        scope_is(&scope_stack_top(), sck_template_declaration)) ||
+       (gnu_version < 30400 && !cpp11_sfinae_enabled &&
+        scope_is(&scope_stack_top(), sck_func_prototype) &&
+        curr_expr_kind_is(ek_template_arg))) &&
       !is_reference_type(type_cast_to)) {
     /* The GNU compiler performs limited checking for functional notation
        casts in most template-dependent contexts, even if the type cast to
        isn't actually dependent.  We approximate this by treating the cast
-       as dependent in local scopes and in function prototype scopes.
+       as dependent in local scopes and in default function call arguments.
        However, we exclude rescan contexts since those can affect deduction
        and/or mangling (i.e., in function prototype scopes only default call
-       arguments get this treatment). */
+       arguments get this treatment).  An exception to the latter are casts
+       in template arguments for early GNU modes (which don't perform C++11
+       rescanning anyway): They appear to be mangled as dependent casts. */
     force_dependent = TRUE;
   }  /* if */
   if (ctor_case && !force_dependent && !could_be_dependent) {
