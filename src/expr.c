@@ -23786,7 +23786,9 @@ freed by this routine.
   if (gpp_mode && !clang_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
       ((!expr_stack->possible_rescan_context &&
-        is_local_scope_kind(scope_stack_top().kind)) ||
+        (is_local_scope_kind(scope_stack_top().kind) ||
+         (scope_is(&scope_stack_top(), sck_func_prototype) &&
+          expr_stack->is_default_arg_expression))) ||
        (!expr_stack->potentially_evaluated &&
         scope_is(&scope_stack_top(), sck_template_declaration))) &&
       !is_reference_type(type_cast_to)) {
