@@ -10067,8 +10067,8 @@ When templates_only is TRUE, only function templates members are considered.
            may have to remove this symbol. */
         fund_sym = fundamental_symbol_of(sym);
       }  /* if */
-      if (symbol_is(fund_sym, sk_function_template) &&
-          symbol_is(fund_sym, sk_member_function)) {
+      if (!symbol_is(fund_sym, sk_function_template) &&
+          !symbol_is(fund_sym, sk_member_function)) {
         continue;
       }  /* if */
     } else {
