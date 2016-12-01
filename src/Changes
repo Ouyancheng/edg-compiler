@@ -1,5 +1,13 @@
 Version 4.13
 
+12/1/16  [EDGcpfe/17812]
+Performance issue with hashing of template argument lists
+
+Hashing of template arguments lists did not take into account the order
+of the types, so <A,B,C> would produce the same value as <C,B,A>.  This
+could result in poor performance for certain kinds of usage.  Now fixed.
+
+
 12/1/16  [EDGcpfe/17732]
 Missing immediate pragma IL entries
 

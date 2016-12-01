@@ -6012,11 +6012,8 @@ Return a hash value for the indicated template argument list.
         }  /* if */
         break;
       case tak_nontype:
-        /* The argument position is factored in so that <1,2,3> hashes
-           differently than <3,2,1>. */
         if (tap->variant.constant != NULL) {
-          hash_value = hash_value +
-              ((1 + hash_constant(tap->variant.constant)) << ((pos * 3) % 32));
+          hash_value = hash_constant(tap->variant.constant) + 37;
         }  /* if */
         break;
       case tak_template:
@@ -6030,6 +6027,9 @@ Return a hash value for the indicated template argument list.
         break;
       default: unexpected_condition(); break;
     }  /* switch */
+    /* The argument position is factored in so that <1,2,3> hashes
+       differently than <3,2,1>. */
+    hash_value = hash_value + (hash_value * (pos+1));
   }  /* for */
   return hash_value;
 }  /* hash_template_arg_list */
@@ -6040,7 +6040,11 @@ static a_text_buffer_ptr
 			/* A text buffer used by hash_class_type */
 
 
-static a_hash_value hash_class_type(a_type_ptr	type)
+/* Forward declaration. */
+static a_hash_value hash_class_type(a_type_ptr	type);
+
+
+static a_hash_value hash_class_type_full(a_type_ptr	type)
 /*
 Return a hash value for the indicated class type.   Store the hash value in
 the class type supplement so that it does not have to be recomputed
@@ -6070,11 +6074,38 @@ and hashing the resulting string.
   if (ctsp->template_arg_list != NULL) {
     hash_value += hash_template_arg_list(ctsp->template_arg_list);
   }  /* if */
+  if (type->source_corresp.is_class_member &&
+      type->variant.class_struct_union.is_template_class) {
+    /* The parent class name will be included above, but for classes based
+       on templates, recursively include any parent classes to make sure
+       the template arguments of the parent are included. */
+    a_type_ptr	parent_class = scp_parent_class(&type->source_corresp);
+    check_assertion(parent_class != NULL);
+    hash_value += hash_class_type(parent_class);
+  }  /* if */
   /* A zero value is used to indicate that the hash has not been computed
      yet, so make sure the value is not zero. */
   if (hash_value == 0) hash_value++;
   /* Save the computed hash value. */
   ctsp->hash_value = hash_value;
+  return hash_value;
+}  /* hash_class_type_full */
+
+
+static a_hash_value hash_class_type(a_type_ptr	type)
+/*
+Compute the hash value for a class type, or return a previously computed
+value.  Return the hash value.
+*/
+{
+  a_class_type_supplement_ptr ctsp = class_type_supp(type);
+  a_hash_value                hash_value = 0;
+
+  if (ctsp->hash_value == 0) {
+    hash_value = hash_class_type_full(type);
+  } else {
+    hash_value = ctsp->hash_value;
+  }  /* if */
   return hash_value;
 }  /* hash_class_type */
 
@@ -6145,13 +6176,18 @@ to refine the hash value developed in hash_constant.
       {
         a_routine_type_supplement_ptr	rtsp;
         a_param_type_ptr		ptp;
+        uint32_t                        pos;
         rtsp = type->variant.routine.extra_info;
         hash_value = 0;
         if (type->variant.routine.return_type != NULL) {
           hash_value = hash_type(type->variant.routine.return_type);
         }  /* if */
-        for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+        for (ptp = rtsp->param_type_list, pos = 0; ptp != NULL;
+             ptp = ptp->next, pos++) {
           hash_value += hash_type(ptp->type);
+          /* The argument position is factored in so that (x,y,z) hashes
+             differently than (z,y,x). */
+          hash_value = hash_value + (hash_value * (pos+1));
         }  /* for */
         if (rtsp->this_class != NULL) {
           hash_value += hash_type(rtsp->this_class);
