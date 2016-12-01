@@ -1,5 +1,12 @@
 Version 4.13
 
+12/1/16  [EDGcpfe/17732]
+Missing immediate pragma IL entries
+
+A change in version 4.12 could cause immediate pragmas that should be
+automatically included in the IL to be omitted.  Now fixed.
+
+
 11/30/16 [EDGcpfe/17714]
 Spurious GNU-mode error on functional-notation cast in function signature
 
