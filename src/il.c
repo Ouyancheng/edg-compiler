@@ -6029,7 +6029,9 @@ Return a hash value for the indicated template argument list.
     }  /* switch */
     /* The argument position is factored in so that <1,2,3> hashes
        differently than <3,2,1>. */
-    hash_value = hash_value + (hash_value * (pos+1));
+    if (tap->kind != (a_templ_arg_kind)tak_start_of_pack_expansion) {
+      hash_value = hash_value + (hash_value * (pos+1));
+    }  /* if */
   }  /* for */
   return hash_value;
 }  /* hash_template_arg_list */
