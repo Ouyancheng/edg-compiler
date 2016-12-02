@@ -1,5 +1,21 @@
 Version 4.13
 
+12/2/16  [EDGcpfe/17086]
+Spurious error on [[noreturn]] when GNU extensions disabled
+
+For certain member function definitions, the front end issued a spurious error
+when attempting to specify the C++11 attribute [[noreturn]] on that definition
+if GNU_EXTENSIONS_ALLOWED is FALSE.  For example:
+
+  struct S {
+    [[noreturn]] operator int();
+  };
+  [[noreturn]] S::operator int() { return 42; }
+    // Previously elicited an error in some configurations.  Now okay.
+
+This is now fixed.
+
+
 12/2/16  [EDGcpfe/17643]
 Spurious error on non-evaluated access to variable in C++11 mode
 

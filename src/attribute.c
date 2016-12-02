@@ -8367,9 +8367,6 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
                                         src_rtsp->explicit_calling_convention;
           }  /* if */
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-          if (src_rtsp->does_not_return) {
-            dst_rtsp->does_not_return = TRUE;
-          }  /* if */
           if (src_rtsp->is_const) {
             dst_rtsp->is_const = TRUE;
           }  /* if */

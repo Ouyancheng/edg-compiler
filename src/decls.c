@@ -5304,6 +5304,9 @@ a copy of the previous type).
 #endif /* GNU_EXTENSIONS_ALLOWED */
         rtsp->prototyped = comp_rtsp->prototyped;
         rtsp->has_ellipsis = comp_rtsp->has_ellipsis;
+        if (comp_rtsp->does_not_return) {
+          rtsp->does_not_return = TRUE;
+        }  /* if */
         preserve_qualifiers_from_rout_type = FALSE;
         if (rtsp->param_type_list == NULL) {
           /* The entire list may just be transferred over. */
