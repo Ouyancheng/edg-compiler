@@ -339,9 +339,9 @@ it needs to be executed after all templates have been instantiated.
                PS_NO_OPTIONS);
   wrapup_namespace_scopes(il_scope);
 
-  /* Local scopes that could can be reactivated may have delayed some
-     object lifetime cleanup tasks.  Perform those now (no local scope
-     reactivations will occur in this translation unit after this). */
+  /* Local scopes that might be reactivated may have delayed some object
+     lifetime cleanup tasks.  Perform those now (no local scope reactivations
+     will occur in this translation unit after this). */
   perform_delayed_object_lifetime_pop();
 
   if (!C_mode()) {

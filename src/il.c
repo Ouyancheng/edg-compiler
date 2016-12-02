@@ -27293,10 +27293,12 @@ popped after all possible reactivations have been popped.
   a_delayed_object_lifetime_pop_descr_ptr  entry;
 
   entry = alloc_fe_of_type(a_delayed_object_lifetime_pop_descr);
-  entry->next = last_delayed_object_lifetime_pop;
   entry->saved_curr_object_lifetime = curr_object_lifetime;
+  entry->next = NULL;
   if (last_delayed_object_lifetime_pop == NULL) {
     delayed_object_lifetime_pops = entry;
+  } else {
+    last_delayed_object_lifetime_pop->next = entry;
   }  /* if */
   last_delayed_object_lifetime_pop = entry;
 }  /* register_delayed_object_lifetime_pop */
