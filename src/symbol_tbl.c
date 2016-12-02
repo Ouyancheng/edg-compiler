@@ -4898,6 +4898,30 @@ the symbol header of a symbol declared in the for-init scope.
 }  /* is_redeclared_for_init_decl_name */
 
 
+static a_boolean is_redeclaration_of_enhanced_for_iterator(
+                                             a_symbol_header_ptr  hdr,
+                                             a_scope_depth        scope_depth)
+/*
+Return TRUE if scope_depth specifies the outer "body" of a range-based "for"
+loop or a Microsoft "for each" loop that declares an iterator variable
+matching hdr.
+*/
+{
+  a_boolean  match = FALSE;
+
+  if (scope_stack[scope_depth].is_loop_scope) {
+    a_symbol_ptr  sym = hdr->symbol;
+    if (sym != NULL && symbol_is(sym, sk_variable) &&
+        sym->variant.variable.ptr->is_enhanced_for_iterator &&
+        sym->decl_scope ==
+                       previous_scope_of(&scope_stack[scope_depth])->number) {
+      match = TRUE;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* is_redeclaration_of_enhanced_for_iterator */
+
+
 static a_boolean is_redeclared_condition_decl_name(a_symbol_header_ptr  hdr,
                                                    a_scope_depth  scope_depth)
 /*
@@ -5133,6 +5157,19 @@ symbol must be added to the inactive list.
                            sym_ptr->header->identifier);
             }  /* if */
             redecl_err = TRUE;
+          } else if (is_redeclaration_of_enhanced_for_iterator(
+                                                      hdr_ptr, scope_depth)) {
+            /* The name of the iterator variable in a range-based for statement
+               cannot be declared in the outermost loop scope.  E.g.:
+                 for (int N: vec) { struct N {}; }  // Error
+            */
+            if (!suppress_error) {
+              pos_st_diagnostic(microsoft_mode ?
+                                          es_warning : es_discretionary_error,
+                                ec_redeclaration_of_range_iterator,
+                                &(sym_ptr->decl_position),
+                                sym_ptr->header->identifier);
+            }  /* if */
           }  /* if */
           if (!suppress_error &&
               scope_stack[depth_scope_stack].is_catch_in_function_try &&

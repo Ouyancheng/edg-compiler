@@ -1,5 +1,22 @@
 Version 4.13
 
+12/2/16  [EDGcpfe/17125]
+Iterator variable redeclarations
+
+The front end now issues a discretionary error if the outermost block of a
+range-based "for" loop declares a name matching the name of the iterator
+variable of that loop.  For example:
+
+  #include <initializer_list>
+  void g() {
+    for (int N: { 1, 2 }) {
+      struct N {};  // Now an error.
+    }
+  }
+
+In Microsoft mode, the discretionary error is reduced to a warning.
+
+
 12/2/16  [EDGcpfe/17801]
 Performance for IA-64 mangling
 
