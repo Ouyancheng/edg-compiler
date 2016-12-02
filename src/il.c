@@ -27317,7 +27317,7 @@ register_delayed_object_lifetime_pop.
   entry = delayed_object_lifetime_pops;
   for (; entry != NULL; entry = entry->next) {
     curr_object_lifetime = entry->saved_curr_object_lifetime;
-    pop_object_lifetime();
+    (void)pop_object_lifetime();
   }  /* for */
   curr_object_lifetime = saved_curr_object_lifetime;
 }  /* perform_delayed_object_lifetime_pop */
