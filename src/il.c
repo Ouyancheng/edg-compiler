@@ -27256,6 +27256,7 @@ local).  See the descriptions of each of the flags for more information.
   }  /* if */
 }  /* walk_parents */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 typedef struct a_delayed_object_lifetime_pop_descr
 		*a_delayed_object_lifetime_pop_descr_ptr;
@@ -27319,8 +27320,6 @@ register_delayed_object_lifetime_pop.
   curr_object_lifetime = saved_curr_object_lifetime;
 }  /* perform_delayed_object_lifetime_pop */
 
-
-#if !STANDALONE_UTILITY_PROGRAM
 
 void il_one_time_init(void)
 /*
