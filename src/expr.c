@@ -25935,7 +25935,7 @@ that case.
     }  /* if */
     (void)get_token();
     expr_stack->evaluated = expr2_evaluated;
-    if (constexpr_enabled && curr_expr_kind_is_const() &&
+    if ((constexpr_enabled || clang_mode) && curr_expr_kind_is_const() &&
         might_be_overloaded) {
       expr_stack->potentially_unevaluated = TRUE;
     }  /* if */
@@ -25946,7 +25946,7 @@ that case.
                                            saved_inside_conditional_expression;
     /* Restore the evaluated flag as it was on entry. */
     expr_stack->evaluated = saved_evaluated;
-    if (constexpr_enabled) {
+    if ((constexpr_enabled || clang_mode)) {
       expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
       expr_stack->constant_expr_ruled_out =
                                            saved_cpp11_constant_expr_ruled_out;
@@ -25996,20 +25996,36 @@ that case.
     if (!operand_1_transformations_done) {
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     }  /* if */
-    expr_stack->evaluated = expr2_evaluated;
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    expr_stack->evaluated = saved_evaluated;
 #if GNU_VECTOR_TYPES_ALLOWED
     if (!is_vector_type(operand_1->type) || (gnu_mode && C_mode()))
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     {
       (void)check_boolean_controlling_expr(operand_1);
     }  /* if */
+    /* This is a continuation of the processing done when scanning the second
+       operand.  So restore flags describing its evaluation. */
+    expr_stack->evaluated = expr2_evaluated;
+    if ((constexpr_enabled || clang_mode) && curr_expr_kind_is_const() &&
+        might_be_overloaded) {
+      expr_stack->potentially_unevaluated = TRUE;
+    }  /* if */
+    saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
+    expr_stack->inside_conditional_expression = TRUE;
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
 #if GNU_VECTOR_TYPES_ALLOWED
     if (!is_vector_type(operand_2.type) || (gnu_mode && C_mode()))
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     {
       (void)check_boolean_controlling_expr(&operand_2);
+    }  /* if */
+    /* Restore the flags as they were. */
+    expr_stack->inside_conditional_expression =
+                                           saved_inside_conditional_expression;
+    expr_stack->evaluated = saved_evaluated;
+    if ((constexpr_enabled || clang_mode)) {
+      expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
+      expr_stack->constant_expr_ruled_out =
+                                           saved_cpp11_constant_expr_ruled_out;
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
     if (gnu_mode && !C_mode() &&
