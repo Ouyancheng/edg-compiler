@@ -1,5 +1,25 @@
 Version 4.13
 
+12/2/16  [EDGcpfe/17271]
+Friend enum declarations
+
+Consider the following example:
+
+  enum E {};
+  namespace N {
+    struct S {
+      friend enum E;  // Previously ::E.  Now N::E and an error
+    };                // in strict mode.
+  }
+
+Previously, the front end resolved the friend declaration to the enum type
+defined in global scope (i.e., ::E).  However, the standard rule for looking
+up the name in the friend declaration limits to lookup to the immediately
+enclosing namespace scope.  The front end now implements that limitation.
+In strict mode, an error is now issued on this example because the standard
+doesn't permit forward declarations of enum types.
+
+
 12/2/16  [EDGcpfe/17125]
 Iterator variable redeclarations
 

@@ -6007,7 +6007,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   error_position = tag_position;
   if (tag_id_present) {
     a_boolean   tag_resolution;
-    a_boolean   is_friend_decl = FALSE;
+    a_boolean   is_friend_decl = extended_friends_enabled &&
+                                 (dps->dso_flags & DSO_FRIEND);
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
