@@ -25935,7 +25935,7 @@ that case.
     }  /* if */
     (void)get_token();
     expr_stack->evaluated = expr2_evaluated;
-    if ((constexpr_enabled || clang_mode) && curr_expr_kind_is_const() &&
+    if (constexpr_enabled && curr_expr_kind_is_const() &&
         might_be_overloaded) {
       expr_stack->potentially_unevaluated = TRUE;
     }  /* if */
@@ -25946,7 +25946,7 @@ that case.
                                            saved_inside_conditional_expression;
     /* Restore the evaluated flag as it was on entry. */
     expr_stack->evaluated = saved_evaluated;
-    if ((constexpr_enabled || clang_mode)) {
+    if (constexpr_enabled) {
       expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
       expr_stack->constant_expr_ruled_out =
                                            saved_cpp11_constant_expr_ruled_out;
@@ -26005,7 +26005,7 @@ that case.
     /* This is a continuation of the processing done when scanning the second
        operand.  So restore flags describing its evaluation. */
     expr_stack->evaluated = expr2_evaluated;
-    if ((constexpr_enabled || clang_mode) && curr_expr_kind_is_const() &&
+    if (constexpr_enabled && curr_expr_kind_is_const() &&
         might_be_overloaded) {
       expr_stack->potentially_unevaluated = TRUE;
     }  /* if */
@@ -26022,7 +26022,7 @@ that case.
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     expr_stack->evaluated = saved_evaluated;
-    if ((constexpr_enabled || clang_mode)) {
+    if (constexpr_enabled) {
       expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
       expr_stack->constant_expr_ruled_out =
                                            saved_cpp11_constant_expr_ruled_out;

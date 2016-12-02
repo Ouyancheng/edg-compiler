@@ -14,8 +14,7 @@ For example:
   double x[1+(0 && b)];  // Previously triggered an error in C++11 mode
                          // because b is nonconstant.  Now okay.
 
-That is now fixed.  In addition, the C++11 behavior for this example is also
-extended to Clang C++03 mode.
+That is now fixed.
 
 
 12/2/16  [EDGcpfe/17523]
