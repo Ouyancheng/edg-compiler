@@ -1510,18 +1510,16 @@ should be FALSE for non-type entities).  If test is TRUE, just determine
 whether a substitution is available; do not put it out.
 */
 {
-  a_substitution_ptr   sp = NULL;
+  a_substitution_ptr   sp;
   a_boolean            result = FALSE, secondary_tu;
   a_const_char         *str = NULL;
-  a_type_kind          type_kind = (a_type_kind)tk_error;
-  a_type_ptr           type = NULL, utype = NULL;
+  a_type_kind          type_kind;
+  a_type_ptr           type, utype;
+  a_boolean            type_kind_is_struct_or_class;
 
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
   entity = canonical_substitution_entity(entity, kind);
-  if (kind == iek_type) {
-    type = (a_type_ptr)entity;
-  }  /* if */
   if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
     sp = substitution_cache[subst_hash(entity)];
     if (sp != NULL &&
@@ -1545,28 +1543,25 @@ whether a substitution is available; do not put it out.
   switch (kind) {
     case iek_type:
       {
+        type = (a_type_ptr)entity;
         utype = skip_typerefs(type);
         type_kind = utype->kind;
-        if (!(type_kind == (a_type_kind)tk_struct ||
-              type_kind == (a_type_kind)tk_class) ||
-            !is_in_namespace_std(type)) {
+        type_kind_is_struct_or_class = (type_kind == (a_type_kind)tk_struct ||
+                                        type_kind == (a_type_kind)tk_class);
+        if (!type_kind_is_struct_or_class || !is_in_namespace_std(type)) {
           /* For speed. */
         } else if (is_Ss_substitution(type)) {
           /* ::std::string. */
           str = "Ss";
-          result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_istream")) {
           str = "Si";
-          result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_ostream")) {
           str = "So";
-          result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_iostream")) {
           str = "Sd";
-          result = TRUE;
           break;
         }  /* if */
       }
@@ -1577,98 +1572,102 @@ whether a substitution is available; do not put it out.
           /* For speed. */
         } else if (is_Sa_substitution((a_template_ptr)entity)) {
           str = "Sa";
-          result = TRUE;
         } else if (is_Sb_substitution((a_template_ptr)entity)) {
           str = "Sb";
-          result = TRUE;
         }  /* if */
       }
       break;
     case iek_namespace:
       if (is_namespace_std((a_namespace_ptr)entity)) {
         str = "St";
-        result = TRUE;
       }  /* if */
       break;
     default:
       break;
   }  /* switch */
-  secondary_tu = secondary_translation_unit_seen();
-  if (result) {
+  if (str != NULL) {
     /* There is a special substitution that applies. */
+    result = TRUE;
     if (!test) add_str_to_mangled_name(str, mctl);
-  } else if (secondary_tu || kind == iek_type) {
+  } else {
     /* Otherwise, see if there is an existing substitution for something
        that appears earlier in the mangled name. */
-    for (sp = mctl->first_substitution; sp != NULL; sp = sp->next) {
-      if (sp->kind == kind) {
-        if (kind == iek_type) {
-          an_itf_flag_set  opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
-          a_type_ptr       stype = (a_type_ptr)sp->entity;
-          a_type_ptr       ustype = skip_typerefs(stype);
-          if (ustype->kind != type_kind) {
-            continue;
-          } else if (!secondary_tu) {
-            if ((type_kind == (a_type_kind)tk_struct ||
-                 type_kind == (a_type_kind)tk_class) &&
-                utype != ustype) {
-              a_const_char  *n1, *n2;
-              if (!utype->variant.class_struct_union.is_nonreal_class ||
-                  !ustype->variant.class_struct_union.is_nonreal_class) {
-                continue;
-              }  /* if */
-              n1 = unmangled_name_of(&utype->source_corresp);
-              n2 = unmangled_name_of(&ustype->source_corresp);
-              if (n1 != NULL && n2 != NULL && strcmp(n1, n2)!= 0) {
-                continue;
+    secondary_tu = secondary_translation_unit_seen();
+    if (secondary_tu || kind == iek_type) {
+      if (kind == iek_type && !secondary_tu &&
+          type_kind_is_struct_or_class &&
+          !utype->variant.class_struct_union.is_nonreal_class) {
+        /* Exclude classes that don't have template parameters. */
+        goto end_of_routine;
+      }  /* if */
+      for (sp = mctl->first_substitution; sp != NULL; sp = sp->next) {
+        if (sp->kind == kind) {
+          if (kind == iek_type) {
+            an_itf_flag_set  opts;
+            a_type_ptr       stype = (a_type_ptr)sp->entity;
+            a_type_ptr       ustype = skip_typerefs(stype);
+            if (ustype->kind != type_kind) {
+              continue;
+            } else if (!secondary_tu) {
+              if (type_kind_is_struct_or_class && utype != ustype) {
+                a_const_char  *n1, *n2;
+                if (!utype->variant.class_struct_union.is_nonreal_class ||
+                    !ustype->variant.class_struct_union.is_nonreal_class) {
+                  continue;
+                }  /* if */
+                n1 = unmangled_name_of(&utype->source_corresp);
+                n2 = unmangled_name_of(&ustype->source_corresp);
+                if (n1 != NULL && n2 != NULL && strcmp(n1, n2) != 0) {
+                  continue;
+                }  /* if */
               }  /* if */
             }  /* if */
-          }  /* if */
+            opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
 #if ABI_COMPATIBILITY_VERSION >= 406
-          opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+            opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
 #endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-          opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
+            opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-          if (is_pack_expansion == sp->is_pack_expansion &&
-              identical_types_full((a_type_ptr)entity, stype, opts)) {
+            if (is_pack_expansion == sp->is_pack_expansion &&
+                identical_types_full((a_type_ptr)entity, stype, opts)) {
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-            if (gpp_mode &&
-                identical_types_differ_in_typeof((a_type_ptr)entity, stype)){
-              /* One type is a dependent typeof typeref and the other type
-                 isn't; these get separate substitutions (the mangling for
-                 __typeof is non-standard).  decltype and __underlying_type
-                 don't have this problem because the underlying type isn't
-                 part of the mangling. */
-            } else
+              if (gpp_mode &&
+                  identical_types_differ_in_typeof((a_type_ptr)entity, stype)){
+                /* One type is a dependent typeof typeref and the other type
+                   isn't; these get separate substitutions (the mangling for
+                   __typeof is non-standard).  decltype and __underlying_type
+                   don't have this problem because the underlying type isn't
+                   part of the mangling. */
+              } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-            /* Do not add code here. */
-            {
+              /* Do not add code here. */
+              {
+                result = TRUE;
+              }  /* if */
+            }  /* if */
+          } else if (entity == sp->entity) {
+            result = TRUE;
+          } else if (secondary_tu) {
+            a_trans_unit_corresp_ptr  tcp1, tcp2;
+            tcp1 = trans_unit_corresp_of_unknown_entry(entity);
+            tcp2 = trans_unit_corresp_of_unknown_entry(sp->entity);
+            if (tcp1 == tcp2 && tcp1 != NULL) {
               result = TRUE;
             }  /* if */
           }  /* if */
-        } else if (entity == sp->entity) {
-          result = TRUE;
-        } else if (secondary_tu) {
-          a_trans_unit_corresp_ptr  tcp1, tcp2;
-          tcp1 = trans_unit_corresp_of_unknown_entry(entity);
-          tcp2 = trans_unit_corresp_of_unknown_entry(sp->entity);
-          if (tcp1 == tcp2 && tcp1 != NULL) {
-            result = TRUE;
-          }  /* if */
         }  /* if */
-      }  /* if */
-      if (result) {
-        /* We found a substitution for this entity. */
-        if (!test) add_substitution_index_to_mangled_name(sp->index, mctl);
-        break;
-      }  /* if */
-    }  /* for */
+        if (result) {
+          /* We found a substitution for this entity. */
+          if (!test) add_substitution_index_to_mangled_name(sp->index, mctl);
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 end_of_routine:;
 #if DEBUG && EXPENSIVE_CHECKING
   if (result && db_flag_is_set("substitutions")) {
-    check_assertion(sp != NULL);
     fprintf(f_debug, "using S%c: <%s> %s",
                      (sp->index == 0 ? ' ' :
                       sp->index < 36 ? base_36_digits[sp->index-1] : '?'),

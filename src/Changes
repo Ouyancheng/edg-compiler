@@ -1,5 +1,12 @@
 Version 4.13
 
+12/2/16  [EDGcpfe/17801]
+Performance for IA-64 mangling
+
+Some changes have been made to improve the performance during the processing of
+substitutions used when mangling names in the IA-64 ABI.
+
+
 12/2/16  [EDGcpfe/17086]
 Spurious error on [[noreturn]] when GNU extensions disabled
 
