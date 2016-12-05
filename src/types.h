@@ -1476,6 +1476,10 @@ typedef int a_type_tree_traversal_flag_set;
 #define TTT_CLI_GENERIC_PARAMETERS 0x800
 			/* If the type is a C++/CLI constraint type, traverse
 			   the associated generic parameter. */
+#define TTT_NONREAL_TEMPLATE_ARGS 0x1000
+			/* When the type being traversed is a class type,
+			   apply the predicate check to its template args,
+			   but only if the type is a nonreal type. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */

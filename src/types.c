@@ -12435,6 +12435,21 @@ which case that particular parameter must be present.
 }  /* constant_contains_template_param_constant */
 
 
+/*
+Return TRUE if this is a C++/CLI type that should be treated as nonreal
+when deciding whether the type needs to be inspected for dependent
+types, template parameters, etc.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_type_to_treat_as_nonreal(type_ptr)			\
+  (type_ptr->variant.class_struct_union.is_generic_constraint ||	\
+   type_ptr->variant.class_struct_union.is_generic_instance ||		\
+   type_ptr->variant.class_struct_union.is_open_constructed_type)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_type_to_treat_as_nonreal(type_ptr) /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static a_boolean ttt_contains_template_param_constant(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
@@ -12465,24 +12480,31 @@ based on the specified template parameter constant.
                       type_ptr->variant.array.variant.element_count_constant);
       }  /* if */
     }  /* if */
-  } else if (is_class_struct_union(type_ptr)) {
-    /* Examine each template argument, if any. */
-    begin_template_arg_list_traversal_simple(
+  } else if (is_immediate_class_type(type_ptr)) {
+    if (!type_ptr->variant.class_struct_union.is_nonreal_class &&
+        !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+      found = FALSE;
+    } else {
+      /* Examine each template argument, if any. */
+      begin_template_arg_list_traversal_simple(
             type_ptr->variant.class_struct_union.extra_info->template_arg_list,
             &tap);
-    for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
-      if (is_nontype_templ_arg(tap)) {
-        /* A non-type argument.  See if a template parameter constant is
-           used -- e.g.,
-             template <class T, int I> class A { B<I> *b; . . . };
-           where the template argument for B<I> is template para constant I. */
-        if (constant_contains_template_param_constant(tap->variant.constant)) {
-          found = TRUE;
-          break;
+      for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+        if (is_nontype_templ_arg(tap)) {
+          /* A non-type argument.  See if a template parameter constant is
+             used -- e.g.,
+               template <class T, int I> class A { B<I> *b; . . . };
+             where the template argument for B<I> is template param
+             constant I. */
+          if (constant_contains_template_param_constant(
+                                                      tap->variant.constant)) {
+            found = TRUE;
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* switch */
+      }  /* for */
+    }  /* if */
+  }  /* if */
   if (found) *force_end_of_traversal = TRUE;
   return found;
 }  /* ttt_contains_template_param_constant */
@@ -12498,40 +12520,45 @@ with a template argument that is a template template parameter.
 {
   a_boolean	found = FALSE;
 
-  if (is_class_struct_union(type_ptr)) {
-    /* Check for template template arguments of a template class. */
-    a_template_arg_ptr  tap;
-    begin_template_arg_list_traversal_simple(
+  if (is_immediate_class_type(type_ptr)) {
+    if (!type_ptr->variant.class_struct_union.is_nonreal_class &&
+        !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+      found = FALSE;
+    } else {
+      /* Check for template template arguments of a template class. */
+      a_template_arg_ptr  tap;
+      begin_template_arg_list_traversal_simple(
             type_ptr->variant.class_struct_union.extra_info->template_arg_list,
             &tap);
-    for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
-      if (is_template_templ_arg(tap)) {
-        a_template_symbol_supplement_ptr	tssp;
-        /* Note: the following line accesses template_info directly instead
-           of calling template_supplement_for_template(), as would be
-           normal practice.  The reason for this is that this code may be
-           executed from a back end, and template_supplement_for_template()
-           sometimes uses symbol table information, which is only available
-           in the front end. */
-        tssp = tap->variant.templ.ptr->template_info;
-        /* Determine whether the template pointed to is a template template
-           parameter. */
-        if (tssp != NULL &&
-            tssp->variant.class_template.template_template_param) {
-          *force_end_of_traversal = found = TRUE;
-          break;
+      for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+        if (is_template_templ_arg(tap)) {
+          a_template_symbol_supplement_ptr	tssp;
+          /* Note: the following line accesses template_info directly instead
+             of calling template_supplement_for_template(), as would be
+             normal practice.  The reason for this is that this code may be
+             executed from a back end, and template_supplement_for_template()
+             sometimes uses symbol table information, which is only available
+             in the front end. */
+          tssp = tap->variant.templ.ptr->template_info;
+          /* Determine whether the template pointed to is a template template
+             parameter. */
+          if (tssp != NULL &&
+              tssp->variant.class_template.template_template_param) {
+            *force_end_of_traversal = found = TRUE;
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
-    if (!found) {
-      /* Check whether this is a class type that is based on a template
-         template parameter. */
-      a_symbol_ptr	template_sym;
-      template_sym = class_template_for_type(type_ptr);
-      if (template_sym != NULL) {
-        if (template_sym->variant.template_info->
+      }  /* for */
+      if (!found) {
+        /* Check whether this is a class type that is based on a template
+           template parameter. */
+        a_symbol_ptr	template_sym;
+        template_sym = class_template_for_type(type_ptr);
+        if (template_sym != NULL) {
+          if (template_sym->variant.template_info->
                               variant.class_template.template_template_param) {
-          *force_end_of_traversal = found = TRUE;
+            *force_end_of_traversal = found = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12562,7 +12589,11 @@ types, i.e., also for nonreal classes.
     found = type_ptr->is_instantiation_dependent;
     *force_end_of_traversal = TRUE;
   } else {
-    if (is_template_param(type_ptr)) {
+    if (is_immediate_class_type(type_ptr) &&
+        !type_ptr->variant.class_struct_union.is_nonreal_class &&
+        !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+      found = FALSE;
+    } else if (is_template_param(type_ptr)) {
       if (specific_template_param_type == NULL ||
           identical_types(type_ptr, specific_template_param_type)) {
         *force_end_of_traversal = found = TRUE;
@@ -12642,22 +12673,27 @@ by specific_template_template_param.
     }  /* if */
   }  /* if */
   if (!found) {
-    if (is_class_struct_union(type_ptr)) {
-      /* Check for template template arguments of a template class. */
-      a_template_arg_ptr  tap;
-      begin_template_arg_list_traversal_simple(
+    if (is_immediate_class_type(type_ptr)) {
+      if (!type_ptr->variant.class_struct_union.is_nonreal_class &&
+          !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+        found = FALSE;
+      } else {
+        /* Check for template template arguments of a template class. */
+        a_template_arg_ptr  tap;
+        begin_template_arg_list_traversal_simple(
             type_ptr->variant.class_struct_union.extra_info->template_arg_list,
             &tap);
-      for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
-        if (is_template_templ_arg(tap)) {
-          if (equiv_templates(tap->variant.templ.ptr,
-                              specific_template_template_param,
-                              ET_NO_OPTIONS)) {
-            *force_end_of_traversal = found = TRUE;
-            break;
+        for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+          if (is_template_templ_arg(tap)) {
+            if (equiv_templates(tap->variant.templ.ptr,
+                                specific_template_template_param,
+                                ET_NO_OPTIONS)) {
+              *force_end_of_traversal = found = TRUE;
+              break;
+            }  /* if */
           }  /* if */
-        }  /* if */
-      }  /* for */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
   return found;
@@ -13196,7 +13232,10 @@ its parameters?).
           /* Traverse the expression under the decltype or typeof. */
           status = traverse_types_for_expr(ttsp->expr, func, flags);
         }  /* if */
-        if (!status && flags & TTT_TEMPLATE_ARGS) {
+        if (!status &&
+            (flags & TTT_TEMPLATE_ARGS ||
+             ((flags & TTT_NONREAL_TEMPLATE_ARGS) &&
+              (type_ptr->variant.typeref.is_dependent)))) {
           /* Traverse the template argument list, if present (for template
              aliases). */
           a_template_arg_ptr	tap;
@@ -13266,7 +13305,10 @@ its parameters?).
             }  /* if */
           }  /* if */
           /* Conditional traversal of contained types. */
-          if (flags & TTT_TEMPLATE_ARGS) {
+          if (flags & TTT_TEMPLATE_ARGS ||
+              ((flags & TTT_NONREAL_TEMPLATE_ARGS) &&
+               (type_ptr->variant.class_struct_union.is_nonreal_class ||
+                is_cli_type_to_treat_as_nonreal(type_ptr)))) {
             /* Traverse the template argument list, if present. */
             a_template_arg_ptr	tap;
             tap = type_ptr->
@@ -13436,7 +13478,7 @@ type.
   a_boolean result;
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS |
+                                               TTT_NONREAL_TEMPLATE_ARGS |
                                                TTT_CLI_GENERIC_PARAMETERS |
                                                TTT_PARENT_CLASSES);
 
@@ -13605,7 +13647,7 @@ it is or contains a tk_template_param type entry or a nonreal class.
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_THIS_PARAM_TYPE |
                                                  TTT_PARAM_TYPES |
-                                                 TTT_TEMPLATE_ARGS |
+                                                 TTT_NONREAL_TEMPLATE_ARGS |
                                                  TTT_SKIP_TYPEREFS |
                                                  TTT_PARENT_CLASSES);
 
@@ -13637,7 +13679,7 @@ returns TRUE for types that contain C++/CLI generic parameters.
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_THIS_PARAM_TYPE |
                                                  TTT_PARAM_TYPES |
-                                                 TTT_TEMPLATE_ARGS |
+                                                 TTT_NONREAL_TEMPLATE_ARGS |
                                                  TTT_CLI_GENERIC_PARAMETERS |
                                                  TTT_PARENT_CLASSES);
 
@@ -13674,7 +13716,7 @@ render the type dependent.
 			 (TTT_RETURN_TYPE |
                           TTT_THIS_PARAM_TYPE |
                           TTT_PARAM_TYPES |
-                          TTT_TEMPLATE_ARGS |
+                          TTT_NONREAL_TEMPLATE_ARGS |
                           TTT_DECLTYPE_AND_TYPEOF_EXPRS |
                           TTT_PARENT_CLASSES);
 
@@ -13716,7 +13758,7 @@ C++/CLI generic parameters.
 			 (TTT_RETURN_TYPE |
                           TTT_THIS_PARAM_TYPE |
                           TTT_PARAM_TYPES |
-                          TTT_TEMPLATE_ARGS |
+                          TTT_NONREAL_TEMPLATE_ARGS |
                           TTT_DECLTYPE_AND_TYPEOF_EXPRS |
                           TTT_CLI_GENERIC_PARAMETERS |
                           TTT_PARENT_CLASSES);
@@ -13752,7 +13794,7 @@ a template parameter constant.
   if (!C_mode()) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_PARAM_TYPES |
-                                                 TTT_TEMPLATE_ARGS |
+                                                 TTT_NONREAL_TEMPLATE_ARGS |
                                                  TTT_CLI_GENERIC_PARAMETERS |
                                                  TTT_PARENT_CLASSES);
 
@@ -13783,7 +13825,7 @@ parameter can be deduced.
                                                TTT_SKIP_TYPEREFS |
 					       TTT_DEDUCED_CONTEXTS_ONLY |
                                                TTT_CLI_GENERIC_PARAMETERS |
-                                               TTT_TEMPLATE_ARGS);
+                                               TTT_NONREAL_TEMPLATE_ARGS);
 
   check_assertion_str(!C_mode(),
               "is_or_contains_deduced_template_param: not callable in C mode");
@@ -13849,7 +13891,7 @@ contexts are excluded from the check.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS |
+                                               TTT_NONREAL_TEMPLATE_ARGS |
                                                TTT_CLI_GENERIC_PARAMETERS);
   
   /* When including non-deduced contexts, also include parent classes. */
@@ -13888,7 +13930,7 @@ excluded from the check.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS);
+                                               TTT_NONREAL_TEMPLATE_ARGS);
 
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {
@@ -13920,7 +13962,7 @@ contexts are excluded from the check.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS);
+                                               TTT_NONREAL_TEMPLATE_ARGS);
 
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {

@@ -1,5 +1,14 @@
 Version 4.13
 
+12/5/16  [EDGcpfe/17068]
+Performance improvement in type traversal
+
+The performance of the type traversal routines has been significantly
+improved for operations such as checking whether a type is dependent.
+This can result in significantly better performance for cases that
+involve complex types as template arguments.
+
+
 12/2/16  [EDGcpfe/17460]
 Internal error on member function declared with decltype
 
