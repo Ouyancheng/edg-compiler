@@ -7671,6 +7671,21 @@ or wide string constant.
   return is_string;
 }  /* is_address_of_string_constant */
 
+
+/*
+Return TRUE if this is a C++/CLI type that should be treated as nonreal
+when deciding whether the type needs to be inspected for dependent
+types, template parameters, etc.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_type_to_treat_as_nonreal(type_ptr)			\
+  (type_ptr->variant.class_struct_union.is_generic_constraint ||	\
+   type_ptr->variant.class_struct_union.is_generic_instance ||		\
+   type_ptr->variant.class_struct_union.is_open_constructed_type)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_type_to_treat_as_nonreal(type_ptr) /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean same_type_with_added_qualifiers(a_type_ptr source_type,
@@ -12433,21 +12448,6 @@ which case that particular parameter must be present.
   }  /* if */
   return found;
 }  /* constant_contains_template_param_constant */
-
-
-/*
-Return TRUE if this is a C++/CLI type that should be treated as nonreal
-when deciding whether the type needs to be inspected for dependent
-types, template parameters, etc.
-*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_cli_type_to_treat_as_nonreal(type_ptr)			\
-  (type_ptr->variant.class_struct_union.is_generic_constraint ||	\
-   type_ptr->variant.class_struct_union.is_generic_instance ||		\
-   type_ptr->variant.class_struct_union.is_open_constructed_type)
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_type_to_treat_as_nonreal(type_ptr) /*lint --e(506)*/FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static a_boolean ttt_contains_template_param_constant(
