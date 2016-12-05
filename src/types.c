@@ -7519,7 +7519,7 @@ that are not present in standalone back ends and utilities.
       identical = (type_1->variant.pointer.is_reference ==
                                         type_2->variant.pointer.is_reference &&
                    type_1->variant.pointer.is_rvalue_reference ==
-                                 type_1->variant.pointer.is_rvalue_reference &&
+                                 type_2->variant.pointer.is_rvalue_reference &&
 #ifdef pointer_types_have_same_repr
                    pointer_types_have_same_repr(type_1, type_2) &&
 #endif /* ifdef pointer_types_have_same_repr */
