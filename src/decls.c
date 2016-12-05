@@ -7214,7 +7214,7 @@ if appropriate.  Return the resulting declared type.
       check_assertion(!is_qualified_type(declared_type));
       declared_type =
          copy_routine_type_with_param_types(declared_type,
-                                            /*copy_default_args=*/TRUE);
+                                            /*copy_default_args=*/FALSE);
       rtsp2 = declared_type->variant.routine.extra_info;
     }  /* if */
     rtsp2->this_class = rtsp1->this_class;

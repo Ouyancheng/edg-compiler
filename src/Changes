@@ -1,5 +1,20 @@
 Version 4.13
 
+12/2/16  [EDGcpfe/17460]
+Internal error on member function declared with decltype
+
+The front end previously aborted with an internal error in copy_param_type_list
+(il.c) on a case like the following:
+
+  struct S {
+   static void g(int = 42);
+   decltype(g) f;  // Declares a member function.
+  };
+
+The problem was triggered by the presence of default function call arguments on
+the original function declaration.  This is now fixed.
+
+
 12/2/16  [EDGcpfe/17271]
 Friend enum declarations
 

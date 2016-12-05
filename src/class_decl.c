@@ -23985,8 +23985,8 @@ the function is a nonstatic member of class_type.
                       (a_name_linkage_kind)nlk_cplusplus_external) {
     /* Build a copy of the routine type so as to have a
        non-shared routine type entry. */
-    rout_type = copy_routine_type_with_param_types(rout_type,
-                                                   /*copy_default_args=*/TRUE);
+    rout_type = copy_routine_type_with_param_types(
+                                      rout_type, /*copy_default_args=*/FALSE);
     if (is_nonstatic_member) {
       /* This is a nonstatic member function declared through a typedef.
          Be sure the implicit this-param type is filled in, since that's
