@@ -370,14 +370,7 @@ typedef struct a_substitution {
   a_substitution_index
 		index;
 			/* The substitution index to use during mangling. */
-  a_bit_field
-		clear_il_entry_flag_at_end:1;
-			/* This entry caused the setting of the
-			   on_mangling_substitution_list flag in the
-			   entry.  The flag must therefore be cleared
-			   when this entry is returned to the available
-			   list. */
-  a_bit_field is_pack_expansion:1;
+  a_bit_field	is_pack_expansion:1;
 			/* TRUE if this substitution represents a pack
 			   expansion for the indicated type.  A type can be
 			   on the substitution list twice (once with this
@@ -817,14 +810,7 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
     substitution_cache[subst_hash(entity)] = sp;
     sp->kind = kind;
     sp->entity = entity;
-    if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
-      /* This entity is already on a mangling substitution list: The new
-         substitution entry should not clear the IL entry flag. */
-      sp->clear_il_entry_flag_at_end = FALSE;
-    } else {
-      ((a_source_correspondence*)entity)->on_mangling_substitution_list = TRUE;
-      sp->clear_il_entry_flag_at_end = TRUE;
-    }  /* if */
+    ((a_source_correspondence*)entity)->on_mangling_substitution_list = TRUE;
     sp->is_pack_expansion = is_pack_expansion;
     sp->next = NULL;
     last_sp = mctl->last_substitution;
@@ -1083,10 +1069,8 @@ above, NULL is also returned in this case).
     a_substitution_ptr  sp = mctl->first_substitution;
     for (; sp != NULL; sp = sp->next) {
       substitution_cache[subst_hash(sp->entity)] = NULL;
-      if (sp->clear_il_entry_flag_at_end) {
-        ((a_source_correspondence*)sp->entity)
+      ((a_source_correspondence*)sp->entity)
                                       ->on_mangling_substitution_list = FALSE;
-      }  /* if */
     }  /* for */
     mctl->last_substitution->next = avail_substitutions;
     avail_substitutions = mctl->first_substitution;
