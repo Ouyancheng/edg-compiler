@@ -14,7 +14,7 @@ Consider the following example:
 
 Previously, the front end resolved the friend declaration to the enum type
 defined in global scope (i.e., ::E).  However, the standard rule for looking
-up the name in the friend declaration limits to lookup to the immediately
+up the name in a friend declaration limits the lookup to the immediately
 enclosing namespace scope.  The front end now implements that limitation.
 In strict mode, an error is now issued on this example because the standard
 doesn't permit forward declarations of enum types.
