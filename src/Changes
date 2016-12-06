@@ -168,7 +168,9 @@ For example:
       // Previously triggered a spurious error because the "I(i)" cast could
       // not be matched to the identical cast in the in-class declaration.
 
-This is now fixed.
+This is now fixed.  (This problem could manifest itself as a regression in
+some cases.  Specifically, the changes for EDGcpfe/17302 made an existing bug
+more visible.)
 
 
 11/30/16 [EDGcpfe/17804]
