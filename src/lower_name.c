@@ -1580,6 +1580,8 @@ whether a substitution is available; do not put it out.
     if (secondary_tu || kind == iek_type) {
       if (kind == iek_type && !secondary_tu &&
           type_kind_is_struct_or_class &&
+          !type->source_corresp.on_mangling_substitution_list &&
+          !utype->source_corresp.on_mangling_substitution_list &&
           !utype->variant.class_struct_union.is_nonreal_class) {
         /* Exclude classes that don't have template parameters. */
         goto end_of_routine;
