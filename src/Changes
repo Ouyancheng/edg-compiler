@@ -10,7 +10,7 @@ match nontype template arguments to their parameters.  For example:
   struct X {
     constexpr operator int() const { return 42; }
   };
-  constexpr X x;
+  constexpr X x{};
   int r = g<x>();  // Previously an error.  Now okay.
 
 
