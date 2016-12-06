@@ -2923,6 +2923,17 @@ appropriate and set ap->kind to ak_unrecognized).
     report_bad_attribute_target(sev, ap);
   }  /* if */
 done:
+  if (match_found && is_std_attribute(ap)) {
+    a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+    if (dps != NULL && (dps->dso_flags & DSO_FRIEND) != 0 &&
+        !dps->is_definition &&
+        !(gpp_mode && !clang_mode)) {
+      /* Something like "friend class alignas(int) A;" is invalid unless
+         the declaration is a definition.  GCC (but not clang) allows this. */
+      report_bad_attribute_target(es_error, ap);
+      match_found = FALSE;
+    }  /* if */
+  }  /* if */
   return match_found;
 }  /* check_target_entity_match */
 

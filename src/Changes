@@ -1,5 +1,17 @@
 Version 4.13
 
+12/6/16  [EDGcpfe/17722]
+Attribute on friend declaration
+
+A standard attribute is allowed only on friend definitions -- not friend
+declarations.  An error is issued in all modes except GNU emulation mode.
+For example, with --c++11:
+
+  struct A {
+    friend class alignas(16) C;
+  };
+
+
 12/6/16  [EDGcpfe/16988]
 Conversion functions and template arguments
 
