@@ -3529,6 +3529,19 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
     }  /* if */
     if (tag_sym != NULL) {
+      if (locator.is_qualified_name &&
+          curr_token == tok_semicolon &&
+          !is_friend_decl &&
+          !is_explicit_instantiation &&
+          !is_template_specialization) {
+        /* When an elaborated type specifier is the sole constituent of a
+           declaration (except for explicit specializations or explicit
+           instantiations, or certain friend declarations), it cannot have a
+           qualified name (e.g., "class ::A;"). */
+        pos_diagnostic((strict_ansi_mode || clang_mode) ?
+                                           es_discretionary_error : es_warning,
+                       ec_extra_qualification, &locator.source_position);
+      }  /* if */
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier
          or in some GNU C++ and Cfront cases. */

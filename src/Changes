@@ -1,5 +1,18 @@
 Version 4.13
 
+12/6/16  [EDGcpfe/17548]
+Qualified elaborated-type-specifiers
+
+The standard prohibits a nested-name-specifier in an elaborated-type-specifier
+when not an explicit instantiation or explicit specialization and the
+elaborated-type-specifier is the sole constituent of a declaration.  A warning
+is now generated in default mode and a discretionary error in strict and clang
+modes.  For example:
+
+  struct S1 {};
+  struct ::S1;  // Now a warning or discretionary error depending on the mode.
+
+
 12/5/16  [EDGcpfe/17068]
 Performance improvement in type traversal
 
