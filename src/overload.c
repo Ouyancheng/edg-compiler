@@ -24201,16 +24201,28 @@ if so.
   determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
                             (a_param_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
-                            /*try_user_conversions=*/FALSE,
+                            /*try_user_conversions=*/constexpr_enabled,
                             /*allow_expl_conv_funcs=*/FALSE,
                             &arg_summary);
   compatible = (arg_summary.match_level != aml_none);
   if (compatible) {
     /* Some conversions are not allowed on a nontype template argument. */
     a_boolean       source_is_constant = is_constant_operand(operand);
+    a_type_ptr      opnd_type = operand->type;
     a_constant_ptr  con = NULL;
     a_variable_ptr  var;
-    if (source_is_constant) {
+    a_routine_ptr   conv_func = arg_summary.conversion.routine;
+    if (constexpr_enabled && conv_func != NULL) {
+      /* Conversion functions may be allowed if they are constexpr and their
+         invocation produces an actual constant result. */
+      con = local_constant();
+      if (constant_conv_function_result(conv_func, operand, param_type, con)) {
+        source_is_constant = TRUE;
+        opnd_type = con->type;
+      } else {
+        compatible = FALSE;
+      }  /* if */
+    } else if (source_is_constant) {
       con = &operand->variant.constant;
     } else if (is_integral_or_enum_type(param_type) &&
                operand_is_lvalue_for_variable(operand, &var) &&
@@ -24222,14 +24234,18 @@ if so.
       con = var_constant_value(var);
       if (con != NULL) source_is_constant = TRUE;
     }  /* if */
-    if (!conversion_allowed_for_nontype_template_argument(
+    if (compatible &&
+        !conversion_allowed_for_nontype_template_argument(
                                                 &arg_summary.conversion.std,
-                                                operand->type,
+                                                opnd_type,
                                                 source_is_constant,
                                                 con,
                                                 param_type,
                                                 (an_error_code *)NULL)) {
       compatible = FALSE;
+    }  /* if */
+    if (constexpr_enabled && conv_func != NULL) {
+      release_local_constant(&con);
     }  /* if */
   }  /* if */
   return compatible;
