@@ -10230,10 +10230,10 @@ command line -D options.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
     unsigned long eff_microsoft_version = microsoft_version;
-    if (microsoft_version == 1901 || microsoft_version == 1902) {
-      /* Internally 1901 and 1902 are used to represent Visual Studio 2015
-         Update 1 and Update 2 respectively, but externally, they are
-         still 1900. */
+    if (microsoft_version >= 1901 && microsoft_version <= 1903) {
+      /* Internally 1901, 1902, and 1903 are used to represent Visual Studio
+         2015 Update 1, 2, and 3 respectively, but externally, they are still
+         1900. */
       eff_microsoft_version = 1900;
     }  /* if */
     /* Define the _MSC_VER variable that indicates the version of the

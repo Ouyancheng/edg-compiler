@@ -2528,21 +2528,23 @@ option values if they were not already set by a command line option.
            1903. */
         if (ms_cpp14_mode) {
           msvc_lang = "201402L";
-          aggregate_classes_can_have_field_initializers = TRUE;
           relaxed_range_based_for_enabled = TRUE;
         }  /* if */
         if (ms_cpplatest_mode) {
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
-          terse_static_assert_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1910) {
         /* Emulate Visual Studio "15". */
         relaxed_constexpr_enabled = TRUE;
         constexpr_implies_const = FALSE;
+        aggregate_classes_can_have_field_initializers = TRUE;
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
+        }  /* if */
+        if (ms_cpplatest_mode) {
+          terse_static_assert_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
