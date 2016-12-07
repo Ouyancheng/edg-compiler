@@ -9904,7 +9904,7 @@ See conversion_possible.
       std_conv->ptr_or_pm_to_bool = TRUE;
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-  } else if (gnu_mode && is_vector_type(source_type)) {
+  } else if ((gnu_mode || clang_mode) && is_vector_type(source_type)) {
     /* Different versions of GCC behave differently wrt. conversions between
        vector types.  Some versions by default allow conversions between
        vectors of the same size and "kind" (integer vs. float), regardless of
@@ -9913,6 +9913,23 @@ See conversion_possible.
     if (identical_types(source_type, dest_type)) {
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
+    } else if (clang_mode && is_vector_type(dest_type) &&
+               num_vector_elements(source_type) ==
+                                             num_vector_elements(dest_type)) {
+      /* Clang appears to allow conversions between vectors of the same
+         length if the conversion on the underlying element type is
+         permitted. */
+      okay = impl_conversion_possible(source_type->variant.vector.element_type,
+                                      /*source_is_constant=*/FALSE,
+                                      source_is_string_literal,
+                                      source_is_function,
+                                      is_copy_initialization,
+                                      (a_constant_ptr)NULL,
+                                      dest_type->variant.vector.element_type,
+                                      allow_qualifier_or_eh_mismatch,
+                                      suppress_extensions,
+                                      default_warning_code,
+                                      std_conv);
     } else if (permissive_gnu_vector_conversions_enabled) {
       if (is_vector_type(dest_type) &&
           skip_typerefs(source_type->variant.vector.element_type)->kind ==
