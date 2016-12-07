@@ -3221,6 +3221,24 @@ are both instantiations of the same template.
   return result;
 }  /* is_allowed_ms_spec_of_base_template */
 
+
+static a_boolean has_declspec_attributes(an_attribute_ptr ap)
+/*
+Returns TRUE if the specified attribute list (which may be NULL) has at least
+one af_ms_declspec attribute.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_declspec_attributes */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
     (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS)
 /*ARGSUSED*/ /* decl_pos_block and marked_as_gnu_extension are not used in
@@ -3529,19 +3547,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
     }  /* if */
     if (tag_sym != NULL) {
-      if (locator.is_qualified_name &&
-          curr_token == tok_semicolon &&
-          !is_friend_decl &&
-          !is_explicit_instantiation &&
-          !is_template_specialization) {
-        /* When an elaborated type specifier is the sole constituent of a
-           declaration (except for explicit specializations or explicit
-           instantiations, or certain friend declarations), it cannot have a
-           qualified name (e.g., "class ::A;"). */
-        pos_diagnostic((strict_ansi_mode || clang_mode) ?
-                                           es_discretionary_error : es_warning,
-                       ec_extra_qualification, &locator.source_position);
-      }  /* if */
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier
          or in some GNU C++ and Cfront cases. */
@@ -4307,7 +4312,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                ((curr_token == tok_semicolon ||
                  curr_token == tok_removed_template_body) &&
                 (vacuous_decl_allowed || is_friend_decl ||
-                 is_template_specific_decl || dps->tag_attributes != NULL)) ||
+                 is_template_specific_decl ||
+                 has_declspec_attributes(dps->tag_attributes))) ||
                previously_invisible) {
       /* Vacuous declarations are not usually permitted to use qualified names
          (even so, the declarations are accepted with warning in nonstrict
@@ -4318,6 +4324,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
          If an elaborated type specifier makes visible a class name that was
          previously invisible (e.g., the first declaration was a friend), we
          we treat the elaborated type specifier as a declaration. */
+      /* Declarations with Microsoft declspec attributes (e.g.,
+         "struct __declspec(dllimport) N::S;") are treated as redeclarations.*/
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {

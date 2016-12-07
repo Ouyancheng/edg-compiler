@@ -40,16 +40,17 @@ match nontype template arguments to their parameters.  For example:
 
 
 12/6/16  [EDGcpfe/17548]
-Qualified elaborated-type-specifiers
+Standard attributes on elaborated-type-specifier declaration
 
-The standard prohibits a nested-name-specifier in an elaborated-type-specifier
-when not an explicit instantiation or explicit specialization and the
-elaborated-type-specifier is the sole constituent of a declaration.  A warning
-is now generated in default mode and a discretionary error in strict and clang
-modes.  For example:
+The presence of standard attributes in a declaration (but not definition) with
+an elaborated-type-specifier and a qualified identifier had been treated as a
+redeclaration, but now elicits a warning or error (in strict mode).  For
+example (with --c++11):
 
   struct S1 {};
-  struct ::S1;  // Now a warning or discretionary error depending on the mode.
+  struct ::S1;              // A warning or error depending on the mode.
+  struct alignas(int) S2 {};
+  struct alignas(int) ::S2; // Now also a warning or error.
 
 
 12/5/16  [EDGcpfe/17068]
