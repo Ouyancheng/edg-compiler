@@ -2803,6 +2803,7 @@ the scope being pushed.
   ssep->has_at_least_one_return = FALSE;
   ssep->constexpr_ruled_out = FALSE;
   ssep->make_access_errors_warnings = FALSE;
+  ssep->treat_as_specialization = FALSE;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
@@ -2823,7 +2824,6 @@ the scope being pushed.
 #if GNU_EXTENSIONS_ALLOWED
     ssep->in_gnu_abi_tag_namespace = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    ssep->treat_as_specialization = FALSE;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
     ssep->implicit_typename = (ssep-1)->implicit_typename;
