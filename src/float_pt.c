@@ -2208,8 +2208,9 @@ be NULL if the corresponding return value is not needed.
   if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
                                          neg_infinity, not_a_number, str,
                                          &temp)) {
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
-#if USE_QUADMATH_LIBRARY
+    /* The call to handle_fp_to_string_special_cases has loaded float_value
+       into temp. */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
     if (kind == (a_float_kind)fk_float) {
       (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
     } else if (kind == (a_float_kind)fk_double) {
@@ -2231,16 +2232,14 @@ be NULL if the corresponding return value is not needed.
 #endif /* BACK_END_IS_CP_GEN_BE */
       (void)quadmath_snprintf(str, sizeof(str), "%.*Qg", ldbl_digits, temp);
     }  /* if */
-#else /* !USE_QUADMATH_LIBRARY */
-  /* Use an approximate conversion. */
-  temp = str_to_long_double(str);
-#endif /* USE_QUADMATH_LIBRARY */
-#else /* !USE_FLOAT_128_FOR_HOST_FP_VALUE */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#else /* !(USE_FLOAT_128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
+    /* Make sure we have a long double value (temp can be a __float128). */
+    long double  fpval = (long double)temp;
     if (kind == (a_float_kind)fk_float) {
-      (void)sprintf(str, "%.10Lg", temp);
+      (void)sprintf(str, "%.10Lg", fpval);
     } else if (kind == (a_float_kind)fk_double) {
-      (void)sprintf(str, "%.19Lg", temp);
+      (void)sprintf(str, "%.19Lg", fpval);
     } else {
       /* fk_long_double or fk_float80. */
       /* In theory LDBL_DIG+1 digits should be enough as the precision,
@@ -2254,9 +2253,9 @@ be NULL if the corresponding return value is not needed.
 #if BACK_END_IS_CP_GEN_BE
       if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
 #endif /* BACK_END_IS_CP_GEN_BE */
-      (void)sprintf(str, "%.*Lg", ldbl_digits, temp);
+      (void)sprintf(str, "%.*Lg", ldbl_digits, fpval);
     }  /* if */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
     if (kind == (a_float_kind)fk_float) {
       (void)sprintf(str, "%.10g", temp);
