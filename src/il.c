@@ -27225,72 +27225,8 @@ local).  See the descriptions of each of the flags for more information.
   }  /* if */
 }  /* walk_parents */
 
+
 #if !STANDALONE_UTILITY_PROGRAM
-
-typedef struct a_delayed_object_lifetime_pop_descr
-		*a_delayed_object_lifetime_pop_descr_ptr;
-typedef struct a_delayed_object_lifetime_pop_descr {
-  a_delayed_object_lifetime_pop_descr_ptr
-		next;
-			/* Next entry in the list. */
-  an_object_lifetime_ptr
-		saved_curr_object_lifetime;
-			/* The value of curr_object_lifetime when this entry
-			   was created. */
-} a_delayed_object_lifetime_pop_descr;
-
-static a_delayed_object_lifetime_pop_descr_ptr
-		delayed_object_lifetime_pops;
-			/* List of object lifetime pops to perform at the end
-			   of translation unit processing. */
-
-static a_delayed_object_lifetime_pop_descr_ptr
-		last_delayed_object_lifetime_pop;
-			/* Pointer to the last entry on the list pointed to by
-			   delayed_object_lifetime_pops, or NULL if that list
-			   has no entries. */
-
-void register_delayed_object_lifetime_pop(void)
-/*
-A block scope with an associated object lifetime is being popped.  The lifetime
-cannot itself be popped at this time, because the block scope may be
-reactivated later on.  However, we do not a priori know when that scope will be
-popped for the last time.  This routine saves the curr_object_lifetime to be
-popped after all possible reactivations have been popped.
-*/
-{
-  a_delayed_object_lifetime_pop_descr_ptr  entry;
-
-  entry = alloc_fe_of_type(a_delayed_object_lifetime_pop_descr);
-  entry->saved_curr_object_lifetime = curr_object_lifetime;
-  entry->next = NULL;
-  if (last_delayed_object_lifetime_pop == NULL) {
-    delayed_object_lifetime_pops = entry;
-  } else {
-    last_delayed_object_lifetime_pop->next = entry;
-  }  /* if */
-  last_delayed_object_lifetime_pop = entry;
-}  /* register_delayed_object_lifetime_pop */
-
-
-void perform_delayed_object_lifetime_pop(void)
-/*
-Perform the object lifetime "pops" that were recorded by calls to
-register_delayed_object_lifetime_pop.
-*/
-{
-  a_delayed_object_lifetime_pop_descr_ptr  entry;
-  an_object_lifetime_ptr                   saved_curr_object_lifetime;
-
-  saved_curr_object_lifetime = curr_object_lifetime;
-  entry = delayed_object_lifetime_pops;
-  for (; entry != NULL; entry = entry->next) {
-    curr_object_lifetime = entry->saved_curr_object_lifetime;
-    (void)pop_object_lifetime();
-  }  /* for */
-  curr_object_lifetime = saved_curr_object_lifetime;
-}  /* perform_delayed_object_lifetime_pop */
-
 
 void il_one_time_init(void)
 /*
@@ -27489,8 +27425,6 @@ in il_init.)
       pch_saved_var_array_elem(module_id_scp),
       pch_saved_var_array_elem(module_id_kind),
 #endif /* MODULE_ID_NEEDED */
-      pch_saved_var_array_elem(delayed_object_lifetime_pops),
-      pch_saved_var_array_elem(last_delayed_object_lifetime_pop),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -27562,8 +27496,6 @@ in il_init.)
   register_trans_unit_variable(module_id_scp);
   register_trans_unit_variable(module_id_kind);
 #endif /* MODULE_ID_NEEDED */
-  register_trans_unit_variable(delayed_object_lifetime_pops);
-  register_trans_unit_variable(last_delayed_object_lifetime_pop);
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -27668,8 +27600,6 @@ need initialization for every (primary and secondary) translation unit.
   module_id_scp = NULL;
   module_id_kind = iek_none;
 #endif /* MODULE_ID_NEEDED */
-  delayed_object_lifetime_pops = NULL;
-  last_delayed_object_lifetime_pop = NULL;
 }  /* il_trans_unit_init */
 
 

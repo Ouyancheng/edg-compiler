@@ -3592,9 +3592,11 @@ the scope being pushed.
                              (an_object_lifetime_kind)(olk_global_static));
       }  /* if */
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
-    } else if (is_local_scope_kind(kind)) {
+    } else if (is_local_scope_kind(kind) && !ssep->is_reactivation) {
       /* This is the sort of scope for which a new block object lifetime is
-         pushed. */
+         pushed.  Note that no object lifetime is pushed for local scope
+         reactivations (since such reactivations only restore context for
+         generic lambda instantiations, not object lifetimes). */
       an_object_lifetime_ptr  prev_olp = NULL;
       if (sp != NULL) prev_olp = sp->lifetime;
       push_or_repush_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
@@ -8799,41 +8801,33 @@ being popped.
       /* For a function, block, or condition scope, pop the current object
          lifetime, which ought to be the one created when this scope was
          pushed, except perhaps for an olk_try_block or olk_block_after_label
-         in the case of a reactivated block scope (these are not established
-         through push_scope_full). */
-      if (ssep->is_reactivation &&
-          (curr_object_lifetime->kind ==
+         (these are not established through push_scope_full).  For scopes that
+         were pushed with PS_IS_REACTIVATION this is not done (since such
+         reactivations only restore context for generic lambdas instantiations,
+         not object lifetimes), except that when popping a reactivated
+         sck_function scope, the saved object lifetime is restored. */
+      if (!ssep->is_reactivation) {
+        if (curr_object_lifetime->kind ==
                                      (an_object_lifetime_kind)olk_try_block ||
-           curr_object_lifetime->kind ==
-                            (an_object_lifetime_kind)olk_block_after_label)) {
-        curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-      }  /* if */
-      check_assertion_str2(curr_object_lifetime ==
-                                          ssep->curr_scope_object_lifetime,
-                           "pop_scope: unexpected curr_object_lifetime",
-                           "for function or block scope");
-      if ((kind == (a_scope_kind)sck_block &&
-           (options & PS_NOT_FINAL_POP) != 0) ||
-          ssep->is_reactivation ||
-          scope_stack[depth_innermost_function_scope].assoc_routine
-                                                  ->contains_generic_lambda) {
-        /* This is not the "final pop" of the local scope, and so we shouldn't
-           perform the usual cleanup operations associated with popping the
-           lifetime. */
-        if (scope_stack[depth_innermost_function_scope].assoc_routine
-                                                  ->contains_generic_lambda &&
-            !ssep->is_reactivation) {
-          /* For scopes containing generic lambdas we cannot determine a
-             specific "final pop".  We therefore record an entry to perform
-             the cleanup at the end of compilation. */
-          register_delayed_object_lifetime_pop();
+            curr_object_lifetime->kind ==
+                            (an_object_lifetime_kind)olk_block_after_label) {
+          curr_object_lifetime = curr_object_lifetime->parent_lifetime;
         }  /* if */
-        curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-        if (kind == (a_scope_kind)sck_function) {
-          curr_object_lifetime->has_implicit_child = TRUE;
+        check_assertion_str2(curr_object_lifetime ==
+                                             ssep->curr_scope_object_lifetime,
+                             "pop_scope: unexpected curr_object_lifetime",
+                             "for function or block scope");
+        if (kind == (a_scope_kind)sck_block &&
+            (options & PS_NOT_FINAL_POP) != 0) {
+          /* This is not the "final pop" of the local scope: Don't perform the
+             usual cleanup operations associated with popping the lifetime. */
+          curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+          if (kind == (a_scope_kind)sck_function) {
+            curr_object_lifetime->has_implicit_child = TRUE;
+          }  /* if */
+        } else {
+          (void)pop_object_lifetime();
         }  /* if */
-      } else {
-        (void)pop_object_lifetime();
       }  /* if */
       if (kind == (a_scope_kind)sck_function) {
         check_assertion(il_scope != NULL); /* For Coverity. */
