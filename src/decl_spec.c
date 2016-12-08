@@ -8024,7 +8024,7 @@ other modes.
 
 /* Define a bit vector to be used within decl_specifiers to track which
    specifiers have been encountered. */
-typedef long a_decl_specifiers_set;
+typedef unsigned long a_decl_specifiers_set;
 #define DS_NONE (a_decl_specifiers_set)(0x0)
 			/* No decl-specifiers have been scanned. */
 #define DS_STORAGE_CLASS (a_decl_specifiers_set)(0x1)
