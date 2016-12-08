@@ -5311,18 +5311,13 @@ user later during real instantiations.
 
   is_variable_template = symbol_is(template_sym, sk_variable_template);
   tssp = template_supplement_for_symbol(template_sym);
-  var_ptr = tssp->variant.variable.prototype_variable;
   if (is_variable_template &&
       prototype_template_of(template_sym) != template_sym) {
     /* Don't (re-do) the prototype instantiation of a member variable
        template during an instantiation of the enclosing class. */
     goto done;
-  } else if (var_ptr->initializer_in_class &&
-             decl_state->class_declared_in == NULL) {
-    /* This is an out-of-class definition of a variable initialized in
-       its class. */
-    goto done;
   }  /* if */
+  var_ptr = tssp->variant.variable.prototype_variable;
   proto_sym = symbol_for(var_ptr);
   check_assertion(proto_sym != NULL);
   decl_state->decl_parse.sym = proto_sym;
@@ -22745,8 +22740,7 @@ set, and its source sequence entry, if any, has been put out.)
             }  /* if */
             il_template_entry->canonical_template =
                                             var->template_info->assoc_template;
-            if (decl_state->defines_something &&
-                decl_state->class_declared_in == NULL) {
+            if (decl_state->defines_something) {
               il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
             }  /* if */
@@ -23237,7 +23231,7 @@ template symbol supplement for this template should be returned to the caller.
        scope in which the variable template or parent class was defined. */
     sym_error(ec_bad_scope_for_definition, sym);
     err = TRUE;
-  } else if (sym->defined && !var->initializer_in_class) {
+  } else if (sym->defined) {
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
@@ -23400,16 +23394,6 @@ template symbol supplement for this template should be returned to the caller.
     /* Prevent the generation of a source sequence entry for the a_template
        entry since we already did so elsewhere. */
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
-    if (is_variable_template) {
-      if (!dps->is_definition) {
-        a_src_seq_secondary_decl_ptr sssdp;
-        check_assertion(decl_state->il_template_entry != NULL);
-        sssdp = secondary_src_seq_for_template(decl_state->il_template_entry);
-        sssdp->declared_type = dps->declared_type;
-      } else if (var != NULL) {
-        var->declared_type = dps->declared_type;
-      }  /* if */
-    }  /* if */
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     tssp->is_variadic = decl_state->is_variadic;
@@ -23448,7 +23432,6 @@ template symbol supplement for this template should be returned to the caller.
     /* Restore the previous state wrt. the generation of source sequence
        entries. */
     source_sequence_entries_disallowed = saved_sses_disallowed;
-    wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (err) {

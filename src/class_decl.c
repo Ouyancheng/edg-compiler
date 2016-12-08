@@ -15118,11 +15118,13 @@ decl_member_function, which handles in-class member function declarations.)
       check_assertion(il_template_entry != NULL);
       remove_declarator_sse(dps, depth_scope_stack);
       if (!func_info->is_definition) {
-        /* Turn the source sequence entry for the a_template entry into a
-           secondary source sequence entry. */
-        a_src_seq_secondary_decl_ptr sssdp =
+        if (!source_sequence_entries_disallowed) {
+          /* Turn the source sequence entry for the a_template entry into a
+             secondary source sequence entry. */
+          a_src_seq_secondary_decl_ptr sssdp =
                             secondary_src_seq_for_template(il_template_entry);
-        sssdp->declared_type = func_info->declared_type;
+          sssdp->declared_type = func_info->declared_type;
+        }  /* if */
       } else {
         rtn->declared_type = func_info->declared_type;
         rtn->declared_storage_class = dps->declared_storage_class;
@@ -16182,8 +16184,8 @@ template declaration and is NULL otherwise.
       sym = variable_template_partial_specialization(sym, templ_state,
                                                      locator);
     } else {
-      /* For variable templates, the variable is created by the call to
-         create_variable_template_symbol.  Fill in the type now. */
+      /* For variable templates, the variable is created above by the
+         call to create_variable_template_symbol.  Fill in the type now. */
       sym = create_variable_template_symbol(templ_state, locator);
     }  /* if */
     var_templ_tssp = sym->variant.template_info;
@@ -16297,6 +16299,7 @@ template declaration and is NULL otherwise.
       token_cache = cache_inclass_initializer(sym);
       initializer_cache = token_cache;
       var->initializer_in_class = TRUE;
+      srk_flags |= SRK_DEFINITION;
     } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
                constant_member && in_class_template_definition(class_state)) {
       /* GCC appears to instantiate the initializer on demand.  Cache and
@@ -16416,39 +16419,23 @@ template declaration and is NULL otherwise.
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, &var->source_corresp);
   }  /* if */
-  if (!source_sequence_entries_disallowed) {
-    if (declared_type == NULL) declared_type = member_type;
-    if (symbol_is(sym, sk_variable_template)) {
-      a_src_seq_secondary_decl_ptr sssdp;
-      a_template_ptr               il_template_entry =
-                                             var_templ_tssp->il_template_entry;
-      check_assertion(il_template_entry != NULL);
-      /* The template entry has its own source sequence entry.  Discard the
-         one created for the variable declarator. */
-      remove_declarator_sse(decl_state, depth_scope_stack);
-      /* Turn the source sequence entry for the a_template entry into a
-         secondary source sequence entry. */
-      sssdp = secondary_src_seq_for_template(il_template_entry);
-      sssdp->declared_type = declared_type;
-      decl_state->source_sequence_entry =
-                      il_template_entry->source_corresp.source_sequence_entry;
-    } else if (!(srk_flags & SRK_DEFINITION)) {
-      an_sssd_flag_set  flags = SSSD_NO_FLAGS;
+  if (declared_type == NULL) declared_type = member_type;
+  if (!(srk_flags & SRK_DEFINITION)) {
+    an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
-      if (decl_state->marked_as_gnu_extension) {
-        flags |= SSSD_MARKED_AS_GNU_EXTENSION;
-      }  /* if */
+    if (decl_state->marked_as_gnu_extension) {
+      flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      (void)update_src_seq_secondary_decl((char *)var, declared_type, name_ref,
-                                          flags, &decl_info->decl_pos_block);
-    } else {
-      var->declared_type = declared_type;
-      var->declared_storage_class = decl_state->declared_storage_class;
-    }  /* if */
-    wrapup_sse_for_simple_decl(decl_state);
-    if (decl_state->has_initializer) {
-      add_src_seq_end_of_variable_if_needed(decl_state);
-    }  /* if */
+    (void)update_src_seq_secondary_decl((char *)var, declared_type, name_ref,
+                                        flags, &decl_info->decl_pos_block);
+  } else {
+    var->declared_type = declared_type;
+    var->declared_storage_class = decl_state->declared_storage_class;
+  }
+  wrapup_sse_for_simple_decl(decl_state);
+  if (decl_state->has_initializer) {
+    add_src_seq_end_of_variable_if_needed(decl_state);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
