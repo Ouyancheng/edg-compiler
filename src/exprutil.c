@@ -17669,7 +17669,7 @@ in the source (and *operator_position gives its position).
             is_glvalue_for_auto_object(operand->variant.expression,
                                        (a_boolean *)NULL))) {
         /* The "&" operation must fold to a constant in a constant
-           expression.  In GNU C node, allow taking the address of
+           expression.  In GNU C mode, allow taking the address of
            a local variable because there are some folding operations that
            can fold those to constants.  If the end result is not a
            constant, an error will be issued. */

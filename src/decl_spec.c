@@ -8482,13 +8482,16 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
        left paren is a right paren or the start of a formal parameter
        declaration. */
     if (is_member_decl && !result) {
-      /* Permit specifiers that apply to member functions.  In Clang and
+      /* Permit specifiers that apply to member functions.  In some Clang and
          Microsoft modes cv-qualifiers are accepted too. */
-      if (!(decl_specifiers_seen &
-            ~(DS_VIRTUAL | DS_STORAGE_CLASS | DS_EXPLICIT | DS_INLINE |
-              DS_CONSTEXPR | DS_MICROSOFT_INLINE | DS_FORCEINLINE |
-              (clang_mode || microsoft_mode ? DS_TYPE_QUALIFIER
-                                                 : DS_NONE))) &&
+      a_decl_specifiers_set  accepted_specifiers =
+                                 DS_VIRTUAL | DS_STORAGE_CLASS | DS_EXPLICIT |
+                                 DS_INLINE | DS_MICROSOFT_INLINE |
+                                 DS_FORCEINLINE | DS_CONSTEXPR;
+      if ((clang_mode && clang_version < 30500) || microsoft_mode) {
+        accepted_specifiers |= DS_TYPE_QUALIFIER;
+      }  /* if */
+      if (!(decl_specifiers_seen & ~accepted_specifiers) != 0 &&
           (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
            dps->declared_storage_class == (a_storage_class)sc_static)) {
         a_type_ptr  class_type = enclosing_class_type(input_flags);

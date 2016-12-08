@@ -1,5 +1,13 @@
 Version 4.13
 
+12/8/16  [EDGcpfe/17510]
+Clang compatibility: const/volatile constructors
+
+The front end previously accept extraneous type qualifiers on constructors in
+all Clang C++ modes (see the entry for EDGcpfe/12128 etc.).  Now, that behavior
+is limited to Clang C++ modes with clang_version < 30500.
+
+
 12/8/16  [EDGcpfe/17838]
 Out-of-class definition of variable template with in-class initializer
 
