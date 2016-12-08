@@ -1,5 +1,17 @@
 Version 4.13
 
+12/8/16  [EDGcpfe/17838]
+Out-of-class definition of variable template with in-class initializer
+
+The front end rejected an out-of-class definition of a member variable
+template that had an in-class initializer.  Now fixed.
+
+  template <class T> struct A {
+    template <class U> static constexpr U var = {};
+  };
+  template <class T> template <class U> constexpr U A<T>::var;
+
+
 12/7/16  [EDGcpfe/17788]
 Microsoft compatibility: Additional versioning tweaks
 

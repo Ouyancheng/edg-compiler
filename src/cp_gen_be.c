@@ -16965,6 +16965,7 @@ this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_name_reference_ptr         name_ref = NULL;
   an_attribute_ptr             attributes;
+  a_variable_template_info_ptr saved_template_info;
                             
   name_ref = get_current_name_ref();
   /* Deal with the primary/secondary declaration difference. */
@@ -17040,10 +17041,11 @@ this one is such a continuation.
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   /* Usually, initializers appear on a definition, but for (static) member
-     constants that are not variable templates, they appear on the
-     declaration. */
+     constants that are not variable templates or are constexpr, they
+     appear on the declaration. */
   if (var->is_member_constant &&
-      (var->template_info == NULL ||
+      (var->is_constexpr ||
+       var->template_info == NULL ||
        var->template_info->template_arg_list == NULL)) {
     consider_initialization = !is_definition;
   } else {
@@ -17272,6 +17274,12 @@ this one is such a continuation.
        !(microsoft_mode && is_namespace_member(var) &&
          !scope_is_in_name_context_stack(
                               parent_namespace_of(var)->variant.assoc_scope));
+  /* Ensure that no template argument list is put out on a declaration of a
+     variable template, unless it's a specialization. */
+  saved_template_info = var->template_info;
+  if (!var->is_specialized) {
+    var->template_info = NULL;
+  }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
@@ -17286,6 +17294,7 @@ this one is such a continuation.
                                                    GDO_FORCE_UNQUALIFIED_NAME :
                                                    GDO_NO_OPTIONS,
                                      name_ref);
+  var->template_info = saved_template_info;
 #if GNU_EXTENSIONS_ALLOWED
   /* Emit any user-specified assembly symbol for this variable. */
   if (var->asm_name_is_valid) {
