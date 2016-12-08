@@ -8491,7 +8491,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
       if ((clang_mode && clang_version < 30500) || microsoft_mode) {
         accepted_specifiers |= DS_TYPE_QUALIFIER;
       }  /* if */
-      if (!(decl_specifiers_seen & ~accepted_specifiers) != 0 &&
+      if (!(decl_specifiers_seen & ~accepted_specifiers) &&
           (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
            dps->declared_storage_class == (a_storage_class)sc_static)) {
         a_type_ptr  class_type = enclosing_class_type(input_flags);
