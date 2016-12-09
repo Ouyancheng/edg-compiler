@@ -12,7 +12,7 @@ be incorrectly disambiguated, resulting in spurious errors.  Now fixed.
 
 
 12/8/16  [EDGcpfe/17620]
-C++-generating back end abort on member variable template declaration
+C++-generating back end: Abort on member variable template declaration
 
 The C++-generating back end previously aborted when attempting to render a
 C++14 member variable template declaration lacking an in-class initializer.
