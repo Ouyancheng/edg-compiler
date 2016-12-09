@@ -1,5 +1,24 @@
 Version 4.13
 
+12/9/16  [EDGcpfe/17836]
+Spurious ambiguity in converted constant expression
+
+The front end previously issued a spurious ambiguity on the following case:
+
+  struct S {
+    constexpr operator int() const { return 1; }
+    constexpr operator long() const { return 2; }
+  };
+  void g(int i) {
+    constexpr const S s{};
+    switch (i) {
+      case s: break;  // Previously an ambiguity error.  Now okay.
+    }
+  }
+
+This was a regression caused by the changes for EDGcpfe/17050.  Now fixed.
+
+
 12/9/16  [EDGcpfe/17837]
 Spurious error on multiple declarators with braced initializers
 

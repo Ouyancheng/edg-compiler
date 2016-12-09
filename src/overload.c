@@ -13626,6 +13626,37 @@ not_direct_binding_case:
           }  /* if */
         }  /* if */
       }  /* if */
+      /* For operators like "+" or "+=", ignore the specific destination type
+         since all types matching builtin_types_allowed are equally good (see
+         N4606 [over.built], which allows arbitrary "left" and "right" types
+         of a given category).  However, for converted constant expression
+         contexts, the standard conversion to dest_type matters.  E.g.:
+            struct S {
+              constexpr operator int() const { return 42; }
+              constexpr operator long() const { return 43; }
+            };
+            void test(int i) {
+              constexpr const S s{};
+              switch (i) {
+                case s: break;  // "operator int()" preferred.
+              }
+            }
+         In those cases, we therefore call impl_conversion_possible to
+         determine the standard conversion.
+      */
+      if (compatible && dest_type != NULL &&
+          (conv_context & CCO_CONVERTED_CONSTANT_EXPR) != 0 &&
+          !impl_conversion_possible(return_type,
+                                    /*source_is_constant=*/FALSE,
+                                    /*source_is_string_literal=*/FALSE,
+                                    /*source_is_function=*/FALSE,
+                                    orig_is_copy_initialization,
+                                    (a_constant_ptr)NULL, dest_type,
+                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                    /*suppress_extensions=*/TRUE,
+                                    ec_no_error, &std_conversion)) {
+        compatible = FALSE;
+      }  /* if */
     }  /* if */
     /* Give up on this function if it does not return a type we can use. */
     if (!compatible) goto reject_function;
