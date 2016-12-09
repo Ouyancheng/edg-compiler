@@ -1411,7 +1411,6 @@ Assuming that we are in the midst of a declaration, we scan ahead to find
 evidence to the contrary. 
 */
 {
-  a_boolean	is_first_declarator = TRUE;
   a_boolean	record_auto_params = (flags & DFS_RECORD_AUTO_PARAMS) != 0;
 
   db_enter(3, "prescan_declaration");
@@ -1452,7 +1451,7 @@ evidence to the contrary.
                                   !is_condition(flags);
       prescan_declarator(state, flags,
                          paren_initializer_allowed,
-			 is_top_level && is_first_declarator);
+			 is_top_level);
       if (terminate_disambiguation(state)) goto done;
       /* If we are not processing real declarators, or if we are processing
          a condition, don't look for additional declarators. */
@@ -1461,7 +1460,6 @@ evidence to the contrary.
           curr_token != tok_comma) break;
       /* Advance past the comma then scan the next declarator. */
       get_token_and_coalesce_if_identifier(flags);
-      is_first_declarator = FALSE;
     }  /* for */
     /* Break out of the loop if no additional declaration seems to follow
        or if multiple types are not allowed. */
