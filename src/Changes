@@ -1,5 +1,25 @@
 Version 4.13
 
+12/9/16  [EDGcpfe/16140]
+Partial substitution of parent type of class template reference
+
+During template argument substitution, if the parent type of a reference
+to a class template instance was partially substituted (e.g., in the
+example below when the explicit argument C is substituted into A<T,U>) a
+spurious substitution failure could occur.  Now fixed.
+
+  template <typename T, typename U> struct A {
+    template <int> using B = int;
+  };
+  struct C {};
+  template <typename T, typename U> typename A<T, U>::template B<0> f(U t) {
+    return 0;
+  }
+  int main() {
+    return f<C>(0);
+  }
+
+
 12/9/16  [EDGcpfe/17719]
 IA-64 ABI: Substitutions for templated types in mangled names
 

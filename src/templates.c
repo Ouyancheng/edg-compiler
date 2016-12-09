@@ -12210,15 +12210,23 @@ being looked up is known to be a type.
     if (is_enum_type(parent_type)) {
       new_sym = enum_qualified_id_lookup(&locator, parent_type);
     } else {
-      an_id_lookup_options_set	lookup_options;
+      an_id_lookup_options_set	lookup_options = IDL_NO_OPTIONS;
       a_boolean			ambiguous = FALSE;
       /* If the entity being looked up is known the be the parent of another
          entity, then it must be a class or a namespace.  Otherwise, use the
          is_type parameter to determine whether a typename lookup is needed. */
       if (options & CTWS_IS_PARENT) {
         lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
-      } else {
-        lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
+      } else if (is_type) {
+        a_template_arg_ptr	sym_arg_list;
+        sym_arg_list = template_arg_list_for_symbol(orig_sym);
+        /* If the original type was a template instance, look for a template
+           name. */
+        if (sym_arg_list != NULL) {
+          lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
+        } else {
+          lookup_options |= IDL_TYPENAME_LOOKUP;
+        }  /* if */
       }  /* if */
       (void)class_qualified_id_lookup(&locator, parent_type, lookup_options);
       new_sym = locator.specific_symbol;
