@@ -1,5 +1,21 @@
 Version 4.13
 
+12/9/16  [EDGcpfe/17719]
+IA-64 ABI: Substitutions for templated types in mangled names
+
+The change made for EDGcpfe/13764 caused a regression in the way substitutions
+are used in mangled names in the IA-64 ABI.  That change has now been reversed
+(when ABI_COMPATIBILITY_VERSION >= 413) to produce proper mangling for cases
+that involve repeated template types with the same template parameter, like
+this case:
+
+  template <int N> struct A {};
+  template <int N> void f(A<N> a1, A<N> a2);
+  void f(A<3> a) {
+    f(a, a);
+  }
+
+
 12/9/16  [EDGcpfe/16390,EDGcpfe/16389]
 Template parameter pack as argument for non-variadic template parameter
 
