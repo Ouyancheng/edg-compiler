@@ -1,5 +1,19 @@
 Version 4.13
 
+12/9/16  [EDGcpfe/16390,EDGcpfe/16389]
+Template parameter pack as argument for non-variadic template parameter
+
+The front end could issue a spurious error during a prototype instantiation
+when a template parameter pack was passed as an argument for a non-variadic
+template argument, and the pack was followed by a template argument
+of a different kind than the pack (e.g., nontype vs. type).  Now fixed.
+
+  template <typename, typename, int N> struct C {};
+  template<typename... Ts> struct A {
+    template<typename U, U u> using B = C<Ts..., u>;
+  };
+
+
 12/9/16  [EDGcpfe/17836]
 Spurious ambiguity in converted constant expression
 

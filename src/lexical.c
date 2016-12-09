@@ -16236,17 +16236,6 @@ all arguments were explicit.
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
       remove_stop_token(tok_comma);
-      if (param_ptr->is_pack) {
-        /* Record that this argument was associated with a pack. */
-        arg_ptr->is_pack_element = TRUE;
-      } else {
-        /* Don't advance to the next parameter if this is a pack. */
-        param_ptr = param_ptr->next;
-      }  /* if */
-      if (orig_param_ptr != NULL && !orig_param_ptr->is_pack) {
-        /* Don't advance to the next parameter if this is a pack. */
-        orig_param_ptr = orig_param_ptr->next;
-      }  /* if */
       ++arg_number;
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
@@ -16254,6 +16243,36 @@ all arguments were explicit.
       any_args = advance_to_next_pack_element(pesep);
       if (arg_ptr->pack_expansion_descr != NULL && first_pack == NULL) {
         first_pack = arg_ptr;
+      }  /* if */
+      if (param_ptr->is_pack) {
+        /* Record that this argument was associated with a pack. */
+        arg_ptr->is_pack_element = TRUE;
+      }  /* if */
+      if (arg_ptr->is_pack &&
+          (!param_ptr->is_pack ||
+           (orig_param_ptr != NULL && !orig_param_ptr->is_pack)) &&
+          curr_token == tok_comma) {
+        /* A pack expansion is being used as an argument to a non-pack
+           in a template definition context.  We can't match the
+           remaining arguments with parameters.  Scan the remaining
+           arguments as an "unknown" argument list. */
+        a_template_arg_ptr	other_args;
+        (void)get_token();
+        other_args = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+        last_arg->next = other_args;
+        while (last_arg->next != NULL) last_arg = last_arg->next;
+        param_ptr = NULL;
+      } else {
+        /* Advance to the next template parameter, unless the current
+           parameter is a pack. */
+        if (!param_ptr->is_pack) {
+          /* Don't advance to the next parameter if this is a pack. */
+          param_ptr = param_ptr->next;
+        }  /* if */
+        if (orig_param_ptr != NULL && !orig_param_ptr->is_pack) {
+          /* Don't advance to the next parameter if this is a pack. */
+          orig_param_ptr = orig_param_ptr->next;
+        }  /* if */
       }  /* if */
     }  /* while */
   } while (loop_token(tok_comma));
