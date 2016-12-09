@@ -1,5 +1,16 @@
 Version 4.13
 
+12/9/16  [EDGcpfe/17837]
+Spurious error on multiple declarators with braced initializers
+
+A declaration with multiple declarators with braced initializers could
+be incorrectly disambiguated, resulting in spurious errors.  Now fixed.
+
+  template<typename T> void f() {
+    typename T::x x1{}, x2{};
+  }
+
+
 12/8/16  [EDGcpfe/17620]
 C++-generating back end abort on member variable template declaration
 
