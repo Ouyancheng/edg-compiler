@@ -1,11 +1,11 @@
 Version 4.13
 
 12/9/16  [EDGcpfe/17831]
-Spurious dependent pointer comparison error in GNU and Clang modes
+Spurious dependent pointer comparison error
 
-In GNU and Clang modes, the front end sometimes issued a spurious error on
-certain pointer comparisons in which one of the operands has an unknown
-template-dependent type.  For example:
+The front end sometimes issued a spurious error on certain pointer comparisons
+in which one of the operands has an unknown template-dependent type.  For
+example:
 
   template<class T> void g();
   template<class T> bool f(void (*p)()) {
