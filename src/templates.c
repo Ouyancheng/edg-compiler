@@ -1925,18 +1925,22 @@ Return TRUE if there is a match, FALSE otherwise.
     if (copy_error) match = FALSE;
   }  /* if */
   /* Compare the parameter list of the (potentially) rescanned template
-     template parameter with the template supplied as an argument. */
+     template parameter with the template supplied as an argument.  Don't
+     do this if the argument template is nonreal (because it won't have
+     a template parameter list). */
   param_tssp = template_supplement_for_template(param_template);
   param_list_for_param = param_tssp->cache.decl_info->parameters;
   arg_template = template_supplement_for_template(tap->variant.templ.ptr);
-  param_list_for_arg = arg_template->cache.decl_info->parameters;
-  if (!equiv_template_param_lists(param_list_for_param,
-                                  param_list_for_arg,
-                                  /*issue_errors=*/FALSE,
-                                  ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-                                  (a_source_position*)NULL,
-                                  es_error)) {
-    match = FALSE;
+  if (!arg_template->is_nonreal_member) {
+    param_list_for_arg = arg_template->cache.decl_info->parameters;
+    if (!equiv_template_param_lists(param_list_for_param,
+                                    param_list_for_arg,
+                                    /*issue_errors=*/FALSE,
+                                    ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+                                    (a_source_position*)NULL,
+                                    es_error)) {
+      match = FALSE;
+    }  /* if */
   }  /* if */
   return match;
 }  /* template_template_arg_matches_param */
@@ -12216,7 +12220,7 @@ being looked up is known to be a type.
          entity, then it must be a class or a namespace.  Otherwise, use the
          is_type parameter to determine whether a typename lookup is needed. */
       if (options & CTWS_IS_PARENT) {
-        lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
+        lookup_options |= IDL_MUST_BE_CLASS_OR_NAMESPACE;
       } else if (is_type) {
         a_template_arg_ptr	sym_arg_list;
         sym_arg_list = template_arg_list_for_symbol(orig_sym);
@@ -12227,6 +12231,10 @@ being looked up is known to be a type.
         } else {
           lookup_options |= IDL_TYPENAME_LOOKUP;
         }  /* if */
+      } else if (is_class_template_symbol(orig_sym)) {
+        /* If the symbol passed in was for a class template, do a lookup that
+           will create a nonreal class template, if needed. */
+        lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
       }  /* if */
       (void)class_qualified_id_lookup(&locator, parent_type, lookup_options);
       new_sym = locator.specific_symbol;
