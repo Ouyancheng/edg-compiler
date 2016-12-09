@@ -19,7 +19,7 @@ source sequence entries.  This is now fixed.
 12/8/16  [EDGcpfe/17510]
 Clang compatibility: const/volatile constructors
 
-The front end previously accept extraneous type qualifiers on constructors in
+The front end previously accepted extraneous type qualifiers on constructors in
 all Clang C++ modes (see the entry for EDGcpfe/12128 etc.).  Now, that behavior
 is limited to Clang C++ modes with clang_version < 30500.
 
