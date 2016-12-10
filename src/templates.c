@@ -23416,14 +23416,17 @@ template symbol supplement for this template should be returned to the caller.
     /* Prevent the generation of a source sequence entry for the a_template
        entry since we already did so elsewhere. */
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
-    if (is_variable_template) {
-      if (!dps->is_definition) {
-        a_src_seq_secondary_decl_ptr sssdp;
-        check_assertion(decl_state->il_template_entry != NULL);
-        sssdp = secondary_src_seq_for_template(decl_state->il_template_entry);
-        sssdp->declared_type = dps->declared_type;
-      } else if (var != NULL) {
-        var->declared_type = dps->declared_type;
+    if (!source_sequence_entries_disallowed) {
+      if (is_variable_template) {
+        if (!dps->is_definition) {
+          a_src_seq_secondary_decl_ptr sssdp;
+          check_assertion(decl_state->il_template_entry != NULL);
+          sssdp = secondary_src_seq_for_template(
+                                                decl_state->il_template_entry);
+          sssdp->declared_type = dps->declared_type;
+        } else if (var != NULL) {
+          var->declared_type = dps->declared_type;
+        }  /* if */
       }  /* if */
     }  /* if */
     source_sequence_entries_disallowed = TRUE;
