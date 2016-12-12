@@ -5417,6 +5417,7 @@ Allocate an attribute in file scope memory and return a pointer to it.
 #if GNU_EXTENSIONS_ALLOWED
   ap->is_implicit_abi_tag_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  ap->namespace_from_using = FALSE;
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;

@@ -2252,6 +2252,12 @@ EXTERN a_boolean
 			/* TRUE if character literals of the form u8'x' are
 			   accepted (a C++17 feature). */
 
+EXTERN a_boolean
+                using_attribute_namespaces_enabled;
+                        /* TRUE if a "using" prefix can be specified in
+                           an attribute list to avoid repeating the namespace
+                           on each attribute (a C++17 feature). */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

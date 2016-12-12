@@ -3319,6 +3319,7 @@ default mode (e.g., exception handling).
       }  /* if */
       register_is_disallowed = TRUE;
       operator_bool_increment_allowed = FALSE;
+      using_attribute_namespaces_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11171,6 +11172,7 @@ variables declared in cmd_line.h.
   register_is_deprecated = FALSE;
   register_is_disallowed = FALSE;
   operator_bool_increment_allowed = TRUE;
+  using_attribute_namespaces_enabled = FALSE;
 #if DO_IL_LOWERING
   pointer_to_member_call_optimization_allowed =
                            DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED;

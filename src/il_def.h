@@ -2502,6 +2502,10 @@ typedef enum an_attribute_kind_tag {
 			   groups (like [[]] in C++11), but in GNU modes, a
 			   group can contain multiple empty attributes (e.g.,
 			   __attribute((,,,)) ). */
+  ak_attr_using_prefix, /* A pseudo-attribute marking the presence of a
+                           "using" prefix that specifies the attribute
+                           namespace to be used as the implicit namespace for
+                           each attribute that following in the list (std). */
 
   /* Standard attributes (some of which also have GNU and/or Microsoft
      variants). */
@@ -2700,13 +2704,19 @@ typedef struct an_attribute {
 			   attribute.  Such attributes have been added during
 			   the mangling process. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	namespace_from_using:1;
+			/* TRUE if the namespace name of the attribute was
+			   obtained from a "using" prefix.  Only TRUE if
+			   namespace_name is non-NULL. */
   a_const_char	*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   a_const_char	*namespace_name;
 			/* The attribute namespace name as it appeared in the
 			   source.  E.g., "XYZ" in [[ XYZ::fast ]].  NULL if
 			   no namespace name appeared (in particular, NULL
-			   when family is not af_std). */
+			   when family is not af_std).  If
+			   namespace_from_using is TRUE, the namespace name
+			   is implicitly specified through a "using" prefix. */
   an_attribute_arg_ptr
 		arguments;
 			/* The argument list of this attribute (NULL if there

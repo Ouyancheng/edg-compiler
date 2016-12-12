@@ -576,6 +576,7 @@ See also the complementary table known_attr_table above.
 static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_unrecognized, "", NO_APPL_FN },
   { ak_empty_attr, "", NO_APPL_FN },
+  { ak_attr_using_prefix, "", NO_APPL_FN },
   /* Standard attributes. */
   { ak_align, "", apply_align_attr },
   { ak_base_check, "c:+d", apply_base_check_attr },
@@ -1847,7 +1848,8 @@ track end positions).
 }  /* record_attribute_name */
 
 
-static an_attribute_ptr scan_attribute(an_attribute_family  af)
+static an_attribute_ptr scan_attribute(an_attribute_family  af,
+                                       an_attribute_ptr     using_ns_ap)
 /*
 Scan a standard attribute of one of the following forms
     <identifier>
@@ -1858,10 +1860,13 @@ If af is af_std, the following qualified forms are also accepted
     <identifier> :: <identifier> ( <arg-list> )
 
 <identifier> in this context includes keywords.  af indicates which syntax
-the attribute is declared with.
+the attribute is declared with.  If using_ns_ap is non-NULL, it indicates the
+attribute namespace name specified by a preceding "using" prefix that is to
+be used as the implicit attribute namespace name for this attribute.
 */
 {
   an_attribute_ptr   ap = NULL;
+  a_boolean          err = FALSE;
 
   if (!is_valid_attribute_identifier(curr_token)) {
     syntax_error(ec_exp_identifier);
@@ -1878,66 +1883,82 @@ the attribute is declared with.
       if (!is_valid_attribute_identifier(curr_token)) {
         syntax_error(ec_exp_identifier);
       } else {
-        ap->namespace_name = ap->name;
-        ap->name = NULL;
-        record_attribute_name(ap);
+        if (using_ns_ap != NULL) {
+          /* A "using" prefix has been specified therefore namespaces may
+             not appear on any attribute on this list. */
+          pos_error(ec_namespace_not_allowed, &ap->position);
+          ap = NULL;
+          err = TRUE;
+        } else {
+          ap->namespace_name = ap->name;
+          ap->name = NULL;
+          record_attribute_name(ap);
+        }  /* if */
         (void)get_token();
       }  /* if */
+    } else if (using_ns_ap != NULL) {
+      /* A "using" prefix was specified; apply that namespace name to this
+         attribute. */
+      ap->namespace_name = using_ns_ap->name;
+      ap->namespace_from_using = TRUE;
     }  /* if */
-    adp = get_attr_descr_for_attribute(ap);
-    if (adp == NULL) {
-      /* An unrecognized attribute.  Use "?(*)" as its signature, indicating
-         that an argument list is optional, and if it is present, it will just
-         be recorded as a sequence of tokens. */
-      sig = "?(*)";
-    } else {
-      /* The attribute was recognized: Retrieve its signature from its
-         description entry. */
-      sig = adp->sig;
-    }  /* if */
-    scan_attribute_args(ap, sig);
-    if (adp != NULL) {
-      /* Check for duplicate attributes. */
-      if ((attr_family_seen[ap->kind] & (1 << ap->family)) == 0) {
-        attr_family_seen[ap->kind] |= 1 << ap->family;
+    if (!err) {
+      adp = get_attr_descr_for_attribute(ap);
+      if (adp == NULL) {
+        /* An unrecognized attribute.  Use "?(*)" as its signature, indicating
+           that an argument list is optional, and if it is present, it will
+           just be recorded as a sequence of tokens. */
+        sig = "?(*)";
       } else {
-        /* A duplicate attribute kind.  Look at the cond adp->string to see if
-           that is disallowed. */
-        a_boolean  err = FALSE;
-        if (adp->cond[0] == '1') {
-          err = TRUE;
-          make_attr_unrecognized(ap);
+        /* The attribute was recognized: Retrieve its signature from its
+           description entry. */
+        sig = adp->sig;
+      }  /* if */
+      scan_attribute_args(ap, sig);
+      if (adp != NULL) {
+        /* Check for duplicate attributes. */
+        if ((attr_family_seen[ap->kind] & (1 << ap->family)) == 0) {
+          attr_family_seen[ap->kind] |= 1 << ap->family;
+        } else {
+          /* A duplicate attribute kind.  Look at the cond adp->string to see
+             if that is disallowed. */
+          if (adp->cond[0] == '1') {
+            err = TRUE;
+            make_attr_unrecognized(ap);
+          }  /* if */
+          pos_diagnostic(err ? es_error : es_remark, ec_attr_twice_in_group,
+                         &ap->position);
         }  /* if */
-        pos_diagnostic(err ? es_error : es_remark, ec_attr_twice_in_group,
-                       &ap->position);
+      } else if (!record_unrecognized_attributes ||
+                 ap->family == (a_byte_attribute_family)af_ms_declspec) {
+        /* If we are not recording unrecognized attributes, drop unrecognized
+           attributes with a warning.  Always issue a discretionary error for
+           unrecognized Microsoft __declspec attributes. */
+        an_error_severity  sev = es_warning;
+        if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+          sev = es_discretionary_error;
+        }  /* if */
+        pos_st_diagnostic(sev, ec_unrecognized_attribute, &ap->position,
+                          ap->name);
+        if (!record_unrecognized_attributes) ap = NULL;
       }  /* if */
-    } else if (!record_unrecognized_attributes ||
-               ap->family == (a_byte_attribute_family)af_ms_declspec) {
-      /* If we are not recording unrecognized attributes, drop unrecognized
-         attributes with a warning.  Always issue a discretionary error for
-         unrecognized Microsoft __declspec attributes. */
-      an_error_severity  sev = es_warning;
-      if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
-        sev = es_discretionary_error;
-      }  /* if */
-      pos_st_diagnostic(sev, ec_unrecognized_attribute, &ap->position,
-                        ap->name);
-      if (!record_unrecognized_attributes) ap = NULL;
     }  /* if */
   }  /* if */
   return ap;
 }  /* scan_attribute */
 
 
-static an_attribute_ptr scan_attributes_list(an_attribute_location  loc,
-                                             an_attribute_family    af,
-                                             a_token_kind           end_token)
+static an_attribute_ptr scan_attributes_list(an_attribute_location loc,
+                                             an_attribute_family   af,
+                                             a_token_kind          end_token,
+                                             an_attribute_ptr      using_ns_ap)
 /*
 Scan a comma-separated list of attributes of the given family.  end_token is
 the token kind that terminates the list (that final token, which should be in
 the stop tokens set, is not considered part of the list and is therefore not
 consumed).  loc describes the syntactic location in which the attributes
-appear.
+appear.  If using_ns_ap is non-NULL, it specifies the attribute namespace
+that appeared in a previous "using" prefix.  Can return NULL on error.
 */
 {
   an_attribute_ptr   attributes = NULL, *p_attribute = &attributes, ap;
@@ -1983,7 +2004,7 @@ appear.
         /* Skip the string literal. */
         (void)get_token();
       } else {
-        *p_attribute = scan_attribute(af);
+        *p_attribute = scan_attribute(af, using_ns_ap);
       }  /* if */
       { a_pack_expansion_descr_ptr pedep;
         pedep = end_potential_pack_expansion_context(pesep,
@@ -2063,12 +2084,14 @@ static an_attribute_ptr scan_std_attribute_group(an_attribute_location  loc)
 /*
 Scan a standard attribute group of the form
     [ [  <attribute-list>  ] ]
+      or
+    [ [  using attribute-namespace : <attribute-list>  ] ]
 <attribute-list> is a possibly empty list of attributes.  The attribute list
 can also contain "empty attributes" (e.g., [[,,,]] ).  loc is the syntactic
 location in which the group appears.
 */
 {
-  an_attribute_ptr   attributes = NULL;
+  an_attribute_ptr   attributes = NULL, using_ns_ap = NULL;
   a_source_position  group_pos;
 
   group_pos = pos_curr_token;
@@ -2078,7 +2101,29 @@ location in which the group appears.
   check_assertion(curr_token == tok_lbracket);
   (void)get_token();
   add_stop_token(tok_rbracket);
-  attributes = scan_attributes_list(loc, af_std, tok_rbracket);
+  if (curr_token == tok_using && using_attribute_namespaces_enabled) {
+    /* A "using" prefix; scan the attribute namespace name and use it as
+       the namespace for all attributes in this group. */
+    (void)get_token();
+    if (!is_valid_attribute_identifier(curr_token)) {
+      syntax_error(ec_exp_identifier);
+    } else {
+      /* Use a separate attribute to indicate the presence of a "using"
+         prefix. */
+      using_ns_ap = make_attribute(af_std);
+      using_ns_ap->kind = (a_byte_attribute_kind)ak_attr_using_prefix;
+      using_ns_ap->syntactic_location = loc;
+      record_attribute_name(using_ns_ap);
+      (void)get_token();
+      (void)required_token(tok_colon, ec_exp_colon);
+    }  /* if */
+  }  /* if */
+  attributes = scan_attributes_list(loc, af_std, tok_rbracket, using_ns_ap);
+  if (using_ns_ap != NULL) {
+    /* Add the "using" prefix attribute to the beginning of the list. */
+    using_ns_ap->next = attributes;
+    attributes = using_ns_ap;
+  }  /* if */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   make_attribute_group(attributes, &group_pos);
   (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -2139,7 +2184,8 @@ syntactic location in which the group appears.
   (void)required_token(tok_lparen, ec_exp_lparen);
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  attributes = scan_attributes_list(loc, af_gnu, tok_rparen);
+  attributes = scan_attributes_list(loc, af_gnu, tok_rparen,
+                                    (an_attribute_ptr)NULL);
   (void)required_token(tok_rparen, ec_exp_rparen);
   make_attribute_group(attributes, &group_pos);
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -2168,7 +2214,8 @@ syntactic location in which the group appears.
   /* There should now be a left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  attributes = scan_attributes_list(loc, af_ms_declspec, tok_rparen);
+  attributes = scan_attributes_list(loc, af_ms_declspec, tok_rparen,
+                                    (an_attribute_ptr)NULL);
   make_attribute_group(attributes, &group_pos);
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -3033,6 +3080,9 @@ Output the given attribute to f_debug.
       unexpected_condition();
   }  /* switch */
   (void)fprintf(f_debug, "%s", str);
+  if (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix) {
+    (void)fprintf(f_debug, "\"using\" ");
+  }  /* if */
   if (ap->namespace_name != NULL) {
     (void)fprintf(f_debug, "%s::", ap->namespace_name);
   }  /* if */

@@ -4932,8 +4932,14 @@ Generate the given attribute (not including the attribute group delimiters).
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
-    if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
-      if (ap->namespace_name != NULL) {
+    if (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix) {
+      /* There's a "using" prefix on this attribute group. */
+      check_assertion(ap->family == (a_byte_attribute_family)af_std);
+      write_tok_str("using ");
+      write_tok_str(ap->name);
+      write_tok_ch(':');
+    } else if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+      if (ap->namespace_name != NULL && !ap->namespace_from_using) {
         check_assertion(ap->family == (a_byte_attribute_family)af_std);
         write_tok_str(ap->namespace_name);
         write_tok_str("::");
@@ -5031,7 +5037,7 @@ marked as being associated with the primary declaration.
 {
   an_attribute_ptr        ap;
   an_attribute_group_ptr  agp = NULL;
-  a_boolean               postfix_position = FALSE;
+  a_boolean               postfix_position = FALSE, suppress_comma = FALSE;
 
   if (syntactic_location ==
                           (an_attribute_location)al_id_equivalent_as_postfix) {
@@ -5063,10 +5069,13 @@ marked as being associated with the primary declaration.
     if (ap->group != agp) {
       gen_attribute_group_start(ap, postfix_position);
       agp = ap->group;
-    } else {
+      suppress_comma = FALSE;
+    } else if (!suppress_comma) {
       write_tok_str(", ");
     }  /* if */
     gen_attribute(ap);
+    /* Suppress a comma following a "using" prefix "attribute". */
+    suppress_comma = (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix);
     if (ap->next == NULL || ap->group != ap->next->group) {
       gen_attribute_group_end(ap, postfix_position);
     }  /* if */

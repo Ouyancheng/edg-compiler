@@ -5482,6 +5482,7 @@ Display the indicated attribute entry.
   switch (ap->kind) {
     case ak_unrecognized:        kind_name = "unrecognized";        break;
     case ak_empty_attr:          kind_name = "empty attribute";     break;
+    case ak_attr_using_prefix:   kind_name = "\"using\" prefix";    break;
     /* Standard attributes: */
     case ak_align:               kind_name = "align";               break;
     case ak_base_check:          kind_name = "base_check";          break;
@@ -5640,6 +5641,9 @@ Display the indicated attribute entry.
     disp_boolean("is_implicit_abi_tag_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ap->namespace_from_using) {
+    disp_boolean("namespace_from_using", TRUE);
+  }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
     disp_string_ptr("namespace_name", ap->namespace_name, iek_other_text,
