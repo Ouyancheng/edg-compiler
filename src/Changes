@@ -1,10 +1,12 @@
 Version 4.13
 
 12/12/16 [EDGcpfe/17755]
-Abort on template template parameter used as default template argument
+GNU C++ compatibility: abort on template template parameter used as
+default template argument
 
-An abort could occur (in scan_template_argument_list) if a template
-template parameter was used as a default template argument.  Now fixed.
+In g++mode, an abort could occur in (in scan_template_argument_list) if a
+template template parameter was used as a default template argument.  Now
+fixed.
 
   template <template <typename> class TT1,
             template <typename> class TT2=TT1> struct A {
