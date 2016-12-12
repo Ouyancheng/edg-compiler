@@ -1,5 +1,21 @@
 Version 4.13
 
+12/12/16 [EDGcpfe/17755]
+Abort on template template parameter used as default template argument
+
+An abort could occur (in scan_template_argument_list) if a template
+template parameter was used as a default template argument.  Now fixed.
+
+  template <template <typename> class TT1,
+            template <typename> class TT2=TT1> struct A {
+    template <typename T> struct B {};
+  };
+  template <typename U> struct C {
+    template <typename T> using T2 = typename A<U::template D>::template B<T>;
+  };
+
+
+
 12/12/16 [EDGcpfe/17641]
 Default functional call arguments followed by parameter packs
 

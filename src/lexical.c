@@ -16397,7 +16397,8 @@ all arguments were explicit.
                parameter created above. */
             tssp1 = template_supplement_for_template(param_template);
             tssp2 = arg_sym->variant.template_info;
-            if (!equiv_template_param_lists(
+            if (!tssp2->is_nonreal_member &&
+                !equiv_template_param_lists(
                                       tssp1->cache.decl_info->parameters,
                                       tssp2->cache.decl_info->parameters,
 		 		      /*issue_errors=*/FALSE,
