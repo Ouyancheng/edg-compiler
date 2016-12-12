@@ -5109,6 +5109,12 @@ generated.
                  over the initialization still must be diagnosed. */
               severity = strict_ansi_mode ? strict_ansi_error_severity
                                           : es_warning;
+            } else if ((gnu_mode && !(clang_mode && ms_compat)) ||
+                       (ms_extensions && !ms_permissive)) {
+              /* An error in GNU mode and clang mode as well (except in
+                 Microsoft compatibility mode).  Microsoft issues an error
+                 except in "permissive" mode. */
+              severity = es_error;
             } else if (is_class_struct_union_type(tp) && !ms_extensions) {
               severity = es_error;
             } else if (strict_ansi_mode) {

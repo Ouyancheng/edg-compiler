@@ -1,5 +1,24 @@
 Version 4.13
 
+12/12/16 [EDGcpfe/17799]
+Diagnostics on transfer of control past initialization
+
+A change has been made to the severity of the diagnostic issued when transfer
+of control bypasses initialization of an automatic variable, e.g., in a case
+like this:
+
+  void f(int x) {
+    if (x == 5) goto label;
+    int y = 10;
+  label:
+    return;
+  }
+
+In most cases a warning had been generated, but that diagnostic is now an error
+in GNU and clang emulation modes as well as in Microsoft mode (except in
+"permissive" mode).
+
+
 12/9/16  [EDGcpfe/17831]
 Spurious dependent pointer comparison error
 
