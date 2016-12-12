@@ -69,7 +69,8 @@ of a different kind than the pack (e.g., nontype vs. type).  Now fixed.
 12/9/16  [EDGcpfe/17836]
 Spurious ambiguity in converted constant expression
 
-The front end previously issued a spurious ambiguity on the following case:
+The front end previously issued a spurious ambiguity error on the following
+case:
 
   struct S {
     constexpr operator int() const { return 1; }
