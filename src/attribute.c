@@ -2112,7 +2112,7 @@ location in which the group appears.
          prefix. */
       using_ns_ap = make_attribute(af_std);
       using_ns_ap->kind = (a_byte_attribute_kind)ak_attr_using_prefix;
-      using_ns_ap->syntactic_location = loc;
+      using_ns_ap->syntactic_location = (a_byte_attribute_location)loc;
       record_attribute_name(using_ns_ap);
       (void)get_token();
       (void)required_token(tok_colon, ec_exp_colon);
