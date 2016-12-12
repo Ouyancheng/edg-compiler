@@ -5101,7 +5101,7 @@ redeclaration).
       default_arg_required = TRUE;
     } else if (ptp2->has_default_arg) {
       default_arg_required = TRUE;
-    } else if (default_arg_required) {
+    } else if (default_arg_required && !ptp2->is_parameter_pack) {
       not_at_end_of_list_error = TRUE;
     }  /* if */
   }  /* for */
