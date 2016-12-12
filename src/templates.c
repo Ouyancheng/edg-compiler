@@ -23416,8 +23416,8 @@ template symbol supplement for this template should be returned to the caller.
     /* Prevent the generation of a source sequence entry for the a_template
        entry since we already did so elsewhere. */
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
-    if (!source_sequence_entries_disallowed) {
-      if (is_variable_template) {
+    if (is_variable_template) {
+      if (!source_sequence_entries_disallowed) {
         if (!dps->is_definition) {
           a_src_seq_secondary_decl_ptr sssdp;
           check_assertion(decl_state->il_template_entry != NULL);
@@ -23427,6 +23427,10 @@ template symbol supplement for this template should be returned to the caller.
         } else if (var != NULL) {
           var->declared_type = dps->declared_type;
         }  /* if */
+      }  /* if */
+    } else {
+      if (dps->declared_type != NULL) {
+        var->declared_type = dps->declared_type;
       }  /* if */
     }  /* if */
     source_sequence_entries_disallowed = TRUE;
