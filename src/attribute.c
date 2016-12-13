@@ -789,6 +789,16 @@ static an_attr_corresp_descr attr_corresp_table[] = {
 #define ATTR_CORRESP_TABLE_LENGTH \
   ((sizeof_t)(sizeof(attr_corresp_table)/sizeof(attr_corresp_table[0])-1))
 
+/*
+A list of attribute namespaces that are known to the front end.
+*/
+static a_const_char *valid_attribute_namespaces[] = {
+  "gnu",
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+  "edg",
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+  NULL  /* must be last */
+};
 
 /*
 Pointer to a hash table indexing attr_corresp_table by attribute kind.
@@ -868,6 +878,65 @@ Initialize the attribute correspondence checking map.
 }  /* init_attr_corresp_checking_map */
 
 
+static a_const_char *attribute_display_name(an_attribute_ptr ap)
+/*
+Returns the name of an attribute, suitable for display in diagnostic messages.
+The returned value may point to a static buffer, so it should be used (or
+copied) quickly.
+*/
+{
+  a_const_char *result = ap->name;
+
+  if (ap->namespace_name != NULL) {
+    static char buffer[MAX_ATTRIBUTE_NAME_LENGTH * 2 + 3];
+    check_assertion(strlen(ap->namespace_name) + strlen(ap->name) + 3 <=
+                    sizeof(buffer));
+    (void)sprintf(buffer, "%s::%s", ap->namespace_name, ap->name);
+    result = (a_const_char*)buffer;
+  }  /* if */
+  return result;
+}  /* attribute_display_name */
+
+
+static a_boolean attribute_namespace_is_recognized(a_const_char *name,
+                                                   size_t       length)
+/*
+Returns TRUE if the specified name is known to the front end as an attribute
+namespace.  If non-zero, length represents the number of characters in name
+(used when name is not NULL-terminated).
+*/
+{
+  a_boolean    result = FALSE;
+  a_const_char **np;
+
+  if (length == 0) {
+    length = strlen(name);
+  }  /* if */
+  for (np = valid_attribute_namespaces; *np != NULL; np++) {
+    if (strncmp(*np, name, length) == 0) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* attribute_namespace_is_recognized */
+
+static void check_for_unrecognized_attribute_namespace(an_attribute_ptr ap)
+/*
+Issues a diagnostic if ap->name is not an attribute namespace that is
+known to the front end.  Also sets ap->is_invalid_namespace in that case to
+avoid issuing "unknown attribute" warnings when using this namespace.
+*/
+{
+  a_const_char *name = ap->name;
+
+  if (!attribute_namespace_is_recognized(name, (size_t)0)) {
+    ap->is_invalid_namespace = TRUE;
+    pos_st_warning(ec_attribute_namespace_unrecognized, &ap->position, name);
+  }  /* if */
+}  /* check_for_unrecognized_attribute_namespace */
+
+
 void get_attr_corresp_checking_info(an_attribute_ptr             ap,
                                     an_il_entry_kind             target_kind,
                                     an_attr_corresp_flag_set     *p_flags,
@@ -929,7 +998,7 @@ through the macro check_attr_config.
 
   /* Create a parenthesized note, mentioning the attribute name, to be
      appended to the message. */
-  (void)sprintf(attr_name, "(for attribute %s)", ap->name);
+  (void)sprintf(attr_name, "(for attribute %s)", attribute_display_name(ap));
   assertion_failed(filename, line_number, msg, attr_name); 
 }  /* abort_for_misconfigured_attribute */
 
@@ -1007,6 +1076,21 @@ Initialize the attribute name map.
     attr_name_map_entries[k].next = *ep;
     attr_name_map_entries[k].descr = &known_attr_table[k];
     *ep = &attr_name_map_entries[k];
+#if EXPENSIVE_CHECKING
+    {  /* Verify that any namespace referred to by a "cond" string is also
+          in the valid_attribute_namespaces array. */
+      a_const_char *p1, *p2;
+      p1 = strchr(known_attr_table[k].cond, '[');
+      if (p1 != NULL) {
+        p1++;
+        p2 = strchr(p1, ']');
+        check_assertion(p2 != NULL);
+        if (!attribute_namespace_is_recognized(p1, p2-p1)) {
+          unexpected_condition_str("attribute namespace is missing");
+        }  /* if */
+      }  /* if */
+    }
+#endif /* EXPENSIVE_CHECKING */
   }  /* for */
 }  /* init_attr_name_map */
 
@@ -1265,7 +1349,8 @@ ak_unrecognized).  Either way, return an aak_empty attribute argument.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (*sig != '*' && *sig != '?' && *sig != ')' && curr_token == tok_rparen &&
       !is_unrecognized_attr(ap)) {
-    pos_st_error(ec_invalid_empty_attribute_arg_list, lparen_pos, ap->name);
+    pos_st_error(ec_invalid_empty_attribute_arg_list, lparen_pos,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   }  /* if */
   ap->arguments = aap;
@@ -1669,7 +1754,8 @@ ak_unrecognized.
   }  /* if */
   if (!may_terminate) {
     /* More arguments were expected. */
-    pos_st_error(ec_missing_attribute_arguments, &pos_curr_token, ap->name);
+    pos_st_error(ec_missing_attribute_arguments, &pos_curr_token,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   }  /* if */
 done:;
@@ -1696,7 +1782,8 @@ ak_unrecognized.
     if (*sig == '\0') {
       /* No arguments are allowed on this attribute.  Scan the unexpected list
          as if the signature were "(*)". */
-      str_error(ec_arguments_provided_for_attribute, ap->name);
+      str_error(ec_arguments_provided_for_attribute,
+                attribute_display_name(ap));
       make_attr_unrecognized(ap);
       sig = "(*)";
     }  /* if */
@@ -1890,6 +1977,9 @@ be used as the implicit attribute namespace name for this attribute.
           ap = NULL;
           err = TRUE;
         } else {
+          /* Re-purpose the "namespace" attribute that had been scanned as
+             the attribute (copying the name to namespace_name). */
+          check_for_unrecognized_attribute_namespace(ap);
           ap->namespace_name = ap->name;
           ap->name = NULL;
           record_attribute_name(ap);
@@ -1901,6 +1991,7 @@ be used as the implicit attribute namespace name for this attribute.
          attribute. */
       ap->namespace_name = using_ns_ap->name;
       ap->namespace_from_using = TRUE;
+      ap->is_invalid_namespace = using_ns_ap->is_invalid_namespace;
     }  /* if */
     if (!err) {
       adp = get_attr_descr_for_attribute(ap);
@@ -1938,8 +2029,14 @@ be used as the implicit attribute namespace name for this attribute.
         if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
           sev = es_discretionary_error;
         }  /* if */
+        if (ap->is_invalid_namespace) {
+          /* If we've already diagnosed the namespace as being unrecognized,
+             it's probably not helpful to give a second warning, so downgrade
+             this to a remark. */
+          sev = es_remark;
+        }  /* if */
         pos_st_diagnostic(sev, ec_unrecognized_attribute, &ap->position,
-                          ap->name);
+                          attribute_display_name(ap));
         if (!record_unrecognized_attributes) ap = NULL;
       }  /* if */
     }  /* if */
@@ -2114,6 +2211,7 @@ location in which the group appears.
       using_ns_ap->kind = (a_byte_attribute_kind)ak_attr_using_prefix;
       using_ns_ap->syntactic_location = (a_byte_attribute_location)loc;
       record_attribute_name(using_ns_ap);
+      check_for_unrecognized_attribute_namespace(using_ns_ap);
       (void)get_token();
       (void)required_token(tok_colon, ec_exp_colon);
     }  /* if */
@@ -2389,10 +2487,11 @@ turned into an ak_unrecognized attribute.
     pos_diagnostic(sev, ec_wrong_entity_for_alignas, &ap->position);
   } else {
     pos_st_diagnostic(sev, ec_wrong_entity_for_attribute, &ap->position,
-                      ap->name);
+                      attribute_display_name(ap));
   }  /* if */
   make_attr_unrecognized(ap);
 }  /* report_bad_attribute_target */
+
 
 static void report_bad_attribute_arg(an_attribute_arg_ptr  aap,
                                      an_attribute_ptr      ap)
@@ -2401,7 +2500,8 @@ The given argument of the given attribute is invalid.  Issue an error and turn
 the given attribute into an ak_unrecognized attribute.
 */
 {
-  pos_st_error(ec_invalid_argument_to_attribute, &aap->position, ap->name);
+  pos_st_error(ec_invalid_argument_to_attribute, &aap->position,
+               attribute_display_name(ap));
   make_attr_unrecognized(ap);
 }  /* report_bad_attribute_arg */
 
@@ -2453,7 +2553,7 @@ attribute ap applied to the given type matches those constraints.
       } else {
         unexpected_condition_str2(
            "invalid property code for constraint configuration of attribute",
-           ap->name);
+           attribute_display_name(ap));
       }  /* if */
       if (err != ec_no_error) break;
       if (*constr == '!') {
@@ -2463,7 +2563,7 @@ attribute ap applied to the given type matches those constraints.
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
-      pos_st_diagnostic(sev, err, &ap->position, ap->name);
+      pos_st_diagnostic(sev, err, &ap->position, attribute_display_name(ap));
       /* Treat the attribute as unrecognized for error recovery purposes. */
       make_attr_unrecognized(ap);
     }  /* if */
@@ -2504,7 +2604,7 @@ attribute ap applied to the given field matches those constraints.
       } else {
         unexpected_condition_str2(
            "invalid property code for constraint configuration of attribute",
-           ap->name);
+           attribute_display_name(ap));
       }  /* if */
       if (err != ec_no_error) break;
       if (*constr == '!') {
@@ -2518,7 +2618,7 @@ attribute ap applied to the given field matches those constraints.
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
-      pos_st_diagnostic(sev, err, &ap->position, ap->name);
+      pos_st_diagnostic(sev, err, &ap->position, attribute_display_name(ap));
       /* Treat the attribute as unrecognized for error recovery purposes. */
       make_attr_unrecognized(ap);
     }  /* if */
@@ -2614,7 +2714,7 @@ attribute ap applied to the given routine matches those constraints.
       } else {
         unexpected_condition_str2(
            "invalid property code for constraint configuration of attribute",
-           ap->name);
+           attribute_display_name(ap));
       }  /* if */
       if (err != ec_no_error) break;
       if (*constr == '!') {
@@ -2624,7 +2724,7 @@ attribute ap applied to the given routine matches those constraints.
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
-      pos_st_diagnostic(sev, err, &ap->position, ap->name);
+      pos_st_diagnostic(sev, err, &ap->position, attribute_display_name(ap));
       /* Treat the attribute as unrecognized for error recovery purposes. */
       make_attr_unrecognized(ap);
     }  /* if */
@@ -2716,7 +2816,7 @@ attribute ap applied to the given variable matches those constraints.
       } else {
         unexpected_condition_str2(
            "invalid property code for constraint configuration of attribute",
-           ap->name);
+           attribute_display_name(ap));
       }  /* if */
       if (err != ec_no_error) break;
       if (*constr == '!') {
@@ -2726,7 +2826,7 @@ attribute ap applied to the given variable matches those constraints.
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
-      pos_st_diagnostic(sev, err, &ap->position, ap->name);
+      pos_st_diagnostic(sev, err, &ap->position, attribute_display_name(ap));
       /* Treat the attribute as unrecognized for error recovery purposes. */
       make_attr_unrecognized(ap);
     }  /* if */
@@ -2939,7 +3039,7 @@ appropriate and set ap->kind to ak_unrecognized).
       default:
         unexpected_condition_str2(
            "invalid entity code for constraint configuration of attribute",
-           ap->name);
+           attribute_display_name(ap));
     }  /* switch */
     if (match_found) break;
     /* Skip to the next constraint (if any). */
@@ -3842,9 +3942,10 @@ Otherwise, return NULL and issue a diagnostic if appropriate.
         /* In some cases, the type may still be under construction: It should
            therefore not be used in the diagnostic. */
         pos_st_warning(ec_attr_not_applied_to_function_type, &ap->position,
-                       ap->name);
+                       attribute_display_name(ap));
       } else {
-        pos_stty_warning(ec_attr_requires_func_type, &ap->position, ap->name,
+        pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                         attribute_display_name(ap),
                          type);
       }  /* if */
       make_attr_unrecognized(ap);
@@ -3870,7 +3971,8 @@ and make new_attr unrecognized.
 
   for (; ap != NULL && ap != new_attr; ap = ap->next) {
     if (ap->kind == (a_byte_attribute_kind)kind) {
-      pos_st2_error(ec_attribute_conflict, &new_attr->position, ap->name,
+      pos_st2_error(ec_attribute_conflict, &new_attr->position,
+                    attribute_display_name(ap),
                     new_attr->name);
       make_attr_unrecognized(new_attr);
       break;
@@ -4271,7 +4373,7 @@ The given entity must be a variable, routine, type, or field.  Apply the
         make_attr_unrecognized(ap);
       } else if (tp->variant.class_struct_union.originally_unnamed) {
         pos_st_warning(ec_attribute_ignored_on_unnamed_type,
-                       &ap->position, ap->name);
+                       &ap->position, attribute_display_name(ap));
         make_attr_unrecognized(ap);
       }  /* if */
     }  /* if */
@@ -4342,7 +4444,7 @@ C++11 standard.
       /* Since the class is complete, the attribute is being applied to an
          out-of-class member definition, which is invalid. */
       pos_st_error(ec_attr_must_appear_in_class_definition,
-                   &ap->position, ap->name);
+                   &ap->position, attribute_display_name(ap));
       make_attr_unrecognized(ap);
     } else {
       rp->final = TRUE;
@@ -4378,7 +4480,7 @@ but is not part of the C++11 standard.
   issue_warning_for_removed_attribute(ap);
   if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
     pos_st_error(ec_attr_must_appear_in_class_definition,
-                 &ap->position, ap->name);
+                 &ap->position, attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else if (dps != NULL && (dps->dso_flags & DSO_FRIEND) != 0) {
     /* Something like "friend class[[hiding]] X;" is invalid. */
@@ -4458,7 +4560,7 @@ entity.
       if (prev_type != NULL &&
           !prev_type->variant.routine.extra_info->does_not_return) {
         pos_st_error(ec_attr_must_also_appear_in_first_declaration,
-                     &ap->position, ap->name);
+                     &ap->position, attribute_display_name(ap));
         make_attr_unrecognized(ap);
       }  /* if */
     }  /* if */
@@ -4489,7 +4591,7 @@ standard, but is not part of the C++11 standard.
     /* The attribute is presumably being applied to an out-of-class member
        definition, which is invalid. */
     pos_st_error(ec_attr_must_appear_in_class_definition,
-                 &ap->position, ap->name);
+                 &ap->position, attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
@@ -4650,7 +4752,7 @@ return the routine or variable.  This function may also be called for the
       /* Recent versions of GCC ignore attributes on block-extern function
          declarations. */
       pos_st_warning(ec_local_function_attribute_ignored, &ap->position,
-                     ap->name);
+                     attribute_display_name(ap));
       make_attr_unrecognized(ap);
     } else {
       a_routine_ptr  rp = (a_routine_ptr)entity;
@@ -4672,7 +4774,7 @@ return the routine or variable.  This function may also be called for the
         vp->storage_class != (a_storage_class)sc_extern &&
         vp->storage_class != (a_storage_class)sc_unspecified) {
       pos_st_error(ec_attribute_requires_external_linkage, &ap->position,
-                   ap->name);
+                   attribute_display_name(ap));
       make_attr_unrecognized(ap);
     } else {
       if (ap->kind == (a_byte_attribute_kind)ak_alias) {
@@ -4972,7 +5074,7 @@ it and return the entity.
   if (!is_error_type(rp->type) &&
       routine_type_is_nonstatic_member_function(rp->type)) {
     pos_st_warning(ec_attribute_ignored_on_nonstatic_member_function,
-                   &ap->position, ap->name);
+                   &ap->position, attribute_display_name(ap));
   } else {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     /* Retrieve the priority value.  In error cases, ap->kind will be set to
@@ -5005,7 +5107,7 @@ it and return the entity.
   if (!is_error_type(rp->type) &&
       routine_type_is_nonstatic_member_function(rp->type)) {
     pos_st_warning(ec_attribute_ignored_on_nonstatic_member_function,
-                   &ap->position, ap->name);
+                   &ap->position, attribute_display_name(ap));
   } else {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     /* Retrieve the priority value.  In error cases, ap->kind will be set to
@@ -6739,7 +6841,8 @@ entity.
   check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
   evk = ELF_visibility_from_string(arg->variant.string.value);
   if (!gnu_visibility_attribute_enabled) {
-    pos_st_warning(ec_unrecognized_attribute, &ap->position, ap->name);
+    pos_st_warning(ec_unrecognized_attribute, &ap->position,
+                   attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
     a_routine_ptr    rp;
@@ -6984,7 +7087,8 @@ to match GNU's behavior).
   } else if (ap->arguments == NULL && entity_kind != iek_namespace) {
     /* abi_tag attributes can have no arguments for inline namespaces, but
        not for routines or types. */
-    pos_st_error(ec_invalid_empty_attribute_arg_list, &ap->position, ap->name);
+    pos_st_error(ec_invalid_empty_attribute_arg_list, &ap->position,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
     /* Do processing for abi_tag attributes. */
@@ -7254,7 +7358,8 @@ Apply the Microsoft __declspec(appdomain) attribute to the given entity
 */
 {
   if (!cli_or_cx_enabled) {
-    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    pos_st_error(ec_cppcli_attribute_only, &ap->position,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
     /* "appdomain" cannot be combined with "align". */
@@ -7374,7 +7479,7 @@ The given entity is returned.
        types only. */
     if (C_mode() && is_immediate_class_type((a_type_ptr)entity)) {
       pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
-                     &ap->position, ap->name);
+                     &ap->position, attribute_display_name(ap));
       make_attr_unrecognized(ap);
     } else if (is_immediate_enum_type((a_type_ptr)entity)) {
       pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
@@ -7395,7 +7500,8 @@ attribute turns it into an interior pointer to T.
 */
 {
   if (!cppcli_enabled) {
-    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    pos_st_error(ec_cppcli_attribute_only, &ap->position,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
     a_type_ptr  tp;
@@ -7422,7 +7528,8 @@ turns it into an pin pointer to T.
 */
 {
   if (!cppcli_enabled) {
-    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    pos_st_error(ec_cppcli_attribute_only, &ap->position,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
     a_type_ptr  tp;
@@ -7480,7 +7587,8 @@ Apply the Microsoft __declspec(jitintrinsic) attribute to the given entity
 */
 {
   if (!cli_or_cx_enabled) {
-    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    pos_st_error(ec_cppcli_attribute_only, &ap->position,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   }  /* if */
   return entity;
@@ -7543,7 +7651,8 @@ Apply the Microsoft __declspec(process) attribute to the given entity
 */
 {
   if (!cli_or_cx_enabled) {
-    pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
+    pos_st_error(ec_cppcli_attribute_only, &ap->position,
+                 attribute_display_name(ap));
     make_attr_unrecognized(ap);
   }  /* if */
   return entity;
@@ -7724,7 +7833,7 @@ return that entity).
        initializer). */
     pos_st_diagnostic(es_discretionary_error,
                       ec_decl_modifiers_invalid_for_this_decl, &ap->position,
-                      ap->name);
+                      attribute_display_name(ap));
   } else {
     ((a_variable*)entity)->decl_modifiers |= DM_SELECTANY;
   }  /* if */

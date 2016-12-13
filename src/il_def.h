@@ -2708,6 +2708,9 @@ typedef struct an_attribute {
 			/* TRUE if the namespace name of the attribute was
 			   obtained from a "using" prefix.  Only TRUE if
 			   namespace_name is non-NULL. */
+  a_bit_field	is_invalid_namespace:1;
+			/* TRUE if the namespace name of the attribute is
+			   invalid (used to prevent subsequent diagnostics). */
   a_const_char	*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   a_const_char	*namespace_name;

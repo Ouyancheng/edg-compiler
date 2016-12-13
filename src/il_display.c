@@ -5644,6 +5644,9 @@ Display the indicated attribute entry.
   if (ap->namespace_from_using) {
     disp_boolean("namespace_from_using", TRUE);
   }  /* if */
+  if (ap->is_invalid_namespace) {
+    disp_boolean("is_invalid_namespace", TRUE);
+  }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
     disp_string_ptr("namespace_name", ap->namespace_name, iek_other_text,
