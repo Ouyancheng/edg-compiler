@@ -3931,8 +3931,7 @@ Otherwise, return NULL and issue a diagnostic if appropriate.
   /* There are currently no attributes that apply to handles or tracked
      references to functions. */
   assert_not_handle_or_tracking_reference(type);
-  if (is_function_type(type) ||
-      (is_pointer_type(type) && is_function_type(type_pointed_to(type)))) {
+  if (is_function_type(type) || is_pointer_to_function_type(type)) {
     /* The normal case. */
     ensure_underlying_function_type_is_modifiable(p_type, &func_type);
   } else {
@@ -8388,8 +8387,7 @@ Also used for the GNU ifunc attribute.
             a_type_ptr return_type = routine_type->variant.routine.return_type;
             a_routine_type_supplement_ptr
                        rtsp = routine_type->variant.routine.extra_info;
-            if (!(is_pointer_type(return_type) &&
-                  is_function_type(type_pointed_to(return_type))) ||
+            if (!is_pointer_to_function_type(return_type) ||
                 rtsp->param_type_list != NULL) {
               pos_syty_warning(ec_incompatible_ifunc_resolver_type,
                                &entry->alias_position, aliased_sym,

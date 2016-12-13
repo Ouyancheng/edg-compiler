@@ -1,5 +1,18 @@
 Version 4.13
 
+12/13/16 [EDGcpfe/17795]
+Microsoft non-permissive mode and function pointer conversions
+
+In Microsoft non-permissive mode, the front end no longer accepts a conversion
+from pointer-to-function type to pointer-to-void type for nontype template
+arguments.  For example:
+
+  template<void *P> struct X {};
+  void g();
+  X<g> xg;  // Previously accepted in all Microsoft C++ modes.  Now an error
+            // in non-permissive Microsoft C++ modes.
+
+
 12/13/16 [EDGcpfe/17794]
 Microsoft compatibility: Disallow qualified in-class member names except in
 permissive mode

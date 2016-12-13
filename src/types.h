@@ -68,6 +68,7 @@ extern a_type_ptr skip_typerefs_not_typedefs_or_type_operators(
 
 extern a_boolean is_error_type(a_type_ptr tp);
 extern a_boolean is_function_type(a_type_ptr tp);
+extern a_boolean is_pointer_to_function_type(a_type_ptr tp);
 extern a_boolean is_incomplete_type(a_type_ptr tp);
 extern a_boolean is_incomplete_array_type(a_type_ptr tp);
 extern a_boolean is_flexible_array_type(a_type_ptr tp);
@@ -79,6 +80,7 @@ extern a_boolean is_nullptr_type(a_type_ptr tp);
 extern a_boolean is_managed_nullptr_type(a_type_ptr tp);
 extern a_boolean is_standard_nullptr_type(a_type_ptr tp);
 extern a_boolean is_void_star_type(a_type_ptr tp);
+extern a_boolean is_pointer_to_void_type(a_type_ptr tp);
 extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
 extern a_boolean is_enum_type(a_type_ptr tp);

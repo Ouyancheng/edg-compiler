@@ -408,12 +408,30 @@ Return TRUE if the given type is an error type.
 
 a_boolean is_function_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a function type (3.1.2.5).
+Return TRUE if the given type is a function type.
 */
 {
   tp = skip_typerefs(tp);
   return(is_function(tp));
 }  /* is_function_type */
+
+
+a_boolean is_pointer_to_function_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a (plain) pointer to function type.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_typerefs(tp);
+  if (is_pointer(tp)) {
+    tp = skip_typerefs(tp->variant.pointer.type);
+    result = is_function(tp);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_pointer_to_function_type */
 
 
 a_boolean is_incomplete_type(a_type_ptr tp)
@@ -590,6 +608,25 @@ C++/CLI interior_ptr<void> or pin_ptr<void>.
   }  /* if */
   return is_void_star;
 }  /* is_void_star_type */
+
+
+a_boolean is_pointer_to_void_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a (possibly qualified) plain pointer type to
+a (possibly qualified) void type.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_typerefs(tp);
+  if (is_pointer(tp)) {
+    tp = skip_typerefs(tp->variant.pointer.type);
+    result = is_void(tp);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_pointer_to_void_type */
 
 
 a_boolean is_integral_type(a_type_ptr tp)
@@ -10232,8 +10269,15 @@ user-defined conversions.
     /* Conversion of 0 to a pointer type, or of a pointer to object type
        to void *, is not allowed on a nontype template argument. */
     allowed = FALSE;
-    /* But MSVC does allow it. */
-    if (microsoft_mode) allowed = TRUE;
+    if (microsoft_mode) {
+      /* But MSVC does allow it, except for the case of converting a pointer
+         to function to a pointer to void in non-permissive mode. */
+      if (!(!ms_permissive &&
+            is_pointer_to_function_type(source_type) &&
+            is_pointer_to_void_type(dest_type))) {
+        allowed = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (conversion->cast_base_class != NULL) {
     /* Derived-to-base pointer conversions and base-to-derived
        pointer-to-member conversions are not allowed on a nontype
@@ -10385,13 +10429,11 @@ exception specifications are not checked.
                 This does not fall out of the impl_conversion_possible
                 test for cases like "void *" --> "const char *".  See
                 5.2.9/10 in the C++ standard. */
-             (is_pointer_type(source_type) &&
-              is_pointer_type(dest_type) &&
-              is_void_type(type_pointed_to(source_type)) &&
+             (is_pointer_to_void_type(source_type) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
               !is_interior_ptr_type(source_type) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              is_object_type(type_pointed_to(dest_type)))) {
+              is_pointer_to_object_type(dest_type))) {
     /* The inverse implicit conversion can be done.  Note that the
        inverse of conversions to bool is not allowed (see [expr.static.cast]
        paragraph 9).  The Standard does not currently disallow the inverse

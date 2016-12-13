@@ -1572,8 +1572,7 @@ new fields are set properly.
             if (!is_void_star_type(tp)) {
               /* Error. */
               an_error_severity  severity;
-              if (cfront_2_1_mode && is_pointer_type(tp) &&
-                  is_void_type(type_pointed_to(tp))) {
+              if (cfront_2_1_mode && is_pointer_to_void_type(tp)) {
                 /* In cfront 2.1 "const void *" is allowed.   Issue a warning
                    and ignore the qualifier on the type. */
                 severity = es_warning;
