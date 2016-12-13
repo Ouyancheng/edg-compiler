@@ -23418,7 +23418,13 @@ template symbol supplement for this template should be returned to the caller.
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
     if (is_variable_template) {
       if (!source_sequence_entries_disallowed) {
-        if (!dps->is_definition) {
+        /* For things that are not class members, anything that is not an
+           "extern" declaration is a definition.  For class members, a
+           the declaration in the class can be a definition, so an
+           out-of-class declaration is not considered to be a definition
+           for source sequence purposes unless it has an initializer. */
+        if (!decl_state->defines_something &&
+            (!sym->is_class_member || !dps->is_definition)) {
           a_src_seq_secondary_decl_ptr sssdp;
           check_assertion(decl_state->il_template_entry != NULL);
           sssdp = secondary_src_seq_for_template(
