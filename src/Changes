@@ -37,7 +37,7 @@ fixed.
 
 
 12/12/16 [EDGcpfe/17641]
-Default functional call arguments followed by parameter packs
+Default function call arguments followed by parameter packs
 
 The front end previously issued a spurious error when redeclaring a function
 template whose original declaration includes a parameter with a default
