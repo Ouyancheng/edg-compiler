@@ -11778,21 +11778,29 @@ also allows this for member templates.
     if (same_entities(qualifier_class_type(locator_for_curr_id),
                       ssep->assoc_type) &&
         locator_for_curr_id.is_global_qualified_name == FALSE) {
+      an_error_severity sev = strict_ansi_mode ? strict_ansi_error_severity :
+                                                 es_warning;
       is_member_id = TRUE;
       /* Reset the fields in the locator to make it appear as if the
          qualifier was not present. */
       clear_qualifier_from_locator(&locator_for_curr_id);
-      if (any_cfront_mode() || microsoft_bugs) {
-        /* No diagnostic, to be consistent with cfront's and Microsoft's
-           behavior.  In the Microsoft case, we may also end up here for
-           friend declarations ("struct S { friend void S::f(); };") and
-           dropping the qualifier may result in the injection of the name
-           in namespace scope. */
-      } else {
+      /* No diagnostic is issued in cfront and some Microsoft modes.  In the
+         Microsoft case, we may also end up here for friend declarations
+         ("struct S { friend void S::f(); };") and dropping the qualifier may
+         result in the injection of the name in namespace scope. */
+      if (any_cfront_mode()) {
+        sev = es_none;
+      } else if (microsoft_bugs) {
+        if (ms_permissive) {
+          sev = es_none;
+        } else {
+          sev = es_discretionary_error;
+        }  /* if */
+      }  /* if */
+      if (sev != es_none) {
         /* Accepting qualified member names is an extension -- issue a
            diagnostic. */
-        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                   ec_qualifier_in_member_declaration);
+        diagnostic(sev, ec_qualifier_in_member_declaration);
       }  /* if */ 
     }  /* if */
   }  /* if */

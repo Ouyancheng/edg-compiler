@@ -1,5 +1,19 @@
 Version 4.13
 
+12/13/16 [EDGcpfe/17794]
+Microsoft compatibility: Disallow qualified in-class member names except in
+permissive mode
+
+A change has been made to disallow qualified names for in-class member
+declarations in Microsoft mode except when "permissive" mode is enabled.
+For example, the following non-standard code will now be diagnosed unless
+--no_ms_permissive is specified:
+
+  struct A {
+    void  A::A() {}
+  };
+
+
 12/13/16 [EDGcpfe/17832]
 Core issue 2076
 
