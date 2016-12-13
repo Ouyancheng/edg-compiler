@@ -1,5 +1,17 @@
 Version 4.13
 
+12/13/16 [EDGcpfe/17702]
+C++17 compatibility: Unrecognized attribute namespaces
+
+The C++17 standard makes it clear (in P0283R2) that unrecognized attribute
+namespaces should be accepted by the compiler.  That was the behavior
+previously and continues to be, however, a new warning is generated
+specifically for the case where an attribute namespace is unrecognized (rather
+than the more general "unknown attribute" warning that was previously
+emitted).  A change has also been made to emit the attribute namespace
+if any along with the attribute name in diagnostic messages.
+
+
 12/13/16 [EDGcpfe/17848]
 Possible invalid memory reference with #pragma push_macro
 
