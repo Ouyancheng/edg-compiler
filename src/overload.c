@@ -5897,14 +5897,26 @@ retry2:
       eff_arg_list = init_list_ctor_arg_list;
       /* [over.best.ics]p4 says no UDCs are allowed in this case. */
       eff_allow_udc_on_arguments = FALSE;
-    } else if ((gpp_mode || clang_mode) && init_list_ctor_arg_list != NULL &&
-               is_single_elem(arg_list) &&
+    } else if (init_list_ctor_arg_list != NULL && is_single_elem(arg_list) &&
                is_braced_init_component(arg_list)) {
-      /* Prior to the resolution of core issue 1467, [over.best.ics]p4 said
-         that no user-defined conversions were allowed on the single member of
-         an initializer list on the first argument of (roughly) a copy or move
-         constructor.  GCC and Clang appear to implement this aspect of the
-         resolution only if the single member is not a braced initializer. */
+      /* The resolution of core issue 2076 tweaked the resolution of core
+         issue 1467, to disable user-defined conversions on the first parameter
+         of a constructor match for a braced-enclosed initializer (i.e.,
+         init_list_ctor_arg_list != NULL), if:
+           (1) the braces encloses a single element that is itself a
+               brace-enclosed list (tested above).
+           (2) the target parameter type is the parent class type or a
+               reference to that type with optional type qualifiers (tested
+               below).
+         For example:
+           struct A { A(int); };
+           struct B { B(A); };
+           B b{{0}};
+         After the resolution of 1467 but before that of 2076, the initializer
+         for b was ambiguous: We could go via B's move constructor, or directly
+         via A({0}).  Now, the move constructor is no longer a candidate
+         because the required user-defined conversion is disabled for it.
+      */
       if (is_special_function_symbol(function_symbol, sfk_constructor)) {
         a_type_ptr routine_type =
                              function_or_template_symbol_type(function_symbol);
