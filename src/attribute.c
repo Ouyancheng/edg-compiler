@@ -1884,8 +1884,8 @@ be used as the implicit attribute namespace name for this attribute.
         syntax_error(ec_exp_identifier);
       } else {
         if (using_ns_ap != NULL) {
-          /* A "using" prefix has been specified therefore namespaces may
-             not appear on any attribute on this list. */
+          /* A "using" prefix has been specified, so namespaces may not appear
+             on any attribute on this list. */
           pos_error(ec_namespace_not_allowed, &ap->position);
           ap = NULL;
           err = TRUE;
