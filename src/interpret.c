@@ -6319,15 +6319,21 @@ the value representation of the integer value.
               if (is_runtime_data_address(result_addr)) {
                 /* Attempt a "symbolic" derived-to-base cast using the
                    constant folding routines. */
-                a_constant_ptr  new_con = local_constant();
+                a_constant_ptr  new_con = local_constant(),
+                                addr_con = result_addr->variant.addr_con;
                 a_boolean       nonconstant;
                 an_error_code   err_code;
+                /* Temporarily clear the backing expression to avoid
+                   maintaining it at this stage. */
+                an_expr_node_ptr  backing_expr = addr_con->expr;
+                addr_con->expr = NULL;
                 fold_base_class_cast(
-                    result_addr->variant.addr_con, bcp, btp, new_con,
+                    addr_con, bcp, btp, new_con,
                     /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
                     expr->variant.operation.compiler_generated,
                     /*is_object_pointer=*/TRUE, &nonconstant, &expr->position,
                     &err_code);
+                addr_con->expr = backing_expr;
                 if (nonconstant || err_code != ec_no_error) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
@@ -8955,12 +8961,18 @@ the value representation of the integer value.
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
                                 &expr->position, ips);
                 } else {
-                  a_constant_ptr  new_con = local_constant();
+                  a_constant_ptr    new_con = local_constant(),
+                                    addr_con = result_addr.variant.addr_con;
+                  an_expr_node_ptr  backing_expr = addr_con->expr;
+                  /* Temporarily clear the backing expression to avoid
+                     maintaining it at this stage. */
+                  addr_con->expr = NULL;
                   if (!fold_field_selection(
-                                  result_addr.variant.addr_con, field,
+                                  addr_con, field,
                                   make_reference_type(expr->type), new_con)) {
                     unexpected_condition();
                   }  /* if */
+                  addr_con->expr = backing_expr;
                   clear_runtime_constant_address(result_storage, new_con);
                   new_con->next = ips->constants;
                   ips->constants = new_con;
@@ -9019,12 +9031,18 @@ the value representation of the integer value.
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
                                 &expr->position, ips);
                 } else {
-                  a_constant_ptr  new_con = local_constant();
+                  a_constant_ptr    new_con = local_constant(),
+                                    addr_con = result_addr.variant.addr_con;
+                  /* Temporarily clear the backing expression to avoid
+                     maintaining it at this stage. */
+                  an_expr_node_ptr  backing_expr = addr_con->expr;
+                  addr_con->expr = NULL;
                   if (!fold_field_selection(
-                                  result_addr.variant.addr_con, field,
+                                  addr_con, field,
                                   make_reference_type(expr->type), new_con)) {
                     unexpected_condition();
                   }  /* if */
+                  addr_con->expr = backing_expr;
                   clear_runtime_constant_address(result_storage, new_con);
                   new_con->next = ips->constants;
                   ips->constants = new_con;
