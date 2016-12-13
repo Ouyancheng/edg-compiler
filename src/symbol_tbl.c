@@ -16516,8 +16516,8 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(avail_vla_fixups),
       pch_saved_var_array_elem(avail_progenitors),
-#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_saved_macro_states),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_hide_by_sig_list_entries),
       pch_saved_var_array_elem(prop_or_event_accessor_header_hash_table),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16737,8 +16737,8 @@ of the front end.
   avail_template_decl_infos = NULL;
   avail_vla_fixups = NULL;
   avail_progenitors = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   avail_saved_macro_states = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   avail_hide_by_sig_list_entries = NULL;
   prop_or_event_accessor_header_hash_table = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1,5 +1,13 @@
 Version 4.13
 
+12/13/16 [EDGcpfe/17848]
+Possible invalid memory reference with #pragma push_macro
+
+In configurations without MICROSOFT_EXTENSIONS_ALLOWED enabled, the variable
+avail_saved_macro_states could be corrupted if COMPILE_MULTIPLE_SOURCE_FILES
+or MAKE_FRONT_END_CALLABLE was also enabled.  Now fixed.
+
+
 12/12/16 [EDGcpfe/17695]
 C++17 compatibility: Using attribute namespaces without repetition
 
