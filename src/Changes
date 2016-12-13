@@ -76,7 +76,7 @@ IL CHANGE.
 GNU C++ compatibility: abort on template template parameter used as
 default template argument
 
-In g++mode, an abort could occur in (in scan_template_argument_list) if a
+In g++ mode, an abort could occur in (in scan_template_argument_list) if a
 template template parameter was used as a default template argument.  Now
 fixed.
 
