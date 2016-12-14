@@ -4550,6 +4550,12 @@ on top of the expansion.
   a_targ_size_t    field_offset = 0;
 
   write_tok_ch('(');
+  if (!node->is_lvalue && !node->is_xvalue) {
+    /* The node has been rvalued, effectively making it a no-op.  Just
+       render the underlying expression. */
+    dump_expression(operand_1);
+    goto after_operand_output;
+  }  /* if */
   /* Generate the lvalue cast as an indirection on a pointer cast.
      This avoids depending too much on the underlying compiler's
      implementation of lvalue casts.  Note that this will not work for
