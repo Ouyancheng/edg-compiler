@@ -921,6 +921,7 @@ namespace.  If non-zero, length represents the number of characters in name
   return result;
 }  /* attribute_namespace_is_recognized */
 
+
 static void check_for_unrecognized_attribute_namespace(an_attribute_ptr ap)
 /*
 Issues a diagnostic if ap->name is not an attribute namespace that is

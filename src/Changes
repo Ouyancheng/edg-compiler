@@ -71,7 +71,7 @@ previously and continues to be, however, a new warning is generated
 specifically for the case where an attribute namespace is unrecognized (rather
 than the more general "unknown attribute" warning that was previously
 emitted).  A change has also been made to emit the attribute namespace
-if any along with the attribute name in diagnostic messages.
+(if any) along with the attribute name in diagnostic messages.
 
 
 12/13/16 [EDGcpfe/17848]
