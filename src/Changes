@@ -1,5 +1,28 @@
 Version 4.13
 
+12/14/16 [EDGcpfe/17811]
+Access to uninitialized value in processing of range-based for-statement
+
+When processing a range-based for statement whose iterator type requires a
+user-defined conversion to implement an inequality test, the front end
+performed a comparison that involved an uninitialized value.  For example:
+
+  struct I {
+   void operator++();
+     int& operator*();
+    operator int();
+  };
+  struct C {
+    friend I begin(C*);
+    friend I end(C*);
+  };
+  void g(C c) {
+    for (int i : &c) {}  // Triggered access to an uninitialized value.
+  }
+
+This is now fixed.
+
+
 12/14/16 [EDGcpfe/17808]
 Microsoft compatibility: Default member initializers and value classes
 

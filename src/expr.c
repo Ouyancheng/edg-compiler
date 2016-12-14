@@ -35669,18 +35669,19 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                    tok_seq_number,
                                    (a_nondependent_call_depth)1,
                                    expr_position, &operand, &processed);
-    if (orig_op1_type != operand.type) {
+  }  /* if */
+  if (processed) {
+    /* An overloaded operator!= was used (or there was an error). */
+  } else {
+    /* Try a non-overloaded "!=" operator. */
+    if (orig_op1_type != operand1.type ||
+        orig_op2_type != operand2.type) {
       /* The overload resolution process didn't find a matching user-defined
          comparison operator, but it did find a match with built-in types
          via a user-defined conversion.  operand1 and operand2 are already
          converted. */
       via_udc = TRUE;
     }  /* if */
-  }  /* if */
-  if (processed) {
-    /* An overloaded operator!= was used (or there was an error). */
-  } else {
-    /* Try a non-overloaded "!=" operator. */
     if (!(via_udc || is_pointer_or_handle_type(orig_op1_type) ||
           is_enum_type(orig_op1_type))) {
       pos_ty_error(is_for_each ? ec_missing_notequal_on_for_each_type :
