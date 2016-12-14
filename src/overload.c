@@ -3631,9 +3631,11 @@ kind of mismatch here.
   if (microsoft_mode) {
     a_type_qualifier_set quals = get_type_qualifiers(selector_type);
     an_expr_node_ptr     temp_init_node;
-    /* Microsoft allows a nonconst member function to be called on a const
-       temporary constructed by constructor. */
-    if ((quals & TQ_CONST) != 0 && (rtsp->qualifiers & TQ_CONST) == 0 &&
+    /* Early versions of the Microsoft compiler allows a nonconst member
+       function to be called on a const temporary constructed by
+       constructor. */
+    if (microsoft_version < 1900 &&
+        (quals & TQ_CONST) != 0 && (rtsp->qualifiers & TQ_CONST) == 0 &&
         selector != NULL && is_a_prvalue(selector) &&
         operand_is_temp_init_full(selector, &temp_init_node) &&
         temp_init_node->variant.init.dynamic_init->kind
@@ -13679,9 +13681,9 @@ not_direct_binding_case:
       goto reject_function;
     }  /* if */
     /* This conversion function meets the requirements for result type.
-        However, we must also see whether or not it can be called for this
-        argument (i.e., are the type qualifiers okay), and how good the
-        match is. */
+       However, we must also see whether or not it can be called for this
+       argument (i.e., are the type qualifiers okay), and how good the
+       match is. */
     eff_this_param_type= implicit_object_parameter_type(conv_routine_type,
                                                         conversion_symbol,
                                                         /*is_conv_func=*/TRUE);

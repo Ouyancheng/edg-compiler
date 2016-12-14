@@ -1,5 +1,20 @@
 Version 4.13
 
+12/14/16 [EDGcpfe/17806]
+Microsoft compatibility: Non-const member functions and const temporaries
+
+In Microsoft mode, the front end accepts calling a non-const member function
+on a const temporary.  Now that behavior is limited to Microsoft C++ modes with
+microsoft_version < 1900.  For example:
+
+  struct S {
+    S(int);
+    int f();
+  };
+  int r = ((const S)0).f();  // Previously accepted in all Microsoft C++
+                             // modes.  Now only if microsoft_version < 1900.
+
+
 12/13/16 [EDGcpfe/17850]
 Spurious error on multiple declarators in templates with auto type specifier
 
