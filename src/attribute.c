@@ -881,18 +881,23 @@ Initialize the attribute correspondence checking map.
 static a_const_char *attribute_display_name(an_attribute_ptr ap)
 /*
 Returns the name of an attribute, suitable for display in diagnostic messages.
-The returned value may point to a static buffer, so it should be used (or
-copied) quickly.
+If necessary, memory is allocated to contain the result (so it can be used
+in diagnostic messages that may be delayed).
 */
 {
   a_const_char *result = ap->name;
 
   if (ap->namespace_name != NULL) {
+    int ret;
     static char buffer[MAX_ATTRIBUTE_NAME_LENGTH * 2 + 3];
     check_assertion(strlen(ap->namespace_name) + strlen(ap->name) + 3 <=
                     sizeof(buffer));
-    (void)sprintf(buffer, "%s::%s", ap->namespace_name, ap->name);
-    result = (a_const_char*)buffer;
+    ret = sprintf(buffer, "%s::%s", ap->namespace_name, ap->name);
+    check_assertion(ret > 0);
+    result = (a_const_char*)copy_string_of_length_to_region(
+                                                       FRONT_END_REGION_NUMBER,
+                                                       buffer,
+                                                       (size_t)ret);
   }  /* if */
   return result;
 }  /* attribute_display_name */
