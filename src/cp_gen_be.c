@@ -17049,13 +17049,9 @@ this one is such a continuation.
                       "gen_variable_decl: declared_type is NULL");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
-  /* Usually, initializers appear on a definition, but for (static) member
-     constants that are not variable templates or are constexpr, they
-     appear on the declaration. */
-  if (var->is_member_constant &&
-      (var->is_constexpr ||
-       var->template_info == NULL ||
-       var->template_info->template_arg_list == NULL)) {
+  /* Usually, initializers appear on a definition, but for static data
+     members, they may appear on the declaration. */
+  if (var->initializer_in_class) {
     consider_initialization = !is_definition;
   } else {
     consider_initialization = is_definition;
