@@ -49,7 +49,7 @@ microsoft_version < 1900.  For example:
                              // modes.  Now only if microsoft_version < 1900.
 
 
-12/13/16 [EDGcpfe/17850]
+12/13/16 [EDGcpfe/17823,EDGcpfe/17850]
 Spurious error on multiple declarators in templates with auto type specifier
 
 The front end previously issued a spurious diagnostic on a case like the
