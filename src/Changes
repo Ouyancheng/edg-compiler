@@ -1,5 +1,20 @@
 Version 4.13
 
+12/13/16 [EDGcpfe/17850]
+Spurious error on multiple declarators in templates with auto type specifier
+
+The front end previously issued a spurious diagnostic on a case like the
+following:
+
+  struct S { int f(); };
+  template<typename T> void g(T p) {
+    auto x = p.f(), y = 0;  // Previously elicited a spurious error.
+    return x+y;             // Now okay.
+  }
+
+This is now fixed.
+
+
 12/13/16 [EDGcpfe/17795]
 Microsoft non-permissive mode and function pointer conversions
 

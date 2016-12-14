@@ -524,7 +524,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       if (still_dependent) {
         /* Deduction was not done because the types are still dependent. */
         dps->type = undeduced_type;
-        dps->deduced_auto_type = NULL;
+        dps->deduced_auto_type = unknown_type();
       } else {
         /* Deduction failed. */
         expr_pos_error(dps->decltype_auto_specifier_seen ?
@@ -539,6 +539,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     } else {
       /* Deduction succeeded. */
       if (dps->deduced_auto_type != NULL &&
+          dps->deduced_auto_type->kind != (a_type_kind)tk_unknown &&
           !identical_types(dps->deduced_auto_type, deduced_auto_type)) {
         /* This is a declaration with multiple declarators and the type deduced
            for a previous declarator is not consistent with the current
@@ -18117,7 +18118,8 @@ expression, and return the result in *result (or an error indication in
           /* There was an error.  Proceed as if "auto" did not appear. */
           new_type = error_type();
           new_type_involves_auto = FALSE;
-        } else if (dps.deduced_auto_type == NULL) {
+        } else if (dps.deduced_auto_type == NULL ||
+                   dps.deduced_auto_type->kind == (a_type_kind)tk_unknown) {
           /* The deduction was not done because the initializer or the auto
              type is dependent.  The new_type will still involve "auto". */
         } else {
