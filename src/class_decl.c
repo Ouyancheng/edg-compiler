@@ -18895,13 +18895,13 @@ information about the member declaration, respectively.
        can sometimes get us here with a different scope on top of the stack. */
     expect_error();
   } else if (dps->sym != NULL) {
-    a_field_ptr                    field;
+    a_field_ptr  field;
     check_assertion(symbol_is(dps->sym, sk_field));
     field = dps->sym->variant.field.ptr;
     if (expr_for_local_ref != NULL) {
       /* Create an a_local_expr_node_ref entry for the expression, which
          refers to a local variable. */
-      a_scope_ptr function_scope = get_innermost_function_scope();
+      a_scope_ptr  function_scope = get_innermost_function_scope();
       check_assertion(function_scope != NULL);
       /* Copy the expression tree, which was created in file scope memory,
          to the function's memory region. */
@@ -18928,6 +18928,12 @@ information about the member declaration, respectively.
       a_field_symbol_supplement_ptr  fssp;
       a_class_symbol_supplement_ptr  cssp = class_symbol_supp(
                                                        symbol_for(class_type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cli_class_type_kind_is(class_type, cctk_value)) {
+        pos_error(ec_default_member_init_for_value_class,
+                  &dps->declarator_pos);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (class_type->kind == (a_type_kind)tk_union &&
           class_state->has_field_initializer) {
         /* Unions can only have a single member with a field initializer.

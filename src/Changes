@@ -1,5 +1,16 @@
 Version 4.13
 
+12/14/16 [EDGcpfe/17808]
+Microsoft compatibility: Default member initializers and value classes
+
+In Microsoft C++/CLI or C++/CX mode, the front end now issues an error on a
+default member initializer appearing in a value class.  For example:
+
+  value struct V {
+    int i = 0;  // Now elicits an error in C++/CLI and C++/CX modes.
+  };
+
+
 12/14/16 [EDGcpfe/17806]
 Microsoft compatibility: Non-const member functions and const temporaries
 
