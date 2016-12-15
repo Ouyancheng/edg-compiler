@@ -17426,6 +17426,9 @@ to an error operand.  Return TRUE if an error was issued.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* Parameters are ignored in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean is_dllimport_variable_glvalue(an_expr_node_ptr expr,
                                         a_constant       *conaddr)
 /*
