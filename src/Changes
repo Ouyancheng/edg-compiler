@@ -1,5 +1,21 @@
 Version 4.13
 
+12/15/16 [EDGcpfe/17829]
+GNU compatibility: "false" as a null pointer constant
+
+The changes for EDGcpfe/17058 caused the literal "false" to be an invalid null
+pointer constant in GNU C++ modes with gnu_version >= 60000.  It appears,
+however, that GCC 6.0 and later do not impose that restriction in pointer
+comparison contexts.  For example:
+
+  void g(int *p) {
+    if (p != false)  // Now accepted in all GNU C++ modes.
+      p = false;     // Still an error.
+  }
+
+The front end now emulates that behavior in GNU C++ modes.
+
+
 12/15/16 [EDGcpfe/17821]
 Explicit inheriting constructors
 

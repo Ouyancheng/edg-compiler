@@ -10488,6 +10488,33 @@ C++/CLI, so return FALSE in other modes.
 }  /* operand_is_function */
 
 
+static a_boolean op_is_null_ptr_constant_for_comparison(an_operand  *opnd)
+/*
+Return TRUE if the given operand should be treated as a null pointer constant
+for a comparison operation.  Ordinarily, this produces the same result as
+op_is_null_pointer_constant, but in GNU and Microsoft modes some additional
+cases must be handled.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (op_is_null_pointer_constant(opnd)) {
+    result = !cppcli_enabled || is_plain_pointer_type(opnd->type);
+  } else if (gpp_mode && is_constant_operand(opnd)) {
+    /* GCC 6.0 and later implement Core issue 903, which makes "false" invalid
+       as a null pointer constant, but in comparison contexts the older
+       behavior persists. */
+    a_constant_ptr  cp = &opnd->variant.constant;
+    if (constant_is(cp, ck_integer) &&
+        !cp->null_pointer_constant_ruled_out &&
+        is_bool_type(cp->type) &&
+        cmplit_integer_constant(cp, (a_host_large_integer)0) == 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* op_is_null_ptr_constant_for_comparison */
+
 a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,
@@ -10531,9 +10558,7 @@ strict ANSI mode.  Return FALSE if there is an error.
        compatibility rules were revised through the resolution of Core issue
        1512 (the C++ committee's paper N3624).  The new rules apply to all C++
        modes. */
-    if (op_is_null_pointer_constant(operand_1)
-        if_microsoft_extensions(
-             && (!cppcli_enabled || is_plain_pointer_type(operand_2_type)))) {
+    if (op_is_null_ptr_constant_for_comparison(operand_1)) {
       if (op_is_null_pointer_constant(operand_2)) {
         /* Two null pointer constants.  We usually do not get here since null
            pointer constants do not usually have pointer types.  In some GNU
@@ -10559,10 +10584,7 @@ strict ANSI mode.  Return FALSE if there is an error.
         okay = TRUE;
         operation_type = operand_2_type;
       }  /* if */
-    } else if (op_is_null_pointer_constant(operand_2)
-               if_microsoft_extensions(
-                                && (!cppcli_enabled ||
-                                    is_plain_pointer_type(operand_1_type)))) {
+    } else if (op_is_null_ptr_constant_for_comparison(operand_2)) {
       okay = TRUE;
       operation_type = operand_1_type;
     } else {
