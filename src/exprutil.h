@@ -1561,9 +1561,8 @@ extern a_boolean is_bit_field_whose_address_can_be_taken(a_field_ptr field);
 extern a_boolean is_any_initonly_field_operand(an_operand *operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern a_boolean microsoft_template_arg_constant_glvalue_address(
-                                                    an_expr_node_ptr expr,
-                                                    a_constant       *conaddr);
+extern a_boolean is_dllimport_variable_glvalue(an_expr_node_ptr expr,
+                                               a_constant       *conaddr);
 
 extern void take_address_of_or_reference_to_lvalue(
                                     an_operand        *operand,

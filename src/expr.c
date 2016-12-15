@@ -39668,9 +39668,9 @@ memory region).  Do various error checks.
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
       identical_types(operand->type, param_type) &&
-      microsoft_template_arg_constant_glvalue_address(
-                                                   operand->variant.expression,
-                                                   constant)) {
+      (constant_glvalue_address(operand->variant.expression, constant,
+                                /*address_escapes=*/TRUE) ||
+       is_dllimport_variable_glvalue(operand->variant.expression, constant))) {
     /* In Microsoft mode, an lvalue of type pointer to X can be used
        as the actual argument for a nontype template parameter of type
        pointer to X.  Fixed in MSVC++ 7.1. */

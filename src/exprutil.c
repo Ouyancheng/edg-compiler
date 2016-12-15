@@ -17426,32 +17426,28 @@ to an error operand.  Return TRUE if an error was issued.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean microsoft_template_arg_constant_glvalue_address(
-                                                     an_expr_node_ptr expr,
-                                                     a_constant       *conaddr)
+a_boolean is_dllimport_variable_glvalue(an_expr_node_ptr expr,
+                                        a_constant       *conaddr)
 /*
-Variant of constant_glvalue_address used for template argument expressions
-in Microsoft mode.  Considers a dllimport variable to have a constant
-address in addition to the cases usually covered.
+Return TRUE if the given expression is an enk_variable glvalue node for a
+dllimport variable.  If so, record the address of the variable in conaddr.
 */
 {
   a_boolean is_constant_addr = FALSE;
 
-  expr = skip_parens(expr);
-  if (constant_glvalue_address(expr, conaddr, /*address_escapes=*/TRUE)) {
-    is_constant_addr = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && is_variable_node(expr)) {
+  expr = skip_parens(expr);
+  if (is_variable_node(expr) && is_glvalue_node(expr)) {
     a_variable_ptr var = node_variable(expr);
     if (var->decl_modifiers & DM_DLLIMPORT) {
       is_constant_addr = TRUE;
       set_variable_address_constant(var, conaddr,
                                     /*set_address_taken_flag=*/TRUE);
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return is_constant_addr;
-}  /* microsoft_template_arg_constant_glvalue_address */
+}  /* is_dllimport_variable_glvalue */
 
 
 static a_boolean is_possible_nonstatic_selection_masquerading_as_static(
@@ -17627,11 +17623,12 @@ in the source (and *operator_position gives its position).
                  static selection as the associated expression. */
             }  /* if */
           }  /* if */
-          if ((microsoft_mode && curr_expr_kind_is(ek_template_arg)) ?
-                     microsoft_template_arg_constant_glvalue_address(test_expr,
-                                                                    conaddr) :
-                     constant_glvalue_address(test_expr, conaddr,
-                                              /*address_escapes=*/TRUE)) {
+          if (constant_glvalue_address(test_expr, conaddr,
+                                       /*address_escapes=*/TRUE) ||
+              (microsoft_mode && curr_expr_kind_is_const() &&
+               is_dllimport_variable_glvalue(test_expr, conaddr))) {
+            /* A glvalue with a constant address (in constant-expression
+               contexts that includes Microsoft-mode dllimport variables). */
             if (cpp11_sfinae_enabled &&
                 conaddr->kind == (a_constant_repr_kind)ck_template_param &&
                 conaddr->variant.template_param.kind ==
