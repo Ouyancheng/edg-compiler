@@ -23419,7 +23419,7 @@ template symbol supplement for this template should be returned to the caller.
     if (is_variable_template) {
       if (!source_sequence_entries_disallowed) {
         /* For things that are not class members, anything that is not an
-           "extern" declaration is a definition.  For class members, a
+           "extern" declaration is a definition.  For class members,
            the declaration in the class can be a definition, so an
            out-of-class declaration is not considered to be a definition
            for source sequence purposes unless it has an initializer. */
