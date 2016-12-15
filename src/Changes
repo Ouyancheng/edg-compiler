@@ -11,15 +11,6 @@ contexts where this was accepted were template arguments).  For example:
   constexpr int *pv = &v;  // Previously an error.  Now okay.
 
 
-12/14/16 [EDGcpfe/17810]
-C-generating back end: Rendering of rvalued eok_lvalue_adjust nodes
-
-The C-generating back end previously did not correctly render rvalued
-eok_lvalue_adjust nodes applied to bit fields.  This is now fixed (since such
-nodes have no real effect on their operands, only the underlying operand is
-now rendered).
-
-
 12/14/16 [EDGcpfe/17811]
 Access to uninitialized value in processing of range-based for-statement
 
