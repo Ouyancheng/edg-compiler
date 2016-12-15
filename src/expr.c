@@ -26760,13 +26760,14 @@ that case.
       /* In C++, if the second and third operands have the same type and
          they are lvalues, the result is also an lvalue. */
       result_is_a_glvalue = TRUE;
-    } else if (types_are_the_same && !gpp_mode && !microsoft_mode &&
+    } else if (types_are_the_same && !microsoft_mode &&
+               !(gpp_mode && !clang_mode && gnu_version < 40900) &&
                is_an_xvalue(&operand_2) &&
                is_an_xvalue(&operand_3)) {
-      /* If the second and third operands have the same type and
-         they are xvalues, the result is also an xvalue. */
-      /* The GNU and Microsoft compilers don't seem to do this yet.  Checked
-         with g++ 4.7, 4.8.0, 4.8.1 and with MSVC++ 18.00.21114. */
+      /* If the second and third operands have the same type and they are
+         xvalues, the result is also an xvalue. */
+      /* Some GNU and Microsoft compilers don't seem to do this yet.  Checked
+         with MSVC++ 18.00.21114. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
     } else if ((!gpp_mode || clang_mode) && !microsoft_mode &&

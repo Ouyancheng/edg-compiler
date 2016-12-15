@@ -1,5 +1,14 @@
 Version 4.13
 
+12/15/16 [EDGcpfe/17851]
+GNU compatibility: Conditional operator with xvalues
+
+In C++11, a conditional operator whose second and third operands are xvalues
+of identical types produces an xvalue.  In GNU mode, that rule was disabled,
+but now it is enabled when gnu_version >= 40900.  (See the entry for
+EDGcpfe/14753 for a similar issue.)
+
+
 12/15/16 [EDGcpfe/17847]
 Positions for lambda capture initialization expressions
 
