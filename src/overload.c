@@ -5905,7 +5905,7 @@ retry2:
          issue 1467, to disable user-defined conversions on the first parameter
          of a constructor match for a braced-enclosed initializer (i.e.,
          init_list_ctor_arg_list != NULL), if:
-           (1) the braces encloses a single element that is itself a
+           (1) the braces enclose a single element that is itself a
                brace-enclosed list (tested above).
            (2) the target parameter type is the parent class type or a
                reference to that type with optional type qualifiers (tested

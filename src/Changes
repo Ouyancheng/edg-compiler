@@ -126,7 +126,7 @@ itself a braced initializer.  For example:
   struct B { B(A); };
   B b{{0}};
 
-Previously, this was ambiguous because the initializer could be interpreter
+Previously, this was ambiguous because the initializer could be interpreted
 as "B b{A{0}};" or "B b{B{A(0)}};".  Now, the latter interpretation is
 disabled.
 
