@@ -21891,9 +21891,6 @@ templates from that base template.
       decl_info.decl_state.is_inheriting_ctor = TRUE;
       decl_info.decl_state.first_decl = TRUE;
       decl_info.decl_state.type = new_tp;
-      if (brp->is_explicit_constructor) {
-        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_EXPLICIT;
-      }  /* if */
       if (brp->is_constexpr) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
       }  /* if */
@@ -21938,6 +21935,9 @@ templates from that base template.
         new_rp->generating_using_decl = udp;
         new_rp->is_inheriting_ctor = TRUE;
         new_rp->compiler_generated = TRUE;
+        if (brp->is_explicit_constructor) {
+          new_rp->is_explicit_constructor = TRUE;
+        }  /* if */
         new_tssp->variant.function.decl_cache.decl_info =
                                                    templ_decl_state.decl_info;
         complete_generated_member_template(&templ_decl_state, &func_info,
@@ -22035,9 +22035,6 @@ constructor.
       decl_info.decl_state.is_inheriting_ctor = TRUE;
       decl_info.decl_state.first_decl = TRUE;
       decl_info.decl_state.type = new_tp;
-      if (brp->is_explicit_constructor) {
-        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_EXPLICIT;
-      }  /* if */
       if (brp->is_constexpr) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
       }  /* if */
@@ -22052,6 +22049,9 @@ constructor.
       new_rp = decl_info.decl_state.sym->variant.routine.ptr;
       new_rp->generating_using_decl = udp;
       new_rp->is_inheriting_ctor = TRUE;
+      if (brp->is_explicit_constructor) {
+        new_rp->is_explicit_constructor = TRUE;
+      }  /* if */
       if (exceptions_enabled) {
         form_exception_specification_for_generated_function(new_rp, bctor);
       }  /* if */
