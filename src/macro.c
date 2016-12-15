@@ -4127,6 +4127,12 @@ static a_boolean
 			   in C mode.  Used to support
 			   __has_feature(c_thread_local). */
 
+static a_boolean
+		cxx_thread_local_enabled;
+			/* TRUE if the thread_local specifier is enabled
+			   in C++ mode.  Used to support
+			   __has_feature(cxx_thread_local). */
+
 
 /*
 The following array describes all the clang __has_feature/__has_extension
@@ -4373,7 +4379,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_thread_local",
-    &std_thread_local_storage_specifier_enabled,
+    &cxx_thread_local_enabled,
     NULL,
     NULL },
   { "cxx_trailing_return",
@@ -9958,6 +9964,24 @@ command line -D options.
      (to the value of STDC_HOSTED) in all cases since some header files may
      look for it. */
   enter_predef_num_macro_noredef(STDC_HOSTED, "__STDC_HOSTED__");
+  /* Initialize the local feature-test "enabled" flags.  This is done
+     unconditionally, as the feature_support_list table is used for both
+     the WG21 SG10 feature-test macros and the clang feature-test
+     macros. */
+  access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
+  contextual_conversions = TRUE;
+  attribute_deprecated_with_message = (gnu_version >= 40500);
+  decltype_keyword_enabled = decltype_enabled &&
+                                            !enable_underscore_decltype_only;
+  initializer_lists_enabled = cpp11_mode;
+  nontype_template_arg_conversions_enabled = cpp17_mode;
+  c_alignas_enabled = C_mode() && alignas_enabled;
+  c_alignof_enabled = C_mode() && alignof_enabled;
+  c_generic_enabled = c11_mode;
+  c_static_assert_enabled = C_mode() && static_assert_enabled;
+  c_thread_local_enabled = thread_local_storage_specifier_enabled;
+  cxx_thread_local_enabled = !C_mode() &&
+                                    std_thread_local_storage_specifier_enabled;
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus
      can be redefined as this is needed in some environments.  In Microsoft
@@ -10150,23 +10174,6 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
 #endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 #endif /* IA64_ABI */
-    /* Initialize the local feature-test "enabled" flags.  This is done
-       unconditionally, as the feature_support_list table is used for both
-       the WG21 SG10 feature-test macros and the clang feature-test
-       macros. */
-    access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
-    contextual_conversions = TRUE;
-    attribute_deprecated_with_message = (gnu_version >= 40500);
-    decltype_keyword_enabled = decltype_enabled &&
-                                              !enable_underscore_decltype_only;
-    initializer_lists_enabled = cpp11_mode;
-    nontype_template_arg_conversions_enabled = cpp17_mode;
-    c_alignas_enabled = C_mode() && alignas_enabled;
-    c_alignof_enabled = C_mode() && alignof_enabled;
-    c_generic_enabled = c11_mode;
-    c_static_assert_enabled = C_mode() && static_assert_enabled;
-    c_thread_local_enabled = C_mode() &&
-                                    std_thread_local_storage_specifier_enabled;
     if (define_portable_feature_test_macros) {
       /* Add definitions as described by WG21 SG10 SD-6 for the features
          that are enabled in the current execution of the front end. */
