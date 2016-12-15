@@ -17628,10 +17628,10 @@ in the source (and *operator_position gives its position).
           }  /* if */
           if (constant_glvalue_address(test_expr, conaddr,
                                        /*address_escapes=*/TRUE) ||
-              (microsoft_mode && curr_expr_kind_is_const() &&
+              (microsoft_mode && !C_mode() && curr_expr_kind_is_const() &&
                is_dllimport_variable_glvalue(test_expr, conaddr))) {
-            /* A glvalue with a constant address (in constant-expression
-               contexts that includes Microsoft-mode dllimport variables). */
+            /* A glvalue with a constant address (in C++ constant-expression
+               contexts, that includes Microsoft-mode dllimport variables). */
             if (cpp11_sfinae_enabled &&
                 conaddr->kind == (a_constant_repr_kind)ck_template_param &&
                 conaddr->variant.template_param.kind ==
