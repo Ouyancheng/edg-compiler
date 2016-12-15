@@ -31382,6 +31382,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     a_boolean          err = FALSE;
     a_boolean          array_case = FALSE;
     a_source_position  *capture_pos = &lcp->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position  *capture_end_pos = &lcp->end_position;
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+    a_source_position  *capture_end_pos = &null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (lcp->is_init_capture) {
       /* A C++14-style init-capture. */
       an_init_state  is;
@@ -31438,11 +31443,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       if (source_field == NULL) {
         /* Normal case. */
         if (var != NULL) {
-          make_lvalue_variable_operand(var,
-                                       capture_pos,
-                                       &null_source_position,
-                                       &operand,
-                                       (a_ref_entry_ptr)NULL);
+          make_lvalue_variable_operand(var, capture_pos, capture_end_pos,
+                                       &operand, (a_ref_entry_ptr)NULL);
         } else {
           expect_error();
           make_error_operand(&operand);
@@ -31460,6 +31462,10 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
           field_sel = field_lvalue_selection_expr(this_expr, source_field);
         }  /* if */
         make_glvalue_expression_operand(field_sel, &operand);
+        operand.position = *capture_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        operand.end_position = *capture_end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
       /* See whether the copy is of a class type or array of class type. */
       base_dest_type = dest_type;

@@ -1,5 +1,14 @@
 Version 4.13
 
+12/15/16 [EDGcpfe/17847]
+Positions for lambda capture initialization expressions
+
+Some expression nodes created to initialize a closure object according to the
+corresponding lambda capture entries were previously missing an end position
+in configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE.  This is now
+fixed.
+
+
 12/15/16 [EDGcpfe/17865]
 Clang compatibility: c_thread_local and cxx_thread_local extensions
 
