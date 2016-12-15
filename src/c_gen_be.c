@@ -4563,6 +4563,13 @@ on top of the expansion.
     check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
     field = node_field(object_expr->next);
     if (field->is_bit_field) {
+      if (!node->is_lvalue && !node->is_xvalue) {
+        /* The node has been rvalued, effectively making it a no-op.  Just
+           render the underlying expression because the alternative treatment
+           below will not work for rvalued accesses to bit-fields. */
+        dump_expression(operand_1);
+        goto after_operand_output;
+      }  /* if */
       bit_field_case = TRUE;
       field_offset = field->offset;
     } else if (node_operator_is(operand_1, eok_dot_field) &&
