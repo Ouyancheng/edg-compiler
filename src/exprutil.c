@@ -10515,6 +10515,7 @@ cases must be handled.
   return result;
 }  /* op_is_null_ptr_constant_for_comparison */
 
+
 a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,
