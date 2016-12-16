@@ -9548,13 +9548,15 @@ diagnostic in *ips.
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
-            a_byte  *base_address = get_base_address(cap);
+            a_byte  *base_address;
             cp = alloc_constant((a_constant_repr_kind)ck_error);
             if (is_array_element(cap)) {
               /* If we're pointing into an array, a constant for the whole
                  array must be allocated. */
               a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
-              a_byte_count  offset = cap->address - base_address;
+              a_byte_count  offset;
+              base_address = get_base_address(cap);
+              offset = cap->address - base_address;
               if (offset != 0) {
                 con->variant.address.offset =
                   utp->size * (offset/value_bytes_for_type(ips, utp, &result));
@@ -9567,6 +9569,8 @@ diagnostic in *ips.
                  this array can use the same constant entry (see the case
                  where mptr points to a non-ck_address entry above). */
               map_stack_bytes(ips, base_address, (a_byte*)cp);
+            } else {
+              base_address = cap->address;
             }  /* if */
             if (!copy_interpreter_object_to_constant(
                           ips, base_address, cap->complete_object, utp, cp)) {
