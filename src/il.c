@@ -22174,6 +22174,8 @@ treated as a form of destruction.
 #endif /* DO_IL_LOWERING */
        (depth_scope_stack == NO_SCOPE_DEPTH ||
         !is_template_dependent_context()))) {
+    check_assertion(depth_scope_stack == NO_SCOPE_DEPTH ||
+                    !is_template_dependent_context());
     /* This is a destructible entity. */
     if (static_lifetime) {
       /* Note that we do NOT use depth_innermost_function_scope, as it would

@@ -9252,6 +9252,7 @@ being popped.
   if (innermost_function_scope == NULL &&
       waiting_for_module_id_list_head != NULL &&
       ssep->kind != (a_scope_kind)sck_file &&
+      !is_template_dependent_context() &&
       get_module_id() != NULL) {
     /* There may be functions whose lowering has previously been delayed
        because a suitable module id had not yet been created until now.  If so,
