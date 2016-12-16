@@ -2682,7 +2682,7 @@ position is available).
        Change the destination type to "the unknown type". */
     dtype = type_of_unknown_templ_param_nontype;
   } else if (fp->is_bit_field) {
-    if (microsoft_mode && !C_mode() && is_enum_type(dtype)) {
+    if (mscpp_version_is(any_version) && is_enum_type(dtype)) {
       /* Microsoft's C++ compiler allow bit fields of enumeration types to be
          initialized by integer values.  We emulate this by converting to the
          underlying integer type, and then converting the result back to the
@@ -2821,7 +2821,7 @@ specific position is available.
                struct S s2 = { .i = 1 };    // Sometimes an error.
              In modes where it is permitted, we must generate anonymous
              designators to navigate the aggregate structure. */
-          if (!C_mode() || (gcc_mode && gnu_version < 40600)) {
+          if (!C_mode() || gcc_version_is(< 40600)) {
             okay = FALSE;
             pos_error(ec_indirect_anon_union_designator,
                       init_component_pos(icp));
@@ -3403,7 +3403,7 @@ a ck_aggregate constant.
     *p_icp = next_elem(icp);
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (etype_kind == (a_type_kind)tk_vector &&
-             (gpp_mode || (gcc_mode && gnu_version >= 40500) ||
+             (gpp_mode || gcc_version_is(>= 40500) ||
               is_braced_init_component(icp))) {
     /* A braced component can initialize the elements of a GNU vector
        individually.  GCC also allows brace elision, except in early C
