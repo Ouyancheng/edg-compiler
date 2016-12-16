@@ -1,5 +1,17 @@
 Version 4.13
 
+12/16/16 [EDGcpfe/17869]
+Clang compatibility: Invalid type specifier combinations
+
+Clang mode previously inadvertently failed to diagnose certain invalid type
+specifier combinations (corresponding to GCC-specific behavior).  For example:
+
+  # 1 "syshdr" 3 4
+  typedef int wchar_t;   // Previously accepted in Clang mode.  Now an error.
+
+This is now fixed.
+
+
 12/16/16 [EDGcpfe/17867]
 Invalid C++14 constexpr evaluation of string address constant
 
