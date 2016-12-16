@@ -12,8 +12,8 @@ constant address of a string literal with an nonzero offset.  For example:
   };
   X<char const*> xc("abc"+1);
 
-Previously, this caused xc.x to point to "c" instead of "bc".  This is now
-fixed.
+Previously, this caused xc.x to point to "c" instead of "bc" in some
+configurations.  This is now fixed.
 
 
 12/15/16 [EDGcpfe/17851]
