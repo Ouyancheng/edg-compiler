@@ -7474,6 +7474,18 @@ constant will be set as well.
     constant->variant.template_param.variant.expr = expr;
   } else {
     result = compute_is_constructible(kind, type1, arg1->next);
+    if (result && !microsoft_mode) {
+      a_builtin_operation_kind  dtor_kind;
+      if (kind == (a_builtin_operation_kind)bok_is_trivially_constructible) {
+        dtor_kind = (a_builtin_operation_kind)bok_is_trivially_destructible;
+      } else if (kind ==
+                     (a_builtin_operation_kind)bok_is_nothrow_constructible) {
+        dtor_kind = (a_builtin_operation_kind)bok_is_nothrow_destructible;
+      } else {
+        dtor_kind = (a_builtin_operation_kind)bok_is_destructible;
+      }  /* if */
+      result = compute_is_destructible(dtor_kind, type1);
+    }  /* if */
     arg1->type_definition_needed = TRUE;
     for (argn = arg1->next; argn != NULL; argn = argn->next) {
       check_assertion(is_type_node(argn));
