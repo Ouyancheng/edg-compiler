@@ -1,5 +1,21 @@
 Version 4.13
 
+12/16/16 [EDGcpfe/17867]
+Invalid C++14 constexpr evaluation of string address constant
+
+In some circumstances, the C++14 constexpr interpreter incorrectly handled a
+constant address of a string literal with an nonzero offset.  For example:
+
+  template <typename T> struct X {
+    T x;
+    constexpr X(T const& p): x(p) {}
+  };
+  X<char const*> xc("abc"+1);
+
+Previously, this caused xc.x to point to "c" instead of "bc".  This is now
+fixed.
+
+
 12/15/16 [EDGcpfe/17851]
 GNU compatibility: Conditional operator with xvalues
 

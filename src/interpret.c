@@ -9548,12 +9548,12 @@ diagnostic in *ips.
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
+            a_byte  *base_address = get_base_address(cap);
             cp = alloc_constant((a_constant_repr_kind)ck_error);
             if (is_array_element(cap)) {
               /* If we're pointing into an array, a constant for the whole
                  array must be allocated. */
               a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
-              a_byte        *base_address = get_base_address(cap);
               a_byte_count  offset = cap->address - base_address;
               if (offset != 0) {
                 con->variant.address.offset =
@@ -9569,7 +9569,7 @@ diagnostic in *ips.
               map_stack_bytes(ips, base_address, (a_byte*)cp);
             }  /* if */
             if (!copy_interpreter_object_to_constant(
-                          ips, cap->address, cap->complete_object, utp, cp)) {
+                          ips, base_address, cap->complete_object, utp, cp)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
