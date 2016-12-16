@@ -3631,7 +3631,7 @@ kind of mismatch here.
   if (microsoft_mode) {
     a_type_qualifier_set quals = get_type_qualifiers(selector_type);
     an_expr_node_ptr     temp_init_node;
-    /* Early versions of the Microsoft compiler allows a nonconst member
+    /* Early versions of the Microsoft compiler allow a nonconst member
        function to be called on a const temporary constructed by
        constructor. */
     if (microsoft_version < 1900 &&
