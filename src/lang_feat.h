@@ -1311,6 +1311,31 @@ EXTERN unsigned long
 			   mode. */
 
 /*
+Convenience macros to test for GNU, Clang, and Microsoft versions.  Note that
+gpp_version_is, gcc_version_is, and gnu_version_is exclude Clang mode, unlike
+gpp_mode and gcc_mode.  Usage looks like "gpp_mode_is(<60000)" and
+"ms_version_is(any_version)".
+*/
+#define any_version > 0 /*lint !e506*/
+
+#define ms_version_is(cond) (microsoft_mode && microsoft_version cond)
+#define mscpp_version_is(cond) (microsoft_mode && !C_mode() && \
+                                microsoft_version cond)
+#define msc_version_is(cond) (microsoft_mode && C_mode() && \
+                              microsoft_version cond)
+
+#define gnu_version_is(cond) (gnu_mode && !clang_mode && gnu_version cond)
+#define gpp_version_is(cond) (gpp_mode && !clang_mode && gnu_version cond)
+#define gcc_version_is(cond) (gcc_mode && !clang_mode && gnu_version cond)
+
+#define clang_version_is(cond) (clang_mode && clang_version cond)
+#define clangcpp_version_is(cond) (clang_mode && !C_mode() && \
+                                   clang_version cond)
+#define clangc_version_is(cond) (clang_mode && C_mode() && clang_version cond)
+
+
+
+/*
 Previously, a macro ALLOW_NONSTANDARD_ANONYMOUS_UNIONS controlled whether the
 front end was capable of accepting non-standard anonymous unions.  Since C11
 has added them as a standard feature, that macro is no longer used and the

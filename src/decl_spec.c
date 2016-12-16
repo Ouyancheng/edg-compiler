@@ -4437,7 +4437,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   if (dps->tag_attributes != NULL) {
     a_boolean         ignore_gnu_attributes = FALSE;
     an_attribute_ptr  attributes_to_attach = dps->tag_attributes;
-    if (gnu_mode && gnu_version < 40200) {
+    if (gnu_version_is(< 40200)) {
       /* In some GNU modes, attributes appearing between the class/struct/union
          keyword and the type name are ignored if the elaborated name specifier
          is not followed by a class type definition and if this is not an
@@ -8488,7 +8488,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
                                  DS_VIRTUAL | DS_STORAGE_CLASS | DS_EXPLICIT |
                                  DS_INLINE | DS_MICROSOFT_INLINE |
                                  DS_FORCEINLINE | DS_CONSTEXPR;
-      if ((clang_mode && clang_version < 30500) || microsoft_mode) {
+      if (clang_version_is(< 30500) || microsoft_mode) {
         accepted_specifiers |= DS_TYPE_QUALIFIER;
       }  /* if */
       if (!(decl_specifiers_seen & ~accepted_specifiers) &&
@@ -10511,7 +10511,7 @@ storage_class_specifier:
             }  /* if */
 #endif /* LONG_LONG_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-          } else if (gcc_mode && gnu_version < 40000) {
+          } else if (gcc_version_is(< 40000)) {
             /* GNU C allows multiple type size specifiers, but they must be
                part of a typedef declaration that doesn't include a declarator
                (and therefore it doesn't really declare anything). */
@@ -10593,10 +10593,11 @@ storage_class_specifier:
                duplication in typedef declarations). */
             an_error_severity  sev = es_error;
             if (any_cfront_mode() || microsoft_mode ||
-                (gcc_mode && (gnu_version < 30300 ||
-                              (state->declared_storage_class ==
+                (gcc_mode && !clang_mode &&
+                 (gnu_version < 30300 ||
+                  (state->declared_storage_class ==
                                                 (a_storage_class)sc_typedef &&
-                               gnu_version < 40000)))) {
+                   gnu_version < 40000)))) {
               sev = es_warning;
             }  /* if */
             pos_diagnostic(sev, ec_dupl_decl_specifier, &pos_curr_token);
@@ -11023,7 +11024,7 @@ process_enum_specifier:
              code handles the usual case where the modifier appears before the
              typedef name: That is only accepted by g++ 3.4 and later.) */
           if (!(C_dialect == C_dialect_pcc ||
-                (gpp_mode && gnu_version >= 30400 &&
+                (gpp_version_is(>= 30400) &&
                  (input_flags & DSI_NO_REAL_DECLARATOR) != 0))) {
             goto exit_loop;
           }  /* if */

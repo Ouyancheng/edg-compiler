@@ -1173,8 +1173,7 @@ given position, unless is->no_diagnostics is TRUE.
   a_constant_ptr  result = NULL;
 
   if (list_init_enabled &&
-      !(clang_mode && clang_version < 30500) &&
-      !(gpp_mode && !clang_mode && gnu_version < 40700) &&
+      !clang_version_is(< 30500) && !gpp_version_is(< 40700) &&
       !(microsoft_mode && (!cpp11_mode || implicit_microsoft_cpp11_mode))) {
     /* C++11 changed the rules from requiring a value-initialization (i.e.,
        the C++03 requirement of picking the default constructor) to saying
@@ -4613,8 +4612,7 @@ returned set to TRUE.
          reactivate the class since it can cause problems with the lifetime
          management of temporaries. */
       check_assertion(symbol_ptr->is_error);
-    } else if (!is_template_context() || sun_mode ||
-               (microsoft_mode && microsoft_version <= 1300)) {
+    } else if (!is_template_context() || sun_mode || ms_version_is(<= 1300)) {
       /* For templates, the class was already reactivated when the
          instantiation scope was pushed.  In older Microsoft modes another
          scope is pushed because multiple sets of template parameter names
