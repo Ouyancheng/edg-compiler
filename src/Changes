@@ -1,5 +1,13 @@
 Version 4.13
 
+12/16/16 [EDGcpfe/17852]
+Unions and __is_base_of
+
+The front end previously produced a "true" value for __is_base_of(U, U) where
+U is a union type.  Now it produces a "false" value, because that is the
+expected behavior of the std::is_base_of type trait.
+
+
 12/16/16 [EDGcpfe/17869]
 Clang compatibility: Invalid type specifier combinations
 

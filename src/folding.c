@@ -7316,7 +7316,8 @@ the returned constant will be set as well.
     a_boolean  result = FALSE;
     type1 = skip_typerefs(type1);
     type2 = skip_typerefs(type2);
-    if (is_immediate_class_type(type1) && is_immediate_class_type(type2)) {
+    if (type1->kind != (a_type_kind)tk_union &&
+        is_immediate_class_type(type1) && is_immediate_class_type(type2)) {
       result = (same_entities(type2, type1) ||
                 find_base_class_of(type2, type1) != NULL);
     }  /* if */
