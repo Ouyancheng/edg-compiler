@@ -24,8 +24,8 @@ Clang compatibility: c_thread_local and cxx_thread_local extensions
 A couple of changes have been made to better align with the way clang handles
 thread local support.  Previously __has_extension(cxx_thread_local) could be
 true in C mode; that is no longer the case.  Also,
-__has_extension(c_thread_local) is now true whenever thread the "__thread"
-specifier is enabled.
+__has_extension(c_thread_local) is now true whenever the "__thread" specifier
+is enabled.
 
 Also fixed was a bug that would have prevented some extensions from ever
 reporting that an extension was enabled in C mode.
