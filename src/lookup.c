@@ -3191,7 +3191,8 @@ that do normal id lookup processing.
      end_depth. */
   for (curr_depth = start_depth; curr_depth > end_depth;
        curr_depth = ssep->previous_scope) {
-    a_scope_kind		kind;
+    a_scope_kind	kind;
+    a_boolean		is_inline_namespace_to_skip;
     ssep = &scope_stack[curr_depth];
     kind = ssep->kind;
 #if DEBUG
@@ -3236,6 +3237,17 @@ that do normal id lookup processing.
          stack entry, use that for lookup in this scope. */
       lookup_state->decl_seq = ssep->decl_seq_for_lookup;
     }  /* if */
+    /* Inline namespaces are skipped because names declared there should be
+       found via the enclosing namespace in which the members are implicitly
+       visible. */
+    is_inline_namespace_to_skip = (scope_is(ssep, sck_namespace) ||
+                                   scope_is(ssep, sck_namespace_extension) ||
+                                   scope_is(ssep,
+                                            sck_namespace_reactivation)) &&
+                                  ssep->assoc_namespace != NULL &&
+                                  ssep->assoc_namespace->is_inline &&
+                                  (lookup_state->options &
+                                                     IDL_IS_EXPR_CONTEXT) != 0;
     if (kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* If a namespace extension or reactivation scope is pushed while the
@@ -3259,6 +3271,8 @@ that do normal id lookup processing.
            !lookup_state->treat_as_template_id)) {
         /* Skip class reactivation scopes for linkage lookups, except when
            looking for a template name. */
+      } else if (is_inline_namespace_to_skip) {
+        /* Skip inline namespaces in most contexts (see above). */
       } else {
         sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
         if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&
@@ -3293,6 +3307,8 @@ that do normal id lookup processing.
          template declaration scope, the template parameter list in
          the template_decl_info is used. */
       sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
+    } else if (is_inline_namespace_to_skip) {
+      /* Skip inline namespaces in most contexts (see above). */
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front

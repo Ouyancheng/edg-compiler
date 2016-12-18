@@ -1,5 +1,25 @@
 Version 4.13
 
+12/18/16 [EDGcpfe/17520]
+Inline namespace member should not hide enclosing name
+
+In a lookup done within an inline namespace, a member of the inline
+namespace could hide members of the enclosing namespace instead of
+overloading with them.  Now fixed.
+
+  namespace N {
+    inline namespace inl1 {
+      template <class T> void f(T x);
+    }
+    template <class T> void f(T*){}
+    template <> void f<int>(int) {
+      void* vp;
+      // called N::inl1::f, now calls N::f
+      f(vp);
+    }
+  }
+
+
 12/16/16 [EDGcpfe/17852]
 __is_constructible/__is_nothrow_constructible/__is_trivially_constructible
 
