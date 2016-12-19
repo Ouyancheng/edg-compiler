@@ -6787,32 +6787,21 @@ has to be identical, not just equivalent.
 
   check_assertion(cp1->kind == (a_constant_repr_kind)ck_template_param &&
                   cp2->kind == (a_constant_repr_kind)ck_template_param);
-  if (cp1->source_corresp.name == cp2->source_corresp.name &&
-      cp1->source_corresp.is_class_member ==
-                                        cp2->source_corresp.is_class_member &&
-      cp1->source_corresp.member_of_unknown_base ==
-                                 cp2->source_corresp.member_of_unknown_base &&
-      (!strictly_identical ||
-       cp1->source_corresp.qualified_unknown_base_member ==
-                         cp2->source_corresp.qualified_unknown_base_member)) {
-    if (cp1->variant.template_param.kind == 
-                      (a_template_param_constant_kind)tpck_unknown_function &&
-        !cp1->variant.template_param.is_qualified_name) {
-      /* An unknown function referred without a qualified name: Any parent
-         information is dependent on context and should not be compared. */
-      eq = TRUE;
-    } else {
-      eq = (cp1->source_corresp.is_class_member ?
-             (strictly_identical ? corresponding_types(parent_class_of(cp1),
-                                                       parent_class_of(cp2)) :
-                                   identical_types(parent_class_of(cp1),
-                                                   parent_class_of(cp2))) :
-              corresponding_namespaces(parent_namespace_or_null(cp1),
-                                       parent_namespace_or_null(cp2)));
-    }  /* if */
-  } else {
-    eq = FALSE;
-  }  /* if */ 
+  eq = (cp1->source_corresp.name == cp2->source_corresp.name &&
+        cp1->source_corresp.is_class_member ==
+                                         cp2->source_corresp.is_class_member &&
+        cp1->source_corresp.member_of_unknown_base ==
+                                  cp2->source_corresp.member_of_unknown_base &&
+        (!strictly_identical ||
+         cp1->source_corresp.qualified_unknown_base_member ==
+                          cp2->source_corresp.qualified_unknown_base_member) &&
+        (cp1->source_corresp.is_class_member ?
+           (strictly_identical ? corresponding_types(parent_class_of(cp1),
+                                                     parent_class_of(cp2)) :
+                                 identical_types(parent_class_of(cp1),
+                                                 parent_class_of(cp2))) :
+            corresponding_namespaces(parent_namespace_or_null(cp1),
+                                     parent_namespace_or_null(cp2))));
   return eq;
 }  /* equiv_template_constant_identity */
 
@@ -7155,7 +7144,7 @@ definition of the CC flags in il.h for more information.
                   cp2->variant.template_param.variant.
                                                 unknown_function.opname_kind &&
                   cp1->variant.template_param.is_qualified_name ==
-                               cp2->variant.template_param.is_qualified_name) {
+                  cp2->variant.template_param.is_qualified_name) {
                 a_type_ptr tp1 = cp1->variant.template_param.variant.
                                               unknown_function.conversion_type;
                 a_type_ptr tp2 = cp2->variant.template_param.variant.
