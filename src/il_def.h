@@ -12017,7 +12017,7 @@ enum an_expr_operator_kind_tag {
        il.c:
            is_rvalueable_node
            node_does_fetch
-           operator_takes_lvalue_operand
+           lvalue_rvalue_test
        exprutil.c:
            conv_prvalue_expr_to_lvalue
            conv_glvalue_expr_to_prvalue (if the operator is not "rvalueable"
