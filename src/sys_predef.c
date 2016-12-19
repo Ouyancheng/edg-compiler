@@ -649,9 +649,9 @@ static void preload_builtin_symbol(
 If the builtin function named by builtin_name is enabled in the current mode,
 create a symbol header for it and mark that it is associated with a builtin
 function.  If the builtin has a "secondary" declaration (i.e., one without the
-__builtin prefix), that will be entered as well.  condition is a string that
-describes the conditions in which the builtin is applicable, if NULL,
-cond_index is used in its place and specifies an index into
+__builtin prefix), that will be entered as well, but only in C mode.  condition
+is a string that describes the conditions in which the builtin is applicable,
+if NULL, cond_index is used in its place and specifies an index into
 builtin_condition_table.  idx is the array index (into either builtin_table or
 builtin_user_table depending on the value of is_user_builtin_function) for this
 builtin function.  kind is the a_builtin_function_kind or
@@ -681,8 +681,10 @@ the builtin function's type.
       }  /* if */
       enter_builtin_function(name, builtin_type, kind, &loc);
     }  /* if */
-    /* Also see if there's a non-prefixed version that should be added. */
-    if (strncmp(name, "__builtin_", 10) == 0) {
+    /* Also see if there's a non-prefixed version that should be added.  These
+       seem to only be used by GCC in C mode to give diagnostics when
+       redeclaring a library function. */
+    if (C_mode() && strncmp(name, "__builtin_", 10) == 0) {
       name = &builtin_name[10];
       if ((is_user_builtin_function || name[0] == '_') &&
           builtin_enabled(cond_index, condition, /*is_secondary=*/TRUE)) {

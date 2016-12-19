@@ -1,5 +1,21 @@
 Version 4.13
 
+12/19/16 [EDGcpfe/17830,EDGcpfe/17843]
+GCC compatibility: Secondary declarations in C++ mode
+
+For many builtin functions, GCC declares two symbols, one with the "__builtin_"
+prefix and one (the "secondary") without.  Previously (since the changes for
+EDGcpfe/16431) the front end had predeclared both sets of declarations, but
+a change has been made to predeclare only the primary declaration in C++ modes.
+The secondary declaration is still predeclared in C modes (where a
+redeclaration will result in a warning).  The following example had given a
+spurious error with --g++:
+
+  struct _IO_FILE;
+  typedef struct _IO_FILE FILE;
+  extern int __fprintf_chk(FILE *, int, const char *, ...);
+
+
 12/19/16 [EDGcpfe/17866]
 Internal error due to wrong value category
 

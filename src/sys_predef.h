@@ -66,7 +66,12 @@ typedef struct a_builtin_user_descr {
                            A prefix of 'S' indicates that the name in the
                            entry (which must start with "__builtin_") also
                            has a secondary declaration with the same type
-                           but without the "__builtin_" prefix.
+                           but without the "__builtin_" prefix.  It appears
+                           that secondary declarations are only used by GCC
+                           to give warnings on a redeclaration of the function
+                           (typically a library function) in C mode, so these
+                           secondary declarations are not entered into the
+                           symbol table in C++ mode.
 
                            The 'L' emulation mode indicates that the function
                            applies to clang mode; 'g' indicates GNU mode, and
