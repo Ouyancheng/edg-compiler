@@ -6874,7 +6874,8 @@ definition of the CC flags in il.h for more information.
          differently to match between declarations.  See
          check_gpp_template_redecl_match for more information. */
       same_types = check_gpp_template_redecl_match(cp1_type, eff_cp2_type);
-    } else if ((options & CC_TEMPLATE_TEMPLATE_PARAM) != 0) {
+    }  /* if */
+    if (!same_types && (options & CC_TEMPLATE_TEMPLATE_PARAM) != 0) {
       /* When matching a template template parameter constant, consider this
          a match if the second type is from a template template parameter. */
       same_types = !is_template_param_type(eff_cp1_type) &&
