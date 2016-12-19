@@ -2128,7 +2128,9 @@ extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                       a_type_ptr    class_type,
                                       a_pragma_ptr  prev_assoc_pragma);
 
-extern a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op);
+extern a_boolean operator_takes_lvalue_op1(an_expr_operator_kind op);
+
+extern a_boolean operator_takes_lvalue_op2(an_expr_operator_kind op);
 
 EXTERN an_object_lifetime_ptr
 		curr_object_lifetime;

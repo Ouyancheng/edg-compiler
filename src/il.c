@@ -22022,55 +22022,6 @@ pragma has not yet been found for the given IL entity).
   return assoc_pragma;
 }  /* find_assoc_pragma */
 
-
-a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op)
-/*
-Return TRUE if the given expression operator takes an lvalue as its first
-operand.  That includes some operators that will also accept an xvalue
-as the first operand, but for which the primary use is for lvalues.
-*/
-{
-  a_boolean takes_lvalue;
-
-  switch (op) {
-    case eok_address_of:
-    case eok_lvalue_cast:
-    case eok_ref_cast:
-    case eok_lvalue_adjust:
-    case eok_unbox_lvalue:
-    case eok_ref_dynamic_cast:
-    case eok_assign:
-    case eok_add_assign:
-    case eok_subtract_assign:
-    case eok_multiply_assign:
-    case eok_divide_assign:
-    case eok_remainder_assign:
-    case eok_shiftl_assign:
-    case eok_shiftr_assign:
-    case eok_and_assign:
-    case eok_or_assign:
-    case eok_xor_assign:
-    case eok_padd_assign:
-    case eok_psubtract_assign:
-    case eok_post_decr:
-    case eok_pre_decr:
-    case eok_post_incr:
-    case eok_pre_incr:
-    case eok_va_start:
-    case eok_va_arg:
-    case eok_va_end:
-    case eok_va_copy:
-    case eok_va_start_single_operand:
-    case eok_bassign:
-      takes_lvalue = TRUE;
-      break;
-    default:
-      takes_lvalue = FALSE;
-      break;
-  }  /* switch */
-  return takes_lvalue;
-}  /* operator_takes_lvalue_operand */
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 static void add_to_destructions_list(a_dynamic_init_ptr      dip,
@@ -26075,6 +26026,28 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */
+
+
+a_boolean operator_takes_lvalue_op1(an_expr_operator_kind op)
+/*
+Return TRUE if the given expression operator takes an lvalue as its first
+operand.  That includes some operators that will also accept an xvalue
+as the first operand, but for which the primary use is for lvalues.
+*/
+{
+  return (lvalue_rvalue_test[(int)op] & LVRV_OPND1_IS_GLVALUE) != 0;
+}  /* operator_takes_lvalue_op1 */
+
+
+a_boolean operator_takes_lvalue_op2(an_expr_operator_kind op)
+/*
+Return TRUE if the given expression operator takes an lvalue as its second
+operand.  That includes some operators that will also accept an xvalue
+as the second operand, but for which the primary use is for lvalues.
+*/
+{
+  return (lvalue_rvalue_test[(int)op] & LVRV_OPND2_IS_GLVALUE) != 0;
+}  /* operator_takes_lvalue_op2 */
 
 
 static

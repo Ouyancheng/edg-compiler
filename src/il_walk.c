@@ -3079,7 +3079,7 @@ Tips for proper use of the follow_addressing_path mode:
             /* An lvalue-returning operation other than those handled
                individually above (i.e., pre-increment, assignment).
                Follow the first operand. */
-            check_assertion(operator_takes_lvalue_operand(op));
+            check_assertion(operator_takes_lvalue_op1(op));
             traverse_expr(operand1, tblock);
           }  /* if */
           break;

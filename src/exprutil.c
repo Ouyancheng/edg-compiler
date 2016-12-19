@@ -13890,12 +13890,16 @@ a secondary operator (e.g., the "]" of a subscript operation).
       known_not_overloaded = TRUE;
     }  /* if */
     if (known_not_overloaded) {
-      a_boolean lvalue_expected = operator_takes_lvalue_operand(op);
-      prep_generic_operand_full(operand_1, lvalue_expected, !lvalue_expected);
+      a_boolean op1_lvalue_expected = operator_takes_lvalue_op1(op);
+      a_boolean op2_lvalue_expected = operator_takes_lvalue_op2(op);
+      prep_generic_operand_full(operand_1, op1_lvalue_expected,
+                                !op1_lvalue_expected);
+      prep_generic_operand_full(operand_2, op2_lvalue_expected,
+                                !op2_lvalue_expected);
     } else {
       prep_generic_operand(operand_1);
+      prep_generic_operand(operand_2);
     }  /* if */
-    prep_generic_operand(operand_2);
   }  /* if */
   if (known_not_overloaded) {
     /* In some cases, we know the result type even if we do not know
@@ -14078,7 +14082,7 @@ it happens in prototype instantiations.  op is the operator to be used.
       known_not_overloaded = TRUE;
     }  /* if */
     if (known_not_overloaded) {
-      a_boolean lvalue_expected = operator_takes_lvalue_operand(op);
+      a_boolean lvalue_expected = operator_takes_lvalue_op1(op);
       prep_generic_operand_full(operand, lvalue_expected, !lvalue_expected);
     } else {
       prep_generic_operand(operand);

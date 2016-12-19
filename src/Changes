@@ -1,5 +1,25 @@
 Version 4.13
 
+12/19/16 [EDGcpfe/17866]
+Internal error due to wrong value category
+
+In prototype instantiations the front end produces IL representing "generic
+operations" on entities with dependent types, but with an lvalue array operand
+that is dependent only due to the array length, a generic operation known to
+require rvalue operands was sometimes left with an lvalue operand.  This could
+subsequently trigger an internal error in the C++-generating back end.  For
+example:
+
+  template<unsigned N> struct S {
+    char c[N];
+    bool f(char const* ptr) const {
+      return c <= ptr;  // The node for "ptr" was previously left as an
+    }                   // lvalue; now it represents an rvalue.
+  };
+
+This is now fixed.
+
+
 12/19/16 [EDGcpfe/17853]
 Dependent exception specifications and redeclarations
 
