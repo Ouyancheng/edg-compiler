@@ -9817,6 +9817,8 @@ record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
       do_constexpr_fail(result);
+    } else {
+      result_con->expr = expr;
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
@@ -9873,6 +9875,8 @@ return FALSE, and record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
       do_constexpr_fail(result);
+    } else {
+      result_con->expr = call_expr;
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
