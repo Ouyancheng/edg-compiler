@@ -2884,6 +2884,7 @@ ec_redeclaration_of_range_iterator;;"%sq, declared as iterator of range-based \"
 ec_namespace_not_allowed;;"an attribute namespace may not be used here (because a \"using\" prefix was specified)"
 ec_attribute_namespace_unrecognized;;"attribute namespace %sq is unrecognized"
 ec_default_member_init_for_value_class;;"a default member initializer is not permitted in a value class"
+ec_cl_implicit_noexcept_requires_noexcept_support;;"\"--implicit_noexcept\" requires a mode that enables noexcept"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

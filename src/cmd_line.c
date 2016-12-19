@@ -4536,11 +4536,6 @@ before this routine is called.
     generate_move_operations = gnu_version >= 40600 &&
                                !rvalue_ctor_is_copy_ctor;
   }  /* if */
-  if (!option_kind_used[(int)optk_implicit_noexcept]) {
-    /* GCC (4.6 and later) supports noexcept in C++11 mode, but does not mark
-       destructors and deallocation functions as noexcept by default. */
-    implicit_noexcept_enabled = FALSE;
-  }  /* if */
   if (gnu_version >= 40400 &&
       !option_kind_used[(int)optk_variadic_templates]) {
     /* GCC 4.4 and later accept variadic templates even in non-C++0x mode
@@ -4578,11 +4573,11 @@ before this routine is called.
     }  /* if */
   }  /* if */
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
-  if (exceptions_enabled && noexcept_enabled &&
-      !option_kind_used[(int)optk_implicit_noexcept]) {
+  if (!option_kind_used[(int)optk_implicit_noexcept]) {
     /* GCC 4.8 and later implement the C++11 rules that make a destructor or
        operator delete implicitly "noexcept" (unless otherwise specified). */
-    implicit_noexcept_enabled = gnu_version >= 40800;
+    implicit_noexcept_enabled = exceptions_enabled && noexcept_enabled &&
+                                gnu_version >= 40800;
   }  /* if */
   if (!cpp11_mode) {
     /* Some C++11 extensions are enabled by default in some non-C++11 GNU C++
@@ -10499,6 +10494,14 @@ enable_microsoft_mode:
       }  /* if */
       bool_is_keyword = TRUE;
     }  /* if */
+  }  /* if */
+  if (!noexcept_enabled && implicit_noexcept_enabled) {
+    /* --implicit_noexcept cannot be specified in modes that don't permit
+       noexcept. */
+    if (option_kind_used[(int)optk_implicit_noexcept]) {
+      command_line_error(ec_cl_implicit_noexcept_requires_noexcept_support);
+    }  /* if */
+    implicit_noexcept_enabled = FALSE;
   }  /* if */
   if (ignore_std_namespace) {
     /* In the g++ compatibility mode in which the std namespace is an alias

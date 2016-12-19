@@ -1,5 +1,13 @@
 Version 4.13
 
+12/19/16 [EDGcpfe/17861]
+--implicit_noexcept constraints
+
+A command-line error is now issued if --implicit_noexcept is specified in a
+mode that does not enable the noexcept specifier (previously the combination
+was permitted, but it was likely to produce cryptic diagnostics).
+
+
 12/19/16 [EDGcpfe/17830,EDGcpfe/17843]
 GCC compatibility: Secondary declarations in C++ mode
 
