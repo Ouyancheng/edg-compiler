@@ -3971,6 +3971,9 @@ be completed here.
       ps_options |= PS_NONREAL_INSTANTIATION;
       is_nonreal_instantiation = TRUE;
     }  /* if */
+    /* If the template was specialized, indicate that certain class scopes
+       should be visible to the instantiation. */
+    if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     /* Indicate that this template has been used for the purpose of
@@ -4881,6 +4884,8 @@ A pointer to the head of the list is returned in tcsp.
      same as the namespace in which the template was defined. */
   cssp->referencing_namespace = 
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+  /* If the template was specialized, indicate that certain class scopes
+     should be visible to the instantiation. */
   if (decl_state->is_specialization) ps_options |= PS_IS_SPECIALIZATION;
   scope_pushed = push_template_instantiation_scope(
                                     tssp->cache.decl_info,
@@ -5778,6 +5783,7 @@ cases).
   a_symbol_ptr                      template_sym, proto_sym;
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
+  a_push_scope_options_set	    ps_options = PS_NO_OPTIONS;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed =
@@ -5920,6 +5926,7 @@ cases).
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   tcp = cache_for_template(tssp);
+  if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
   /* For member functions that are not member templates the argument
      list comes from the enclosing class that is reactivated by
      push_template_instantiation_scope and the value from the routine
@@ -5929,7 +5936,7 @@ cases).
 				          rout_sym, template_sym,
 				          rout_ptr->template_arg_list,
                                           /*push_lex_state=*/TRUE,
-					  PS_NO_OPTIONS);
+					  ps_options);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if DEBUG
@@ -6133,6 +6140,7 @@ expression context) rather than a declaration.
   a_boolean				is_definition = FALSE;
   a_boolean				incomplete_type_error_reported = FALSE;
   a_template_arg_ptr			templ_arg_list;
+  a_push_scope_options_set		ps_options = PS_IGNORE_CLASS_CONTEXT;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -6209,6 +6217,9 @@ expression context) rather than a declaration.
   if (templ_arg_list == NULL) {
     templ_arg_list = var_ptr->template_info->template_arg_list;
   }  /* if */
+  /* If the template was specialized, indicate that certain class scopes
+     should be visible to the instantiation. */
+  if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
   (void)push_template_instantiation_scope(
                                    tssp->cache.decl_info,
                                    (a_type_ptr)NULL,
@@ -6217,7 +6228,7 @@ expression context) rather than a declaration.
                                    tip->template_sym,
                                    templ_arg_list,
                                    /*push_lex_state=*/TRUE,
-                                   PS_IGNORE_CLASS_CONTEXT);
+                                   ps_options);
    /* Record the token sequence number of the declarator in the scope stack
       entry.  This is used to allow the template argument list of
       a partial specialization to be ignored. */
