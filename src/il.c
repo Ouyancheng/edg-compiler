@@ -6798,7 +6798,7 @@ has to be identical, not just equivalent.
     if (cp1->variant.template_param.kind == 
                       (a_template_param_constant_kind)tpck_unknown_function &&
         !cp1->variant.template_param.is_qualified_name) {
-      /* An unknown function referred without a qualified name: Any parent
+      /* An unknown function referred to without a qualified name: Any parent
          information is dependent on context and should not be compared. */
       eq = TRUE;
     } else {
