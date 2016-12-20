@@ -1,5 +1,13 @@
 Version 4.13
 
+12/20/16 [EDGcpfe/17873]
+Performance improvement when mangling many base classes in IA-64 ABI
+
+A change has been made to mangle and re-use the type of a base class when
+creating a dummy name for a base class rather than regenerating a mangled
+name each time it was required.  Only affects IA-64 ABI configurations.
+
+
 12/20/16 [EDGcpfe/17872]
 Lookup performance improvement in g++ mode
 
