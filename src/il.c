@@ -25809,8 +25809,6 @@ attributes are later processed for the non-string cases).
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
-#if CHECKING
-#if !STANDALONE_UTILITY_PROGRAM
 /*
 The following table defines the value category expected for the operands of
 each operation node.  lvalues and xvalues are always treated the same for
@@ -26049,6 +26047,8 @@ as the second operand, but for which the primary use is for lvalues.
   return (lvalue_rvalue_test[(int)op] & LVRV_OPND2_IS_GLVALUE) != 0;
 }  /* operator_takes_lvalue_op2 */
 
+#if CHECKING
+#if !STANDALONE_UTILITY_PROGRAM
 
 static
 a_boolean node_operands_have_correct_value_category(an_expr_node_ptr node)
