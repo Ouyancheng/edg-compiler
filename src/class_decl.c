@@ -3656,6 +3656,11 @@ constant-expression.
     a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+    /* Reactivate the class scope and parse the initializer. */
+    push_class_and_template_reactivation_scope(
+          class_type, /*is_template_based=*/gpp_mode,
+          /*extend_namespace=*/TRUE);
     push_lexical_state_stack();
     rescan_reusable_cache(token_cache);
     /* Re-create a declaration parsing state before parsing the
@@ -3664,10 +3669,6 @@ constant-expression.
     dps.sym = var_sym;
     var = dps.sym->variant.static_data_member.variable;
     dps.type = dps.declared_type = var->type;
-    /* Reactivate the class scope and parse the initializer. */
-    push_class_and_template_reactivation_scope(
-          class_type, /*is_template_based=*/gpp_mode,
-          /*extend_namespace=*/TRUE);
     if (gpp_mode && var->template_info != NULL &&
         var->template_info->assoc_template->definition_template != NULL) {
       /* In GNU C++ mode, if an out-of-class definition has been seen prior to
@@ -3717,9 +3718,9 @@ constant-expression.
         pos_error(ec_exp_semicolon, &pos_curr_token);
       }  /* if */
     }  /* if */
-    pop_class_reactivation_scope();
     flush_past_token_cache_terminator();
     pop_lexical_state_stack();
+    pop_class_reactivation_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
       /* The initializer created source sequence entries.  Move them to
