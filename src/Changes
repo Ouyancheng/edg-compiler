@@ -1,5 +1,15 @@
 Version 4.13
 
+12/20/16 [EDGcpfe/17872]
+Lookup performance improvement in g++ mode
+
+The front end does additional lookup processing in g++ mode to emulate
+a nonstandard lookup that is done by g++.  This emulation could be very
+expensive in programs with a large number of instantiated classes that
+each have a large number of base classes.  The emulation has been improved
+so that the extra processing is required in a much smaller number of cases.
+
+
 12/20/16 [EDGcpfe/17856]
 Positions in template instantiation tracebacks
 

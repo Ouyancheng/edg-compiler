@@ -3873,6 +3873,9 @@ C and C++.
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
     if (gpp_dependent_name_lookup &&
+        (gnu_version < 30400 ||
+         ((sym == NULL || sym->synthesized_namespace_projection) ||
+          (options & IDL_IS_EXPR_CONTEXT) != 0)) &&
         lookup_state.any_ignored_dependent_bases) {
       /* In g++ mode, names from dependent base classes are sometimes
          ignored and sometimes not.  A second lookup is done to determine if
