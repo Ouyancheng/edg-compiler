@@ -18919,6 +18919,14 @@ the temporary.
        routine. */
     check_assertion(conversion->class_object_adjustment_required &&
                     dest_type != NULL);
+    if (force_copy_to_temp && !conversion->result_is_a_glvalue &&
+        is_a_glvalue(operand)) {
+      /* Creating the temporary below is going to create the actual rvalue.
+         Do not "rvalue" the operand in do_class_object_adjustment, since that
+         would change the behavior of temp_init_from_operand (e.g., to use a
+         move constructor instead of a copy constructor). */
+      conversion->result_is_a_glvalue = TRUE;
+    }  /* if */
     do_class_object_adjustment(operand, dest_type, conversion);
     if (force_copy_to_temp) {
       temp_init_from_operand(operand, /*result_is_lvalue=*/FALSE);

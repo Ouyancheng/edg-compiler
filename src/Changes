@@ -1,5 +1,31 @@
 Version 4.13
 
+12/20/16 [EDGcpfe/17854]
+Invalid constructor for lvalue-to-rvalue conversion in conditional expression
+
+Consider the following code:
+
+  struct B {
+    B();
+    B(B const&);
+    B(B&&) = delete;
+  };
+  struct D: B {
+    D(B const&);
+  };
+  D d{B()};
+  D x = true ? B() : d;
+    // Previously an error (move constructor is deleted).  Now okay.
+
+In the conditional expression, the lvalue operand "d" must be converted to its
+base and then to an rvalue (to match the other potential result of the
+conditional expression).  Previously, the front end attempted to perform the
+conversion to an rvalue using B's move constructor instead of its copy
+constructor.  In this example, that produces an error because the move
+constructor is deleted (in other cases, this could result in a silent call to
+the wrong constructor).  That is now fixed.
+
+
 12/20/16 [EDGcpfe/17873]
 Performance improvement when mangling many base classes in IA-64 ABI
 
