@@ -3872,6 +3872,11 @@ C and C++.
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
+    /* In some cases, a second lookup is done in g++ mode if any dependent
+       base classes were ignored.  This is done if no symbol was found,
+       if a symbol from a using-directive lookup was found, or if we are
+       in an expression context.   It is also always done for g++ versions
+       before 3.4. */
     if (gpp_dependent_name_lookup &&
         (gnu_version < 30400 ||
          ((sym == NULL || sym->synthesized_namespace_projection) ||
@@ -3891,52 +3896,60 @@ C and C++.
          finds one from a base class (gnu_version < 30400).  When gnu_version
          >= 40100 the symbol from the first lookup is always used if a
          symbol was found. */
-      a_symbol_ptr	new_sym;
-      a_symbol_ptr	fund_new_sym;
       a_symbol_ptr	fund_sym;
-      lookup_state.force_lookup_in_dependent_bases = TRUE;
-      new_sym = scope_stack_lookup(locator, &lookup_state,
-                                   depth_of_initial_lookup_scope,
-                                   NO_SCOPE_DEPTH);
-      lookup_state.force_lookup_in_dependent_bases = FALSE;
       fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
-      fund_new_sym = new_sym == NULL ? NULL : fundamental_symbol_of(new_sym);
-      if (fund_new_sym != NULL && fund_new_sym->is_class_member) {
-      	a_type_ptr	parent_class = fund_new_sym->parent.class_type;
-	if (parent_class->variant.class_struct_union.is_nonreal_class) {
-          /* If the second lookup found a member of a nonreal class, ignore
-             it.  The special g++ processing should only be done when the
-             lookup finds a member of a real base class. */
-	  new_sym = NULL;
-	  fund_new_sym = NULL;
-	}  /* if */
-      }  /* if */
-      if (sym != NULL && new_sym != NULL &&
-          sym->synthesized_namespace_projection) {
-        /* If the original symbol is a synthesized namespace projection
-           symbol (i.e., from a using-directive lookup) prefer the new
-           symbol. */
-        sym = new_sym;
-      } else if (sym == NULL ||
-          (gnu_version < 40100 && is_function_symbol(fund_sym))) {
-        sym = new_sym;
-      } else if (gnu_version < 40600 && fund_sym != NULL &&
-                 fund_sym == fund_new_sym) {
-        /* We found two different projection symbols that refer to the same
-           fundamental symbol.  This can happen if a given class is a
-           nondependent base of an enclosing class and a dependent base of
-           a nested class. Use the new symbol. */
-        sym = new_sym;
-      } else if (sym != NULL && gnu_version >= 40100) {
-        /* Use the existing sym. */
-      } else if (new_sym != NULL) {
-        if (is_function_symbol(fund_new_sym) &&
-            fund_sym != NULL && !is_template_symbol(fund_sym)) {
+      /* For versions 3.4 and newer the second lookup should not be done if
+         the first lookup found a type, variable, or constant. */
+      if (gnu_version < 30400 || fund_sym == NULL ||
+          (!symbol_is(fund_sym, sk_variable) &&
+           !symbol_is(fund_sym, sk_type) &&
+           !symbol_is(fund_sym, sk_constant) &&
+           !is_class_struct_union_symbol(fund_sym))) {
+        a_symbol_ptr	new_sym;
+        a_symbol_ptr	fund_new_sym;
+        lookup_state.force_lookup_in_dependent_bases = TRUE;
+        new_sym = scope_stack_lookup(locator, &lookup_state,
+                                     depth_of_initial_lookup_scope,
+                                     NO_SCOPE_DEPTH);
+        lookup_state.force_lookup_in_dependent_bases = FALSE;
+        fund_new_sym = new_sym == NULL ? NULL : fundamental_symbol_of(new_sym);
+        if (fund_new_sym != NULL && fund_new_sym->is_class_member) {
+          a_type_ptr	parent_class = fund_new_sym->parent.class_type;
+          if (parent_class->variant.class_struct_union.is_nonreal_class) {
+            /* If the second lookup found a member of a nonreal class, ignore
+               it.  The special g++ processing should only be done when the
+               lookup finds a member of a real base class. */
+            new_sym = NULL;
+            fund_new_sym = NULL;
+          }  /* if */
+        }  /* if */
+        if (sym != NULL && new_sym != NULL &&
+            sym->synthesized_namespace_projection) {
+          /* If the original symbol is a synthesized namespace projection
+             symbol (i.e., from a using-directive lookup) prefer the new
+             symbol. */
           sym = new_sym;
-        } else if (gnu_version < 30400 &&
-                   fund_new_sym->kind == (a_symbol_kind)sk_field &&
-                   sym->kind == (a_symbol_kind)sk_field) {
+        } else if (sym == NULL ||
+                   (gnu_version < 40100 && is_function_symbol(fund_sym))) {
           sym = new_sym;
+        } else if (gnu_version < 40600 && fund_sym != NULL &&
+                   fund_sym == fund_new_sym) {
+          /* We found two different projection symbols that refer to the same
+             fundamental symbol.  This can happen if a given class is a
+             nondependent base of an enclosing class and a dependent base of
+             a nested class. Use the new symbol. */
+          sym = new_sym;
+        } else if (sym != NULL && gnu_version >= 40100) {
+          /* Use the existing sym. */
+        } else if (new_sym != NULL) {
+          if (is_function_symbol(fund_new_sym) &&
+              fund_sym != NULL && !is_template_symbol(fund_sym)) {
+            sym = new_sym;
+          } else if (gnu_version < 30400 &&
+                     fund_new_sym->kind == (a_symbol_kind)sk_field &&
+                     sym->kind == (a_symbol_kind)sk_field) {
+            sym = new_sym;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
