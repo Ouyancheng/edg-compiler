@@ -8114,12 +8114,14 @@ initialized.  These are addressed in the course of the processing.
               pos_sy_error(ec_unbounded_constexpr_ctor_init_recursion,
                            &err_pos, field_sym);
               field->initializer = make_error_constant_dynamic_init();
-            } else if (!is_literal_type(field->type)) {
-              /* If the field doesn't have a literal type, constexpr
-                 construction cannot succeed. */
+            } else if (!relaxed_constexpr_enabled &&
+                       field->has_nonconstant_initializer) {
+              /* If the field initializer is known not to be a constant, it
+                 cannot be used for constexpr construction. */
               if (!is_unspecialized_template_member_function(ctor_rout)) {
-                pos_syty_error(ec_nonliteral_field_for_constexpr_ctor,
-                             &err_pos, field_sym, field->type);
+                pos_sy_error(
+                          ec_nonconstant_field_initializer_in_mem_initializer,
+                          &err_pos, field_sym);
                 bad_call_for_constexpr_ctor_reported = TRUE;
               } else if (!ctor_rout->is_prototype_instantiation) {
                 /* The is_constexpr flag must be cleared, but not until all

@@ -2497,7 +2497,7 @@ ec_bad_prototype_argument_for_bases;;"the argument of __bases and __direct_bases
 ec_bases_not_in_template;;"%s can only be used in template contexts"
 ec_constexpr_return_not_constant;;"constexpr function return is non-constant"
 ec_nonconstexpr_call_in_mem_initializer;;"constexpr constructor calls non-constexpr %n"
-REMOVED;ec_nonconstant_field_initializer_in_mem_initializer;;"constructor cannot be constexpr because the initializer of %n is not a constant expression"
+ec_nonconstant_field_initializer_in_mem_initializer;;"constructor cannot be constexpr because the initializer of %n is not a constant expression"
 ec_nonconstant_mem_init_for_constexpr_ctor;;"non-constant initializer for constexpr constructor"
 ec_generated_default_constructor_used_in_field_initializer;;"the generated default constructor for %t cannot be used in an initializer for its own data member"
 ec_recursive_initializer_instantiation;;"instantiation of initializer of %n depends on its own value"
@@ -2885,7 +2885,6 @@ ec_namespace_not_allowed;;"an attribute namespace may not be used here (because 
 ec_attribute_namespace_unrecognized;;"attribute namespace %sq is unrecognized"
 ec_default_member_init_for_value_class;;"a default member initializer is not permitted in a value class"
 ec_cl_implicit_noexcept_requires_noexcept_support;;"\"--implicit_noexcept\" requires a mode that enables noexcept"
-ec_nonliteral_field_for_constexpr_ctor;;"constexpr constructor cannot initialize %n because it has nonliteral type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
