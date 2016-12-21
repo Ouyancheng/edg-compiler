@@ -6320,12 +6320,17 @@ a constexpr expansion, and the block provides context information.
             { a_constant_address_option_set local_options;
               /* Field selection, p->y, or pointer-to-member field
                  selection, p->*y.  If the left operand is a constant
-                 address, we can develop an address for the field. */
+                 address, we can develop an address for the field.  Note
+                 that an lvalue member access expression in which the
+                 object expression is "this" or a parameter, represented by
+                 an enk_param_ref node, cannot be a constant expression. */
               local_options = options | CAO_IS_OBJECT_POINTER;
               if (expr->is_lvalue) {
                 local_options |= CAO_FOR_LVALUE_MEMBER_ACCESS;
               }  /* if */
               if (is_pointer_type(op1->type) &&
+                  !(expr->is_lvalue &&
+                    op1->kind == (an_expr_node_kind)enk_param_ref) &&
                   constant_prvalue_pointer_full(op1, ceblock, conaddr1,
                                                 address_escapes, local_options,
                                                 template_constant)) {
@@ -11071,6 +11076,15 @@ pm_field_selection:
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
                      &expr->position, ceblock, &not_a_constant);
     folded = !not_a_constant;
+  } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+    /* An enk_param_ref can be used in the initializer expression of a
+       class member to refer to the value of an already-initialized
+       member. In that case, the enk_param_ref is encoded as a "this"
+       pointer (param_num == 0) and designates the aggregate constant
+       currently being initialized. The result is an address constant for
+       that aggregate constant. */
+    folded = (constexpr_enabled &&
+              is_obj_expr_of_stacked_aggr_con(expr, result_con));
   }  /* if */
   return folding_result(folded);
 }  /* fold_expr */
@@ -12009,9 +12023,11 @@ fold_constexpr_ctor should usually be called instead.
       if (not_foldable) {
         /* Some problem that prevents folding. */
       } else {
-        a_constant_ptr aggr_con = local_constant();
-        a_constant_ptr con = local_constant();
+        a_constant_ptr        aggr_con = local_constant();
+        a_constant_ptr        con = local_constant();
+        an_aggr_init_con_elem aggr_init_con;
         clear_constant(aggr_con, (a_constant_repr_kind)ck_aggregate);
+        push_aggr_init_constant(aggr_con, &aggr_init_con);
         aggr_con->type = class_type;
         /* Update the mapping for "this" in ceblock to be a pointer to the
            aggregate constant being created, so that references to
@@ -12083,6 +12099,7 @@ fold_constexpr_ctor should usually be called instead.
 fail:;
         release_local_constant(&con);
         release_local_constant(&aggr_con);
+        pop_aggr_init_constant(&aggr_init_con);
       }  /* if */
       free_constexpr_remap_list(ceblock->remap_list);
       ceblock->remap_list = saved_remap_list;

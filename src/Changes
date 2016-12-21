@@ -1,5 +1,20 @@
 Version 4.13
 
+12/21/16 [EDGcpfe/17842]
+constexpr member initializers referring to previously-initialized members
+
+The front end issued a spurious diagnostic when a constexpr constructor
+initializes one member using the value of a previously-initialized member.
+This is now fixed.  For example, with --c++11:
+
+  struct S {
+    int a = 2;
+    int b = a + 1;
+    constexpr S() {}
+  };
+  constexpr S d; // Previously a spurious error
+
+
 12/20/16 [EDGcpfe/17854]
 Invalid constructor for lvalue-to-rvalue conversion in conditional expression
 
