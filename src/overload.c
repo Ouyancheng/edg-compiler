@@ -23482,7 +23482,8 @@ will be an lvalue instead of the usual prvalue.
       constant = alloc_error_constant();
     }  /* if */
     force_temp = FALSE;
-  } else if (generate_il && in_potential_constant_constexpr_context()) {
+  } else if (generate_il && !relaxed_constexpr_enabled &&
+             in_potential_constant_constexpr_context()) {
     if (dip == NULL && constant == NULL) {
       force_operand_to_constant_if_possible(&operand);
     }  /* if */

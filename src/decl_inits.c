@@ -8114,8 +8114,7 @@ initialized.  These are addressed in the course of the processing.
               pos_sy_error(ec_unbounded_constexpr_ctor_init_recursion,
                            &err_pos, field_sym);
               field->initializer = make_error_constant_dynamic_init();
-            } else if (!relaxed_constexpr_enabled &&
-                       field->has_nonconstant_initializer) {
+            } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
                  cannot be used for constexpr construction. */
               if (!is_unspecialized_template_member_function(ctor_rout)) {

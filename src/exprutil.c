@@ -5446,7 +5446,8 @@ constant expressions, fold to a constant result.
 
   if (constexpr_enabled &&
       (curr_expr_kind_is_const() ||
-       in_potential_constant_constexpr_context()) &&
+       (!relaxed_constexpr_enabled &&
+        in_potential_constant_constexpr_context())) &&
       constexpr_call_folding_should_be_done() &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression,
@@ -5659,7 +5660,7 @@ folding of C++14 constexpr functions is done using the interpreter.)
 {
   a_boolean potential_constant_context = FALSE;
 
-  if (constexpr_enabled && !relaxed_constexpr_enabled) {
+  if (constexpr_enabled) {
     if (innermost_function_scope != NULL &&
         current_routine_entry()->is_constexpr &&
         !curr_expr_kind_is_const()) {
@@ -5703,7 +5704,7 @@ folding failed.  Return TRUE if an error was issued.
     err_code = ec_expr_not_constant;
   }  /* if */
   if (operand == NULL || !is_error_operand(operand)) {
-    if (in_potential_constant_constexpr_context() &&
+    if (expr_stack != NULL && in_potential_constant_constexpr_context() &&
         (routine == NULL || routine->is_constexpr ||
          ((clang_mode || gpp_mode || microsoft_mode) &&
           routine->is_template_function && !routine->is_specialized)
@@ -14641,7 +14642,8 @@ on output it will be an lvalue.
           node_constant(node)->variant.address.from_reference_variable =
                                                        from_reference_variable;
         }  /* if */
-        if (!in_potential_constant_constexpr_context() &&
+        if (!relaxed_constexpr_enabled &&
+            !in_potential_constant_constexpr_context() &&
             !constant_addr &&
             !potential_gnu_ignored_object_expr(node, next_token()) &&
             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
