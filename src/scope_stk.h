@@ -1005,7 +1005,7 @@ typedef struct a_scope_stack_entry {
 			   name). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	treat_as_specialization:1;
-			/* This can be true for class reactivation scopes.
+			/* This can be TRUE for class reactivation scopes.
 			   When it is TRUE the class should be treated as
 			   having been specialized for name lookup purposes
 			   (i.e., dependent base classes should be included
