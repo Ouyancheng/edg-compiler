@@ -11209,8 +11209,7 @@ the first two need be checked.)
   a_symbol_ptr                      sym1, sym2;
   a_type_ptr                        tp1, tp2;
 
-  check_assertion_str2(overload_sym->kind ==
-                               (a_symbol_kind)sk_overloaded_function,
+  check_assertion_str2(symbol_is(overload_sym, sk_overloaded_function),
                       "set_mixed_static_nonstatic_flag:",
                       "sk_overloaded_function expected");
   sym1 = overload_sym->variant.overloaded_function.symbols;
@@ -11220,10 +11219,16 @@ the first two need be checked.)
   if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
     if (sym2 != NULL) {
       sym1 = fundamental_symbol_of(sym1);
-      if (sym1->kind != (a_symbol_kind)sk_function_template) {
+      if (symbol_is(sym1, sk_function_template)) {
+        tp1 = sym1->variant.template_info->variant.function.routine->type;
+      } else if (is_simple_function_symbol(sym1)) {
         tp1 = routine_symbol_type(sym1);
       } else {
-        tp1 = sym1->variant.template_info->variant.function.routine->type;
+        /* In a prototype instantiation, the overload set can contain
+           symbols for nonreal base class members brought in by
+           using-declarations. */
+        check_assertion(is_prototype_instantiation_context());
+        tp1 = NULL;
       }  /* if */
       sym2 = fundamental_symbol_of(sym2);
       if (sym2->kind == (a_symbol_kind)sk_function_template) {
@@ -11238,7 +11243,7 @@ the first two need be checked.)
         check_assertion(is_prototype_instantiation_context());
         tp2 = NULL;
       }  /* if */
-      if (tp2 != NULL &&
+      if (tp1 != NULL && tp2 != NULL &&
           routine_type_is_nonstatic_member_function(tp1) !=
                               routine_type_is_nonstatic_member_function(tp2)) {
         overload_sym->
