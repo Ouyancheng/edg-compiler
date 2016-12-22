@@ -1,5 +1,15 @@
 Version 4.13
 
+12/22/16 [EDGcpfe/17878]
+GCC compatibility: Add builtins for GCC 6.3.0
+
+The following functions have been added (when gnu_version >= 60300):
+__builtin_ia32_lzcnt_u16, __builtin_ia32_lzcnt_u32, __builtin_ia32_lzcnt_u64,
+__builtin_ia32_tzcnt_u16, __builtin_ia32_tzcnt_u32, __builtin_ia32_tzcnt_u64.
+__builtin_ia32_pcommit has been deprecated (and is no longer recognized when
+gnu_version >= 60300).
+
+
 12/21/16 [EDGcpfe/17875]
 Microsoft-mode abort on inherited nonreal member-using declaration
 
