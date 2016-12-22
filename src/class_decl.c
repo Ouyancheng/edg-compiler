@@ -11231,10 +11231,9 @@ the first two need be checked.)
         tp1 = NULL;
       }  /* if */
       sym2 = fundamental_symbol_of(sym2);
-      if (sym2->kind == (a_symbol_kind)sk_function_template) {
+      if (symbol_is(sym2, sk_function_template)) {
         tp2 = sym2->variant.template_info->variant.function.routine->type;
-      } else if (sym2->kind == (a_symbol_kind)sk_routine ||
-                 sym2->kind == (a_symbol_kind)sk_member_function) {
+      } else if (is_simple_function_symbol(sym2)) {
         tp2 = routine_symbol_type(sym2);
       } else {
         /* In a prototype instantiation, the overload set can contain
