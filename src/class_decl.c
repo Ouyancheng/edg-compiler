@@ -11796,17 +11796,18 @@ as the error position.
   a_boolean      is_list = FALSE;
   a_boolean      err;
   
-  if (using_sym->kind == (a_symbol_kind)sk_function_template) {
-    /* No need to do a check on function templates. */
+  if (symbol_is(using_sym, sk_function_template) ||
+      symbol_is(using_sym, sk_constant)) {
+    /* No need to do a check on function templates or nonreal members. */
   } else {
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    if (symbol_is(sym, sk_overloaded_function)) {
       /* We need to search an overload set. */
       is_list = TRUE;
       sym = sym->variant.overloaded_function.symbols;
     }  /* if */
     check_assertion(using_sym->is_class_member ?
-                      using_sym->kind == (a_symbol_kind)sk_member_function :
-                      using_sym->kind == (a_symbol_kind)sk_routine);
+                      symbol_is(using_sym, sk_member_function) :
+                      symbol_is(using_sym, sk_routine));
     /* Go through all function declarations in the current scope with the
        same name.  Ignore projection symbols. */
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
@@ -11814,8 +11815,7 @@ as the error position.
         /* Check for a conflict between the type of the previously declared
            function (sym) and the type for which a projection symbol is about
            to be created (using_sym). */
-        if ((microsoft_mode || gpp_mode) &&
-            using_sym->kind == (a_symbol_kind)sk_routine &&
+        if ((microsoft_mode || gpp_mode) && symbol_is(using_sym, sk_routine) &&
             compatible_functions_with_c_linkage(using_sym, sym)) {
           /* In Microsoft and GNU modes, extern "C" functions from different
              namespaces create different entities even if they have the same
