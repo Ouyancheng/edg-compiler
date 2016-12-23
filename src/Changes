@@ -1,5 +1,19 @@
 Version 4.13
 
+12/23/16 [EDGcpfe/17880]
+Invalid source position on namespace redeclaration error
+
+An uninitialized value had been used as the source position for a diagnostic
+on a redeclaration of an inline namespace (possibly resulting in an internal
+error "write_orig_source_line: could not find line").  Now fixed.  For
+example (with --c++17):
+
+  namespace A {
+    inline namespace B { }
+  }
+  namespace A::B { }
+
+
 12/23/16 [EDGcpfe/17881,EDGcpfe/17879]
 Ill-formed nested namespace declaration
 

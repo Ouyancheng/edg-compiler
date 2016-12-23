@@ -14043,7 +14043,7 @@ NULL otherwise).
 */
 {
   a_source_position           namespace_pos;
-  a_source_position           start_pos;
+  a_source_position           start_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position           identifier_end_pos, def_start_pos;
   a_decl_position_supplement_ptr
@@ -14076,8 +14076,6 @@ NULL otherwise).
     is_unnamed_namespace = FALSE;
     namespace_pos = *nested_namespace_pos;
   } else {
-    /* Save the source position of the start of the declaration. */
-    start_pos = pos_curr_token;
     if (curr_token == tok_inline) {
       /* This is an inline namespace declaration. */
       is_inline = TRUE;
