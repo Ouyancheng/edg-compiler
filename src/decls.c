@@ -14190,6 +14190,7 @@ NULL otherwise).
     if (in_nested_namespace_decl) {
       /* Something like "namespace A::B = ...", which is ill-formed.  An
          error will be given later. */
+      expect_error();
     } else {
       /* This must be a namespace alias definition. */
       is_namespace_alias = TRUE;
