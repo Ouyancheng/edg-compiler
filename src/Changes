@@ -11,7 +11,7 @@ gnu_version >= 60300).
 
 
 12/21/16 [EDGcpfe/17875]
-Microsoft-mode abort on inherited nonreal member-using declaration
+Microsoft-mode abort on inherited nonreal member using-declaration
 
 In some cases, a member using-declaration involving a nonreal template type
 argument produced an internal error in Microsoft mode (in function
