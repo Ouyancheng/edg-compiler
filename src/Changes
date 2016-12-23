@@ -1,6 +1,6 @@
 Version 4.13
 
-12/23/16 [EDGcpfe/17881]
+12/23/16 [EDGcpfe/17881,EDGcpfe/17879]
 Ill-formed nested namespace declaration
 
 An assertion failure ("pop_scope: curr_construct_pragmas != NULL") had been
