@@ -45,6 +45,7 @@ static a_constexpr_remap_ptr in_process_remap_list;
 
 static a_boolean fold_constant_field_selection(a_constant   *object_con,
                                                a_boolean    object_is_pointer,
+                                               a_boolean    object_is_this,
                                                a_field_ptr  field,
                                                a_constant   *result_con);
 
@@ -10701,6 +10702,8 @@ field_selection:
           a_boolean points_to =
                             (op == (an_expr_operator_kind)eok_points_to_field);
           if (fold_constant_field_selection(op1_constant, points_to,
+                                            op1->kind ==
+                                              (an_expr_node_kind)enk_param_ref,
                                             node_field(op2), result_con)) {
             folded = TRUE;
           }  /* if */
@@ -10717,6 +10720,7 @@ pm_field_selection:
                          (op == (an_expr_operator_kind)eok_pm_points_to_field);
             if (fold_constant_field_selection(
                               op1_constant, points_to,
+                              /*object_is_this=*/FALSE,
                               pm_constant->variant.ptr_to_member.variant.field,
                               result_con)) {
               folded = TRUE;
@@ -11921,7 +11925,9 @@ evaluation.
               /* Try to extract a constant for the relevant member. */
               source_member_con = local_constant();
               if (fold_constant_field_selection(source_obj,
-                                                /*pointer_case=*/FALSE, field,
+                                                /*pointer_case=*/FALSE,
+                                                /*object_is_this=*/FALSE,
+                                                field,
                                                 source_member_con)) {
                 /* Convert the initializer to a constant initialization. */
                 implicit_source_case = TRUE;
@@ -12178,14 +12184,16 @@ not succeed.
 
 static a_boolean fold_constant_field_selection(a_constant   *object_con,
                                                a_boolean    object_is_pointer,
+                                               a_boolean    object_is_this,
                                                a_field_ptr  field,
                                                a_constant   *result_con)
 /*
-Fold a constant field selection to a constant result.  object_con is
-the object (or a pointer to the object if object_is_pointer is TRUE),
-and field is the field to be selected.  If the result is a constant,
-set *result_con to the value of the extracted field and return TRUE;
-otherwise, return FALSE.
+Fold a constant field selection to a constant result.  object_con is the
+object (or a pointer to the object if object_is_pointer is TRUE), and field
+is the field to be selected.  If object_is_this is TRUE, object_con
+represents an enk_param_ref node referring to an object that is currently
+being initialized.  If the result is a constant, set *result_con to the
+value of the extracted field and return TRUE; otherwise, return FALSE.
 */
 {
   a_boolean      folded = FALSE;
@@ -12338,10 +12346,6 @@ otherwise, return FALSE.
     if (union_member_mismatch) {
       /* The access cannot be folded. */
     } else if (member_con == NULL) {
-      /* We don't have an explicit constant, so the field was
-         value-initialized, either explicitly or because of a short
-         initializer.  Make a zero constant of the requisite type and use
-         that. */
 #if CHECKING
       if (!eff_obj_con->partial_aggr_value &&
           !eff_obj_con->is_partially_initialized &&
@@ -12351,7 +12355,19 @@ otherwise, return FALSE.
         expect_error();
       }  /* if */
 #endif /* CHECKING */
-      folded = make_value_initialized_constant(field->type, result_con);
+      if (!eff_obj_con->partial_aggr_value &&
+          !eff_obj_con->is_partially_initialized &&
+          object_is_this && !empty_anonymous_union_initializer) {
+        /* This is a reference to a yet-uninitialized member of an object
+           currently being initialized, so it is not a constant expression
+           and cannot be folded. */
+      } else {
+        /* We don't have an explicit constant, so the field was
+           value-initialized, either explicitly or because of a short
+           initializer.  Make a zero constant of the requisite type and use
+           that. */
+        folded = make_value_initialized_constant(field->type, result_con);
+      }  /* if */
       implicit_constant = TRUE;
     } else {
       copy_constant(member_con, result_con);
@@ -12498,6 +12514,8 @@ errors.
          whole selection to a constant result. */
       if (obj_expr_con != NULL &&
           fold_constant_field_selection(obj_expr_con, pointer_case,
+                                        obj_expr->kind ==
+                                              (an_expr_node_kind)enk_param_ref,
                                         node_field(field_expr), result_con)) {
         folded = TRUE;
       }  /* if */
