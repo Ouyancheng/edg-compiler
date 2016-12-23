@@ -14187,11 +14187,16 @@ NULL otherwise).
     /* A namespace or namespace-extension definition, or the final identifier
        in a nested namespace declaration. */
   } else if (curr_token == tok_assign && !is_unnamed_namespace) {
-    /* This must be a namespace alias definition. */
-    is_namespace_alias = TRUE;
-    if (is_inline) {
-      /* The inline specifier cannot be used on a namespace alias. */
-      pos_error(ec_inline_on_alias, &start_pos);
+    if (in_nested_namespace_decl) {
+      /* Something like "namespace A::B = ...", which is ill-formed.  An
+         error will be given later. */
+    } else {
+      /* This must be a namespace alias definition. */
+      is_namespace_alias = TRUE;
+      if (is_inline) {
+        /* The inline specifier cannot be used on a namespace alias. */
+        pos_error(ec_inline_on_alias, &start_pos);
+      }  /* if */
     }  /* if */
   } else if (is_enclosing_namespace_specifier) {
     /* A nested namespace declaration. */

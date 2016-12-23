@@ -1,5 +1,15 @@
 Version 4.13
 
+12/23/16 [EDGcpfe/17881]
+Ill-formed nested namespace declaration
+
+An assertion failure ("pop_scope: curr_construct_pragmas != NULL") had been
+given on certain ill-formed nested namespace declarations and now an error
+is given.  For example (with --c++17):
+
+  namespace A::B = A;
+
+
 12/22/16 [EDGcpfe/17878]
 GCC compatibility: Add builtins for GCC 6.3.0
 
