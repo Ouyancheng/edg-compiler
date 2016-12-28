@@ -6929,9 +6929,9 @@ have_result:
       release_local_constant(&local_con);
     }  /* if */
   }  /* if */
-  /* Check to make sure the result is actually a pointer (and not, for
-     example, a ck_dynamic_init that was not folded). */
-  if (con->kind != (a_constant_repr_kind)ck_address &&
+  /* Check to make sure a constant result is actually a pointer (and not,
+     for example, a ck_dynamic_init that was not folded). */
+  if (is_constant_ptr && con->kind != (a_constant_repr_kind)ck_address &&
       con->kind != (a_constant_repr_kind)ck_integer &&
       con->kind != (a_constant_repr_kind)ck_template_param) {
     is_constant_ptr = FALSE;
