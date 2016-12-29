@@ -1,5 +1,20 @@
 Version 4.13
 
+12/28/16 [EDGcpfe/17796]
+Diagnostics for forward declarations of enums
+
+Formerly, a forward declaration of an enum was silently allowed in non-strict
+C++ mode.  This is now diagnosed in all modes except for Microsoft permissive
+mode.  It is silently accepted in Microsoft permissive mode, produces a warning
+in non-strict C++03 mode, and is a discretionary error in all other modes.
+There is not actually a difference between C++03 and C++11 with regard
+to this construct, but the diagnostic is a warning by default in C++03 mode
+to minimize the impact on older code.
+
+  enum E;
+  enum E2 *p;
+
+
 12/23/16 [EDGcpfe/17880]
 Invalid source position on namespace redeclaration error
 

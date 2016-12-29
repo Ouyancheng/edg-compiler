@@ -6396,14 +6396,18 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.parent_scope = parent_scope;
     }  /* if */
     is_redeclaration = FALSE;
-    if (strict_ansi_mode &&
+    if ((!C_mode() && (!microsoft_mode || !ms_permissive)) &&
         !(is_definition || is_scoped_enum || is_opaque_enum_decl) &&
         !is_error_locator(locator)) {
       /* Since tag_sym was not found, this is either a vacuous declaration or a
          reference to an incomplete (because not yet declared) type.  In either
          case this is non-standard for enums.  It is allowed as an extension by
          analogy with classes. */
-      pos_diagnostic(strict_ansi_error_severity, ec_nonstd_forward_decl_enum,
+      an_error_severity severity = es_discretionary_error;
+      /* This isn't a C++11 language change, but preserve the old behavior
+         of issuing a warning for older dialects. */
+      if (!cpp11_mode && !strict_ansi_mode) severity = es_warning;
+      pos_diagnostic(severity, ec_nonstd_forward_decl_enum,
                      &locator.source_position);
     }  /* if */
     /* set_type_size is called later, once the final type is known. */
