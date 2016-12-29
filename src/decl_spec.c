@@ -6396,7 +6396,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.parent_scope = parent_scope;
     }  /* if */
     is_redeclaration = FALSE;
-    if ((!C_mode() && (!microsoft_mode || !ms_permissive)) &&
+    if (((!C_mode() || strict_ansi_mode) &&
+         (!microsoft_mode || !ms_permissive)) &&
         !(is_definition || is_scoped_enum || is_opaque_enum_decl) &&
         !is_error_locator(locator)) {
       /* Since tag_sym was not found, this is either a vacuous declaration or a
