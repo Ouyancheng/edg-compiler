@@ -6981,10 +6981,11 @@ constructor).
       }  /* if */
     }  /* if */
   }  /* if */
-  if (name_match || ms_extensions) {
+  if (name_match || (ms_extensions && !(microsoft_mode && !ms_permissive))) {
     /* Change "A::A" into "A" if we are processing inside the definition of
        class "A".  This is necessary for curr_token_type_symbol to handle
-       this case correctly. */
+       this case correctly.  This is also necessary to allow a typedef
+       to name a constructor in permissive Microsoft mode. */
     (void)simplify_curr_class_qualified_name();
     if ((!locator_for_curr_id.is_qualified_name || ms_extensions) &&
         !locator_for_curr_id.is_conversion_name &&
