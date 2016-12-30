@@ -6890,8 +6890,7 @@ definition of the CC flags in il.h for more information.
     if (!same_types && (options & CC_TEMPLATE_TEMPLATE_PARAM) != 0) {
       /* When matching a template template parameter constant, consider this
          a match if the second type is from a template template parameter. */
-      same_types = !is_template_param_type(eff_cp1_type) &&
-                   is_template_param_type(eff_cp2_type) &&
+      same_types = is_template_param_type(eff_cp2_type) &&
                    eff_cp2_type->kind == (a_type_kind)tk_template_param &&
                    eff_cp2_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param &&
