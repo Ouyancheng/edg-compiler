@@ -5,7 +5,7 @@ Microsoft compatibility: Disallow constructor declaration using typedef except
 in permissive mode
 
 In Microsoft mode, a typedef to the current class name can be used to
-declare constructor.  This is allowed only in Microsoft permissive mode.
+declare a constructor.  This is now allowed only in Microsoft permissive mode.
 
   struct A {
     typedef A C;
