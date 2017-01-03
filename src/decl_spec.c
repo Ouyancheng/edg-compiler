@@ -6405,9 +6405,9 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
          case this is non-standard for enums.  It is allowed as an extension by
          analogy with classes. */
       an_error_severity severity = es_discretionary_error;
-      /* This isn't a C++11 language change, but preserve the old behavior
-         of issuing a warning for older dialects. */
-      if (!cpp11_mode && !strict_ansi_mode) severity = es_warning;
+      /* In C mode this diagnostic is only issued in strict mode.  Use the
+         appropriate strict severity. */
+      if (C_mode()) severity = strict_ansi_discretionary_severity;
       pos_diagnostic(severity, ec_nonstd_forward_decl_enum,
                      &locator.source_position);
     }  /* if */
