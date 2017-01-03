@@ -9216,11 +9216,11 @@ the value representation of the integer value.
               clear_constant(con, (a_constant_repr_kind)ck_address);
               con->next = ips->constants;
               ips->constants = con;
+              con->variant.address.kind = (an_address_base_kind)abk_variable;
+              con->variant.address.variant.variable = var;
+              con->type = make_reference_type(var->type);
               map_ptr(&ips->map, &var->initializer, (a_byte*)con);
             }  /* if */
-            con->variant.address.kind = (an_address_base_kind)abk_variable;
-            con->variant.address.variant.variable = var;
-            con->type = make_reference_type(var->type);
             result = extract_value_from_constant(
                                     ips, con, result_storage, result_storage);
           }  /* if */
