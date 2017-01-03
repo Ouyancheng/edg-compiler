@@ -2095,6 +2095,16 @@ Macro that initializes a lookup state variable.
     invisible_okay ||							\
     (lookup_state).is_linkage_lookup ||					\
     (lookup_state).is_friend_lookup) &&					\
+   /* Alias symbols can have the ignore_in_decl_scope flag set.  When	\
+      this is set, ignore the symbol if it is the template associated	\
+      with the innermost instantiation scope. */			\
+   (!fund_sym->ignore_in_decl_scope ||					\
+    ssep == NULL ||							\
+    depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||		\
+    scope_stack[depth_innermost_instantiation_scope].template_sym	\
+                                                            == NULL ||	\
+    scope_stack[depth_innermost_instantiation_scope].template_sym	\
+                                                       != fund_sym) &&	\
    (!(lookup_state).must_be_class_or_namespace ||			\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!(lookup_state).must_be_tag ||				        \

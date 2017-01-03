@@ -3378,6 +3378,13 @@ typedef struct a_symbol {
 			   that are ignored during normal lookup (when doing
 			   dependent name processing).  It is also used to
 			   disable keywords using pragma directives. */
+  a_bit_field	ignore_in_decl_scope:1;
+			/* This flag can be set for alias template symbols.
+			   If it is set, ignore this symbol if it is the
+			   same as the template associated with the innermost
+			   instantiation scope.  This is used to enforce the
+			   point of declaration rules for alias templates
+			   during their instantiation. */
   a_bit_field	is_unknown_function:1;
 			/* TRUE if this symbol was created to represent an
 			   unknown function. */

@@ -8288,13 +8288,6 @@ error type is used.
       /* The alias template uses its own type in the definition.  An error
          will have already been issued.  Use an error type as the result. */
       type->variant.typeref.type = error_type();
-    } else if (existing_instance_sym != NULL) {
-      /* The alias is indirect used in the instantiation of the type to which
-         it refers. */
-      pos_sy_error(ec_alias_used_in_type,
-                   &body_cache->tokens.first_token->source_position,
-                   template_sym);
-      type->variant.typeref.type = error_type();
     } else if (tssp_of_prototype->pending_instantiations >=
                                                   max_pending_instantiations) {
       /* This instantiation occurs within the context of other instantiations
@@ -8306,7 +8299,7 @@ error type is used.
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
-      a_boolean			saved_is_invisible;
+      a_boolean			saved_ignore_in_decl_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_boolean                 saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8356,14 +8349,14 @@ error type is used.
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
       /* The point of declaration of the alias template is not until after the
-         type-id is scanned.  Mark the template as invisible while the
-         instantiation is underway. */
-      saved_is_invisible = template_sym->is_invisible;
-      template_sym->is_invisible = TRUE;
+         type-id is scanned.  Mark the template to be ignored in certain
+         lookups while the instantiation is underway. */
+      saved_ignore_in_decl_scope = template_sym->ignore_in_decl_scope;
+      template_sym->ignore_in_decl_scope = TRUE;
       /* Scan the type. */
       type_name_full(&dps);
       check_type_definition_in_type_name(&dps);
-      template_sym->is_invisible = saved_is_invisible;
+      template_sym->ignore_in_decl_scope = saved_ignore_in_decl_scope;
       if (type->variant.typeref.type == NULL) {
         /* The type pointed to by the typeref will normally be NULL except
            in the case where an existing_instance_sym is being used in

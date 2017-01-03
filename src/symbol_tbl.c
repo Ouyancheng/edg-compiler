@@ -16467,6 +16467,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.hidden_by_old_for_init            = FALSE;
   cleared_symbol.overload_set_member               = FALSE;
   cleared_symbol.is_invisible                      = FALSE;
+  cleared_symbol.ignore_in_decl_scope              = FALSE;
   cleared_symbol.is_unknown_function               = FALSE;
   cleared_symbol.is_nonreal_member                 = FALSE;
   cleared_symbol.potentially_overloaded            = FALSE;
