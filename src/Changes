@@ -1,5 +1,18 @@
 Version 4.13
 
+1/4/17   [EDGcpfe/17910]
+Assertion failure in find_linked_symbol on invalid code
+
+An assertion failure in find_linked_symbol had occurred if a namespace and
+a function definition were given the same name in an inline namespace.
+Now fixed.  For example (with --c++14):
+
+  inline namespace {
+    namespace B {}
+    void B() {}
+  }
+
+
 1/4/17   [EDGcpfe/17912]
 Spurious substitution failure in C++14-mode call expression
 

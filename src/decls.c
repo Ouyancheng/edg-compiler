@@ -3196,10 +3196,16 @@ when the declaration is a friend declaration within a class.
             /* If we are matching a template or a template instance, we cannot
                establish the match based on routine types.  That case will be
                covered by going back to the original template below. */
+          } else if (!is_simple_function_symbol(fund_other_decl)) {
+            /* The other symbol isn't a routine; there must have been some
+               error. */
+             expect_error();
+            idlbp->linked_symbol = NULL;
+            idlbp->homonym_symbol = NULL;
+            goto done;
           } else {
             /* Compare the routine type of the current declaration with that
                of the previous declaration. */
-            check_assertion(is_simple_function_symbol(fund_other_decl));
             rp = fund_other_decl->variant.routine.ptr;
             if (routine_types_are_redecl_compatible(rp->type, idlbp->type,
                                                     TCF_NO_FLAGS)) {
