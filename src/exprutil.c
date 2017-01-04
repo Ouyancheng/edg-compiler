@@ -5804,16 +5804,18 @@ in *diag_list).  pos is the source position of the call.
     a_constant_ptr  result_con = local_constant();
     a_boolean       release_constant = TRUE;
     an_error_code   failure_warning = ec_no_error;
-    if (scope_is(&scope_stack_top(), sck_template_declaration) &&
-        expr_stack != NULL && expr_stack->is_template_arg_expression &&
-        expr_stack->possible_rescan_context) {
-      /* If we are scanning a template argument expression that might need
-         rescanning, assume it will be foldable after substitution and record
-         the call in a ck_template_param/tpck_expression entry. */
-      make_template_param_expr_constant(call_expr, result_con);
-      folded = TRUE;
-    } else if (relaxed_constexpr_enabled) {
-      folded = interpret_constexpr_call(call_expr, result_con, diag_list);
+    if (relaxed_constexpr_enabled) {
+      if (scope_is(&scope_stack_top(), sck_template_declaration) &&
+          expr_stack != NULL &&
+          expr_stack->possible_rescan_context) {
+        /* If we are scanning a template argument expression that might need
+           rescanning, assume it will be foldable after substitution and record
+           the call in a ck_template_param/tpck_expression entry. */
+        make_template_param_expr_constant(call_expr, result_con);
+        folded = TRUE;
+      } else {
+        folded = interpret_constexpr_call(call_expr, result_con, diag_list);
+      }  /* if */
     } else {
       a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
