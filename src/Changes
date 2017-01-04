@@ -1,5 +1,22 @@
 Version 4.13
 
+1/3/17   [EDGcpfe/17898]
+Abort after initializer folded despite an associated nontrivial destructor
+
+In C++14 mode, the front end sometimes folded certain initializers too
+aggressively (in the interpreter), ignoring the fact that a nontrivial
+destructor would have to be called on the constant.  This could then result
+in an abort in wrap_up_constant_full_expression.  For example:
+
+  #include <initializer_list>
+  struct A { virtual ~A() {} };
+  A a;
+  auto b = {a};  // Previously the initializer_list construction was
+                 // folded too aggressively, resulting in an abort later on.
+
+This is now fixed.
+
+
 12/29/16 [EDGcpfe/17797]
 Microsoft compatibility: Disallow constructor declaration using typedef except
 in permissive mode

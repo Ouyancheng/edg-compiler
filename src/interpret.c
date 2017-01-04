@@ -3823,6 +3823,11 @@ Evaluate the given dynamic initialization for the given storage.
 {
   a_boolean  result = FALSE;
 
+  if (dip->destructor != NULL) {
+    info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   switch (dip->kind) {
     case dik_nonconstant_aggregate:
       { a_constant_ptr  con = dip->variant.constant;
@@ -3877,17 +3882,13 @@ Evaluate the given dynamic initialization for the given storage.
       break;
     case dik_zero:
     case dik_none:
-      /* Nothing to do, but check that there is no associated destructor. */
-      if (dip->destructor != NULL) {
-        info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
-        do_constexpr_fail(result);
-      } else {
-        result = TRUE;
-      }  /* if */
+      /* Nothing to do. */
+      result = TRUE;
       break;
     default:
       unexpected_condition();
   }  /* switch */
+done:
   return result;
 }  /* do_constexpr_dynamic_init */
 
