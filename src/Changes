@@ -1,5 +1,22 @@
 Version 4.13
 
+1/4/17   [EDGcpfe/17912]
+Spurious substitution failure in C++14-mode call expression
+
+Consider the following example:
+
+  template<typename T> constexpr T f(T const &p) { return p; }
+  template<int I> struct X {};
+  template<int I> void f(X<f(I)>) {}
+  void g(X<42> p) {
+    f<42>(p);  // Previously a spurious error in C++14 mode.  Now okay.
+  }
+
+Previously, this was accepted in C++11 mode, but not in C++14 mode because the
+front end failed to correctly substitute the explicit template argument 42 into
+the call "f(I)".  This is now fixed.
+
+
 1/3/17   [EDGcpfe/17898]
 Abort after initializer folded despite an associated nontrivial destructor
 

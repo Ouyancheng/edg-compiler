@@ -17379,7 +17379,7 @@ name lookup options.
                  coordinates;
 
   con_copy = con;
-  if (con->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_is(con, ck_template_param)) {
     switch (con->variant.template_param.kind) {
       case tpck_param:
         /* The template param constant represents a simple non-type template
@@ -17697,6 +17697,38 @@ name lookup options.
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
+  } else if (constant_is(con, ck_address) &&
+             con->variant.address.kind ==
+                                         (an_address_base_kind)abk_temporary &&
+             constant_is(con->variant.address.variant.constant,
+                         ck_template_param)) {
+    /* A ck_address is sometimes added on top of a ck_template_param when
+       binding, e.g., a nontype template parameter to a reference parameter. */
+    other_con = copy_template_param_con(
+                             con->variant.address.variant.constant,
+                             template_arg_list,
+                             template_param_list,
+                             (a_type_ptr)NULL,
+                             source_pos,
+                             options,
+                             copy_error,
+                             ctws_state,
+                             constant);
+    if (!*copy_error) {
+      new_type = copy_type_with_substitution(con->type,
+                                             template_arg_list,
+                                             template_param_list,
+                                             source_pos,
+                                             options,
+                                             copy_error,
+                                             ctws_state);
+    }  /* if */
+    if (!*copy_error) {
+      con_copy = NULL;
+      copy_constant(con, constant);
+      constant->type = new_type;
+      constant->variant.address.variant.constant = other_con;
+    }  /* if */
   } else if (cpp11_sfinae_enabled &&
              is_instantiation_dependent_type(con->type)) {
     /* A constant that is not a ck_template_param but that does have an
