@@ -361,6 +361,9 @@ typedef struct a_substitution {
 		next;
 			/* The next (more recent) available substitution 
 			   candidate. */
+  a_substitution_ptr
+		next_bucket;
+			/* The next substitution with the same hash value. */
   char		*entity;
 			/* The entity to which this substitution applies. */
   an_il_entry_kind
@@ -377,9 +380,16 @@ typedef struct a_substitution {
 			   flag TRUE, and once FALSE). */
 } a_substitution;
 
+/*
+A hash table indexed by a substitutable entity (using subst_hash as
+the hashing function).  Each entry in the array points to a list of
+substitutions with the same hash value.  An entity may be on this list multiple
+times (because of different values for a_substitution::is_pack_expansion.
+*/
 #define SUBSTITUTION_CACHE_SIZE 0x100
 static a_substitution_ptr substitution_cache[SUBSTITUTION_CACHE_SIZE];
 
+/* Hash function for a substitutable entity. */
 #define subst_hash(ptr)                                                      \
    (((uintptr_t)ptr >> 8) % SUBSTITUTION_CACHE_SIZE)
 
@@ -797,6 +807,7 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
     /* Record a canonical representative for the substituted entity (e.g., use
        the corresponding tk_template_param entry for a proxy class of a
        template parameter). */
+    a_substitution_ptr *head;
     if (kind == iek_type) {
       entity = canonical_substitution_entity((a_type_ptr)entity);
     }  /* if */
@@ -806,9 +817,11 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
     } else {
       sp = (a_substitution_ptr)alloc_general(sizeof(a_substitution));
     }  /* if */
-    substitution_cache[subst_hash(entity)] = sp;
+    head = &substitution_cache[subst_hash(entity)];
+    sp->next_bucket = *head;
     sp->kind = kind;
     sp->entity = entity;
+    *head = sp;
     ((a_source_correspondence*)entity)->on_mangling_substitution_list = TRUE;
     sp->is_pack_expansion = is_pack_expansion;
     sp->next = NULL;
@@ -1539,15 +1552,12 @@ whether a substitution is available; do not put it out.
     entity = canonical_substitution_entity(type);
   }  /* if */
   if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
-    sp = substitution_cache[subst_hash(entity)];
-    if (sp != NULL &&
-        sp->entity == entity && sp->is_pack_expansion == is_pack_expansion) {
-      result = TRUE;
-      /* We found a direct substitution for this entity in the cache. */
-      if (!test) add_substitution_index_to_mangled_name(sp->index, mctl);
-      goto end_of_routine;
-    }  /* if */
-    for (sp = mctl->first_substitution; sp != NULL; sp = sp->next) {
+    /* The entity has already had a substitution registered for it; see if
+       a match can be found (it may not be because is_pack_expansion may not
+       match). */
+    for (sp = substitution_cache[subst_hash(entity)];
+         sp != NULL;
+         sp = sp->next_bucket) {
       if (sp->entity == entity && sp->is_pack_expansion == is_pack_expansion) {
         result = TRUE;
         /* We found a direct substitution for this entity. */
@@ -1555,6 +1565,11 @@ whether a substitution is available; do not put it out.
         goto end_of_routine;
       }  /* if */
     }  /* for */
+    /* Only certain types (ones that aren't an exact match) and secondary IL
+       entities should get here. */
+#if EXPENSIVE_CHECKING
+    check_assertion(kind == iek_type || secondary_translation_unit_seen());
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
   /* See if the entity is one of the special entities for which an
      abbreviation exists. */
