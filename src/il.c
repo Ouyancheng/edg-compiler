@@ -17724,6 +17724,9 @@ name lookup options.
                                              ctws_state);
     }  /* if */
     if (!*copy_error) {
+      if (other_con == NULL) {
+        other_con = alloc_unshared_constant(constant);
+      }  /* if */
       con_copy = NULL;
       copy_constant(con, constant);
       constant->type = new_type;
