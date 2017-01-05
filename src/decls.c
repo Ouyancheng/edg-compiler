@@ -3199,7 +3199,7 @@ when the declaration is a friend declaration within a class.
           } else if (!is_simple_function_symbol(fund_other_decl)) {
             /* The other symbol isn't a routine; there must have been some
                error. */
-             expect_error();
+            expect_error();
             idlbp->linked_symbol = NULL;
             idlbp->homonym_symbol = NULL;
             goto done;
