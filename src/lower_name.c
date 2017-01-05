@@ -721,40 +721,37 @@ Set the fields of the indicated mangling control block to default values.
 
 #if IA64_ABI
 
-static char *canonical_substitution_entity(char             *entity,
-                                           an_il_entry_kind kind)
+static char *canonical_substitution_entity(a_type_ptr type)
 /*
-The given entity (of the given kind) is being processed for mangling
-substitution.  Return a "canonical" entry to be used for this process.
-For example, a proxy class for a template parameter is replaced by the
-corresponding tk_template_param entry.
+The given type is being processed for mangling substitution.  Return a
+"canonical" type entry to be used for this process.  For example, a proxy class
+for a template parameter is replaced by the corresponding tk_template_param
+entry.
 */
 {
-  if (kind == iek_type) {
-    a_type_ptr type = (a_type_ptr)entity;
-    if (type->kind == (a_type_kind)tk_class && symbol_for(type) != NULL) {
-      /* If this class is a proxy class for a template parameter,
-         use the template parameter as the entity. */
-      type = class_symbol_supp(symbol_for(type))
-                                             ->template_param_for_proxy_class;
-      if (type != NULL) entity = (char *)type;
-    } else if (type->kind == (a_type_kind)tk_typeref) {
+  char *entity = (char*)type;
+
+  if (type->kind == (a_type_kind)tk_class && symbol_for(type) != NULL) {
+    /* If this class is a proxy class for a template parameter,
+       use the template parameter as the entity. */
+    type = class_symbol_supp(symbol_for(type))->template_param_for_proxy_class;
+    if (type != NULL) entity = (char *)type;
+  } else if (type->kind == (a_type_kind)tk_typeref) {
 #if ABI_COMPATIBILITY_VERSION >= 402
-      if (emulate_gnu_abi_bugs &&
-          type->variant.typeref.is_decltype &&
-          type->variant.typeref.is_dependent_type_operator &&
-          !gnu_requires_decltype_mangling(type)) {
-        /* This is a dependent decltype and typically gets its own
-           substitution, but if we're emulating GNU and GNU doesn't believe
-           the decltype is dependent, then strip the decltype for substitution
-           purposes. */
-        entity = (char *)type->variant.typeref.type;
-      } else
+    if (emulate_gnu_abi_bugs &&
+        type->variant.typeref.is_decltype &&
+        type->variant.typeref.is_dependent_type_operator &&
+        !gnu_requires_decltype_mangling(type)) {
+      /* This is a dependent decltype and typically gets its own
+         substitution, but if we're emulating GNU and GNU doesn't believe
+         the decltype is dependent, then strip the decltype for substitution
+         purposes. */
+      entity = (char *)type->variant.typeref.type;
+    } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-      /* Do not insert code here. */
-      {
-        entity = (char*)skip_typedefs_not_dependent_decltypes(type);
-      }  /* if */
+    /* Do not insert code here. */
+    {
+      entity = (char*)skip_typedefs_not_dependent_decltypes(type);
     }  /* if */
   }  /* if */
   return entity;
@@ -800,7 +797,9 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
     /* Record a canonical representative for the substituted entity (e.g., use
        the corresponding tk_template_param entry for a proxy class of a
        template parameter). */
-    entity = canonical_substitution_entity(entity, kind);
+    if (kind == iek_type) {
+      entity = canonical_substitution_entity((a_type_ptr)entity);
+    }  /* if */
     if (avail_substitutions != NULL) {
       sp = avail_substitutions;
       avail_substitutions = sp->next;
@@ -828,7 +827,7 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
                        (sp->index == 0 ? ' ' :
                         sp->index < 36 ? base_36_digits[sp->index-1] : '?'),
                        il_entry_kind_names[(int)sp->kind],
-                       sp->is_pack_expansion ? " [pack_expansion]" : "");
+                       sp->is_pack_expansion ? "[pack_expansion] " : "");
       if (sp->kind == (an_il_entry_kind)iek_type) {
         db_abbreviated_type((a_type_ptr)sp->entity);
       } else if (sp->kind == (an_il_entry_kind)iek_template) {
@@ -1479,6 +1478,32 @@ Used only in g++ emulation mode.
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
 
+/*
+Helper macro for same_types_for_mangling_purposes below (needed because
+of conditional compilation).
+*/
+#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
+/* One type is a dependent typeof typeref and the other type isn't; these get
+separate substitutions (the mangling for __typeof is non-standard).  decltype
+and __underlying_type don't have this problem because the underlying type isn't
+part of the mangling. */
+#define and_not_different_only_in_typeof(type1, type2) \
+  && !(gpp_mode && identical_types_differ_in_typeof((type1), (type2)))
+#else /* !(ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED) */
+#define and_not_different_only_in_typeof(type, sp) /**/
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
+
+/*
+Local macro that returns TRUE if the specified type and substitution should be
+considered to be a match (for mangling purposes).  Relies on is_pack_expansion
+and opts being available in the context in which it appears.
+*/
+#define same_types_for_mangling_purposes(type, sp) \
+  (is_pack_expansion == sp->is_pack_expansion && \
+   identical_types_full((type), (a_type_ptr)((sp)->entity), opts) \
+   and_not_different_only_in_typeof((type), (a_type_ptr)((sp)->entity)))
+
+
 static a_boolean add_substitution_if_available_full(
                                     char                     *entity,
                                     an_il_entry_kind         kind,
@@ -1503,7 +1528,16 @@ whether a substitution is available; do not put it out.
 
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
-  entity = canonical_substitution_entity(entity, kind);
+  if (kind == iek_type) {
+    type = (a_type_ptr)entity;
+    if (type->kind <= (a_type_kind)tk_float) {
+      /* A way to quickly eliminate most of the "<builtin-type>" types (e.g.,
+         int, void, float).  See record_substitution_for_type for a better
+         test. */
+      goto end_of_routine;
+    }  /* if */
+    entity = canonical_substitution_entity(type);
+  }  /* if */
   if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
     sp = substitution_cache[subst_hash(entity)];
     if (sp != NULL &&
@@ -1576,6 +1610,7 @@ whether a substitution is available; do not put it out.
   } else {
     /* Otherwise, see if there is an existing substitution for something
        that appears earlier in the mangled name. */
+    an_itf_flag_set  opts;
     secondary_tu = secondary_translation_unit_seen();
     if (secondary_tu || kind == iek_type) {
       if (kind == iek_type && !secondary_tu &&
@@ -1586,10 +1621,20 @@ whether a substitution is available; do not put it out.
         /* Exclude classes that don't have template parameters. */
         goto end_of_routine;
       }  /* if */
+      opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+#if ABI_COMPATIBILITY_VERSION >= 406 && ABI_COMPATIBILITY_VERSION < 413
+      /* Requiring an exact template parameter type had been introduced
+         as a "fix" for an alias template issue, but that resulted in
+         incorrect substitutions and the alias template issue has been
+         fixed elsewhere. */
+      opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 && ABI_COMPATIBILITY_VERSION < 413*/
+#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
+      opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
+#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
       for (sp = mctl->first_substitution; sp != NULL; sp = sp->next) {
         if (sp->kind == kind) {
           if (kind == iek_type) {
-            an_itf_flag_set  opts;
             a_type_ptr       stype = (a_type_ptr)sp->entity;
             a_type_ptr       ustype = skip_typerefs(stype);
             if (ustype->kind != type_kind) {
@@ -1608,33 +1653,8 @@ whether a substitution is available; do not put it out.
                 }  /* if */
               }  /* if */
             }  /* if */
-            opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
-#if ABI_COMPATIBILITY_VERSION >= 406 && ABI_COMPATIBILITY_VERSION < 413
-            /* Requiring an exact template parameter type had been introduced
-               as a "fix" for an alias template issue, but that resulted in
-               incorrect substitutions and the alias template issue has been
-               fixed elsewhere. */
-            opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
-#endif /* ABI_COMPATIBILITY_VERSION >= 406 && ABI_COMPATIBILITY_VERSION < 413*/
-#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-            opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
-#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-            if (is_pack_expansion == sp->is_pack_expansion &&
-                identical_types_full((a_type_ptr)entity, stype, opts)) {
-#if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-              if (gpp_mode &&
-                  identical_types_differ_in_typeof((a_type_ptr)entity, stype)){
-                /* One type is a dependent typeof typeref and the other type
-                   isn't; these get separate substitutions (the mangling for
-                   __typeof is non-standard).  decltype and __underlying_type
-                   don't have this problem because the underlying type isn't
-                   part of the mangling. */
-              } else
-#endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-              /* Do not add code here. */
-              {
-                result = TRUE;
-              }  /* if */
+            if (same_types_for_mangling_purposes((a_type_ptr)entity, sp)) {
+              result = TRUE;
             }  /* if */
           } else if (entity == sp->entity) {
             result = TRUE;
@@ -1657,7 +1677,7 @@ whether a substitution is available; do not put it out.
   }  /* if */
 end_of_routine:;
 #if DEBUG && EXPENSIVE_CHECKING
-  if (result && db_flag_is_set("substitutions")) {
+  if (result && db_flag_is_set("substitutions") && str == NULL) {
     fprintf(f_debug, "using S%c: <%s> %s",
                      (sp->index == 0 ? ' ' :
                       sp->index < 36 ? base_36_digits[sp->index-1] : '?'),
@@ -1674,6 +1694,8 @@ end_of_routine:;
   return result;
 }  /* add_substitution_if_available_full */
 
+#undef same_types_for_mangling_purposes
+#undef and_not_different_only_in_typeof
 
 static a_boolean add_substitution_if_available(
                                     char                     *entity,
