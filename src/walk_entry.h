@@ -2169,8 +2169,8 @@ do_set_proper_definition_needed_flag:
       {
         a_pragma_ptr ptr = (a_pragma_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_pragma_ptr, iek_pragma);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
+                             (an_il_entry_kind)ptr->entity.kind);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);

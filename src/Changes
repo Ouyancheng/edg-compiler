@@ -1,5 +1,14 @@
 Version 4.13
 
+1/5/17   [EDGcpfe/17915]
+Suppress walk of entity pointer on pragmas
+
+Previously the entity pointer of a pragma was traversed during a "needed" walk,
+but that resulted in excessive execution times in some cases (e.g., when
+checking pragmas are used).  The traversal turns out to be unnecessary (since
+the entity will be found by other means) and has been removed.
+
+
 1/4/17   [EDGcpfe/17910]
 Assertion failure in find_linked_symbol on invalid code
 
