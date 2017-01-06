@@ -1516,6 +1516,8 @@ and opts being available in the context in which it appears.
    identical_types_full((type), (a_type_ptr)((sp)->entity), opts) \
    and_not_different_only_in_typeof((type), (a_type_ptr)((sp)->entity)))
 
+static a_boolean record_substitution_for_type(a_type_ptr type);
+
 
 static a_boolean add_substitution_if_available_full(
                                     char                     *entity,
@@ -1543,6 +1545,11 @@ whether a substitution is available; do not put it out.
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
   if (kind == iek_type) {
     entity = canonical_substitution_entity((a_type_ptr)entity);
+    if (!record_substitution_for_type((a_type_ptr)entity)) {
+      /* This type doesn't get a substitution, so don't bother to look for
+         one. */
+      goto end_of_routine;
+    }  /* if */
   }  /* if */
   if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
     /* The entity has already had a substitution registered for it; see if
@@ -9163,12 +9170,14 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       }  /* if */
       break;
     case tk_typeref:
-      /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
+      /* typedefs, aliases, and non-dependent decltypes/typeofs
          should have been stripped, leaving only dependent decltype/typeof
-         typerefs (for which substitutions are created). */
-      check_assertion(typeref_is_type_operator(type) ||
-                      type->variant.typeref.is_deduced_auto ||
-                      type->variant.typeref.is_deduced_decltype_auto);
+         typerefs (for which substitutions are created) or cv-qualifiers
+         (which also trigger substitutions). */
+      check_assertion(is_qualified_type(type) ||
+                      (typeref_is_type_operator(type) ||
+                       type->variant.typeref.is_deduced_auto ||
+                       type->variant.typeref.is_deduced_decltype_auto));
       result = TRUE;
       break;
     case tk_pointer:
