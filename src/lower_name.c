@@ -1542,14 +1542,7 @@ whether a substitution is available; do not put it out.
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
   if (kind == iek_type) {
-    type = (a_type_ptr)entity;
-    if (type->kind <= (a_type_kind)tk_float) {
-      /* A way to quickly eliminate most of the "<builtin-type>" types (e.g.,
-         int, void, float).  See record_substitution_for_type for a better
-         test. */
-      goto end_of_routine;
-    }  /* if */
-    entity = canonical_substitution_entity(type);
+    entity = canonical_substitution_entity((a_type_ptr)entity);
   }  /* if */
   if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
     /* The entity has already had a substitution registered for it; see if
