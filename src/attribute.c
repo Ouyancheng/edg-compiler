@@ -4109,7 +4109,8 @@ and C11 _Alignas specifiers.
         /* Nothing more to do. */
       } else if (std_specifier ||
                  (gnu_mode && gnu_version >= 40800 &&
-                  entity_kind != iek_type)) {
+                  (entity_kind == iek_variable ||
+                   entity_kind == iek_field))) {
         /* For standard alignment specifiers (i.e., alignas, _Alignas, and
            the early draft [[align()]]), don't apply the attribute immediately
            (i.e., here) because only the attribute with the strongest alignment

@@ -1,5 +1,20 @@
 Version 4.13
 
+1/6/7    [EDGcpfe/17921]
+GNU compatibility: alignment of routines
+
+Although non-standard, GNU allows applying an alignment directive to a
+routine.  That code was inadvertently broken by the changes for EDGcpfe/16750
+and has now been fixed (the attribute had been accepted but not actually
+applied to the routine type).  For example (with --gnu_version 40800):
+
+  void func(void) __attribute__((aligned(64)));
+  void func(void) { }
+  int main() {
+    return (__alignof__(func) != 64);   // Now returns 0.
+  }
+
+
 1/5/17   [EDGcpfe/17915]
 Suppress walk of entity pointer on pragmas
 
