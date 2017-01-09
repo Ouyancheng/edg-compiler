@@ -9176,6 +9176,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
          (which also trigger substitutions). */
       check_assertion(is_qualified_type(type) ||
                       (typeref_is_type_operator(type) ||
+                       type->variant.typeref.is_dependent ||
                        type->variant.typeref.is_deduced_auto ||
                        type->variant.typeref.is_deduced_decltype_auto));
       result = TRUE;
