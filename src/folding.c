@@ -43,12 +43,6 @@ found for folding.
 */
 static a_constexpr_remap_ptr in_process_remap_list;
 
-static a_boolean fold_constant_field_selection(a_constant   *object_con,
-                                               a_boolean    object_is_pointer,
-                                               a_boolean    object_is_this,
-                                               a_field_ptr  field,
-                                               a_constant   *result_con);
-
 /*
 Determine the severity (error or warning) to be used for integer
 operation overflows.
@@ -6676,33 +6670,6 @@ stack and return TRUE.  Otherwise, return FALSE.
 }  /* is_obj_expr_of_stacked_aggr_con */
 
 
-static a_constant_ptr aggr_con_for_this_param(a_variable_ptr var)
-/*
-var designates a "this" parameter that might designate an object that is
-currently being initialized.  If an aggregate constant of the correct type
-is present in the aggregate initialization stack, return a pointer to that
-constant.  Otherwise, return NULL.
-*/
-{
-  a_constant_ptr            result = NULL;
-  an_aggr_init_con_elem_ptr init_con;
-  a_type_ptr                class_type;
-
-  check_assertion(var->is_this_parameter);
-  class_type = type_pointed_to(var->type);
-  for (init_con = curr_init_aggr_con; result == NULL && init_con != NULL;
-       init_con = init_con->next) {
-    if (init_con->constant == NULL) {
-      /* There is no constant associated with this initialization yet. */
-    } else if (identical_types_ignoring_qualifiers(init_con->constant->type,
-                                                   class_type)) {
-      result = init_con->constant;
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* aggr_con_for_this_param */
-
-
 a_boolean constant_prvalue_pointer_full(
                              an_expr_node_ptr              expr,
                              a_constexpr_evaluation_block  *ceblock,
@@ -9592,28 +9559,6 @@ in the stack).
 }  /* copy_constant_for_constexpr_evaluation */
 
 
-static void record_call_number_in_dynamic_init(
-                                         a_dynamic_init_ptr           dip,
-                                         a_constexpr_evaluation_block *ceblock)
-/*
-Record a call number in the given dynamic init entry, to associate
-a lifetime with it for purposes of checking for dangling pointers during
-constexpr evaluation.
-*/
-{
-  if (dip->is_top_temporary_for_constexpr_reference_param) {
-    /* We consider temporaries generated for reference parameters of
-       constexpr calls not to expire. */
-    dip->constexpr_call_number = 0;
-  } else if (ceblock->active_calls != NULL) {
-    dip->constexpr_call_number = ceblock->active_calls->call_number;
-  } else {
-    /* -1 is used for the full expression surrounding the outermost call. */
-    dip->constexpr_call_number = -1;
-  }  /* if */
-}  /* record_call_number_in_dynamic_init */
-  
-  
 static void set_expiring_temporary_address_constant(
                                         a_constant_ptr     pointed_to_constant,
                                         a_dynamic_init_ptr dip,
@@ -9655,106 +9600,6 @@ catch the first point where folding fails.
 static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
                                    a_type_ptr                   dest_type,
                                    a_constexpr_evaluation_block *ceblock,
-                                   a_constant                   *result_con);
-static a_boolean i_fold_constexpr_ctor(
-                                     a_dynamic_init_ptr           ctor_dip,
-                                     a_constexpr_evaluation_block *ceblock,
-                                     a_constant                   *result_con);
-
-static a_boolean fold_aggregate_constant(
-                                      a_constant                   *aggr,
-                                      a_constexpr_evaluation_block *ceblock,
-                                      a_constant                   *result_con)
-/*
-Attempt to fold the ck_aggregate constant "aggr" to a constant as part
-of a constexpr evaluation, by substituting argument constant values
-for parameters.  If the aggregate folds to a constant, place the constant
-in *result_con and return TRUE; otherwise, return FALSE.
-*/
-{
-  a_boolean             folded = FALSE;
-  a_constant_ptr        new_aggr;
-  a_constant_ptr        elem_con;
-  an_aggr_init_con_elem aggr_init_con;
-
-  check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
-  new_aggr = result_con;
-  clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
-  new_aggr->type = aggr->type;
-  new_aggr->partial_aggr_value = aggr->partial_aggr_value;
-  new_aggr->is_partially_initialized = aggr->is_partially_initialized;
-  folded = TRUE;
-  push_aggr_init_constant(new_aggr, &aggr_init_con);
-  /* Loop through the elements of the aggregate and copy each one.
-     Dynamic constants get parameter substitution. */
-  for (elem_con = aggr->variant.aggregate.first_constant;
-       elem_con != NULL;
-       elem_con = elem_con->next) {
-    a_constant_ptr new_elem_con = NULL;
-    if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      a_constant_ptr con = local_constant();
-      if (fold_dynamic_init(elem_con->variant.dynamic_init,
-                            elem_con->type,
-                            ceblock,
-                            con)) {
-        new_elem_con = move_local_constant_to_il(&con);
-      } else {
-        release_local_constant(&con);
-      }  /* if */
-    } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-      /* A repeated constant.  If the repeated constant is a
-         ck_dynamic_init, try to fold it via a recursive call.  If it
-         folds successfully, or for other kinds of repeated
-         constants, copy this constant and the repeated constant. */
-      a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
-      a_constant_ptr init_con = local_constant();
-      if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        if (fold_dynamic_init(rep_con->variant.dynamic_init,
-                              rep_con->type, ceblock, init_con)) {
-          /* The repeated dynamic initialization folded to a constant,
-             so use that in folding this constant. */
-          rep_con = init_con;
-        } else {
-          /* The repeated dynamic initialization could not be folded,
-             so this initialization cannot be folded. */
-          rep_con = NULL;
-        }  /* if */
-      }  /* if */
-      if (rep_con != NULL) {
-        new_elem_con = alloc_unshared_constant(elem_con);
-        new_elem_con->variant.init_repeat.constant =
-                                            alloc_unshared_constant(rep_con);
-      }  /* if */
-      release_local_constant(&init_con);
-    } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
-      /* Just make a copy of the designator (the field and element
-         number are constant and don't change). */
-      new_elem_con = alloc_unshared_constant(elem_con);
-    } else if (elem_con->kind == (a_constant_repr_kind)ck_aggregate) {
-      a_constant_ptr elem_aggr_con = local_constant();
-      if (fold_aggregate_constant(elem_con, ceblock, elem_aggr_con)) {
-        new_elem_con = move_local_constant_to_il(&elem_aggr_con);
-      } else {
-        release_local_constant(&elem_aggr_con);
-      }  /* if */
-    } else {
-      /* Normal constant. */
-      new_elem_con = alloc_unshared_constant(elem_con);
-    }  /* if */
-    if (new_elem_con == NULL) {
-      folded = FALSE;
-      break;
-    }  /* if */
-    add_constant_to_aggregate(new_elem_con, new_aggr);
-  }  /* for */
-  pop_aggr_init_constant(&aggr_init_con);
-  return folding_result(folded);
-}  /* fold_aggregate_constant */
-
-
-static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
-                                   a_type_ptr                   dest_type,
-                                   a_constexpr_evaluation_block *ceblock,
                                    a_constant                   *result_con)
 /*
 Attempt to fold the dynamic initialization "dip" to a constant as part
@@ -9764,59 +9609,17 @@ which may be a reference.  If the dynamic init folds to a constant,
 place the constant in *result_con and return TRUE; otherwise, return
 FALSE.  For a reference case, the returned constant is the constant
 address for the reference.  ceblock gives context information for the
-evaluation.
+evaluation (currently only used for default position information).
 */
 {
-  a_boolean folded = FALSE;
-  a_boolean ref_case = is_reference_type(dest_type);
+  a_boolean    folded;
+  a_diag_list  diag_list;
 
-  record_call_number_in_dynamic_init(dip, ceblock);
-  if (dip->destructor != NULL) goto end_of_routine;
-  switch(dip->kind) {
-    case dik_constant:
-      copy_constant_for_constexpr_evaluation(dip->variant.constant,
-                                             result_con);
-      folded = TRUE;
-      break;
-    case dik_class_result_via_ctor:
-    case dik_expression:
-      folded = fold_expr(dip->variant.expression, ceblock, result_con);
-      break;
-    case dik_constructor:
-      folded = i_fold_constexpr_ctor(dip, ceblock, result_con);
-      if (ref_case && folded) {
-        set_expiring_temporary_address_constant(
-                                       alloc_shareable_constant(result_con),
-                                       dip, result_con);
-        result_con->type = dest_type;
-      }  /* if */
-      break;
-    case dik_nonconstant_aggregate:
-      folded = fold_aggregate_constant(dip->variant.constant, ceblock,
-                                       result_con);
-      if (ref_case) {
-        /* Return the address of the aggregate constant for the reference
-           case. */
-        set_expiring_temporary_address_constant(
-                                         alloc_shareable_constant(result_con),
-                                         dip, result_con);
-        result_con->type = dest_type;
-      }  /* if */
-      break;
-    case dik_none:
-    case dik_zero:
-      folded = make_value_initialized_constant(dest_type, result_con);
-      break;
-    case dik_bitwise_copy:
-    default:
-      /* These cases don't fold. */
-      break;
-  }  /* switch */
-  if (dip->is_explicit_cast) {
-    result_con->explicit_cast_applied = TRUE;
-  }  /* if */
-end_of_routine:
-  return folding_result(folded);
+  clear_diag_list(&diag_list);
+  folded = interpret_dynamic_init(dip, &ceblock->source_position, dest_type,
+                                  result_con, &diag_list);
+  discard_more_info_list(&diag_list);
+  return folded;
 }  /* fold_dynamic_init */
 
 
@@ -9825,20 +9628,20 @@ a_boolean fold_constexpr_dynamic_init(a_dynamic_init_ptr dip,
                                       a_source_position  *pos,
                                       a_constant         *result_con)
 /*
-Attempt to fold the dynamic initialization "dip" to a constant as part
-of a constexpr evaluation.  dest_type is the type of the entity being
-initialized, which may be a reference.  If the dynamic init folds to a
-constant, place the constant in *result_con and return TRUE; otherwise,
-return FALSE.  For a reference case, the returned constant is the constant
-address for the reference.  pos gives a source position for the
-evaluation.
+Attempt to fold the dynamic initialization "dip" to a constant as part of a
+constexpr evaluation.  dest_type is the type of the entity being initialized,
+which may be a reference.  If the dynamic init folds to a constant, place the
+constant in *result_con and return TRUE; otherwise, return FALSE.  For a
+reference case, the returned constant is the constant address for the
+reference.  pos gives a source position for the evaluation.
 */
 {
-  a_boolean                    folded;
-  a_constexpr_evaluation_block ceblock;
+  a_boolean    folded;
+  a_diag_list  diag_list;
 
-  clear_constexpr_evaluation_block(&ceblock, pos);
-  folded = fold_dynamic_init(dip, dest_type, &ceblock, result_con);
+  clear_diag_list(&diag_list);
+  folded = interpret_dynamic_init(dip, pos, dest_type, result_con, &diag_list);
+  discard_more_info_list(&diag_list);
   return folded;
 }  /* fold_constexpr_dynamic_init */
 
@@ -10454,45 +10257,6 @@ the variable to which p points has a constant value, return that value.
 }  /* constant_value_addressed_by_node */
 
 
-static a_boolean constant_dot_static_object_expr(
-                                         an_expr_node_ptr expr,
-                                         a_constexpr_evaluation_block *ceblock)
-/*
-Return TRUE if expr can appear as or in the object expression of an
-eok_dot_static node.  This function is invoked for the top-level object
-expression and then recursively as needed for subexpressions of the object
-expression.  ceblock gives context information for the evaluation.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_variable_node(expr) || is_constant_node(expr)) {
-    /* A variable in the object expression need not have a constant
-       address or value, since it will not be used. */
-    result = TRUE;
-  } else if (is_operation_node(expr)) {
-    if (node_operator_is(expr, eok_dot_field) ||
-        node_operator_is(expr, eok_pm_field) ||
-        node_operator_is(expr, eok_dot_static)) {
-      /* Recursively check the object expression of the nested member
-         access. */
-      result =
-             constant_dot_static_object_expr(expr->variant.operation.operands,
-                                             ceblock);
-    } else {
-      /* Any other object expression must satisfy the requirements for
-         being a constant expression in its own right.  In particular,
-         a pointer expression must be constant, even though the value of
-         the pointer will not be used. */
-      a_constant_ptr con = local_constant();
-      result = fold_expr(expr, ceblock, con);
-      release_local_constant(&con);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* constant_dot_static_object_expr */
-
-
 static a_boolean fold_expr(an_expr_node_ptr             expr,
                            a_constexpr_evaluation_block *ceblock,
                            a_constant                   *result_con)
@@ -10505,597 +10269,19 @@ expression is a glvalue, do not fold (see fold_glvalue_expr instead).
 ceblock gives context information for the evaluation.
 */
 {
-  a_boolean         folded = FALSE;
-  a_source_position pos;
+  a_boolean    folded;
 
-  ceblock->do_not_call_back = FALSE;
-  expr = skip_parens(expr);
-  pos = ceblock->source_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (cmp_source_positions(expr->position, null_source_position) != 0) {
-    pos = expr->position;
-  } else if (cmp_source_positions(expr->expr_range.start,
-                                  null_source_position) != 0) {
-    pos = expr->expr_range.start;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_glvalue_node(expr)) {
     /* Only fold expressions that produce prvalue results. */
-  } else if (is_constant_node(expr)) {
-    /* The expression is a constant. */
-    folded = TRUE;
-    copy_constant_for_constexpr_evaluation(node_constant(expr), result_con);
-  } else if (is_variable_node(expr)) {
-    /* An rvalue variable node for a parameter can be replaced by its
-       value, if constant. */
-    if (fold_variable_reference(expr, ceblock, /*want_addr=*/FALSE,
-                                result_con)) {
-      folded = TRUE;
-    }  /* if */
-  } else if (is_operation_node(expr)) {
-    /* An operation node.  If the operands are constant, we may be able to
-       fold it. */
-    a_boolean             did_not_fold, template_constant = FALSE;
-    an_error_code         error_detected = ec_no_error;
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    an_expr_node_ptr      op1 = expr->variant.operation.operands;
-    an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
-    a_constant_ptr        op1_constant = local_constant();
-    a_constant_ptr        op2_constant = local_constant();
-    a_constant_ptr        addr_con = local_constant();
-    a_constant_ptr        obj_expr_con;
-    a_boolean             op1_folded = FALSE, op2_folded = FALSE;
-    a_type_ptr            tp;
-    switch (op) {
-      case eok_indirect:
-      case eok_ref_indirect:
-        /* Indirection through a pointer or reference.  If the operand
-           folds to a constant that addresses a constant value, the
-           expression can be folded. */
-        if (fold_expr(op1, ceblock, op1_constant)) {
-          if (op1_constant->kind == (a_constant_repr_kind)ck_template_param) {
-            /* A dependent address.  Make a template parameter constant for
-               the result of the indirection. */
-            make_template_param_expr_constant(expr, result_con);
-            folded = TRUE;
-          } else if (op1_constant->kind == (a_constant_repr_kind)ck_address &&
-                     op1_constant->variant.address.kind ==
-                                           (an_address_base_kind)abk_routine) {
-            /* The operand is a constant reference or pointer to a function,
-               so that address is the result of the indirection. */
-            copy_constant(op1_constant, result_con);
-            folded = TRUE;
-          } else if (constant_value_at_address(
-                                          op1_constant,
-                                          (a_constexpr_evaluation_block *)NULL,
-                                          result_con) != NULL) {
-            folded = TRUE;
-          }  /* if */
-        }  /* if */
-        break;
-      case eok_array_to_pointer:
-        /* Array decay.  The array can be an lvalue or rvalue. */
-        if (fold_object_expr(op1, ceblock, /*want_addr=*/TRUE, result_con)) {
-          folded = TRUE;
-          implicit_cast(result_con, expr->type);
-        }  /* if */
-        break;
-      case eok_question:
-        /* "?" operator. */
-        op1_folded = fold_expr(op1, ceblock, op1_constant);
-        if (op1_folded) {
-          if (constant_bool_value_known_at_compile_time(op1_constant)) {
-            if (is_false_constant(op1_constant)) {
-              /* First operand is false, so result is op3. */
-              folded = fold_expr(op2->next, ceblock, result_con);
-            } else {
-              /* First operand is true, so result is op2. */
-              folded = fold_expr(op2, ceblock, result_con);
-            }  /* if */
-          } else if (op1_constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-            /* First operand is a dependent expression.  We don't know if
-               this will be a constant expression or not when instantiated,
-               so record it as a dependent constant. */
-            make_template_param_expr_constant(expr, result_con);
-            folded = TRUE;
-          }  /* if */
-        }  /* if */
-        break;
-      case eok_comma:
-        /* The value of the first operand is discarded, but it still has to
-           fold to a constant. */
-        if (is_operation_node(op1) && node_operator_is(op1, eok_cast) &&
-            is_void_type(op1->type)) {
-          /* Skip over an initial cast to void, which is normally not
-             foldable but doesn't affect this result. */
-          op1 = op1->variant.operation.operands;
-        }  /* if */
-        if (is_glvalue_node(op1) ?
-              fold_glvalue_expr(op1, ceblock, op1_constant) :
-              fold_expr(op1, ceblock, op1_constant)) {
-          folded = fold_expr(op2, ceblock, result_con);
-        }  /* if */
-        break;
-      case eok_land:
-      case eok_lor:
-        /* && or || operator. */
-        op1_folded = fold_expr(op1, ceblock, op1_constant);
-        if (op1_folded &&
-            constant_bool_value_known_at_compile_time(op1_constant)) {
-          a_boolean result = FALSE;
-          if (op == (an_expr_operator_kind)eok_land) {
-            /* && operator. */
-            if (is_false_constant(op1_constant)) {
-              /* First operand is false, so result is false. */
-              folded = TRUE;
-              result = FALSE;
-            } else {
-              /* First operand is true, so result is true if op2 is true. */
-              if (fold_expr(op2, ceblock, op2_constant) &&
-                  constant_bool_value_known_at_compile_time(op2_constant)) {
-                folded = TRUE;
-                result = !is_false_constant(op2_constant);
-              }  /* if */
-            }  /* if */
-          } else {
-            /* || operator. */
-            if (!is_false_constant(op1_constant)) {
-              /* First operand is true, so result is true. */
-              folded = TRUE;
-              result = TRUE;
-            } else {
-              /* First operand is false, so result is true if op2 is true. */
-              if (fold_expr(op2, ceblock, op2_constant) &&
-                  constant_bool_value_known_at_compile_time(op2_constant)) {
-                folded = TRUE;
-                result = !is_false_constant(op2_constant);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          if (folded) {
-            /* Build a result true or false constant. */
-            a_type_ptr etype = expr->type;
-            a_type_ptr btype = skip_typerefs(etype);
-            if (is_template_param_type(btype)) btype = etype = bool_type();
-            check_assertion(btype->kind == (a_type_kind)tk_integer);
-            set_integer_constant(result_con, (a_host_large_integer)result,
-                                 btype->variant.integer.int_kind);
-            result_con->type = etype;
-          }  /* if */
-        }  /* if */
-        break;
-      case eok_call:
-      case eok_dot_member_call:
-      case eok_points_to_member_call:
-      case eok_dot_pm_call:
-      case eok_points_to_pm_call:
-        /* Try to fold a call if it's to a constexpr function. */
-        if (i_fold_constexpr_call(expr, ceblock, /*gnu_builtins_too=*/gnu_mode,
-                                  result_con)) {
-          folded = TRUE;
-        }  /* if */
-        break;
-      case eok_dot_field:
-      case eok_pm_field:
-        /* a.field or a.*field. */
-        op1_folded = fold_object_expr(op1, ceblock, /*want_addr=*/FALSE,
-                                      op1_constant);
-        if (op == (an_expr_operator_kind)eok_dot_field) {
-          goto field_selection;
-        } else {
-          goto pm_field_selection;
-        }  /* if */
-      case eok_points_to_field:
-      case eok_pm_points_to_field:
-        /* p->field or p->*field.  Try to fold the left operand to a
-           constant, then try to fold the field selection. */
-        op1_folded = fold_expr(op1, ceblock, op1_constant);
-        if (!op1_folded && is_variable_node(op1) &&
-            node_variable(op1)->is_this_parameter &&
-            (obj_expr_con =
-                       aggr_con_for_this_param(node_variable(op1))) != NULL) {
-          /* This member access expression refers to a field of an object
-             currently being initialized.  Use the address of that
-             in-progress constant as the pointer. */
-          set_temporary_address_constant(obj_expr_con, op1_constant);
-          op1_folded = TRUE;
-        }  /* if */
-        if (op == (an_expr_operator_kind)eok_pm_points_to_field) {
-          goto pm_field_selection;
-        }  /* if */
-field_selection:
-        if (op1_folded) {
-          a_boolean points_to =
-                            (op == (an_expr_operator_kind)eok_points_to_field);
-          if (fold_constant_field_selection(op1_constant, points_to,
-                                            op1->kind ==
-                                              (an_expr_node_kind)enk_param_ref,
-                                            node_field(op2), result_con)) {
-            folded = TRUE;
-          }  /* if */
-        }  /* if */
-        break;
-pm_field_selection:
-        if (op1_folded) {
-          a_constant_ptr pm_constant = local_constant();
-          if (fold_expr(op2, ceblock, pm_constant) &&
-              pm_constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
-              !pm_constant->variant.ptr_to_member.is_function_ptr &&
-              pm_constant->variant.ptr_to_member.variant.field != NULL) {
-            a_boolean points_to =
-                         (op == (an_expr_operator_kind)eok_pm_points_to_field);
-            if (fold_constant_field_selection(
-                              op1_constant, points_to,
-                              /*object_is_this=*/FALSE,
-                              pm_constant->variant.ptr_to_member.variant.field,
-                              result_con)) {
-              folded = TRUE;
-            }  /* if */
-          }  /* if */
-          release_local_constant(&pm_constant);
-        }  /* if */
-        break;
-      case eok_dot_static:
-        if (constant_dot_static_object_expr(op1, ceblock) ||
-            (gpp_mode && !cpp11_mode && !clang_mode &&
-             !node_has_side_effects(op1, (a_boolean *)NULL))) {
-          /* The object expression satisfies the requirements for appearing
-             in a constant dot-static expression; the result is a constant
-             if the second operand is. */
-          folded = fold_expr(op2, ceblock, result_con);
-        }  /* if */
-        break;
-      case eok_points_to_static:
-        if (fold_expr(op1, ceblock, op1_constant) ||
-            (gpp_mode && cpp11_mode && !clang_mode &&
-             !node_has_side_effects(op1, (a_boolean *)NULL))) {
-          /* The first operand is a constant or can be ignored; the result
-             is a constant if the second operand is. */
-          folded = fold_expr(op2, ceblock, result_con);
-        }  /* if */
-        break;
-      case eok_address_of:
-        /* &x.  If the underlying lvalue has a constant address, the result
-           is that address. */
-        folded = fold_glvalue_expr(op1, ceblock, result_con);
-        break;
-      case eok_reference_to:
-        /* The reference equivalent of &x.  If the underlying glvalue has a
-           constant address, the result is that address. */
-        if (is_glvalue_node(op1)) {
-          folded = fold_glvalue_expr(op1, ceblock, result_con);
-        } else {
-          folded = fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
-                                    result_con);
-        } /* if */
-        if (folded) result_con->type = expr->type;
-        break;
-      case eok_ref_cast:
-      case eok_lvalue_adjust:
-        /* An lvalue adjust or reference cast with an implicit lvalue-to-rvalue
-           conversion.  If the type change is only of cv-qualifiers, and we
-           know the address of the underlying glvalue, we can look and see if
-           we have a constant there.  (A reinterpret_cast cannot be part of a
-           C++11 constant expression.) */
-        if (op == (an_expr_operator_kind)eok_ref_cast &&
-            is_pointer_type(expr->type) &&
-            f_skip_typerefs(type_pointed_to(expr->type))->kind ==
-                                                     (a_type_kind)tk_routine) {
-          /* Use the referenced function type for the comparison. */
-          tp = f_skip_typerefs(type_pointed_to(expr->type));
-        } else {
-          tp = expr->type;
-        }  /* if */
-        if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
-            identical_types_ignoring_qualifiers(tp, op1->type) &&
-            fold_glvalue_expr(op1, ceblock, op1_constant)) {
-          if (tp->kind == (a_type_kind)tk_routine) {
-            /* The operand constant designates the function being cast. */
-            copy_constant_for_constexpr_evaluation(op1_constant, result_con);
-            folded = TRUE;
-          } else if (constant_value_at_address(
-                                          op1_constant,
-                                          (a_constexpr_evaluation_block *)NULL,
-                                          result_con) != NULL) {
-            /* The address designates a constant value, now in result_con. */
-            folded = TRUE;
-            result_con->type = expr->type;
-          }  /* if */
-        }  /* if */
-        break;
-      case eok_base_class_cast:
-        /* A cast of a prvalue to one of its base class subobjects. */
-        if ((is_glvalue_node(op1) &&
-             fold_glvalue_expr(op1, ceblock, addr_con) &&
-             constant_value_at_address(addr_con, ceblock, op1_constant) !=
-                                                                       NULL) ||
-            fold_expr(op1, ceblock, op1_constant)) {
-          if (op1_constant->kind == (a_constant_repr_kind)ck_template_param) {
-            /* A dependent constant.  Just change the type. */
-            type_change_constant(op1_constant, expr->type,
-                                 expr->variant.operation.compiler_generated,
-                                 /*maintain_expression=*/TRUE, &did_not_fold,
-                                 &pos);
-            if (!did_not_fold) {
-              folded = TRUE;
-              copy_constant_for_constexpr_evaluation(op1_constant,
-                                                     result_con);
-            }  /* if */
-          } else if (op1_constant->kind == (a_constant_repr_kind)ck_address ||
-                     is_null_pointer_value(op1_constant)) {
-            /* An address constant.  Fold the base class cast into it. */
-            if (is_template_dependent_type(expr->type)) {
-              make_template_param_cast_constant(
-                                  op1_constant, result_con, expr->type,
-                                  !expr->variant.operation.compiler_generated);
-              folded = TRUE;
-            } else {
-              /* Try to fold the base class cast. */
-              a_base_class_ptr bcp;
-              a_type_ptr       qual_base_type, base_type, derived_type;
-              qual_base_type = type_pointed_to(expr->type);
-              base_type = skip_typerefs(qual_base_type);
-              derived_type = type_pointed_to(op1->type);
-              derived_type = skip_typerefs(derived_type);
-              bcp = find_base_class_of(derived_type, base_type);
-              check_assertion(bcp != NULL);
-              fold_base_class_cast(op1_constant, bcp, qual_base_type,
-                                   result_con, /*check_cast_access=*/FALSE,
-                                   /*check_ambiguity=*/FALSE,
-                                   expr->variant.operation.compiler_generated,
-                                   /*is_object_pointer=*/TRUE, &did_not_fold,
-                                   &pos, &error_detected);
-              if (error_detected == ec_no_error && !did_not_fold) {
-                folded = TRUE;
-              }  /* if */
-            }  /* if */
-          } else if (op1_constant->kind ==
-                                          (a_constant_repr_kind)ck_aggregate) {
-            a_constant_ptr base_con;
-            /* Scan through the base class subaggregates looking for one that
-               matches the type to which the operand is being cast.  Because
-               eok_base_class_cast operations only traverse a single level,
-               we only need to look at the top-level subaggregates. */
-            for (base_con = op1_constant->variant.aggregate.first_constant;
-                 !folded && base_con != NULL &&
-                      base_con->constant_for_base_class_from_constexpr_folding;
-                 base_con = base_con->next) {
-              if (identical_types_ignoring_qualifiers(base_con->type,
-                                                                 expr->type)) {
-                /* This is the desired base class subobject. */
-                folded = TRUE;
-                copy_constant_for_constexpr_evaluation(base_con, result_con);
-                implicit_cast(result_con, expr->type);
-              }  /* if */
-            }  /* for */
-          } else {
-            unexpected_condition();
-          }  /* if */
-        }  /* if */
-        break;
-      default:
-        /* "Normal" operators.  For these, the operands have to be "real"
-            constants (not dynamic initializations) for folding to be
-            possible. */
-        op1_folded = (fold_expr(op1, ceblock, op1_constant) &&
-                      op1_constant->kind !=
-                                        (a_constant_repr_kind)ck_dynamic_init);
-        if (op2 != NULL) {
-          op2_folded = (fold_expr(op2, ceblock, op2_constant) &&
-                        op2_constant->kind !=
-                                        (a_constant_repr_kind)ck_dynamic_init);
-        }  /* if */
-        if (op1_folded && (op2_folded || op2 == NULL)) {
-          /* The operands are constants. */
-          switch (op) {
-            case eok_negate:
-            case eok_unary_plus:
-            case eok_complement:
-            case eok_not:
-            case eok_vector_not:
-#if C99_IL_EXTENSIONS_SUPPORTED
-            case eok_xconj:
-            case eok_real_part:
-            case eok_imag_part:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-              /* Foldable unary operators. */
-              unary_operation(op, op1_constant, expr->type,
-                              result_con,
-                              /*constant_context=*/TRUE,
-                              /*evaluated_context=*/TRUE,
-                              &did_not_fold,
-                              &template_constant,
-                              &error_detected,
-                              &pos);
-              if (error_detected == ec_no_error && !did_not_fold) {
-                folded = TRUE;
-              }  /* if */
-              break;
-            case eok_add:
-            case eok_subtract:
-            case eok_multiply:
-            case eok_divide:
-            case eok_remainder:
-            case eok_shiftl:
-            case eok_shiftr:
-            case eok_eq:
-            case eok_ne:
-            case eok_gt:
-            case eok_lt:
-            case eok_ge:
-            case eok_le:
-#if GNU_EXTENSIONS_ALLOWED
-            case eok_gnu_max:
-            case eok_gnu_min:
-#endif /* GNU_EXTENSIONS_ALLOWED */
-            case eok_and:
-            case eok_or:
-            case eok_xor:
-            case eok_land:
-            case eok_lor:
-#if C99_IL_EXTENSIONS_SUPPORTED
-            case eok_jmultiply:
-            case eok_jdivide:
-            case eok_fjadd:
-            case eok_jfadd:
-            case eok_fjsubtract:
-            case eok_jfsubtract:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-            case eok_pdiff:
-            case eok_padd:
-            case eok_psubtract:
-              /* Foldable binary (two-operand) operators. */
-              binary_operation(op, op1_constant, op2_constant, expr->type,
-                               result_con,
-                               /*constant_context=*/TRUE,
-                               /*evaluated_context=*/TRUE,
-                               &did_not_fold,
-                               &template_constant,
-                               &error_detected,
-                               &pos);
-              if (error_detected == ec_no_error && !did_not_fold) {
-                folded = TRUE;
-              }  /* if */
-              break;
-            case eok_subscript:
-              /* Subscripting is essentially the same as pointer addition,
-                 except that if the result of the operation is not an
-                 lvalue, it is the value pointed to by the result of the
-                 addition is desired. */
-              binary_operation((an_expr_operator_kind)eok_padd, op1_constant,
-                               op2_constant, expr->type, result_con,
-                               /*constant_context=*/TRUE,
-                               /*evaluated_context=*/TRUE,
-                               &did_not_fold,
-                               &template_constant,
-                               &error_detected,
-                               &pos);
-              if (error_detected == ec_no_error && !did_not_fold) {
-                folded = TRUE;
-                if (!is_glvalue_node(expr)) {
-                  /* The value, not the address, of the element is
-                     desired. */
-                  a_constant_ptr value_con = local_constant();
-                  if (constant_value_at_address(
-                                          result_con,
-                                          (a_constexpr_evaluation_block *)NULL,
-                                          value_con) != NULL) {
-                    /* The addressed element is a constant; use it. */
-                    copy_constant(value_con, result_con);
-                  } else {
-                    /* The addressed element is not a constant, so the
-                       operation cannot be folded. */
-                    folded = FALSE;
-                  }  /* if */
-                  release_local_constant(&value_con);
-                }  /* if */
-              }  /* if */
-              break;
-            case eok_cast:
-            case eok_bool_cast:
-            case eok_class_rvalue_adjust:
-              /* Cast. */
-              if (is_incomplete_type(expr->type)) {
-                /* Can't fold something like a cast to void. */
-              } else if (is_pointer_type(op1_constant->type) &&
-                         is_void_type(type_pointed_to(op1_constant->type)) &&
-                         is_pointer_to_object_type(expr->type)) {
-                /* Core issue 1312: can't fold a cast from pointer-to-void to
-                   pointer-to-object. */
-              } else if (could_be_dependent_class_type(expr->type) ||
-                         is_instantiation_dependent_type(expr->type) ||
-                         could_be_dependent_class_type(op1_constant->type)) {
-                /* Don't fold casts involving dependent class types unless
-                   the types are the same except for cv-qualifiers. */
-                if (identical_types_ignoring_qualifiers(expr->type,
-                                                        op1_constant->type)) {
-                  op1_constant->type = expr->type;
-                }  /* if */
-              } else {
-                a_boolean  evaluated = TRUE, constant_context = FALSE;
-                if (expr_stack != NULL) {
-                  evaluated = curr_expr_is_evaluated();
-                  constant_context = curr_expr_kind_is(ek_integral_constant) ||
-                                     curr_expr_kind_is(ek_template_arg);
-                }  /* if */
-                type_change_constant_full(
-                                    op1_constant, expr->type,
-                                    expr->variant.operation.compiler_generated,
-                                    constant_context,
-                                    evaluated,
-                                    /*fold_constant_addr_exprs=*/TRUE,
-                                    /*is_cli_attr_arg_expression=*/FALSE,
-                                    expr->variant.operation.compiler_generated,
-                                    /*check_ambiguity=*/TRUE,
-                                    /*is_reinterpret_cast=*/FALSE,
-                                    /*maintain_expression=*/FALSE,
-                                    &did_not_fold,
-                                    /*error_detected=*/(an_error_code *)NULL,
-                                    &pos);
-                if (!did_not_fold) {
-                  folded = TRUE;
-                  copy_constant(op1_constant, result_con);
-                }  /* if */
-              }  /* if */
-              break;
-            default:
-              /* Assume the operation can't be folded. */
-              break;
-          }  /* switch */
-          if (!folded && error_detected == ec_no_error && template_constant) {
-            /* A dependent expression: make a template param constant. */
-            make_template_param_expr_constant(expr, result_con);
-            folded = TRUE;
-          }  /* if */
-        }  /* if */
-        break;
-    }  /* switch */
-    release_local_constant(&addr_con);
-    release_local_constant(&op1_constant);
-    release_local_constant(&op2_constant);
-  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    folded = fold_dynamic_init(expr->variant.init.dynamic_init,
-                               expr->type,
-                               ceblock,
-                               result_con);
-  } else if (expr->kind == (an_expr_node_kind)enk_reuse_value) {
-    a_constexpr_remap_ptr crp;
-    /* An enk_reuse_value node can be folded if it refers to a constant
-       folded earlier in the same function invocation, represented by the
-       remap entries rooted in in_process_remap_list. */
-    for (crp = in_process_remap_list; crp != NULL; crp = crp->next) {
-      if (crp->arg_expr != NULL &&
-          crp->arg_expr->kind == (an_expr_node_kind)enk_temp_init &&
-          crp->arg_expr->variant.init.dynamic_init ==
-                                             expr->variant.reused_value_init) {
-        break;
-      }  /* if */
-    }  /* for */
-    if (crp != NULL &&
-        crp->constant_value.kind == (a_constant_repr_kind)ck_address) {
-      /* Map the result onto the earlier constant. */
-      *result_con = crp->constant_value;
-      folded = TRUE;
-    }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
-    /* Fold a builtin operation if possible. */
-    a_boolean not_a_constant;
-    fold_builtin_operation_if_possible(expr, result_con,
-                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &expr->position, ceblock, &not_a_constant);
-    folded = !not_a_constant;
-  } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
-    /* An enk_param_ref can be used in the initializer expression of a
-       class member to refer to the value of an already-initialized
-       member. In that case, the enk_param_ref is encoded as a "this"
-       pointer (param_num == 0) and designates the aggregate constant
-       currently being initialized. The result is an address constant for
-       that aggregate constant. */
-    folded = (constexpr_enabled &&
-              is_obj_expr_of_stacked_aggr_con(expr, result_con));
+    folded = FALSE;
+  } else {
+    a_diag_list  diag_list;
+    clear_diag_list(&diag_list);
+    folded = interpret_expr(expr, /*force_rvalue=*/FALSE, result_con,
+                            &diag_list);
+    discard_more_info_list(&diag_list);
   }  /* if */
-  return folding_result(folded);
+  return folded;
 }  /* fold_expr */
 
 
@@ -11388,17 +10574,13 @@ look for and return a constant address for the object.  pos gives
 the source position of the evaluation.
 */
 {
-  a_boolean                    folded;
-  a_constexpr_evaluation_block ceblock;
+  a_boolean    folded;
+  a_diag_list  diag_list;
 
-  clear_constexpr_evaluation_block(&ceblock, pos);
-  if (treat_as_object) {
-    folded = fold_object_expr(expr, &ceblock, /*want_addr=*/TRUE, result_con);
-  } else if (is_glvalue_node(expr)) {
-    folded = fold_glvalue_expr(expr, &ceblock, result_con);
-  } else {
-    folded = fold_expr(expr, &ceblock, result_con);
-  } /* if */
+  clear_diag_list(&diag_list);
+  folded = interpret_expr(expr, /*force_prvalue=*/FALSE, result_con,
+                          &diag_list);
+  discard_more_info_list(&diag_list);
   return folded;
 }  /* fold_constexpr_expr */
 
@@ -11758,370 +10940,6 @@ TRUE, record call_expr as a backing expression for the resulting constant.
 }  /* fold_constexpr_call */
 
 
-static a_boolean init_class_aggr_con_from_ctor_init_list(
-                                a_type_ptr                   class_type,
-                                an_expr_node_ptr             args,
-                                a_constexpr_evaluation_block *ceblock,
-                                a_constructor_init_ptr       *p_ctor_init_list,
-                                a_constant                   *aggr_con)
-/*
-As part of expanding a constexpr constructor invocation, take zero or more
-constructor-init entries from the list given by p_ctor_init_list and use
-them to initialize members of the class class_type.  If non-NULL, args is
-the argument list for the constructor invocation, for use in the case when
-a field's dynamic initialization is a dik_bitwise_copy with an implied
-source.  aggr_con is already a ck_aggregate constant on entry, possibly
-non-empty, and any member initializers are added at the end of the existing
-member constants list.  On return, *p_ctor_init_list is updated to point to
-the remaining constructor-inits on the list that have not been taken.
-Return TRUE if the initialization went okay, FALSE if there was some error
-that prevents folding.  ceblock gives context information for the
-evaluation.
-*/
-{
-  a_constructor_init_ptr ctor_init = *p_ctor_init_list;
-  a_field_ptr            field;
-  a_boolean              okay = TRUE;
-  a_constant_ptr         member_con = local_constant();
-  a_constant_ptr         source_obj = NULL;
-  a_boolean              source_cannot_be_folded = FALSE;
-
-  check_assertion(is_immediate_class_type(class_type));
-  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
-                  aggr_con->type == class_type);
-  /* Create an initializer for each member of the class. */
-  /*lint --e{850} field modified in loop */
-  for (field = next_non_generated_initializable_field(
-                            class_type->variant.class_struct_union.field_list);
-       field != NULL;
-       field = next_non_generated_initializable_field(field->next)) {
-    a_field_ptr    ctor_init_field = NULL;
-    if (ctor_init != NULL) {
-      check_assertion(ctor_init->kind == (a_constructor_init_kind)cik_field);
-      ctor_init_field = ctor_init->variant.field;
-      if (ctor_init_field != field && is_union_type(class_type)) {
-        /* If we're starting on a union, it might be that the next ctor-init
-           is for a member other than the first (or something inside it,
-           if one of the members is an anonymous union and the ctor-init
-           is for a member of the anonymous union). */
-        a_field_ptr tfield = ctor_init_field;
-        for (;;) {
-          a_symbol_ptr tfield_sym, parent_object_sym;
-          a_type_ptr   tfield_class = parent_class_of(tfield);
-          if (tfield_class == class_type) {
-            /* We found the field of the union that is or contains the field
-               initialized by the ctor-init. */
-            if (field != tfield) {
-              /* For a member other than the first, add a designator. */
-              a_constant_ptr des_con =
-                           alloc_constant((a_constant_repr_kind)ck_designator);
-              field = tfield;
-              des_con->variant.designator.is_field_designator = TRUE;
-              des_con->variant.designator.variant.field = field;
-              add_constant_to_aggregate(des_con, aggr_con);
-            }  /* if */
-            break;
-          }  /* if */
-          /* If tfield is a member of an anonymous union, go up one level
-             and try the match there. */
-          tfield_sym = symbol_for(tfield);
-          check_assertion(tfield_sym != NULL);
-          parent_object_sym= tfield_sym->variant.field.anonymous_parent_object;
-          if (parent_object_sym == NULL) {
-            /* This can come up when an anonymous union contains no
-               initializable members, e.g.,
-                 union { union {}; union {}; };
-               We just proceed to initializing the first member of the union,
-               which will be done without taking any ctor-inits, and then
-               the ctor-init will be tried again after the union. */
-            break;
-          }  /* if */
-          check_assertion(symbol_is(parent_object_sym, sk_field));
-          tfield = parent_object_sym->variant.field.ptr;
-        }  /* for */
-      }  /* if */
-    }  /* if */
-    if (field->is_anonymous_parent_object) {
-      /* For an anonymous union, create a sub-aggregate value and initialize
-         that.  The processing may take zero ctor-inits if the anonymous
-         union is empty.  It will typically take one ctor-init, for one
-         member of the union.  It may take several ctor-inits, for an
-         anonymous struct. */
-      clear_constant(member_con, (a_constant_repr_kind)ck_aggregate);
-      member_con->type = field->type;
-      if (!init_class_aggr_con_from_ctor_init_list(field->type, args, ceblock,
-                                                   &ctor_init, member_con)) {
-        /* There was some error in processing. */
-        okay = FALSE;
-        break;
-      }  /* if */
-      add_constant_to_aggregate(alloc_unshared_constant(member_con),
-                                aggr_con);
-    } else {
-      /* Normal case, not an anonymous parent object.  Initialize directly. */
-      if (ctor_init == NULL) {
-        /* The constructor fails to initialize some field. */
-        expect_error();
-        okay = FALSE;
-        break;
-      } else {
-        a_dynamic_init_ptr dip;
-        a_boolean          implicit_source_case = FALSE;
-        a_constant_ptr     source_member_con;
-        if (ctor_init_field != field) {
-          /* Something is messed up, e.g., there's a field that's not
-             represented by a ctor-init. */
-          expect_error();
-          okay = FALSE;
-          break;
-        }  /* if */
-        if (ctor_init->use_field_initializer) {
-          /* The field has an NSDMI.  Use it. */
-          dip = ctor_init_field->initializer;
-        } else {
-          /* Use the initializer from the constructor-init. */
-          dip = ctor_init->initializer;
-        }  /* if */
-        check_assertion(dip != NULL);
-        /* Try to fold the initialization to a constant. */
-        if (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
-            dip->variant.bitwise_copy.source == NULL &&
-            !source_cannot_be_folded) {
-          /* The source is implied, coming either from the constructor
-             argument or from an implicit value-initialized object. */
-          if (args == NULL) {
-            /* This represents a value-initialization case, so create an
-               appropriate constant and use it to temporarily transform the
-               initialization to a dik_constant. */
-            source_member_con = local_constant();
-            if (is_array_type(field->type) ||
-                is_class_struct_union_type(field->type)) {
-              /* The value will be an empty aggregate. */
-              clear_constant(source_member_con,
-                             (a_constant_repr_kind)ck_aggregate);
-              source_member_con->type = field->type;
-            } else {
-              /* The value will be a zero of the required type. */
-              make_zero_of_proper_type(field->type, source_member_con);
-            }  /* if */
-            implicit_source_case = TRUE;
-            dip->kind = (a_dynamic_init_kind)dik_constant;
-            dip->variant.constant = source_member_con;
-          } else {
-            /* Try to extract a constant value from the corresponding field
-               of the constructor argument and, if successful, temporarily
-               transform the dynamic initializer to a dik_constant. */
-            if (source_obj == NULL && !source_cannot_be_folded) {
-              /* Attempt to fold the constructor argument into a constant. */
-              a_constant_ptr addr_con = local_constant();
-              if (fold_expr(args, ceblock, addr_con)) {
-                check_assertion(addr_con->kind ==
-                                             (a_constant_repr_kind)ck_address);
-                source_obj = local_constant();
-                if (constant_value_at_address(addr_con, ceblock, source_obj) ==
-                                                                        NULL) {
-                  source_cannot_be_folded = TRUE;
-                  release_local_constant(&source_obj);
-                }  /* if */
-              } else {
-                source_cannot_be_folded = TRUE;
-              }  /* if */
-              release_local_constant(&addr_con);
-            }  /* if */
-            if (source_obj != NULL) {
-              /* Try to extract a constant for the relevant member. */
-              source_member_con = local_constant();
-              if (fold_constant_field_selection(source_obj,
-                                                /*pointer_case=*/FALSE,
-                                                /*object_is_this=*/FALSE,
-                                                field,
-                                                source_member_con)) {
-                /* Convert the initializer to a constant initialization. */
-                implicit_source_case = TRUE;
-                dip->kind = (a_dynamic_init_kind)dik_constant;
-                dip->variant.constant = source_member_con;
-              } else {
-                release_local_constant(&source_member_con);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (!fold_dynamic_init(dip, ctor_init_field->type,
-                               ceblock, member_con)) {
-          okay = FALSE;
-        }  /* if */
-        if (implicit_source_case) {
-          /* Restore the original values in the dynamic initializer and
-             release the local constant. */
-          dip->kind = (a_dynamic_init_kind)dik_bitwise_copy;
-          dip->variant.bitwise_copy.source = NULL;
-          release_local_constant(&source_member_con);
-        }  /* if */
-        if (!okay) {
-          break;
-        }  /* if */
-        add_constant_to_aggregate(alloc_unshared_constant(member_con),
-                                  aggr_con);
-        ctor_init = ctor_init->next;
-      }  /* if */
-    }  /* if */
-    /* Only initialize one member of a union. */
-    if (is_union_type(class_type)) break;
-  }  /* for */
-  *p_ctor_init_list = ctor_init;
-  release_local_constant(&member_con);
-  if (source_obj != NULL) {
-    release_local_constant(&source_obj);
-  }  /* if */
-  return okay;
-}  /* init_class_aggr_con_from_ctor_init_list */
-
-
-static a_boolean i_fold_constexpr_ctor(
-                                     a_dynamic_init_ptr           ctor_dip,
-                                     a_constexpr_evaluation_block *ceblock,
-                                     a_constant                   *result_con)
-/*
-ctor_dip is a dik_constructor dynamic initialization.  If the
-constructor invoked is declared constexpr, try to fold the
-construction to a constant class object.  If that's possible, place
-the constant in *result_con and return TRUE; otherwise, return FALSE.
-ceblock gives context information for the evaluation.  This is the
-internal version of the routine, as indicated by the "i_" prefix;
-fold_constexpr_ctor should usually be called instead.
-*/
-{
-  a_boolean        folded = FALSE;
-  a_routine_ptr    ctor_routine;
-  an_expr_node_ptr args;
-  a_constexpr_call call_block;
-
-  check_assertion(ctor_dip != NULL);
-  if (is_error_dynamic_init(ctor_dip)) goto end_of_routine;
-  check_assertion(ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
-  if (relaxed_constexpr_enabled) {
-    a_diag_list  diag_list;
-    clear_diag_list(&diag_list);
-    folded = interpret_constexpr_ctor(ctor_dip, result_con, &diag_list);
-    discard_more_info_list(&diag_list);
-    goto end_of_routine;
-  }  /* if */
-  ctor_routine = ctor_dip->variant.constructor.ptr;
-  args = ctor_dip->variant.constructor.args;
-  if (incr_constexpr_call_depth(ceblock, &call_block)) {
-    /* Calls too deep -- possible infinite recursion. */
-  } else if (ctor_routine == NULL) {
-    /* Don't know the called constructor (e.g., a dependent case), so can't
-       fold. */
-  } else if (!ctor_routine->is_constexpr) {
-    /* The constructor is not constexpr, so can't fold. */
-  } else if (!constexpr_routine_has_definition(ctor_routine)) {
-    /* The constructor has no definition, so can't fold. */
-  } else {
-    a_scope_ptr scope = scope_for_routine(ctor_routine);
-    check_assertion(special_kind_is(ctor_routine, sfk_constructor) &&
-                    scope->kind == (a_scope_kind)sck_function);
-    if (scope->is_constexpr_routine) {
-      a_type_ptr            class_type = parent_class_of(ctor_routine);
-      a_boolean             not_foldable;
-      a_constexpr_remap_ptr saved_remap_list = ceblock->remap_list;
-      /* Set up remapping of parameter variables to the argument values. */
-      ceblock->remap_list = constexpr_remap_list_for_args(
-                                                 scope, args,
-                                                 /*this_arg_is_pointer=*/FALSE,
-                                                 ceblock,
-                                                 &not_foldable);
-      if (not_foldable) {
-        /* Some problem that prevents folding. */
-      } else {
-        a_constant_ptr        aggr_con = local_constant();
-        a_constant_ptr        con = local_constant();
-        an_aggr_init_con_elem aggr_init_con;
-        clear_constant(aggr_con, (a_constant_repr_kind)ck_aggregate);
-        push_aggr_init_constant(aggr_con, &aggr_init_con);
-        aggr_con->type = class_type;
-        /* Update the mapping for "this" in ceblock to be a pointer to the
-           aggregate constant being created, so that references to
-           previously-initialized fields can be folded. */
-        check_assertion(scope->variant.routine.this_param_variable ==
-                        ceblock->remap_list->param_var);
-        set_temporary_address_constant(aggr_con,
-                                       &ceblock->remap_list->constant_value);
-        ceblock->remap_list->is_constant = TRUE;
-        if (ctor_routine->is_delegating_ctor) {
-          /* The constructor delegates to another constructor.  Fold the
-             delegating initializer. */
-          a_constructor_init_ptr ctor_init =
-                   scope->variant.routine.variant.constexpr_constructor_inits;
-          check_assertion(ctor_init != NULL &&
-                          ctor_init->kind ==
-                                     (a_constructor_init_kind)cik_delegation);
-          folded = fold_dynamic_init(ctor_init->initializer,
-                                     class_type, ceblock, aggr_con);
-          if (!folded) goto fail;
-        } else {
-          /* Substitute values for parameters and attempt to fold the
-             ctor-initializers.  Each one provides a value for one base
-             class or nonstatic data member. */
-          a_constructor_init_ptr ctor_init;
-          /* Add a member constant for each ctor-init for a base class. */
-          for (ctor_init =
-                    scope->variant.routine.variant.constexpr_constructor_inits;
-               ctor_init != NULL &&
-                 (ctor_init->kind ==
-                             (a_constructor_init_kind)cik_virtual_base_class ||
-                  ctor_init->kind ==
-                             (a_constructor_init_kind)cik_direct_base_class);
-               ctor_init = ctor_init->next) {
-            /* Try to fold the initialization to a constant. */
-            if (!fold_dynamic_init(ctor_init->initializer,
-                                   ctor_init->variant.base_class->type,
-                                   ceblock, con)) {
-              goto fail;
-            }  /* if */
-            con->constant_for_base_class_from_constexpr_folding = TRUE;
-            /* Add the constant at the end of the aggregate. */
-            add_constant_to_aggregate(alloc_unshared_constant(con),
-                                      aggr_con);
-          }  /* for */
-          /* Now process the ctor-inits for the nonstatic data members of
-             the class. */
-          if (!init_class_aggr_con_from_ctor_init_list(class_type, args,
-                                                       ceblock, &ctor_init,
-                                                       aggr_con)) {
-            /* There was some error in processing. */
-            goto fail;
-          }  /* if */
-          /* Make sure we took all the ctor-inits. */
-          check_assertion(ctor_init == NULL);
-        }  /* if */
-        /* We succeeded in generating a constant for the class value. */
-        if (contains_dangling_pointer(aggr_con, ceblock->active_calls,
-                                      /*end_of_full_expr=*/FALSE)) {
-          /* The constant produced has a dangling pointer, so it's not
-             considered constant. */
-          folded = FALSE;
-          ceblock->failure_warning = ec_constexpr_dangling_pointer;
-        } else {
-          folded = TRUE;
-          copy_constant(aggr_con, result_con);
-          result_con->is_result_of_constexpr_call = TRUE;
-        }  /* if */
-fail:;
-        release_local_constant(&con);
-        release_local_constant(&aggr_con);
-        pop_aggr_init_constant(&aggr_init_con);
-      }  /* if */
-      free_constexpr_remap_list(ceblock->remap_list);
-      ceblock->remap_list = saved_remap_list;
-    }  /* if */
-  }  /* if */
-  decr_constexpr_call_depth(ceblock);
-end_of_routine:
-  return folding_result(folded);
-}  /* i_fold_constexpr_ctor */
-
-
 void add_temp_init_backing_expression(a_constant         *con,
                                       a_dynamic_init_ptr dip)
 /*
@@ -12153,19 +10971,13 @@ check_constexpr is TRUE, call call_did_not_fold_to_constant if folding did
 not succeed.
 */
 {
-  a_boolean                    folded;
-  a_constexpr_evaluation_block ceblock;
+  a_boolean    folded;
   a_diag_list  diag_list;
 
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   clear_diag_list(&diag_list);
-  if (relaxed_constexpr_enabled) {
-    folded = interpret_constexpr_ctor(ctor_dip, result_con, &diag_list);
-  } else {
-    clear_constexpr_evaluation_block(&ceblock, pos);
-    folded = i_fold_constexpr_ctor(ctor_dip, &ceblock, result_con);
-  }  /* if */
+  folded = interpret_constexpr_ctor(ctor_dip, result_con, &diag_list);
   if (folded) {
     if (record_backing_expr) {
       add_temp_init_backing_expression(result_con, ctor_dip);
@@ -12189,257 +11001,6 @@ not succeed.
 }  /* fold_constexpr_ctor */
 
 
-static a_boolean fold_constant_field_selection(a_constant   *object_con,
-                                               a_boolean    object_is_pointer,
-                                               a_boolean    object_is_this,
-                                               a_field_ptr  field,
-                                               a_constant   *result_con)
-/*
-Fold a constant field selection to a constant result.  object_con is the
-object (or a pointer to the object if object_is_pointer is TRUE), and field
-is the field to be selected.  If object_is_this is TRUE, object_con
-represents an enk_param_ref node referring to an object that is currently
-being initialized.  If the result is a constant, set *result_con to the
-value of the extracted field and return TRUE; otherwise, return FALSE.
-*/
-{
-  a_boolean      folded = FALSE;
-  a_constant_ptr eff_obj_con = NULL;
-  a_boolean      empty_anonymous_union_initializer = FALSE;
-
-  if (object_is_pointer) {
-    /* eok_points_to_field case.  See if the pointer value points to
-       a constant. */
-    eff_obj_con = constant_value_at_address(
-                                          object_con,
-                                          (a_constexpr_evaluation_block *)NULL,
-                                          (a_constant_ptr)NULL);
-  } else {
-    /* eok_dot_field case. */
-    eff_obj_con = object_con;
-  }  /* if */
-  if (eff_obj_con != NULL &&
-      eff_obj_con->kind == (a_constant_repr_kind)ck_aggregate &&
-      is_real_class_type(eff_obj_con->type) &&
-      !field->is_mutable) {
-    /* We've found a constexpr object.  Now find the element of the
-       aggregate that corresponds to the specified field and set
-       result_con to it. */
-    a_constant_ptr   member_con =
-                                 eff_obj_con->variant.aggregate.first_constant;
-    a_type_ptr       class_type = skip_typerefs(eff_obj_con->type);
-    a_field_ptr      curr_field = next_non_generated_initializable_field(
-                            class_type->variant.class_struct_union.field_list);
-    a_type_ptr       parent_of_field = parent_class_of(field);
-    a_type_ptr       anon_union_member_type = NULL;
-    int              anon_union_member_depth = 0;
-    a_boolean        union_member_mismatch = FALSE;
-    a_boolean        implicit_constant = FALSE;
-    a_boolean        may_have_designator =
-                                     eff_obj_con->uses_designated_initializers;
-    /* Check to see if the requested field is a member of an anonymous
-       union.  If so, set anon_union_member_type to be the type of the
-       immediate anonymous union member of class_type and set
-       anon_union_member_depth to indicate the number of layers of
-       anonymous unions between class_type and field. */
-    while (class_type_supp(parent_of_field)->anonymous_union_kind ==
-                                          (an_anonymous_union_kind)auk_field) {
-      check_assertion(parent_of_field != NULL);
-      anon_union_member_type = parent_of_field;
-      ++anon_union_member_depth;
-      parent_of_field = parent_class_of(parent_of_field);
-    }  /* while */
-    /* First skip over any base class subobjects in the value. */
-    while (member_con != NULL &&
-           member_con->constant_for_base_class_from_constexpr_folding) {
-      member_con = member_con->next;
-    }  /* while */
-    if (class_type->kind == (a_type_kind)tk_union) {
-      /* A union has only one active element, and in a constant it is the
-         one that was initialized: either the first element or, because of
-         a constructor initializer or non-static data member initializer,
-         the one identified by a ck_designator in the object's value.  If
-         the requested field is not the active element, the expression is
-         not a constant expression. */
-      if (member_con != NULL &&
-          member_con->kind == (a_constant_repr_kind)ck_designator) {
-        /* The designator identifies the field being requested.  The
-           value follows the designator in the ck_aggregate. */
-        curr_field = member_con->variant.designator.variant.field;
-        member_con = member_con->next;
-      }  /* if */
-      if (curr_field != field && curr_field->type != anon_union_member_type) {
-        union_member_mismatch = TRUE;
-      }  /* if */
-    } else {
-      /* Step through the elements of the initializer constant and the
-         fields of class_type, breaking out of the loop when we've found
-         either the indicated field or the anonymous union member of which
-         the indicated field is a (possibly indirect) member. */
-      a_boolean      found = FALSE;
-      a_constant_ptr possible_value = NULL;
-      a_field_ptr    possible_field = NULL;
-      while (!found && (member_con != NULL || curr_field != NULL)) {
-        if (member_con != NULL &&
-            member_con->kind == (a_constant_repr_kind)ck_designator) {
-          /* Set curr_field to the designated field and advance
-             member_con to the associated value. */
-          check_assertion(member_con->variant.designator.is_field_designator);
-          curr_field = member_con->variant.designator.variant.field;
-          member_con = member_con->next;
-        }  /* if */
-        if (curr_field == NULL) {
-          /* We've run out of fields. */
-          break;
-        }  /* if */
-        if (curr_field->type == anon_union_member_type) {
-          /* We have found the anonymous union member to which field
-             belongs. */
-          check_assertion(curr_field->is_anonymous_parent_object);
-          found = TRUE;
-        } else if (curr_field == field) {
-          if (may_have_designator) {
-            /* Record this field's value, if any, as a possible result and
-               continue the loop in case of a later designator. */
-            possible_value = member_con;
-            possible_field = curr_field;
-            if (member_con != NULL) {
-              member_con = member_con->next;
-            }  /* if */
-            curr_field =
-                      next_non_generated_initializable_field(curr_field->next);
-          } else {
-            /* This field's value, if any, is the result. */
-            found = TRUE;
-          }  /* if */
-        } else {
-          /* This field is not the one we're looking for. */
-          if (member_con != NULL) {
-            member_con = member_con->next;
-          }  /* if */
-          curr_field =
-                      next_non_generated_initializable_field(curr_field->next);
-        }  /* if */
-      }  /* while */
-      if (!found && possible_value != NULL) {
-        /* Use the last designated value as the result. */
-        member_con = possible_value;
-        curr_field = possible_field;
-      }  /* if */
-    }  /* if */
-    if (member_con != NULL && !union_member_mismatch) {
-      check_assertion(curr_field != NULL);
-      /* If the field is a member of an anonymous union, scan through
-         the aggregates in which the value is nested. */
-      while (member_con != NULL && anon_union_member_depth-- > 0) {
-        if (is_error_constant(member_con) ||
-            !(member_con->kind == (a_constant_repr_kind)ck_aggregate &&
-              member_con->variant.aggregate.first_constant ==
-                                member_con->variant.aggregate.last_constant)) {
-          /* There was an error in the initializer, so this access cannot
-             be folded. */
-          break;
-        }  /* if */
-        member_con = member_con->variant.aggregate.first_constant;
-        if (member_con == NULL) {
-          empty_anonymous_union_initializer = TRUE;
-        }  /* if */
-      }  /* while */
-    }  /* if */
-    if (union_member_mismatch) {
-      /* The access cannot be folded. */
-    } else if (member_con == NULL) {
-#if CHECKING
-      if (!eff_obj_con->partial_aggr_value &&
-          !eff_obj_con->is_partially_initialized &&
-          curr_init_aggr_con == NULL &&
-          !empty_anonymous_union_initializer) {
-        /* This must have been the result of an error upstream. */
-        expect_error();
-      }  /* if */
-#endif /* CHECKING */
-      if (!eff_obj_con->partial_aggr_value &&
-          !eff_obj_con->is_partially_initialized &&
-          object_is_this && !empty_anonymous_union_initializer) {
-        /* This is a reference to a yet-uninitialized member of an object
-           currently being initialized, so it is not a constant expression
-           and cannot be folded. */
-      } else {
-        /* We don't have an explicit constant, so the field was
-           value-initialized, either explicitly or because of a short
-           initializer.  Make a zero constant of the requisite type and use
-           that. */
-        folded = make_value_initialized_constant(field->type, result_con);
-      }  /* if */
-      implicit_constant = TRUE;
-    } else {
-      copy_constant(member_con, result_con);
-    }  /* if */
-    if (union_member_mismatch) {
-      /* The access cannot be folded. */
-    } else if (implicit_constant) {
-      /* No further checking is needed. */
-    } else if (is_error_type(result_con->type)) {
-      /* There was an error in the initializer. */
-      folded = TRUE;
-      set_error_constant(result_con);
-    } else if (anon_union_member_type != NULL) {
-      /* The type of the initializer constant will be that of the first
-         member of the union, but field can be any member of the union and
-         thus might not have the same type.  Make sure the types are
-         compatible; if not, it's undefined behavior, which causes the
-         expression not to be constant. */
-      folded = types_are_compatible(result_con->type, field->type);
-    } else {
-      /* Make sure we found the right constant for the field: at a minimum,
-         the types should be the same except for cv-qualifiers. */
-      a_type_ptr con_type = result_con->type;
-      a_type_ptr field_type = field->type;
-      a_boolean  reference_case = FALSE;
-      if (is_any_reference_type(con_type) &&
-          is_any_reference_type(field_type)) {
-        /* An rvalue reference field can have an lvalue reference
-           initial value. */
-        con_type = type_pointed_to(con_type);
-        field_type = type_pointed_to(field_type);
-        reference_case = TRUE;
-      }  /* if */
-      if (is_array_type(field_type) && is_array_type(con_type)) {
-        field_type = skip_typerefs(field_type);
-        con_type = skip_typerefs(con_type);
-        if (!has_unknown_specified_bound(field_type) &&
-            !has_unknown_specified_bound(con_type) &&
-            (field_type->variant.array.variant.number_of_elements == 0 ||
-             field_type->variant.array.variant.number_of_elements >
-                         con_type->variant.array.variant.number_of_elements)) {
-          /* A member may have an unknown bound, completed by the
-             initializer, or the initializer may have fewer elements than
-             the member.  In these cases, we can't compare the array types
-             directly, but the element types must match. */
-          field_type = array_element_type(field_type);
-          con_type = array_element_type(con_type);
-        }  /* if */
-      }  /* if */
-      check_assertion(identical_types_ignoring_qualifiers(con_type,
-                                                          field_type));
-      if (reference_case &&
-          result_con->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* A reference cannot be initialized by an aggregate.  This can
-           occur as a result of upstream errors. */
-        folded = FALSE;
-      } else {
-        folded = TRUE;
-      }  /* if */
-    }  /* if */
-  } else if (eff_obj_con != NULL &&
-             is_error_constant(eff_obj_con)) {
-    set_error_constant(result_con);
-    folded = TRUE;
-  }  /* if */
-  return folding_result(folded);
-}  /* fold_constant_field_selection */
-
-
 a_boolean fold_constexpr_member_selection(an_expr_node_ptr  expr,
                                           a_constant        *result_con,
                                           a_source_position *pos)
@@ -12455,9 +11016,7 @@ errors.
 {
   a_boolean        folded = FALSE;
   a_type_ptr       obj_expr_type;
-  a_boolean        pointer_case = FALSE;
   an_expr_node_ptr obj_expr;
-  an_expr_node_ptr field_expr;
 
   check_assertion(constexpr_enabled &&
                   is_operation_node(expr) &&
@@ -12465,7 +11024,6 @@ errors.
                    node_operator_is(expr, eok_points_to_field)));
   /* Get the operands and the type of the object expression. */
   obj_expr = expr->variant.operation.operands;
-  field_expr = obj_expr->next;
   obj_expr_type = obj_expr->type;
   /* Watch out for dependent types. */
   if (is_template_param_or_nonreal_class_type(obj_expr_type)) {
@@ -12473,7 +11031,6 @@ errors.
   } else {
     if (node_operator_is(expr, eok_points_to_field)) {
       obj_expr_type = type_pointed_to(obj_expr->type);
-      pointer_case = TRUE;
       if (is_template_param_or_nonreal_class_type(obj_expr_type)) {
         obj_expr_type = NULL;
       }  /* if */
@@ -12484,45 +11041,12 @@ errors.
     obj_expr_type = skip_typerefs(obj_expr_type);
     check_assertion(is_immediate_class_type(obj_expr_type));
     if (!obj_expr_type->incomplete && is_literal_type(obj_expr_type)) {
-      /* The object expression has a literal type.  Now check to see if it
-         is a compile-time constant and, if so, set obj_expr_con to point
-         to it. */
-      a_constant_ptr local_con = local_constant();
-      a_constant_ptr obj_expr_con = NULL;
-      if (pointer_case) {
-        /* eok_points_to_field case.  Check to see if we have a pointer
-           constant as the left operand. */
-        if (constant_prvalue_pointer(obj_expr, local_con,
-                                     /*address_escapes=*/FALSE)) {
-          obj_expr_con = local_con;
-        }  /* if */
-      } else if (is_glvalue_node(obj_expr)) {
-        /* The member selection can be folded if the object expression
-           addresses a constant value... */
-        obj_expr_con = constant_value_addressed_by_node(obj_expr, pos);
-      } else if (is_constant_node(obj_expr)) {
-        /* ... or if the object expression is a class value constant... */
-        obj_expr_con = node_constant(obj_expr);
-      } else if (expr->is_xvalue &&
-                 fold_constexpr_expr(obj_expr, /*treat_as_object=*/FALSE,
-                                     pos, local_con)) {
-        /* ... or if the member access produces an xvalue and the object
-           expression can be folded to a class value constant.  (We only do
-           this folding for xvalue expressions because an lvalue
-           expression, as member access expressions produced before core
-           issue 616, can appear where constants are not allowed.) */
-        obj_expr_con = local_con;
-      }  /* if */
-      /* If we have a constant for the first operand, see if we can fold the
-         whole selection to a constant result. */
-      if (obj_expr_con != NULL &&
-          fold_constant_field_selection(obj_expr_con, pointer_case,
-                                        obj_expr->kind ==
-                                              (an_expr_node_kind)enk_param_ref,
-                                        node_field(field_expr), result_con)) {
-        folded = TRUE;
-      }  /* if */
-      release_local_constant(&local_con);
+      /* Interpret the member selection operation. */
+      a_diag_list  diag_list;
+      clear_diag_list(&diag_list);
+      folded = interpret_expr(expr, /*force_prvalue=*/TRUE, result_con,
+                              &diag_list);
+      discard_more_info_list(&diag_list);
     }  /* if */
   }  /* if */
   return folding_result(folded);

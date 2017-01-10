@@ -758,14 +758,16 @@ typedef struct an_interpreter_state {
 			/* TRUE if static_storage has been initialized. */
   a_bit_field
 		side_effects_disabled:1;
-			/* TRUE if side-effects (specifically: assignments,
-			   increments/decrements, and diagnostic records) are
-			   disabled.  Any such side-effects cause
-			   interpretation failure (without a diagnostic
-			   record), but interpretation can be restarted from
-			   any point since side-effects were disabled (this is
-			   used to implement __builtin_constant_p (a GCC
-			   extension). */
+			/* TRUE if side-effects (specifically: assignments and
+			   increments/decrements) are disabled.  Any such side-
+			   effects cause interpretation failure.  Used for
+			   C++11 constexpr evaluation and to implement
+			   __builtin_constant_p (a GCC extension). */
+  a_bit_field
+		suspend_diag_list;
+			/* TRUE if diagnostic records should not be added to
+			   diag_list.  Used to implement __builtin_constant_p
+			   (a GCC extension). */
   a_bit_field
 		input_error:1;
 			/* TRUE if interpretation failed because an error
@@ -887,7 +889,8 @@ Initialize the given interpreter state.
   ips->position = null_source_position;
   ips->cost = 0;
   ips->static_storage_ready = FALSE;
-  ips->side_effects_disabled = FALSE;
+  ips->side_effects_disabled = !relaxed_constexpr_enabled;
+  ips->suspend_diag_list = FALSE;
   ips->input_error = FALSE;
 }  /* init_interpreter_state */
 
@@ -1676,7 +1679,6 @@ interpreter value at targ_addr (or a null pointer).
   ((a_constexpr_address *)(addr))->complete_object = (targ_addr);
   
 
-
 /*
 Macro to initialize a constant address at addr referring to the function
 denoted by the IL a_routine entry rout.
@@ -1747,7 +1749,7 @@ for interpretation failure.  Also record annotations describing the call
 stack.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_diagnostic(err_code, pos, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1764,7 +1766,7 @@ for interpretation failure.  Also record annotations describing the call
 stack.  Use the given type to replace fill-ins.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1782,7 +1784,7 @@ for interpretation failure.  Also record annotations describing the call
 stack.  Use the given types to replace fill-ins.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_type2_diagnostic(err_code, pos, tp1, tp2, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1799,7 +1801,7 @@ for interpretation failure.  Also record annotations describing the call
 stack.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1817,7 +1819,7 @@ for interpretation failure.  Also record annotations describing the call
 stack.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1834,7 +1836,7 @@ for interpretation failure.  Use sym for placeholder substitution in the
 diagnostic string.  Also record annotations describing the call stack.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1852,7 +1854,7 @@ for interpretation failure.  Use sym and type for placeholder substitution in
 the diagnostic string.  Also record annotations describing the call stack.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -1870,7 +1872,7 @@ for interpretation failure.  Use sym1 and sym2 for placeholder substitution in
 the diagnostic string.  Also record annotations describing the call stack.
 */
 {
-  if (!ips->side_effects_disabled) {
+  if (!ips->suspend_diag_list) {
     more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
     info_call_stack(ips);
   }  /* if */
@@ -2964,15 +2966,19 @@ to those anonymous union objects.
 
   au_parent = au_sym->variant.field.anonymous_parent_object;
   if (au_parent != NULL) {
-    /* aufp is not the top-most anonymous union.  Recurse to determine its
-       parent's address, then append a variant entry to select it. */
-    make_anon_union_path(au_parent, p_last_entry, p_addr);
-    vpep = alloc_variant_path_entry();
-    vpep->next = NULL;
-    vpep->field = aufp;
-    vpep->base_address = *p_addr;
-    (*p_last_entry)->next = vpep;
-    *p_last_entry = vpep;
+    a_type_ptr  au_type = au_parent->variant.field.ptr->type;
+    if (au_type->kind == (a_type_kind)tk_union &&
+        !au_type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+      /* aufp is not the top-most anonymous union.  Recurse to determine its
+         parent's address, then append a variant entry to select it. */
+      make_anon_union_path(au_parent, p_last_entry, p_addr);
+      vpep = alloc_variant_path_entry();
+      vpep->next = NULL;
+      vpep->field = aufp;
+      vpep->base_address = *p_addr;
+      (*p_last_entry)->next = vpep;
+      *p_last_entry = vpep;
+    }  /* if */
   }  /* if */
   get_mapped_byte_count(&persistent_map, aufp, offset);
   *p_addr += offset;
@@ -2985,9 +2991,10 @@ static a_boolean add_to_variant_path(a_constexpr_address  *addr,
 The given field of a union object or subobject pointed to by addr is being
 selected.  Add that field to the variant path associated with addr (and, if
 this is the first field added to the path, also add a prefix field for array
-element selections).  If union_field is an anonymous union field, addr->address
-is adjusted to the innermost anonymous union parent and additional variant path
-entries are added for nested anonymous unions if needed.
+element selections).  If union_field is a standard anonymous union field,
+addr->address is adjusted to the innermost anonymous union parent and
+additional variant path entries are added for nested anonymous unions if
+needed.
 */
 {
   a_variant_path_entry_ptr  last_entry, vpep;
@@ -3009,7 +3016,11 @@ entries are added for nested anonymous unions if needed.
   }  /* if */
   au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
   if (au_parent != NULL) {
-    make_anon_union_path(au_parent, &last_entry, &addr->address);
+    a_type_ptr  au_type = au_parent->variant.field.ptr->type;
+    if (au_type->kind == (a_type_kind)tk_union &&
+        !au_type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+      make_anon_union_path(au_parent, &last_entry, &addr->address);
+    }  /* if */
   }  /* if */
   /* An ordinary union member.  Just add a new entry. */
   vpep = alloc_variant_path_entry();
@@ -3425,6 +3436,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {
                   alloc_static_object(ips, vtp, var_bytes, &result);
+                  map_stack_bytes(ips, vp, var_bytes);
                   if (result) {
                     a_constant_ptr  cp = NULL;
                     if (vp->init_kind == (an_init_kind)initk_static) {
@@ -3460,7 +3472,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   }  /* if */
                   if (!result) break;
                   mark_complete_object_initialized(var_bytes);
-                  map_stack_bytes(ips, vp, var_bytes);
                   /* Set up a reverse mapping so we can re-create a variable
                      address constant if the address (with potentially a
                      different offset) is returned from the interpreter. */
@@ -3485,17 +3496,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
+                /* Record a two-way mapping to ensure we always use the same
+                   storage, and that we reproduce the original constant if this
+                   becomes part of the interpretation result. */
+                map_stack_bytes(ips, cp, con_bytes);
+                map_stack_bytes(ips, con_bytes, (a_byte*)con);
                 if (result) {
                   result = extract_value_from_constant(ips, cp, con_bytes,
                                                        con_bytes);
                 }  /* if */
                 if (!result) break;
                 mark_complete_object_initialized(con_bytes);
-                /* Record a two-way mapping to ensure we always use the same
-                   storage, and that we reproduce the original constant if this
-                   becomes part of the interpretation result. */
-                map_stack_bytes(ips, cp, con_bytes);
-                map_stack_bytes(ips, con_bytes, (a_byte*)con);
               }  /* if */
               clear_address(value, con_bytes);
               ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
@@ -3688,7 +3699,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             fp = tp->variant.class_struct_union.field_list;
             fp = next_alloc_field(fp);
             if (fp == NULL) {
-              /* An empty union: Nothing more to do. */
+              /* An empty union: Just clear the "active field". */
+              *(a_field_ptr*)value = NULL;
             } else if (con->explicit_braces_on_aggregate) {
               /* A value-initialized union (e.g., "U x{};").  Initialize the
                  first field to zero. */
@@ -4995,13 +5007,15 @@ to FALSE and the reason for the failure is recorded in *ips.
              (i.e., __builtin_constant_p produces a true value).  If
              unsuccessful, we can still continue interpretation because no
              side-effects took place. */
-          a_boolean     saved_side_effects_disabled;
+          a_boolean     saved_side_effects_disabled, saved_suspend_diag_list;
           a_type_ptr    arg_type = skip_typerefs(args->type);
           a_byte_count  n_bytes = expr_result_size(ips, args, arg_type,
                                                    p_result);
           if (!*p_result) break;
           saved_side_effects_disabled = ips->side_effects_disabled;
           ips->side_effects_disabled = TRUE;
+          saved_suspend_diag_list = ips->suspend_diag_list;
+          ips->suspend_diag_list = TRUE;
           alloc_complete_object(ips, n_bytes, arg_type, arg1_bytes);
           if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             *(an_integer_value*)result_storage = one_int;
@@ -5009,6 +5023,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             *(an_integer_value*)result_storage = zero_int;
           }  /* if */
           ips->side_effects_disabled = saved_side_effects_disabled;
+          ips->suspend_diag_list = saved_suspend_diag_list;
         }  /* if */
       }  /* if */
       break;
@@ -5945,6 +5960,72 @@ storage within the given complete object).  Otherwise, return FALSE and update
 }  /* do_constexpr_builtin_operation */
 
 
+static a_boolean do_glvalue_to_prvalue(an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_type_ptr            tp,
+                                       a_constexpr_address   *cap,
+                                       a_byte_count          n_bytes,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+Load a value of type tp (interpreter size n_bytes) from the address described
+by *cap into the storage pointed to by result_storage (complete_object points
+to the enclosing complete object).  expr is the expression that requires this
+"load" operation.  It is usually a prvalue, but it may be a glvalue whose
+conversion to an rvalue is forced externally.
+*/
+{
+  a_boolean  result;
+
+  if (cannot_dereference(cap)) {
+    /* This address cannot be dereferenced. */
+    do_constexpr_fail(result);
+    info_one_past_end_of_array(cap, expr, ips);
+  } else if (is_runtime_data_address(cap)) {
+    if (!get_value_from_address_constant(
+                                ips, cap->variant.addr_con, result_storage)) {
+      /* Not a compile-time constant value. */
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_access_to_runtime_storage,
+                    &expr->position, ips);
+    } else {
+      result = TRUE;     
+    }  /* if */
+  } else if (!in_live_set(&ips->live_set, cap->alloc_seq_number)) {
+    /* An attempt to access storage that has expired. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_access_to_expired_storage, &expr->position,
+                  ips);
+  } else if (cap->address == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_null_dereference, &expr->position, ips);
+  } else if (expr->volatile_fetch) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
+  } else if (!is_initialized(cap)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_object_not_initialized, &expr->position, ips);
+  } else if (is_variant_path(cap) &&
+             !check_variant_path(ips, cap, /*release=*/TRUE,
+                                 &expr->position)) {
+    /* An attempt to dereference an inactive variant path. */
+    do_constexpr_fail(result);
+  } else {
+    result = TRUE;
+    (void)memcpy(result_storage, value_bytes_at(cap), size_t_arg(n_bytes));
+    if (result_storage == complete_object) {
+      /* Mark the destination storage as fully initialized. */
+      mark_complete_object_initialized(complete_object);
+    }  /* if */
+    if (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array) {
+      mark_whole_subobject_initialized(ips, result_storage, tp,
+                                       complete_object);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_glvalue_to_prvalue */
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -6013,54 +6094,9 @@ nodes.
       *(a_constexpr_address*)result_storage = *(a_constexpr_address*)(opnd);  \
     } else {                                                                  \
       /* Do the lvalue-to-rvalue conversion into the result. */               \
-      if (cannot_dereference(opnd)) {                                         \
-        /* This address cannot be dereferenced. */                            \
-        do_constexpr_fail(result);                                            \
-        info_one_past_end_of_array((a_constexpr_address*)opnd, expr, ips);    \
-      } else if (is_runtime_data_address(opnd)) {                             \
-        if (!get_value_from_address_constant(                                 \
-                   ips,                                                       \
-                   ((a_constexpr_address*)(opnd))->variant.addr_con,          \
-                   result_storage)) {                                         \
-          /* Not a compile-time constant value. */                            \
-          do_constexpr_fail(result);                                          \
-          info_with_pos(ec_constexpr_access_to_runtime_storage,               \
-                        &expr->position, ips);                                \
-        }  /* if */                                                           \
-      } else if (!in_live_set(&ips->live_set,                                 \
-                              ((a_constexpr_address*)(opnd))                  \
-                                                      ->alloc_seq_number)) {  \
-        /* An attempt to access storage that has expired. */                  \
-        do_constexpr_fail(result);                                            \
-        info_with_pos(ec_constexpr_access_to_expired_storage, &expr->position,\
-                      ips);                                                   \
-      } else if (((a_constexpr_address*)(opnd))->address == NULL) {           \
-        do_constexpr_fail(result);                                            \
-        info_with_pos(ec_constexpr_null_dereference, &expr->position, ips);   \
-      } else if (expr->volatile_fetch) {                                      \
-        do_constexpr_fail(result);                                            \
-        info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);     \
-      } else if (!is_initialized((a_constexpr_address*)(opnd))) {             \
-        do_constexpr_fail(result);                                            \
-        info_with_pos(ec_object_not_initialized, &expr->position, ips);       \
-      } else if (is_variant_path(opnd) &&                                     \
-                 !check_variant_path(ips, (a_constexpr_address*)opnd,         \
-                                     /*release=*/TRUE, &expr->position)) {    \
-        /* An attempt to dereference an inactive variant path. */             \
-        do_constexpr_fail(result);                                            \
-      } else {                                                                \
-        (void)memcpy(result_storage, value_bytes_at(opnd),                    \
-                     size_t_arg(n_bytes));                                    \
-        if (result_storage == complete_object) {                              \
-          /* Mark the destination storage as fully initialized. */            \
-          mark_complete_object_initialized(complete_object);                  \
-        }  /* if */                                                           \
-        if (is_immediate_class_type(tp) ||                                    \
-            tp->kind == (a_type_kind)tk_array) {                              \
-          mark_whole_subobject_initialized(ips, result_storage, tp,           \
-                                           complete_object);                  \
-        }  /* if */                                                           \
-      }  /* if */                                                             \
+      result = do_glvalue_to_prvalue(ips, expr, tp,                           \
+                                     (a_constexpr_address*)(opnd), n_bytes,   \
+                                     result_storage, complete_object);        \
     }  /* if */                                                               \
   }  /* SET_result_val_from_operand_address */
 
@@ -6317,7 +6353,12 @@ the value representation of the integer value.
                 btp = tp;
               }  /* if */
               bcp = find_direct_base_class_of(dtp, btp);
-              if (is_runtime_data_address(result_addr)) {
+              if (bcp == NULL || bcp->is_virtual) {
+                /* bcp can be NULL for indirect virtual base classes (only). */
+                do_constexpr_fail(result);
+                info_with_pos_type(ec_constexpr_virtual_base, &expr->position,
+                                   btp, ips);
+              } else if (is_runtime_data_address(result_addr)) {
                 /* Attempt a "symbolic" derived-to-base cast using the
                    constant folding routines. */
                 a_constant_ptr  new_con = local_constant(),
@@ -9521,11 +9562,10 @@ diagnostic in *ips.
             a_constant_ptr  prev_con = (a_constant_ptr)mptr;
             a_type_ptr      top_type;
             if (!constant_is(prev_con, ck_address)) {
-              /* Presumably this is an array constant created for an
-                 abk_constant address by the code below. */
+              /* Presumably this is a constant created for an abk_constant
+                 address by the code below. */
               cp = prev_con;
               top_type = cp->type;
-              check_assertion(top_type->kind == (a_type_kind)tk_array);
             } else if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               vp = prev_con->variant.address.variant.variable;
@@ -9566,13 +9606,13 @@ diagnostic in *ips.
               atp->variant.array.variant.number_of_elements = cap->length;
               set_type_size(atp);
               utp = atp;
-              /* Set up a reverse mapping, so other address constants into
-                 this array can use the same constant entry (see the case
-                 where mptr points to a non-ck_address entry above). */
-              map_stack_bytes(ips, base_address, (a_byte*)cp);
             } else {
               base_address = cap->address;
             }  /* if */
+            /* Set up a reverse mapping, so other address constants into this
+               object can use the same constant entry (see the case where mptr
+               points to a non-ck_address entry above). */
+            map_stack_bytes(ips, base_address, (a_byte*)cp);
             if (!copy_interpreter_object_to_constant(
                           ips, base_address, cap->complete_object, utp, cp)) {
               do_constexpr_fail(result);
@@ -9775,12 +9815,14 @@ diagnostic in *ips.
 
 
 a_boolean interpret_expr(an_expr_node_ptr  expr,
+                         a_boolean         force_prvalue,
                          a_constant_ptr    result_con,
                          a_diag_list_ptr   diag_list)
 /*
-Attempt to interpret the given expression.  Return TRUE if successful, and
-produce the resulting value in result_con.  Otherwise, return FALSE, and
-record diagnostic info in *diag_list.
+Attempt to interpret the given expression.  If force_prvalue is TRUE and expr
+is a glvalue, convert the glvalue result to a prvalue.  Return TRUE if
+successful, and produce the resulting value in result_con.  Otherwise, return
+FALSE, and record diagnostic info in *diag_list.
 */
 {
   a_boolean             result = TRUE;
@@ -9814,12 +9856,33 @@ record diagnostic info in *diag_list.
       } else {
         do_constexpr_fail(result);
       }  /* if */
-    } else if (!copy_interpreter_object_to_constant(
+    } else {
+      if (force_prvalue && (expr->is_lvalue || expr->is_xvalue)) {
+        a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+        if (is_runtime_data_address(cap)) {
+          info_with_pos(ec_constexpr_access_to_runtime_storage,
+                        &expr->position, &ips);
+          do_constexpr_fail(result);
+        } else {
+          /* result_storage points to an interpreter address for the glvalue.
+             Allocate a new object for the corresponding prvalue and perform
+             the glvalue-to-prvalue conversion into it. */
+          n_bytes = value_bytes_for_type(&ips, result_type, &result);
+          check_assertion(result);
+          alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+          do_glvalue_to_prvalue(&ips, expr, result_type, cap, n_bytes,
+                                result_storage, result_storage);
+        }  /* if */
+      }  /* if */
+      if (!result) {
+        /* Nothing more to do. */
+      } else if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
-      do_constexpr_fail(result);
-    } else {
-      result_con->expr = expr;
+        do_constexpr_fail(result);
+      } else {
+        result_con->expr = expr;
+      }  /* if */
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
@@ -9888,6 +9951,76 @@ return FALSE, and record diagnostic info in *diag_list.
 done:
   return result;
 }  /* interpret_constexpr_call */
+
+
+a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
+                                 a_source_position   *pos,
+                                 a_type_ptr          result_type,
+                                 a_constant_ptr      result_con,
+                                 a_diag_list_ptr     diag_list)
+/*
+Attempt to interpret the given dynamic initialization entry.  Return TRUE if
+successful, and produce the resulting value (of the given type) in result_con.
+Otherwise, return FALSE, and record diagnostic info in *diag_list.  pos is the
+source position of the initialization.
+*/
+{
+  a_boolean             result = TRUE;
+  an_interpreter_state  ips;
+  a_byte                *result_storage;
+  a_byte_count          n_bytes;
+
+  if (is_prototype_instantiation_context()) {
+    /* Don't attempt interpretation in template contexts. */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips);
+  ips.position = *pos;
+  result_type = skip_typerefs(result_type);
+  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
+  if (!result) {
+    /* Nothing more to be done. */
+  } else {
+    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    result_con->type = result_type;
+    if (!do_constexpr_dynamic_init(&ips, dip, pos, result_storage,
+                                   result_storage)) {
+      if (ips.input_error) {
+        /* Interpretation failed due to an error node in the IL.  Continue
+           with an error constant, but treat interpretation as successful. */
+        set_error_constant(result_con);
+      } else {
+        do_constexpr_fail(result);
+      }  /* if */
+    } else if (!copy_interpreter_object_to_constant(
+                                         &ips, result_storage, result_storage,
+                                         result_type, result_con)) {
+      do_constexpr_fail(result);
+    } else {
+      if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
+           dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
+          in_file_scope(result_con) ==
+                                     in_file_scope(dip->variant.expression)) {
+        result_con->expr = dip->variant.expression;
+      }  /* if */
+      if (dip->is_explicit_cast) {
+        result_con->explicit_cast_applied = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *diag_list = ips.diag_list;
+  release_interpreter_state(&ips);
+  if (n_free_variant_path_entries != n_variant_path_entries) {
+    reclaim_variant_path_entries();
+  }  /* if */
+done:
+  return result;
+}  /* interpret_dynamic_init */
 
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,

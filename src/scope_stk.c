@@ -8249,10 +8249,10 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        scope stack before function g(int) is declared.  A::f should therefore
        not be lowered right away. */
     delay_lowering = TRUE;
-  } else if (routine->is_constexpr && relaxed_constexpr_enabled) {
-    /* C++14-style constexpr functions are interpreted from the unlowered IL.
-       So lowering should be delayed until all interpreted evaluations are
-       known to have occurred. */
+  } else if (routine->is_constexpr) {
+    /* constexpr functions are interpreted from the unlowered IL.  So lowering
+       should be delayed until all interpreted evaluations are known to have
+       occurred. */
     delay_lowering = TRUE;
 #if NEED_NAME_MANGLING
   } else if (must_wait_for_discriminator(routine)) {

@@ -21251,7 +21251,7 @@ the conversion.
       } else {
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */
-    } else if (curr_expr_kind_is(ek_template_arg) &&
+    } else if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) != 0 &&
                is_class_struct_union_type(base_dest_type) &&
                find_base_class_of(orig_source_type, base_dest_type) != NULL) {
       /* A derived-base binding is not allowed in a nontype template
@@ -21262,7 +21262,7 @@ the conversion.
                            &source_operand->position, orig_source_type,
                            dest_type);
       }  /* if */
-    } else if (curr_expr_kind_is(ek_template_arg) &&
+    } else if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) != 0 &&
                is_invalid_nontype_arg_object(source_operand)) {
       /* An expression that doesn't simply designate a variable is invalid. */
       if (expr_diagnostic_should_be_issued(es_discretionary_error,

@@ -2885,6 +2885,7 @@ ec_namespace_not_allowed;;"an attribute namespace may not be used here (because 
 ec_attribute_namespace_unrecognized;;"attribute namespace %sq is unrecognized"
 ec_default_member_init_for_value_class;;"a default member initializer is not permitted in a value class"
 ec_cl_implicit_noexcept_requires_noexcept_support;;"\"--implicit_noexcept\" requires a mode that enables noexcept"
+ec_constexpr_virtual_base;;"cannot fold operation involving virtual base class (%t)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

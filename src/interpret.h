@@ -17,12 +17,19 @@ interpret.h -- Interface to IL interpreter for constexpr functions
 #define INTERPRET_H 1
 
 a_boolean interpret_expr(an_expr_node_ptr  expr,
+                         a_boolean         force_prvalue,
                          a_constant_ptr    result_con,
                          a_diag_list_ptr   diag_list);
 
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
                                    a_constant_ptr    result_con,
                                    a_diag_list_ptr   diag_list);
+
+a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
+                                 a_source_position   *pos,
+                                 a_type_ptr          result_type,
+                                 a_constant_ptr      result_con,
+                                 a_diag_list_ptr     diag_list);
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_constant_ptr      result_con,

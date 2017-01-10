@@ -5748,16 +5748,32 @@ give the starting and ending source positions for the field reference
     /* See if the field selection folds to a constant (usually this happens
        on the glvalue-to-prvalue conversion, but in this case we're building
        a prvalue immediately). */
-    a_constant_ptr constant = local_constant();
+    a_constant_ptr  constant = local_constant();
+    a_boolean       release_constant = TRUE;
     check_assertion(is_expression_operand(result) && is_a_prvalue(result));
     if (fold_constexpr_member_selection(result->variant.expression,
                                         constant, &result->position)) {
       an_operand orig_operand;
       copy_operand(result, &orig_operand);
-      make_constant_operand(constant, result);
+      if (constant_is(constant, ck_aggregate)) {
+        /* Create a temporary to hold the constant result. */
+        a_dynamic_init_ptr  temp_dip;
+        an_expr_node_ptr    temp_node;
+        temp_node = create_expr_temporary(result->type, /*is_lvalue=*/FALSE,
+                                          /*is_explicit_cast=*/FALSE,
+                                          /*suppress_abstract_test=*/TRUE,
+                                          (a_dynamic_init_kind)dik_constant,
+                                          &result->position, &temp_dip);
+        set_dynamic_init_constant(temp_dip,
+                                  move_local_constant_to_il(&constant));
+        release_constant = FALSE;
+        make_expression_operand(temp_node, result);
+      } else {
+        make_constant_operand(constant, result);
+      }  /* if */
       restore_operand_details(result, &orig_operand);
     }  /* if */
-    release_local_constant(&constant);
+    if (release_constant) release_local_constant(&constant);
   }  /* if */
 }  /* make_field_selection_operand */
 
