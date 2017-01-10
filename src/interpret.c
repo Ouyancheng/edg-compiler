@@ -9870,8 +9870,8 @@ FALSE, and record diagnostic info in *diag_list.
           n_bytes = value_bytes_for_type(&ips, result_type, &result);
           check_assertion(result);
           alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-          do_glvalue_to_prvalue(&ips, expr, result_type, cap, n_bytes,
-                                result_storage, result_storage);
+          result = do_glvalue_to_prvalue(&ips, expr, result_type, cap, n_bytes,
+                                         result_storage, result_storage);
         }  /* if */
       }  /* if */
       if (!result) {
