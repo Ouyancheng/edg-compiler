@@ -383,7 +383,7 @@ static a_data_map
 
 
 /* Macro defining the number of entries in the hash table proper. */
-#define NUM_DATA_MAP_HASH_HEADERS (1<<16)
+#define NUM_DATA_MAP_HASH_HEADERS (1<<10)
 
 
 static void init_map_free_list(a_data_map   *map,
@@ -503,7 +503,7 @@ typedef struct a_live_set_entry {
 
 /* Macro defining the number of entries in the live set's hash table proper
    (i.e., not including overflow entries). */
-#define NUM_LIVE_SET_HASH_HEADERS (1<<16)
+#define NUM_LIVE_SET_HASH_HEADERS (1<<10)
 
 
 /*
@@ -1980,49 +1980,54 @@ redo:
       result = sizeof(a_constexpr_address);
       break;
     case tk_array:
-      if (!has_unknown_specified_bound(tp) &&
-          (tp->variant.array.variant.number_of_elements != 0 ||
-           tp->variant.array.bound_is_zero)) {
-        a_targ_size_t  n_elems = num_array_elements(tp);
-        a_type_ptr     etp = underlying_array_element_type(tp);
-        etp = skip_typerefs(etp);
-        result = value_bytes_for_type(ips, etp, p_result);
-        if (!*p_result) {
-          /* Interpretation failure. */
-        } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
-                   n_elems > MAX_ARRAY_LENGTH) {
-          /* Too many elements. */
+      { a_targ_size_t  n_elems = 1;
+        a_type_ptr     etp = tp;
+        an_error_code  err_code = ec_no_error;
+        do {
+          if (etp->variant.array.is_variable_size_array) {
+            err_code = ec_constexpr_vla;
+            break;
+          } else if (etp->variant.array.is_template_dependent_size_array) {
+            err_code = ec_constexpr_type_invalid;
+            break;
+          } else if (etp->variant.array.variant.number_of_elements == 0 &&
+                     !etp->variant.array.bound_is_zero) {
+            err_code = ec_constexpr_access_to_runtime_storage;
+            break;
+          } else {
+            n_elems *= etp->variant.array.variant.number_of_elements;
+            etp = etp->variant.array.element_type;
+            etp = skip_typerefs(etp);
+          }  /* if */
+        } while (etp->kind == (a_type_kind)tk_array);
+        if (err_code == ec_no_error) {
+          result = value_bytes_for_type(ips, etp, p_result);
+          if (!*p_result) {
+            /* Interpretation failure. */
+          } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
+                     n_elems > MAX_ARRAY_LENGTH) {
+            /* Too many elements. */
+            a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+            check_assertion(ips != NULL);
+#endif /* DEBUG */
+            if (pos->seq == 0) pos = &ips->position;
+            info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+            do_constexpr_fail(*p_result);
+            result = MAX_CONSTEXPR_TYPE_SIZE+1;
+          } else {
+            result *= (a_byte_count)n_elems;
+          }  /* if */
+        } else {
           a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
           check_assertion(ips != NULL);
 #endif /* DEBUG */
           if (pos->seq == 0) pos = &ips->position;
-          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+          info_with_pos(err_code, pos, ips);
           do_constexpr_fail(*p_result);
-          result = MAX_CONSTEXPR_TYPE_SIZE+1;
-        } else {
-          result *= (a_byte_count)n_elems;
+          result = 0;
         }  /* if */
-      } else {
-        a_source_position  *pos = &tp->source_corresp.decl_position;
-        an_error_code      err_code;
-#if DEBUG
-        check_assertion(ips != NULL);
-#endif /* DEBUG */
-        if (pos->seq == 0) pos = &ips->position;
-        if (tp->variant.array.is_variable_size_array) {
-          err_code = ec_constexpr_vla;
-        } else if (tp->variant.array.is_template_dependent_size_array) {
-          err_code = ec_constexpr_type_invalid;
-        } else if (tp->variant.array.variant.number_of_elements == 0) {
-          err_code = ec_constexpr_access_to_runtime_storage;
-        } else {
-          err_code = ec_no_error;
-          unexpected_condition();
-        }  /* if */
-        info_with_pos(err_code, pos, ips);
-        do_constexpr_fail(*p_result);
-        result = 0;
       }  /* if */
       break;
     case tk_class:
@@ -3583,6 +3588,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         n_elems = tp->variant.array.variant.number_of_elements;
         elem_size = value_bytes_for_type(ips, etp, &result);
         char_ptr = con->variant.string.value;
+        /* Map the interpreter storage for the string back to the constant
+           entry so that that constant can, if needed, be retrieved by
+           copy_interpreter_object_to_constant. */
+        map_stack_bytes(ips, value, (a_byte*)con);
         for (k = 0; k<n_elems; k += 1) {
           unsigned long char_val = extract_character_from_string(
                                            char_ptr, (unsigned int)char_size);
@@ -3611,6 +3620,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             if (elem_con == NULL) {
               /* Not all elements are covered.  Zero the remainder. */
               init_subobject_to_zero(ips, value, etp, complete_object);
+              k += 1;
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
@@ -3618,11 +3628,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 do_constexpr_fail(result);
                 break;
               }  /* if */
+              if (constant_is(elem_con, ck_init_repeat)) {
+                k += elem_con->variant.init_repeat.count;
+              } else {
+                k  += 1;
+              }  /* if */
               elem_con = elem_con->next;
               mark_subobject_initialized(value, complete_object);
+              value += elem_size;
             }  /* if */
-            k  += 1;
-            value += elem_size;
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
@@ -3778,6 +3792,27 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         } else {
           do_constexpr_fail(result);
         }  /* if */
+      }
+      break;
+    case ck_init_repeat:
+      {
+        a_constant_ptr  elem_con = con->variant.init_repeat.constant;
+        a_type_ptr      etp = skip_typerefs(elem_con->type);
+        a_targ_size_t   n_elems, k;
+        a_byte_count    elem_size;
+        n_elems = con->variant.init_repeat.count;
+        elem_size = value_bytes_for_type(ips, etp, &result);
+        if (!result) break;
+        for (k = 0; k<n_elems;) {
+          mark_complete_class_object_if_needed(etp, value);
+          if (!copy_val_from_constant(ips, elem_con, value, complete_object)) {
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+          mark_subobject_initialized(value, complete_object);
+          k  += 1;
+          value += elem_size;
+        }  /* for */
       }
       break;
     case ck_void:
@@ -9280,7 +9315,13 @@ the value representation of the integer value.
       { a_dynamic_init_ptr     dip = expr->variant.init.dynamic_init;
         a_byte                 *tmp_bytes;
         an_alloc_seq_number    alloc_seq_number;
-        a_byte_count  prefix_size;
+        a_byte_count           prefix_size;
+        if (C_mode()) {
+          info_with_pos(ec_constexpr_access_to_runtime_storage,
+                        &expr->position, ips);
+          do_constexpr_fail(result);
+          break;
+        }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
@@ -9563,7 +9604,9 @@ diagnostic in *ips.
             a_type_ptr      top_type;
             if (!constant_is(prev_con, ck_address)) {
               /* Presumably this is a constant created for an abk_constant
-                 address by the code below. */
+                 address by the code below or it is a ck_string entry that
+                 was loaded into interpreter storage (see
+                 extract_value_from_constant). */
               cp = prev_con;
               top_type = cp->type;
             } else if (prev_con->variant.address.kind ==
@@ -9870,8 +9913,8 @@ FALSE, and record diagnostic info in *diag_list.
           n_bytes = value_bytes_for_type(&ips, result_type, &result);
           check_assertion(result);
           alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-          do_glvalue_to_prvalue(&ips, expr, result_type, cap, n_bytes,
-                                result_storage, result_storage);
+          result = do_glvalue_to_prvalue(&ips, expr, result_type, cap, n_bytes,
+                                         result_storage, result_storage);
         }  /* if */
       }  /* if */
       if (!result) {
