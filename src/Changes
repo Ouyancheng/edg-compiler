@@ -1,6 +1,6 @@
 Version 4.13
 
-1/6/7    [EDGcpfe/17921]
+1/6/17   [EDGcpfe/17921]
 GNU compatibility: alignment of routines
 
 Although non-standard, GNU allows applying an alignment directive to a
