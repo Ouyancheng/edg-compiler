@@ -13117,11 +13117,13 @@ have already had their designated initializers lowered.
   a_constant_ptr  prior_constant = NULL;
   a_constant_ptr  union_designator = NULL, saved_union_init_constant = NULL;
   a_type_ptr      aggr_type = skip_typerefs(aggr_con->type);
-  a_boolean       union_init = is_union_type(aggr_type);
+  a_boolean       union_init = aggr_type->kind == (a_type_kind)tk_union;
   an_init_con_pos con, earlier_con;
 
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  prelower_class_type(aggr_type);
+  if (is_immediate_class_type(aggr_type)) {
+    prelower_class_type(aggr_type);
+  }  /* if */
   set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
   prev_con = NULL;
   if (earlier_aggr_con != NULL) {
