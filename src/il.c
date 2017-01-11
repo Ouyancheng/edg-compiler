@@ -8768,9 +8768,10 @@ scope.
 }  /* enclosing_routine_for_local_type */
 
 
-a_scope_ptr scope_for_routine(a_routine_ptr rout)
+a_scope_ptr scope_for_routine_or_null(a_routine_ptr rout)
 /*
-Return the function scope for the given (defined) routine.
+Return the function scope for the given (defined) routine, or NULL (e.g.
+in cases where the memory region is not available).
 */
 {
   a_scope_ptr scope;
@@ -8778,6 +8779,18 @@ Return the function scope for the given (defined) routine.
   check_assertion(rout != NULL &&
                   rout->function_def_number != NULL_function_def_number);
   scope = scope_for_function_def(rout->function_def_number);
+  return scope;
+}  /* scope_for_routine_or_null */
+
+
+a_scope_ptr scope_for_routine(a_routine_ptr rout)
+/*
+Return the function scope for the given (defined) routine.
+*/
+{
+  a_scope_ptr scope;
+
+  scope = scope_for_routine_or_null(rout);
   check_assertion_str(scope != NULL, "scope for routine is NULL");
   check_assertion(scope->kind == (a_scope_kind)sck_function);
   return scope;

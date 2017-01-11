@@ -1683,8 +1683,9 @@ Return its argument expression if available, or NULL otherwise.
         type->source_corresp.enclosing_routine->function_def_number !=
                                                     NULL_function_def_number) {
       /* If the type is defined in a function or block scope, search in
-         that routine's scope (if it has been defined). */
-      scope = scope_for_routine(type->source_corresp.enclosing_routine);
+         that routine's scope (if it has been defined and the memory region
+         is available). */
+      scope= scope_for_routine_or_null(type->source_corresp.enclosing_routine);
     } else {
       /* Assume we should use the current function. */
       scope = innermost_function_scope;

@@ -2488,6 +2488,8 @@ extern a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type);
 
 extern a_scope_ptr function_scope_for_local_type(a_type_ptr type);
 
+extern a_scope_ptr scope_for_routine_or_null(a_routine_ptr rout);
+
 extern a_scope_ptr scope_for_routine(a_routine_ptr rout);
 
 #if DEBUG
