@@ -5450,7 +5450,10 @@ constant expressions, fold to a constant result.
         in_potential_constant_constexpr_context())) &&
       constexpr_call_folding_should_be_done() &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
-      fold_constexpr_expr(operand->variant.expression, con)) {
+      fold_constexpr_expr(operand->variant.expression,
+                          /*treat_as_object=*/FALSE,
+                          &operand->position,
+                          con)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
     make_constant_operand(con, operand);
@@ -5784,7 +5787,7 @@ static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           an_operand        *result,
                                           a_diag_list_ptr   diag_list)
 /*
-Interface to interpret_constexpr_call for use within the expression-processing
+Interface to fold_constexpr_call for use within the expression-processing
 routines.  Attempts to fold the call call_expr to a constant; if it
 can, sets result to an operand for the result and returns TRUE.  Otherwise,
 leaves result unchanged and returns FALSE (potentially adds diagnostic nodes
@@ -19166,7 +19169,8 @@ it might produce an error).
             node->is_lvalue = FALSE;
             node->is_xvalue = FALSE;
             if (constexpr_enabled && allow_folding != NULL &&
-                fold_constexpr_expr(node, result_con)) {
+                fold_constexpr_expr(node, /*treat_as_object=*/FALSE,
+                                    err_pos, result_con)) {
               /* x.*y, where x is a constexpr object. */
               con_expr_value = alloc_shareable_constant(result_con);
               node->type = prvalue_node_type;

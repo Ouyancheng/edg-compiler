@@ -344,6 +344,8 @@ a_boolean contains_dangling_pointer(a_constant_ptr   con,
                                     a_boolean        end_of_full_expr);
 
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
+                                     a_boolean         treat_as_object,
+                                     a_source_position *pos,
                                      a_constant        *result_con);
 
 extern a_boolean fold_constexpr_dynamic_init(a_dynamic_init_ptr dip,

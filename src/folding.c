@@ -5957,32 +5957,8 @@ pos gives a default source position.
 
 
 static a_boolean fold_expr(an_expr_node_ptr             expr,
-                           a_constant                   *result_con)
-/*
-Attempt to fold the expression "expr" to a constant as part of a
-constexpr evaluation, by substituting argument constant values for
-parameters.  If the expression folds to a constant, place the constant
-in *result_con and return TRUE; otherwise, return FALSE.  If the
-expression is a glvalue, do not fold (see fold_glvalue_expr instead).
-ceblock gives context information for the evaluation.
-*/
-{
-  a_boolean    folded;
-
-  if (is_glvalue_node(expr)) {
-    /* Only fold expressions that produce prvalue results. */
-    folded = FALSE;
-  } else {
-    a_diag_list  diag_list;
-    clear_diag_list(&diag_list);
-    folded = interpret_expr(expr, /*force_rvalue=*/FALSE, result_con,
-                            &diag_list);
-    discard_more_info_list(&diag_list);
-  }  /* if */
-  return folded;
-}  /* fold_expr */
-
-
+                           a_constexpr_evaluation_block *ceblock,
+                           a_constant                   *result_con);
 static a_boolean fold_glvalue_expr(an_expr_node_ptr             expr,
                                    a_constexpr_evaluation_block *ceblock,
                                    a_constant                   *result_con);
@@ -6104,7 +6080,7 @@ constexpr expansion, and the block provides context information.
   }  /* if */
   /* See if we have or can get a constant for the integer operand. */
   if (ceblock != NULL) {
-    if (fold_expr(int_op, int_con)) {
+    if (fold_expr(int_op, ceblock, int_con)) {
       int_con_ptr = int_con;
     }  /* if */
   } else if (is_constant_node(int_op)) {
@@ -6384,7 +6360,7 @@ handle_field_selection:
 handle_pm_field_selection:
             { a_constant_ptr pm_constant = local_constant();
               a_constant_ptr op2_con = NULL;
-              if (fold_expr(op2, pm_constant)) {
+              if (ceblock != NULL && fold_expr(op2, ceblock, pm_constant)) {
                 /* We're in a constexpr function and the operand can be
                    folded to a constant. */
                 op2_con = pm_constant;
@@ -6734,7 +6710,10 @@ context information.
                     is_template_param_type(expr->type) ||
                     is_error_type(expr->type)) ||
                    is_error_node(expr)));
-  if (!do_not_call_back && fold_expr(expr, con)) {
+  if (ceblock != NULL &&
+      !do_not_call_back &&
+      (ceblock->do_not_call_back = TRUE,
+       fold_expr(expr, ceblock, con))) {
     /* The expression could be folded to a constant. */
     is_constant_ptr = TRUE;
     goto have_result;
@@ -10278,6 +10257,34 @@ the variable to which p points has a constant value, return that value.
 }  /* constant_value_addressed_by_node */
 
 
+static a_boolean fold_expr(an_expr_node_ptr             expr,
+                           a_constexpr_evaluation_block *ceblock,
+                           a_constant                   *result_con)
+/*
+Attempt to fold the expression "expr" to a constant as part of a
+constexpr evaluation, by substituting argument constant values for
+parameters.  If the expression folds to a constant, place the constant
+in *result_con and return TRUE; otherwise, return FALSE.  If the
+expression is a glvalue, do not fold (see fold_glvalue_expr instead).
+ceblock gives context information for the evaluation.
+*/
+{
+  a_boolean    folded;
+
+  if (is_glvalue_node(expr)) {
+    /* Only fold expressions that produce prvalue results. */
+    folded = FALSE;
+  } else {
+    a_diag_list  diag_list;
+    clear_diag_list(&diag_list);
+    folded = interpret_expr(expr, /*force_rvalue=*/FALSE, result_con,
+                            &diag_list);
+    discard_more_info_list(&diag_list);
+  }  /* if */
+  return folded;
+}  /* fold_expr */
+
+
 static a_boolean fold_glvalue_expr(an_expr_node_ptr             expr,
                                    a_constexpr_evaluation_block *ceblock,
                                    a_constant                   *result_con)
@@ -10353,14 +10360,14 @@ ceblock gives context information for the evaluation.
         }  /* if */
         if (is_glvalue_node(op1) ?
               fold_glvalue_expr(op1, ceblock, op1_constant) :
-              fold_expr(op1, op1_constant)) {
+              fold_expr(op1, ceblock, op1_constant)) {
           folded = fold_glvalue_expr(op2, ceblock, result_con);
         }  /* if */
         break;
       case eok_question:
         /* If the first operand of a "?" has a known value, we can return
            the address of the second or third operand. */
-        if (fold_expr(op1, op1_constant)) {
+        if (fold_expr(op1, ceblock, op1_constant)) {
           if (constant_bool_value_known_at_compile_time(op1_constant)) {
             if (is_false_constant(op1_constant)) {
               /* First operand is false, so result is op3. */
@@ -10427,7 +10434,7 @@ member function call.
                   is_template_param_type(expr->type) ||
                   is_error_type(expr->type));
   if (!is_glvalue_node(expr)) {
-    if (fold_expr(expr, result_con)) {
+    if (fold_expr(expr, ceblock, result_con)) {
       /* The object is a prvalue constant (probably a ck_aggregate). */
       folded = TRUE;
       if (want_addr) {
@@ -10554,12 +10561,17 @@ is TRUE for the check at the end of a full expression.
 
 
 a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
+                              a_boolean         treat_as_object,
+                              a_source_position *pos,
                               a_constant        *result_con)
 /*
-Attempt to fold the expression "expr" to a constant as part of a constexpr
-evaluation.  If the expression folds to a constant, place the constant in
-*result_con and return TRUE; otherwise, return FALSE.  The expression can be
-an lvalue, xvalue, or prvalue.
+Attempt to fold the expression "expr" to a constant as part of a
+constexpr evaluation.  If the expression folds to a constant, place
+the constant in *result_con and return TRUE; otherwise, return FALSE.
+The expression can be an lvalue, xvalue, or prvalue.  If treat_as_object
+is TRUE, treat the expression as an object (class or array) and
+look for and return a constant address for the object.  pos gives
+the source position of the evaluation.
 */
 {
   a_boolean    folded;
@@ -10667,7 +10679,7 @@ there is some kind of failure.
           top_temp_dip->is_top_temporary_for_constexpr_reference_param = TRUE;
         }  /* if */
       }  /* if */
-      crp->is_constant = fold_expr(arg, &crp->constant_value);
+      crp->is_constant = fold_expr(arg, ceblock, &crp->constant_value);
       if (top_temp_dip != NULL) {
         top_temp_dip->is_top_temporary_for_constexpr_reference_param =
                                                                     saved_flag;
@@ -10726,7 +10738,8 @@ to fold the call to a constant.  If that's possible, place the constant in
 *result_con and return TRUE; otherwise, return FALSE.  ceblock gives
 context information for the evaluation.  If gnu_builtins_too is TRUE, also
 attempt folding on GNU builtin functions.  This is the internal version of
-the routine, as indicated by the "i_" prefix.
+the routine, as indicated by the "i_" prefix; fold_constexpr_call should
+usually be called instead.
 */
 {
   a_boolean             folded = FALSE;
@@ -10745,7 +10758,7 @@ the routine, as indicated by the "i_" prefix.
     /* Check to see if we can fold the expression to a constant that
        designates a routine. */
     a_constant_ptr rout_constant = local_constant();
-    if (fold_expr(args, rout_constant)) {
+    if (fold_expr(args, ceblock, rout_constant)) {
       if (con_is_exact_addr_of_routine(rout_constant)) {
         routine = rout_constant->variant.address.variant.routine;
       } else if (rout_constant->kind ==
@@ -10785,7 +10798,7 @@ the routine, as indicated by the "i_" prefix.
            arguments. */
         for (arg = args; arg != NULL; arg = arg->next) {
           if (is_glvalue_node(arg)) goto gnu_builtin_fail;
-          if (!fold_expr(arg, arg_con)) goto gnu_builtin_fail;
+          if (!fold_expr(arg, ceblock, arg_con)) goto gnu_builtin_fail;
           new_arg = alloc_node_for_constant(arg_con);
           *p_last = new_arg;
           p_last = &new_arg->next;
@@ -10833,7 +10846,7 @@ gnu_builtin_fail:;
         check_assertion(expr != NULL);
         /* Substitute values for parameters and attempt to fold the call to
            a constant. */
-        folded = fold_expr(expr, result_con);
+        folded = fold_expr(expr, ceblock, result_con);
         if (folded &&
             contains_dangling_pointer(result_con, ceblock->active_calls,
                                       /*end_of_full_expr=*/FALSE)) {
@@ -10882,6 +10895,49 @@ gnu_builtin_fail:;
   decr_constexpr_call_depth(ceblock);
   return folding_result(folded);
 }  /* i_fold_constexpr_call */
+
+
+a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
+                              a_boolean         record_backing_expr,
+                              a_source_position *pos,
+                              a_constant        *result_con,
+                              an_error_code     *failure_warning)
+/*
+call_expr is a call expression.  If it's calling a constexpr function, try
+to fold the call to a constant.  If that's possible, place the constant in
+*result_con and return TRUE; otherwise, return FALSE.  pos gives the source
+position for the call.  If failure_warning is non-NULL, *failure_warning
+will be set to the error code for a reason why folding failed, or
+ec_no_error if no specific reason is available.  If record_backing_expr is
+TRUE, record call_expr as a backing expression for the resulting constant.
+*/
+{
+  a_boolean                    folded;
+  a_constexpr_evaluation_block ceblock;
+
+  clear_constexpr_evaluation_block(&ceblock, pos);
+  folded = i_fold_constexpr_call(call_expr, &ceblock,
+                                 /*gnu_builtins_too=*/FALSE, result_con);
+  if (folded && result_con->kind == (a_constant_repr_kind)ck_template_param &&
+      result_con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression &&
+      in_file_scope(call_expr) &&
+      !in_file_scope(result_con->variant.template_param.variant.expr)) {
+    /* Folding dependent expressions in the template definition context is
+       not necessary, and in this case the folding would have memory region
+       issues, so do not fold this call. */
+    folded = FALSE;
+  }  /* if */
+  if (folded && record_backing_expr) result_con->expr = call_expr;
+  if (failure_warning != NULL) {
+    if (folded) {
+      *failure_warning = ec_no_error;
+    } else {
+      *failure_warning = ceblock.failure_warning;
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* fold_constexpr_call */
 
 
 void add_temp_init_backing_expression(a_constant         *con,
