@@ -14640,6 +14640,7 @@ implicitly declared member functions.
           gnu_routine_supp(rtn)->is_target_specific_version) {
         /* Use the representative routine rather than a target-specific
            routine for the special members of a class. */
+        check_assertion(repr_sym != NULL);
         special_sym = repr_sym;
         /* Also ensure that the representative routine is marked if
            necessary. */
