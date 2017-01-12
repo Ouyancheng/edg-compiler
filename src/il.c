@@ -8770,7 +8770,7 @@ scope.
 
 a_scope_ptr scope_for_routine_or_null(a_routine_ptr rout)
 /*
-Return the function scope for the given (defined) routine, or NULL (e.g.
+Return the function scope for the given (defined) routine, or NULL (e.g.,
 in cases where the memory region is not available).
 */
 {
