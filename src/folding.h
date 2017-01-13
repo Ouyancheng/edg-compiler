@@ -179,90 +179,6 @@ extern void do_pdiff(a_constant        *constant_1,
                      an_error_severity *err_severity);
 
 /*
-Entry used to record a remapping from a parameter variable to an argument 
-value for the constexpr evaluation process.
-*/
-typedef struct a_constexpr_remap *a_constexpr_remap_ptr;
-typedef struct a_constexpr_remap {
-  a_constexpr_remap_ptr
-		next;
-			/* Next entry on the list, or NULL if this is the
-			   last. */
-  a_variable_ptr
-		param_var;
-			/* A parameter variable to be remapped. */
-  an_expr_node_ptr
-		arg_expr;
-			/* The corresponding argument expression. */
-  a_byte_boolean
-		is_constant;
-			/* TRUE if the argument is constant and the
-			   constant value is stored in constant_value below. */
-  a_constant	constant_value;
-			/* The constant value of the argument, if is_constant
-			   is TRUE. */
-  a_constant_ptr
-		alloc_constant_value;
-			/* An allocated copy of the constant value, once
-			   there is one.  NULL until then. */
-} a_constexpr_remap;
-
-
-/*
-Entry placed on the stack for each nested call in a constexpr evaluation,
-so that at a given moment the list of them attached to the active_calls
-field of the constexpr evaluation block gives all the calls we're still
-inside of.
-*/
-typedef struct a_constexpr_call *a_constexpr_call_ptr;
-typedef struct a_constexpr_call {
-  a_constexpr_call_ptr
-		next;
-			/* The call enclosing this one, or NULL if this is
-			   the outermost. */
-  int32_t	call_number;
-			/* The call number assigned to this call. */
-} a_constexpr_call;
-
-/*
-Context information to be carried around within a constexpr evaluation.
-*/
-typedef struct a_constexpr_evaluation_block {
-  a_constexpr_remap_ptr
-		remap_list;
-			/* List of remappings of parameter variables to
-			   argument values for a constexpr call. */
-  a_source_position
-		source_position;
-			/* Default source position for errors if we have
-			   nothing more specific. */
-  a_byte_boolean
-		do_not_call_back;
-			/* Set for calls from fold_expr/fold_glvalue_expr to
-			   constant_glvalue_address_full/
-			   constant_prvalue_pointer_full and vice-versa, to
-			   prevent a call back (and infinite recursion) on
-			   the current expression node (but not its
-			   subtree). */
-  unsigned long
-		call_depth;
-			/* Depth of constexpr calls, used to check for
-			   recursion overflow. */
-  unsigned long
-		call_count;
-			/* Count of constexpr calls, used to check for
-			   recursion overflow and to number calls. */
-  an_error_code
-		failure_warning;
-			/* If not ec_no_error, gives the reason for a folding
-			   failure.  The error code must have no fill-ins. */
-  a_constexpr_call_ptr
-		active_calls;
-			/* List of stack-based entries identifying the
-			   calls we're currently inside of evaluating. */
-} a_constexpr_evaluation_block;
-
-/*
 Options for constant_glvalue_address and constant_prvalue_pointer.
 */
 typedef int a_constant_address_option_set;
@@ -294,7 +210,6 @@ extern a_boolean constant_glvalue_address(an_expr_node_ptr expr,
 
 extern a_boolean constant_prvalue_pointer_full(
                              an_expr_node_ptr              expr,
-                             a_constexpr_evaluation_block  *ceblock,
                              a_constant                    *con,
                              a_boolean                     address_escapes,
                              a_constant_address_option_set options,
@@ -310,20 +225,16 @@ extern a_boolean constant_is_pointer_to_string_literal(a_constant *con,
 extern a_boolean expr_is_pointer_to_string_literal(an_expr_node_ptr expr,
                                                    a_constant       **scon);
 
-extern a_constant_ptr constant_value_at_address(
-                                      a_constant_ptr               addr_con,
-                                      a_constexpr_evaluation_block *ceblock,
-                                      a_constant_ptr               target_con);
+extern a_constant_ptr constant_value_at_address(a_constant_ptr  addr_con,
+                                                a_constant_ptr  target_con);
 
-extern a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr,
-                                                       a_source_position *pos);
+extern a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr);
 
 extern void fold_builtin_operation_if_possible(
                               an_expr_node_ptr             expr,
                               a_constant_ptr               constant,
                               a_boolean                    maintain_expression,
                               a_source_position            *pos,
-                              a_constexpr_evaluation_block *ceblock,
                               a_boolean                    *not_a_constant);
 
 #if BUILTIN_FUNCTIONS_ENABLED
@@ -338,26 +249,8 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
                                                   an_error_code    *err_code);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-extern
-a_boolean contains_dangling_pointer(a_constant_ptr   con,
-                                    a_constexpr_call *active_calls,
-                                    a_boolean        end_of_full_expr);
-
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
-                                     a_boolean         treat_as_object,
-                                     a_source_position *pos,
                                      a_constant        *result_con);
-
-extern a_boolean fold_constexpr_dynamic_init(a_dynamic_init_ptr dip,
-                                             a_type_ptr         dest_type,
-                                             a_source_position  *pos,
-                                             a_constant         *result_con);
-
-extern a_boolean fold_constexpr_call(an_expr_node_ptr  call_expr,
-                                     a_boolean         record_backing_expr,
-                                     a_source_position *pos,
-                                     a_constant        *result_con,
-                                     an_error_code     *failure_warning);
 
 extern void add_temp_init_backing_expression(a_constant         *con,
                                              a_dynamic_init_ptr dip);
@@ -370,8 +263,7 @@ a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
 
 extern
 a_boolean fold_constexpr_member_selection(an_expr_node_ptr  expr,
-                                          a_constant        *result_con,
-                                          a_source_position *pos);
+                                          a_constant        *result_con);
 
 #if DEBUG
 extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);

@@ -29,6 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "declarator.h"
+#include "interpret.h"
 #if COROUTINES_ALLOWED
 #include "func_def.h"
 #endif /* COROUTINES_ALLOWED */
@@ -5752,7 +5753,7 @@ give the starting and ending source positions for the field reference
     a_boolean       release_constant = TRUE;
     check_assertion(is_expression_operand(result) && is_a_prvalue(result));
     if (fold_constexpr_member_selection(result->variant.expression,
-                                        constant, &result->position)) {
+                                        constant)) {
       an_operand orig_operand;
       copy_operand(result, &orig_operand);
       if (constant_is(constant, ck_aggregate)) {
@@ -11580,8 +11581,7 @@ indication in *rcblock).
     fold_builtin_operation_if_possible(
                      node, offset_constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_position, (a_constexpr_evaluation_block*)NULL,
-                     &nonconstant_offset);
+                     &start_position, &nonconstant_offset);
     if (nonconstant_offset) {
       /* The offset is not a constant. */
       make_expression_operand(node, result);
@@ -11687,8 +11687,7 @@ previously-scanned __builtin_addressof expression, and return the result in
       fold_builtin_operation_if_possible(
                      make_node_from_operand(&operand), addressof_constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_position, (a_constexpr_evaluation_block *)NULL,
-                     &not_a_constant);
+                     &start_position, &not_a_constant);
       if (not_a_constant) {
         /* Failed to fold. */
         copy_operand(&operand, result);
@@ -11931,8 +11930,7 @@ indication in *rcblock).
     fold_builtin_operation_if_possible(
                      expr, &result->variant.constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_position, (a_constexpr_evaluation_block*)NULL,
-                     &not_a_constant);
+                     &start_position, &not_a_constant);
     check_assertion(!not_a_constant);
     result->type = result->variant.constant.type;
     result->state = (an_operand_state)os_prvalue;
@@ -16502,7 +16500,7 @@ Microsoft, Sun) allow extended forms of integer constants.
     }  /* if */
   }  /* if */
   if (top_level) {
-    wrap_up_constant_full_expression(constant, &operand->position);
+    wrap_up_constant_full_expression(constant);
   }  /* if */
   pop_expr_stack();
   if (top_level) {
@@ -33800,7 +33798,7 @@ is considered a full-expression.
   } else {
     extract_constant_from_operand(&result, constant);
   }  /* if */
-  wrap_up_constant_full_expression(constant, &result.position);
+  wrap_up_constant_full_expression(constant);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -34881,8 +34879,7 @@ dynamic init entry if one is created to represent this initializer
       } else if (is->init_error) {
         discard_curr_expr_object_lifetime();
       } else if (is->init_con != NULL) {
-        wrap_up_constant_full_expression(is->init_con,
-                                         init_component_pos(icp));
+        wrap_up_constant_full_expression(is->init_con);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -39246,7 +39243,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
-  wrap_up_constant_full_expression(constant, &result.position);
+  wrap_up_constant_full_expression(constant);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -39349,7 +39346,7 @@ The value of the constant is returned in *constant.
         }  /* if */
       }  /* if */
     }  /* if */
-    wrap_up_constant_full_expression(constant, &result.position);
+    wrap_up_constant_full_expression(constant);
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */
@@ -39588,7 +39585,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
                    "scan_nonconstant_dimension_expression: bad operand kind");
   }  /* switch */
   if (*is_constant) {
-    wrap_up_constant_full_expression(constant, &result.position);
+    wrap_up_constant_full_expression(constant);
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -39847,7 +39844,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   }  /* if */
   check_assertion(constant->expr == NULL || relaxed_ms_case ||
                   curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
-  wrap_up_constant_full_expression(constant, &result.position);
+  wrap_up_constant_full_expression(constant);
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
@@ -40006,7 +40003,7 @@ This is callable from outside of the expression processing routines.
     prep_nontype_template_argument_initializer(&operand,
                                                param_type, constant);
   }  /* if */
-  wrap_up_constant_full_expression(constant, &arg_operand->operand.position);
+  wrap_up_constant_full_expression(constant);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -41442,7 +41439,7 @@ constants; assumes copy-initialization ("="-form).
       set_error_constant(constant);
     }  /* if */
   }  /* if */
-  wrap_up_constant_full_expression(constant, &result.position);
+  wrap_up_constant_full_expression(constant);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -41607,14 +41604,12 @@ If an error is detected, use err_pos as the error position.
 }  /* prep_generated_arg_expr */
 
 
-static void wrap_up_init_state_initialization(an_init_state     *is,
-                                              a_source_position *pos)
+static void wrap_up_init_state_initialization(an_init_state  *is)
 /*
 Wrap up processing of an initialization whose interface to
 decl_inits.c is an init_state block (given by "is"), and whose processing
 so far has requested a dynamic-init form initialization.  Convert now to
-a constant initialization if possible.  pos is the source position of
-the initializer.
+a constant initialization if possible.
 */
 {
   a_dynamic_init_ptr dip = is->init_dip;
@@ -41628,7 +41623,7 @@ the initializer.
     if (dip->destructor == NULL && !is->force_dynamic_init) {
       a_constant_ptr cp = constant_value_of_dynamic_init(dip);
       if (cp != NULL) {
-        wrap_up_constant_full_expression(cp, pos);
+        wrap_up_constant_full_expression(cp);
         if (dip->is_partially_initialized || cp->is_partially_initialized) {
           is->partial_initializer = TRUE;
         }  /* if */
@@ -41687,9 +41682,11 @@ As indicated, this is initialization with the "=" semantics
       dps->init_state.initializer_must_be_constant) {
     a_constant_ptr      folded_value = local_constant();
     a_dynamic_init_ptr  dip = dps->init_state.init_dip;
+    a_diag_list  diag_list;
+    clear_diag_list(&diag_list);
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant &&
-        fold_constexpr_dynamic_init(dip, dps->type, &result.position,
-                                    folded_value)) {
+        interpret_dynamic_init(dip, &result.position, dps->type, folded_value,
+                               &diag_list)) {
       an_expr_node_ptr    expr = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_expression) {
         expr = dip->variant.expression;
@@ -41698,10 +41695,17 @@ As indicated, this is initialization with the "=" semantics
       set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
       dip->variant.constant->expr = expr;
     } else {
+      if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant) {
+        a_diagnostic_ptr  dp;
+        dp = pos_start_error(ec_initializer_not_constant, &result.position);
+        add_more_info_list(dp, &diag_list);
+        end_diagnostic(dp);
+      }  /* if */
       release_local_constant(&folded_value);
-    }  /* if */     
+    }  /* if */
+    discard_more_info_list(&diag_list);
   }  /* if */
-  wrap_up_init_state_initialization(&dps->init_state, &result.position);
+  wrap_up_init_state_initialization(&dps->init_state);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -41912,7 +41916,7 @@ source position to be used in overall errors.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  wrap_up_init_state_initialization(is, source_pos);
+  wrap_up_init_state_initialization(is);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  is->decl_parse_state, is);
@@ -42137,7 +42141,7 @@ selector type.
                                         /*is_array_bound=*/FALSE,
                                         /*is_enum=*/FALSE,
                                         constant);
-  wrap_up_constant_full_expression(constant, &label_position);
+  wrap_up_constant_full_expression(constant);
   if (is_error_constant(constant)) {
     /* Error; constant_ptr is left NULL. */
     release_local_constant(&constant);

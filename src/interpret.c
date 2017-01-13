@@ -1513,6 +1513,9 @@ A set of flags to describe special interpreter address attributes.
 #define CA_CONST_STORAGE ((unsigned int)0x40)
 		/* This flag indicates that the address is that of const
 		   storage. */
+#define CA_LIFETIME_EXTENDED ((unsigned int)0x80)
+		/* This flag indicates that the address is that of a lifetime-
+		   extended temporary. */
 
 /*
 Structure describing the representation of an address in the interpreter.
@@ -2790,6 +2793,37 @@ overflow.
 }  /* db_int_val */
 
 
+static void db_address_flags(unsigned int  flags)
+/*
+Output the given a_constexpr_address flags as human-readable text.
+*/
+{
+  if (flags & CA_RUNTIME_DATA_ADDRESS) {
+    (void)fprintf(f_debug, "runtime-data ");
+  }  /* if */
+  if (flags & CA_CANNOT_DEREFERENCE) {
+    (void)fprintf(f_debug, "cannot-deref ");
+  }  /* if */
+  if (flags & CA_VARIANT_PATH) {
+    (void)fprintf(f_debug, "variant-path ");
+  }  /* if */
+  if (flags & CA_ARRAY_ELEMENT) {
+    (void)fprintf(f_debug, "array-elem ");
+  }  /* if */
+  if (flags & CA_BIT_FIELD) {
+    (void)fprintf(f_debug, "bit-field ");
+  }  /* if */
+  if (flags & CA_FUNCTION) {
+    (void)fprintf(f_debug, "func ");
+  }  /* if */
+  if (flags & CA_CONST_STORAGE) {
+    (void)fprintf(f_debug, "const ");
+  }  /* if */
+  if (flags == 0) {
+    (void)fprintf(f_debug, "no flags ");
+  }  /* if */
+}  /* db_address_flags */
+
 void db_object(a_byte      *addr,
                a_type_ptr  tp)
 /*
@@ -2823,7 +2857,8 @@ Output the contents of the interpreted object of type tp stored at addr.
       { a_constexpr_address *cap = (a_constexpr_address*)addr;
         (void)fprintf(f_debug, "address %p:\n", cap->address);
         db_indent(indent+2);
-        (void)fprintf(f_debug, "flags 0x%x:\n", cap->flags);
+        db_address_flags(cap->flags);
+        (void)fprintf(f_debug, "\n");
         if (is_array_element(cap)) {
           db_indent(indent+2);
           (void)fprintf(f_debug, "length %u:\n", cap->length);
@@ -3375,7 +3410,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     if (con->is_reinterpret_cast) {
       info_with_pos(ec_constexpr_reinterpret_cast, &ips->position, ips);
       do_constexpr_fail(result);
-    } else if (con->expr != NULL) {
+    } else if (con->expr != NULL && !constant_is(con, ck_integer)) {
       /* If the constant includes an implicit cast, evaluate the constant
          through the backing expression so that the cast is correctly
          applied. */
@@ -3394,8 +3429,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         if (tp->kind == (a_type_kind)tk_pointer ||
             tp->kind == (a_type_kind)tk_nullptr) {
           /* Various expressions for null pointer constants are expressed as
-             ck_integer. */
-          clear_address(value, (a_byte*)0);
+             ck_integer constants.  They're handled as run-time data constants
+             in the interpreter. */
+          clear_runtime_constant_address(value, con);
         } else if (tp->kind == (a_type_kind)tk_integer) {
           *(an_integer_value *)value = con->variant.integer_value;
         } else {
@@ -5945,9 +5981,7 @@ storage at value and return TRUE.  Otherwise, return FALSE.
   a_constant_ptr val_con = local_constant();
   a_boolean      result;
 
-  if (constant_value_at_address(addr_con,
-                                /*a_constexpr_evaluation_block=*/NULL,
-                                val_con)) {
+  if (constant_value_at_address(addr_con, val_con)) {
     /* Copy the constant value. */
     result = copy_val_from_constant(ips, val_con, value, value);
   } else {
@@ -7532,7 +7566,13 @@ the value representation of the integer value.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  do_constexpr_fail(result);
+                  /* Two runtime data pointers. */
+                  if (eq_constants(ptr1->variant.addr_con,
+                                   ptr2->variant.addr_con)) {
+                    *(an_integer_value *)result_storage = one_int;
+                  } else {
+                    *(an_integer_value *)result_storage = zero_int;
+                  }  /* if */
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
@@ -7625,7 +7665,13 @@ the value representation of the integer value.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else {
-                  do_constexpr_fail(result);
+                  /* Two runtime data pointers. */
+                  if (!eq_constants(ptr1->variant.addr_con,
+                                    ptr2->variant.addr_con)) {
+                    *(an_integer_value *)result_storage = one_int;
+                  } else {
+                    *(an_integer_value *)result_storage = zero_int;
+                  }  /* if */
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
@@ -9280,7 +9326,8 @@ the value representation of the integer value.
               cap->flags |= CA_CONST_STORAGE;
             }  /* if */
           } else {
-            /* A reference to a run-time variable. */
+            /* A reference to a run-time variable.  This may not be valid,
+               but we cannot tell at this time. */
             a_constant_ptr  con;
             a_byte          *con_ptr;
             get_mapped_ptr(&ips->map, &var->initializer, con_ptr);
@@ -9326,12 +9373,14 @@ the value representation of the integer value.
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
+          a_constexpr_address  *cap;
+          a_boolean            temp_lifetime = dip->has_temporary_lifetime;
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           compute_prefix_size_for_type(tp, n_bytes, prefix_size);
-          if (!dip->has_temporary_lifetime && ips->extension_state != NULL) {
-            /* A lifetime extended temporary.  Switch to the storage stack
-               state was saved at the time the stmk_init statement was
+          if (!temp_lifetime && ips->extension_state != NULL) {
+            /* A lifetime-extended temporary.  Switch to the storage stack
+               state that was saved at the time the stmk_init statement was
                started. */
             /* If we're processing the initializer of a static-lifetime
                variable, e.g.,
@@ -9350,21 +9399,7 @@ the value representation of the integer value.
           tmp_bytes += prefix_size;
           record_complete_object_type(tp, tmp_bytes);
           mark_complete_class_object_if_needed(tp, tmp_bytes);
-        } else {
-          /* The consumer of the temporary expects an rvalue.  So we can
-             evaluate the initialization directly into result_storage. */
-          tmp_bytes = result_storage;
-          alloc_seq_number = 0;
-        }  /* if */
-        if (dip->kind == (a_dynamic_init_kind)dik_zero &&
-            dip->destructor == NULL) {
-          init_subobject_to_zero(ips, tmp_bytes, tp, tmp_bytes);
-        } else if (!do_constexpr_dynamic_init(
-                           ips, dip, &expr->position, tmp_bytes, tmp_bytes)) {
-          do_constexpr_fail(result);
-        }  /* if */
-        if (expr->is_lvalue || expr->is_xvalue) {
-          a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+          cap = (a_constexpr_address*)result_storage;
           clear_address(cap, tmp_bytes);
           /* Record the allocation sequence number for this temporary in the
              address record. */ 
@@ -9372,6 +9407,20 @@ the value representation of the integer value.
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
+          if (!temp_lifetime) {
+            cap->flags |= CA_LIFETIME_EXTENDED;
+	  }  /* if */
+        } else {
+          /* The consumer of the temporary expects an rvalue.  So we can
+             evaluate the initialization directly into result_storage. */
+          tmp_bytes = result_storage;
+        }  /* if */
+        if (dip->kind == (a_dynamic_init_kind)dik_zero &&
+            dip->destructor == NULL) {
+          init_subobject_to_zero(ips, tmp_bytes, tp, tmp_bytes);
+        } else if (!do_constexpr_dynamic_init(
+                           ips, dip, &expr->position, tmp_bytes, tmp_bytes)) {
+          do_constexpr_fail(result);
         }  /* if */
         mark_complete_object_initialized(tmp_bytes);
       }
@@ -9570,7 +9619,8 @@ diagnostic in *ips.
             }  /* if */
           }  /* if */
           /* Copy the address constant to result_con. */
-          copy_constant(cap->variant.addr_con, con);
+          (void)copy_constant_full(cap->variant.addr_con, con,
+                                   CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
           con->type = type;
         } else if (is_function_address(cap)) {
           set_routine_address_constant(cap->variant.routine, con,
@@ -9689,6 +9739,12 @@ diagnostic in *ips.
                   con->variant.address.assoc_dyn_init =
                                      prev_con->variant.address.assoc_dyn_init;
                 }  /* if */
+              }  /* if */
+              if (!(cap->flags & CA_LIFETIME_EXTENDED)) {
+                /* The address of a temporary results in a dangling pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &ips->position, ips);
               }  /* if */
             }  /* if */
             con->variant.address.variant.constant = cp;
@@ -9850,6 +9906,13 @@ diagnostic in *ips.
     case tk_void:
       set_constant_kind(con, (a_constant_repr_kind)ck_void);
       break;
+    case tk_routine:
+      { a_constexpr_address *cap = (a_constexpr_address *)object;
+        check_assertion(is_function_address(cap));
+        set_routine_address_constant(cap->variant.routine, con,
+                                     /*set_address_taken_flag=*/TRUE);
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -9900,21 +9963,28 @@ FALSE, and record diagnostic info in *diag_list.
         do_constexpr_fail(result);
       }  /* if */
     } else {
-      if (force_prvalue && (expr->is_lvalue || expr->is_xvalue)) {
+      if (expr->is_lvalue || expr->is_xvalue) {
         a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
-        if (is_runtime_data_address(cap)) {
-          info_with_pos(ec_constexpr_access_to_runtime_storage,
-                        &expr->position, &ips);
-          do_constexpr_fail(result);
+        if (force_prvalue) {
+          if (is_runtime_data_address(cap)) {
+            info_with_pos(ec_constexpr_access_to_runtime_storage,
+                          &expr->position, &ips);
+            do_constexpr_fail(result);
+          } else {
+            /* result_storage points to an interpreter address for the glvalue.
+               Allocate a new object for the corresponding prvalue and perform
+               the glvalue-to-prvalue conversion into it. */
+            n_bytes = value_bytes_for_type(&ips, result_type, &result);
+            check_assertion(result);
+            alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+            result = do_glvalue_to_prvalue(&ips, expr, result_type, cap,
+                                           n_bytes, result_storage,
+                                           result_storage);
+          }  /* if */
         } else {
-          /* result_storage points to an interpreter address for the glvalue.
-             Allocate a new object for the corresponding prvalue and perform
-             the glvalue-to-prvalue conversion into it. */
-          n_bytes = value_bytes_for_type(&ips, result_type, &result);
-          check_assertion(result);
-          alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-          result = do_glvalue_to_prvalue(&ips, expr, result_type, cap, n_bytes,
-                                         result_storage, result_storage);
+          result_type = expr->is_xvalue ?
+                                      make_rvalue_reference_type(expr->type) :
+                                      make_reference_type(expr->type);
         }  /* if */
       }  /* if */
       if (!result) {

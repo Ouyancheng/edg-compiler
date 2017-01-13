@@ -20309,6 +20309,7 @@ must be considered.  Only used in C++.  This is copy-initialization.
 }  /* convert_operand_into_temp */
 
 
+static
 a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
                                       a_boolean        create_class_temp)
 /*

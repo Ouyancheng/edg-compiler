@@ -28,6 +28,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "expr.h"
 #include "exprutil.h"
 #include "folding.h"
+#include "interpret.h"
 #include "statements.h"
 #if DO_IL_LOWERING
 #if MICROSOFT_EXTENSIONS_ALLOWED && LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
@@ -1331,6 +1332,7 @@ Issue any diagnostics at the given position.
 {
   a_constant_ptr      elem_con = NULL;
   a_constant_ptr      folded_value = local_constant();
+  a_diag_list         diag_list;
 
   if (fp->has_initializer) {
     scan_field_initializer_if_needed(fp, aggr_type);
@@ -1352,11 +1354,12 @@ Issue any diagnostics at the given position.
       dip = make_error_constant_dynamic_init();
     }  /* if */
   }  /* if */
+  clear_diag_list(&diag_list);
   if (dip == NULL) {
     /* This can happen in error cases: Don't attempt operations on *dip. */
     check_assertion(is->init_error && is->check_validity_only);
-  } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
-                                         folded_value) &&
+  } else if (interpret_dynamic_init(dip, diag_pos, fp->type, folded_value,
+                                    &diag_list) &&
              is_static_init_constant(folded_value)) {
     /* A constant initializer. */
     if (folded_value->is_partially_initialized) {
@@ -1370,8 +1373,11 @@ Issue any diagnostics at the given position.
     /* A non-constant initializer. */
     if (is->initializer_must_be_constant) {
       if (!is->no_diagnostics) {
-        pos_sy_error(ec_field_initializer_is_not_constant, diag_pos,
-                     symbol_for(fp));
+        a_diagnostic_ptr  dp;
+        dp = pos_sy_start_error(ec_field_initializer_is_not_constant, diag_pos,
+                                symbol_for(fp));
+        add_more_info_list(dp, &diag_list);
+        end_diagnostic(dp);
       }  /* if */
       is->init_error = TRUE;
     }  /* if */
@@ -1393,6 +1399,7 @@ Issue any diagnostics at the given position.
     }  /* if */
     is->has_dynamic_init_component = TRUE;
   }  /* if */
+  discard_more_info_list(&diag_list);
   if (folded_value != NULL) {
     /* If folded_value was not moved to the IL above, release it now. */
     release_local_constant(&folded_value);
@@ -5239,7 +5246,9 @@ expressions.  For the latter, see init_capture_initializer below.)
     } else {
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
-      field->has_nonconstant_initializer = is->constant_expr_ruled_out;
+      if (is->constant_expr_ruled_out) {
+        field->has_nonconstant_initializer = TRUE;
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       field->initializer_range.start = init_pos;
       field->initializer_range.end = curr_construct_end_position;

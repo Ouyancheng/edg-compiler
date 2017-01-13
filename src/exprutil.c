@@ -2820,8 +2820,7 @@ a previous error.
 }  /* wrap_up_dynamic_init_full_expression */
 
 
-void wrap_up_constant_full_expression(a_constant        *constant,
-                                      a_source_position *pos)
+void wrap_up_constant_full_expression(a_constant        *constant)
 /*
 Called at the end of scanning of a constant full-expression to do any final
 checking on the constant.  pos is the source position of the constant.
@@ -2836,16 +2835,6 @@ popped.
                     expr_stack->any_suppressed_error ||
                     constant->kind == (a_constant_repr_kind)ck_template_param);
     discard_curr_expr_object_lifetime();
-  }  /* if */
-  if (constexpr_enabled &&
-      contains_dangling_pointer(constant, (a_constexpr_call *)NULL,
-                                /*end_of_full_expr=*/TRUE)) {
-    if (curr_expr_kind_is_evaluated_const()) {
-      expr_pos_error(ec_constexpr_dangling_pointer, pos);
-    } else {
-      expr_pos_warning(ec_constexpr_dangling_pointer, pos);
-    }  /* if */
-    expr_stack->constant_expr_ruled_out = TRUE;
   }  /* if */
 }  /* wrap_up_constant_full_expression */
 
@@ -5450,10 +5439,7 @@ constant expressions, fold to a constant result.
         in_potential_constant_constexpr_context())) &&
       constexpr_call_folding_should_be_done() &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
-      fold_constexpr_expr(operand->variant.expression,
-                          /*treat_as_object=*/FALSE,
-                          &operand->position,
-                          con)) {
+      fold_constexpr_expr(operand->variant.expression, con)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
     make_constant_operand(con, operand);
@@ -5740,7 +5726,8 @@ folding failed.  Return TRUE if an error was issued.
         emit_diagnostic = TRUE;
         err = TRUE;
       } else if (curr_expr_is_evaluated() &&
-                 !curr_expr_is_potentially_unevaluated()) {
+                 !curr_expr_is_potentially_unevaluated() &&
+                 (routine == NULL || !routine->is_constexpr)) {
         /* Constant expressions allow invalid operators/constructs in
            unevaluated subexpressions, including dead operands of "?", "&&",
            and "||". */
@@ -5787,7 +5774,7 @@ static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           an_operand        *result,
                                           a_diag_list_ptr   diag_list)
 /*
-Interface to fold_constexpr_call for use within the expression-processing
+Interface to interpret_constexpr_call for use within the expression-processing
 routines.  Attempts to fold the call call_expr to a constant; if it
 can, sets result to an operand for the result and returns TRUE.  Otherwise,
 leaves result unchanged and returns FALSE (potentially adds diagnostic nodes
@@ -13160,14 +13147,12 @@ of a subscript operation).
                is_pointer_type(operand_2->type) &&
                constant_prvalue_pointer_full(
                                           operand_1->variant.expression,
-                                          (a_constexpr_evaluation_block *)NULL,
                                           con_1,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                           (a_boolean *)NULL) &&
                constant_prvalue_pointer_full(
                                           operand_2->variant.expression,
-                                          (a_constexpr_evaluation_block *)NULL,
                                           con_2,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
@@ -18961,9 +18946,7 @@ the value there, and return the address of the new constant.
       set_temporary_address_constant(node_constant(op1), addr_con);
       addr_con->variant.address.offset = bcp->offset;
       addr_con->type = make_pointer_type(expr->type);
-      result = constant_value_at_address(addr_con,
-                                         (a_constexpr_evaluation_block *)NULL,
-                                         alloc_con);
+      result = constant_value_at_address(addr_con, alloc_con);
       release_local_constant(&addr_con);
     }  /* if */
   }  /* if */
@@ -19155,7 +19138,7 @@ it might produce an error).
              initialized to a constant value allows use of a member
              value as a constant. */
           if (constexpr_enabled && allow_folding != NULL &&
-              fold_constexpr_member_selection(node, result_con, err_pos)) {
+              fold_constexpr_member_selection(node, result_con)) {
             con_expr_value = alloc_shareable_constant(result_con);
             node->is_lvalue = node->is_xvalue = FALSE;
             node->type = prvalue_node_type;
@@ -19169,8 +19152,7 @@ it might produce an error).
             node->is_lvalue = FALSE;
             node->is_xvalue = FALSE;
             if (constexpr_enabled && allow_folding != NULL &&
-                fold_constexpr_expr(node, /*treat_as_object=*/FALSE,
-                                    err_pos, result_con)) {
+                fold_constexpr_expr(node, result_con)) {
               /* x.*y, where x is a constexpr object. */
               con_expr_value = alloc_shareable_constant(result_con);
               node->type = prvalue_node_type;
@@ -19187,7 +19169,7 @@ it might produce an error).
           op1 = skip_parens(op1);
           if (allow_folding != NULL &&
               (con_expr_value =
-                    constant_value_addressed_by_node(node, err_pos)) != NULL) {
+                            constant_value_addressed_by_node(node)) != NULL) {
             /* Indirection through a constexpr pointer that points to an
                object with a constant value.  Use that value as the result
                of the expression. */
@@ -19229,7 +19211,7 @@ it might produce an error).
         case eok_ref_indirect:
           if (allow_folding != NULL &&
               (con_expr_value =
-                    constant_value_addressed_by_node(node, err_pos)) != NULL) {
+                            constant_value_addressed_by_node(node)) != NULL) {
             /* Indirection through a constexpr reference that refers to an
                object with a constant value.  Use that value as the result
                of the expression. */
@@ -19265,10 +19247,7 @@ it might produce an error).
                                  &did_not_fold, &template_constant,
                                  &error_detected, err_pos);
                 if (!did_not_fold &&
-                    constant_value_at_address(
-                                          addr_con,
-                                          (a_constexpr_evaluation_block *)NULL,
-                                          result_con) != NULL) {
+                    constant_value_at_address(addr_con, result_con) != NULL) {
                   con_expr_value = copy_unshared_constant(result_con);
                 }  /* if */
                 release_local_constant(&addr_con);
@@ -19361,8 +19340,7 @@ it might produce an error).
           /* Derived-to-base class: Perform address folding if needed before
              marking the cast result as an rvalue. */
           if (constexpr_enabled && allow_folding != NULL) {
-            con_expr_value = constant_value_addressed_by_node(
-                                                       node, &node->position);
+            con_expr_value = constant_value_addressed_by_node(node);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
           node->type = prvalue_node_type;
@@ -19432,7 +19410,7 @@ lvalue_adjust:
           if (allow_folding != NULL &&
               is_glvalue_node(op1) &&
               are_reference_related(node->type, op1->type)) {
-            con_expr_value = constant_value_addressed_by_node(op1, err_pos);
+            con_expr_value = constant_value_addressed_by_node(op1);
             if (con_expr_value != NULL) {
               a_boolean did_not_fold;
               copy_constant(con_expr_value, result_con);

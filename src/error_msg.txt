@@ -2502,7 +2502,7 @@ ec_nonconstant_mem_init_for_constexpr_ctor;;"non-constant initializer for conste
 ec_generated_default_constructor_used_in_field_initializer;;"the generated default constructor for %t cannot be used in an initializer for its own data member"
 ec_recursive_initializer_instantiation;;"instantiation of initializer of %n depends on its own value"
 ec_defaulted_default_ctor_cannot_be_constexpr;;"defaulted default constructor cannot be constexpr because the corresponding implicitly declared default constructor would not be constexpr"
-ec_excessive_constexpr_recursion;;"expression not folded to a constant due to excessive constexpr function call nesting (possible infinite recursion)"
+REMOVED;ec_excessive_constexpr_recursion;;"expression not folded to a constant due to excessive constexpr function call nesting (possible infinite recursion)"
 ec_bad_binary_digit;;"invalid binary number"
 ec_multiple_union_field_initializers;;"a union can have at most one field initializer -- %nd also has an initializer"
 REMOVED;ec_incomplete_type_for_constexpr_static_data_member;;"a constexpr static data member cannot be declared with an incomplete type %t"
@@ -2523,7 +2523,7 @@ ec_unbounded_constexpr_ctor_init_recursion;;"this constructor uses the initializ
 ec_cannot_default_initialize_anon_union;;"anonymous union defined %p cannot be default-initialized because it has a deleted default constructor or destructor"
 ec_block_extern_initializer_not_allowed;;"an initializer is not allowed on a local declaration of an extern variable"
 ec_local_named_register_initializer_not_allowed;;"an initializer is not allowed on a local declaration of a named register variable"
-ec_constexpr_dangling_pointer;;"expression is not constant due to a dangling pointer (points to a temporary whose lifetime has ended)"
+REMOVED;ec_constexpr_dangling_pointer;;"expression is not constant due to a dangling pointer (points to a temporary whose lifetime has ended)"
 ec_cl_unrestricted_unions_in_microsoft_mode;;"unrestricted unions cannot be enabled in Microsoft mode"
 ec_delegation_loop;;"constructor delegates directly or indirectly to itself"
 ec_delegation_init_and_mem_init;;"a delegating constructor cannot have other mem-initializers"
@@ -2886,6 +2886,7 @@ ec_attribute_namespace_unrecognized;;"attribute namespace %sq is unrecognized"
 ec_default_member_init_for_value_class;;"a default member initializer is not permitted in a value class"
 ec_cl_implicit_noexcept_requires_noexcept_support;;"\"--implicit_noexcept\" requires a mode that enables noexcept"
 ec_constexpr_virtual_base;;"cannot fold operation involving virtual base class (%t)"
+ec_initializer_not_constant;;"initializer must have a constant value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

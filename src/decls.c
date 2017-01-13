@@ -6499,10 +6499,7 @@ variable.
            but don't have the form of a "constant expression". */
       } else if (is_any_reference_type(vp->type) &&
                  !vp->is_constexpr &&
-                 constant_value_at_address(
-                                          con_val,
-                                          (a_constexpr_evaluation_block *)NULL,
-                                          ref_val) == NULL) {
+                 constant_value_at_address(con_val, ref_val) == NULL) {
         /* A reference that is not constexpr is constant-valued only if the
            constant reference address points at a constant. */
       } else {
