@@ -4313,11 +4313,6 @@ typedef struct a_constant {
     struct {
       an_address_base_kind
                 kind;
-      a_bit_field
-		from_reference_variable:1;
-			/* TRUE if this constant was folded from the value
-			   of a reference variable; FALSE for other address
-			   constants. */
       union {
         /* The entity whose address is the base for this address constant. */
         /* When kind == abk_cli_array, no variant fields. */
@@ -4368,14 +4363,6 @@ typedef struct a_constant {
       a_targ_ptrdiff_t
                 offset;
                         /* Byte offset from the base address. */
-      a_dynamic_init_ptr
-		assoc_dyn_init;
-			/* Used for constexpr evaluation.  For an abk_temporary
-			   constant, if non-NULL points to the dynamic init
-			   entry that defines the temporary, used to check
-			   for the pointer becoming dangling because the
-			   lifetime of the dynamic init has ended.
-			   Front end only. */
     } address;
     /* When kind == ck_ptr_to_member: */
     struct {

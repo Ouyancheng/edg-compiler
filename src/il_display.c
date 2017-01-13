@@ -1223,9 +1223,6 @@ display_constant_value:
     case ck_address:
       (void)printf("ck_address\n");
       disp_name("address.kind");
-      if (ptr->variant.address.from_reference_variable) {
-        disp_boolean("from_reference_variable", TRUE);
-      }  /* if */
       switch (ptr->variant.address.kind) {
         case abk_routine:
           (void)printf("abk_routine\n");

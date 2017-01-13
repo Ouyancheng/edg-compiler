@@ -5142,7 +5142,6 @@ otherwise, the abk_temporary variant is produced instead.
   con->variant.address.variant.constant = constant;
   con->type = make_pointer_type(constant->type);
   check_assertion(!is_incomplete_type(constant->type));
-  con->variant.address.assoc_dyn_init = NULL;
 }  /* set_temporary_address_constant */
 
 
@@ -7008,9 +7007,7 @@ definition of the CC flags in il.h for more information.
               break;
             case abk_temporary:
               eq = (cp1->variant.address.variant.constant ==
-                    cp2->variant.address.variant.constant &&
-                    cp1->variant.address.assoc_dyn_init ==
-                    cp2->variant.address.assoc_dyn_init);
+                    cp2->variant.address.variant.constant);
               break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case abk_uuidof:

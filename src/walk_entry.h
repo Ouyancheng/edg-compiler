@@ -808,8 +808,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                 unexpected_condition_str(
                              "walk_entry_and_subtree: bad address const kind");
             }  /* switch */
-            conditionally_clear_fe_pointer(
-                                          ptr->variant.address.assoc_dyn_init);
             break;
           case ck_ptr_to_member:
             remap_ptr(ptr->variant.ptr_to_member.casting_base_class,

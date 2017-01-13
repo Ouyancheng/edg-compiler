@@ -811,10 +811,8 @@ fields to default values.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
-      cp->variant.address.from_reference_variable = FALSE;
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
-      cp->variant.address.assoc_dyn_init = NULL;
       break;
     case ck_ptr_to_member:
       cp->variant.ptr_to_member.casting_base_class = NULL;
