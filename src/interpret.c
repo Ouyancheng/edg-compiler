@@ -872,52 +872,6 @@ Output the current live set record in ips.
 
 #endif /* DEBUG */
 
-static void init_interpreter_state(an_interpreter_state  *ips)
-/*
-Initialize the given interpreter state.
-*/
-{
-  init_data_map(&ips->map);
-  init_constexpr_stack(&ips->storage_stack);
-  init_live_set(&ips->live_set);
-  add_to_live_set(&ips->live_set, 1);
-  ips->curr_alloc_seq_number = 1;
-  ips->curr_call_frame = NULL;
-  ips->extension_state = NULL;
-  ips->constants = NULL;
-  clear_diag_list(&ips->diag_list);
-  ips->position = null_source_position;
-  ips->cost = 0;
-  ips->static_storage_ready = FALSE;
-  ips->side_effects_disabled = !relaxed_constexpr_enabled;
-  ips->suspend_diag_list = FALSE;
-  ips->input_error = FALSE;
-}  /* init_interpreter_state */
-
-
-static void release_interpreter_state(an_interpreter_state  *ips)
-/*
-Release the storage allocated for the given interpreter state.
-*/
-{
-  release_constexpr_stack(&ips->storage_stack);
-  release_data_map_table(&ips->map);
-  ips->map.table = NULL;
-  release_live_set_table(&ips->live_set);
-  ips->live_set.table = NULL;
-  { a_constant_ptr  cp = ips->constants;
-    while (cp != NULL) {
-      a_constant_ptr  next_cp = cp->next;
-      release_local_constant(&cp);
-      cp = next_cp;
-    }  /* while */
-  }
-  if (ips->static_storage_ready) {
-    release_constexpr_stack(&ips->static_storage);
-  }  /* if */
-}  /* release_interpreter_state */
-
-
 /*
 Macro producing the number of stack storage bytes left in the current block.
 */
@@ -1724,6 +1678,55 @@ typedef struct a_constexpr_ptr_to_mem {
 			/* Routine referred to by the pointer-to-member. */
   } variant;
 } a_constexpr_ptr_to_mem;
+
+
+static void init_interpreter_state(an_interpreter_state  *ips)
+/*
+Initialize the given interpreter state.
+*/
+{
+  init_data_map(&ips->map);
+  init_constexpr_stack(&ips->storage_stack);
+  init_live_set(&ips->live_set);
+  add_to_live_set(&ips->live_set, 1);
+  ips->curr_alloc_seq_number = 1;
+  ips->curr_call_frame = NULL;
+  ips->extension_state = NULL;
+  ips->constants = NULL;
+  clear_diag_list(&ips->diag_list);
+  ips->position = null_source_position;
+  ips->cost = 0;
+  ips->static_storage_ready = FALSE;
+  ips->side_effects_disabled = !relaxed_constexpr_enabled;
+  ips->suspend_diag_list = FALSE;
+  ips->input_error = FALSE;
+}  /* init_interpreter_state */
+
+
+static void release_interpreter_state(an_interpreter_state  *ips)
+/*
+Release the storage allocated for the given interpreter state.
+*/
+{
+  release_constexpr_stack(&ips->storage_stack);
+  release_data_map_table(&ips->map);
+  ips->map.table = NULL;
+  release_live_set_table(&ips->live_set);
+  ips->live_set.table = NULL;
+  { a_constant_ptr  cp = ips->constants;
+    while (cp != NULL) {
+      a_constant_ptr  next_cp = cp->next;
+      release_local_constant(&cp);
+      cp = next_cp;
+    }  /* while */
+  }
+  if (ips->static_storage_ready) {
+    release_constexpr_stack(&ips->static_storage);
+  }  /* if */
+  if (n_free_variant_path_entries != n_variant_path_entries) {
+    reclaim_variant_path_entries();
+  }  /* if */
+}  /* release_interpreter_state */
 
 
 static void info_call_stack(an_interpreter_state  *ips)
@@ -3085,11 +3088,14 @@ soon but the other must persist.  E.g., this happens after copying a variable
   p_vpep = &addr->variant.variant_path;
   vpep = *p_vpep;
   do {
-    *p_vpep = alloc_variant_path_entry();
-    **p_vpep = *vpep;
-    p_vpep = &(*p_vpep)->next;
+    a_variant_path_entry_ptr  new_entry = alloc_variant_path_entry();
+    *p_vpep = new_entry;
+    new_entry->field = vpep->field;
+    new_entry->base_address = vpep->base_address;
+    p_vpep = &new_entry->next;
     vpep = vpep->next;
   } while (vpep != NULL);
+  *p_vpep = NULL;
 }  /* copy_variant_path */
 
 
@@ -9991,9 +9997,6 @@ FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-  if (n_free_variant_path_entries != n_variant_path_entries) {
-    reclaim_variant_path_entries();
-  }  /* if */
 done:
   return result;
 }  /* interpret_expr */
@@ -10049,9 +10052,6 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-  if (n_free_variant_path_entries != n_variant_path_entries) {
-    reclaim_variant_path_entries();
-  }  /* if */
 done:
   return result;
 }  /* interpret_constexpr_call */
@@ -10119,9 +10119,6 @@ source position of the initialization.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-  if (n_free_variant_path_entries != n_variant_path_entries) {
-    reclaim_variant_path_entries();
-  }  /* if */
 done:
   return result;
 }  /* interpret_dynamic_init */
@@ -10194,9 +10191,6 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-  if (n_free_variant_path_entries != n_variant_path_entries) {
-    reclaim_variant_path_entries();
-  }  /* if */
 done:
   return result;
 }  /* interpret_constexpr_ctor */
