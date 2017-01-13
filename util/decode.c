@@ -1693,7 +1693,7 @@ controls output of extra information on template parameters.
       }  /* if */
       /* Write the template parameter name. */
       write_template_parameter_name(temp_par_info->nesting_level +
-                                              dctl->mangling_nesting_level - 1,
+                                                  dctl->mangling_nesting_level,
                                     position,
                                     nontype, dctl);
       if (temp_par_info->output_only_correspondences) {
@@ -3427,8 +3427,10 @@ function-local information if present (but do scan over it).
   unsigned long nchars;
 
   p = get_length(p, &nchars, &prev_end, dctl);
+  dctl->mangling_nesting_level++;
   p = full_demangle_identifier(p, nchars, suppress_parent_and_local_info,
                                dctl);
+  dctl->mangling_nesting_level--;
   dctl->end_of_name = prev_end;
   return p;
 }  /* demangle_identifier_with_preceding_length */
@@ -3460,7 +3462,6 @@ information.
   a_boolean     has_function_local_info = FALSE;
   unsigned long instance;
 
-  dctl->mangling_nesting_level++;
   clear_template_param_block(&temp_par_info);
   if (nchars != 0) {
     prev_end = dctl->end_of_name;
@@ -3679,7 +3680,6 @@ end_of_routine:
     while (get_char(end_ptr, dctl) != '\0') end_ptr++;
   }  /* if */
   if (prev_end != NULL) dctl->end_of_name = prev_end;
-  dctl->mangling_nesting_level--;
   return end_ptr;
 }  /* full_demangle_identifier */
 
