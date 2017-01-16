@@ -2040,17 +2040,29 @@ redo:
     case tk_struct:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
-        result = lay_out_class_type(ips, tp, p_result);
+        if (!tp->incomplete) {
+          result = lay_out_class_type(ips, tp, p_result);
+        } else {
+          a_source_position  *pos = &tp->source_corresp.decl_position;
+          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+          do_constexpr_fail(*p_result);
+        }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
         a_source_position  *pos = &tp->source_corresp.decl_position;
-        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        info_with_pos_type(ec_constexpr_incomplete_type, pos, tp, ips);
         do_constexpr_fail(*p_result);
       }  /* if */
       break;
     case tk_union:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
-        result = lay_out_union_type(ips, tp, p_result);
+        if (!tp->incomplete) {
+          result = lay_out_union_type(ips, tp, p_result);
+        } else {
+          a_source_position  *pos = &tp->source_corresp.decl_position;
+          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+          do_constexpr_fail(*p_result);
+        }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
         a_source_position  *pos = &tp->source_corresp.decl_position;
         info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);

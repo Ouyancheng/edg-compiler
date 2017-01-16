@@ -2887,6 +2887,7 @@ ec_default_member_init_for_value_class;;"a default member initializer is not per
 ec_cl_implicit_noexcept_requires_noexcept_support;;"\"--implicit_noexcept\" requires a mode that enables noexcept"
 ec_constexpr_virtual_base;;"cannot fold operation involving virtual base class (%t)"
 ec_initializer_not_constant;;"initializer must have a constant value"
+ec_constexpr_incomplete_type;;"cannot evaluate value of incomplete %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
