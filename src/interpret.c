@@ -9937,6 +9937,10 @@ FALSE, and record diagnostic info in *diag_list.
     /* Don't attempt interpretation in template contexts. */
     result = FALSE;
     goto done;
+  } else if (is_constant_node(expr)) {
+    (void)copy_constant_full(node_constant(expr), result_con,
+                             CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+    goto done;
   }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
@@ -9989,7 +9993,10 @@ FALSE, and record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
         do_constexpr_fail(result);
-      } else {
+      } else if (expr->next == NULL) {
+        /* If expr is part of an expression list and followed by other
+           expressions, do not record it as the backing expression since
+           it could cause IL traversal problems later on. */
         result_con->expr = expr;
       }  /* if */
     }  /* if */
@@ -10045,7 +10052,10 @@ return FALSE, and record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
       do_constexpr_fail(result);
-    } else {
+    } else (call_expr->next == NULL) {
+      /* If call_expr is part of an expression list and followed by other
+         expressions, do not record it as the backing expression since
+         it could cause IL traversal problems later on. */
       result_con->expr = call_expr;
     }  /* if */
   }  /* if */
