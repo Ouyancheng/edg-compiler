@@ -1,5 +1,22 @@
 Version 4.13
 
+1/16/17  [EDGcpfe/17944]
+C-generating back end: incorrect code with prvalue and xvalue class objects
+
+In some cases involving prvalue or xvalue class objects, the C-generating
+back end put out incorrect C code that attempted to take the address of a
+non-lvalue expression.  This is now fixed.  For example:
+
+  struct A {
+    bool operator==(A);
+  };
+  struct B : A {};
+  struct C { B b; };
+  B f();
+  C g();
+  bool x = g().b == f();  // Previously an error in the generated code
+
+
 1/11/17  [EDGcpfe/17928]
 Assertion failure in edgcdisp on certain decltype types
 

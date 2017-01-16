@@ -4535,6 +4535,27 @@ static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
                                               a_boolean        *comma_case);
 
 
+static a_boolean obj_expr_based_on_comma(an_expr_node_ptr expr)
+/*
+Return TRUE if expr is an eok_dot_field node whose left operand either is
+or is a member selection from the result of an eok_comma operation.
+*/
+{
+  a_boolean result = FALSE;
+
+  while (is_operation_node(expr) &&
+         node_operator_is(expr, eok_dot_field)) {
+    /* Examine the object expression (and, possibly, set up for another
+       iteration of the loop). */
+    expr = expr->variant.operation.operands;
+    if (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
+      result = TRUE;
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* obj_expr_based_on_comma */
+
+
 static void dump_lvalue_cast(an_expr_node_ptr node,
                              a_boolean        suppress_indirection)
 /*
@@ -4573,9 +4594,11 @@ on top of the expansion.
       bit_field_case = TRUE;
       field_offset = field->offset;
     } else if (node_operator_is(operand_1, eok_dot_field) &&
-               !object_expr->is_lvalue &&
-               (!optimizable_rvalue_selection(operand_1, &comma_case) ||
-                comma_case)) {
+               ((!object_expr->is_lvalue &&
+                 (!optimizable_rvalue_selection(operand_1, &comma_case) ||
+                  comma_case)) ||
+                (object_expr->is_lvalue &&
+                 obj_expr_based_on_comma(operand_1)))) {
       /* The operand is a member access expression that will be generated
          as a comma expression, to which "&" cannot be applied.  Signal
          that the ampersand should be put out on the second operand of the
@@ -4773,7 +4796,9 @@ output with parentheses if needed.
       write_tok_str(")&(");
     }  /* if */
   }  /* if */
-  if (node_operator_is(expr, eok_dot_field) && !struct_expr->is_lvalue) {
+  if (node_operator_is(expr, eok_dot_field) &&
+      (!struct_expr->is_lvalue ||
+       expr->variant.operation.has_deferred_ampersand)) {
     a_boolean comma_case;
     /* Because pcc compilers do not allow selection of a field from an
        rvalue struct (which is allowed in ANSI C), in most cases we
@@ -4793,7 +4818,8 @@ output with parentheses if needed.
     */
     write_tok_ch('(');
     need_closing_paren = TRUE;
-    if (optimizable_rvalue_selection(expr, &comma_case)) {
+    if (!expr->variant.operation.operands->is_lvalue &&
+        optimizable_rvalue_selection(expr, &comma_case)) {
       /* This is an optimizable case.  Add the field selection to the existing
          reference to a struct/union variable. */
       if (comma_case) {
@@ -9634,14 +9660,24 @@ prescan temporaries in the indicated expression.
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      op1 = node->variant.operation.operands;
     a_type_ptr            op1_type = op1->type;
-    if (op == (an_expr_operator_kind)eok_dot_field && !op1->is_lvalue) {
-      /* Selection of a field from an rvalue; may need a temp for the
-         struct/union. */
-      a_boolean comma_case;
-      if (optimizable_rvalue_selection(node, &comma_case)) {
-        /* The transformation can be optimized and does not need the temp.
-           See dump_field_selection. */
+    a_boolean             need_temp = FALSE;
+    if (op == (an_expr_operator_kind)eok_dot_field) {
+      if (!op1->is_lvalue) {
+        /* Selection of a field from an rvalue; may need a temp for the
+           struct/union. */
+        a_boolean comma_case;
+        if (optimizable_rvalue_selection(node, &comma_case)) {
+          /* The transformation can be optimized and does not need the temp.
+             See dump_field_selection. */
+        } else {
+          need_temp = TRUE;
+        }  /* if */
       } else {
+        /* If the object expression is based on a comma node, it may need
+           a temporary. */
+        need_temp = obj_expr_based_on_comma(node);
+      }  /* if */
+      if (need_temp) {
         /* Declare the temporary. */
         dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
                                             NO_ROUTINE, NO_FIELD, (char *)node,
