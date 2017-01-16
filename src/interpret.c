@@ -6124,6 +6124,12 @@ otherwise, it need only be large enough for the type of the prvalue result.
   a_host_large_integer host_int_val;
 
   if (!result) goto done;
+  if (expr->do_not_interpret) {
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &expr->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   switch (expr->kind) {
     case enk_operation:
       {
@@ -9731,8 +9737,8 @@ diagnostic in *ips.
             con->variant.address.kind = (an_address_base_kind)abk_variable;
             con->variant.address.variant.variable = vp;
           } else {
-            if (constant_is(cp, ck_string) ||
-                utp->kind == (a_type_kind)tk_array) {
+            if (constant_is(cp, ck_string)/* ||
+                utp->kind == (a_type_kind)tk_array*/) {
               con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;

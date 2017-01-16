@@ -4214,6 +4214,12 @@ Display the indicated expression node.
   if (ptr->type_definition_needed) {
     disp_boolean("type_definition_needed", TRUE);
   }  /* if */
+  if (ptr->volatile_fetch) {
+    disp_boolean("volatile_fetch", TRUE);
+  }  /* if */
+  if (ptr->do_not_interpret) {
+    disp_boolean("do_not_interpret", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

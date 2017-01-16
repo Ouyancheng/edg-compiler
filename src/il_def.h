@@ -13054,6 +13054,9 @@ typedef struct an_expr_node {
 		volatile_fetch:1;
 			/* TRUE if this node represents a fetch from volatile
 			   storage. */
+  a_bit_field	do_not_interpret:1;
+			/* TRUE if the interpreter should not attempt to
+			   evaluate this node. */
   bitfield_to_avoid_codecenter_warnings()
   a_source_position
 		position;

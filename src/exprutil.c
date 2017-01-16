@@ -8453,6 +8453,12 @@ user-defined conversions.
         unexpected_condition_str("cast_operand_full: bad operand kind");
     }  /* switch */
   }  /* if */
+  if (vla_enabled && is_expression_operand(operand) &&
+      is_directly_variably_modified_type(new_type)) {
+    /* Do prevent the interpreter from evaluating this node, because it could
+       fold away the side-effects of evaluating the variable bounds. */
+    operand->variant.expression->do_not_interpret = TRUE;
+  }  /* if */
   /* Restore the original source position, etc.  Keep the reference
      information (useful when this is a pointer to a class being cast to
      a base class, or a pointer to an array being cast to a pointer to

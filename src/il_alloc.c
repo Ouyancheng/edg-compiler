@@ -3487,6 +3487,7 @@ its kind to the indicated kind.
   node->is_parenthesized = FALSE;
   node->type_definition_needed = FALSE;
   node->volatile_fetch = FALSE;
+  node->do_not_interpret = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
