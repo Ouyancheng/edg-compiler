@@ -10052,7 +10052,7 @@ return FALSE, and record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
       do_constexpr_fail(result);
-    } else (call_expr->next == NULL) {
+    } else if (call_expr->next == NULL) {
       /* If call_expr is part of an expression list and followed by other
          expressions, do not record it as the backing expression since
          it could cause IL traversal problems later on. */
