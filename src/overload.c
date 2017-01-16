@@ -10603,6 +10603,7 @@ that case, and this_type is used for the type.
     node->type = this_type;
     node->variant.param_ref.param_num = 0;
     node->variant.param_ref.levels_up = 0;
+    node->position = *position;
     make_expression_operand(node, result);
     /* Call variable_this_exists_full again to possibly record a check
        for an error later.  We already know it returns TRUE. */
