@@ -5726,8 +5726,7 @@ folding failed.  Return TRUE if an error was issued.
         emit_diagnostic = TRUE;
         err = TRUE;
       } else if (curr_expr_is_evaluated() &&
-                 !curr_expr_is_potentially_unevaluated() &&
-                 (routine == NULL || !routine->is_constexpr)) {
+                 !curr_expr_is_potentially_unevaluated()) {
         /* Constant expressions allow invalid operators/constructs in
            unevaluated subexpressions, including dead operands of "?", "&&",
            and "||". */
