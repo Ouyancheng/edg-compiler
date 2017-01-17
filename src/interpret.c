@@ -772,6 +772,9 @@ typedef struct an_interpreter_state {
 		input_error:1;
 			/* TRUE if interpretation failed because an error
 			   entry was encountered in the IL. */
+  a_bit_field
+		call_seen:1;
+			/* TRUE if a call was interpreted. */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -1700,6 +1703,7 @@ Initialize the given interpreter state.
   ips->side_effects_disabled = !relaxed_constexpr_enabled;
   ips->suspend_diag_list = FALSE;
   ips->input_error = FALSE;
+  ips->call_seen = FALSE;
 }  /* init_interpreter_state */
 
 
@@ -5567,6 +5571,7 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* for */
     /* Reduce the cost of the call to just 1. */
     ips->cost -= up_front_cost-1;
+    ips->call_seen = TRUE;
   }  /* if */
 done:
   return result;
@@ -5964,6 +5969,7 @@ the body of the (constructor) function proper.
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Reduce the cost of the call to just 1. */
     ips->cost -= up_front_cost-1;
+    ips->call_seen = TRUE;
   }  /* if */
 done:
   return result;
@@ -9605,7 +9611,9 @@ diagnostic in *ips.
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
   con->type = type;
-  con->is_result_of_constexpr_call = TRUE;
+  if (ips->call_seen) {
+    con->is_result_of_constexpr_call = TRUE;
+  }  /* if */
   type = skip_typerefs(type);
   switch (type->kind) {
     case tk_integer:
