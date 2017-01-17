@@ -5604,8 +5604,8 @@ Extract the constant value from the operand *operand and place it in
            diagnostic indicating the reason the operand is non-constant. */
         a_diag_list  diag_list;
         clear_diag_list(&diag_list);
-        if (!interpret_expr(operand->variant.expression,
-                            /*force_prvalue=*/FALSE, constant, &diag_list)) {
+        if (interpret_expr(operand->variant.expression,
+                           /*force_prvalue=*/FALSE, constant, &diag_list)) {
           if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             constant->expr = NULL;
           }  /* if */
@@ -19637,7 +19637,6 @@ cases so we don't do it here.
   a_type_ptr        unqual_operand_type;
   a_boolean         constant_case = FALSE;
   a_constant_ptr    con_value;
-  a_boolean         possibly_constant_with_constexpr = FALSE;
 
   /* Ignore non-glvalues. */
   if (is_a_glvalue(operand)) {
@@ -19719,40 +19718,6 @@ cases so we don't do it here.
         }  /* if */
       }  /* if */
       if (!constant_case) {
-        if (in_potential_constant_constexpr_context() ||
-            (constexpr_enabled && is_template_dependent_context())) {
-          /* For expressions in the body of a constexpr function, the
-             constant_expr_ruled_out flag should be lenient, considering
-             things that might be constant in an actual call of the
-             function because the parameters may have constant values.
-             So suppress setting that flag if the lvalue is one that might
-             end up being constant.  Furthermore, in template contexts,
-             constexpr conversion functions can make certain seemingly
-             nonconstant-expressions become constant. */
-          /* Many more complex expressions can have embedded uses of the
-             parameters, like "this->i" or "*&(this->i)", so be conservative.
-             The only downside is that we might not issue an error on a
-             constexpr function that may never produce a constant value. */
-          a_variable_ptr   var = NULL;
-          an_expr_node_ptr test_node = expr_before_type_adjustment(node);
-          test_node = strip_ref_indirect(test_node, /*parens_also=*/TRUE);
-          possibly_constant_with_constexpr = TRUE;
-          if (is_variable_node(test_node)) {
-            var = node_variable(test_node);
-          } else if (is_constant_node(test_node)) {
-            if (con_is_exact_addr_of_variable(node_constant(test_node),
-                                              &var,
-                                              /*array_decay_allowed=*/TRUE)) {
-            }  /* if */
-          }  /* if */
-          if (var != NULL) {
-            possibly_constant_with_constexpr =
-                                            (relaxed_constexpr_enabled ||
-                                             var->is_parameter ||
-                                             var->constant_valued ||
-                                             is_template_dependent_context());
-          }  /* if */
-        }  /* if */
         /* Convert the expression to a prvalue. */
         node = conv_glvalue_expr_to_prvalue(node, &constant_case, &con_value,
                                             &operand->position);
@@ -19771,7 +19736,7 @@ cases so we don't do it here.
         /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
            expression. */
         error_in_operand(ec_expr_not_constant, operand);
-      } else if (!possibly_constant_with_constexpr &&
+      } else if (!constexpr_enabled &&
                  !potential_gnu_ignored_object_expr(node, curr_token) &&
                  construct_not_allowed_in_cpp11_constant_expr(
                                                          ec_expr_not_constant,
@@ -20014,7 +19979,7 @@ current mode -- just do it.
     make_constant_operand(conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_evaluated_const() &&
+  } else if (curr_expr_kind_is_evaluated_const() && !constexpr_enabled &&
              !expr_stack->allow_array_decay_in_constant_expr) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression except in certain expressions such as x==x, where the

@@ -6632,7 +6632,6 @@ prefer to handle that higher up.
 {
   a_boolean is_constant_ptr = FALSE;
   a_boolean local_template_constant;
-  a_boolean do_not_call_back = FALSE;
 
   if (template_constant == NULL) {
     template_constant = &local_template_constant;
@@ -6645,7 +6644,13 @@ prefer to handle that higher up.
                     is_template_param_type(expr->type) ||
                     is_error_type(expr->type)) ||
                    is_error_node(expr)));
-  if (!do_not_call_back && fold_expr(expr, con)) {
+#if DO_IL_LOWERING
+  if (il_lowering_underway) {
+    /* Don't attempt expression folding during lowering. */
+  } else
+#endif /* DO_IL_LOWERING */
+  /* Do not insert code here. */
+  if (fold_expr(expr, con)) {
     /* The expression could be folded to a constant. */
     is_constant_ptr = TRUE;
     goto have_result;
