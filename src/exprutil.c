@@ -5598,6 +5598,24 @@ Extract the constant value from the operand *operand and place it in
         }  /* if */
       }  /* if */
       break;
+    case ok_expression:
+      if (constexpr_enabled) {
+        /* Attempt to interpret the expression.  A failure will produce a
+           diagnostic indicating the reason the operand is non-constant. */
+        a_diag_list  diag_list;
+        clear_diag_list(&diag_list);
+        if (!interpret_expr(operand->variant.expression,
+                            /*force_prvalue=*/FALSE, constant, &diag_list)) {
+          a_diagnostic_ptr  dp;
+          dp = pos_start_error(ec_expr_not_constant, &operand->position);
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+          set_error_constant(constant);
+        }  /* if */
+        discard_more_info_list(&diag_list);
+        break;
+      }  /* if */
+      /*FALLTHROUGH*/
     default:
       error_in_operand(ec_expr_not_constant, operand);
       set_error_constant(constant);
@@ -5726,7 +5744,8 @@ folding failed.  Return TRUE if an error was issued.
         emit_diagnostic = TRUE;
         err = TRUE;
       } else if (curr_expr_is_evaluated() &&
-                 !curr_expr_is_potentially_unevaluated()) {
+                 !curr_expr_is_potentially_unevaluated() &&
+                 (routine == NULL || !routine->is_constexpr)) {
         /* Constant expressions allow invalid operators/constructs in
            unevaluated subexpressions, including dead operands of "?", "&&",
            and "||". */
@@ -7689,8 +7708,11 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     /* For an ordinary cast, generate the eok_cast node. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                  *p_node);
-    (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
     (*p_node)->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
+    if (is_implicit_cast) {
+      (*p_node)->variant.operation.compiler_generated = TRUE;
+      (*p_node)->position = *err_pos;
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (check_need_for_final_cast) {
