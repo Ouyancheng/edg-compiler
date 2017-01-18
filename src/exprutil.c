@@ -14668,6 +14668,7 @@ on output it will be an lvalue.
         /* Add a reference indirection to make an lvalue.  This is similar to
            adding a "*" operator on top of a pointer prvalue. */
         node = add_ref_indirection_to_node(node);
+        node->position = result->position;
       }  /* if */
     }  /* if */
     if (err) {

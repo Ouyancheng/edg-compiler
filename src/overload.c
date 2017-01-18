@@ -22391,8 +22391,8 @@ be suppressed (i.e., SFINAE mode).
       }  /* if */
       if (p_dip != NULL) *p_dip = dip;
       if (operand != NULL) {
-      if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
-          folded_con->is_result_of_constexpr_call) {
+        if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
+            folded_con->is_result_of_constexpr_call) {
           /* The constructor for std::initializer_list is constexpr,
              and the call was folded to a constant. */
           make_constant_operand(folded_con, operand);
@@ -22400,6 +22400,7 @@ be suppressed (i.e., SFINAE mode).
           expr = alloc_temp_init_node(list_type, dip,
                                       /*is_lvalue=*/FALSE,
                                       /*is_explicit_cast=*/FALSE);
+          expr->position = *pos;
           if (initializing_var) {
             extend_temporary_lifetime(dip, static_lifetime);
           }  /* if */
