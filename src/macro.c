@@ -5907,6 +5907,13 @@ scan_expanded_tokens:
               /* The Microsoft preprocessor suppresses a comma preceding
                  an empty variadic macro expansion. */
               --map->expanded_len;
+              if (map->expanded_len >= LE_ESCAPE_LEN &&
+                  map->expanded_text[map->expanded_len - 2] == LE_ESCAPE &&
+                  map->expanded_text[map->expanded_len - 1] ==
+                                                             LE_END_OF_TOKEN) {
+                /* Avoid an extra end-of-token marker. */
+                map->expanded_len -= LE_ESCAPE_LEN;
+              }  /* if */
             }  /* if */
             if (ms_compat && token_ends_macro_expansion &&
                 !any_white_space_skipped) {
@@ -6404,17 +6411,30 @@ end_arg_expansion:;
   }  /* if */
 #endif /* DEBUG */
   /* Make enough room in macro_buffer for the expansion, an
-     LE_END_OF_TOP_LEVEL_EXPANSION escape, if needed, and the following
-     LE_END_OF_INSERTION lexical escape. */
-  ensure_macro_buffer_space(repl_text_len +
-                            space_for_end_of_top_level_expansion_escape +
-                            LE_ESCAPE_LEN);
+     LE_END_OF_TOP_LEVEL_EXPANSION or LE_EMPTY_VARIADIC_MACRO escape, if
+     needed, and the following LE_END_OF_INSERTION lexical escape. */
+  if (ms_compat && mdp->variadic && repl_text_len == 0 &&
+      space_for_end_of_top_level_expansion_escape == 0) {
+    /* The Microsoft preprocessor suppresses a comma in a macro argument
+       list when it appears prior to an empty variadic expansion.  The
+       inserted text will consist of an LE_EMPTY_VARIADIC_MACRO followed
+       by an LE_END_OF_INSERTION to allow detection of that case. */
+    ensure_macro_buffer_space(2 * LE_ESCAPE_LEN);
+  } else {
+    ensure_macro_buffer_space(repl_text_len +
+                              space_for_end_of_top_level_expansion_escape +
+                              LE_ESCAPE_LEN);
+  }  /* if */
   /* Move the text into macro_buffer. */
   rescan_loc = src_loc = next_avail_in_macro_buffer;
   next_avail_in_macro_buffer += repl_text_len;
   if (space_for_end_of_top_level_expansion_escape != 0) {
     *next_avail_in_macro_buffer++ = LE_ESCAPE;
     *next_avail_in_macro_buffer++ = LE_END_OF_TOP_LEVEL_EXPANSION;
+  } else if (ms_compat && mdp->variadic && repl_text_len == 0) {
+    *next_avail_in_macro_buffer++ = LE_ESCAPE;
+    *next_avail_in_macro_buffer++ = LE_EMPTY_VARIADIC_MACRO;
+    repl_text_len = LE_ESCAPE_LEN;
   }  /* if */
   /* Store final LE_END_OF_INSERTION lexical escape. */
   *next_avail_in_macro_buffer++ = LE_ESCAPE;
@@ -6832,17 +6852,6 @@ copy_done:
      spans several lines).  If no characters are being deleted, make the
      replacement a hanging insertion (before the first character of the
      current source line). */
-  if (ms_compat && mdp->variadic && repl_text_len == 0) {
-    /* The Microsoft preprocessor suppresses a comma in a macro argument
-       list when it appears prior to an empty variadic expansion.  Insert
-       an LE_EMPTY_VARIADIC_MACRO escape before the LE_END_OF_INSERTION
-       escape to allow that situation to be detected. */
-    ensure_macro_buffer_space(LE_ESCAPE_LEN);
-    next_avail_in_macro_buffer[-1] = LE_EMPTY_VARIADIC_MACRO;
-    *next_avail_in_macro_buffer++ = LE_ESCAPE;
-    *next_avail_in_macro_buffer++ = LE_END_OF_INSERTION;
-    repl_text_len = LE_ESCAPE_LEN;
-  }  /* if */
   slmp = add_source_line_modif((delete_source_from_loc == curr_char_loc)
                                                       ? NULL
                                                       : delete_source_from_loc,
