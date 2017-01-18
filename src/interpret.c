@@ -7616,7 +7616,8 @@ the value representation of the integer value.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 } else if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address == ptr2->address) {
+                  if (ptr1->address == ptr2->address &&
+                      ptr1->complete_object == ptr2->complete_object) {
                     *(an_integer_value *)result_storage = one_int;
                   } else if (((ptr1->address == ptr1->complete_object &&
                                cannot_dereference(ptr2)) ||
@@ -7715,8 +7716,9 @@ the value representation of the integer value.
                     *(an_integer_value *)result_storage = one_int;
                   }  /* if */
                 } else if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address != ptr2->address) {
-                    *(an_integer_value *)result_storage = one_int;
+                  if (ptr1->address == ptr2->address &&
+                      ptr1->complete_object == ptr2->complete_object) {
+                    *(an_integer_value *)result_storage = zero_int;
                   } else if (((ptr1->address == ptr1->complete_object &&
                                cannot_dereference(ptr2)) ||
                               (ptr2->address == ptr2->complete_object &&
@@ -7726,7 +7728,7 @@ the value representation of the integer value.
                                   &expr->position, ips);
                     do_constexpr_fail(result);
                   } else {
-                    *(an_integer_value *)result_storage = zero_int;
+                    *(an_integer_value *)result_storage = one_int;
                   }  /* if */
                 } else {
                   /* Two runtime data pointers. */
