@@ -6779,10 +6779,41 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = one_int;
               }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+              a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_runtime_data_address(cap)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+              } else if (is_function_address(cap) || cap->address != NULL) {
+                *(an_integer_value *)result_storage = one_int;
+              } else {
+                *(an_integer_value *)result_storage = zero_int;
+              }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+              if (fp_compare(opnd1_type->variant.float_kind,
+                             fp_value(opnd1_value),
+                             &zero_flt[(int)opnd1_type->variant.float_kind],
+                             &unord) == 0) {
+                *(an_integer_value *)result_storage = zero_int;
+              } else {
+                *(an_integer_value *)result_storage = one_int;
+              }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              *(an_integer_value *)result_storage = zero_int;
+            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+              a_constexpr_ptr_to_mem
+                                   *pm = (a_constexpr_ptr_to_mem*)opnd1_value;
+              if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
+                                              : (void*)pm->variant.field)
+                                                                    == NULL) {
+                *(an_integer_value *)result_storage = zero_int;
+              } else {
+                *(an_integer_value *)result_storage = one_int;
+              }  /* if */
             } else {
               /* Other types. */
-              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                            &expr->position, ips);
+              unexpected_condition();
             }  /* if */
             break;
           case eok_post_incr:
@@ -8914,8 +8945,40 @@ the value representation of the integer value.
                 is_signed = int_kind_is_signed[int_kind];
                 get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
                 logical_and_result = ovfl || bool_val;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+                if (is_runtime_data_address(cap)) {
+                  logical_and_result = FALSE;
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                } else if (is_function_address(cap) || cap->address != NULL) {
+                  logical_and_result = TRUE;
+                } else {
+                  logical_and_result = FALSE;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                if (fp_compare(opnd1_type->variant.float_kind,
+                               fp_value(opnd1_value),
+                               &zero_flt[(int)opnd1_type->variant.float_kind],
+                               &unord) == 0) {
+                  logical_and_result = FALSE;
+                } else {
+                  logical_and_result = TRUE;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+                logical_and_result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+                a_constexpr_ptr_to_mem
+                                   *pm = (a_constexpr_ptr_to_mem*)opnd1_value;
+                if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
+                                                : (void*)pm->variant.field)
+                                                                    == NULL) {
+                  logical_and_result = FALSE;
+                } else {
+                  logical_and_result = TRUE;
+                }  /* if */
               } else {
-                /* The operands should always be normalized to bool. */
                 logical_and_result = FALSE;
                 do_constexpr_fail(result);
                 unexpected_condition();
@@ -8961,8 +9024,40 @@ the value representation of the integer value.
                 is_signed = int_kind_is_signed[int_kind];
                 get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
                 logical_or_result = ovfl || bool_val;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+                if (is_runtime_data_address(cap)) {
+                  logical_or_result = FALSE;
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                } else if (is_function_address(cap) || cap->address != NULL) {
+                  logical_or_result = TRUE;
+                } else {
+                  logical_or_result = FALSE;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                if (fp_compare(opnd1_type->variant.float_kind,
+                               fp_value(opnd1_value),
+                               &zero_flt[(int)opnd1_type->variant.float_kind],
+                               &unord) == 0) {
+                  logical_or_result = FALSE;
+                } else {
+                  logical_or_result = TRUE;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+                logical_or_result = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+                a_constexpr_ptr_to_mem
+                                   *pm = (a_constexpr_ptr_to_mem*)opnd1_value;
+                if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
+                                                : (void*)pm->variant.field)
+                                                                    == NULL) {
+                  logical_or_result = FALSE;
+                } else {
+                  logical_or_result = TRUE;
+                }  /* if */
               } else {
-                /* The operands should always be normalized to bool. */
                 logical_or_result = TRUE;
                 do_constexpr_fail(result);
                 unexpected_condition();
@@ -9245,12 +9340,46 @@ the value representation of the integer value.
                 int_kind = opnd1_type->variant.integer.int_kind;
                 is_signed = int_kind_is_signed[int_kind];
                 get_int_val_from(opnd1_value, opnd1_type, bool_val, ovfl);
-                if (!(ovfl || bool_val)) {
-                  /* Evaluate the third operand. */
-                  opnd2 = opnd2->next;
+                bool_val = bool_val || ovfl;
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+                if (is_runtime_data_address(cap)) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                  break;
+                } else if (is_function_address(cap) || cap->address != NULL) {
+                  bool_val = TRUE;
+                } else {
+                  bool_val = FALSE;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                if (fp_compare(opnd1_type->variant.float_kind,
+                               fp_value(opnd1_value),
+                               &zero_flt[(int)opnd1_type->variant.float_kind],
+                               &unord) == 0) {
+                  bool_val = FALSE;
+                } else {
+                  bool_val = TRUE;
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+                bool_val = FALSE;
+              } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+                a_constexpr_ptr_to_mem
+                                   *pm = (a_constexpr_ptr_to_mem*)opnd1_value;
+                if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
+                                                : (void*)pm->variant.field)
+                                                                    == NULL) {
+                  bool_val = FALSE;
+                } else {
+                  bool_val = TRUE;
                 }  /* if */
               } else {
                 unexpected_condition();
+              }  /* if */
+              if (!bool_val) {
+                /* Evaluate the third operand. */
+                opnd2 = opnd2->next;
               }  /* if */
               result = do_constexpr_expression(
                                  ips, opnd2, result_storage, complete_object);
