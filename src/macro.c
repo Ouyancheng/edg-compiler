@@ -2216,6 +2216,10 @@ print the replacement text and expansions of macros.
            expansion. */
         ch = '?';
         p += LE_ESCAPE_LEN;
+      } else if (ch == LE_EMPTY_VARIADIC_MACRO) {
+        /* Marker indicating the presence of an empty variadic macro
+           expansion. */
+        ch = '/';
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -2958,14 +2962,16 @@ space will also be deleted).  The global variable
 arg_get_token_start_of_curr_token is set to the character position after
 the white-space skip, which differs from start_of_curr_token when the token
 is preceded by an inert-macro escape.  The global variable
-comma_is_from_argument will be TRUE after the call if and only if the call
-to skip_white_space encountered an LE_COMMA_FROM_ARGUMENT marker.  The
-global variable comma_is_magic will be TRUE after the call if and only if
-the call to skip_white_space encountered an LE_MICROSOFT_MAGIC_COMMA
-followed by a comma.  In that case, whether the comma is skipped or
-included depends on the context.  If the comma appears directly in the
-argument to a macro that takes exactly one parameter, it is included; in
-all other cases, it is skipped.
+empty_variadic_macro_seen will be TRUE after the call if and only if the
+call to skip_white_space encountered an LE_EMPTY_VARIADIC_MACRO marker.
+The global variable comma_is_from_argument will be TRUE after the call if
+and only if the call to skip_white_space encountered an
+LE_COMMA_FROM_ARGUMENT marker.  The global variable comma_is_magic will be
+TRUE after the call if and only if the call to skip_white_space encountered
+an LE_MICROSOFT_MAGIC_COMMA followed by a comma.  In that case, whether the
+comma is skipped or included depends on the context.  If the comma appears
+directly in the argument to a macro that takes exactly one parameter, it is
+included; in all other cases, it is skipped.
 */
 {
   a_token_kind tok = tok_error;
@@ -2974,6 +2980,7 @@ all other cases, it is skipped.
   do {
     comma_is_from_argument = FALSE;
     comma_is_magic = FALSE;
+    empty_variadic_macro_seen = FALSE;
     macro_skip_white_space(*any_white_space_skipped);
     arg_get_token_start_of_curr_token = curr_char_loc;
     if (comma_is_magic && !within_curr_source_line(curr_char_loc)) {
@@ -5895,6 +5902,12 @@ scan_expanded_tokens:
               need_end_of_token_marker = TRUE;
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
+            if (empty_variadic_macro_seen &&
+                map->expanded_text[map->expanded_len - 1] == ',') {
+              /* The Microsoft preprocessor suppresses a comma preceding
+                 an empty variadic macro expansion. */
+              --map->expanded_len;
+            }  /* if */
             if (ms_compat && token_ends_macro_expansion &&
                 !any_white_space_skipped) {
               /* Suppress the token separator to allow concatenation of the
@@ -6819,6 +6832,17 @@ copy_done:
      spans several lines).  If no characters are being deleted, make the
      replacement a hanging insertion (before the first character of the
      current source line). */
+  if (ms_compat && mdp->variadic && repl_text_len == 0) {
+    /* The Microsoft preprocessor suppresses a comma in a macro argument
+       list when it appears prior to an empty variadic expansion.  Insert
+       an LE_EMPTY_VARIADIC_MACRO escape before the LE_END_OF_INSERTION
+       escape to allow that situation to be detected. */
+    ensure_macro_buffer_space(LE_ESCAPE_LEN);
+    next_avail_in_macro_buffer[-1] = LE_EMPTY_VARIADIC_MACRO;
+    *next_avail_in_macro_buffer++ = LE_ESCAPE;
+    *next_avail_in_macro_buffer++ = LE_END_OF_INSERTION;
+    repl_text_len = LE_ESCAPE_LEN;
+  }  /* if */
   slmp = add_source_line_modif((delete_source_from_loc == curr_char_loc)
                                                       ? NULL
                                                       : delete_source_from_loc,

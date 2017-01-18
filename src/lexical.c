@@ -3958,6 +3958,9 @@ is TRUE.
             /* Do not output end-of-top-level-expansion markers. */
             loc_in_line += LE_ESCAPE_LEN;
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+          } else if (ch == LE_EMPTY_VARIADIC_MACRO) {
+            /* Do not output empty variadic macro expansion markers. */
+            loc_in_line += LE_ESCAPE_LEN;
           } else {
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
@@ -4331,13 +4334,15 @@ the calls to this routine.
             ch == LE_INERT_MACRO ||
             ch == LE_TEMPORARILY_INERT_MACRO ||
             ch == LE_COMMA_FROM_ARGUMENT ||
-            ch == LE_RAW_OR_EXPANDED_ARGUMENT
+            ch == LE_RAW_OR_EXPANDED_ARGUMENT ||
+            ch == LE_EMPTY_VARIADIC_MACRO
 #if !FULLY_RESOLVED_MACRO_POSITIONS
             || ch == LE_END_OF_TOP_LEVEL_EXPANSION
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
             ) {
-          /* Do not output end-of-token, inert-macro, comma, argument, or
-             end-of-top-level-expansion markers. */
+          /* Do not output end-of-token, inert-macro, comma, argument,
+             empty variadic expansion, or end-of-top-level-expansion
+             markers. */
           token_start = TRUE;
           loc_in_line += LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
@@ -8390,6 +8395,13 @@ white_space_loop:
           kind_skipped |= WHITE_SPACE_OTHER;
         }  /* if */
         goto white_space_loop;
+      } else if (ch == LE_EMPTY_VARIADIC_MACRO) {
+        /* Marker for an empty expansion of a variadic macro.  This is used
+           to support the Microsoft preprocessor feature of suppressing a
+           preceding comma when such an expansion appears in a macro
+           argument list. */
+        curr_char_loc += LE_ESCAPE_LEN;
+        empty_variadic_macro_seen = TRUE;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -11024,7 +11036,8 @@ non-NULL, also append the characters in the comment, through but not including
             ch == LE_TEMPORARILY_INERT_MACRO ||
             ch == LE_NULL ||
             ch == LE_COMMA_FROM_ARGUMENT ||
-            ch == LE_RAW_OR_EXPANDED_ARGUMENT
+            ch == LE_RAW_OR_EXPANDED_ARGUMENT ||
+            ch == LE_EMPTY_VARIADIC_MACRO
 #if !FULLY_RESOLVED_MACRO_POSITIONS
             || ch == LE_END_OF_TOP_LEVEL_EXPANSION
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
@@ -11036,8 +11049,9 @@ non-NULL, also append the characters in the comment, through but not including
              Or, marker that indicates that the next comma token came from
              a macro argument.  Or, marker for the end of a top-level macro
              invocation.  Or, marker for a special sequence that includes
-             both raw and expanded versions of a macro argument.  Skip over
-             the escape and don't put it out. */
+             both raw and expanded versions of a macro argument.  Or,
+             marker for an empty variadic macro expansion.  Skip over the
+             escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
@@ -13047,6 +13061,11 @@ return_end_of_source_token:
         /* A comma that precedes an empty __VA_ARGS__ expansion.  The comma
            may or may not be suppressed, depending on the context; let
            skip_white_space process it appropriately. */
+        skip_white_space();
+        goto start_of_token_scan;
+      } else if (ch == LE_EMPTY_VARIADIC_MACRO) {
+        /* Marker put into text to mark the presence of an empty variadic
+           macro expansion. */
         skip_white_space();
         goto start_of_token_scan;
       } else {

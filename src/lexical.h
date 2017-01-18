@@ -1235,6 +1235,12 @@ escape.
 			   allows skip_white_space to skip over the comma
 			   normally but stop the white space scan on the
 			   comma when processing macro arguments. */
+#define LE_EMPTY_VARIADIC_MACRO 12
+			/* Indicates the presence of an empty variadic
+			   macro expansion.  This is used to support the
+			   Microsoft feature that deletes a comma in a
+			   macro argument list that precedes an empty
+			   variadic macro expansion. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1573,6 +1579,12 @@ EXTERN a_boolean
 			   skipped.  It is the responsibility of the caller
 			   of skip_white_space to set it to FALSE
 			   beforehand. */
+EXTERN a_boolean
+		empty_variadic_macro_seen;
+			/* Set to TRUE when skip_white_space encounters an
+			   LE_EMPTY_VARIADIC_MACRO.  It is the
+			   responsibility of the caller of skip_white_space
+			   to set it to FALSE beforehand. */
 EXTERN a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line
