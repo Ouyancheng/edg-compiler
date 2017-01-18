@@ -13265,7 +13265,7 @@ of a subscript operation).
         template_constant = TRUE;
       }  /* if */
       if (!template_constant && curr_expr_kind_is_evaluated_const() &&
-          !result_is_lvalue &&
+          !constexpr_enabled && !result_is_lvalue &&
           !(expr_stack != NULL && curr_expr_is_potentially_unevaluated())) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
