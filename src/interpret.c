@@ -1554,8 +1554,9 @@ typedef struct a_constexpr_address {
 
 /*
 Produce the offset and element size in bytes for a constant representing the
-address in an array.  This macro applies to both interpreter addresses and
-run-time addresses.
+address in an array (or an address of an object treated as an array of one
+element).  This macro applies to both interpreter addresses and run-time
+addresses.
 */
 #define get_array_offset(cap, elem_type, off, e_size, p_result)              \
   if (is_runtime_data_address(cap)) {                                        \
@@ -7275,27 +7276,25 @@ the value representation of the integer value.
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
-                } else if (!is_array_element(result_addr)) {
-                  if (host_int_val ==
-                                 (cannot_dereference(result_addr) ? -1 : 1)) {
-                    /* Non-arrays are treated as arrays of length one. */
-                    a_byte_count  elem_size;
-                    elem_size = value_bytes_for_type(ips, elem_type, &result);
-                    result_addr->flags ^= CA_CANNOT_DEREFERENCE;
-                    result_addr->address += host_int_val * elem_size;
-                  } else {
-                    do_constexpr_fail(result);
-                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                  &expr->position, ips);
-                  }  /* if */
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
                   get_array_offset(result_addr, elem_type,
                                    &byte_pos, &elem_size, &result);
+                  if (is_array_element(result_addr)) {
+                    len = result_addr->length;
+                  } else {
+                    if (host_int_val ==
+                                 (cannot_dereference(result_addr) ? -1 : 1)) {
+                      /* Non-arrays are treated as arrays of length one. */
+                      len = 1;
+                    } else {
+                      do_constexpr_fail(result);
+                      info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                    &expr->position, ips);
+                    }  /* if */
+                  }  /* if */
                   if (!result) break;
                   pos = byte_pos / elem_size;
-                  len = result_addr->length;
                   if (host_int_val > 0 ?
                                       (len-pos < (a_byte_count)host_int_val)
                                     : (pos < (a_byte_count)-host_int_val)) {
@@ -7357,27 +7356,25 @@ the value representation of the integer value.
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
-                } else if (!is_array_element(result_addr)) {
-                  if (host_int_val ==
-                                 (cannot_dereference(result_addr) ? 1 : -1)) {
-                    /* Non-arrays are treated as arrays of length one. */
-                    a_byte_count  elem_size;
-                    elem_size = value_bytes_for_type(ips, elem_type, &result);
-                    result_addr->flags ^= CA_CANNOT_DEREFERENCE;
-                    result_addr->address -= host_int_val * elem_size;
-                  } else {
-                    do_constexpr_fail(result);
-                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                  &expr->position, ips);
-                  }  /* if */
                 } else {
                   a_byte_count  elem_size, byte_pos, pos, len;
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
                   get_array_offset(result_addr, elem_type,
                                    &byte_pos, &elem_size, &result);
+                  if (is_array_element(result_addr)) {
+                    len = result_addr->length;
+                  } else {
+                    if (host_int_val ==
+                                 (cannot_dereference(result_addr) ? 1 : -1)) {
+                      /* Non-arrays are treated as arrays of length one. */
+                      len = 1;
+                    } else {
+                      do_constexpr_fail(result);
+                      info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                    &expr->position, ips);
+                    }  /* if */
+                  }  /* if */
                   if (!result) break;
                   pos = byte_pos / elem_size;
-                  len = result_addr->length;
                   if (host_int_val > 0 ?
                                     (pos < (a_byte_count)host_int_val)
                                   : (len-pos < (a_byte_count)-host_int_val)) {
