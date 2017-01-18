@@ -1262,7 +1262,15 @@ itself recursively to process classes nested within this class.
       /* We make sure tip is non-NULL to guard against potential error
          cases. */
       if (tip != NULL) {
-        set_instance_required(sym, /*value=*/FALSE, SIR_DEFER_INLINE);
+        a_boolean instance_required = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+        if (gpp_mode && var->has_gnu_used_attribute) {
+          /* If a static data member has the GCC "used" attribute set, make
+             sure it is instantiated. */
+          instance_required = TRUE;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        set_instance_required(sym, instance_required, SIR_DEFER_INLINE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

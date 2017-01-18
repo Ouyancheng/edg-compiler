@@ -1,5 +1,23 @@
 Version 4.13
 
+1/18/17  [EDGcpfe/17730]
+GNU compatibility: "used" attribute on static data member
+
+Setting the GNU "used" attribute on a static data member had failed to
+instantiate the static data member and is now fixed.  The example below
+now prints "Initialized" (with --g++):
+
+  extern "C" int printf(const char *,...);
+  template<class T> class A {
+    __attribute__((used)) static int sdm;
+  };
+  template<class T> int A<T>::sdm(printf("Initialized\n"));
+  A<int> f;
+  int main() {
+    return 0;
+  }
+
+
 1/18/17  [EDGcpfe/17519]
 Microsoft compatibility: comma suppression in macro argument
 
