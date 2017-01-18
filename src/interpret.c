@@ -3019,7 +3019,7 @@ anonymous unions; if so, append to *p_last_entry a variant path corresponding
 to those anonymous union objects.
 */
 {
-  a_variant_path_entry_ptr  vpep;
+  a_variant_path_entry_ptr  vpep, last_entry;
   a_field_ptr               aufp = au_sym->variant.field.ptr;
   a_symbol_ptr              au_parent;
   a_byte_count              offset;
@@ -3032,21 +3032,23 @@ to those anonymous union objects.
       /* aufp is not the top-most anonymous union.  Recurse to determine its
          parent's address, then append a variant entry to select it. */
       make_anon_union_path(au_parent, p_last_entry, p_addr);
-      vpep = alloc_variant_path_entry();
-      vpep->next = NULL;
-      vpep->field = aufp;
-      vpep->base_address = *p_addr;
-      (*p_last_entry)->next = vpep;
-      *p_last_entry = vpep;
     }  /* if */
   }  /* if */
+  last_entry = *p_last_entry;
+  vpep = alloc_variant_path_entry();
+  vpep->next = NULL;
+  last_entry->next = vpep;
+  last_entry->field = aufp;
+  last_entry->base_address = *p_addr;
+  *p_last_entry = vpep;
   get_mapped_byte_count(&persistent_map, aufp, offset);
   *p_addr += offset;
 }  /* make_anon_union_path */
 
 
 static a_boolean add_to_variant_path(a_constexpr_address  *addr,
-                                     a_field_ptr          union_field)
+                                     a_field_ptr          union_field,
+                                     a_type_ptr           top_type)
 /*
 The given field of a union object or subobject pointed to by addr is being
 selected.  Add that field to the variant path associated with addr (and, if
@@ -3054,7 +3056,8 @@ this is the first field added to the path, also add a prefix field for array
 element selections).  If union_field is a standard anonymous union field,
 addr->address is adjusted to the innermost anonymous union parent and
 additional variant path entries are added for nested anonymous unions if
-needed.
+needed.  top_type is the top-most class type in the selection: It may not
+be a union type if union_field is an anonymous union field.
 */
 {
   a_variant_path_entry_ptr  last_entry, vpep;
@@ -3074,20 +3077,23 @@ needed.
     last_entry->next = NULL;
     addr->flags |= CA_VARIANT_PATH;
   }  /* if */
+  if (top_type->kind == (a_type_kind)tk_union) {
+    /* An ordinary union member.  Just add a new entry. */
+    vpep = alloc_variant_path_entry();
+    vpep->next = NULL;
+    last_entry->next = vpep;
+    last_entry = vpep;
+  }  /* if */
   au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
-  if (au_parent != NULL) {
+  if (au_parent != NULL && symbol_is(au_parent, sk_field)) {
     a_type_ptr  au_type = au_parent->variant.field.ptr->type;
     if (au_type->kind == (a_type_kind)tk_union &&
         !au_type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
       make_anon_union_path(au_parent, &last_entry, &addr->address);
     }  /* if */
   }  /* if */
-  /* An ordinary union member.  Just add a new entry. */
-  vpep = alloc_variant_path_entry();
-  vpep->next = NULL;
-  vpep->field = union_field;
-  vpep->base_address = addr->address;
-  last_entry->next = vpep;
+  last_entry->field = union_field;
+  last_entry->base_address = addr->address;
   return TRUE;
 }  /* add_to_variant_path */
 
@@ -9229,7 +9235,8 @@ the value representation of the integer value.
                               ips);
               } else if (parent_class_of(field)->kind ==
                                                       (a_type_kind)tk_union &&
-                         !add_to_variant_path(&result_addr, field)) {
+                         !add_to_variant_path(&result_addr, field,
+                                              opnd1_type)) {
                 /* We should not return from the failure of adding a variant
                    path entry. */
                 unexpected_condition();
@@ -9297,8 +9304,10 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
-              } else if (opnd1_type->kind == (a_type_kind)tk_union &&
-                         !add_to_variant_path(&result_addr, field)) {
+              } else if (parent_class_of(field)->kind ==
+                                                      (a_type_kind)tk_union &&
+                         !add_to_variant_path(&result_addr, field,
+                                              opnd1_type)) {
                 /* We should not return from the failure of adding a variant
                    path entry. */
                 unexpected_condition();
