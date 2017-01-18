@@ -5463,6 +5463,49 @@ constant expressions, fold to a constant result.
 }  /* force_operand_to_constant_if_possible */
 
 
+a_boolean expr_interpret_expression_operand(an_operand  *operand,
+                                            a_boolean   must_be_constant)
+/*
+Interpret the given expression operand.  If successful, return TRUE and replace
+*operand by a corresponding constant operand.  Otherwise return FALSE, and, if
+must_be_constant is TRUE, issue a diagnostic (if diagnostics should be issued)
+and make *operand an error operand.
+*/
+{
+  a_boolean      result;
+  a_constant_ptr constant = local_constant();
+  a_diag_list    diag_list;
+
+  check_assertion(is_expression_operand(operand));
+  clear_diag_list(&diag_list);
+  if (interpret_expr(operand->variant.expression,
+                     /*force_prvalue=*/FALSE, constant, &diag_list)) {
+    an_operand  orig_operand;
+    orig_operand = *operand;
+    if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      constant->expr = NULL;
+    }  /* if */
+    make_constant_operand(constant, operand);
+    restore_operand_details(operand, &orig_operand);
+    result = TRUE;
+  } else {
+    result = FALSE;
+    if (must_be_constant) {
+      if (expr_error_should_be_issued()) {
+        a_diagnostic_ptr  dp;
+        dp = pos_start_error(ec_expr_not_constant, &operand->position);
+        add_more_info_list(dp, &diag_list);
+        end_diagnostic(dp);
+      }  /* if */
+      make_error_operand(operand);
+    }  /* if */
+  }  /* if */
+  discard_more_info_list(&diag_list);
+  release_local_constant(&constant);
+  return result;
+}  /* if */
+
+
 a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
                                         an_operand      *source_operand,
                                         a_type_ptr      result_type,

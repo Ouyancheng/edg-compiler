@@ -2372,6 +2372,10 @@ extern void set_operand_id_details_from_locator(an_operand       *operand,
 
 extern void force_operand_to_constant_if_possible(an_operand *operand);
 
+extern
+a_boolean expr_interpret_expression_operand(an_operand  *operand,
+                                            a_boolean   must_be_constant);
+
 extern a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
                                                an_operand      *source_operand,
                                                a_type_ptr      result_type,

@@ -33697,6 +33697,12 @@ an enumerator.
     /* Do lvalue --> rvalue and other transformations for the non-class
        case. */
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
+    if (constexpr_enabled && is_expression_operand(operand) &&
+        !is_prototype_instantiation_context()) {
+      /* Attempt to interpret the expression.  A failure will produce a
+         diagnostic indicating the reason the operand is non-constant. */
+      expr_interpret_expression_operand(operand, /*must_be_constant=*/TRUE);
+    }  /* if */
     if (is_array_bound && is_constant_operand(operand)) {
       /* Check specially for a negative array size to produce a better
          error message than just the one from narrowing to size_t. */
@@ -33758,8 +33764,10 @@ an enumerator.
       conv_to_error_operand(operand);
     }  /* if */
   }  /* if */
-  /* The result is required to be a constant. */
-  force_operand_to_constant_if_possible(operand);
+  if (is_expression_operand(operand)) {
+    /* The result is required to be a constant. */
+    force_operand_to_constant_if_possible(operand);
+  }  /* if */
   extract_constant_from_operand(operand, result_con);
 }  /* process_converted_constant_expression */
 
