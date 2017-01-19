@@ -1552,22 +1552,101 @@ typedef struct a_constexpr_address {
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
 
+static a_byte_count get_runtime_array_length(a_constant_ptr  con_addr,
+                                             a_byte_count    elem_size)
 /*
-Produce the offset and element size in bytes for a constant representing the
-address in an array (or an address of an object treated as an array of one
-element).  This macro applies to both interpreter addresses and run-time
-addresses.
+con_addr represents an address of an array.  Return its length if known.
+Otherwise, return MAX_ARRAY_LENGTH.  elem_size is the array element size in
+bytes.
 */
-#define get_array_offset(cap, elem_type, off, e_size, p_result)              \
+{
+  a_byte_count    length;
+  a_type_ptr      tp;
+  a_constant_ptr  cp;
+
+  if (!constant_is(con_addr, ck_address)) {
+    /* Presumably a null pointer (and integer with a pointer type). */
+    check_assertion(constant_is(con_addr, ck_integer));
+    length = 0;
+    goto done;
+  }  /* if */
+  switch(con_addr->variant.address.kind) {
+    case abk_variable:
+      tp = skip_typerefs(con_addr->variant.address.variant.variable->type);
+      /* Ignore incomplete arrays and flexible arrays. */
+      if (!tp->incomplete &&
+          !(is_immediate_class_type(tp) &&
+            tp->variant.class_struct_union.contains_flexible_array_member)) {
+        length = tp->size/elem_size;
+      } else {
+        length = MAX_ARRAY_LENGTH;
+      }  /* if */
+      break;
+    case abk_constant:
+    case abk_temporary:
+      cp = con_addr->variant.address.variant.constant;
+      if (constant_is(cp, ck_string)) {
+        length = cp->variant.string.length/elem_size;
+      } else {
+        length = skip_typerefs(cp->type)->size/elem_size;
+      }  /* if */
+      break;
+    case abk_uuidof:
+      tp = type_pointed_to(con_addr->type);
+      length = skip_typerefs(tp)->size/elem_size;
+      break;
+    case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case abk_cli_typeid:
+    case abk_cli_array:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* The object is std::type_info or a class derived from it, or a
+         handle to a C++/CLI System::String or System::Array.  Therefore, we
+         don't really know the actual size. */
+      length = MAX_ARRAY_LENGTH;
+      break;
+    case abk_routine:
+    case abk_label:
+    default:
+      unexpected_condition();
+  }  /* switch */
+done:
+  return length;
+}  /* get_runtime_array_length */
+
+
+/*
+Given a data address cap pointing to an object of type elem_type, treat it as
+the address of an element of an array (an array of length one if it's not
+actually an array element).  Produce in *a_len, *pos, and *e_size,
+respectively, the type of the element, the number of elements in the array,
+the element position in the array, and the size of an element in the array.
+This macro applies to both interpreter addresses and run-time addresses, but
+in the case of run-time addresses the array length is set to MAX_ARRAY_LENGTH
+if the actual length cannot be determined.  Set *p_result to FALSE if an error
+occurs.
+*/
+#define get_array_pos(ips, cap, elem_type, a_len, pos, e_size, p_result)     \
+{                                                                            \
   if (is_runtime_data_address(cap)) {                                        \
     *(e_size) = (a_byte_count)elem_type->size;                               \
-    *(off) = (a_byte_count)(cap)->variant.addr_con->variant.address.offset;  \
+    *(a_len) = get_runtime_array_length((cap)->variant.addr_con, *(e_size)); \
+    *(pos) = (a_byte_count)(cap)->variant.addr_con->variant.address.offset;  \
+    *(pos) /= *(e_size);                                                     \
   } else {                                                                   \
     *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
     if (*p_result) {                                                         \
-      *(off) = (a_byte_count)((cap)->address - get_base_address(cap));       \
+      if (is_array_element(cap)) {                                           \
+        *(a_len) = (cap)->length;                                            \
+        *(pos) = (a_byte_count)((cap)->address - get_base_address(cap));     \
+        *(pos) /= *(e_size);                                                 \
+      } else {                                                               \
+        *(a_len) = 1;                                                        \
+        *(pos) = cannot_dereference(cap) ? 1: 0;                             \
+      }  /* if */                                                            \
     }  /* if */                                                              \
-  }  /* if */
+  }  /* if */                                                                \
+}
 
 /*
 Convenience macro to get a pointer to the value addressed by the
@@ -7314,24 +7393,18 @@ the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else {
-                  a_byte_count  elem_size, byte_pos, pos, len;
-                  get_array_offset(result_addr, elem_type,
-                                   &byte_pos, &elem_size, &result);
-                  if (is_array_element(result_addr)) {
-                    len = result_addr->length;
-                  } else {
-                    if (host_int_val ==
+                  a_byte_count  elem_size, pos, len;
+                  get_array_pos(ips, result_addr, elem_type, &len, &pos,
+                                &elem_size, &result);
+                  if (!is_array_element(result_addr) &&
+                      host_int_val !=
                                  (cannot_dereference(result_addr) ? -1 : 1)) {
-                      /* Non-arrays are treated as arrays of length one. */
-                      len = 1;
-                    } else {
-                      do_constexpr_fail(result);
-                      info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                    &expr->position, ips);
-                    }  /* if */
+                    /* Non-arrays are treated as arrays of length one. */
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
                   }  /* if */
                   if (!result) break;
-                  pos = byte_pos / elem_size;
                   if (host_int_val > 0 ?
                                       (len-pos < (a_byte_count)host_int_val)
                                     : (pos < (a_byte_count)-host_int_val)) {
@@ -7394,24 +7467,17 @@ the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                 } else {
-                  a_byte_count  elem_size, byte_pos, pos, len;
-                  get_array_offset(result_addr, elem_type,
-                                   &byte_pos, &elem_size, &result);
-                  if (is_array_element(result_addr)) {
-                    len = result_addr->length;
-                  } else {
-                    if (host_int_val ==
+                  a_byte_count  elem_size, pos, len;
+                  get_array_pos(ips, result_addr, elem_type, &len, &pos,
+                                &elem_size, &result);
+                  if (!is_array_element(result_addr) &&
+                      host_int_val !=
                                  (cannot_dereference(result_addr) ? 1 : -1)) {
-                      /* Non-arrays are treated as arrays of length one. */
-                      len = 1;
-                    } else {
-                      do_constexpr_fail(result);
-                      info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                                    &expr->position, ips);
-                    }  /* if */
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
                   }  /* if */
                   if (!result) break;
-                  pos = byte_pos / elem_size;
                   if (host_int_val > 0 ?
                                     (pos < (a_byte_count)host_int_val)
                                   : (len-pos < (a_byte_count)-host_int_val)) {
@@ -8827,13 +8893,10 @@ the value representation of the integer value.
                     info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                                   &expr->position, ips);
                   } else {
-                    a_byte_count  elem_size, byte_pos, pos, len;
-                    elem_size = value_bytes_for_type(ips, elem_type, &result);
-                    get_array_offset(ptr_val, elem_type,
-                                     &byte_pos, &elem_size, &result);
+                    a_byte_count  elem_size, pos, len;
+                    get_array_pos(ips, ptr_val, elem_type, &len, &pos,
+                                  &elem_size, &result);
                     if (!result) break;
-                    pos = byte_pos / elem_size;
-                    len = ptr_val->length;
                     if (host_int_val > 0 ?
                                         (len-pos < (a_byte_count)host_int_val)
                                       : (pos < (a_byte_count)-host_int_val)) {
@@ -8904,13 +8967,11 @@ the value representation of the integer value.
                   info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                                 &expr->position, ips);
                 } else {
-                  a_byte_count  elem_size, byte_pos, pos, len;
+                  a_byte_count  elem_size, pos, len;
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
-                  get_array_offset(ptr_val, elem_type,
-                                   &byte_pos, &elem_size, &result);
+                  get_array_pos(ips, ptr_val, elem_type, &len, &pos,
+                                &elem_size, &result);
                   if (!result) break;
-                  pos = byte_pos / elem_size;
-                  len = ptr_val->length;
                   if (host_int_val > 0 ?
                                     (pos < (a_byte_count)host_int_val)
                                   : (len-pos < (a_byte_count)-host_int_val)) {
@@ -9155,12 +9216,10 @@ the value representation of the integer value.
                                   &expr->position, ips);
                   }  /* if */
                 } else {
-                  a_byte_count  elem_size, byte_pos, pos, len;
-                  get_array_offset(&result_addr, elem_type,
-                                   &byte_pos, &elem_size, &result);
+                  a_byte_count  elem_size, pos, len;
+                  get_array_pos(ips, &result_addr, elem_type, &len, &pos,
+                                &elem_size, &result);
                   if (!result) break;
-                  pos = byte_pos / elem_size;
-                  len = result_addr.length;
                   if (host_int_val > 0 ? (len-pos < (a_byte_count)host_int_val)
                                        : (pos < (a_byte_count)-host_int_val)) {
                     /* Out of bounds. */
