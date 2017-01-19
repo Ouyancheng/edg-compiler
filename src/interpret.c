@@ -6221,10 +6221,7 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
 
   if (tp->kind == (a_type_kind)tk_integer) {
     a_host_large_integer  bool_val;
-    an_integer_kind      int_kind;
-    a_boolean            is_signed, ovflo;
-    int_kind = tp->variant.integer.int_kind;
-    is_signed = int_kind_is_signed[int_kind];
+    a_boolean             ovflo;
     get_int_val_from(value, tp, bool_val, ovflo);
     *p_cond = ovflo || bool_val;
   } else if (tp->kind == (a_type_kind)tk_pointer) {
