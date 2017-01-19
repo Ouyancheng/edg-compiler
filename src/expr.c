@@ -15804,8 +15804,9 @@ indication in *rcblock).  after_keyword is ignored in that case.
   if (err) {
     make_error_operand(result);
   } else {
-    a_constant_ptr uuidof_con = local_constant();
-    a_type_ptr     const_guid_type = make_qualified_type(
+    an_expr_node_ptr  node;
+    a_constant_ptr    uuidof_con = local_constant();
+    a_type_ptr        const_guid_type = make_qualified_type(
                                                type_of_guid,
                                                (a_type_qualifier_set)TQ_CONST);
     if (template_case) {
@@ -15829,9 +15830,11 @@ indication in *rcblock).  after_keyword is ignored in that case.
       make_uuidof_constant(uuidof_type, uuidof_con);
     }  /* if */
     /* is_uuidof_expr has to match the structure of what's created here. */
-    make_glvalue_expression_operand(add_indirection_to_node(
-                                         alloc_node_for_constant(uuidof_con)),
-                                    result);
+    node = alloc_node_for_constant(uuidof_con);
+    node->position = operator_position;
+    node = add_indirection_to_node(node);
+    node->position = operator_position;
+    make_glvalue_expression_operand(node, result);
     release_local_constant(&uuidof_con);
   }  /* if */
   if (operand_was_created && !operand_was_used) {
