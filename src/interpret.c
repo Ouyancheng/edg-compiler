@@ -9853,8 +9853,7 @@ diagnostic in *ips.
             con->variant.address.kind = (an_address_base_kind)abk_variable;
             con->variant.address.variant.variable = vp;
           } else {
-            if (constant_is(cp, ck_string)/* ||
-                utp->kind == (a_type_kind)tk_array*/) {
+            if (constant_is(cp, ck_string)) {
               con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
