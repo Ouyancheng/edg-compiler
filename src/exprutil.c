@@ -13488,7 +13488,7 @@ used as an rvalue.
 {
   check_assertion(curr_expr_kind_is_const());
   do_rvalue_generic_operand_transformations(operand);
-  check_assertion(is_constant_operand(operand) ||
+  check_assertion(is_constant_operand(operand) || constexpr_enabled ||
                   is_error_operand(operand) ||
                   !curr_expr_kind_is_traditional_const());
 }  /* do_constant_generic_operand_transformations */
@@ -19942,36 +19942,6 @@ decay on it, and return a pointer to the decayed expression.
 }  /* conv_array_expr_to_pointer */
 
 
-static a_boolean fold_constexpr_array_address(an_expr_node_ptr  expr,
-                                              a_constant        *result_con)
-/*
-expr is an expression producing an array result.  Return TRUE if the expression
-obtained by applying an array-to-pointer conversion to expr can be folded to a
-constant and store the result in *result_con if that is the case.
-*/
-{
-  static an_expr_node_ptr  decay_node = NULL;
-  a_type_ptr               ptr_type;
-  a_boolean                result;
-  a_diag_list              diag_list;
-
-  check_assertion(is_array_type(expr->type));
-  /* Create an operator node for decaying the array expression to a pointer. */
-  ptr_type = type_after_array_to_pointer_transformation(expr->type);
-  if (decay_node == NULL) {
-    decay_node = alloc_expr_node((an_expr_node_kind)enk_operation);
-  }  /* if */
-  set_node_operator(decay_node, (an_expr_operator_kind)eok_array_to_pointer,
-                    ptr_type, /*is_lvalue=*/FALSE, expr);
-  /* Evaluate the array-to-pointer conversion expression. */
-  clear_diag_list(&diag_list);
-  result = interpret_expr(decay_node, /*force_prvalue=*/FALSE, result_con,
-                          &diag_list);
-  discard_more_info_list(&diag_list);
-  return result;
-}  /* fold_constexpr_array_address */
-
-
 void do_array_to_pointer_conversion(an_operand *operand)
 /*
 Do array-to-pointer decay on the given operand, which is an lvalue or
@@ -20009,12 +19979,14 @@ current mode -- just do it.
     /* Array-to-pointer decay is not allowed in an integral constant
        expression. */
     error_in_operand(ec_expr_not_integral_constant, operand);
-  } else if ((expr_stack->favor_constant_result &&
-              is_glvalue_node(expr) &&
-              constant_glvalue_address(expr, conaddr,
-                                       /*address_escapes=*/TRUE)) ||
-             (constexpr_enabled && curr_expr_kind_is_const() &&
-              fold_constexpr_array_address(expr, conaddr))) {
+  } else if (constexpr_enabled) {
+    /* When constexpr is enabled, the expression as a whole can be interpreted
+       later on. */
+    need_expr = TRUE;
+  } else if (expr_stack->favor_constant_result && !constexpr_enabled &&
+             is_glvalue_node(expr) &&
+             constant_glvalue_address(expr, conaddr,
+                                      /*address_escapes=*/TRUE)) {
     /* The array has a constant address, so make an address constant for
        the pointer. */
     a_type_ptr ptr_type =
@@ -20023,7 +19995,7 @@ current mode -- just do it.
     make_constant_operand(conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
-  } else if (curr_expr_kind_is_evaluated_const() && !constexpr_enabled &&
+  } else if (curr_expr_kind_is_evaluated_const() &&
              !expr_stack->allow_array_decay_in_constant_expr) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression except in certain expressions such as x==x, where the
