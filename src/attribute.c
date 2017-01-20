@@ -176,6 +176,18 @@ typedef struct an_attr_descr {
 			   of values for std_version can also be provided (it
 			   should appear after the bracketed namespace name, if
 			   any).
+
+			   Auxiliary version specification(s) can also be
+			   specified by appending "|", one of "C", "G", "M", or
+			   "S" (for clang_version, gnu_version,
+			   microsoft_version, and std_version respectively) and
+			   an applicable version range.  The auxiliary version
+			   specifier doesn't affect the attribute family.  For
+			   example, "1c+(201701-|M(1910-))" specifies a
+			   standard attribute that is available when
+			   std_version >= 201701 or when microsoft_version >=
+			   1910.
+
 			   A prefix "1" means the attribute can appear at most
 			   once per attribute group.  E.g., "1c+" indicates a
 			   standard C++ attribute that can appear at most once
@@ -205,6 +217,9 @@ static an_attr_descr known_attr_table[] = {
   { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
   { "override", "", "1c+", ak_override },
+  /* Note that the value of 201701 is just a placeholder until the actual
+     value of the standard commonly referred to as "C++17" is known. */
+  { "nodiscard", "", "1c+(201701-|M(1910-))", ak_nodiscard },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -467,6 +482,7 @@ static an_attr_application_fn apply_final_attr;
 static an_attr_application_fn apply_hiding_attr;
 static an_attr_application_fn apply_noreturn_attr;
 static an_attr_application_fn apply_override_attr;
+static an_attr_application_fn apply_nodiscard_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -586,6 +602,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_override, "r:+v!", apply_override_attr },
+  { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -1105,16 +1122,18 @@ Initialize the attribute name map.
 /*ARGSUSED*/  /* ap is not used in some configurations. */
 #endif /* !CHECKING */
 static a_boolean in_attr_cond_range(unsigned long     version,
-                                    a_const_char      *cond_range,
+                                    a_const_char      **cond_range,
                                     an_attribute_ptr  ap)
 /*
-cond_range is the "version range" portion of the cond string in an attribute
+*cond_range is a "version range" portion of the cond string in an attribute
 description entry (an_attr_descr) for the given attribute.  Return TRUE if
-version lies in the indicated range.
+version lies in the indicated range.  *cond_range is set to point to the
+character after the range (or to the start of an auxiliary range if one
+exists).
 */
 {
   unsigned long  min_version = 0, max_version = (unsigned long)-1;
-  a_const_char   *str = cond_range;
+  a_const_char   *str = *cond_range;
 
   check_attr_config(str[0] == '(', ap, "invalid version range configuration");
   str += 1;
@@ -1132,9 +1151,50 @@ version lies in the indicated range.
     /* Not a range, but a single version number. */
     max_version = min_version;
   }  /* if */
-  check_attr_config(str[0] == ')', ap, "invalid version range configuration");
+  check_attr_config(str[0] == ')' || str[0] == '|', ap,
+                    "invalid version range configuration");
+  if (str[0] == ')') str += 1;
+  *cond_range = str;
   return version >= min_version && version <= max_version;
 }  /* in_attr_cond_range */
+
+
+#if !CHECKING
+/*ARGSUSED*/  /* ap is not used in some configurations. */
+#endif /* !CHECKING */
+static a_boolean attribute_condition_satisfied(unsigned long     version,
+                                               a_const_char      *str,
+                                               an_attribute_ptr  ap)
+/*
+str is the beginning of the primary version range in the condition string in
+the description entry (an_attr_descr) for the given attribute.  version is
+the value of the global version variable (i.e., std_version, microsoft_version,
+gnu_version) associated with the family type of the attribute.
+Return TRUE if the condition is satisfied (either by the primary version
+comparison or any auxiliary comparisons).
+*/
+{
+  a_boolean      result;
+
+  /* See if the primary range comparison succeeds. */
+  result = in_attr_cond_range(version, &str, ap);
+  /* Process any auxiliary version ranges if necessary. */
+  while (!result && str[0] == '|') {
+    str += 1;
+    switch (str[0]) {
+      case 'M': version = microsoft_version; break;
+      case 'G': version = gnu_version;       break;
+      case 'C': version = clang_version;     break;
+      case 'S': version = std_version;       break;
+      default:
+        check_attr_config(FALSE, ap, "invalid auxiliary range specifier");
+        break;
+    }  /* switch */
+    str += 1;
+    result = in_attr_cond_range(version, &str, ap);
+  }  /* while */
+  return result;
+}  /* attribute_condition_satisfied */
 
 
 static a_boolean cond_matches_std_attr_mode(a_const_char      *cond,
@@ -1173,7 +1233,7 @@ namespace (if any) matches the modes and namespace encoded in that string.
     }  /* if */
     /* Next check for a version constraint, if any. */
     if (cond[pos_version] == '(') {
-      match = in_attr_cond_range(std_version, cond+pos_version, ap);
+      match = attribute_condition_satisfied(std_version, cond+pos_version, ap);
     }  /* if */
   }  /* if */
 done:
@@ -1203,7 +1263,7 @@ string.
             (cond[1] == '+' && gpp_mode);
     if (match && cond[2] == '(') {
       /* A range specification follows. */
-      match = in_attr_cond_range(gnu_version, cond+2, ap);
+      match = attribute_condition_satisfied(gnu_version, cond+2, ap);
     }  /* if */
   }  /* if */
   return match;
@@ -1226,7 +1286,7 @@ modes encoded in that string.
             (cond[1] == '+' && !C_mode());
     if (match && cond[2] == '(') {
       /* A range specification follows. */
-      match = in_attr_cond_range(microsoft_version, cond+2, ap);
+      match = attribute_condition_satisfied(microsoft_version, cond+2, ap);
     }  /* if */
   }  /* if */
   return match;
@@ -4608,6 +4668,50 @@ standard, but is not part of the C++11 standard.
   return entity;
 }  /* apply_override_attr */
 
+
+static char* apply_nodiscard_attr(an_attribute_ptr  ap,
+                                  char              *entity,
+                                  an_il_entry_kind  entity_kind)
+/*
+Apply the given "nodiscard" attribute to the given entity (which must be a
+routine, class, or enum) and return that entity.  See also the GCC
+"warn_unused_result" attribute which is similar (but applies to the routine's
+type rather than to the routine itself).
+*/
+{
+  check_assertion(nodiscard_attribute_enabled);
+  if (entity_kind == iek_routine) {
+    a_routine_ptr rp = (a_routine_ptr)entity;
+    if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+        rp->special_kind == (a_special_function_kind)sfk_destructor ||
+        (rp->type->variant.routine.return_type != NULL &&
+         is_void_type(rp->type->variant.routine.return_type) &&
+        (!rp->is_template_function || rp->is_prototype_instantiation) &&
+        !curr_scope_is_class_instantiation())) {
+      /* It doesn't make sense to apply this attribute to a routine with a
+         void return type, or to special functions -- issue a warning
+         (but not for real instantiations). */
+      pos_warning(ec_nodiscard_doesnt_apply, &ap->position);
+      make_attr_unrecognized(ap);
+    } else {
+      rp->has_nodiscard_attribute = TRUE;
+    }  /* if */
+  } else if (entity_kind == iek_type) {
+    a_type_ptr  type = (a_type_ptr)entity;
+    type = skip_typerefs(type);
+    if (is_immediate_class_type(type)) {
+      class_type_supp(type)->has_nodiscard_attribute = TRUE;
+    } else if (is_immediate_enum_type(type)) {
+      integer_type_supp(type)->has_nodiscard_attribute = TRUE;
+    } else {
+      unexpected_condition();
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return entity;
+}  /* apply_nodiscard_attr */
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -6944,7 +7048,7 @@ static char* apply_warn_unused_result_attr(an_attribute_ptr  ap,
                                            an_il_entry_kind  entity_kind)
 /*
 Apply the GNU "warn_unused_result" attribute to the given entity and return
-that entity.
+that entity.  See also the "nodiscard" standard attribute which is similar.
 */
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);

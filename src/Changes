@@ -1,5 +1,13 @@
 Version 4.13
 
+1/20/17  [EDGcpfe/17410]
+C++17 compatibility: "nodiscard" standard attribute
+
+The C++17 "nodiscard" standard attribute (as described by P0189R1) has
+been implemented and is now available in C++17 emulation mode as well as
+when microsoft_version >= 1910.
+
+
 1/18/17  [EDGcpfe/17730]
 GNU compatibility: "used" attribute on static data member
 

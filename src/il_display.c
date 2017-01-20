@@ -1760,6 +1760,9 @@ Display the indicated integer type supplement.
 */
 {
   if (ptr->enumerator_list_seen) disp_boolean("enumerator_list_seen", TRUE);
+  if (ptr->has_nodiscard_attribute) {
+    disp_boolean("has_nodiscard_attribute", TRUE);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->underlying_type_should_use_unsigned) {
     disp_boolean("underlying_type_should_use_unsigned", TRUE);
@@ -3426,6 +3429,9 @@ Display the indicated routine.
   }  /* if */
   if (ptr->explicit_do_not_instantiate) {
     disp_boolean("explicit_do_not_instantiate", TRUE);
+  }  /* if */
+  if (ptr->has_nodiscard_attribute) {
+    disp_boolean("has_nodiscard_attribute", TRUE);
   }  /* if */
   if (ptr->never_throws) {
     disp_boolean("never_throws", TRUE);
@@ -6839,6 +6845,9 @@ Display the indicated class type supplement entry.
   }  /* if */
   if (ptr->defined_in_parent_class) {
     disp_boolean("defined_in_parent_class", TRUE);
+  }  /* if */
+  if (ptr->has_nodiscard_attribute) {
+    disp_boolean("has_nodiscard_attribute", TRUE);
   }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);

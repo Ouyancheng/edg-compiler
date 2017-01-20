@@ -2258,6 +2258,11 @@ EXTERN a_boolean
                            an attribute list to avoid repeating the namespace
                            on each attribute (a C++17 feature). */
 
+EXTERN a_boolean
+                nodiscard_attribute_enabled;
+                        /* TRUE if the C++17 standard "nodiscard" attribute
+                           is enabled. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

@@ -2519,6 +2519,7 @@ typedef enum an_attribute_kind_tag {
   ak_hiding,		/* "hiding" (std). */
   ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
   ak_override,		/* "override" (std). */
+  ak_nodiscard,		/* "nodiscard" (std). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -7840,6 +7841,9 @@ typedef struct a_class_type_supplement {
   a_bit_field	defined_in_parent_class:1;
 			/* TRUE for nested classes defined in their parent
 			   class. */
+  a_bit_field	has_nodiscard_attribute:1;
+			/* TRUE if the class has the "nodiscard" standard
+			   attribute applied to it. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
@@ -8265,6 +8269,9 @@ typedef struct an_integer_type_supplement {
   a_bit_field	enumerator_list_seen:1;
 			/* TRUE for enumerator types whose enumerator list has
 			   been seen. */
+  a_bit_field	has_nodiscard_attribute:1;
+			/* TRUE if the enumerator type has the "nodiscard"
+			   standard attribute applied to it. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	underlying_type_should_use_unsigned:1;
 			/* TRUE in GNU C++ mode if the type trait helper
@@ -10918,6 +10925,9 @@ typedef struct a_routine {
 			/* TRUE if instantiation has been explicitly 
 			   suppressed by an "extern template" directive or
 			   a do_not_instantiate pragma. */
+  a_bit_field	has_nodiscard_attribute:1;
+			/* TRUE if the routine has the "nodiscard" standard
+			   attribute applied to it. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	never_inline:1;
 			/* TRUE for routines declared with the "noinline"

@@ -1373,6 +1373,7 @@ a pointer to it.
   num_integer_type_supplements_allocated++;
 #endif /* DEBUG */
   itsp->enumerator_list_seen = FALSE;
+  itsp->has_nodiscard_attribute = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   itsp->underlying_type_should_use_unsigned = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1628,6 +1629,7 @@ class is available.
                                           = FALSE;
   ctsp->is_va_list_tag                    = FALSE;
   ctsp->defined_in_parent_class           = FALSE;
+  ctsp->has_nodiscard_attribute           = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->friend_routines                   = NULL;
@@ -2812,6 +2814,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->explicit_instantiation      = FALSE;
   rp->class_explicitly_instantiated = FALSE;
   rp->explicit_do_not_instantiate = FALSE;
+  rp->has_nodiscard_attribute     = FALSE;
   rp->never_throws                = FALSE;
   rp->is_in_class_specialization  = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

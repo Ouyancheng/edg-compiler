@@ -647,12 +647,80 @@ on the next_operand_ref field.
 }  /* merge_ref_lists */
 
 
+static void check_expression_for_nodiscard_warning(an_expr_node_ptr node)
+/*
+Check the expression (or any relevant children) for the presence of a
+function call and issue a warning if the routine or return type have the
+"nodiscard" standard attribute applied.
+*/
+{
+  node = skip_parens(node);
+  while (is_operation_node(node)) {
+    if (node_operator_is(node, eok_cast)) {
+      if (is_void_type(node->type)) {
+        /* This is an explicit cast to void: suppress the warning. */
+        break;
+      } else {
+        /* Skip this cast. */
+        node = node->variant.operation.operands;
+      }  /* if */
+    } else if (node_operator_is(node, eok_comma)) {
+      /* Follow the right branch of the comma expression. */
+      node = node->variant.operation.operands->next;
+    } else if (node_operator_is(node, eok_question)) {
+      /* Recurse to follow the second and third branches of an eok_question
+         operation. */
+      check_expression_for_nodiscard_warning(
+                                       node->variant.operation.operands->next);
+      check_expression_for_nodiscard_warning(
+                                 node->variant.operation.operands->next->next);
+      break;
+    } else if (is_call_node(node)) {
+      /* Some type of function call; see if the nodiscard attribute is
+         applicable. */
+      an_error_code error_code = ec_no_error;
+      /* Retrieve the type of the routine being called. */
+      a_type_ptr  tp = type_of_call(node);
+      /* For the nodiscard attribute, there are two cases: the routine
+         can have the attribute attached to it, or the class/enum return
+         type might have the attribute.  In either case, an explicit cast
+         to void suppresses these warnings. */
+      a_routine_ptr rp =
+                  routine_from_function_expr(node->variant.operation.operands);
+      if (rp != NULL && rp->has_nodiscard_attribute &&
+          !is_void_type(rp->type->variant.routine.return_type)) {
+        error_code = ec_nodiscard_routine;
+      } else {
+        /* Look at the function's return type. */
+        a_type_ptr rtp = f_skip_typerefs(return_type_of(tp));
+        if (is_immediate_class_type(rtp) &&
+            class_type_supp(rtp)->has_nodiscard_attribute) {
+          error_code = ec_nodiscard_return_type;
+        } else if (is_immediate_enum_type(rtp) &&
+                   integer_type_supp(rtp)->has_nodiscard_attribute) {
+          error_code = ec_nodiscard_return_type;
+        }  /* if */
+      }  /* if */
+      if (error_code != ec_no_error) {
+        expr_pos_warning(error_code, &node->position);
+      }  /* if */
+      break;
+    } else {
+      /* Didn't find a call node -- no warning. */
+      break;
+    }  /* if */
+    node = skip_parens(node);
+  }  /* while */
+}  /* check_expression_for_nodiscard_warning */
+
+
 static void process_void_operand(an_operand *operand)
 /*
 Examine the operand given by *operand, which has been scanned as a void
 expression, and issue a warning if the operand has no effect.
 Lvalue-to-rvalue transformations are done if appropriate.  Other
-transformations are done in all cases.
+transformations are done in all cases.  Processing for the "nodiscard"
+standard attribute is also performed.
 */
 {
   a_boolean suppress_warning = FALSE;
@@ -704,6 +772,7 @@ transformations are done in all cases.
   } else {
     /* For an expression, traverse the tree to see if it has side
        effects. */
+    a_boolean        has_explicit_cast_to_void = FALSE;
     an_expr_node_ptr node = operand->variant.expression;
     node = skip_parens(node);
     while (is_operation_node(node)) {
@@ -713,6 +782,7 @@ transformations are done in all cases.
            is doing so for some good reason, and also because the macro for
            "assert" expands to (void)0 when NDEBUG is defined. */
         suppress_warning = TRUE;
+        has_explicit_cast_to_void = TRUE;
         break;
       } else if (node_operator_is(node, eok_comma)) {
         /* For a comma node, the check for side effects was already done on
@@ -739,6 +809,11 @@ transformations are done in all cases.
     /* See if the node has some effect. */
     if (!suppress_warning && node_has_side_effects(node, &suppress_warning)) {
       suppress_warning = TRUE;
+    }  /* if */
+    if (!has_explicit_cast_to_void && nodiscard_attribute_enabled) {
+      /* Check to see if there's a function call that should generate a
+         warning because of the "nodiscard" attribute. */
+      check_expression_for_nodiscard_warning(node);
     }  /* if */
   }  /* if */
   if (!suppress_warning) {

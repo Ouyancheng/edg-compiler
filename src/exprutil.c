@@ -8226,6 +8226,9 @@ expression statement that is the last statement of a GNU statement expression
        marked with the "warn_unused_result" attribute.  Such calls should be
        warned about. */
     /* A cast is not treated as a "use" of a returned value in this context. */
+    /* See also check_expression_for_nodiscard_warning for similar processing
+       for the "nodiscard" standard attribute (which differs in that a
+       cast to void suppresses the warning). */
     an_expr_node_ptr  expr = remove_cast_operations(node);
     expr = skip_parens(expr);
     if (is_call_node(expr)) {

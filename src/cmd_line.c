@@ -2546,6 +2546,7 @@ option values if they were not already set by a command line option.
         if (ms_cpplatest_mode) {
           terse_static_assert_enabled = TRUE;
         }  /* if */
+        nodiscard_attribute_enabled = TRUE;
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
@@ -3320,6 +3321,7 @@ default mode (e.g., exception handling).
       register_is_disallowed = TRUE;
       operator_bool_increment_allowed = FALSE;
       using_attribute_namespaces_enabled = TRUE;
+      nodiscard_attribute_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core

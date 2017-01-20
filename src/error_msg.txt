@@ -2888,6 +2888,9 @@ ec_cl_implicit_noexcept_requires_noexcept_support;;"\"--implicit_noexcept\" requ
 ec_constexpr_virtual_base;;"cannot fold operation involving virtual base class (%t)"
 ec_initializer_not_constant;;"initializer must have a constant value"
 ec_constexpr_incomplete_type;;"cannot evaluate value of incomplete %t"
+ec_nodiscard_routine;;"ignoring return value from routine declared with \"nodiscard\" attribute"
+ec_nodiscard_return_type;;"ignoring return value type with \"nodiscard\" attribute"
+ec_nodiscard_doesnt_apply;;"the \"nodiscard\" attribute doesn't apply to constructor, destructors, or routines with void return type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
