@@ -33779,7 +33779,8 @@ an enumerator.
         !is_prototype_instantiation_context()) {
       /* Attempt to interpret the expression.  A failure will produce a
          diagnostic indicating the reason the operand is non-constant. */
-      expr_interpret_expression_operand(operand, /*must_be_constant=*/TRUE);
+      (void)expr_interpret_expression_operand(operand,
+                                              /*must_be_constant=*/TRUE);
     }  /* if */
     if (is_array_bound && is_constant_operand(operand)) {
       /* Check specially for a negative array size to produce a better

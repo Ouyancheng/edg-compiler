@@ -1577,7 +1577,7 @@ bytes.
       if (!tp->incomplete &&
           !(is_immediate_class_type(tp) &&
             tp->variant.class_struct_union.contains_flexible_array_member)) {
-        length = tp->size/elem_size;
+        length = (a_byte_count)tp->size/elem_size;
       } else {
         length = MAX_ARRAY_LENGTH;
       }  /* if */
@@ -1586,14 +1586,14 @@ bytes.
     case abk_temporary:
       cp = con_addr->variant.address.variant.constant;
       if (constant_is(cp, ck_string)) {
-        length = cp->variant.string.length/elem_size;
+        length = (a_byte_count)cp->variant.string.length/elem_size;
       } else {
-        length = skip_typerefs(cp->type)->size/elem_size;
+        length = (a_byte_count)skip_typerefs(cp->type)->size/elem_size;
       }  /* if */
       break;
     case abk_uuidof:
       tp = type_pointed_to(con_addr->type);
-      length = skip_typerefs(tp)->size/elem_size;
+      length = (a_byte_count)skip_typerefs(tp)->size/elem_size;
       break;
     case abk_typeid:
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9052,7 +9052,8 @@ the value representation of the integer value.
                     do_constexpr_fail(result);
                     break;
                   }  /* if */
-                  check_boolean_condition(ips, opnd2_value, opnd2, opnd2_type,
+                  result = check_boolean_condition(
+                                          ips, opnd2_value, opnd2, opnd2_type,
                                           &logical_and_result);
                 }  /* if */
                 if (result) {
@@ -9085,7 +9086,8 @@ the value representation of the integer value.
                     do_constexpr_fail(result);
                     break;
                   }  /* if */
-                  check_boolean_condition(ips, opnd2_value, opnd2, opnd2_type,
+                  result = check_boolean_condition(
+                                          ips, opnd2_value, opnd2, opnd2_type,
                                           &logical_or_result);
                 }  /* if */
                 if (result) {
