@@ -5877,6 +5877,7 @@ an unnamed namespace.
       vp->used &&
       (vp->storage_class == (a_storage_class)sc_extern &&
        (!vp->is_template_variable ||
+        vp->is_nonreal ||
         vp->is_prototype_instantiation ||
         !will_be_instantiated(var_sym)))) {
     check_constituent_types_have_linkage(var_sym,
