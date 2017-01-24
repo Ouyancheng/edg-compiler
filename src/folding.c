@@ -5911,6 +5911,10 @@ the expression is not a glvalue, do not fold (see fold_expr instead).
   if (!is_glvalue_node(expr)) {
     /* Do not fold expressions that are not glvalues. */
     folded = FALSE;
+#if DO_IL_LOWERING
+  } else if (il_lowering_underway) {
+    /* Don't attempt expression folding during lowering. */
+#endif /* DO_IL_LOWERING */
   } else {
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
