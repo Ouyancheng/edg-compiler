@@ -5643,8 +5643,8 @@ otherwise, return FALSE and update *ips accordingly.
       goto done;
     }  /* if */
     /* Account a relatively high cost for the call up-front, to limit the
-       overall call depth.  When the call returns, that cost will be reduced
-       to just "one". */
+       overall call depth.  When the call returns, that cost will be
+       reduced. */
     up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
     ips->cost += up_front_cost;
     /* Set up arguments, starting with "this" if applicable. */
@@ -5952,8 +5952,8 @@ the body of the (constructor) function proper.
       goto done;
     }  /* if */
     /* Account a relatively high cost for the call up-front, to limit the
-       overall call depth.  When the call returns, that cost will be reduced
-       to just "one". */
+       overall call depth.  When the call returns, that cost will be
+       reduced. */
     up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
     ips->cost += up_front_cost;
     /* Set up arguments, starting with "this" if applicable. */

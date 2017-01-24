@@ -23445,7 +23445,7 @@ will be an lvalue instead of the usual prvalue.
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
-  if (generate_il && curr_expr_kind_is_const()) {
+  if (generate_il && curr_expr_kind_is_const() && !constexpr_enabled) {
     /* The result is required to be constant.  Check that it is. */
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
