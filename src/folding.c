@@ -5914,6 +5914,7 @@ the expression is not a glvalue, do not fold (see fold_expr instead).
 #if DO_IL_LOWERING
   } else if (il_lowering_underway) {
     /* Don't attempt expression folding during lowering. */
+    folded = FALSE;
 #endif /* DO_IL_LOWERING */
   } else {
     a_diag_list  diag_list;
