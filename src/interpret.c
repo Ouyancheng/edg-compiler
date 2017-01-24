@@ -1068,11 +1068,11 @@ given data map.
   a_map_index       idx = hash & mask;                                       \
   a_data_map_entry  *table = (map)->table;                                   \
   for (;;) {                                                                 \
-    a_byte  *ptr = table[idx].ptr;                                           \
-    if (ptr == (a_byte*)(iptr)) {                                            \
+    a_byte  *tptr = table[idx].ptr;                                          \
+    if (tptr == (a_byte*)(iptr)) {                                           \
       (dptr) = table[idx].data.ptr;                                          \
       break;                                                                 \
-    } else if (ptr == NULL) {                                                \
+    } else if (tptr == NULL) {                                               \
       (dptr) = NULL;                                                         \
       break;                                                                 \
     }  /* if */                                                              \
@@ -1092,11 +1092,11 @@ from a given data map.
   a_map_index       idx = hash & mask;                                       \
   a_data_map_entry  *table = (map)->table;                                   \
   for (;;) {                                                                 \
-    a_byte  *ptr = table[idx].ptr;                                           \
-    if (ptr == (a_byte*)(iptr)) {                                            \
+    a_byte  *tptr = table[idx].ptr;                                          \
+    if (tptr == (a_byte*)(iptr)) {                                           \
       (bcount) = table[idx].data.byte_count;                                 \
       break;                                                                 \
-    } else if (ptr == NULL) {                                                \
+    } else if (tptr == NULL) {                                               \
       (bcount) = 0;                                                          \
       break;                                                                 \
     }  /* if */                                                              \
@@ -4309,6 +4309,7 @@ recorded in *vs_state.
   a_variable_ptr              cond_var = csp->dynamic_init->variable;
 
   do_constexpr_unmap_variable(ips, cond_var);
+  restore_storage_stack(ips, *vs_state);
 }  /* do_constexpr_condition_dealloc */
 
 
@@ -5786,10 +5787,10 @@ otherwise, return FALSE and update *ips accordingly.
       arg_size += 1;
     }  /* if */
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      a_byte         *arg_bytes = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
       postfix->alloc_seq_number = alloc_seq_number;
-      map_or_replace_ptr(&ips->map, param, arg, postfix->prev_storage);
+      map_or_replace_ptr(&ips->map, param, arg_bytes, postfix->prev_storage);
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* for */
@@ -5824,8 +5825,8 @@ otherwise, return FALSE and update *ips accordingly.
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg_size = (a_byte_count*)arg_sizes;
     if (this_var != NULL) {
-      a_byte         *arg = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      a_byte         *arg_bytes = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
       if (postfix->prev_storage == NULL) {
         unmap_ptr(&ips->map, this_var);
       } else {
@@ -6086,10 +6087,10 @@ the body of the (constructor) function proper.
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      a_byte         *arg_bytes = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
       postfix->alloc_seq_number = alloc_seq_number;
-      map_or_replace_ptr(&ips->map, param, arg, postfix->prev_storage);
+      map_or_replace_ptr(&ips->map, param, arg_bytes, postfix->prev_storage);
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* for */
@@ -6258,8 +6259,8 @@ the body of the (constructor) function proper.
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      a_byte         *arg_bytes = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
       if (postfix->prev_storage == NULL) {
         unmap_ptr(&ips->map, param);
       } else {
