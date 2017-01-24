@@ -948,9 +948,9 @@ value for the global variable max_constexpr_call_cost in C++11 mode.
 
 /*
 The default maximum cost of a C++14-style ("relaxed") constexpr function or
-constructor call evaluation.  A unit of cost is counted for every call and
-every loop "back" branch.    If we reach the maximum, the next call is
-considered non-foldable, which probably makes the overall expression
+constructor call evaluation.  Two units of cost are counted for every call and
+one unit for every loop "back" branch.    If we reach the maximum, the next
+call is considered non-foldable, which probably makes the overall expression
 non-constant.  The C++14 standard has no specific minimum value.  Initial
 value for the global variable max_constexpr_call_cost in C++14 mode.
 */

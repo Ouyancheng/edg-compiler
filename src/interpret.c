@@ -41,10 +41,11 @@ allowed in a constant expression in C++14.
 The Interpreter
 ---------------
 The interpreter itself traverses the IL in typical "recursive descent" fashion.
-The principal entry points are interpret_expr, interpret_constexpr_call, and
-interpret_constexpr_ctor.  These set up an "interpreter state" that is carried
-through the interpretation process (this state includes local allocations and
-mappings, the call stack, diagnostic records, etc.).
+The principal entry points are interpret_expr, interpret_constexpr_call,
+interpret_dynamic_init, and interpret_constexpr_ctor.  These set up an
+"interpreter state" that is carried through the interpretation process (this
+state includes local allocations and mappings, the call stack, diagnostic
+records, etc.).
 
 An interpreter invocation can end for one of three reasons:
   (1) the call is completed with a valid result (normal case),
@@ -52,19 +53,10 @@ An interpreter invocation can end for one of three reasons:
       read an uninitialized value), or
   (3) the cost of the interpretation is too high.
 
-Regarding the latter reason, the interpreter tracks the sum of the number of
-calls and the number of loop-back branches.  When that number reaches a certain
-large value, the interpretation is deemed too expensive.  Deeply nested
+Regarding the latter reason, the interpreter tracks the sum of twice the number
+of calls and the number of loop-back branches.  When that number reaches a
+certain large value, the interpretation is deemed too expensive.  Deeply nested
 recursion is also limited.
-
-Currently, operations not in a constexpr call are not folded in the interpreter
-but by the code implementing C++11 folding.  E.g.:
-
-  constexpr int g(int) { return 3; }
-  constexpr int v = g(g(2)) * g(2);
-
-In this example, all three calls to g are handled by interpret_constexpr_call,
-but the multiplication is done elsewhere (in folding.c).
 
 
 Storage
@@ -128,18 +120,14 @@ temporaries; convenience macros map_stack_bytes, unmap_stack_bytes, and
 get_stack_bytes can be used to manage that data map.  For example, if a
 stmk_init statement entry is interpreted, storage is allocated for the variable
 and the pointer to the associated a_variable entry is mapped to that storage
-address; in addition, the address of the a_variable::storage_class field is
-mapped to an allocation sequence number (of type a_byte_count) used to track
-whether the storage for a variable has expired.
+address.
 
 This map tracking automatic variables and temporaries is also used to map
 run-time namespace-scope variables to a_constant entries representing their
 address (this is done by mapping a_variable::initializer).
 
-If a pointer is mapped multiple times (e.g., a local variable entry during a
-recursive function invocation), the last mapping is returned by get_mapped_ptr
-(or get_stack_bytes), and if that last mapping is "unmapped", the previous
-mapping becomes available again.
+If a pointer to be mapped may already be in a map, use map_or_replace_ptr
+instead of map_ptr.  It will replace the mapping recorded in the data map.
 
 Besides the data map associated with an interpreter state, another map is kept
 that persists across interpreter invocations (static variable persistent_map).
@@ -170,6 +158,11 @@ that only one bit is set per scalar entity.  For example, if integers are
 represented using eight bytes and the leading entry of an array is initialized,
 then bit 0 of init_bits[0] will be set, but bits 1 through 7 will remain
 unchanged even though their corresponding bytes have valid values.
+
+The representation of variables (including parameters) also has a "postfix"
+block that includes (a) an allocation sequence number that describes its
+lifetime and (b) a pointer to any storage previously associated with that
+variable (for recursive calls).
 
 Integer and floating-point values are stored using their IL representations 
 (i.e., an_integer_value and an_internal_float_value).  Bit fields occupy a
@@ -351,14 +344,12 @@ typedef struct a_data_map_entry {
   a_mapped_value
 		data;
 			/* A value associated with ptr. */
-  a_map_index	next_index;
-			/* The index of the next map entry with an identical
-			   hash value. */
 } a_data_map_entry;
 
 
 /*
-Structure describing a data map.
+Structure describing a data map.  (Implemented has a hash table with linear
+probing.)
 */
 typedef struct a_data_map {
   a_data_map_entry
@@ -366,12 +357,13 @@ typedef struct a_data_map {
 			/* Hash table mapping pointers into the IL onto
 			   associated data. */
   a_map_index
-		overflow_size;
-			/* Number of overflow entries (used in case of hashing
-			   collisions) in the hash table. */
+		hash_mask;
+			/* The mask to apply to the hash value before indexing
+			   in the table.  This mask is increased as the table
+			   grows. */
   a_map_index
-		next_free;
-			/* Index of the next available map overflow entry. */
+		n_elements;
+			/* The number of elements stored in the table. */
 } a_data_map;
 
 
@@ -382,73 +374,32 @@ static a_data_map
 			   data in the interpreter. */
 
 
-/* Macro defining the number of entries in the hash table proper. */
-#define NUM_DATA_MAP_HASH_HEADERS (1<<10)
-
-
-static void init_map_free_list(a_data_map   *map,
-                               a_map_index  first,
-                               a_map_index  last)
-/*
-Establish a "free list" structure on the entries map->table[first] through
-map->table[last].  I.e., each map->table[k].next_index points to the next,
-except for the last entry whose next_index field is set to 0.
-*/
-{
-  a_data_map_entry  *table = map->table;
-
-  
-  map->next_free = first;
-  while (first != last) {
-    table[first].next_index = first+1;
-    first = first+1;
-  }  /* while */
-  table[last].next_index = 0;
-}  /* init_map_free_list */
-
-
-static a_byte	*free_map_tables;
-			/* List of map tables available for reuse. */
-
-static void init_data_map(a_data_map  *map)
+static void init_data_map(a_data_map    *map,
+                          unsigned int  mask_width)
 /*
 Initialize the given data map.
 */
 {
-  if (free_map_tables == NULL) {
-    /* Initialize the data map fields. */
-    a_byte_count  n_bytes;
-    map->overflow_size = 100;
-    n_bytes = (NUM_DATA_MAP_HASH_HEADERS+map->overflow_size)
-                                         * sizeof(a_data_map_entry);
-    map->table = (a_data_map_entry*)alloc_resizable_buffer(n_bytes);
-  } else {
-    /* Reuse a previously allocated table. */
-    a_data_map  *self_map = (a_data_map*)free_map_tables;
-    *map = *self_map;
-    map->table = (a_data_map_entry*)free_map_tables;
-    free_map_tables = (a_byte*)self_map->table;
-  }  /* if */
-  /* Clear the main map entries. */
-  memzero((char*)map->table,
-          size_t_arg(NUM_DATA_MAP_HASH_HEADERS*sizeof(a_data_map_entry)));
-  init_map_free_list(map, NUM_DATA_MAP_HASH_HEADERS,
-                     NUM_DATA_MAP_HASH_HEADERS+map->overflow_size-1);
+  unsigned      n_slots = (1<<mask_width);
+  a_byte_count  size = n_slots*sizeof(a_data_map_entry);
+
+  map->table = (a_data_map_entry*)alloc_general(size);
+  memzero((char*)map->table, size_t_arg(size));
+  map->hash_mask = n_slots-1;
+  map->n_elements = 0;
 }  /* init_data_map */
 
 
 static void release_data_map_table(a_data_map  *map)
 /*
 Release the storage for the given map's table.
+FIXME: Adding memoizing of tables.
 */
 {
-  a_data_map  *self_map = (a_data_map*)map->table;
+  a_map_index       n_slots = map->hash_mask+1;
+  a_byte_count      size = n_slots*sizeof(a_data_map_entry);
 
-  /* Embed the map information into the first bytes of the table. */
-  *self_map = *map;
-  /* Prepend the new table to the "free tables" list. */
-  self_map->table = (a_data_map_entry*)free_map_tables;
-  free_map_tables = (a_byte*)self_map;
+  free_general(map->table, size);
 }  /* release_data_map_table */
 
 
@@ -487,91 +438,41 @@ Type to use to index into a live set.
 */
 typedef unsigned int a_live_set_index;
 
-/*
-Type for the entries in a live set table.
-*/
-typedef struct a_live_set_entry {
-  an_alloc_seq_number
-		alloc_seq_number;
-			/* An sequence number in the set. */
-  a_live_set_index
-		next_index;
-			/* The index of the next set entry with an identical
-			   hash value. */
-} a_live_set_entry;
-
-
-/* Macro defining the number of entries in the live set's hash table proper
-   (i.e., not including overflow entries). */
-#define NUM_LIVE_SET_HASH_HEADERS (1<<10)
-
 
 /*
 A hash table maintaining a set of "live" allocation sequence numbers (i.e., the
-sequence numbers of allocations that have not been deallocated yet).
+sequence numbers of allocations that have not been deallocated yet).  Unlike
+most hash tables this table only holds "keys", not associated "values".
 */
 typedef struct a_live_set {
-  a_live_set_entry
+  an_alloc_seq_number
 		*table;
 			/* The hash table proper. */
   a_live_set_index
-		overflow_size;
+		hash_mask;
 			/* Number of overflow entries (used in case of hashing
 			   collisions) in the hash table. */
+			/* The mask to apply to the hash value before indexing
+			   in the table.  This mask is increased as the table
+			   grows. */
   a_live_set_index
-		next_free;
-			/* Index of the next available overflow entry. */
+		n_elements;
+			/* The number of elements stored in the table. */
 } a_live_set;
 
-
-static void init_live_set_free_list(a_live_set        *set,
-                                    a_live_set_index  first,
-                                    a_live_set_index  last)
-/*
-Establish a "free list" structure on the entries set->table[first] through
-set->table[last].  I.e., each set->table[k].next_index points to the next,
-except for the last entry whose next_index field is set to 0.
-*/
-{
-  a_live_set_entry  *table = set->table;
-
-  set->next_free = first;
-  while (first != last) {
-    table[first].next_index = first+1;
-    first = first+1;
-  }  /* while */
-  table[last].next_index = 0;
-}  /* init_live_set_free_list */
-
-
-static a_byte	*free_live_set_tables;
-			/* List of live set tables available for reuse. */
 
 static void init_live_set(a_live_set  *set)
 /*
 Initialize the given live set.
 */
 {
-  if (free_live_set_tables == NULL) {
-    /* Allocate a new table. */
-    a_byte_count  n_bytes;
-    set->overflow_size = 100;
-    n_bytes = (NUM_LIVE_SET_HASH_HEADERS+set->overflow_size)
-                                         * sizeof(a_live_set_entry);
-    set->table = (a_live_set_entry*)alloc_resizable_buffer(n_bytes);
-  } else {
-    /* Reuse a previously allocated table. */
-    a_live_set  *self_set = (a_live_set*)free_live_set_tables;
-    *set = *self_set;
-    set->table = (a_live_set_entry*)free_live_set_tables;
-    free_live_set_tables = (a_byte*)self_set->table;
-  }  /* if */
-  /* Clear the main set entries. */
-  memzero((char*)set->table,
-          size_t_arg(NUM_LIVE_SET_HASH_HEADERS*sizeof(a_live_set_entry)));
-  /* Establish the free-list structure for the overflow entries. */
-  init_live_set_free_list(set, NUM_LIVE_SET_HASH_HEADERS,
-                          NUM_LIVE_SET_HASH_HEADERS+set->overflow_size-1);
+  unsigned      n_slots = (1<<3);
+  a_byte_count  size = n_slots*sizeof(an_alloc_seq_number);
+
+  set->table = (an_alloc_seq_number*)alloc_general(size);
+  memzero((char*)set->table, size_t_arg(size));
+  set->hash_mask = n_slots-1;
+  set->n_elements = 0;
 }  /* init_live_set */
 
 
@@ -580,96 +481,177 @@ static void release_live_set_table(a_live_set  *set)
 Release the storage for the given set's table.
 */
 {
-  a_live_set  *self_set = (a_live_set*)set->table;
+  a_live_set_index  n_slots = set->hash_mask+1;
+  a_byte_count      size = n_slots*sizeof(an_alloc_seq_number);
 
-  /* Embed the set information into the first bytes of the table. */
-  *self_set = *set;
-  /* Prepend the new table to the "free tables" list. */
-  self_set->table = (a_live_set_entry*)free_live_set_tables;
-  free_live_set_tables = (a_byte*)self_set;
+  free_general(set->table, size);
 }  /* release_live_set_table */
+
+
+#define hash_alloc_seq_number(seq)                                           \
+  (seq)
 
 
 static void expand_live_set(a_live_set  *set)
 /*
-Double the size of the overflow area of the given live set.
+Double the number of entries in the given set.  This requires rehashing.
+FIXME: Adding memoizing of tables.
 */
 {
-  a_byte_count  old_byte_size, new_byte_size;
+  an_alloc_seq_number  *new_table, *old_table = set->table;
+  a_live_set_index     mask = set->hash_mask;
+  a_live_set_index     k, n_slots = mask+1;
+  a_byte_count         old_size = n_slots*sizeof(an_alloc_seq_number);
+  a_byte_count         new_size = 2*old_size;
 
-  check_assertion(set->next_free == 0);
-  old_byte_size = (NUM_LIVE_SET_HASH_HEADERS+set->overflow_size)
-                                                    * sizeof(a_live_set_entry);
-  new_byte_size = (NUM_LIVE_SET_HASH_HEADERS+2*set->overflow_size)
-                                                    * sizeof(a_live_set_entry);
-  set->table = (a_live_set_entry*)realloc_buffer((char*)set->table,
-                                                 old_byte_size, new_byte_size);
-  init_live_set_free_list(set, NUM_LIVE_SET_HASH_HEADERS+set->overflow_size,
-                          NUM_LIVE_SET_HASH_HEADERS+2*set->overflow_size-1);
-  set->overflow_size *= 2;
+  new_table = (an_alloc_seq_number*)alloc_general(new_size);
+  memzero((char*)new_table, size_t_arg(new_size));
+  mask = mask*2+1;
+  for (k = 0; k<n_slots; ++k) {
+    an_alloc_seq_number  seq = old_table[k];
+    if (seq != 0) {
+      a_live_set_index  idx = hash_alloc_seq_number(seq) & mask;
+      while (new_table[idx] != 0) {
+        idx = (idx+1) & mask;
+      }  /* while */
+      new_table[idx] = old_table[k];
+    }  /* if */
+  }  /* for */
+  set->table = new_table;
+  set->hash_mask = mask;
+  free_general(old_table, old_size);
 }  /* expand_live_set */
 
 
-#define hash_alloc_seq_number(seq)                                           \
-  ((seq) % NUM_LIVE_SET_HASH_HEADERS)
-
-
+/*
+Macro to add an allocation sequence number to a live set.  (It may not be in
+the set already.)
+*/
 #define add_to_live_set(set, alloc_seq)                                      \
-  { an_alloc_seq_number  seq = alloc_seq;                                    \
-    a_live_set_index     idx = hash_alloc_seq_number(seq);                   \
-    a_live_set_entry     *table = (set)->table;                              \
-    an_alloc_seq_number  cached_seq_number = table[idx].alloc_seq_number;    \
-    if (cached_seq_number != 0) {                                            \
-      /* Move the existing entry to an overflow entry. */                    \
-      a_live_set_index  new_index = (set)->next_free;                        \
-      if (new_index == 0) {                                                  \
-        expand_live_set(set);                                                \
-        table = (set)->table;                                                \
-        new_index = (set)->next_free;                                        \
-      }  /* if */                                                            \
-      (set)->next_free = table[new_index].next_index;                        \
-      table[new_index].alloc_seq_number = cached_seq_number;                 \
-      table[new_index].next_index = table[idx].next_index;                   \
-      table[idx].next_index = new_index;                                     \
-    }  /* if */                                                              \
-    table[idx].alloc_seq_number = (seq);                                     \
-  }
+{                                                                            \
+  uintptr_t            hash = hash_alloc_seq_number(alloc_seq);              \
+  a_live_set_index     mask = (set)->hash_mask;                              \
+  a_live_set_index     idx = hash & mask;                                    \
+  an_alloc_seq_number  *table = (set)->table;                                \
+  if (table[idx] == 0) {                                                     \
+    table[idx] = (alloc_seq);                                                \
+  } else {                                                                   \
+    set_colliding_seq(set, alloc_seq, idx);                                  \
+  }  /* if */                                                                \
+  (set)->n_elements += 1;                                                    \
+  if ((set)->n_elements*2 > mask) {                                          \
+    expand_live_set(set);                                                    \
+  }  /* if */                                                                \
+}
+
+
+static void set_colliding_seq(a_live_set           *set,
+                              an_alloc_seq_number  seq,
+                              a_live_set_index     idx)
+/*
+The given allocation sequence number collides with an existing entry in the
+given set.  Move the existing entry to the next available spot and place seq
+at idx.
+*/
+{
+  a_live_set_index     mask = set->hash_mask;
+  an_alloc_seq_number  *table = set->table;
+  an_alloc_seq_number  saved_seq;
+
+  /* Place the new number at idx, and move the existing entry to the next
+     available spot. */
+  saved_seq = table[idx];
+  table[idx] = seq;
+  for (;;) {
+    idx = (idx+1) & mask;
+    if (table[idx] == 0) {
+      table[idx] = saved_seq;
+      break;
+    }  /* if */
+  }  /* for */
+}  /* set_colliding_seq */
 
 
 #define remove_from_live_set(set, alloc_seq)                                 \
-  { an_alloc_seq_number  seq = alloc_seq;                                    \
-    a_live_set_index     idx = hash_alloc_seq_number(seq);                   \
-    a_live_set_entry     *table = (set)->table;                              \
-    an_alloc_seq_number  cached_seq_number = table[idx].alloc_seq_number;    \
-    if (cached_seq_number == seq) {                                          \
-      a_live_set_index  prev_index = table[idx].next_index;                  \
-      if (prev_index == 0) {                                                 \
-        /* Only one element in the bucket. */                                \
-        table[idx].alloc_seq_number = 0;                                     \
-      } else {                                                               \
-        /* Move the first overflow entry to the main hash table. */          \
-        table[idx].alloc_seq_number = table[prev_index].alloc_seq_number;    \
-        table[idx].next_index = table[prev_index].next_index;                \
-        /* Recycle the overflow entry. */                                    \
-        table[prev_index].next_index = (set)->next_free;                     \
-        (set)->next_free = prev_index;                                       \
-      }  /* if */                                                            \
-    } else {                                                                 \
-      /* The stack allocation discipline makes this impossible.*/            \
-      unexpected_condition_str("live_set id not found");                     \
-    }  /* if */                                                              \
-  }
+{                                                                            \
+  uintptr_t            hash = hash_alloc_seq_number(alloc_seq);              \
+  a_live_set_index     mask = (set)->hash_mask;                              \
+  a_live_set_index     idx = hash & mask;                                    \
+  an_alloc_seq_number  *table = (set)->table;                                \
+  /* Find the item to delete (we're assuming it exists). */                  \
+  while (table[idx] != alloc_seq) {                                          \
+    idx = (idx+1) & mask;                                                    \
+  }  /* while */                                                             \
+  table[idx] = 0;                                                            \
+  /* If the next slot is empty, we're done.  Otherwise, we may have to */    \
+  /* move another element into the emptied slot. */                          \
+  if (table[(idx+1) & mask] != 0) {                                          \
+    check_deleted_live_set_slot(set, idx);                                   \
+  }  /* if */                                                                \
+}
+
+
+static void check_deleted_live_set_slot(a_live_set        *set,
+                                        a_live_set_index  idx0)
+/*
+Slot idx has been cleared in the given set (i.e., set->table[idx].ptr has been
+set to zero).  The next slot is not empty.  There may therefore exist entries
+that are associated with that slot (i.e., have the same hash index).  This
+function makes sure that such entries can be found, by moving up entries as
+needed.
+
+This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth'
+"The Art of Computer Programming" (Sorting and Searching -- Second Edition),
+with the assumption that step R1 has already been performed (idx0 is "j") and
+we know that the subsequent slot is not empty.
+*/
+{
+  an_alloc_seq_number  *table = set->table;
+  a_live_set_index     mask = set->hash_mask;
+  a_live_set_index     idx, ridx;
+  an_alloc_seq_number  rseq;
+  
+  idx = (idx0+1) & mask;
+  rseq = table[idx];
+  for (;;) {
+    for (;;) {
+      ridx = hash_alloc_seq_number(rseq) & mask;
+      /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
+         slot: The place from where probing will start.  So we cannot move it
+         ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
+         "wrap-around"), do not move the entry and try the next entry
+         instead. */
+      if ((ridx <= idx0 && idx0 < idx) ||
+          (idx0 >= ridx && idx < ridx) ||
+          (idx0 < idx && idx < ridx)) {
+        /* idx0 is in [ridx, idx-1]: Move the entry. */
+        break;
+      } else {
+        idx = (idx+1) & mask;
+        rseq = table[idx];
+        if (rseq == 0) goto done;
+      }  /* if */
+    }  /* for */
+    table[idx0] = table[idx];
+    table[idx] = 0;
+    idx0 = idx;
+    idx = (idx0+1) & mask;
+    rseq = table[idx];
+    if (rseq == 0) goto done;
+  }  /* for */
+done:;
+}  /* check_deleted_live_set_slot */
 
 
 /*
 Return TRUE if the given allocation sequence number is in the given live set.
 This macro is written with the assumption that in the vast majority of cases
-the sequence number is present and it is in the main hash table (and not in
-an overflow entry).
+the sequence number is present and it needs no probing to be found.
 */
 #define in_live_set(set, seq)                                                \
-  ((set)->table[hash_alloc_seq_number(seq)].alloc_seq_number == seq ?        \
-    TRUE : f_in_live_set(set, seq))
+  ((set)->table[hash_alloc_seq_number(seq) & (set)->hash_mask] == seq ?      \
+     TRUE : f_in_live_set(set, seq))
+
 
 static a_boolean f_in_live_set(a_live_set           *set,
                                an_alloc_seq_number  seq)
@@ -679,25 +661,25 @@ Return FALSE otherwise.  This is normally always called through the macro
 in_live_set.
 */
 {
-  a_boolean            result;
+  a_boolean  result;
 
   if (seq == 0) {
     /* Sequence number zero (static storage) is always "live". */
     result = TRUE;
   } else {
-    an_alloc_seq_number  stored_seq;
-    a_live_set_index     idx = hash_alloc_seq_number(seq);
+    a_live_set_index     mask = set->hash_mask;
+    a_live_set_index     idx = hash_alloc_seq_number(seq) & mask;
+    an_alloc_seq_number  *table = set->table;
     for (;;) {
-      stored_seq = set->table[idx].alloc_seq_number;
-      if (stored_seq == seq) {
+      an_alloc_seq_number  tseq = table[idx];
+      if (tseq == seq) {
         result = TRUE;
         break;
-      } else if (stored_seq == 0) {
-        do_constexpr_fail(result);
+      } else if (tseq == 0) {
+        result = FALSE;
         break;
-      } else {
-        idx = set->table[idx].next_index;
       }  /* if */
+      idx = (idx+1) & mask;
     }  /* for */
   }  /* if */
   return result;
@@ -1070,82 +1052,57 @@ Macros to push and pop call frames.
 #endif /* == 2 */
 #endif /* == 1 */
 
-#define hash_il_ptr(ptr)                                                     \
-   (((uintptr_t)ptr >> HASH_PTR_SHIFT) % NUM_DATA_MAP_HASH_HEADERS)
-
-static a_mapped_value find_overflow_entry(a_data_map    *map,
-                                          a_byte        *ptr,
-                                          a_byte_count  idx)
-/*
-Search map for an overflow entry mapping ptr, starting at the entry at the
-given index.
-*/
-{
-  a_mapped_value    result;
-  a_data_map_entry  *table = map->table;
-
-  for (;;) {
-    if (table[idx].ptr == ptr) {
-      /* We found the searched-for entry. */
-      a_map_index  hash_idx = hash_il_ptr(ptr);
-      result = table[idx].data;
-      /* Make this the new principal entry (by swapping). */
-      table[idx].ptr = table[hash_idx].ptr;
-      table[idx].data = table[hash_idx].data;
-      table[hash_idx].ptr = ptr;
-      table[hash_idx].data = result;
-      break;
-    } else {
-      idx = table[idx].next_index;
-      if (idx == 0) {
-        /* We've exhausted the list of entries. */
-        memzero((char*)&result, sizeof(result));
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* find_overflow_entry */
+#define hash_ptr(ptr)                                                        \
+   ((uintptr_t)ptr >> HASH_PTR_SHIFT)
 
 
 /*
-Macro to retrieve a pointer (dptr) associated with a pointer into the IL
-(iptr) from a given data map.
+Macro to retrieve a pointer (dptr) associated with a pointer (iptr) from a
+given data map.
 */
 #define get_mapped_ptr(map, iptr, dptr)                                      \
-  { a_map_index   idx = hash_il_ptr((a_byte*)(iptr));                        \
-    a_byte        *cached_ptr = (map)->table[idx].ptr;                       \
-    if (cached_ptr == (a_byte*)(iptr)) {                                     \
-      (dptr) = (map)->table[idx].data.ptr;                                   \
-    } else {                                                                 \
-      a_map_index  next_index = (map)->table[idx].next_index;                \
-      if (next_index != 0) {                                                 \
-        (dptr) = find_overflow_entry((map), (a_byte*)(iptr), next_index).ptr;\
-      } else {                                                               \
-        (dptr) = 0;                                                          \
-      }  /* if */                                                            \
+{                                                                            \
+  uintptr_t         hash = hash_ptr(iptr);                                   \
+  a_map_index       mask = (map)->hash_mask;                                 \
+  a_map_index       idx = hash & mask;                                       \
+  a_data_map_entry  *table = (map)->table;                                   \
+  for (;;) {                                                                 \
+    a_byte  *ptr = table[idx].ptr;                                           \
+    if (ptr == (a_byte*)(iptr)) {                                            \
+      (dptr) = table[idx].data.ptr;                                          \
+      break;                                                                 \
+    } else if (ptr == NULL) {                                                \
+      (dptr) = NULL;                                                         \
+      break;                                                                 \
     }  /* if */                                                              \
-  }
+    idx = (idx+1) & mask;                                                    \
+  }  /* for */                                                               \
+}
+
 
 /*
-Macro to retrieve a byte count (bcount) associated with a pointer into the IL
-(iptr) from a given data map.
+Macro to retrieve a byte count (bcount) associated with a pointer (iptr)
+from a given data map.
 */
 #define get_mapped_byte_count(map, iptr, bcount)                             \
-  { a_map_index   idx = hash_il_ptr((a_byte*)(iptr));                        \
-    a_byte        *cached_ptr = (map)->table[idx].ptr;                       \
-    if (cached_ptr == (a_byte*)(iptr)) {                                     \
-      (bcount) = (map)->table[idx].data.byte_count;                          \
-    } else {                                                                 \
-      a_map_index  next_index = (map)->table[idx].next_index;                \
-      if (next_index != 0) {                                                 \
-        (bcount) = find_overflow_entry((map), (a_byte*)(iptr), next_index)   \
-                                                                 .byte_count;\
-      } else {                                                               \
-        (bcount) = 0;                                                        \
-      }  /* if */                                                            \
+{                                                                            \
+  uintptr_t         hash = hash_ptr(iptr);                                   \
+  a_map_index       mask = (map)->hash_mask;                                 \
+  a_map_index       idx = hash & mask;                                       \
+  a_data_map_entry  *table = (map)->table;                                   \
+  for (;;) {                                                                 \
+    a_byte  *ptr = table[idx].ptr;                                           \
+    if (ptr == (a_byte*)(iptr)) {                                            \
+      (bcount) = table[idx].data.byte_count;                                 \
+      break;                                                                 \
+    } else if (ptr == NULL) {                                                \
+      (bcount) = 0;                                                          \
+      break;                                                                 \
     }  /* if */                                                              \
-  }
+    idx = (idx+1) & mask;                                                    \
+  }  /* for */                                                               \
+}
+
 
 /*
 Convenience macro to retrieve a pointer (sptr) to the stack storage associated
@@ -1155,75 +1112,251 @@ storage.
 #define get_stack_bytes(ips, iptr, sptr)                                     \
   get_mapped_ptr(&(ips)->map, iptr, sptr)
 
-static void expand_map(a_data_map  *map)
+#if DEBUG
+
+void db_data_map(a_data_map  *map)
 /*
-Double the size of the overflow area of the given map.
+Output some information about a data map's contents
 */
 {
-  a_byte_count  old_byte_size, new_byte_size;
+  a_data_map_entry  *table = map->table;
+  a_map_index       mask = map->hash_mask;
+  a_map_index       k, n_slots = mask+1;
 
-  check_assertion(map->next_free == 0);
-  old_byte_size = (NUM_DATA_MAP_HASH_HEADERS+map->overflow_size)
-                                                    * sizeof(a_data_map_entry);
-  new_byte_size = (NUM_DATA_MAP_HASH_HEADERS+2*map->overflow_size)
-                                                    * sizeof(a_data_map_entry);
-  map->table = (a_data_map_entry*)realloc_buffer((char*)map->table,
-                                                 old_byte_size, new_byte_size);
-  init_map_free_list(map, NUM_DATA_MAP_HASH_HEADERS+map->overflow_size,
-                     NUM_DATA_MAP_HASH_HEADERS+2*map->overflow_size-1);
-  map->overflow_size *= 2;
-}  /* expand_map */
+  for (k = 0; k<n_slots; ++k) {
+    a_byte  *ptr = table[k].ptr;
+    fprintf(f_debug, "[%2u] ", k);
+    if (ptr == NULL) {
+      fprintf(f_debug, "(empty)\n");
+    } else {
+      fprintf(f_debug, "h = %2u  %p\n",
+              (a_map_index)hash_ptr(ptr) & mask, ptr);
+    }  /* if */
+  }  /* for */
+}  /* db_data_map */
+
+#endif /* DEBUG */
+
+static void expand_ptr_map(a_data_map  *map)
+/*
+Double the number of entries in the given map.  This requires rehashing.
+FIXME: Adding memoizing of tables.
+*/
+{
+  a_data_map_entry  *new_table, *old_table = map->table;
+  a_map_index       mask = map->hash_mask;
+  a_map_index       k, n_slots = mask+1;
+  a_byte_count      old_size = n_slots*sizeof(a_data_map_entry);
+  a_byte_count      new_size = 2*old_size;
+
+  new_table = (a_data_map_entry*)alloc_general(new_size);
+  memzero((char*)new_table, size_t_arg(new_size));
+  mask = mask*2+1;
+  for (k = 0; k<n_slots; ++k) {
+    a_byte  *ptr = old_table[k].ptr;
+    if (ptr != NULL) {
+      a_map_index  idx = hash_ptr(ptr) & mask;
+      while (new_table[idx].ptr != NULL) {
+        idx = (idx+1) & mask;
+      }  /* while */
+      new_table[idx] = old_table[k];
+    }  /* if */
+  }  /* for */
+  map->table = new_table;
+  map->hash_mask = mask;
+  free_general(old_table, old_size);
+}  /* expand_ptr_map */
 
 
 /*
-Macro to add a (pointer, pointer) entry to a data map.
+Macro to add a (pointer, pointer) entry to a data map.  The key pointer (iptr)
+may not be in the map already.
 */
 #define map_ptr(map, iptr, dptr)                                             \
-  { a_map_index       idx = hash_il_ptr(iptr);                               \
-    a_data_map_entry  *table = (map)->table;                                 \
-    a_byte            *cached_ptr = table[idx].ptr;                          \
-    if (cached_ptr != NULL) {                                                \
-      /* Move the existing entry to an overflow entry. */                    \
-      a_map_index  new_index;                                                \
-      if ((map)->next_free == 0) {                                           \
-        expand_map(map);                                                     \
-        table = (map)->table;                                                \
-      }  /* if */                                                            \
-      new_index = (map)->next_free;                                          \
-      (map)->next_free = table[new_index].next_index;                        \
-      table[new_index].ptr = cached_ptr;                                     \
-      table[new_index].data = table[idx].data;                               \
-      table[new_index].next_index = table[idx].next_index;                   \
-      table[idx].next_index = new_index;                                     \
-    }  /* if */                                                              \
+{                                                                            \
+  uintptr_t    hash = hash_ptr(iptr);                                        \
+  a_map_index  mask = (map)->hash_mask;                                      \
+  a_map_index  idx = hash & mask;                                            \
+  a_data_map_entry  *table = (map)->table;                                   \
+  if (table[idx].ptr == NULL) {                                              \
     table[idx].ptr = (a_byte*)(iptr);                                        \
     table[idx].data.ptr = (dptr);                                            \
-  }
+  } else {                                                                   \
+    a_data_map_entry  entry;                                                 \
+    entry.ptr = (a_byte*)(iptr);                                             \
+    entry.data.ptr = (dptr);                                                 \
+    map_colliding_ptr(map, entry, idx);                                      \
+  }  /* if */                                                                \
+  (map)->n_elements += 1;                                                    \
+  if ((map)->n_elements*2 > mask) {                                          \
+    expand_ptr_map(map);                                                     \
+  }  /* if */                                                                \
+}
+
+
+#define map_or_replace_ptr(map, iptr, dptr, old_dptr)                        \
+{                                                                            \
+  uintptr_t         hash = hash_ptr(iptr);                                   \
+  a_map_index       mask = (map)->hash_mask;                                 \
+  a_map_index       idx = hash & mask, idx0 = idx;                           \
+  a_data_map_entry  *table = (map)->table;                                   \
+  a_byte            *ptr = table[idx].ptr;                                   \
+  if (ptr == NULL) {                                                         \
+    table[idx].ptr = (a_byte*)(iptr);                                        \
+    table[idx].data.ptr = (dptr);                                            \
+    (map)->n_elements += 1;                                                  \
+    if ((map)->n_elements*2 > mask) {                                        \
+      expand_ptr_map(map);                                                   \
+    }  /* if */                                                              \
+    (old_dptr) = NULL;                                                       \
+  } else {                                                                   \
+    for (;;) {                                                               \
+      if (ptr == (a_byte*)(iptr)) {                                          \
+        (old_dptr) = table[idx].data.ptr;                                    \
+        table[idx].data.ptr = (dptr);                                        \
+        break;                                                               \
+      } else {                                                               \
+        idx = (idx+1) & mask;                                                \
+        ptr = table[idx].ptr;                                                \
+        if (ptr == NULL) {                                                   \
+          table[idx] = table[idx0];                                          \
+          table[idx].ptr = (a_byte*)(iptr);                                  \
+          table[idx].data.ptr = (dptr);                                      \
+          (map)->n_elements += 1;                                            \
+          if ((map)->n_elements*2 > mask) {                                  \
+            expand_ptr_map(map);                                             \
+          }  /* if */                                                        \
+          (old_dptr) = NULL;                                                 \
+          break;                                                             \
+        }  /* if */                                                          \
+      }  /* if */                                                            \
+    }  /* for */                                                             \
+  }  /* if */                                                                \
+}
+
 
 /*
 Macro to add a (pointer, byte-count) entry to a data map.
 */
 #define map_byte_count(map, iptr, bcount)                                    \
-  { a_map_index       idx = hash_il_ptr(iptr);                               \
-    a_data_map_entry  *table = (map)->table;                                 \
-    a_byte            *cached_ptr = table[idx].ptr;                          \
-    if (cached_ptr != NULL) {                                                \
-      /* Move the existing entry to an overflow entry. */                    \
-      a_map_index  new_index;                                                \
-      if ((map)->next_free == 0) {                                           \
-        expand_map(map);                                                     \
-        table = (map)->table;                                                \
-      }  /* if */                                                            \
-      new_index = (map)->next_free;                                          \
-      (map)->next_free = table[new_index].next_index;                        \
-      table[new_index].ptr = cached_ptr;                                     \
-      table[new_index].data = table[idx].data;                               \
-      table[new_index].next_index = table[idx].next_index;                   \
-      table[idx].next_index = new_index;                                     \
-    }  /* if */                                                              \
+{                                                                            \
+  uintptr_t    hash = hash_ptr(iptr);                                        \
+  a_map_index  mask = (map)->hash_mask;                                      \
+  a_map_index  idx = hash & mask;                                            \
+  a_data_map_entry  *table = (map)->table;                                   \
+  a_byte            *cached_ptr = table[idx].ptr;                            \
+  if (cached_ptr == NULL) {                                                  \
     table[idx].ptr = (a_byte*)(iptr);                                        \
     table[idx].data.byte_count = (bcount);                                   \
-  }
+  } else {                                                                   \
+    a_data_map_entry  entry;                                                 \
+    entry.ptr = (a_byte*)(iptr);                                             \
+    entry.data.byte_count = (bcount);                                        \
+    map_colliding_ptr(map, entry, idx);                                      \
+  }  /* if */                                                                \
+  (map)->n_elements += 1;                                                    \
+  if ((map)->n_elements*2 > mask) {                                          \
+    expand_ptr_map(map);                                                     \
+  }  /* if */                                                                \
+}
+
+static void map_colliding_ptr(a_data_map        *map,
+                              a_data_map_entry  new_entry,
+                              a_map_index       idx)
+/*
+The given map entry collides with an existing entry in the given map.  Move
+the existing entry to the next free entry, and record new_entry at the given
+location.
+*/
+{
+  a_map_index       mask = map->hash_mask;
+  a_data_map_entry  *table = map->table;
+  a_data_map_entry  saved_entry;
+
+  /* Place the new mapping at idx, and move the existing mapping to the
+     next available spot. */
+  saved_entry = table[idx];
+  table[idx] = new_entry;
+  for (;;) {
+    idx = (idx+1) & mask;
+    if (table[idx].ptr == NULL) {
+      table[idx] = saved_entry;
+      break;
+    }  /* if */
+  }  /* for */
+}  /* map_colliding_ptr */
+
+
+#define unmap_ptr(map, iptr)                                                 \
+{                                                                            \
+  uintptr_t         hash = hash_ptr(iptr);                                   \
+  a_map_index       mask = (map)->hash_mask;                                 \
+  a_map_index       idx = hash & mask;                                       \
+  a_data_map_entry  *table = (map)->table;                                   \
+  /* Find the item to delete (we're assuming it exists). */                  \
+  while (table[idx].ptr != (a_byte*)iptr) {                                  \
+    idx = (idx+1) & mask;                                                    \
+  }  /* while */                                                             \
+  table[idx].ptr = NULL;                                                     \
+  /* If the next slot is empty, we're done.  Otherwise, we may have to */    \
+  /* move another element into the emptied slot. */                          \
+  if (table[(idx+1) & mask].ptr != NULL) {                                   \
+    check_deleted_data_map_slot(map, idx);                                   \
+  }  /* if */                                                                \
+}
+
+
+static void check_deleted_data_map_slot(a_data_map   *map,
+                                        a_map_index  idx0)
+/*
+Slot idx has been cleared in the given map (i.e., map->table[idx].ptr has been
+set to NULL).  The next slot is not empty.  There may therefore exist entries
+that are associated with that slot (i.e., have the same hash index).  This
+function makes sure that such entries can be found, by moving up entries as
+needed.
+
+This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth'
+"The Art of Computer Programming" (Sorting and Searching -- Second Edition),
+with the assumption that step R1 has already been performed (idx0 is "j") and
+we know that the subsequent slot is not empty.
+*/
+{
+  a_data_map_entry  *table = map->table;
+  a_map_index       mask = map->hash_mask;
+  a_map_index       idx, ridx;
+  a_byte            *rptr;
+  
+  idx = (idx0+1) & mask;
+  rptr = table[idx].ptr;
+  for (;;) {
+    for (;;) {
+      ridx = hash_ptr(rptr) & mask;
+      /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
+         slot: The place from where probing will start.  So we cannot move it
+         ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
+         "wrap-around"), do not move the entry and try the next entry
+         instead. */
+      if ((ridx <= idx0 && idx0 < idx) ||
+          (idx0 >= ridx && idx < ridx) ||
+          (idx0 < idx && idx < ridx)) {
+        /* idx0 is in [ridx, idx-1]: Move the entry. */
+        break;
+      } else {
+        idx = (idx+1) & mask;
+        rptr = table[idx].ptr;
+        if (rptr == NULL) goto done;
+      }  /* if */
+    }  /* for */
+    table[idx0] = table[idx];
+    table[idx].ptr = NULL;
+    idx0 = idx;
+    idx = (idx0+1) & mask;
+    rptr = table[idx].ptr;
+    if (rptr == NULL) goto done;
+  }  /* for */
+done:;
+}  /* check_deleted_data_map_slot */
+
 
 /*
 Convenience macro to map an IL pointer (iptr) to a pointer (sptr) to stack
@@ -1234,67 +1367,6 @@ it is unmapped).
 */
 #define map_stack_bytes(ips, iptr, sptr)                                     \
   map_ptr(&(ips)->map, iptr, sptr)
-
-
-static void unmap_overflow_entry(a_data_map   *map,
-                                 a_byte       *ptr,
-                                 a_map_index  idx)
-/*
-Search for ptr in the overflow section of the given map and, if found, remove
-the associated entry.
-*/
-{
-  a_data_map_entry  *table = map->table;
-  a_map_index       last_index = 0;
-
-  for (;;) {
-    if (table[idx].ptr == ptr) {
-      /* We found the searched-for entry.  Unlink it. */
-      if (last_index == 0) {
-        last_index = hash_il_ptr(ptr);
-      }  /* if */
-      table[last_index].next_index = table[idx].next_index;
-      /* Recycle the unlinked entry. */
-      table[idx].next_index = map->next_free;
-      map->next_free = idx;
-      break;
-    } else {
-      last_index = idx;
-      idx = table[idx].next_index;
-      if (idx == 0) {
-        /* We've exhausted the list of entries. */
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* unmap_overflow_entry */
-
-
-/*
-Macro to remove an entry associated with iptr from a given data map.
-*/
-#define unmap_ptr(map, iptr)                                                 \
-  { a_byte_count      idx = hash_il_ptr(iptr);                               \
-    a_data_map_entry  *table = (map)->table;                                 \
-    a_byte            *cached_ptr = table[idx].ptr;                          \
-    if (cached_ptr == (a_byte*)(iptr)) {                                     \
-      if (table[idx].next_index == 0) {                                      \
-        /* Only one element in the bucket. */                                \
-        table[idx].ptr = NULL;                                               \
-      } else {                                                               \
-        /* Move the first overflow entry to the main hash table. */          \
-        a_map_index  old_index = table[idx].next_index;                      \
-        table[idx].ptr = table[old_index].ptr;                               \
-        table[idx].data = table[old_index].data;                             \
-        table[idx].next_index = table[old_index].next_index;                 \
-        /* Recycle the overflow entry. */                                    \
-        table[old_index].next_index = (map)->next_free;                      \
-        (map)->next_free = old_index;                                        \
-      }  /* if */                                                            \
-    } else {                                                                 \
-      unmap_overflow_entry(map, (a_byte*)(iptr), table[idx].next_index);     \
-    }  /* if */                                                              \
-  }
 
 
 /*
@@ -1771,7 +1843,7 @@ static void init_interpreter_state(an_interpreter_state  *ips)
 Initialize the given interpreter state.
 */
 {
-  init_data_map(&ips->map);
+  init_data_map(&ips->map, 3);
   init_constexpr_stack(&ips->storage_stack);
   init_live_set(&ips->live_set);
   add_to_live_set(&ips->live_set, 1);
@@ -2874,7 +2946,7 @@ uintptr_t db_hash_ptr(void  *ptr)
 Debug routine to compute a hash value from within a debugger.
 */
 {
-  return hash_il_ptr(ptr);
+  return hash_ptr(ptr);
 }  /* db_hash_ptr */
 
 
@@ -2925,6 +2997,7 @@ Output the given a_constexpr_address flags as human-readable text.
     (void)fprintf(f_debug, "no flags ");
   }  /* if */
 }  /* db_address_flags */
+
 
 void db_object(a_byte      *addr,
                a_type_ptr  tp)
@@ -4005,6 +4078,86 @@ object of the destination (dst_bytes is within that object).
 }  /* constexpr_copy_object */
 
 
+/*
+Structure describing the information following the value bytes for a variable
+object: Its allocation sequence number and its prior mapping.
+*/
+typedef struct a_var_postfix {
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* The allocation sequence number for the variable
+			   object's storage. */
+  a_byte
+		*prev_storage;
+			/* The storage previously associated with this
+			   variable. */
+} a_var_postfix;
+
+
+static a_byte* do_constexpr_alloc_variable(an_interpreter_state  *ips,
+                                           a_variable_ptr        vp,
+                                           a_boolean             *p_result)
+/*
+Allocate storage for the given variable and map the variable entry to that
+storage.  This includes bookkeeping for lifetime management (allocation
+sequence numbers) and for restoring a previous mapping when this mapping will
+be removed.
+*/
+{
+  a_boolean     result = TRUE;
+  a_type_ptr    vtp = skip_typerefs(vp->type);
+  a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &result);
+  a_byte        *var_storage;
+
+  if (result) {
+    /* Allocate the variable storage and store the allocation sequence number
+       and previous storage pointer (if any) right after the object. */
+    a_byte_count   with_postfix_bytes;
+    a_var_postfix  *postfix;
+    do_host_alignment(n_bytes);
+    with_postfix_bytes = n_bytes+sizeof(a_var_postfix);
+    alloc_complete_object(ips, with_postfix_bytes, vtp, var_storage);
+    postfix = (a_var_postfix*)(var_storage+n_bytes);
+    postfix->alloc_seq_number = ips->storage_stack.alloc_seq_number;
+    map_or_replace_ptr(&ips->map, vp, var_storage, postfix->prev_storage);
+  } else {
+    /* The size of the variable is unknown or too large. */
+    *p_result = FALSE;
+    var_storage = NULL;
+  }  /* if */
+  return var_storage;
+}  /* do_constexpr_alloc_variable */
+
+
+static void do_constexpr_unmap_variable(an_interpreter_state  *ips,
+                                        a_variable_ptr        vp)
+/*
+Remove the mapping of vp to its associated storage and restore the previous
+mapping if there was one.
+*/
+{
+  a_byte  *var_storage;
+
+  get_mapped_ptr(&ips->map, vp, var_storage);
+  if (var_storage != NULL) {
+    a_boolean      result = TRUE;
+    a_type_ptr     vtp = skip_typerefs(vp->type);
+    a_byte_count   n_bytes = value_bytes_for_type(ips, vtp, &result);
+    a_var_postfix  *postfix;
+    a_byte         *dummy;
+    do_host_alignment(n_bytes);
+    postfix = (a_var_postfix*)(var_storage+n_bytes);
+    if (postfix->prev_storage == NULL) {
+      unmap_ptr(&ips->map, vp);
+    } else {
+      map_or_replace_ptr(&ips->map, vp, postfix->prev_storage, dummy);
+    }  /* if */
+  } else {
+    /* No associated storage: This can happen in error cases. */
+  }  /* if */
+}  /* do_constexpr_unmap_variable */
+
+
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -4102,26 +4255,18 @@ successful.
   a_boolean                   result = TRUE;
   a_condition_supplement_ptr  csp = expr->variant.condition;
   a_variable_ptr              cond_var;
-  a_type_ptr                  vtp;
-  a_byte_count                n_bytes;
 
   if (csp->dynamic_init == NULL) {
     expect_error()
     do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  cond_var = csp->dynamic_init->variable;
-  vtp = skip_typerefs(cond_var->type);
-  n_bytes = value_bytes_for_type(ips, vtp, &result);
-  if (result) {
-    a_byte  *var_bytes;
+  } else {
     save_storage_stack(ips, *vs_state);
-    alloc_complete_object(ips, n_bytes, vtp, var_bytes);
-    map_stack_bytes(ips, cond_var, var_bytes);
-    map_byte_count(&ips->map, &cond_var->storage_class,
-                   ips->storage_stack.alloc_seq_number);
+    cond_var = csp->dynamic_init->variable;
+    (void)do_constexpr_alloc_variable(ips, cond_var, &result);
+    if (!result) {
+      restore_storage_stack(ips, *vs_state);
+    }  /* if */
   }  /* if */
-done:
   return result;
 }  /* do_constexpr_condition_alloc */
 
@@ -4139,9 +4284,7 @@ recorded in *vs_state.
   a_condition_supplement_ptr  csp = expr->variant.condition;
   a_variable_ptr              cond_var = csp->dynamic_init->variable;
 
-  unmap_stack_bytes(ips, cond_var);
-  unmap_ptr(&ips->map, &cond_var->storage_class);
-  restore_storage_stack(ips, *vs_state);
+  do_constexpr_unmap_variable(ips, cond_var);
 }  /* do_constexpr_condition_dealloc */
 
 
@@ -4232,6 +4375,7 @@ loop constructs it may be needed again).
   }  /* if */
 }  /* do_constexpr_condition_cleanup */
 
+
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
@@ -4287,8 +4431,7 @@ Interpret the given block statement and its associated scope (if any).
           release_variant_path_if_needed(var_bytes);
         }  /* if */
       }  /* if */
-      unmap_stack_bytes(ips, vp);
-      unmap_ptr(&ips->map, &vp->storage_class);
+      do_constexpr_unmap_variable(ips, vp);
     }  /* for */
     restore_storage_stack(ips, saved_stack);
   }  /* if */
@@ -4424,13 +4567,10 @@ unmap_storage:
     a_scope_ptr  init_scope = loop_info->for_init_scope;
     if (init_scope != NULL) {
       a_variable_ptr  vp = init_scope->nonstatic_variables;
-      if (vp != NULL) {
-        do {
-          unmap_stack_bytes(ips, vp);
-          unmap_ptr(&ips->map, &vp->storage_class);
-          vp = vp->next;
-        } while (vp != NULL);
-      }  /* if */
+      while (vp != NULL) {
+        do_constexpr_unmap_variable(ips, vp);
+        vp = vp->next;
+      }  /* while */
     }  /* if */
   }
   restore_storage_stack(ips, saved_stack);
@@ -4467,17 +4607,8 @@ Interpret the given range-based for-statement.
     goto done;
   }  /* if */
   for (k = 0; k<4; ++k) {
-    a_type_ptr    vtp = skip_typerefs(vp[k]->type);
-    a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &result);
-    alloc_complete_object(ips, n_bytes, vtp, var_storage[k]);
-    mark_complete_object_initialized(var_storage[k]);
-    /* Associate with the variable its value storage. */
-    map_stack_bytes(ips, vp[k], var_storage[k]);
-    /* Also associate with the variable (somewhat arbitrarily, with its
-       "storage_class" field) an allocation sequence number that may be
-       used to detect leaks. */
-    map_byte_count(&ips->map, &vp[k]->storage_class,
-                   ips->curr_alloc_seq_number);
+    var_storage[k] = do_constexpr_alloc_variable(ips, vp[k], &result);
+    mark_complete_object_initialized(var_storage[k]); /*FIXME: needed?*/
   }  /* for */
   if (!result) goto unmap_storage;
   /* Initialize the range and its delimiters: */
@@ -4577,8 +4708,7 @@ Interpret the given range-based for-statement.
 unmap_storage:
   /* Unmap the local storage. */
   for (k = 4; k--;) {
-    unmap_stack_bytes(ips, vp[k]);
-    unmap_ptr(&ips->map, &vp[k]->storage_class);
+    do_constexpr_unmap_variable(ips, vp[k]);
   }  /* if */
 done:
   restore_storage_stack(ips, saved_stack);
@@ -4942,20 +5072,11 @@ done_with_switch:
     case stmk_init:
       { a_dynamic_init_ptr     dip = stmt->variant.dynamic_init;
         a_variable_ptr         vp = dip->variable;
-        a_type_ptr             vtp = skip_typerefs(vp->type);
         a_byte                 *var_storage;
         a_storage_stack_state  saved_stack_for_full_expr;
-        /* Allocate storage for the variable. */
-        n_bytes = value_bytes_for_type(ips, vtp, &result);
+        /* Allocate and bind storage for the variable. */
+        var_storage = do_constexpr_alloc_variable(ips, vp, &result);
         if (!result) break;
-        alloc_complete_object(ips, n_bytes, vtp, var_storage);
-        /* Associate with the variable its value storage. */
-        map_stack_bytes(ips, vp, var_storage);
-        /* We also associate with the variable (somewhat arbitrarily, with its
-           "storage_class" field) an allocation sequence number that may be
-           used to detect leaks. */
-        map_byte_count(&ips->map, &vp->storage_class,
-                       ips->storage_stack.alloc_seq_number);
         /* Evaluate the initializer. */
         save_storage_stack((ips), saved_stack_for_full_expr);
         if (vp->extends_lifetime) {
@@ -5419,6 +5540,7 @@ otherwise, return FALSE and update *ips accordingly.
       goto done;
     }  /* if */
   } else {
+    /* An indirect call. */
     a_byte  *addr_bytes;
     alloc_stack_bytes(ips, sizeof(a_constexpr_address), addr_bytes);
     if (do_constexpr_expression( ips, callee_node, addr_bytes, addr_bytes)) {
@@ -5479,7 +5601,8 @@ otherwise, return FALSE and update *ips accordingly.
     a_variable_ptr  params = callee_scope->variant.routine.parameters,
                     param, this_var;
     a_byte_count    n_args = 0, n_params = 0;
-    a_byte          *arg_ptrs, **p_arg_ptr;
+    a_byte_count    *arg_size;
+    a_byte          *arg_ptrs, **p_arg_ptr, *arg_sizes;
     an_alloc_seq_number
                     alloc_seq_number;
     unsigned long   up_front_cost;
@@ -5512,11 +5635,14 @@ otherwise, return FALSE and update *ips accordingly.
        evaluation of "p+q" will likely be wrong.  In support of the two-phase
        approach, we first allocate a buffer to keep pointers to each argument
        location determined in the first phase, so that we can remap them in
-       the second phase. */
+       the second phase.  We also allocate an additional buffer to keep track
+       of the sizes of the argument objects, so we can quickly get to their
+       variable postfix in the second phase. */
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
+    alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
     /* Count the parameters (including "this") to make sure there are enough
        arguments for the parameters. */
     this_var = callee_scope->variant.routine.this_param_variable;
@@ -5531,12 +5657,17 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
+    arg_size = (a_byte_count*)arg_sizes;
     arg = callee_node->next;
     if (this_var != NULL) {
       a_byte        *this_bytes;
       a_type_ptr    this_type = skip_typerefs(this_var->type);
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
+      do_host_alignment(this_n_bytes);
+      *arg_size = this_n_bytes;
+      arg_size += 1;
+      this_n_bytes += sizeof(a_var_postfix);
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
@@ -5574,26 +5705,31 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
     for (; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = expr_result_size(ips, arg, tp, &result);
+      a_byte_count  n_bytes;
       a_byte        *arg_bytes;
       a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
+      if (!(tp->kind == (a_type_kind)tk_pointer &&
+            tp->variant.pointer.is_reference)) {
+        /* When a class-type argument is passed by-value via a copy
+           constructor call, the argument is left as an lvalue.  Temporarily
+           set it back to an rvalue. */
+        if (arg->is_lvalue) {
+          restore_lvalue = TRUE;
+          arg->is_lvalue = FALSE;
+        } else if (arg->is_xvalue) {
+          restore_xvalue = TRUE;
+          arg->is_xvalue = FALSE;
+        }  /* if */
+      }  /* if */
+      n_bytes = expr_result_size(ips, arg, tp, &result);
+      do_host_alignment(n_bytes);
+      *arg_size = n_bytes;
+      arg_size += 1;
+      n_bytes += sizeof(a_var_postfix);
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
       if (result) {
-        if (!(tp->kind == (a_type_kind)tk_pointer &&
-              tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is passed by-value via a copy
-             constructor call, the argument is left as an lvalue.  Temporarily
-             set it back to an rvalue. */
-          if (arg->is_lvalue) {
-            restore_lvalue = TRUE;
-            arg->is_lvalue = FALSE;
-          } else if (arg->is_xvalue) {
-            restore_xvalue = TRUE;
-            arg->is_xvalue = FALSE;
-          }  /* if */
-        }  /* if */
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -5615,15 +5751,23 @@ otherwise, return FALSE and update *ips accordingly.
        our implementation they are allocated in the caller's context). */
     alloc_seq_number = ips->curr_alloc_seq_number+1;
     p_arg_ptr = (a_byte**)arg_ptrs;
+    arg_size = (a_byte_count*)arg_sizes;
     if (this_var != NULL) {
-      map_stack_bytes(ips, this_var, *p_arg_ptr);
-      map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
+      a_byte         *arg_bytes = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
+      postfix->alloc_seq_number = alloc_seq_number;
+      map_or_replace_ptr(&ips->map, this_var, arg_bytes,
+                         postfix->prev_storage);
       p_arg_ptr += 1;
+      arg_size += 1;
     }  /* if */
     for (param = params; param != NULL; param = param->next) {
-      map_stack_bytes(ips, param, *p_arg_ptr);
-      map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
+      a_byte         *arg = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      postfix->alloc_seq_number = alloc_seq_number;
+      map_or_replace_ptr(&ips->map, param, arg, postfix->prev_storage);
       p_arg_ptr += 1;
+      arg_size += 1;
     }  /* for */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, &call_node->position,
@@ -5653,13 +5797,32 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* for */
     pop_call_frame(ips);
     /* Release mappings of the parameters. */
-    param = callee_scope->variant.routine.parameters;
-    for (; param != NULL; param = param->next) {
-      unmap_stack_bytes(ips, param);
-      unmap_ptr(&ips->map, &param->storage_class);
+    p_arg_ptr = (a_byte**)arg_ptrs;
+    arg_size = (a_byte_count*)arg_sizes;
+    if (this_var != NULL) {
+      a_byte         *arg = *p_arg_ptr, *dummy;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      if (postfix->prev_storage == NULL) {
+        unmap_ptr(&ips->map, this_var);
+      } else {
+        map_or_replace_ptr(&ips->map, this_var, postfix->prev_storage, dummy);
+      }  /* if */
+      p_arg_ptr += 1;
+      arg_size += 1;
+    }  /* if */
+    for (param = params; param != NULL; param = param->next) {
+      a_byte         *arg_bytes = *p_arg_ptr, *dummy;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
+      if (postfix->prev_storage == NULL) {
+        unmap_ptr(&ips->map, param);
+      } else {
+        map_or_replace_ptr(&ips->map, param, postfix->prev_storage, dummy);
+      }  /* if */
+      p_arg_ptr += 1;
+      arg_size += 1;
     }  /* for */
-    /* Reduce the cost of the call to just 1. */
-    ips->cost -= up_front_cost-1;
+    /* Reduce the cost of the call to just 2. */
+    ips->cost -= up_front_cost-2;
     ips->call_seen = TRUE;
   }  /* if */
 done:
@@ -5746,7 +5909,8 @@ the body of the (constructor) function proper.
     a_constructor_init_ptr
                          ctor_init;
     a_byte_count         n_args = 1, n_params = 1;
-    a_byte               *arg_ptrs, **p_arg_ptr, *this_bytes;
+    a_byte_count         *arg_size;
+    a_byte               *arg_ptrs, **p_arg_ptr, *this_bytes, *arg_sizes;
     a_constexpr_address  implied_src_address;
     an_alloc_seq_number  alloc_seq_number;
     a_type_ptr           class_type = parent_class_of(callee);
@@ -5778,6 +5942,7 @@ the body of the (constructor) function proper.
     }  /* for */
     if (implied_src != NULL) n_args += 1;
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
+    alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
     /* Count the parameters (including "this") to make sure there are enough
        arguments for the parameters. */
     for (param = params; param != NULL; param = param->next) {
@@ -5790,28 +5955,34 @@ the body of the (constructor) function proper.
     }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs+1;
+    arg_size = (a_byte_count*)arg_sizes;
     for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
-      a_byte_count  n_bytes = expr_result_size(ips, arg, tp, &result);
+      a_byte_count  n_bytes;
       a_byte        *arg_bytes;
       a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
+      if (!(tp->kind == (a_type_kind)tk_pointer &&
+            tp->variant.pointer.is_reference)) {
+        /* When a class-type argument is passed by-value via a copy
+           constructor call, the argument is left as an lvalue.  Temporarily
+           set it back to an rvalue. */
+        if (arg->is_lvalue) {
+          restore_lvalue = TRUE;
+          arg->is_lvalue = FALSE;
+        } else if (arg->is_xvalue) {
+          restore_xvalue = TRUE;
+          arg->is_xvalue = FALSE;
+        }  /* if */
+      }  /* if */
+      n_bytes = expr_result_size(ips, arg, tp, &result);
+      do_host_alignment(n_bytes);
+      *arg_size = n_bytes;
+      arg_size += 1;
+      n_bytes += sizeof(a_var_postfix);
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
       if (result) {
-        if (!(tp->kind == (a_type_kind)tk_pointer &&
-              tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is passed by-value via a copy
-             constructor call, the argument is left as an lvalue.  Temporarily
-             set it back to an rvalue. */
-          if (arg->is_lvalue) {
-            restore_lvalue = TRUE;
-            arg->is_lvalue = FALSE;
-          } else if (arg->is_xvalue) {
-            restore_xvalue = TRUE;
-            arg->is_xvalue = FALSE;
-          }  /* if */
-        }  /* if */
         if (arg == args->next &&
             class_type_supp(class_type)->is_initializer_list &&
             is_operation_node(arg) && node_operator_is(arg, eok_padd) &&
@@ -5864,15 +6035,23 @@ the body of the (constructor) function proper.
       do_constexpr_fail(result);
       goto done;
     } else {
+      /* This is similar to do_constexpr_alloc_variable, except for the
+         allocation sequence number value. */
       a_type_ptr    this_type = skip_typerefs(this_var->type);
       a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
-      alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
+      a_byte_count   with_postfix_bytes;
+      a_var_postfix  *postfix;
+      do_host_alignment(this_n_bytes);
+      with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
+      alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
       ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
       ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
       mark_complete_object_initialized(this_bytes);
-      map_stack_bytes(ips, this_var, this_bytes);
-      map_byte_count(&ips->map, &this_var->storage_class, alloc_seq_number);
+      postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
+      postfix->alloc_seq_number = alloc_seq_number;
+      map_or_replace_ptr(&ips->map, this_var, this_bytes,
+                         postfix->prev_storage);
     }  /* if */
     /* Associate with the parameter variables a new allocation number.  For
        ordinary calls, we just use the allocation number about to be created
@@ -5881,10 +6060,14 @@ the body of the (constructor) function proper.
     alloc_seq_number += 1;
     add_to_live_set(&ips->live_set, alloc_seq_number);
     p_arg_ptr = (a_byte**)arg_ptrs+1;
+    arg_size = (a_byte_count*)arg_sizes;
     for (param = params; param != NULL; param = param->next) {
-      map_stack_bytes(ips, param, *p_arg_ptr);
-      map_byte_count(&ips->map, &param->storage_class, alloc_seq_number);
+      a_byte         *arg = *p_arg_ptr;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      postfix->alloc_seq_number = alloc_seq_number;
+      map_or_replace_ptr(&ips->map, param, arg, postfix->prev_storage);
       p_arg_ptr += 1;
+      arg_size += 1;
     }  /* for */
     if (dip->variant.constructor.value_initialization) {
       /* If this is for value initialization, clear the storage first.
@@ -6047,17 +6230,33 @@ the body of the (constructor) function proper.
       p_arg_ptr += 1;
     }  /* for */
     pop_call_frame(ips);
-    /* Release the storage and mappings of the parameters. */
-    param = callee_scope->variant.routine.parameters;
-    for (; param != NULL; param = param->next) {
-      unmap_stack_bytes(ips, param);
-      unmap_ptr(&ips->map, &param->storage_class);
+    /* Unmap the parameters. */
+    p_arg_ptr = (a_byte**)arg_ptrs+1;
+    arg_size = (a_byte_count*)arg_sizes;
+    for (param = params; param != NULL; param = param->next) {
+      a_byte         *arg = *p_arg_ptr, *dummy;
+      a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
+      if (postfix->prev_storage == NULL) {
+        unmap_ptr(&ips->map, param);
+      } else {
+        map_or_replace_ptr(&ips->map, param, postfix->prev_storage, dummy);
+      }  /* if */
+      p_arg_ptr += 1;
+      arg_size += 1;
     }  /* for */
-    unmap_stack_bytes(ips, this_var);
-    unmap_ptr(&ips->map, &this_var->storage_class);
+    { /* Unmap the "this" parameter. */
+      a_byte         *dummy;
+      a_var_postfix  *postfix;
+      postfix = (a_var_postfix*)(this_bytes+sizeof(a_constexpr_address));
+      if (postfix->prev_storage == NULL) {
+        unmap_ptr(&ips->map, this_var);
+      } else {
+        map_or_replace_ptr(&ips->map, this_var, postfix->prev_storage, dummy);
+      }  /* if */
+    }
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Reduce the cost of the call to just 1. */
-    ips->cost -= up_front_cost-1;
+    ips->cost -= up_front_cost-2;
     ips->call_seen = TRUE;
   }  /* if */
 done:
@@ -9448,11 +9647,14 @@ the value representation of the integer value.
           /* A variable used as a glvalue; the result is its address. */
           if (var_bytes != NULL) {
             a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+            a_byte_count         obj_size;
+            obj_size = value_bytes_for_type(ips, tp, &result);
+            do_host_alignment(obj_size);
             clear_address(result_storage, var_bytes);
             /* Record the allocation sequence number for this variable in the
                address record. */
-            get_mapped_byte_count(&ips->map, &var->storage_class,
-                                  cap->alloc_seq_number);
+            cap->alloc_seq_number =
+                     ((a_var_postfix*)(var_bytes+obj_size))->alloc_seq_number;
             if (is_const_qualified_type(var->type)) {
               cap->flags |= CA_CONST_STORAGE;
             }  /* if */
@@ -9611,7 +9813,7 @@ that are needed for the operation of the interpreter.
 */
 {
   init_constexpr_stack(&persistent_data);
-  init_data_map(&persistent_map);
+  init_data_map(&persistent_map, 10);
   variant_path_entries = NULL;
   n_variant_path_entries = 0;
   free_variant_path_entries = NULL;
@@ -10383,8 +10585,6 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(n_free_variant_path_entries);
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
-  free_map_tables = NULL;
-  free_live_set_tables = NULL;
   free_variant_path_entries = NULL;
 }  /* interpret_one_time_init */
 
