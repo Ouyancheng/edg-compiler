@@ -7048,7 +7048,7 @@ static char* apply_warn_unused_result_attr(an_attribute_ptr  ap,
                                            an_il_entry_kind  entity_kind)
 /*
 Apply the GNU "warn_unused_result" attribute to the given entity and return
-that entity.  See also the "nodiscard" standard attribute which is similar.
+that entity.  See also the "nodiscard" standard attribute, which is similar.
 */
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);

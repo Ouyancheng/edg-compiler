@@ -8267,10 +8267,10 @@ Entry containing additional information about an integral type.
 typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
 typedef struct an_integer_type_supplement {
   a_bit_field	enumerator_list_seen:1;
-			/* TRUE for enumerator types whose enumerator list has
+			/* TRUE for enumeration types whose enumerator list has
 			   been seen. */
   a_bit_field	has_nodiscard_attribute:1;
-			/* TRUE if the enumerator type has the "nodiscard"
+			/* TRUE for an enumeration type has the "nodiscard"
 			   standard attribute applied to it. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	underlying_type_should_use_unsigned:1;
