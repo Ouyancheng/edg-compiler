@@ -127,7 +127,8 @@ run-time namespace-scope variables to a_constant entries representing their
 address (this is done by mapping a_variable::initializer).
 
 If a pointer to be mapped may already be in a map, use map_or_replace_ptr
-instead of map_ptr.  It will replace the mapping recorded in the data map.
+(or replace_mapped_ptr) instead of map_ptr.  It will replace the mapping
+recorded in the data map.
 
 Besides the data map associated with an interpreter state, another map is kept
 that persists across interpreter invocations (static variable persistent_map).
@@ -1114,11 +1115,12 @@ storage.
 
 #if DEBUG
 
-void db_data_map(a_data_map  *map)
+void db_data_map(void  *map_ptr)
 /*
 Output some information about a data map's contents
 */
 {
+  a_data_map        *map = (a_data_map*)map_ptr;
   a_data_map_entry  *table = map->table;
   a_map_index       mask = map->hash_mask;
   a_map_index       k, n_slots = mask+1;
@@ -1232,6 +1234,29 @@ may not be in the map already.
       }  /* if */                                                            \
     }  /* for */                                                             \
   }  /* if */                                                                \
+}
+
+
+/*
+Macro to replace the pointer associated with iptr (which is known to be in
+the table).
+*/
+#define replace_mapped_ptr(map, iptr, dptr)                                  \
+{                                                                            \
+  uintptr_t         hash = hash_ptr(iptr);                                   \
+  a_map_index       mask = (map)->hash_mask;                                 \
+  a_map_index       idx = hash & mask;                                       \
+  a_data_map_entry  *table = (map)->table;                                   \
+  a_byte            *ptr = table[idx].ptr;                                   \
+  for (;;) {                                                                 \
+    if (ptr == (a_byte*)(iptr)) {                                            \
+      table[idx].data.ptr = (dptr);                                          \
+      break;                                                                 \
+    } else {                                                                 \
+      idx = (idx+1) & mask;                                                  \
+      ptr = table[idx].ptr;                                                  \
+    }  /* if */                                                              \
+  }  /* for */                                                               \
 }
 
 
@@ -4144,13 +4169,12 @@ mapping if there was one.
     a_type_ptr     vtp = skip_typerefs(vp->type);
     a_byte_count   n_bytes = value_bytes_for_type(ips, vtp, &result);
     a_var_postfix  *postfix;
-    a_byte         *dummy;
     do_host_alignment(n_bytes);
     postfix = (a_var_postfix*)(var_storage+n_bytes);
     if (postfix->prev_storage == NULL) {
       unmap_ptr(&ips->map, vp);
     } else {
-      map_or_replace_ptr(&ips->map, vp, postfix->prev_storage, dummy);
+      replace_mapped_ptr(&ips->map, vp, postfix->prev_storage);
     }  /* if */
   } else {
     /* No associated storage: This can happen in error cases. */
@@ -5800,23 +5824,23 @@ otherwise, return FALSE and update *ips accordingly.
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg_size = (a_byte_count*)arg_sizes;
     if (this_var != NULL) {
-      a_byte         *arg = *p_arg_ptr, *dummy;
+      a_byte         *arg = *p_arg_ptr;
       a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
       if (postfix->prev_storage == NULL) {
         unmap_ptr(&ips->map, this_var);
       } else {
-        map_or_replace_ptr(&ips->map, this_var, postfix->prev_storage, dummy);
+        replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
       }  /* if */
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* if */
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg_bytes = *p_arg_ptr, *dummy;
+      a_byte         *arg_bytes = *p_arg_ptr;
       a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
       if (postfix->prev_storage == NULL) {
         unmap_ptr(&ips->map, param);
       } else {
-        map_or_replace_ptr(&ips->map, param, postfix->prev_storage, dummy);
+        replace_mapped_ptr(&ips->map, param, postfix->prev_storage);
       }  /* if */
       p_arg_ptr += 1;
       arg_size += 1;
@@ -6234,24 +6258,23 @@ the body of the (constructor) function proper.
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg = *p_arg_ptr, *dummy;
+      a_byte         *arg = *p_arg_ptr;
       a_var_postfix  *postfix = (a_var_postfix*)(arg+*arg_size);
       if (postfix->prev_storage == NULL) {
         unmap_ptr(&ips->map, param);
       } else {
-        map_or_replace_ptr(&ips->map, param, postfix->prev_storage, dummy);
+        replace_mapped_ptr(&ips->map, param, postfix->prev_storage);
       }  /* if */
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* for */
     { /* Unmap the "this" parameter. */
-      a_byte         *dummy;
       a_var_postfix  *postfix;
       postfix = (a_var_postfix*)(this_bytes+sizeof(a_constexpr_address));
       if (postfix->prev_storage == NULL) {
         unmap_ptr(&ips->map, this_var);
       } else {
-        map_or_replace_ptr(&ips->map, this_var, postfix->prev_storage, dummy);
+        replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
       }  /* if */
     }
     remove_from_live_set(&ips->live_set, alloc_seq_number);
@@ -6429,10 +6452,21 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
   } else if (tp->kind == (a_type_kind)tk_pointer) {
     a_constexpr_address  *cap = (a_constexpr_address*)value;
     if (is_runtime_data_address(cap)) {
-      *p_cond = FALSE;
-      do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_access_to_runtime_storage,
-                    &expr->position, ips);
+      a_constant_ptr  addr_con = cap->variant.addr_con;
+      if (constant_is(addr_con, ck_integer)) {
+        a_boolean  is_signed = FALSE;
+        if (cmp_integer_values(&addr_con->variant.integer_value, is_signed,
+                               &zero_int, is_signed) != 0) {
+          *p_cond = TRUE;
+        } else {
+          *p_cond = FALSE;
+        }  /* if */
+      } else {
+        *p_cond = FALSE;
+        do_constexpr_fail(result);
+        info_with_pos(ec_constexpr_access_to_runtime_storage,
+                      &expr->position, ips);
+      }  /* if */
     } else if (is_function_address(cap) || cap->address != NULL) {
       *p_cond = TRUE;
     } else {
@@ -6969,52 +7003,15 @@ the value representation of the integer value.
             }
             break;
           case eok_bool_cast:
-            if (opnd1_type->kind == (a_type_kind)tk_integer) {
-              int_kind = opnd1_type->variant.integer.int_kind;
-              is_signed = int_kind_is_signed[int_kind];
-              if (cmp_integer_values((an_integer_value *)opnd1_value,
-                                     is_signed,
-                                     (an_integer_value *)&zero_int,
-                                     is_signed) != 0) {
-                *(an_integer_value *)result_storage = one_int;
+            { a_boolean  bool_val;
+              if (check_boolean_condition(ips, opnd1_value, expr, tp,
+                                          &bool_val)) {
+                *(an_integer_value *)result_storage = bool_val ? one_int
+                                                               : zero_int;
               } else {
-                *(an_integer_value *)result_storage = zero_int;
-              }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-              a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
-              if (is_runtime_data_address(cap)) {
                 do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &expr->position, ips);
-              } else if (is_function_address(cap) || cap->address != NULL) {
-                *(an_integer_value *)result_storage = one_int;
-              } else {
-                *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-              if (fp_compare(opnd1_type->variant.float_kind,
-                             fp_value(opnd1_value),
-                             &zero_flt[(int)opnd1_type->variant.float_kind],
-                             &unord) == 0) {
-                *(an_integer_value *)result_storage = zero_int;
-              } else {
-                *(an_integer_value *)result_storage = one_int;
-              }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
-              *(an_integer_value *)result_storage = zero_int;
-            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
-              a_constexpr_ptr_to_mem
-                                   *pm = (a_constexpr_ptr_to_mem*)opnd1_value;
-              if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
-                                              : (void*)pm->variant.field)
-                                                                    == NULL) {
-                *(an_integer_value *)result_storage = zero_int;
-              } else {
-                *(an_integer_value *)result_storage = one_int;
-              }  /* if */
-            } else {
-              unexpected_condition();
-            }  /* if */
+            }
             break;
           case eok_array_to_pointer:
             /* Usually, the operand is an lvalue and therefore we already have
