@@ -4,7 +4,7 @@ Version 4.13
 Internal error on nonreal instance of variable template
 
 An internal error could occur (in f_entity_can_be_instantiated) during
-the end-of-scope symbol processing for an nonreal instantiation of a
+the end-of-scope symbol processing for a nonreal instantiation of a
 variable template.  Now fixed.
 
   struct A {
