@@ -2398,7 +2398,6 @@ Clear the fields of the given variable to default values.
   vp->is_weak                     = FALSE;
   vp->is_weakref                  = FALSE;
   vp->is_gnu_alias                = FALSE;
-  vp->has_gnu_unused_attribute    = FALSE;
   vp->has_gnu_used_attribute      = FALSE;
   vp->has_gnu_abi_tag_attribute   = FALSE;
   vp->is_not_common               = FALSE;
@@ -2837,7 +2836,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_weakref                  = FALSE;
   rp->is_gnu_alias                = FALSE;
   rp->is_ifunc                    = FALSE;
-  rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
   rp->has_gnu_abi_tag_attribute   = FALSE;
   rp->in_gnu_abi_tag_namespace    = FALSE;
@@ -3190,7 +3188,6 @@ to it.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   lp->locally_declared = FALSE;
-  lp->has_gnu_unused_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   lp->avoid_codecenter_warnings = 0;
@@ -5858,6 +5855,7 @@ in il_alloc_init.)
 #if IA64_ABI
   def_source_corresp.on_mangling_substitution_list = FALSE;
 #endif /* IA64_ABI */
+  def_source_corresp.maybe_unused = FALSE;
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */

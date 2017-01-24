@@ -1,5 +1,13 @@
 Version 4.13
 
+1/24/17  [EDGcpfe/17411]
+C++17 compatibility: "maybe_unused" standard attribute
+
+The C++17 "maybe_unused" standard attribute (as described by P0212R1) has
+been implemented and is now available in C++17 emulation mode as well as
+when microsoft_version >= 1910.
+
+
 1/23/17  [EDGcpfe/17948]
 Internal error on nonreal instance of variable template
 

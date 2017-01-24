@@ -6400,7 +6400,7 @@ Do the output in the way described by octl.
          to emit both. */
       form_simple_attribute("__weak__", &need_leading_space, octl);
     }  /* if */
-    if (var->has_gnu_unused_attribute) {
+    if (var->source_corresp.maybe_unused) {
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
     if (var->has_gnu_used_attribute) {
@@ -6559,7 +6559,7 @@ Do the output in the way described by octl.
          to emit both. */
       form_simple_attribute("__weak__", &need_leading_space, octl);
     }  /* if */
-    if (rout->has_gnu_unused_attribute) {
+    if (rout->source_corresp.maybe_unused) {
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
     if (rout->has_gnu_used_attribute) {
@@ -6654,7 +6654,7 @@ determine if a leading space is still needed).
 */
 {
   if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
-    if (label->has_gnu_unused_attribute) {
+    if (label->source_corresp.maybe_unused) {
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
   }  /* if */

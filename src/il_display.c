@@ -805,6 +805,9 @@ Display the indicated source correspondence entry.
   if (scp->externalized) {
     disp_boolean("externalized", TRUE);
   }  /* if */
+  if (scp->maybe_unused) {
+    disp_boolean("maybe_unused", TRUE);
+  }  /* if */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
@@ -2735,9 +2738,6 @@ Display the indicated variable.
   if (ptr->is_gnu_alias) { 
     disp_boolean("is_gnu_alias", TRUE);
   }  /* if */
-  if (ptr->has_gnu_unused_attribute) { 
-    disp_boolean("has_gnu_unused_attribute", TRUE);
-  }  /* if */
   if (ptr->has_gnu_used_attribute) { 
     disp_boolean("has_gnu_used_attribute", TRUE);
   }  /* if */
@@ -3496,9 +3496,6 @@ Display the indicated routine.
   if (ptr->is_ifunc) {
     disp_boolean("is_ifunc", TRUE);
   }  /* if */
-  if (ptr->has_gnu_unused_attribute) { 
-    disp_boolean("has_gnu_unused_attribute", TRUE);
-  }  /* if */
   if (ptr->has_gnu_used_attribute) { 
     disp_boolean("has_gnu_used_attribute", TRUE);
   }  /* if */
@@ -3837,9 +3834,6 @@ Display the indicated label.
   }  /* if */
   if (ptr->locally_declared) {
     disp_boolean("locally_declared", TRUE);
-  }  /* if */
-  if (ptr->has_gnu_unused_attribute) { 
-    disp_boolean("has_gnu_unused_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   disp_ptr("exec_stmt", (char *)ptr->exec_stmt, iek_statement);

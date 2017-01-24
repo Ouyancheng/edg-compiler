@@ -6017,14 +6017,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             /* Parameters of "asm" functions are not referenced in the 
                usual way, so do not issue warnings. */
 #endif /* ASM_FUNCTION_ALLOWED */
+          } else if (var_ptr->source_corresp.maybe_unused
 #if GNU_EXTENSIONS_ALLOWED
-          } else if (var_ptr->has_gnu_unused_attribute ||
-                     skip_typerefs(var_ptr->type)
-                                      ->variables_are_implicitly_referenced) {
+                     || skip_typerefs(var_ptr->type)
+                                      ->variables_are_implicitly_referenced
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                                           ) {
             /* Do not issue a remark about an unused parameter if the
                source explicitly annotated the parameter as being unused
-               through a GNU attribute. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+               through the "maybe_unused" or GNU "unused" attribute. */
           } else {
             a_param_type_ptr	ptp = var_ptr->assoc_param_type;
             if (ptp != NULL && ptp->is_pack_element && sym->is_invisible) {
@@ -6050,8 +6051,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         }  /* if */
       } else if ((!sym->referenced ||
                   (sym->value_has_been_set && !var_ptr->used))
+                 && !var_ptr->source_corresp.maybe_unused
 #if GNU_EXTENSIONS_ALLOWED
-                 && !var_ptr->has_gnu_unused_attribute
                  && !var_ptr->has_gnu_used_attribute
                  && !var_ptr->is_weakref
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -6305,14 +6306,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                    seq_is_in_include_file(sym->decl_position.seq)) {
           /* No diagnostic on inline non-member functions defined in a header
              file. */
+        } else if (rout_ptr->source_corresp.maybe_unused
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (rout_ptr->has_gnu_unused_attribute ||
-                   rout_ptr->has_gnu_used_attribute ||
-                   rout_ptr->is_weakref) {
-          /* Do not diagnose an unused function that carries the "unused"
-             or "used" attributes.  Similarly, do not diagnose weakref
-             functions. */
+                   || rout_ptr->has_gnu_used_attribute
+                   || rout_ptr->is_weakref
 #endif /* GNU_EXTENSIONS_ALLOWED */
+                                          ) {
+          /* Do not diagnose an unused function that carries the "maybe_unused"
+             standard attribute, GNU "unused", or "used" attributes.
+             Similarly, do not diagnose weakref functions. */
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
           /* "asm" functions don't generate any code unless referenced,
@@ -6379,13 +6381,10 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
-#if GNU_EXTENSIONS_ALLOWED
-        if (sym->variant.label.ptr->has_gnu_unused_attribute) {
-          /* This label was explicitly marked as not being used. */
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
+        if (sym->variant.label.ptr->source_corresp.maybe_unused) {
+          /* This label was explicitly marked as not being used (by the
+             GNU "unused" attribute. */
+        } else {
           report_unreferenced(sym, ec_declared_but_not_referenced,
                               es_warning);
         }  /* if */

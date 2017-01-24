@@ -2520,6 +2520,7 @@ typedef enum an_attribute_kind_tag {
   ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
   ak_override,		/* "override" (std). */
   ak_nodiscard,		/* "nodiscard" (std). */
+  ak_maybe_unused,	/* "maybe_unused" (std). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -3058,6 +3059,9 @@ typedef struct a_source_correspondence {
 			/* TRUE if this is an entity that's currently on a
 			   list of available mangling substitutions. */
 #endif /* IA64_ABI */
+  a_bit_field	maybe_unused:1;
+			/* TRUE if the "maybe_unused" standard attribute or the
+			   "unused" GCC attribute appertains to this entity. */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
 			/* Scope nesting depth of this entity. */
@@ -9857,9 +9861,6 @@ typedef struct a_variable {
   a_bit_field	is_gnu_alias:1;
 			/* TRUE if this variable was declared with the
 			   alias attribute. */
-  a_bit_field   has_gnu_unused_attribute:1;
-			/* TRUE if this variable was declared with the
-			   GNU "unused" attribute. */
   a_bit_field   has_gnu_used_attribute:1;
 			/* TRUE if this variable was declared with the
 			   GNU "used" attribute. */
@@ -11009,9 +11010,6 @@ typedef struct a_routine {
 			/* is_ifunc (and gnu_extra_info->aliased_routine) stay
 			   set even when the routine has been lowered. */
 #endif /* LOWER_IFUNC */
-  a_bit_field	has_gnu_unused_attribute:1;
-			/* TRUE if this routine was declared with the
-			   GNU "unused" attribute. */
   a_bit_field	has_gnu_used_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "used" attribute. */
@@ -11797,9 +11795,6 @@ typedef struct a_label {
   a_bit_field	locally_declared:1;
 			/* TRUE if this label was declared in a GNU C
 			   __label__ declaration. */
-  a_bit_field   has_gnu_unused_attribute:1;
-			/* TRUE if this label was declared with the
-			   GNU "unused" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_statement_ptr

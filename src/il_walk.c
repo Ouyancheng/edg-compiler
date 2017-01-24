@@ -1188,19 +1188,20 @@ flag.
         (C_mode() || !treat_as_static_inline(rout) ||
          rout->need_out_of_line_copy)) {
       set_routine_definition_needed(rout);
+    } else if (rout->source_corresp.maybe_unused
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (rout->is_initialization_routine ||
-               rout->is_finalization_routine ||
-               rout->has_gnu_used_attribute ||
-               rout->has_gnu_unused_attribute) {
+               || rout->is_initialization_routine
+               || rout->is_finalization_routine
+               || rout->has_gnu_used_attribute
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                              ) {
       /* The routine definition for an initialization or finalization
          function is always needed since the function will be called
-         at program start up.  Routines marked using the GNU "used"
-         attribute are always considered to be needed.  Also, a routine
-         marked as "unused" is assumed to be needed (perhaps from a
+         at program start up.  Routines marked using the "maybe_unused" or
+         GNU "used" attribute are always considered to be needed.  Also, a
+         routine marked as "unused" is assumed to be needed (perhaps from a
          debugger). */
       set_routine_definition_needed(rout);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     } else if (rout->is_tls_init_routine) {
       /* The routine definition is for the initialization of thread_local

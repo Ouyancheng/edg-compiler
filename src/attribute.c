@@ -220,6 +220,7 @@ static an_attr_descr known_attr_table[] = {
   /* Note that the value of 201701 is just a placeholder until the actual
      value of the standard commonly referred to as "C++17" is known. */
   { "nodiscard", "", "1c+(201701-|M(1910-))", ak_nodiscard },
+  { "maybe_unused", "", "1c+(201701-|M(1910-))", ak_maybe_unused },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -483,6 +484,7 @@ static an_attr_application_fn apply_hiding_attr;
 static an_attr_application_fn apply_noreturn_attr;
 static an_attr_application_fn apply_override_attr;
 static an_attr_application_fn apply_nodiscard_attr;
+static an_attr_application_fn apply_maybe_unused_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -603,6 +605,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_override, "r:+v!", apply_override_attr },
   { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
+  { ak_maybe_unused, "c|t|v|p|d|r|e|E", apply_maybe_unused_attr },
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -4712,6 +4715,41 @@ type rather than to the routine itself).
   return entity;
 }  /* apply_nodiscard_attr */
 
+
+static char* apply_maybe_unused_attr(an_attribute_ptr  ap,
+                                     char              *entity,
+                                     an_il_entry_kind  entity_kind)
+/*
+Apply the given "maybe_unused" attribute to the given entity and return that
+entity.  Note that the front end doesn't necessarily detect all cases of
+unused entities even without this attribute.  See also the GCC "unused"
+attribute, which is similar.
+*/
+{
+  if (entity_kind == iek_type) {
+    a_type_ptr type = (a_type_ptr)entity;
+    if (is_immediate_class_type(type) ||
+        is_immediate_enum_type(type) ||
+        type_is_typedef(type)) {
+      /* The attribute applies to class, enumeration, and typedef types. */
+    } else {
+      /* The attribute does not apply to this type. */
+      report_bad_attribute_target(es_error, ap);
+      make_attr_unrecognized(ap);
+    }  /* if */
+  }  /* if */
+  if (!is_unrecognized_attr(ap)) {
+    if (entity_kind == iek_param_type) {
+      /* Attributes applied to parameter types are attached to the
+         associated variable at a later time (see
+         attach_param_variable_attributes). */
+    } else {
+      ((a_source_correspondence_ptr)entity)->maybe_unused = TRUE;
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_maybe_unused_attr */
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -6624,13 +6662,9 @@ entity).
       ((a_type*)entity)->variables_are_implicitly_referenced = TRUE;
       break;
     case iek_routine:
-      ((a_routine*)entity)->has_gnu_unused_attribute = TRUE;
-      break;
     case iek_variable:
-      ((a_variable*)entity)->has_gnu_unused_attribute = TRUE;
-      break;
     case iek_label:
-      ((a_label*)entity)->has_gnu_unused_attribute = TRUE;
+      ((a_source_correspondence*)entity)->maybe_unused = TRUE;
       break;
     case iek_param_type:
       /* Nothing to do here.  If this is a definition, the attribute applies
