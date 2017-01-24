@@ -10094,6 +10094,7 @@ diagnostic in *ips.
     case tk_class:
       { a_base_class_ptr  bcp = base_classes_of(type);
         a_field_ptr       fp = type->variant.class_struct_union.field_list;
+        a_boolean         is_static_init_list;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         /* Add direct base sub-object constants first. */
         for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
@@ -10118,6 +10119,9 @@ diagnostic in *ips.
         }  /* for */
         if (!result) break;
         /* Now add the constants for initializable fields. */
+        is_static_init_list = class_type_supp(type)->is_initializer_list &&
+                              innermost_function_scope == NULL &&
+                              !scope_stack_top().in_field_initializer;
         fp = next_alloc_field(fp);
         for (; fp != NULL; fp = next_alloc_field(fp->next)) {
           a_byte_count    offset;
@@ -10132,6 +10136,13 @@ diagnostic in *ips.
                               &ips->position, symbol_for(fp), ips);
             do_constexpr_fail(result);
             break;
+          }  /* if */
+          if (is_static_init_list &&
+              skip_typerefs(fp->type)->kind == (a_type_kind)tk_pointer) {
+            /* A static-lifetime initializer list.  Make sure the underlying
+               array is treated as having a static lifetime also. */
+            ((a_constexpr_address*)(object+offset))->flags |=
+                                                         CA_LIFETIME_EXTENDED;
           }  /* if */
           cp = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
