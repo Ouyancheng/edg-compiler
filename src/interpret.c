@@ -1644,6 +1644,9 @@ occurs.
         *(a_len) = 1;                                                        \
         *(pos) = cannot_dereference(cap) ? 1: 0;                             \
       }  /* if */                                                            \
+    } else {                                                                 \
+      *(a_len) = 0;                                                          \
+      *(pos) = 0;                                                            \
     }  /* if */                                                              \
   }  /* if */                                                                \
 }
