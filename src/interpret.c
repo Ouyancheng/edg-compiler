@@ -688,6 +688,22 @@ in_live_set.
 
 
 /*
+Structure describing the information following the value bytes for a variable
+object: Its allocation sequence number and its prior mapping.
+*/
+typedef struct a_var_postfix {
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* The allocation sequence number for the variable
+			   object's storage. */
+  a_byte
+		*prev_storage;
+			/* The storage previously associated with this
+			   variable. */
+} a_var_postfix;
+
+
+/*
 Structure maintaining data about the IL interpreter across a complete
 interpretation of a constexpr function and its callees.
 */
@@ -1705,6 +1721,7 @@ bytes.
     case abk_routine:
     case abk_label:
     default:
+      length = 0;
       unexpected_condition();
   }  /* switch */
 done:
@@ -2685,10 +2702,12 @@ area.
   data_size = value_bytes_for_type(ips, utp, p_result);                      \
   if (*p_result) {                                                           \
     compute_prefix_size_for_type(utp, data_size, prefix_size);               \
-    total_size = prefix_size+data_size;                                      \
+    do_host_alignment(data_size);                                            \
+    total_size = prefix_size+data_size+sizeof(a_var_postfix);                \
     alloc_static_bytes(ips, total_size, ptr);                                \
     memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));         \
     data_ptr = ptr+prefix_size;                                              \
+    ((a_var_postfix*)(data_ptr+data_size))->alloc_seq_number = 0;            \
     record_complete_object_type(utp, data_ptr);                              \
     (storage_ptr) = data_ptr;                                                \
     mark_complete_class_object_if_needed(utp, data_ptr);                     \
@@ -4101,22 +4120,6 @@ object of the destination (dst_bytes is within that object).
   }  /* if */
   return result;
 }  /* constexpr_copy_object */
-
-
-/*
-Structure describing the information following the value bytes for a variable
-object: Its allocation sequence number and its prior mapping.
-*/
-typedef struct a_var_postfix {
-  an_alloc_seq_number
-		alloc_seq_number;
-			/* The allocation sequence number for the variable
-			   object's storage. */
-  a_byte
-		*prev_storage;
-			/* The storage previously associated with this
-			   variable. */
-} a_var_postfix;
 
 
 static a_byte* do_constexpr_alloc_variable(an_interpreter_state  *ips,
