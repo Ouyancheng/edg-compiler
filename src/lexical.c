@@ -15297,6 +15297,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
            flag). */
         normal_locator = locator_for_curr_id;
         normal_sym = normal_id_lookup(&normal_locator, IDL_MUST_BE_CLASS);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (normal_sym != NULL) {
           if (cli_or_cx_enabled) {
             /* If the type is something like "int" get the corresponding
@@ -15310,6 +15311,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
             if (new_tp != NULL) normal_tp = new_tp;
           }  /* if */
         }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (normal_sym != NULL &&
             (is_class_symbol(normal_sym) ||
              is_template_param_type_symbol(normal_sym))) {
