@@ -22633,6 +22633,7 @@ will be an lvalue instead of the usual prvalue.
   an_operand           operand;
   a_boolean            dest_type_is_class =
                                          is_class_struct_union_type(dest_type);
+  a_boolean            delay_folding = FALSE;
   a_boolean            saved_suppress_diagnostics = FALSE;
   a_boolean            saved_any_suppressed_error = FALSE;
   a_boolean            issue_errors = TRUE;
@@ -23445,7 +23446,20 @@ will be an lvalue instead of the usual prvalue.
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
-  if (generate_il && curr_expr_kind_is_const() && !constexpr_enabled) {
+  if (constexpr_enabled && dest_type_is_class) {
+    a_class_symbol_supplement_ptr
+                                cssp = symbol_supplement_for_class(dest_type);
+    if (!has_nontrivial_destructor(cssp)) {
+      /* Don't force the result to a constant at this level.  The initializer
+         as a whole will be "interpreted" later on.  If a destructor is
+         involved, this would be an error in a constant context and handling
+         it here avoids dealing with object lifetimes later on. */
+      delay_folding = TRUE;
+    }  /* if */
+  }  /* if */
+  if (delay_folding) {
+    /* Do not attempt to fold a dynamic initializer. */
+  } else if (generate_il && curr_expr_kind_is_const()) {
     /* The result is required to be constant.  Check that it is. */
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
@@ -23485,8 +23499,7 @@ will be an lvalue instead of the usual prvalue.
       constant = alloc_error_constant();
     }  /* if */
     force_temp = FALSE;
-  } else if (generate_il && !relaxed_constexpr_enabled &&
-             in_potential_constant_constexpr_context()) {
+  } else if (generate_il && in_potential_constant_constexpr_context()) {
     if (dip == NULL && constant == NULL) {
       force_operand_to_constant_if_possible(&operand);
     }  /* if */
