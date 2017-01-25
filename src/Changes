@@ -1,5 +1,27 @@
 Version 4.13
 
+1/25/17  [EDGcpfe/17933]
+Microsoft compatibility: spurious error on destructor call on built-in
+type used as a class type
+
+In C++/CLI a built-in type can be used as if it were a class time in some
+cases.  This is done by replacing a type such as "int" with a C++/CLI
+library class type such as "System::Int32".  An explicit destructor call
+could fail if the object type had been converted to a class type, but the
+destructor name was specified using the built-in type.  Now fixed.
+
+  template<class T> struct A {
+    T* arr;
+    void f(int n) {
+      arr[n].~T();
+    }
+  };
+  int main() {
+    A<int> ai;
+    ai.f(1);
+  }
+
+
 1/24/17  [EDGcpfe/17409]
 C++17 compatibility: "fallthrough" standard attribute
 
@@ -8,8 +30,6 @@ been implemented and is now available in C++17 emulation mode as well as
 when microsoft_version >= 1910.  Note that the front end doesn't currently
 diagnose falling from one switch case to another, so the attribute doesn't
 have any meaningful effect.
-
-
 1/24/17  [EDGcpfe/17411]
 C++17 compatibility: "maybe_unused" standard attribute
 

@@ -15297,6 +15297,19 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
            flag). */
         normal_locator = locator_for_curr_id;
         normal_sym = normal_id_lookup(&normal_locator, IDL_MUST_BE_CLASS);
+        if (normal_sym != NULL) {
+          if (cli_or_cx_enabled) {
+            /* If the type is something like "int" get the corresponding
+               C++/CLI type (e.g., "Int32").  We know the field selection
+               type is a class type, so the destructor would be invalid
+               for just "int". */
+            a_type_ptr	new_tp;
+            new_tp = type_symbol_type(normal_sym);
+            new_tp = skip_typerefs(new_tp);
+            new_tp = system_type_from_fundamental_type(new_tp);
+            if (new_tp != NULL) normal_tp = new_tp;
+          }  /* if */
+        }  /* if */
         if (normal_sym != NULL &&
             (is_class_symbol(normal_sym) ||
              is_template_param_type_symbol(normal_sym))) {
