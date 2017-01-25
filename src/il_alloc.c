@@ -4009,6 +4009,7 @@ to it.  The statement kind is set as indicated.
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
   sp->is_lowering_boilerplate = FALSE;
+  sp->is_fallthrough_statement= FALSE;
 #if CENTERLINE_CHECKING
   sp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

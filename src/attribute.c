@@ -83,6 +83,7 @@ since attributes usually do not create new entries).
 /* Other required header files. */
 #include "disambig.h"
 #include "layout.h"
+#include "statements.h"
 
 #if GNU_EXTENSIONS_ALLOWED
 #include "il_walk.h"
@@ -221,6 +222,7 @@ static an_attr_descr known_attr_table[] = {
      value of the standard commonly referred to as "C++17" is known. */
   { "nodiscard", "", "1c+(201701-|M(1910-))", ak_nodiscard },
   { "maybe_unused", "", "1c+(201701-|M(1910-))", ak_maybe_unused },
+  { "fallthrough", "", "1c+(201701-|M(1910-))", ak_fallthrough },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -440,6 +442,8 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "n"  : namespaces
 			       (no property switches)
+			     "s"  : statements
+			       (no property switches)
 			     "l"  : labels
 			       (no property switches)
 			     "0"  : stand-alone attribute (no target entity)
@@ -485,6 +489,7 @@ static an_attr_application_fn apply_noreturn_attr;
 static an_attr_application_fn apply_override_attr;
 static an_attr_application_fn apply_nodiscard_attr;
 static an_attr_application_fn apply_maybe_unused_attr;
+static an_attr_application_fn apply_fallthrough_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -606,6 +611,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_override, "r:+v!", apply_override_attr },
   { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
   { ak_maybe_unused, "c|t|v|p|d|r|e|E", apply_maybe_unused_attr },
+  { ak_fallthrough, "s", apply_fallthrough_attr },
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -2801,6 +2807,19 @@ attribute ap applied to the given routine matches those constraints.
 }  /* check_simple_routine_constraints */
 
 
+/*ARGSUSED*/
+static void check_simple_statement_constraints(a_const_char      *constr,
+                                               an_attribute_ptr  ap,
+                                               a_statement_ptr   statement)
+/*
+constr encodes a simple target constraint for a statement.  Check that the
+attribute ap applied to the given statement matches those constraints.
+*/
+{
+  check_assertion(constr[0] == 's');
+}  /* check_simple_label_constraints */
+
+
 static void check_simple_variable_constraints(a_const_char      *constr,
                                               an_attribute_ptr  ap,
                                               a_variable_ptr    variable)
@@ -3074,6 +3093,15 @@ appropriate and set ap->kind to ak_unrecognized).
           if (!weak_mismatch) {
             check_simple_routine_constraints(constr, ap,
                                              (a_routine_ptr)entity);
+          }  /* if */
+          match_found = TRUE;
+        }  /* if */
+        break;
+      case 's':
+        if (entity_kind == iek_statement) {
+          if (!weak_mismatch) {
+            check_simple_statement_constraints(constr, ap,
+                                               (a_statement_ptr)entity);
           }  /* if */
           match_found = TRUE;
         }  /* if */
@@ -4749,6 +4777,43 @@ attribute, which is similar.
   }  /* if */
   return entity;
 }  /* apply_maybe_unused_attr */
+
+
+static char* apply_fallthrough_attr(an_attribute_ptr  ap,
+                                    char              *entity,
+                                    an_il_entry_kind  entity_kind)
+/*
+Apply the given "fallthrough" attribute to the specified statement entity and
+return that entity.  Note that the syntax is validated, but the attribute
+currently has no affect in the front end (i.e., the front end does not
+currently diagnose falling from one case label to another so there is no
+diagnostic to suppress).
+*/
+{
+  a_statement_ptr sp = (a_statement_ptr)entity;
+
+  check_assertion(entity_kind == iek_statement);
+  if (sp->kind != stmk_empty) {
+    /* The attribute must be applied to a null statement. */
+    pos_diagnostic(clang_mode ? es_error :
+                                strict_ansi_discretionary_severity,
+                   ec_fallthrough_applies_to_null_statement, &ap->position);
+    make_attr_unrecognized(ap);
+  } else if (!in_switch_statement()) {
+    /* The attribute must appear within an enclosing switch statement. */
+    pos_diagnostic(clang_mode ? es_error :
+                                strict_ansi_discretionary_severity,
+                   ec_fallthrough_not_in_switch, &ap->position);
+    make_attr_unrecognized(ap);
+  } else {
+    /* Apply the attribute to the statement.  Note that the check to verify
+       that the statement is followed by a case label or default label is
+       performed during statement processing (and an appropriate diagnostic
+       issued at that time). */
+    sp->is_fallthrough_statement = TRUE;
+  }  /* if */
+  return entity;
+}  /* apply_fallthrough_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

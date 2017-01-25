@@ -445,6 +445,16 @@ typedef struct a_struct_stmt_stack_entry {
 			   prefix attribute.  Determines the statement position
 			   used by add_statement (if NULL, pos_curr_token is
 			   used). */
+  a_statement_ptr
+		fallthrough_statement;
+			/* When non-NULL, points to a fallthrough statement
+			   that is still "in force" for the current level in
+			   the statement stack (even though it may point to
+			   a statement at a deeper level).  Used to give a
+			   diagnostic when a fallthrough statement is the last
+			   statement in a block/switch statement.  The field
+			   is used as a flag as well (but the source position
+			   is needed if a diagnostic is to be given). */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
@@ -533,6 +543,8 @@ extern a_boolean in_catch_clause(void);
 extern a_boolean inside_finally_clause(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* COROUTINES_ALLOWED */
+
+extern a_boolean in_switch_statement(void);
 
 extern void record_entity_in_decl_stmt_if_needed(a_symbol_ptr  sym);
 

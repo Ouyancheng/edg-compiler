@@ -2891,6 +2891,9 @@ ec_constexpr_incomplete_type;;"cannot evaluate value of incomplete %t"
 ec_nodiscard_routine;;"ignoring return value from routine declared with \"nodiscard\" attribute"
 ec_nodiscard_return_type;;"ignoring return value type with \"nodiscard\" attribute"
 ec_nodiscard_doesnt_apply;;"the \"nodiscard\" attribute doesn't apply to constructor, destructors, or routines with void return type"
+ec_fallthrough_applies_to_null_statement;;"the \"fallthrough\" attribute only applies to null statements"
+ec_fallthrough_not_in_switch;;"the \"fallthrough\" attribute may only appear in an enclosing switch statement"
+ec_fallthrough_must_precede_switch_case;;"fallthrough statement must precede switch case label or default"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

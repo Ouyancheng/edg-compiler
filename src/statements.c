@@ -1722,6 +1722,15 @@ should be set to TRUE.
       while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
       sssep->last_dep_statement = temp_stmt;
     }  /* if */
+    if (sssep->last_dep_statement->is_fallthrough_statement &&
+        sp->kind != stmk_switch_case) {
+      /* Only a case label or default label may follow a fallthrough
+         statement. */
+      pos_diagnostic(clang_mode ? es_error :
+                                  strict_ansi_discretionary_severity,
+                     ec_fallthrough_must_precede_switch_case,
+                     &sssep->last_dep_statement->position);
+    }  /* if */
     sssep->last_dep_statement->next = sp;
   }  /* if */
   /* Find the last statement in the inserted list, and update the parent
@@ -2865,6 +2874,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   if (kind == ssk_microsoft_try) sssep->num_microsoft_trys_inside_of++;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sssep->p_start_pos = NULL;
+  sssep->fallthrough_statement = NULL;
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
     db_ssse_with_indentation(kind, "pushing ");
@@ -3201,6 +3211,13 @@ a structured statement has ended.
            be reached. */
         merge_reachability(&curr_reachability, &sssep->end_reachable);
       }  /* if */
+      if (sssep->fallthrough_statement != NULL) {
+        /* A fallthrough statement was the last item in the switch. */
+        pos_diagnostic(clang_mode ? es_error :
+                                    strict_ansi_discretionary_severity,
+                       ec_fallthrough_must_precede_switch_case,
+                       &sssep->fallthrough_statement->position);
+      }  /* if */
     } else if (kind == ssk_if && sp->variant.if_stmt.else_statement == NULL &&
                !is_true_constant_expr(sp->expr)) {
       /* If without an else, except "if (1) ...".  If the initial statement
@@ -3241,6 +3258,11 @@ a structured statement has ended.
       sssep->curr_block_object_lifetime = curr_object_lifetime;
     }  /* if */
     terminate_curr_block_object_lifetime(sssep);
+    if (depth_stmt_stack > 0) {
+      /* If a fallthrough statement was last in this block, propagate that
+         information upwards. */
+      sssep[-1].fallthrough_statement = sssep->fallthrough_statement;
+    }  /* if */
   }  /* if */
   break_label = sssep->break_label;
   break_statements = sssep->break_statements;
@@ -3345,6 +3367,17 @@ was found.
 found:
   return(sssep);
 }  /* find_enclosing_struct_stmt */
+
+
+a_boolean in_switch_statement(void)
+/*
+Returns TRUE if there is an enclosing "switch" statement at the current
+location in the statement stack.
+*/
+{
+  return find_enclosing_struct_stmt(/*find_switch=*/TRUE,
+                                    /*find_loop=*/FALSE) != NULL;
+}  /* in_switch_statement */
 
 
 static a_statement_ptr start_block_statement(
@@ -4334,9 +4367,7 @@ semicolon.  However, this routine is also called for some error cases as
 well.
 */
 {
-#if EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS
-  a_statement_ptr  esp = NULL;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_statement_ptr  esp;
 
   db_enter(3, "empty_statement");
   if (curr_token == tok_semicolon) {
@@ -4348,21 +4379,18 @@ well.
        current statement. */
     discard_curr_construct_pragmas();
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS
   esp = add_statement((a_statement_kind)stmk_empty);
-#else /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
-  (void)add_statement((a_statement_kind)stmk_empty);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS */
   stmt_update_source_sequence_list(esp);
   /* Advance past the semicolon. */
   if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
-    if (esp != NULL) {
-      esp->end_position = curr_construct_end_position;
-    }  /* if */
+    esp->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
+  }  /* if */
+  if (esp->is_fallthrough_statement) {
+    struct_stmt_stack_top().fallthrough_statement = esp;
   }  /* if */
   db_exit();
 }  /* empty_statement */
@@ -6838,6 +6866,7 @@ rescan_statement:
        warning on unreachable code. */
     check_lint_notreached_state();
   }  /* if */
+  struct_stmt_stack_top().fallthrough_statement = NULL;
   switch(curr_token) {
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */

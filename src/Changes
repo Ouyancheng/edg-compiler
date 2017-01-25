@@ -1,5 +1,15 @@
 Version 4.13
 
+1/24/17  [EDGcpfe/17409]
+C++17 compatibility: "fallthrough" standard attribute
+
+The C++17 "fallthrough" standard attribute (as described by P0188R1) has
+been implemented and is now available in C++17 emulation mode as well as
+when microsoft_version >= 1910.  Note that the front end doesn't currently
+diagnose falling from one switch case to another, so the attribute doesn't
+have any meaningful effect.
+
+
 1/24/17  [EDGcpfe/17411]
 C++17 compatibility: "maybe_unused" standard attribute
 

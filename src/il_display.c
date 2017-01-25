@@ -4910,6 +4910,9 @@ Display the indicated statement.
   if (ptr->is_lowering_boilerplate) {
     disp_boolean("is_lowering_boilerplate", TRUE);
   }  /* if */
+  if (ptr->is_fallthrough_statement) {
+    disp_boolean("is_fallthrough_statement", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->source_sequence_entry != NULL) {
     disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,

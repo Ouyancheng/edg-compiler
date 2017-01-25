@@ -2521,6 +2521,7 @@ typedef enum an_attribute_kind_tag {
   ak_override,		/* "override" (std). */
   ak_nodiscard,		/* "nodiscard" (std). */
   ak_maybe_unused,	/* "maybe_unused" (std). */
+  ak_fallthrough,	/* "fallthrough" (std). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -14344,6 +14345,11 @@ typedef struct a_statement {
                            no bearing as to whether the constructor or
                            destructor has an actual effect (it's present
                            in all constructors or destructors). */
+  a_bit_field  is_fallthrough_statement:1;
+                        /* TRUE if this is a null statement (i.e., stmk_empty)
+                           that has the [[fallthrough]] attribute applied to
+                           it.  Note that this is not currently used by the
+                           front end to suppress any diagnostics. */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;
