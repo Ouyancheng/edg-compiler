@@ -5898,8 +5898,8 @@ Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
 *ips accordingly.  pos is the position of the call.  The object is constructed
 at the location indicated by result_storage, which is within the given complete
-object.  If implied_src is non-NULL, this is a copy constructor invocation and
-the source object is stored at the location indicated by implied_src.
+object.  If implied_src is non-NULL, this is a copy/move constructor invocation
+and the source object is stored at the location indicated by implied_src.
 
 This is similar to do_constexpr_call, but the call has a different
 representation, and mem-initializers must be interpreted prior to interpreting
@@ -5939,7 +5939,6 @@ the body of the (constructor) function proper.
     a_byte_count         n_args = 1, n_params = 1;
     a_byte_count         *arg_size;
     a_byte               *arg_ptrs, **p_arg_ptr, *this_bytes, *arg_sizes;
-    a_constexpr_address  implied_src_address;
     an_alloc_seq_number  alloc_seq_number;
     a_type_ptr           class_type = parent_class_of(callee);
     unsigned long        up_front_cost;
@@ -6049,8 +6048,14 @@ the body of the (constructor) function proper.
       }  /* if */
     }  /* for */
     if (implied_src != NULL) {
-      clear_address(&implied_src_address, implied_src);
-      *(a_constexpr_address**)p_arg_ptr = &implied_src_address;
+      a_byte_count  n_bytes = sizeof(a_constexpr_address);
+      a_byte        *arg_bytes;
+      do_host_alignment(n_bytes);
+      *arg_size = n_bytes;
+      n_bytes += sizeof(a_var_postfix);
+      alloc_complete_object(ips, n_bytes, params->type, arg_bytes);
+      clear_address(arg_bytes, implied_src);
+      *p_arg_ptr = arg_bytes;
     }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
     /* First map the "this" pointer. */
@@ -9956,10 +9961,16 @@ diagnostic in *ips.
 
   clear_constant(con, (a_constant_repr_kind)ck_error);
   con->type = type;
-  if (ips->call_seen) {
+  type = skip_typerefs(type);
+  if (ips->call_seen ||
+      (is_immediate_class_type(type) &&
+       type->variant.class_struct_union.any_virtual_functions)) {
+    /* If an actual constexpr call is involved, record that in the constant.
+       If no call is involved, but the type has a virtual function, treat it
+       as if the construction really did involve a call; lowering counts on
+       the presence of this flag to add dynamic dispatch data. */
     con->is_result_of_constexpr_call = TRUE;
   }  /* if */
-  type = skip_typerefs(type);
   switch (type->kind) {
     case tk_integer:
       set_constant_kind(con, (a_constant_repr_kind)ck_integer);
