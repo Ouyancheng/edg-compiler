@@ -3855,7 +3855,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         /* Map the interpreter storage for the string back to the constant
            entry so that that constant can, if needed, be retrieved by
            copy_interpreter_object_to_constant. */
-        map_stack_bytes(ips, value, (a_byte*)con);
+        map_ptr(&ips->map, value, (a_byte*)con);
         for (k = 0; k<n_elems; k += 1) {
           unsigned long char_val = extract_character_from_string(
                                            char_ptr, (unsigned int)char_size);
@@ -9620,7 +9620,7 @@ the value representation of the integer value.
     case enk_constant:
       {
         a_constant_ptr  con = node_constant(expr);
-        a_byte          *con_bytes, *complete_dest;
+        a_byte          *con_bytes;
         if (tp->kind == (a_type_kind)tk_array &&
             (expr->is_lvalue || expr->is_xvalue)) {
           /* An array lvalue (normally: a string literal).  Allocate the
@@ -9629,17 +9629,19 @@ the value representation of the integer value.
           get_mapped_ptr(&ips->map, con, con_bytes);
           if (con_bytes == NULL) {
             alloc_static_object(ips, tp, con_bytes, &result);
-            mark_complete_object_initialized(con_bytes);
-            map_ptr(&ips->map, con, con_bytes);
+            if (result) {
+              mark_complete_object_initialized(con_bytes);
+              map_ptr(&ips->map, con, con_bytes);
+              result = copy_val_from_constant(ips, con, con_bytes, con_bytes);
+            }  /* if */
           }  /* if */
           clear_address(result_storage, con_bytes);
-          complete_dest = con_bytes;
           ((a_constexpr_address*)result_storage)->flags |= CA_CONST_STORAGE;
         } else {
           con_bytes = result_storage;
-          complete_dest = complete_object;
+          result = copy_val_from_constant(ips, con, con_bytes,
+                                          complete_object);
         }  /* if */
-        result = copy_val_from_constant(ips, con, con_bytes, complete_dest);
       }
       break;
     case enk_variable:
