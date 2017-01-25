@@ -6504,6 +6504,51 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
 }
  
 
+static a_boolean normalize_runtime_address_if_possible(
+                                                    a_constexpr_address *ptr1,
+                                                    a_constexpr_address *ptr2)
+/*
+One of ptr1 and ptr1 is a run-time address and the other is not.  If the
+run-time address has an associated zero ck_integer constant, replace it by an
+equivalent interpreter address and return TRUE.  Otherwise, return FALSE.
+This is used to compare pointer values (null pointer values in particular).
+*/
+{
+  a_boolean             compat = FALSE, ovfl;
+  a_host_large_integer  val;
+
+  if (is_runtime_data_address(ptr1)) {
+    a_constant_ptr  cp = ptr1->variant.addr_con;
+    if (constant_is(cp, ck_integer)) {
+      conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
+                                               /*is_signed=*/FALSE, &val,
+                                               &ovfl);
+      if (!ovfl && val == 0) {
+        clear_address(ptr1, (a_byte*)0);
+        compat = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (is_runtime_data_address(ptr2)) {
+    a_constant_ptr  cp = ptr2->variant.addr_con;
+    if (constant_is(cp, ck_integer)) {
+      conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
+                                               /*is_signed=*/FALSE, &val,
+                                               &ovfl);
+      if (!ovfl && val == 0) {
+        clear_address(ptr2, (a_byte*)0);
+        compat = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return compat;
+}  /* normalize_runtime_addresses_if_possible */
+
+
+#define compatible_address_kinds(addr1, addr2)                               \
+  (is_runtime_data_address(ptr1) == is_runtime_data_address(ptr2) ||         \
+   normalize_runtime_address_if_possible(ptr1, ptr2))
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -7900,8 +7945,7 @@ the value representation of the integer value.
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
-              if (is_runtime_data_address(ptr1) ==
-                                              is_runtime_data_address(ptr2)) {
+              if (compatible_address_kinds(ptr1, ptr2)) {
                 if (is_function_address(ptr1) || is_function_address(ptr2)) {
                   if (is_function_address(ptr1) && is_function_address(ptr2) &&
                       ptr1->variant.routine == ptr2->variant.routine) {
@@ -7933,8 +7977,6 @@ the value representation of the integer value.
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
                 }  /* if */
-              } else {
-                do_constexpr_fail(result);
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -8000,8 +8042,7 @@ the value representation of the integer value.
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
-              if (is_runtime_data_address(ptr1) ==
-                                              is_runtime_data_address(ptr2)) {
+              if (compatible_address_kinds(ptr1, ptr2)) {
                 if (is_function_address(ptr1) || is_function_address(ptr2)) {
                   if (is_function_address(ptr2) && is_function_address(ptr2) &&
                       ptr1->variant.routine == ptr2->variant.routine) {
