@@ -1723,7 +1723,7 @@ should be set to TRUE.
       sssep->last_dep_statement = temp_stmt;
     }  /* if */
     if (sssep->last_dep_statement->is_fallthrough_statement &&
-        sp->kind != stmk_switch_case) {
+        sp->kind != (a_statement_kind)stmk_switch_case) {
       /* Only a case label or default label may follow a fallthrough
          statement. */
       pos_diagnostic(clang_mode ? es_error :

@@ -4793,7 +4793,7 @@ diagnostic to suppress).
   a_statement_ptr sp = (a_statement_ptr)entity;
 
   check_assertion(entity_kind == iek_statement);
-  if (sp->kind != stmk_empty) {
+  if (sp->kind != (a_statement_kind)stmk_empty) {
     /* The attribute must be applied to a null statement. */
     pos_diagnostic(clang_mode ? es_error :
                                 strict_ansi_discretionary_severity,
