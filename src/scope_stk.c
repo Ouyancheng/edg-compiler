@@ -6383,7 +6383,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         /* An unreferenced label. */
         if (sym->variant.label.ptr->source_corresp.maybe_unused) {
           /* This label was explicitly marked as not being used (by the
-             GNU "unused" attribute. */
+             GNU "unused" attribute). */
         } else {
           report_unreferenced(sym, ec_declared_but_not_referenced,
                               es_warning);
