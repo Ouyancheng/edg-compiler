@@ -3711,7 +3711,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                     if (vp->init_kind == (an_init_kind)initk_static) {
                       cp = vp->initializer.constant;
                     } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
-                      cp = vp->initializer.dynamic->variant.constant;
+                      a_dynamic_init_ptr  dip = vp->initializer.dynamic;
+                      result = do_constexpr_dynamic_init(
+                                                     ips, dip, &ips->position,
+                                                     var_bytes, var_bytes);
                     } else {
                       an_init_kind    init_kind;
                       an_initializer  *initializer;
@@ -3720,7 +3723,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       if (init_kind == (an_init_kind)initk_static) {
                         cp = initializer->constant;
                       } else if (init_kind == (an_init_kind)initk_dynamic) {
-                        cp = initializer->dynamic->variant.constant;
+                        a_dynamic_init_ptr  dip = initializer->dynamic;
+                        result = do_constexpr_dynamic_init(
+                                                     ips, dip, &ips->position,
+                                                     var_bytes, var_bytes);
                       } else {
                         /* In GNU C++ mode, the initializer may not be
                            instantiated yet. */
@@ -3736,8 +3742,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                         }  /* if */
                       }  /* if */
                     }  /* if */
-                    result = extract_value_from_constant(
+                    if (cp != NULL) {
+                      result = extract_value_from_constant(
                                                ips, cp, var_bytes, var_bytes);
+                    }  /* if */                     
                   }  /* if */
                   if (!result) break;
                   mark_complete_object_initialized(var_bytes);
