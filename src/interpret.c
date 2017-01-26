@@ -3816,10 +3816,33 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       }  /* if */
       break;
     case ck_ptr_to_member:
-      { a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
+      {
+        a_base_class_ptr  bcp = con->variant.ptr_to_member.casting_base_class;
         a_constexpr_ptr_to_mem
                           *pm_value = (a_constexpr_ptr_to_mem*)value;
         a_byte_count      offset = 0;
+        if (con->orig_type != NULL) {
+          /* The pointer-to-member was converted.  Check that the conversion
+             is a standard conversion. */
+          a_std_conv_descr std_conv;
+          if (!is_ptr_to_member_type(con->type) ||
+              !impl_ptr_to_member_conversion(
+                                      con->orig_type,
+                                      /*source_is_constant=*/TRUE,
+                                      /*source_is_function=*/FALSE,
+                                      con,
+                                      con->type,
+                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                      &std_conv)) {
+            a_source_position  *diag_pos = &con->source_corresp.decl_position;
+            if (diag_pos->seq == 0) {
+              diag_pos = &ips->position;
+            }  /* if */
+            info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                diag_pos, con->orig_type, con->type, ips);
+            do_constexpr_fail(result);
+           }  /* if */
+        }  /* if */
         if (con->variant.ptr_to_member.is_function_ptr) {
           pm_value->variant.routine =
                                    con->variant.ptr_to_member.variant.routine;
