@@ -2669,6 +2669,14 @@ that type.
 }
 
 
+#if DEBUG
+#define debug_scramble(ptr, n_bytes) (void)memset(ptr, 0xdb, n_bytes)
+#else /* !DEBUG */
+#define debug_scramble(ptr, n_bytes) /*nothing*/
+#endif /* DEBUG */
+
+
+
 /*
 Allocate a complete object of type utp and size n_bytes in the interpreter's
 storage stack, including prefix storage to keep bookkeeping information.
@@ -2686,6 +2694,7 @@ first byte after the prefix).
   alloc_stack_bytes(ips, total_size, ptr);                                   \
   memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));           \
   data_ptr = ptr+prefix_size;                                                \
+  debug_scramble(data_ptr, n_bytes);                                         \
   record_complete_object_type(utp, data_ptr);                                \
   (storage_ptr) = data_ptr;                                                  \
   mark_complete_class_object_if_needed(utp, data_ptr);                       \
@@ -3879,7 +3888,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       {
         a_type_ptr  tp = skip_typerefs(con->type);
         if (tp->kind == (a_type_kind)tk_array) {
-          a_targ_size_t   n_elems, k;
+          a_targ_size_t   n_elems, k, repeat;
           a_byte_count    elem_size;
           a_constant_ptr  elem_con;
           a_type_ptr      etp = tp->variant.array.element_type;
@@ -3892,7 +3901,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             if (elem_con == NULL) {
               /* Not all elements are covered.  Zero the remainder. */
               init_subobject_to_zero(ips, value, etp, complete_object);
-              k += 1;
+              repeat = 1;
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
@@ -3901,14 +3910,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 break;
               }  /* if */
               if (constant_is(elem_con, ck_init_repeat)) {
-                k += elem_con->variant.init_repeat.count;
+                repeat = elem_con->variant.init_repeat.count;
               } else {
-                k  += 1;
+                repeat = 1;
               }  /* if */
               elem_con = elem_con->next;
               mark_subobject_initialized(value, complete_object);
-              value += elem_size;
             }  /* if */
+            k += repeat;
+            value += repeat*elem_size;
           }  /* for */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
