@@ -30,6 +30,8 @@ been implemented and is now available in C++17 emulation mode as well as
 when microsoft_version >= 1910.  Note that the front end doesn't currently
 diagnose falling from one switch case to another, so the attribute doesn't
 have any meaningful effect.
+
+
 1/24/17  [EDGcpfe/17411]
 C++17 compatibility: "maybe_unused" standard attribute
 
