@@ -8936,7 +8936,8 @@ use the current global value of the template template parameter.
 #endif /* DEBUG */
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
-  eta_options = eta_options_for_template(template_sym, tssp);
+  eta_options = eta_options_for_template(template_sym, tssp) |
+                                        ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
   /* This routine strips certain typerefs from the arguments and determines
      if the resulting list is dependent.  If list_copied is TRUE,
      new_list_without_local_types points to a copy of the argument

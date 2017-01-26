@@ -1,5 +1,21 @@
 Version 4.13
 
+1/26/17  [EDGcpfe/17963]
+Incorrect matching of dependent decltype in partial specialization
+
+In some cases a partial specialization that makes use of a dependent
+decltype expression was incorrectly considered as a redeclaration of
+a previous partial specialization, resulting in spurious errors or
+incorrect behavior.  Now fixed.
+
+  template <typename> struct A;
+  template <typename T> using C = decltype(static_cast<A<T>>(nullptr));
+  template <typename, typename> struct B;
+  template <typename U> struct B<U, C<typename U::X>> {};
+  // Formerly resulted in "... has already been defined" error
+  template <typename V> struct B<V, C<typename V::Y>> {};
+
+
 1/25/17  [EDGcpfe/17933]
 Microsoft compatibility: spurious error on destructor call on built-in
 type used as a class type
