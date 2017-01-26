@@ -5805,6 +5805,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             check_address_taken_flag(expr);
           }  /* if */
 #endif /* CHECKING */
+          if (is_variable_node(operand_1)) {
+            a_variable_ptr var = node_variable(operand_1);
+            if (((f_get_type_qualifiers(var->type, /*top_level=*/FALSE) &
+                                                             TQ_CONST) != 0) &&
+                suppress_const_for_mutable_or_init(var)) {
+              /* The array is const-qualified, but it was declared as
+                 non-const in the generated code.  We need a cast back to
+                 the const-qualified type. */
+              dump_cast(expr->type);
+            }  /* if */
+          }  /* if */
           dump_expr_with_parens(operand_1);
           goto done_with_unary_operation;
 #if MICROSOFT_EXTENSIONS_ALLOWED
