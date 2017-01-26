@@ -4786,7 +4786,7 @@ static char* apply_fallthrough_attr(an_attribute_ptr  ap,
 Apply the given "fallthrough" attribute to the specified statement entity and
 return that entity.  Note that the syntax is validated, but the attribute
 currently has no affect in the front end (i.e., the front end does not
-currently diagnose falling from one case label to another so there is no
+currently diagnose falling from one switch case to another so there is no
 diagnostic to suppress).
 */
 {
