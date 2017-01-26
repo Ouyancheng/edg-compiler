@@ -7076,7 +7076,7 @@ the value representation of the integer value.
             break;
           case eok_bool_cast:
             { a_boolean  bool_val;
-              if (check_boolean_condition(ips, opnd1_value, expr, tp,
+              if (check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
                                           &bool_val)) {
                 *(an_integer_value *)result_storage = bool_val ? one_int
                                                                : zero_int;
