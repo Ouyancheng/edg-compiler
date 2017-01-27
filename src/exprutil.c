@@ -17915,11 +17915,11 @@ is an rvalue reference.
     } else {
       if (is_expression_operand(operand)) {
         expr = make_node_from_operand(operand);
-      } else if (is_template_param_constant_operand(operand)) {
       } else {
         unexpected_condition();
       }  /* if */
       expr = add_reference_to_to_node(expr);
+      expr->position = operand->position;
       make_expression_operand(expr, operand);
     }  /* if */
     restore_operand_details(operand, &orig_operand);
