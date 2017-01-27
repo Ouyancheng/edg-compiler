@@ -6598,6 +6598,49 @@ This is used to compare pointer values (null pointer values in particular).
    normalize_runtime_address_if_possible(ptr1, ptr2))
 
 
+static a_boolean acceptable_lvalue_conversion(an_interpreter_state  *ips,
+                                              a_constexpr_address   *cap,
+                                              a_type_ptr            src_type,
+                                              a_type_ptr            dst_type)
+/*
+Return TRUE if converting the given lvalue of type src_type to dst_type using
+an eok_lvalue_cast or eok_lvalue_adjust node is acceptable in a constant-
+expression.  The caller has already determined that the types are different
+(ignoring qualifiers) and top-level typerefs have been stripped from both
+types.  *cap may be updated to reflect an extended lifetime in the given
+interpreter context.
+*/
+{
+  a_boolean  valid = FALSE;
+
+  if (src_type->kind == (a_type_kind)tk_routine &&
+      dst_type->kind == (a_type_kind)tk_pointer &&
+      skip_typerefs(dst_type->variant.pointer.type) == src_type) {
+    /* Function pointer decay is okay. */
+    valid = TRUE;
+  } else if (dst_type->kind == (a_type_kind)tk_array) {
+    a_type_ptr  etp = underlying_array_element_type(dst_type);
+    etp = skip_typerefs(etp);
+    if (identical_types_ignoring_qualifiers(src_type, etp) &&
+        is_array_element(cap)) {
+      /* The front end produces IL like the following:
+          [lvalue] operator: lvalue adjust, result type: array [1] of const int
+            [lvalue] operator: *, result type: const int
+              operator: array-decay, result type: ptr to const int
+                constant: value = {}
+         when binding a prvalue array to a reference.  In cases like these,
+         also mark the prvalue referred to as having an extended lifetime if
+         we are not in a function scope. */
+      valid = TRUE;
+      if (ips->curr_call_frame == NULL) {
+        cap->flags |= CA_LIFETIME_EXTENDED;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return valid;
+}  /* acceptable_lvalue_conversion */
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -6904,9 +6947,8 @@ the value representation of the integer value.
                expectations of a parent node); that case is valid, too. */
             if (expr->variant.operation.is_reinterpret_cast ||
                 (!identical_types_ignoring_qualifiers(tp, opnd1_type) &&
-                 !(opnd1_type->kind == (a_type_kind)tk_routine &&
-                   tp->kind == (a_type_kind)tk_pointer &&
-                   skip_typerefs(tp->variant.pointer.type) == opnd1_type))) {
+                 !acceptable_lvalue_conversion(
+                    ips, (a_constexpr_address*)opnd1_value, opnd1_type, tp))) {
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                   &expr->position, opnd1_type, tp, ips);
               do_constexpr_fail(result);
@@ -10122,6 +10164,14 @@ diagnostic in *ips.
               a_byte_count  offset;
               base_address = get_base_address(cap);
               offset = cap->address - base_address;
+              if (utp->incomplete && utp->kind == (a_type_kind)tk_array) {
+                /* This can happen when binding a reference to an array with
+                   no specified bound.  E.g.:
+                     struct S { const int (&x)[]; };
+                     constexpr S x = { { 37 } };
+                   We'll produce a known bound below. */
+                utp = skip_typerefs(utp->variant.array.element_type);
+              }  /* if */
               if (offset != 0) {
                 con->variant.address.offset =
                   utp->size * (offset/value_bytes_for_type(ips, utp, &result));
