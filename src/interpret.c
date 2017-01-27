@@ -10160,10 +10160,11 @@ diagnostic in *ips.
               con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
-              if (!(cap->flags & CA_LIFETIME_EXTENDED)) {
+              if (!(cap->flags & CA_LIFETIME_EXTENDED) ||
+                  depth_innermost_function_scope != NO_SCOPE_DEPTH) {
                 /* The address of a temporary results in a dangling pointer. */
                 do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                info_with_pos(ec_constexpr_expiring_temporary,
                               &ips->position, ips);
               }  /* if */
             }  /* if */

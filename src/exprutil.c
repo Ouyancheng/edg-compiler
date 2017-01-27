@@ -17770,6 +17770,7 @@ in the source (and *operator_position gives its position).
           if (reference_case) {
             /* Create the reference-to operator. */
             expr = add_reference_to_to_node(expr);
+            expr->position = operand->position;
           } else {
             /* Create the "&" operator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED

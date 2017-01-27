@@ -4029,7 +4029,6 @@ is part of.  diag_pos is the position to be used by default for diagnostics
       dps->init_state.warning_on_narrowing = TRUE;
     }  /* if */
   }  /* if */
-  if (vp != NULL) vp->has_direct_braced_initializer = direct;
   if (C_mode() ||
       (!is_variadic_template_context() && is_aggregate_type(dps->type))) {
     /* For aggregate initializations (always the case in C mode when we get
@@ -4967,6 +4966,28 @@ returned set to TRUE.
            entry. */
         record_dtor_in_dynamic_init(
                   dtor, init_dip, !dps->init_state.not_potentially_evaluated);
+      }  /* if */
+    } else {
+      if (constexpr_enabled && dps->init_state.initializer_must_be_constant &&
+          !scope_stack_top().in_prototype_instantiation && !init_err) {
+        /* A constant is expected.  See if the interpreter can fold the
+           dynamic initializer. */
+        a_diag_list     diag_list;
+        a_constant_ptr  folded_con = local_constant();
+        clear_diag_list(&diag_list);
+        if (interpret_dynamic_init(init_dip, &pos_first_token, vp_type,
+                                   folded_con, &diag_list)) {
+          init_con = move_local_constant_to_il(&folded_con);
+          init_dip = NULL;
+        } else {
+          a_diagnostic_ptr  dp;
+          dp = pos_start_error(ec_expr_not_constant, &pos_first_token);
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+          release_local_constant(&folded_con);
+          init_err = TRUE;
+        }  /* if */
+        discard_more_info_list(&diag_list);
       }  /* if */
     }  /* if */
     check_assertion((init_dip == NULL) != (init_con == NULL));
