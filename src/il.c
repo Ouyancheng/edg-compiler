@@ -16044,6 +16044,23 @@ produced.  See copy_template_param_expr for the parameter descriptions.
                                                           source_pos,
                                                           options);
       }  /* if */
+    } else if (constant != NULL && constant_is(constant, ck_template_param) &&
+               constant->variant.template_param.kind == 
+                            (a_template_param_constant_kind)tpck_expression) {
+      /* In some cases a tpck_expression entry is created because the
+         expression is not foldable as an lvalue, but it could be folded
+         as an rvalue. */
+      an_expr_node_ptr
+              fold_expr = constant->variant.template_param.variant.expr;
+      if (is_glvalue_node(fold_expr) &&
+          depth_template_declaration_scope == NO_SCOPE_DEPTH &&
+          !scope_stack_top().in_prototype_instantiation) {
+        a_constant_ptr  fold_con = constant_value_addressed_by_node(fold_expr);
+        if (fold_con != NULL) {
+          expr_copy = NULL;
+          copy_constant(fold_con, constant);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (*copy_error) {
