@@ -1,5 +1,27 @@
 Version 4.13
 
+1/29/17  [EDGcpfe/17958]
+GNU C++ compatibility: abort substituting arguments into variadic template
+template parameter
+
+An abort could occur (in update_template_param_symbols) in g++ mode when
+substituting template arguments into the argument list of a template
+template parameter when the associated template template argument was
+non-variadic.
+
+  template <bool> struct A {
+    typedef bool t;
+  };
+  template <template <typename ...> class TT>
+      decltype(typename A<TT<int>::v>::t()) f();
+  template <typename I> struct B {
+    static constexpr bool v = 0;
+  };
+  int main() {
+    f<B>();
+  }
+
+
 1/29/17  [EDGcpfe/17945]
 Abort substituting pack into multiple template parameters
 

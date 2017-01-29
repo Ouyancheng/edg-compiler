@@ -1965,11 +1965,16 @@ values needed for the previous call.
     if (tap_to_update != NULL &&
         is_start_of_pack_expansion_templ_arg(tap_to_update)) {
       tap_to_update = tap_to_update->next;
-      if (tap_to_update == NULL || !tap_to_update->is_pack_element) {
+      if (tap_to_update == NULL ||
+          (!tap_to_update->is_pack_element && tpp->is_pack)) {
         /* There is no argument for this parameter.  Set the parameter
            symbol to point to an error value. */
         tap_to_update = NULL;
         set_template_param_symbol_to_error(tpp->param_symbol);
+      } else {
+        /* The argument is a placeholder but the parameter is not a pack.
+           Discard the placeholder. */
+        tap = tap_to_update;
       }  /* if */
     }  /* if */
     if (tap_to_update != NULL) {
