@@ -1,5 +1,57 @@
 Version 4.13
 
+1/29/17  [EDGcpfe/17945]
+Abort substituting pack into multiple template parameters
+
+An abort could occur (in update_template_param_symbols) in some cases
+where a pack expansion is being substituted into a template argument
+list in cases where some elements correspond to non-pack parameters and
+some correspond to a pack parameter.  The actual conditions needed to
+reproduce this seem to be uncommon.  In this example, the problem
+occurred during partial order checking of NC when substitution argument
+values into B (via BT).  Now fixed.
+
+  namespace std {
+    template<class U> struct Z { typedef U TT; };
+    template<class U> typename Z<U>::TT dv();
+  }
+  template <long...> struct Q {};
+  template <class...> using void_t = void;
+  template <class U, long I> struct A {
+    typedef decltype (std::dv<U> () + std::dv<long> ()) TT;
+    static constexpr TT g(U && u) { return u + I; }
+  };
+  template <class U, long I> using AT = typename A <U, I>::TT;
+  template <class H, class... T> struct B {
+    typedef H TT;
+    static constexpr TT g(H && h, T &&...) { return h; }
+  };
+  template <class... U> using BT = typename B <U...>::TT;
+  namespace N {
+    template <class, class, class, class, class> struct NC {};
+    template <class U, class V, long... I, long... J> struct NC
+      < U, V, Q <I...>, Q <J...>,
+        void_t < BT <AT <U, I>..., AT <V, J>...> >
+      > {
+          typedef BT <AT <U, I>..., AT <V, J>...> TT;
+          static constexpr TT g(U && u, V && v) {
+            return B <AT <U, I>..., AT <V, J>...>::g
+              ( A <U, I>::g(u)..., A <V, J>::g(v)...);
+          }
+    };
+  }
+  template <class U, class V, class K, class L>
+  struct C : N::NC <U, V, K, L, void> {};
+  template <class U, class V, class K, class L>
+  using CT = typename C <U, V, K, L>::TT;
+  typedef C <int &, int &, Q <1,2>, Q <3,4,5>> F;
+  int main() {
+    int u = 1;
+    int v = 2;
+    F::TT r = F::g(u, v);
+  }
+
+
 1/26/17  [EDGcpfe/17963]
 Incorrect matching of dependent decltype in partial specialization
 

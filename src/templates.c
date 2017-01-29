@@ -11789,10 +11789,11 @@ If there is an error in the copying, set *copy_error to TRUE.
       /* If there are too few parameters, the copy should fail.  Don't
          fail on a start of pack expansion as there may not be any actual
          arguments that follow.  Also, don't copy the placeholder if the
-         parameter is not a pack. */
+         parameter is not a pack, or if a placeholder was already added
+         for this parameter. */
       if (have_params) {
         if (is_start_of_pack_expansion_templ_arg(tap) && !preserve_packs &&
-            (tpp == NULL || !tpp->is_pack)) {
+            (tpp == NULL || !tpp->is_pack || added_placeholder)) {
           goto end_of_loop;
         }  /* if */
         if (tpp == NULL) {
