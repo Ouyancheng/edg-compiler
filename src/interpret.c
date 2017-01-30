@@ -2323,7 +2323,9 @@ redo:
     case tk_template_param:
     case tk_unknown:
       /* Fail interpretation. */
-      result = 0;
+      info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+      do_constexpr_fail(*p_result);
+      result = MAX_CONSTEXPR_TYPE_SIZE+1;
       do_constexpr_fail(*p_result);
       break;
     default:
