@@ -3823,7 +3823,18 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         a_constexpr_ptr_to_mem
                           *pm_value = (a_constexpr_ptr_to_mem*)value;
         a_byte_count      offset = 0;
-        if (con->orig_type != NULL) {
+        a_boolean         is_null;
+        if (con->variant.ptr_to_member.is_function_ptr) {
+          pm_value->variant.routine =
+                                   con->variant.ptr_to_member.variant.routine;
+          is_null = (pm_value->variant.routine == NULL);
+          pm_value->is_ptr_to_mem_function = TRUE;
+        } else {
+          pm_value->variant.field = con->variant.ptr_to_member.variant.field;
+          is_null = (pm_value->variant.field == NULL);
+          pm_value->is_ptr_to_mem_function = FALSE;
+        }  /* if */
+        if (con->orig_type != NULL && !is_null) {
           /* The pointer-to-member was converted.  Check that the conversion
              is a standard conversion. */
           a_type_ptr  src_mem_type = pm_member_type(con->orig_type);
@@ -3843,14 +3854,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                 diag_pos, con->orig_type, con->type, ips);
             do_constexpr_fail(result);
            }  /* if */
-        }  /* if */
-        if (con->variant.ptr_to_member.is_function_ptr) {
-          pm_value->variant.routine =
-                                   con->variant.ptr_to_member.variant.routine;
-          pm_value->is_ptr_to_mem_function = TRUE;
-        } else {
-          pm_value->variant.field = con->variant.ptr_to_member.variant.field;
-          pm_value->is_ptr_to_mem_function = FALSE;
         }  /* if */
         if (bcp != NULL) {
           /* We cannot look up bcp's offset in the persistent map directly
