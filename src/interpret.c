@@ -9894,6 +9894,23 @@ the value representation of the integer value.
       result = do_constexpr_expression(ips, expr->variant.object_lifetime.expr,
                                        result_storage, complete_object);
       break;
+    case enk_typeid:
+      if (expr->variant.typeid_info.expr == NULL &&
+          (expr->is_lvalue || expr->is_xvalue)) {
+        a_constant_ptr       cp = local_constant();
+        a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+        make_typeid_constant(expr->variant.typeid_info.type,
+                             /*is_cli_typeid*/FALSE, cp);
+        cp->next = ips->constants;
+        ips->constants = cp;
+        clear_runtime_constant_address(cap, cp);
+      } else {
+        /* Polymorphic typeid: Not allowed in constant expressions. */
+        info_with_pos(ec_constexpr_access_to_runtime_storage,
+                      &expr->position, ips);
+        do_constexpr_fail(result);
+      }  /* if */
+      break;
     case enk_param_ref:
       { a_byte  *this_bytes = NULL;
         if (expr->variant.param_ref.param_num == 0) {
