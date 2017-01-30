@@ -10112,9 +10112,16 @@ diagnostic in *ips.
                                    CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
           con->type = type;
         } else if (is_function_address(cap)) {
-          set_routine_address_constant(cap->variant.routine, con,
+          a_type_ptr     utp = type->variant.pointer.type;
+          a_routine_ptr  rp = cap->variant.routine;
+          set_routine_address_constant(rp, con,
                                        /*set_address_taken_flag=*/TRUE);
           con->type = type;
+          if (!identical_types(utp, rp->type)) {
+            /* The pointer to function type was converted to a different
+               pointer type (e.g., void*). */
+            con->implicit_cast = TRUE;
+          }  /* if */
         } else if (cap->address == NULL) {
           /* A NULL pointer (since it has a pointer type, it is not a null
              pointer constant). */
@@ -10128,7 +10135,7 @@ diagnostic in *ips.
           info_with_pos(ec_constexpr_interpreter_address, &ips->position, ips);
         } else {
           /* Check if this address is already mapped to a constant. */
-          a_type_ptr      utp = skip_typerefs(type->variant.pointer.type);
+          a_type_ptr      utp = type->variant.pointer.type;
           a_byte          *mptr;
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
