@@ -10473,6 +10473,10 @@ FALSE, and record diagnostic info in *diag_list.
             info_with_pos(ec_constexpr_access_to_runtime_storage,
                           &expr->position, &ips);
             do_constexpr_fail(result);
+          } else if (is_volatile_qualified_type(expr->type)) {
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_volatile_fetch, &expr->position,
+                            &ips);
           } else {
             /* result_storage points to an interpreter address for the glvalue.
                Allocate a new object for the corresponding prvalue and perform
