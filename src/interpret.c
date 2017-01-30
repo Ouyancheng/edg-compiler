@@ -10228,8 +10228,16 @@ diagnostic in *ips.
             con->implicit_cast = TRUE;
           }  /* if */
           if (vp != NULL) {
-            con->variant.address.kind = (an_address_base_kind)abk_variable;
-            con->variant.address.variant.variable = vp;
+            if (var_has_static_storage_duration(vp)) {
+              con->variant.address.kind = (an_address_base_kind)abk_variable;
+              con->variant.address.variant.variable = vp;
+            } else {
+              /* Not a variable with static storage duration (e.g., a thread-
+                 local variable). */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &ips->position, ips);
+            }  /* if */
           } else {
             if (constant_is(cp, ck_string)) {
               con->variant.address.kind = (an_address_base_kind)abk_constant;
