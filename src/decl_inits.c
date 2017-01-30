@@ -687,7 +687,6 @@ update *p_icp to the next component to be consumed.
 The presence of a nonconstant initializer component is reflected in *is.
 */
 {
-  an_init_state          elem_is;
   an_init_component_ptr  orig_icp = *p_icp, icp = orig_icp;
   a_boolean              braced = is_braced_init_component(icp);
 
@@ -802,55 +801,92 @@ remove_any_extraneous_braces:
     }  /* if */
   }  /* if */
   /* Convert the single value as appropriate. */
+  {
   /* Copy the initialization state for the top-level initialization, except
      that it should always indicate copy initialization (even if the top level
      initialization is direct).  The call to convert_initializer will update
      elem_is.init_con and elem_is.init_dip (possibly to NULL). */
-  elem_is = *is;
-  elem_is.direct_init = FALSE;
-  convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
-                      /*fill_in_dtor=*/exceptions_enabled, &elem_is);
-  if (elem_is.init_error || is_error_component(icp)) {
-    is->init_error = TRUE;
-  }  /* if */
-  if (elem_is.constant_expr_ruled_out) {
-    is->constant_expr_ruled_out = TRUE;
-  }  /* if */
-  if (is->check_validity_only) {
-    /* No return value. */
-    *init_con = NULL;
-  } else if (is->init_error) {
-    *init_con = alloc_error_constant();
-  } else if (elem_is.init_con != NULL) {
-    /* A constant initializer: Return it. */
-    *init_con = elem_is.init_con;
-  } else if (elem_is.init_dip != NULL) {
-    /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record the
-       fact that a nonconstant entry was seen. */
-    a_dynamic_init_ptr  dip = elem_is.init_dip;
-    check_assertion(!is->check_validity_only);
-    *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-    (*init_con)->variant.dynamic_init = dip;
-    (*init_con)->type = dest_type;
-    (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+    an_init_state  elem_is;
+    elem_is = *is;
+    elem_is.direct_init = FALSE;
+    if (constexpr_enabled && elem_is.initializer_must_be_constant) {
+      /* Do not force each element to be a valid constant.  The complete
+         initializer will be evaluated higher up and only then is a valid
+         constant required. */
+      elem_is.initializer_must_be_constant = FALSE;
+    }  /* if */
+    convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
+                        /*fill_in_dtor=*/exceptions_enabled, &elem_is);
+    if (elem_is.init_error || is_error_component(icp)) {
+      is->init_error = TRUE;
+    }  /* if */
+    if (elem_is.constant_expr_ruled_out) {
+      is->constant_expr_ruled_out = TRUE;
+      if (constexpr_enabled && is->initializer_must_be_constant) {
+        /* No constant-expression could possibly result from this.  Discard
+           the initializer to avoid potential problem with object lifetime
+           management later on. */
+        if (!is->init_error && !is->no_diagnostics &&
+            elem_is.init_dip != NULL) {
+          /* Issue a diagnostic.  Attempt to interpret the dynamic initializer
+             to provide a more specific reason for the problem. */
+          a_diagnostic_ptr  dp;
+          a_diag_list       diag_list;
+          a_boolean         folded;
+          a_constant_ptr    folded_value = local_constant();
+          a_source_position  *diag_pos = init_component_pos(icp);
+          clear_diag_list(&diag_list);
+          folded = interpret_dynamic_init(elem_is.init_dip, diag_pos,
+                                          dest_type, folded_value, &diag_list);
+          check_assertion(!folded);
+          release_local_constant(&folded_value);
+          dp = pos_start_error(ec_expr_not_constant, diag_pos);
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+        }  /* if */
+        if (!is->check_validity_only) {
+          elem_is.init_dip = NULL;
+          elem_is.init_con = alloc_error_constant();
+        }  /* if */
+        is->init_error = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is->check_validity_only) {
+      /* No return value. */
+      *init_con = NULL;
+    } else if (is->init_error) {
+      *init_con = alloc_error_constant();
+    } else if (elem_is.init_con != NULL) {
+      /* A constant initializer: Return it. */
+      *init_con = elem_is.init_con;
+    } else if (elem_is.init_dip != NULL) {
+      /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record
+         the fact that a nonconstant entry was seen. */
+      a_dynamic_init_ptr  dip = elem_is.init_dip;
+      check_assertion(!is->check_validity_only);
+      *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      (*init_con)->variant.dynamic_init = dip;
+      (*init_con)->type = dest_type;
+      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (!is_designator_component(icp)) {
-      (*init_con)->end_position = *init_component_end_pos(icp);
-    }  /* if */
+      if (!is_designator_component(icp)) {
+        (*init_con)->end_position = *init_component_end_pos(icp);
+      }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
-        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-      /* If this dynamic initialization embeds a designator, record it in the
-         newly created constant. */
-      (*init_con)->uses_designated_initializers =
+      if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+          dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+        /* If this dynamic initialization embeds a designator, record it in the
+           newly created constant. */
+        (*init_con)->uses_designated_initializers =
                            dip->variant.constant->uses_designated_initializers;
+      }  /* if */
+      is->has_dynamic_init_component = TRUE;
+      if (exceptions_enabled && dip->destructor != NULL) {
+        record_partial_aggregate_cleanup_destruction(dip,
+                                                     !elem_is.not_evaluated);
+      }  /* if */
     }  /* if */
-    is->has_dynamic_init_component = TRUE;
-    if (exceptions_enabled && dip->destructor != NULL) {
-      record_partial_aggregate_cleanup_destruction(dip,
-                                                   !elem_is.not_evaluated);
-    }  /* if */
-  }  /* if */
+  }
   if (braced) {
     /* Proceed with the component after the braces. */
     *p_icp = next_elem(orig_icp);
