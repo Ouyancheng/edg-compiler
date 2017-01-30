@@ -10459,6 +10459,12 @@ FALSE, and record diagnostic info in *diag_list.
   ips.position = expr->position;
   n_bytes = expr_result_size(&ips, expr, result_type, &result); 
   if (!result) {
+    if (ips.input_error) {
+      /* Interpretation failed due to an error node in the IL.  Continue
+         with an error constant, but treat interpretation as successful. */
+      set_error_constant(result_con);
+      result = TRUE;
+    }  /* if */
     /* Nothing more to be done. */
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
@@ -10549,6 +10555,12 @@ return FALSE, and record diagnostic info in *diag_list.
   ips.position = call_expr->position;
   n_bytes = expr_result_size(&ips, call_expr, result_type, &result); 
   if (!result) {
+    if (ips.input_error) {
+      /* Interpretation failed due to an error node in the IL.  Continue
+         with an error constant, but treat interpretation as successful. */
+      set_error_constant(result_con);
+      result = TRUE;
+    }  /* if */
     /* Nothing more to be done. */
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
@@ -10610,6 +10622,12 @@ source position of the initialization.
   result_type = skip_typerefs(result_type);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   if (!result) {
+    if (ips.input_error) {
+      /* Interpretation failed due to an error node in the IL.  Continue
+         with an error constant, but treat interpretation as successful. */
+      set_error_constant(result_con);
+      result = TRUE;
+    }  /* if */
     /* Nothing more to be done. */
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
@@ -10681,8 +10699,16 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
-  alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-  if (result) {
+  if (!result) {
+    if (ips.input_error) {
+      /* Interpretation failed due to an error node in the IL.  Continue
+         with an error constant, but treat interpretation as successful. */
+      set_error_constant(result_con);
+      result = TRUE;
+    }  /* if */
+    /* Nothing more to be done. */
+  } else {
+    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
                            result_storage, /*implied_src=*/NULL)) {
       if (ips.input_error) {
