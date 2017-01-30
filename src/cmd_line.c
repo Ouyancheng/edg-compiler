@@ -5923,11 +5923,6 @@ file.
 #else /* !defined(DEFAULT_MAX_COST_CONSTEXPR_CALL) */
   comment_undefined_macro_name(DEFAULT_MAX_COST_CONSTEXPR_CALL);
 #endif /* defined(DEFAULT_MAX_COST_CONSTEXPR_CALL) */
-#if defined(DEFAULT_MAX_COUNT_CONSTEXPR_CALL)
-  define_numeric_valued_macro(DEFAULT_MAX_COUNT_CONSTEXPR_CALL);
-#else /* !defined(DEFAULT_MAX_COUNT_CONSTEXPR_CALL) */
-  comment_undefined_macro_name(DEFAULT_MAX_COUNT_CONSTEXPR_CALL);
-#endif /* defined(DEFAULT_MAX_COUNT_CONSTEXPR_CALL) */
 #if defined(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL)
   define_numeric_valued_macro(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL);
 #else /* !defined(DEFAULT_MAX_DEPTH_CONSTEXPR_CALL) */
@@ -10621,11 +10616,7 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION < 407 && DO_IL_LOWERING && ... */
   if (constexpr_enabled && max_cost_constexpr_call == 0) {
-    if (relaxed_constexpr_enabled) {
-      max_cost_constexpr_call = DEFAULT_MAX_COST_CONSTEXPR_CALL;
-    } else {
-      max_cost_constexpr_call = DEFAULT_MAX_COUNT_CONSTEXPR_CALL;
-    }  /* if */
+    max_cost_constexpr_call = DEFAULT_MAX_COST_CONSTEXPR_CALL;
   }  /* if */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */

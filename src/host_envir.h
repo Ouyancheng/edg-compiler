@@ -936,23 +936,12 @@ Initial value for the global variable max_depth_constexpr_call.
 #endif /* ifndef DEFAULT_MAX_DEPTH_CONSTEXPR_CALL */
 
 /*
-The default maximum number of C++11 constexpr function and constructor call
-expansions from a single top-level call.  If we reach the maximum, the next
-call is considered non-foldable, which probably makes the overall expression
-non-constant.  The C++11 standard has no specific minimum value.  Initial
-value for the global variable max_constexpr_call_cost in C++11 mode.
-*/
-#ifndef DEFAULT_MAX_COUNT_CONSTEXPR_CALL
-#define DEFAULT_MAX_COUNT_CONSTEXPR_CALL 50000
-#endif /* ifndef DEFAULT_MAX_COUNT_CONSTEXPR_CALL */
-
-/*
 The default maximum cost of a C++14-style ("relaxed") constexpr function or
 constructor call evaluation.  Two units of cost are counted for every call and
 one unit for every loop "back" branch.    If we reach the maximum, the next
 call is considered non-foldable, which probably makes the overall expression
 non-constant.  The C++14 standard has no specific minimum value.  Initial
-value for the global variable max_constexpr_call_cost in C++14 mode.
+value for the global variable max_constexpr_call_cost.
 */
 #ifndef DEFAULT_MAX_COST_CONSTEXPR_CALL
 #define DEFAULT_MAX_COST_CONSTEXPR_CALL 2000000
