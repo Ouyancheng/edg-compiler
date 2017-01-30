@@ -1,5 +1,24 @@
 Version 4.13
 
+1/30/17  [EDGcpfe/17155]
+Internal error on "extern template" in class template
+
+An internal error could occur (in push_template_instantiation_scope) if
+an "extern template" directive appeared in a class template.  Now fixed.
+Such a directive is not allowed in class scopes, but is permitted in
+Microsoft mode.  The Microsoft mode emulation is now restricted to
+microsoft_version < 1600.
+
+  template <typename> struct A {
+    template <typename> class B;
+    typedef B<char> B2;
+    struct A {
+      template<typename T > B<T>& f(B<T  >&);
+      extern template B2& f(B2&);
+    };
+  };
+
+
 1/29/17  [EDGcpfe/17958]
 GNU C++ compatibility: abort substituting arguments into variadic template
 template parameter

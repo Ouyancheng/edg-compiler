@@ -30715,6 +30715,7 @@ body.  If possible, instantiate the routine.
   a_master_instance_ptr		mip;
 
   sym = symbol_for(rp);
+  set_instance_required(sym, TRUE, SIR_CONSTANT_CONTEXT);
   check_assertion(sym != NULL);
   check_assertion(is_simple_function_symbol(sym));
   tip = sym->variant.routine.instance_ptr;
@@ -33745,16 +33746,20 @@ directive_start_pos points to the beginning of the directive (e.g., for
   if (ssep->kind != (a_scope_kind)sck_file &&
       ssep->kind != (a_scope_kind)sck_namespace &&
       ssep->kind != (a_scope_kind)sck_namespace_extension &&
-      !(ssep->kind == (a_scope_kind)sck_class_struct_union &&
-        extern_template)) {
+      (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+       extern_template)) {
     an_error_severity	severity = es_error;
     /* The Microsoft compiler allows an explicit specialization in a
        class scope. */
-    if (microsoft_mode && ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    if (microsoft_mode && microsoft_version < 1600 &&
+        ssep->kind == (a_scope_kind)sck_class_struct_union) {
       severity = es_warning;
     }  /* if */
     diagnostic(severity, ec_explicit_instantiation_not_in_namespace_scope);
-    discard = severity == es_error;
+    /* If a Microsoft class-scope "extern template" is present, ignore it
+       if we are in prototype instantiation. */
+    discard = severity == es_error ||
+              is_prototype_instantiation_context();
   }  /* if */
   if (discard) {
     flush_tokens();
