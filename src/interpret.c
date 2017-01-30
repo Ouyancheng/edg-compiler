@@ -3824,16 +3824,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         if (con->orig_type != NULL) {
           /* The pointer-to-member was converted.  Check that the conversion
              is a standard conversion. */
-          a_std_conv_descr std_conv;
+          a_type_ptr  src_mem_type = pm_member_type(con->orig_type);
+          a_type_ptr  dst_mem_type = pm_member_type(con->type);
+          a_boolean   qualifiers_added;
           if (!is_ptr_to_member_type(con->type) ||
-              !impl_ptr_to_member_conversion(
-                                      con->orig_type,
-                                      /*source_is_constant=*/TRUE,
-                                      /*source_is_function=*/FALSE,
-                                      con,
-                                      con->type,
-                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
-                                      &std_conv)) {
+              !member_types_correspond(
+                                   dst_mem_type, src_mem_type,
+                                   con->variant.ptr_to_member.is_function_ptr,
+                                   /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                   &qualifiers_added)) {
             a_source_position  *diag_pos = &con->source_corresp.decl_position;
             if (diag_pos->seq == 0) {
               diag_pos = &ips->position;
