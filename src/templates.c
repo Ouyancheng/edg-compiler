@@ -30715,7 +30715,6 @@ body.  If possible, instantiate the routine.
   a_master_instance_ptr		mip;
 
   sym = symbol_for(rp);
-  set_instance_required(sym, TRUE, SIR_CONSTANT_CONTEXT);
   check_assertion(sym != NULL);
   check_assertion(is_simple_function_symbol(sym));
   tip = sym->variant.routine.instance_ptr;
