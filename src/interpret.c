@@ -5662,6 +5662,10 @@ otherwise, return FALSE and update *ips accordingly.
     info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
+  } else if (callee->is_prototype_instantiation) {
+    info_with_pos_sym(ec_constexpr_call_not_interpretable,
+                      &call_node->position, symbol_for(callee), ips);
+    do_constexpr_fail(result);
   } else if (cost_exceeded(ips)) {
     more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                          &ips->diag_list);
@@ -5970,6 +5974,10 @@ the body of the (constructor) function proper.
   }  /* if */
   if (callee->function_def_number == NULL_function_def_number) {
     info_with_pos_sym(ec_constexpr_function_undefined, pos,
+                      symbol_for(callee), ips);
+    do_constexpr_fail(result);
+  } else if (callee->is_prototype_instantiation) {
+    info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
   } else if (cost_exceeded(ips)) {
@@ -9829,7 +9837,15 @@ the value representation of the integer value.
          eok_dot_field) know what to do with this kind of node. */
       break;
     case enk_routine:
-      make_function_address(result_storage, node_routine(expr));
+      { a_routine_ptr  rp = node_routine(expr);
+        if (!rp->is_prototype_instantiation) {
+          make_function_address(result_storage, node_routine(expr));
+        } else {
+          info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                        &expr->position, ips);
+          do_constexpr_fail(result);
+        }  /* if */
+      }
       break;
     case enk_temp_init:
       { a_dynamic_init_ptr     dip = expr->variant.init.dynamic_init;
@@ -10459,11 +10475,7 @@ FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type = skip_typerefs(expr->type);
 
-  if (scope_stack_top().in_prototype_instantiation) {
-    /* Don't attempt interpretation in template contexts. */
-    result = FALSE;
-    goto done;
-  } else if (is_constant_node(expr)) {
+  if (is_constant_node(expr)) {
     a_constant_ptr  expr_con = node_constant(expr);
     if (constant_is(expr_con, ck_template_param)) {
       /* Do not return a copy of template-dependent constant since it requires
@@ -10567,11 +10579,6 @@ return FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
-  if (scope_stack_top().in_prototype_instantiation) {
-    /* Don't attempt interpretation in template contexts. */
-    result = FALSE;
-    goto done;
-  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
@@ -10611,7 +10618,6 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-done:
   return result;
 }  /* interpret_constexpr_call */
 
@@ -10633,11 +10639,6 @@ source position of the initialization.
   a_byte                *result_storage;
   a_byte_count          n_bytes;
 
-  if (scope_stack_top().in_prototype_instantiation) {
-    /* Don't attempt interpretation in template contexts. */
-    result = FALSE;
-    goto done;
-  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
@@ -10684,7 +10685,6 @@ source position of the initialization.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
-done:
   return result;
 }  /* interpret_dynamic_init */
 
@@ -10705,11 +10705,6 @@ return FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type;
 
-  if (scope_stack_top().in_prototype_instantiation) {
-    /* Don't attempt interpretation in template contexts. */
-    result = FALSE;
-    goto done;
-  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;

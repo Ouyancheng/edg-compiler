@@ -13662,6 +13662,7 @@ e.g., if the source operand is an lvalue.
         }  /* if */
         expr = make_operator_node(op, dest_type, opexpr);
         if (is_implicit_cast) {
+          expr->position = opexpr->position;
           expr->variant.operation.compiler_generated = TRUE;
         }  /* if */
         if (is_reference_cast) {
