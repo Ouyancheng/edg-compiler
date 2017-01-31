@@ -1615,9 +1615,11 @@ void make_cli_array_constant(an_expr_node_ptr gcnew_expr,
                              a_constant_ptr   array_con);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if DO_IL_LOWERING
 extern
 a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
                                       an_expr_copy_options_set options);
+#endif /* DO_IL_LOWERING */
 
 extern void set_dynamic_init_constant(a_dynamic_init_ptr dip,
                                       a_constant         *constant);

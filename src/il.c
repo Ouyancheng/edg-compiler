@@ -13025,6 +13025,7 @@ scan.
   }  /* if */
 }  /* do_instantiations_for_copied_default_arg_expr */
 
+#if DO_IL_LOWERING
 
 a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
                                       an_expr_copy_options_set options)
@@ -13057,6 +13058,7 @@ options for the copy.
   return copy;
 }  /* copy_ctor_init */
 
+#endif /* DO_IL_LOWERING */
 
 void set_dynamic_init_constant(a_dynamic_init_ptr dip,
                                a_constant         *constant)
