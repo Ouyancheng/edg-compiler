@@ -5955,7 +5955,11 @@ the body of the (constructor) function proper.
   a_boolean         result = TRUE;
 
   /* Retrieve the routine scope, or issue an error. */
-  if (!callee->is_constexpr) {
+  if (callee == NULL) {
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted, pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  } else if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                       pos, symbol_for(callee), ips);
     do_constexpr_fail(result);
@@ -10455,14 +10459,22 @@ FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type = skip_typerefs(expr->type);
 
-  if (is_prototype_instantiation_context()) {
+  if (scope_stack_top().in_prototype_instantiation) {
     /* Don't attempt interpretation in template contexts. */
     result = FALSE;
     goto done;
   } else if (is_constant_node(expr)) {
-    (void)copy_constant_full(node_constant(expr), result_con,
-                             CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
-    goto done;
+    a_constant_ptr  expr_con = node_constant(expr);
+    if (constant_is(expr_con, ck_template_param)) {
+      /* Do not return a copy of template-dependent constant since it requires
+         substitution before deciding that it is an actual constant value.
+         (Also, it may have associated rescan info that would not be equivalent
+         in the copy.) */
+    } else {
+      (void)copy_constant_full(expr_con, result_con,
+                               CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+      goto done;
+    }  /* if */
   }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
@@ -10555,7 +10567,7 @@ return FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
-  if (is_prototype_instantiation_context()) {
+  if (scope_stack_top().in_prototype_instantiation) {
     /* Don't attempt interpretation in template contexts. */
     result = FALSE;
     goto done;
@@ -10621,7 +10633,7 @@ source position of the initialization.
   a_byte                *result_storage;
   a_byte_count          n_bytes;
 
-  if (is_prototype_instantiation_context()) {
+  if (scope_stack_top().in_prototype_instantiation) {
     /* Don't attempt interpretation in template contexts. */
     result = FALSE;
     goto done;
@@ -10693,7 +10705,7 @@ return FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type;
 
-  if (is_prototype_instantiation_context()) {
+  if (scope_stack_top().in_prototype_instantiation) {
     /* Don't attempt interpretation in template contexts. */
     result = FALSE;
     goto done;

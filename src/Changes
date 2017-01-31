@@ -1,5 +1,26 @@
 Version 4.13
 
+1/31/17  [EDGcpfe/17934]
+Failure to fold constexpr calls while matching template declarations
+
+When matching template declarations it is sometimes necessary to evaluate calls
+to constexpr functions in template arguments.  For example:
+
+  template<typename,int> struct A;
+  constexpr int z() { return 0; }
+  template<typename T> struct A<T, 0> {
+    A<T, 0>* f();
+  };
+  template<typename T> A<T, z()>* A<T,0>::f() {  // Previously an error.
+    return 0;                                    // Now okay.
+  }
+
+Previously, the front end failed to fold the call to "z()" in the template
+argument of the out-of-class member definition (treating it instead as a
+template-dependent expression), which in turn resulted in a spurious
+incompatibility error.  That is now fixed.
+
+
 1/31/17  [EDGcpfe/17970]
 Memory corruption with lambda in explicitly specialized static data member
 
