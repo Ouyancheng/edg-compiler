@@ -5807,11 +5807,11 @@ otherwise, return FALSE and update *ips accordingly.
           do_constexpr_fail(result);
         }  /* if */
         mark_complete_object_initialized(arg_bytes);
-        if (restore_lvalue) {
-          arg->is_lvalue = TRUE;
-        } else if (restore_xvalue) {
-          arg->is_xvalue = TRUE;
-        }  /* if */
+      }  /* if */
+      if (restore_lvalue) {
+        arg->is_lvalue = TRUE;
+      } else if (restore_xvalue) {
+        arg->is_xvalue = TRUE;
       }  /* if */
       if (!result) {
         goto done;
@@ -6086,11 +6086,11 @@ the body of the (constructor) function proper.
           do_constexpr_fail(result);
         }  /* if */
         mark_complete_object_initialized(arg_bytes);
-        if (restore_lvalue) {
-          arg->is_lvalue = TRUE;
-        } else if (restore_xvalue) {
-          arg->is_xvalue = TRUE;
-        }  /* if */
+      }  /* if */
+      if (restore_lvalue) {
+        arg->is_lvalue = TRUE;
+      } else if (restore_xvalue) {
+        arg->is_xvalue = TRUE;
       }  /* if */
       if (!result) {
         goto done;
