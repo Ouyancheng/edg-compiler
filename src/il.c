@@ -13025,41 +13025,6 @@ scan.
   }  /* if */
 }  /* do_instantiations_for_copied_default_arg_expr */
 
-#if DO_IL_LOWERING
-
-a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
-                                      an_expr_copy_options_set options)
-/*
-Return a copy of the specified constructor init.   options is a set of
-options for the copy.
-*/
-{
-  a_constructor_init_ptr  copy;
-
-  copy = alloc_ctor_init(ctor_init->kind);
-  *copy = *ctor_init;
-  copy->next = NULL;
-  if (ctor_init->initializer != NULL) {
-    copy->initializer = copy_dynamic_init(ctor_init->initializer, options);
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  copy->ctor_init_range = null_source_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  switch (ctor_init->kind) {
-    case cik_field:
-    case cik_virtual_base_class:
-    case cik_direct_base_class:
-    case cik_delegation:
-      /* These are allocated in the file scope. */
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  return copy;
-}  /* copy_ctor_init */
-
-#endif /* DO_IL_LOWERING */
-
 void set_dynamic_init_constant(a_dynamic_init_ptr dip,
                                a_constant         *constant)
 /*
