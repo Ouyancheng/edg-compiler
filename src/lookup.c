@@ -2394,6 +2394,41 @@ done:
 }  /* do_using_directive_lookup */
 
 
+static a_symbol_ptr do_normal_using_directive_lookup_if_needed(
+				a_scope_stack_entry_ptr	ssep,
+				a_symbol_ptr		sym_from_scope,
+				a_symbol_locator	*locator,
+				a_lookup_state_ptr	lookup_state)
+/*
+This routine is called during normal (unqualified) lookup to perform
+a using-directive lookup if appropriate based on the current scope and
+lookup state.  The result of the lookup is returned, or sym_from_scope if
+no lookup is done.  See do_using_directive_lookup for a description of
+the parameters.
+*/
+{
+  a_symbol_ptr	sym = sym_from_scope;
+  a_scope_kind	kind = ssep->kind;
+
+  /* If this is a namespace scope or the file scope, also look for
+     any symbols that are visible because of using directives.
+     Starting with g++ 4.0, a symbol from a using-directive is only
+     considered if the normal lookup did not find a symbol. */
+  if ((kind == (a_scope_kind)sck_file ||
+       kind == (a_scope_kind)sck_namespace_extension ||
+       kind == (a_scope_kind)sck_namespace_reactivation ||
+       kind == (a_scope_kind)sck_namespace) &&
+      ssep->using_directives_that_apply_here != NULL &&
+      (!lookup_state->is_friend_lookup ||
+       (friend_class_decl_can_find_using_dir &&
+        (!gpp_mode || gnu_version < 40000 || sym_from_scope == NULL)))) {
+    sym = do_using_directive_lookup(ssep, sym_from_scope, locator,
+                                    lookup_state);
+  }  /* if */
+  return sym;
+}  /* do_normal_using_directive_lookup_if_needed */
+
+
 static
 a_symbol_ptr active_scope_lookup(a_scope_kind			kind,
                                  a_scope_stack_entry_ptr	ssep,
@@ -2478,18 +2513,10 @@ lookup processing.
     /* If a type symbol was found and no other matching tag was present,
        use the type symbol. */
     if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
-    /* If this is a namespace scope or the file scope, also look for
-       any symbols that are visible because of using directives.
-       Starting with g++ 4.0, a symbol from a using-directive is only
-       considered if the normal lookup did not find a symbol. */
-    if ((kind == (a_scope_kind)sck_file ||
-        kind == (a_scope_kind)sck_namespace) &&
-        ssep->using_directives_that_apply_here != NULL &&
-        (!lookup_state->is_friend_lookup ||
-         (friend_class_decl_can_find_using_dir &&
-          (!gpp_mode || gnu_version < 40000 || sym == NULL)))) {
-      sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
-    }  /* if */
+    /* Do a using-directive lookup if needed based on the scope and
+       lookup options. */
+    sym = do_normal_using_directive_lookup_if_needed(ssep, sym, locator,
+                                                     lookup_state);
   }  /* if */
   if (sym == NULL &&
       (kind == (a_scope_kind)sck_class_struct_union ||
@@ -2715,16 +2742,10 @@ that do normal id lookup processing.
             sym = namespace_symbol;
           }  /* if */
         }  /* if */
-        /* If this is a namespace scope, also look for any symbols that
-           are visible because of using directives. */
-        if ((kind == (a_scope_kind)sck_namespace_extension ||
-             kind == (a_scope_kind)sck_namespace_reactivation ||
-             kind == (a_scope_kind)sck_file) &&
-            ssep->using_directives_that_apply_here != NULL &&
-            (!lookup_state->is_friend_lookup ||
-             friend_class_decl_can_find_using_dir)) {
-          sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
-        }  /* if */
+        /* Do a using-directive lookup if needed based on the scope and
+           lookup options. */
+        sym = do_normal_using_directive_lookup_if_needed(ssep, sym, locator,
+                                                         lookup_state);
       }  /* if */
       if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
         /* There is no inactive symbol that is in this class. */
@@ -3282,7 +3303,11 @@ that do normal id lookup processing.
         /* Skip class reactivation scopes for linkage lookups, except when
            looking for a template name. */
       } else if (is_inline_namespace_to_skip) {
-        /* Skip inline namespaces in most contexts (see above). */
+        /* Skip inline namespaces in most contexts (see above), but
+           do a using-directive lookup if needed based on the scope and
+           lookup options. */
+        sym = do_normal_using_directive_lookup_if_needed(ssep, sym, locator,
+                                                         lookup_state);
       } else {
         sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
         if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&
@@ -3317,8 +3342,12 @@ that do normal id lookup processing.
          template declaration scope, the template parameter list in
          the template_decl_info is used. */
       sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
-    } else if (is_inline_namespace_to_skip) {
-      /* Skip inline namespaces in most contexts (see above). */
+    } else if (0 && is_inline_namespace_to_skip) {
+      /* Skip inline namespaces in most contexts (see above), but
+         do a using-directive lookup if needed based on the scope and
+         lookup options. */
+      sym = do_normal_using_directive_lookup_if_needed(ssep, sym, locator,
+                                                       lookup_state);
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front
