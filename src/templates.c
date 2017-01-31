@@ -33744,11 +33744,9 @@ directive_start_pos points to the beginning of the directive (e.g., for
   add_stop_token(tok_semicolon);
   if (ssep->kind != (a_scope_kind)sck_file &&
       ssep->kind != (a_scope_kind)sck_namespace &&
-      ssep->kind != (a_scope_kind)sck_namespace_extension &&
-      !(ssep->kind == (a_scope_kind)sck_class_struct_union &&
-        extern_template)) {
+      ssep->kind != (a_scope_kind)sck_namespace_extension) {
     an_error_severity	severity = es_error;
-    /* The Microsoft compiler allows an explicit specialization in a
+    /* The Microsoft compiler allows an explicit instantiation in
        class scope. */
     if (microsoft_mode && microsoft_version < 1600 &&
         ssep->kind == (a_scope_kind)sck_class_struct_union) {
