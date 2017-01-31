@@ -38896,6 +38896,8 @@ wrap_up_coroutine_result_expression.)
        optimization. */
     scope_stack[depth_innermost_function_scope]
                                   .return_value_optimization_possible = FALSE;
+    scope_stack[depth_innermost_function_scope].il_scope
+                               ->variant.routine.return_value_variable = NULL;
     icp = parse_braced_init_list(/*bundle=*/FALSE);
 #if COROUTINES_ALLOWED
     if (curr_routine->is_coroutine) {

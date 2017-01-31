@@ -1,5 +1,33 @@
 Version 4.13
 
+1/31/17  [EDGcpfe/17953]
+Return value optimization and returning braced initializers
+
+The front end previously failed to disable the return value optimization if
+a potentially optimizable return statement is followed by a return statement
+with a braced initializer.  For example:
+
+  #include <initializer_list>
+  struct S {
+    S() {}
+    S(std::initializer_list<int>) {}
+    ~S() {}
+  };
+  S f(bool b) {
+    S s;
+    if (b) {
+      return a;
+    } else {
+      return { g() };  // Should disable the return value optimization.
+    }
+  }
+
+Previously, function f was marked as incorrectly being subject to the return
+value optimization (i.e., s was constructed directly in the return value
+storage), even though that would produce incorrect results if the "else"
+branch of the "if" statement is followed.  That is now fixed.
+
+
 1/31/17  [EDGcpfe/17934]
 Failure to fold constexpr calls while matching template declarations
 
