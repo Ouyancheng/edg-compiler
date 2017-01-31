@@ -2273,7 +2273,8 @@ the fields implied by the lambda's capture list).
              cases, the discriminator is more arbitrary (but still unique),
              but its actual value is unimportant. */
           { a_scope_stack_entry_ptr  ssep;
-            if (tip != NULL) {
+            if (tip != NULL &&
+                depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
               ssep = &scope_stack[depth_innermost_instantiation_scope];
             } else {
               ssep = &scope_stack_top();

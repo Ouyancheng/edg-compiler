@@ -1,5 +1,21 @@
 Version 4.13
 
+1/31/17  [EDGcpfe/17970]
+Memory corruption with lambda in explicitly specialized static data member
+
+When a lambda appears in the initializer for an explicitly-specialized static
+data member, the front end modified data at a negative offset in the scope
+stack (in make_closure_class).  For example:
+
+  template<typename> struct X {
+    static void (*fn_ptr)();
+  };
+  template<> void (*X<void>::ptr_fun)() = [](){};
+     // Previously potentially corrupted memory.
+
+This is now fixed.
+
+
 1/31/17  [EDGcpfe/17798]
 Microsoft compatibility: String literals in array of character initializers
 
