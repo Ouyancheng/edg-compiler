@@ -830,19 +830,23 @@ remove_any_extraneous_braces:
             elem_is.init_dip != NULL) {
           /* Issue a diagnostic.  Attempt to interpret the dynamic initializer
              to provide a more specific reason for the problem. */
-          a_diagnostic_ptr  dp;
           a_diag_list       diag_list;
-          a_boolean         folded;
           a_constant_ptr    folded_value = local_constant();
           a_source_position  *diag_pos = init_component_pos(icp);
           clear_diag_list(&diag_list);
-          folded = interpret_dynamic_init(elem_is.init_dip, diag_pos,
-                                          dest_type, folded_value, &diag_list);
-          check_assertion(!folded);
+          if (!interpret_dynamic_init(elem_is.init_dip, diag_pos, dest_type,
+                                      folded_value, &diag_list)) {
+            a_diagnostic_ptr  dp;
+            dp = pos_start_error(ec_expr_not_constant, diag_pos);
+            add_more_info_list(dp, &diag_list);
+            end_diagnostic(dp);
+          } else {
+            /* This could happen if the interpreter ran into an error node.
+               (The interpreter "succeeds" with an error constants in such
+               cases.) */
+            discard_more_info_list(&diag_list);
+          }  /* if */
           release_local_constant(&folded_value);
-          dp = pos_start_error(ec_expr_not_constant, diag_pos);
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
         }  /* if */
         if (!is->check_validity_only) {
           elem_is.init_dip = NULL;
