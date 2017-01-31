@@ -1,5 +1,24 @@
 Version 4.13
 
+1/31/17  [EDGcpfe/17802]
+Defaulted special members and constexpr
+
+Defaulted special members may be implicitly constexpr.  However, the front end
+sometimes failed to recognize this, leading to spurious errors.  For example:
+
+  struct B {
+    constexpr B() {}
+    constexpr B(B const&) {}
+  };
+  struct D: B {
+    constexpr D(): B() {}
+    D(D const&) = default;  // Should be implicitly constexpr.
+  };
+  constexpr D d1, d2(d1);   // Previously an error.  Now okay.
+
+This is now fixed.
+
+
 1/30/17  [EDGcpfe/17155]
 Internal error on "extern template" in class template
 

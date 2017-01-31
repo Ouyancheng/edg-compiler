@@ -21307,8 +21307,9 @@ static void check_defaulted_members(
 Check that the parameters of any "= default" copy constructor or copy
 assignment operator of class_type are not const-qualified if the parameter of
 a corresponding generated member would not be const-qualified.  Also add the
-defaulted special member to the inline function list if needed.  *gsfd tracks
-properties of generated special members.
+defaulted special members to the inline function list if needed and mark them
+as constexpr if appropriate.  *gsfd tracks properties of generated special
+members.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
@@ -21321,18 +21322,52 @@ properties of generated special members.
          parameter has the expected qualifiers. */
       if (rtsp->param_type_list != NULL) {
         a_type_ptr  param_tp = rtsp->param_type_list->type;
-        if (is_reference_type(param_tp)) {
-          param_tp = type_pointed_to(param_tp);
-          if (get_type_qualifiers(param_tp) & TQ_CONST) {
-            if (special_kind_is(rp, sfk_constructor) &&
+        param_tp = skip_typerefs(param_tp);
+        if (special_kind_is(rp, sfk_constructor) &&
+            param_tp->kind == (a_type_kind)tk_pointer &&
+            param_tp->variant.pointer.is_reference) {
+          /* A copy of move constructor. */
+          if (param_tp->variant.pointer.is_rvalue_reference) {
+            if (constexpr_enabled && !gsfd->move_ctor_not_constexpr &&
+                !class_type
+                      ->variant.class_struct_union.any_virtual_base_classes) {
+              rp->is_constexpr = TRUE;
+            }  /* if */
+          } else {
+            a_type_ptr  utp = param_tp->variant.pointer.type;
+            if ((get_type_qualifiers(utp) & TQ_CONST) &&
                 (gsfd->copy_ctor_qualifiers & TQ_CONST) == 0) {
               pos_error(ec_defaulted_copy_ctor_cannot_have_const_parameter,
                         &rp->source_corresp.decl_position);
-            } else if (special_kind_is(rp, sfk_operator) &&
-                       rp->variant.opname_kind == (an_opname_kind)onk_assign &&
-                       (gsfd->copy_assign_qualifiers & TQ_CONST) == 0) {
+            }  /* if */
+            if (constexpr_enabled && !gsfd->copy_ctor_not_constexpr &&
+                !class_type
+                      ->variant.class_struct_union.any_virtual_base_classes) {
+              rp->is_constexpr = TRUE;
+            }  /* if */
+          }  /* if */
+        } else if (special_kind_is(rp, sfk_operator) &&
+                   rp->variant.opname_kind == (an_opname_kind)onk_assign &&
+                   param_tp->kind == (a_type_kind)tk_pointer &&
+                   param_tp->variant.pointer.is_reference) {
+          /* A copy of move assignment operator. */
+          if (param_tp->variant.pointer.is_rvalue_reference) {
+            if (constexpr_enabled && !gsfd->move_assign_not_constexpr &&
+                !class_type
+                      ->variant.class_struct_union.any_virtual_base_classes) {
+              rp->is_constexpr = TRUE;
+            }  /* if */
+          } else {
+            a_type_ptr  utp = param_tp->variant.pointer.type;
+            if ((get_type_qualifiers(utp) & TQ_CONST) &&
+                (gsfd->copy_assign_qualifiers & TQ_CONST) == 0) {
               pos_error(ec_defaulted_assignment_cannot_have_const_parameter,
                         &rp->source_corresp.decl_position);
+            }  /* if */
+            if (constexpr_enabled && !gsfd->copy_assign_not_constexpr &&
+                !class_type
+                      ->variant.class_struct_union.any_virtual_base_classes) {
+              rp->is_constexpr = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
