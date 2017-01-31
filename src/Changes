@@ -1,5 +1,13 @@
 Version 4.13
 
+1/31/17  [EDGcpfe/17798]
+Microsoft compatibility: String literals in array of character initializers
+
+The Microsoft extension that allows a character array to be initialized with
+a braced list of character values and string values (see the entry of 7/9/14
+for EDGcpfe/14985) is now disabled when permissive mode is disabled.
+
+
 1/31/17  [EDGcpfe/17802]
 Defaulted special members and constexpr
 

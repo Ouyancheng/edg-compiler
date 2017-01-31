@@ -2120,7 +2120,8 @@ initialization).  *is describes the initialization as a whole.
         break;
       } else if (no_bound || idx < ecount) {
         a_constant_ptr  elem_con;
-        if (microsoft_mode && braced && may_be_string_type(atype) &&
+        if (microsoft_mode && ms_permissive && braced &&
+            may_be_string_type(atype) &&
             is_string_literal_component(icp, &elem_con) &&
             f_identical_types(etype, array_element_type(elem_con->type),
                               ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
