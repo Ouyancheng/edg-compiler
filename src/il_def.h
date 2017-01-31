@@ -3804,16 +3804,6 @@ typedef struct a_dynamic_init {
 			   be rescanned later to redo semantic analysis,
 			   points to extra front-end-only information that
 			   is needed for the rescan.  NULL otherwise. */
-  int32_t	constexpr_call_number;
-			/* Used for constexpr evaluation, to catch dangling
-			   pointers to temporaries.  Indicates the context
-			   in which the temporary was created, by way of
-			   the constexpr evaluation call number in which
-			   the temporary was created. -1 represents the full
-			   expression surrounding the outermost call.
-			   Front end only.  Note that one must consult
-			   other fields like static_temp in order to
-			   determine the lifetime of the temporary. */
 } a_dynamic_init;
 
 

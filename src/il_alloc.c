@@ -2287,7 +2287,6 @@ Initialize a dynamic_init entry of the kind specified.
   dip->lifetime_of_overlapping_temps = NULL;
   dip->master_entry                  = NULL;
   dip->rescan_info                   = NULL;
-  dip->constexpr_call_number         = 0;
 }  /* clear_dynamic_init */
 
 
