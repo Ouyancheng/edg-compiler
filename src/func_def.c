@@ -953,42 +953,10 @@ constructor.
     } else if (special_kind_is(routine, sfk_constructor)) {
       /* Constructor.  Must have an empty statement as the body, i.e.,
          an implicit return. */
-      a_constructor_init_ptr ctor_init, *next_ptr_ptr;
       scope->is_constexpr_routine = TRUE;
-      scope->variant.routine.variant.constexpr_constructor_inits = NULL;
-      /* Make a copy of the constructor inits list so that if IL lowering is
-         being done we preserve unlowered copies. */
-      next_ptr_ptr =
-                   &scope->variant.routine.variant.constexpr_constructor_inits;
-      for (ctor_init = scope->variant.routine.constructor_inits;
-           ctor_init != NULL;
-           ctor_init = ctor_init->next) {
-        a_constructor_init_ptr copy = copy_ctor_init(
-                                         ctor_init,
-                                         CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR |
-                                         CE_COPY_NOT_EVALUATED);
-        *next_ptr_ptr = copy;
-        next_ptr_ptr = &copy->next;
-      }  /* for */
     } else {
-      /* constexpr function.  A copy of the return expression or dynamic
-         init is made (so that an unlowered version of the expression or
-         dynamic init is preserved). */
+      /* constexpr function. */
       scope->is_constexpr_routine = TRUE;
-      if (routine->compiler_generated || routine->is_defaulted) {
-        /* No need to save the return expression. */
-      } else if (scope->has_constexpr_return_expr) {
-        scope->variant.routine.variant.constexpr_return_expr = copy_expr_tree(
-                          scope->variant.routine.variant.constexpr_return_expr,
-                          CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR |
-                          CE_COPY_NOT_EVALUATED);
-      } else {
-        scope->variant.routine.variant.constexpr_return_dynamic_init =
-              copy_dynamic_init(
-                  scope->variant.routine.variant.constexpr_return_dynamic_init,
-                  CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR |
-                  CE_COPY_NOT_EVALUATED);
-      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_routine_constexpr_info */

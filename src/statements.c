@@ -6250,7 +6250,6 @@ The syntax is:
         !special_kind_is(current_routine_entry(), sfk_constructor)) {
       /* A C++11 constexpr function must have exactly one return.  (That
          restriction is lifted in C++14.) */
-      a_scope_ptr scope = scope_stack[depth_innermost_function_scope].il_scope;
       if (scope_stack[depth_innermost_function_scope].has_at_least_one_return){
         /* There has already been at least one return in this constexpr
            function; give an error and disqualify the routine from being
@@ -6264,18 +6263,6 @@ The syntax is:
              in other cases, an error should have been issued already. */
           scope_stack[depth_innermost_function_scope].constexpr_ruled_out =
                                                                          TRUE;
-        } else {
-          /* Assume this will be the only return statement in the function
-             body and capture a pointer to return expression or dynamic
-             init here (a copy is made later so that if IL lowering is
-             being done an unlowered copy is preserved). */
-          if (return_expr != NULL) {
-            scope->has_constexpr_return_expr = TRUE;
-            scope->variant.routine.variant.constexpr_return_expr = return_expr;
-          } else {
-            scope->has_constexpr_return_expr = FALSE;
-            scope->variant.routine.variant.constexpr_return_dynamic_init = dip;
-          }  /* if */
         }  /* if */
       }  /* if */
 #if COROUTINES_ALLOWED

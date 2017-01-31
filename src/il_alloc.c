@@ -4400,14 +4400,12 @@ Initialize the variable fields of the scope entry pointed to by sp.
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:
-      check_assertion(!sp->has_constexpr_return_expr);
       sp->variant.routine.ptr                           = assoc_routine;
       sp->variant.routine.parameters                    = NULL;
       sp->variant.routine.constructor_inits             = NULL;
       sp->variant.routine.lifetime_of_local_static_vars = NULL;
       sp->variant.routine.this_param_variable           = NULL;
       sp->variant.routine.return_value_variable         = NULL;
-      sp->variant.routine.variant.constexpr_return_dynamic_init = NULL;
       break;
     case sck_condition:
       sp->variant.assoc_statement = NULL;
@@ -4449,7 +4447,6 @@ points to the associated routine if the kind is sck_function.
   sp->scope_orphaned_list_header_generated = FALSE;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   sp->is_constexpr_routine = FALSE;
-  sp->has_constexpr_return_expr = FALSE;
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;
