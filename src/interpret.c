@@ -1654,7 +1654,7 @@ typedef struct a_constexpr_address {
 #define is_array_element(cap)                                                \
   ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
 
-#define is_bit_field(cap)                                                    \
+#define is_bit_field_lvalue(cap)                                             \
   ((((a_constexpr_address*)(cap))->flags & CA_BIT_FIELD) != 0)
 
 #define is_function_address(cap)                                             \
@@ -1820,7 +1820,7 @@ representation to fit in the bit field length.
 
 #define trim_bit_field_if_needed(addr)                                        \
 {                                                                             \
-  if (is_bit_field(addr)) {                                                   \
+  if (is_bit_field_lvalue(addr)) {                                            \
     unsigned   length = (addr)->length;                                       \
     a_boolean  is_signed_field = (length & 1);                                \
     length = length/2;                                                        \
@@ -10217,7 +10217,7 @@ diagnostic in *ips.
             /* Create an abk_constant or abk_temporary entry. */
             a_byte  *base_address;
             cp = alloc_constant((a_constant_repr_kind)ck_error);
-            if (cap->length != 0 && !is_bit_field(cap)) {
+            if (cap->length != 0 && !is_bit_field_lvalue(cap)) {
               /* If we're pointing at or into an array, a constant for the
                  whole array must be allocated. */
               a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
