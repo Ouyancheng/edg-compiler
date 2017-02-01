@@ -3048,6 +3048,9 @@ Output the given a_constexpr_address flags as human-readable text.
   if (flags & CA_CONST_STORAGE) {
     (void)fprintf(f_debug, "const ");
   }  /* if */
+  if (flags & CA_LIFETIME_EXTENDED) {
+    (void)fprintf(f_debug, "lifetime-extended ");
+  }  /* if */
   if (flags == 0) {
     (void)fprintf(f_debug, "no flags ");
   }  /* if */
@@ -9895,6 +9898,11 @@ the value representation of the integer value.
           cap->alloc_seq_number = alloc_seq_number;
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
+          }  /* if */
+          if (tp->kind == (a_type_kind)tk_array) {
+            cap->flags |= CA_ARRAY_ELEMENT;
+            cap->length = tp->variant.array.variant.number_of_elements;
+            cap->variant.base_address = cap->address;
           }  /* if */
           if (!temp_lifetime) {
             cap->flags |= CA_LIFETIME_EXTENDED;
