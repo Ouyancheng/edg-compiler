@@ -21327,7 +21327,7 @@ members.
         if (special_kind_is(rp, sfk_constructor) &&
             param_tp->kind == (a_type_kind)tk_pointer &&
             param_tp->variant.pointer.is_reference) {
-          /* A copy of move constructor. */
+          /* A copy or move constructor. */
           if (param_tp->variant.pointer.is_rvalue_reference) {
             if (constexpr_enabled && !gsfd->move_ctor_not_constexpr &&
                 !class_type
@@ -21351,7 +21351,7 @@ members.
                    rp->variant.opname_kind == (an_opname_kind)onk_assign &&
                    param_tp->kind == (a_type_kind)tk_pointer &&
                    param_tp->variant.pointer.is_reference) {
-          /* A copy of move assignment operator. */
+          /* A copy or move assignment operator. */
           if (param_tp->variant.pointer.is_rvalue_reference) {
             if (constexpr_enabled && !gsfd->move_assign_not_constexpr &&
                 !class_type
