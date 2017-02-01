@@ -10486,10 +10486,10 @@ FALSE, and record diagnostic info in *diag_list.
   if (is_constant_node(expr)) {
     a_constant_ptr  expr_con = node_constant(expr);
     if (constant_is(expr_con, ck_template_param)) {
-      /* Do not return a copy of template-dependent constant since it requires
-         substitution before deciding that it is an actual constant value.
-         (Also, it may have associated rescan info that would not be equivalent
-         in the copy.) */
+      /* Do not return a copy of a template-dependent constant since it
+         requires substitution before deciding that it is an actual constant
+         value.  (Also, it may have associated rescan info that would not be
+         equivalent in the copy.) */
     } else {
       (void)copy_constant_full(expr_con, result_con,
                                CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
