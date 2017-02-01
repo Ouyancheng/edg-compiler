@@ -1603,11 +1603,11 @@ typedef struct a_constexpr_address {
 			   See the CA_... macros above. */
   unsigned int
 		length: 24;
-			/* If the CA_ARRAY_ELEMENT flag is set, the number of
-			   elements in the array.  If the CA_BIT_FIELD flag is
-			   set, twice the number of bits in the bit field
-			   designated by this lvalue, plus one if the bit field
-			   is signed.  Otherwise, the value is undefined. */
+			/* If the CA_ARRAY_ELEMENT flag is set or for an array
+		           lvalue, the number of elements in the array.  If the
+			   CA_BIT_FIELD flag is set, twice the number of bits
+			   in the bit field designated by this lvalue, plus one
+			   if the bit field is signed.  Otherwise, zero. */
 #define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
@@ -1653,6 +1653,9 @@ typedef struct a_constexpr_address {
 
 #define is_array_element(cap)                                                \
   ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
+
+#define is_bit_field(cap)                                                    \
+  ((((a_constexpr_address*)(cap))->flags & CA_BIT_FIELD) != 0)
 
 #define is_function_address(cap)                                             \
   ((((a_constexpr_address*)(cap))->flags & CA_FUNCTION) != 0)
@@ -1817,7 +1820,7 @@ representation to fit in the bit field length.
 
 #define trim_bit_field_if_needed(addr)                                        \
 {                                                                             \
-  if ((addr)->flags & CA_BIT_FIELD) {                                         \
+  if (is_bit_field(addr)) {                                                   \
     unsigned   length = (addr)->length;                                       \
     a_boolean  is_signed_field = (length & 1);                                \
     length = length/2;                                                        \
@@ -9900,9 +9903,9 @@ the value representation of the integer value.
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
           if (tp->kind == (a_type_kind)tk_array) {
-            cap->flags |= CA_ARRAY_ELEMENT;
+            /* We referring to the array as a whole; not just one element of
+               it.  Record the length in case it is needed later on. */
             cap->length = tp->variant.array.variant.number_of_elements;
-            cap->variant.base_address = cap->address;
           }  /* if */
           if (!temp_lifetime) {
             cap->flags |= CA_LIFETIME_EXTENDED;
@@ -10172,6 +10175,7 @@ diagnostic in *ips.
           a_byte          *mptr;
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
+          utp = skip_typerefs(utp);
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
           get_stack_bytes(ips, cap->complete_object, mptr);
           if (mptr != NULL) {
@@ -10213,14 +10217,19 @@ diagnostic in *ips.
             /* Create an abk_constant or abk_temporary entry. */
             a_byte  *base_address;
             cp = alloc_constant((a_constant_repr_kind)ck_error);
-            if (is_array_element(cap)) {
-              /* If we're pointing into an array, a constant for the whole
-                 array must be allocated. */
+            if (cap->length != 0 && !is_bit_field(cap)) {
+              /* If we're pointing at or into an array, a constant for the
+                 whole array must be allocated. */
               a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
               a_byte_count  offset;
-              base_address = get_base_address(cap);
+              if (is_array_element(cap)) {
+                base_address = get_base_address(cap);
+              } else {
+                base_address = cap->address;
+              }  /* if */
               offset = cap->address - base_address;
-              if (utp->incomplete && utp->kind == (a_type_kind)tk_array) {
+              if (!is_array_element(cap) ||
+                  (utp->incomplete && utp->kind == (a_type_kind)tk_array)) {
                 /* This can happen when binding a reference to an array with
                    no specified bound.  E.g.:
                      struct S { const int (&x)[]; };
