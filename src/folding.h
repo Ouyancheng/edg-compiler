@@ -250,7 +250,8 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
-                                     a_constant        *result_con);
+                                     a_constant        *result_con,
+                                     a_boolean         force_prvalue);
 
 extern void add_temp_init_backing_expression(a_constant         *con,
                                              a_dynamic_init_ptr dip);

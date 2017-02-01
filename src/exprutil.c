@@ -5442,7 +5442,8 @@ constant expressions, fold to a constant result.
         in_potential_constant_constexpr_context())) &&
       constexpr_call_folding_should_be_done() &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
-      fold_constexpr_expr(operand->variant.expression, con)) {
+      fold_constexpr_expr(operand->variant.expression, con,
+                          /*force_prvalue=*/FALSE)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
     make_constant_operand(con, operand);
@@ -19223,7 +19224,8 @@ it might produce an error).
             node->is_lvalue = FALSE;
             node->is_xvalue = FALSE;
             if (constexpr_enabled && allow_folding != NULL &&
-                fold_constexpr_expr(node, result_con)) {
+                fold_constexpr_expr(node, result_con,
+                                    /*force_prvalue=*/FALSE)) {
               /* x.*y, where x is a constexpr object. */
               con_expr_value = alloc_shareable_constant(result_con);
               node->type = prvalue_node_type;

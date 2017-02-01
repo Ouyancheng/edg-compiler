@@ -8561,7 +8561,8 @@ constant is set as well.
         fold_is_assignable(expr, constant, maintain_expression);
         break;
       case bok_builtin_addressof:
-        *not_a_constant = !fold_constexpr_expr(expr, constant);
+        *not_a_constant = !fold_constexpr_expr(expr, constant,
+                                               /*force_prvalue=*/FALSE);
         break;
       default:
         unexpected_condition();
@@ -9942,20 +9943,21 @@ value in *result_con and return TRUE; otherwise, return FALSE.
 
 
 a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
-                              a_constant        *result_con)
+                              a_constant        *result_con,
+                              a_boolean         force_prvalue)
 /*
 Attempt to fold the expression "expr" to a constant as part of a constexpr
 evaluation.  If the expression folds to a constant, place the constant in
 *result_con and return TRUE; otherwise, return FALSE.  The expression can be
-an lvalue, xvalue, or prvalue.
+an lvalue, xvalue, or prvalue.  If force_prvalue is TRUE, the value is
+computed as if expr were converted to a prvalue.
 */
 {
   a_boolean    folded;
   a_diag_list  diag_list;
 
   clear_diag_list(&diag_list);
-  folded = interpret_expr(expr, /*force_prvalue=*/FALSE, result_con,
-                          &diag_list);
+  folded = interpret_expr(expr, force_prvalue, result_con, &diag_list);
   discard_more_info_list(&diag_list);
   return folded;
 }  /* fold_constexpr_expr */

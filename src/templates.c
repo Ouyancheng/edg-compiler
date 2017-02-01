@@ -12068,8 +12068,8 @@ If the array type has a variable array dimension, do the substitution
 on the ck_template_param constant pointed to by the expression.
 */
 {
-  a_constant_ptr	orig_cp = NULL;
-  a_constant_ptr	new_cp = NULL;
+  a_constant_ptr	orig_cp = NULL, new_cp = NULL;
+  an_expr_node_ptr      orig_expr = NULL, new_expr = NULL;
   a_type_ptr		new_type;
   a_type_ptr		tp;
   a_type_ptr		new_array_type;
@@ -12091,9 +12091,37 @@ on the ck_template_param constant pointed to by the expression.
                         (a_type_ptr)NULL,
                         source_pos, options, copy_error, ctws_state);
     }  /* if */
+  } else if (type->variant.array.is_variable_size_array) {
+    /* A variable-sized array.  In the case of a new-expression, we have to
+       substitute the dimension expression. */
+    orig_expr = type->variant.array.variant.element_count_expr;
+    if (orig_expr != NULL) {
+      a_constant_ptr    constant = local_constant();
+      new_expr = copy_template_param_expr(
+                            orig_expr, templ_arg_list, templ_param_list,
+                            (a_type_ptr)NULL,
+                            source_pos, options, copy_error, ctws_state,
+                            constant, &new_cp);
+      if (*copy_error) {
+        /* Nothing more to try. */
+      } else if (new_cp == NULL) {
+        if (new_expr != NULL &&
+            fold_constexpr_expr(new_expr, constant, /*force_prvalue=*/TRUE)) {
+          /* Substitution produced an expression that could be folded. */
+          new_expr = NULL;
+        }  /* if */
+        if (new_expr == NULL) {
+          /* A constant was produced, but the constant must be moved to IL. */
+          new_cp = move_local_constant_to_il(&constant);
+        }  /* if */
+      }  /* if */
+      if (constant != NULL) {
+        release_local_constant(&constant);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (tp == type->variant.array.element_type &&
-      orig_cp == new_cp) {
+      orig_cp == new_cp && orig_expr == new_expr) {
     /* Reuse the current type. */
     new_type = type;
   } else {
@@ -12118,8 +12146,12 @@ on the ck_template_param constant pointed to by the expression.
          dependent.  Clear the cached state. */
       new_array_type->is_instantiation_dependent_cached = FALSE;
       new_array_type->is_instantiation_dependent = FALSE;
-      if (orig_cp != new_cp) {
+      if (new_expr != NULL) {
+        check_assertion(orig_expr != NULL);
+        new_array_type->variant.array.variant.element_count_expr = new_expr;
+      } else if (orig_cp != new_cp) {
         check_assertion(new_cp != NULL);
+        new_array_type->variant.array.is_variable_size_array = FALSE;
         if (new_cp->kind == (a_constant_repr_kind)ck_integer) {
           /* The substituted value is no longer template-dependent.  Extract
              that value and use it as a constant bound.  Note that
