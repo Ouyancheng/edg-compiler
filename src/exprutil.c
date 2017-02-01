@@ -4808,6 +4808,9 @@ top_of_routine:
       }  /* if */
       break;
     case dik_constant:
+      /* This can happen if the constant was folded. */
+      args = dip->variant.constant->expr;
+      break;
     default:
       unexpected_condition_str("unexpected dynamic init kind");
   }  /* switch */
