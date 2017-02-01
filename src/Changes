@@ -16,13 +16,13 @@ with a braced initializer.  For example:
   S f(bool b) {
     S s;
     if (b) {
-      return a;
+      return s;
     } else {
-      return { g() };  // Should disable the return value optimization.
+      return { 42 };  // Should disable the return value optimization.
     }
   }
 
-Previously, function f was marked as incorrectly being subject to the return
+Previously, function f was incorrectly marked as being subject to the return
 value optimization (i.e., s was constructed directly in the return value
 storage), even though that would produce incorrect results if the "else"
 branch of the "if" statement is followed.  That is now fixed.
