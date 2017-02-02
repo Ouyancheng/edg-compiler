@@ -1668,15 +1668,21 @@ typedef struct a_constexpr_address {
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
 
-static a_byte_count get_runtime_array_length(a_constant_ptr  con_addr,
-                                             a_byte_count    elem_size)
+static void get_runtime_array_pos(a_constexpr_address  *cap,
+                                  a_byte_count         elem_size,
+                                  a_byte_count         *a_len,
+                                  a_byte_count         *p_pos)
 /*
-con_addr represents an address of an array.  Return its length if known.
-Otherwise, return MAX_ARRAY_LENGTH.  elem_size is the array element size in
-bytes.
+cap represents a run-time address constant or null pointer and elem_size the
+size of the element type being addressed.  For NULL pointers, set *a_len and
+*p_pos to zero.  Otherwise, return in *a_len the number of objects pointed to
+if known (the length of an array or one for a non-array object); if unknown,
+return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
+addressed (with non-array objects treated as arrays of one element).
 */
 {
-  a_byte_count    length;
+  a_constant_ptr  con_addr = cap->variant.addr_con;
+  a_byte_count    length, pos;
   a_type_ptr      tp;
   a_constant_ptr  cp;
 
@@ -1684,52 +1690,54 @@ bytes.
     /* Presumably a null pointer (and integer with a pointer type). */
     check_assertion(constant_is(con_addr, ck_integer));
     length = 0;
-    goto done;
-  }  /* if */
-  switch(con_addr->variant.address.kind) {
-    case abk_variable:
-      tp = skip_typerefs(con_addr->variant.address.variant.variable->type);
-      /* Ignore incomplete arrays and flexible arrays. */
-      if (!tp->incomplete &&
-          !(is_immediate_class_type(tp) &&
-            tp->variant.class_struct_union.contains_flexible_array_member)) {
-        length = (a_byte_count)tp->size/elem_size;
-      } else {
-        length = MAX_ARRAY_LENGTH;
-      }  /* if */
-      break;
-    case abk_constant:
-    case abk_temporary:
-      cp = con_addr->variant.address.variant.constant;
-      if (constant_is(cp, ck_string)) {
-        length = (a_byte_count)cp->variant.string.length/elem_size;
-      } else {
-        length = (a_byte_count)skip_typerefs(cp->type)->size/elem_size;
-      }  /* if */
-      break;
-    case abk_uuidof:
-      tp = type_pointed_to(con_addr->type);
-      length = (a_byte_count)skip_typerefs(tp)->size/elem_size;
-      break;
-    case abk_typeid:
+    pos = 0;
+  } else {
+    switch(con_addr->variant.address.kind) {
+      case abk_variable:
+        tp = skip_typerefs(con_addr->variant.address.variant.variable->type);
+        /* Ignore incomplete arrays and flexible arrays. */
+        if (!tp->incomplete &&
+            !(is_immediate_class_type(tp) &&
+              tp->variant.class_struct_union.contains_flexible_array_member)) {
+          length = (a_byte_count)tp->size/elem_size;
+        } else {
+          length = MAX_ARRAY_LENGTH;
+        }  /* if */
+        break;
+      case abk_constant:
+      case abk_temporary:
+        cp = con_addr->variant.address.variant.constant;
+        if (constant_is(cp, ck_string)) {
+          length = (a_byte_count)cp->variant.string.length/elem_size;
+        } else {
+          length = (a_byte_count)skip_typerefs(cp->type)->size/elem_size;
+        }  /* if */
+        break;
+      case abk_uuidof:
+        tp = type_pointed_to(con_addr->type);
+        length = (a_byte_count)skip_typerefs(tp)->size/elem_size;
+        break;
+      case abk_typeid:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    case abk_cli_typeid:
-    case abk_cli_array:
+      case abk_cli_typeid:
+      case abk_cli_array:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* The object is std::type_info or a class derived from it, or a
-         handle to a C++/CLI System::String or System::Array.  Therefore, we
-         don't really know the actual size. */
-      length = MAX_ARRAY_LENGTH;
-      break;
-    case abk_routine:
-    case abk_label:
-    default:
-      length = 0;
-      unexpected_condition();
-  }  /* switch */
-done:
-  return length;
-}  /* get_runtime_array_length */
+        /* The object is std::type_info or a class derived from it, or a
+           handle to a C++/CLI System::String or System::Array.  Therefore, we
+           don't really know the actual size. */
+        length = MAX_ARRAY_LENGTH;
+        break;
+      case abk_routine:
+      case abk_label:
+      default:
+        length = 0;
+        unexpected_condition();
+    }  /* switch */
+    pos = con_addr->variant.address.offset / elem_size;
+  }  /* if */
+  *a_len = length;
+  *p_pos = pos;
+}  /* get_runtime_array_pos */
 
 
 /*
@@ -1747,9 +1755,7 @@ occurs.
 {                                                                            \
   if (is_runtime_data_address(cap)) {                                        \
     *(e_size) = (a_byte_count)elem_type->size;                               \
-    *(a_len) = get_runtime_array_length((cap)->variant.addr_con, *(e_size)); \
-    *(pos) = (a_byte_count)(cap)->variant.addr_con->variant.address.offset;  \
-    *(pos) /= *(e_size);                                                     \
+    (void)get_runtime_array_pos(cap, *(e_size), a_len, pos);                 \
   } else {                                                                   \
     *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
     if (*p_result) {                                                         \
@@ -7771,7 +7777,9 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                               &expr->position, ips);
               } else if (result_addr->address == NULL &&
-                         !is_runtime_data_address(result_addr)) {
+                         (!is_runtime_data_address(result_addr) ||
+                          constant_is(result_addr->variant.addr_con,
+                                      ck_integer))) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_invalid_null_ptr_operation,
                               &expr->position, ips);
@@ -7845,7 +7853,9 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                               &expr->position, ips);
               } else if (result_addr->address == NULL &&
-                         !is_runtime_data_address(result_addr)) {
+                         (!is_runtime_data_address(result_addr) ||
+                          constant_is(result_addr->variant.addr_con,
+                                      ck_integer))) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_invalid_null_ptr_operation,
                               &expr->position, ips);
