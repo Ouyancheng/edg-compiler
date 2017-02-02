@@ -19163,6 +19163,10 @@ selection operator, in which case it points to the type of the left operand.
             is_vacuous_dtor_or_finalizer = TRUE;
           }  /* if */
         }  /* if */
+        check_ambiguity_and_access_full(
+                        &locator_for_curr_id, (a_boolean)(next_tok == tok_lt),
+                        /*is_qualifier=*/(next_tok == tok_colon_colon),
+                        (a_boolean *)NULL);
       } else {
         /* Usual case (no leading "::").  Look up the name in both the
            current context (i.e., a normal lookup) and in the class type

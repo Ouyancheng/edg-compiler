@@ -1,5 +1,18 @@
 Version 4.13
 
+2/2/17   [EDGcpfe/17980]
+Internal error on use of ambiguous inline namespace
+
+An internal error could occur (in add_symbol_to_lookup_set) if a global
+scope qualifier was ambiguous as a result of finding a namespace directly
+in the global scope and also one made visible via an inline namespace.
+Now fixed.
+
+  inline namespace N1 { namespace N2 { void f(){} } }
+  namespace N2 { void f(){} }
+  int main() { ::N2::f(); }
+
+
 2/2/17   [EDGcpfe/17982]
 Microsoft compatibility: auto variable templates not accepted
 
