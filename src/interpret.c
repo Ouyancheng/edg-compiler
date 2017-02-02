@@ -10703,7 +10703,7 @@ source position of the initialization.
     } else {
       if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
            dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
-          in_file_scope(result_con) ==
+          (curr_il_region_number == file_scope_region_number) ==
                                      in_file_scope(dip->variant.expression)) {
         result_con->expr = dip->variant.expression;
       }  /* if */

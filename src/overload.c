@@ -15633,8 +15633,20 @@ is a glvalue or prvalue as required by conversion->result_is_a_glvalue.
 {
   if (conversion->class_object_adjustment_required) {
     /* Cast to a base class if necessary, and adjust cv_qualifiers. */
+    an_expr_node_ptr  orig_expr = NULL;
+    if (is_expression_operand(operand)) {
+      orig_expr = operand->variant.expression;
+    }  /* if */
     adjust_class_object_type(operand, dest_type,
                              conversion->std.cast_base_class);
+    /* If this is the result of an explicit conversion, indicate that in the
+       resulting cast node (if any). */
+    if (conversion->is_explicit_cast && is_expression_operand(operand)) {
+      an_expr_node_ptr  new_expr = operand->variant.expression;
+      if (new_expr != orig_expr && is_cast_operation_node(new_expr)) {
+        new_expr->variant.operation.compiler_generated = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* If a prvalue is wanted, convert to a prvalue. */
   if (!conversion->result_is_a_glvalue) {

@@ -3152,6 +3152,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         check_assertion(is_expression_component(eff_arg_list));
         operand = operand_of_arg_list_elem(eff_arg_list);
         check_assertion(overloaded_function_case);
+        arg_match->conversion.is_explicit_cast = TRUE;
         if (is_null_user_conv_descr(&arg_match->conversion)) {
           arg_match->conversion.class_object_adjustment_required = TRUE;
         }  /* if */
