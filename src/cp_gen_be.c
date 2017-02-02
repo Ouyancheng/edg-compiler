@@ -18353,12 +18353,19 @@ handle_as_definition:
          instead. */
       write_tok_str("_Noreturn ");
     }  /* if */
-    if (rout->is_constexpr) {
+    if (rout->is_defaulted ? rout->is_declared_constexpr
+                           : rout->is_constexpr) {
       /* Put out the "constexpr" keyword.  Since a constexpr function is
          implicitly inline, we suppress the "inline" keyword in this case.
-         (Note that we test is_constexpr rather than is_declared_constexpr.
-         This is significant for configurations that put out implicit
-         instantiations as explicit specializations.) */
+         (Note that we often test is_constexpr rather than
+         is_declared_constexpr.  This is significant for configurations that
+         put out implicit instantiations as explicit specializations since
+         constexpr can be put on function templates even when some
+         instantiations are not valid constexpr functions and therefore no
+         "constexpr" should be specified on the corresponding explicit
+         specialization.  However, for defaulted members, is_constexpr may
+         be set implicitly and but specifying it could change the type of
+         the member.) */
       write_tok_str("constexpr ");
       suppress_inline_kwd = TRUE;
     } else if (rout->is_inline && !is_definition && c99_mode &&
