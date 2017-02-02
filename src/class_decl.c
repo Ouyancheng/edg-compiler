@@ -16266,6 +16266,7 @@ template declaration and is NULL otherwise.
     a_boolean          delay_initializer_scan = FALSE;
     a_boolean          skip_cache_terminator = FALSE;
     a_boolean          constant_member = is_const_qualified_type(member_type);
+    var->has_explicit_initializer = TRUE;
     var->initializer_in_class = TRUE;
     decl_state->init_state.decl_parse_state = decl_state;
     decl_state->has_initializer = TRUE;

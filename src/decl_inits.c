@@ -4960,6 +4960,7 @@ returned set to TRUE.
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
     a_routine_ptr  dtor = NULL;
+    vp->has_explicit_initializer = TRUE;
     /* Remember whether the initializer uses the "()" form or the "=" form. */
     vp->has_parenthesized_initializer = parenthesized_initializer;
     if (dps->init_state.initializer_must_be_constant && init_con != NULL &&

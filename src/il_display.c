@@ -2923,6 +2923,9 @@ Display the indicated variable.
   if (ptr->is_compound_literal) {
     disp_boolean("is_compound_literal", TRUE);
   }  /* if */
+  if (ptr->has_explicit_initializer) {
+    disp_boolean("has_explicit_initializer", TRUE);
+  }  /* if */
   if (ptr->has_parenthesized_initializer) {
     disp_boolean("has_parenthesized_initializer", TRUE);
   }  /* if */
