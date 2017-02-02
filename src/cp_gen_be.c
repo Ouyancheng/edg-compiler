@@ -18364,8 +18364,8 @@ handle_as_definition:
          instantiations are not valid constexpr functions and therefore no
          "constexpr" should be specified on the corresponding explicit
          specialization.  However, for defaulted members, is_constexpr may
-         be set implicitly and but specifying it could change the type of
-         the member.) */
+         be set implicitly but specifying it could change the type of the
+         member.) */
       write_tok_str("constexpr ");
       suppress_inline_kwd = TRUE;
     } else if (rout->is_inline && !is_definition && c99_mode &&
