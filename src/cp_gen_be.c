@@ -16792,25 +16792,23 @@ end_of_routine:
 }  /* gen_paren_or_brace_dynamic_init */
 
 
-static void gen_variable_initializer(a_variable_ptr var,
-                                     a_boolean      is_condition)
+static void gen_variable_initializer(a_variable_ptr var)
 /*
-Output the initializer, if any, for the indicated variable.  The
-initialization is in a condition declaration if is_condition is TRUE.
+Output the initializer, if any, for the indicated variable.
 */
 {
-  a_boolean          parenthesized_init = var->has_parenthesized_initializer;
-  a_boolean          braced_init = var->has_direct_braced_initializer;
-  an_init_kind       init_kind;
-  an_initializer_ptr initializer;
-  a_constant_ptr     con;
-  a_boolean          context_pop_required = FALSE;
-
-  get_variable_initializer(var, curr_name_context->assoc_scope,
-                           &init_kind, &initializer);
   /* Output the initializer only if it's explicit.  A condition always has an
      initializer. */
   if (var->has_explicit_initializer) {
+      a_boolean          parenthesized_init =
+                                           var->has_parenthesized_initializer;
+      a_boolean          braced_init = var->has_direct_braced_initializer;
+      an_init_kind       init_kind;
+      an_initializer_ptr initializer;
+      a_constant_ptr     con;
+      a_boolean          context_pop_required = FALSE;
+      get_variable_initializer(var, curr_name_context->assoc_scope,
+                               &init_kind, &initializer);
     /* Push the name context for a class/namespace member. */
     if (microsoft_dialect_is_generated_code_target &&
         is_namespace_member(var)) {
@@ -17275,7 +17273,7 @@ this one is such a continuation.
   gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
   /* Output the initializer, if any. */
   if (consider_initialization) {
-    gen_variable_initializer(var, is_condition);
+    gen_variable_initializer(var);
   }  /* if */
   if (embedded_constructs) {
     skip_end_of_embedded_constructs((char*)var);
