@@ -3342,12 +3342,6 @@ that do normal id lookup processing.
          template declaration scope, the template parameter list in
          the template_decl_info is used. */
       sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
-    } else if (0 && is_inline_namespace_to_skip) {
-      /* Skip inline namespaces in most contexts (see above), but
-         do a using-directive lookup if needed based on the scope and
-         lookup options. */
-      sym = do_normal_using_directive_lookup_if_needed(ssep, sym, locator,
-                                                       lookup_state);
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front
