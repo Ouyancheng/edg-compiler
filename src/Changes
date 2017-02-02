@@ -1,5 +1,21 @@
 Version 4.13
 
+2/2/17   [EDGcpfe/17983]
+Inlining of nested "if" statements had caused aborts
+
+Inlining nested "if" statements where the "then" branch of the inner "if"
+statement has no effect had caused an abort (in insert_statement_full or
+expand_statement_inline).  Only occurs in some C modes.  For example
+(with --gcc):
+
+  inline int f(void) {
+    if (1) if (0);
+  }
+  void g(void) {
+    f();
+  }
+
+
 2/2/17   [EDGcpfe/17980]
 Internal error on use of ambiguous inline namespace
 

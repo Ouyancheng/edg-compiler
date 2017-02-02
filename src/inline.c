@@ -1409,7 +1409,20 @@ This is useful in cases where iterative inlining can create huge routines.
             }  /* if */
           }  /* if */
           if (!*failed) {
-            if (result_is_then) {
+            if ((result_is_then && then_stmt == NULL) ||
+                (!result_is_then && !result_is_else &&
+                 then_stmt == NULL && else_stmt == NULL)) {
+              /* Either the result is known to be true, but there's no "then"
+                 statement, or the result isn't known but there are no "then"
+                 or "else" statements.  In these cases, turn the "if" statement
+                 into an expression statement (to execute the condition). */
+              set_expr_result_not_used(stmt_expr);
+              new_statement = alloc_statement((a_statement_kind)stmk_expr);
+              new_statement->expr = stmt_expr;
+              set_inline_statement_positions(new_statement, statement);
+              insert_statement_full(new_statement, insert_location,
+                                    /*perform_post_pass=*/FALSE);
+            } else if (result_is_then) {
               /* The result is the "then" statement. */
               insert_statement_full(then_stmt, insert_location,
                                     /*perform_post_pass=*/FALSE);
@@ -1421,6 +1434,10 @@ This is useful in cases where iterative inlining can create huge routines.
               }  /* if */
             } else {
               /* Insert an "if" statement. */
+              if (then_stmt == NULL) {
+                /* Create an empty statement. */
+                then_stmt = alloc_statement((a_statement_kind)stmk_empty);
+              }  /* if */
               new_statement = copy_inlined_statement(statement,
                                                      insert_location);
               new_statement->expr = stmt_expr;

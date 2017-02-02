@@ -14385,13 +14385,12 @@ typedef struct a_statement {
       a_statement_ptr
                 then_statement,
                 else_statement;
-                        /* The statements to go to if the expression
-                           is true or false.  If there is no statement in the
-                           then part, then_statement is NULL.  If there is
-                           no else clause, else_statement is NULL.  These
+                        /* The statements to go to if the expression is true or
+                           false.  then_statement is always non-NULL.  If there
+                           is no else clause, else_statement is NULL.  These
                            point to a single statement, which will be a block
-                           statement if there are several dependent
-                           statements. */
+                           statement if there are several dependent statements.
+                           */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_position
 		else_position;
