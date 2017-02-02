@@ -10175,7 +10175,6 @@ diagnostic in *ips.
           a_byte          *mptr;
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
-          utp = skip_typerefs(utp);
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
           get_stack_bytes(ips, cap->complete_object, mptr);
           if (mptr != NULL) {
@@ -10221,6 +10220,7 @@ diagnostic in *ips.
               /* If we're pointing at or into an array, a constant for the
                  whole array must be allocated. */
               a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
+              a_type_ptr    butp = skip_typerefs(utp);
               a_byte_count  offset;
               if (is_array_element(cap)) {
                 base_address = get_base_address(cap);
@@ -10229,17 +10229,19 @@ diagnostic in *ips.
               }  /* if */
               offset = cap->address - base_address;
               if (!is_array_element(cap) ||
-                  (utp->incomplete && utp->kind == (a_type_kind)tk_array)) {
+                  (butp->incomplete && butp->kind == (a_type_kind)tk_array)) {
                 /* This can happen when binding a reference to an array with
                    no specified bound.  E.g.:
                      struct S { const int (&x)[]; };
                      constexpr S x = { { 37 } };
                    We'll produce a known bound below. */
-                utp = skip_typerefs(utp->variant.array.element_type);
+                utp = butp->variant.array.element_type;
+                butp = skip_typerefs(utp);
               }  /* if */
               if (offset != 0) {
                 con->variant.address.offset =
-                  utp->size * (offset/value_bytes_for_type(ips, utp, &result));
+                      butp->size *
+                            (offset/value_bytes_for_type(ips, butp, &result));
               }  /* if */
               atp->variant.array.element_type = utp;
               atp->variant.array.variant.number_of_elements = cap->length;
