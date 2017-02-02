@@ -1,5 +1,16 @@
 Version 4.13
 
+2/2/17   [EDGcpfe/17982]
+Microsoft compatibility: auto variable templates not accepted
+
+In modes in which nonclass prototype instantiations are not done (e.g.,
+Microsoft mode) a spurious error was issued on a variable template
+declaration with an auto type.  This was followed by an internal error
+(in check_use_of_auto_type).  Now fixed.
+
+  template <class T> auto X = T();
+
+
 1/31/17  [EDGcpfe/17953]
 Return value optimization and returning braced initializers
 

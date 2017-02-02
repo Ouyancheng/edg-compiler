@@ -17927,6 +17927,10 @@ which are diagnosed elsewhere).
         case sk_member_function:
           p_type = &dps->sym->variant.routine.ptr->type;
           break;
+        case sk_variable_template:
+          vp = variable_for_symbol(dps->sym);
+          p_type = &vp->type;
+          break;
         default:
           unexpected_condition_str("check_use_of_auto_type: bad symbol");
       }  /* switch */

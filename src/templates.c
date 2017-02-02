@@ -23402,6 +23402,7 @@ template symbol supplement for this template should be returned to the caller.
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
     decl_cache = &decl_state->decl_token_cache;
     decl_state->defines_something = TRUE;
+    dps->has_initializer = TRUE;
     split_location = curr_token_sequence_number;
     if (var != NULL && var->initializer_in_class &&
         (is_variable_template || (!microsoft_mode && !sun_mode))) {
