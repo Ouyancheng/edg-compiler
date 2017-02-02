@@ -1733,7 +1733,7 @@ addressed (with non-array objects treated as arrays of one element).
         length = 0;
         unexpected_condition();
     }  /* switch */
-    pos = con_addr->variant.address.offset / elem_size;
+    pos = (a_byte_count)con_addr->variant.address.offset / elem_size;
   }  /* if */
   *a_len = length;
   *p_pos = pos;
@@ -1755,7 +1755,7 @@ occurs.
 {                                                                            \
   if (is_runtime_data_address(cap)) {                                        \
     *(e_size) = (a_byte_count)elem_type->size;                               \
-    (void)get_runtime_array_pos(cap, *(e_size), a_len, pos);                 \
+    get_runtime_array_pos(cap, *(e_size), a_len, pos);                       \
   } else {                                                                   \
     *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
     if (*p_result) {                                                         \
