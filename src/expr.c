@@ -41767,28 +41767,6 @@ As indicated, this is initialization with the "=" semantics
                                    ec_bad_initializer_type,
                                    /*elision_done=*/(a_boolean *)NULL,
                                    &dps->init_state.init_dip);
-  if (constexpr_enabled && dps->init_state.init_dip != NULL &&
-      dps->init_state.initializer_must_be_constant) {
-    a_constant_ptr      folded_value = local_constant();
-    a_dynamic_init_ptr  dip = dps->init_state.init_dip;
-    a_diag_list  diag_list;
-    clear_diag_list(&diag_list);
-    if (dip->kind != (a_dynamic_init_kind)dik_constant &&
-        interpret_dynamic_init(dip, &result.position, dps->type, folded_value,
-                               &diag_list)) {
-      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
-      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
-    } else {
-      if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant) {
-        a_diagnostic_ptr  dp;
-        dp = pos_start_error(ec_initializer_not_constant, &result.position);
-        add_more_info_list(dp, &diag_list);
-        end_diagnostic(dp);
-      }  /* if */
-      release_local_constant(&folded_value);
-    }  /* if */
-    discard_more_info_list(&diag_list);
-  }  /* if */
   wrap_up_init_state_initialization(&dps->init_state);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
@@ -41997,29 +41975,6 @@ source position to be used in overall errors.
                       &is->init_dip,
                       (an_expr_node_ptr *)NULL,
                       (a_source_position *)NULL);
-  if (constexpr_enabled && is->init_dip != NULL &&
-      is->initializer_must_be_constant &&
-      !is_prototype_instantiation_context()) {
-    a_constant_ptr      folded_value = local_constant();
-    a_dynamic_init_ptr  dip = is->init_dip;
-    a_diag_list  diag_list;
-    clear_diag_list(&diag_list);
-    if (dip->kind != (a_dynamic_init_kind)dik_constant &&
-        interpret_dynamic_init(dip, source_pos, class_type, folded_value,
-                               &diag_list)) {
-      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
-      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
-    } else {
-      if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant) {
-        a_diagnostic_ptr  dp;
-        dp = pos_start_error(ec_initializer_not_constant, source_pos);
-        add_more_info_list(dp, &diag_list);
-        end_diagnostic(dp);
-      }  /* if */
-      release_local_constant(&folded_value);
-    }  /* if */
-    discard_more_info_list(&diag_list);
-  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

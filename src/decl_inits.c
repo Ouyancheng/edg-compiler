@@ -5019,8 +5019,14 @@ returned set to TRUE.
         clear_diag_list(&diag_list);
         if (interpret_dynamic_init(init_dip, &pos_first_token, vp_type,
                                    folded_con, &diag_list)) {
-          init_con = move_local_constant_to_il(&folded_con);
-          init_dip = NULL;
+          if (static_lifetime) {
+            init_con = move_local_constant_to_il(&folded_con);
+            init_dip = NULL;
+          } else {
+            set_dynamic_init_kind(init_dip, (a_dynamic_init_kind)dik_constant);
+            set_dynamic_init_constant(init_dip,
+                                      move_local_constant_to_il(&folded_con));
+          }  /* if */
         } else {
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &pos_first_token);
