@@ -30750,6 +30750,9 @@ body.  If possible, instantiate the routine.
   sym = symbol_for(rp);
   check_assertion(sym != NULL);
   check_assertion(is_simple_function_symbol(sym));
+  /* Make sure the template instance has a master instance.  This is needed
+     if the routine is a member function for a class that is being defined. */
+  set_instance_required(sym, FALSE, SIR_NONE);
   tip = sym->variant.routine.instance_ptr;
   mip = master_instance_of(tip);
   check_assertion(mip != NULL);

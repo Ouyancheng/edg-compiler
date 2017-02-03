@@ -1,5 +1,25 @@
 Version 4.13
 
+2/3/17   [EDGcpfe/17473,EDGcpfe/17961]
+Function with deduced return type as template static data member initializer
+
+An internal error (in force_instantiation_to_deduce_return_type) could
+result if a static member function with a deduced return type was called
+in the initializer of a static data member of the same class template.
+This usage is not allowed in normal (non-template) classes and the
+validity in class templates is unclear.  The front end now accepts this
+usage pending possible clarification by the standards committee.
+
+  template <class ...> struct A {
+    static auto f() {}
+    static constexpr auto I = f;
+  };
+  auto g () -> A<>;
+  int main() {
+    g();
+  }
+
+
 2/3/17   [EDGcpfe/17888]
 Unification of constexpr evaluation
 
