@@ -7920,6 +7920,8 @@ the value representation of the integer value.
                 a_boolean          did_not_fold;
                 an_error_code      err_code;
                 an_error_severity  sev;
+                clear_constant(diff_con, (a_constant_repr_kind)ck_integer);
+                diff_con->type = tp;
                 do_pdiff(addr1->variant.addr_con, addr2->variant.addr_con,
                          diff_con, &did_not_fold, &err_code, &sev);
                 if (did_not_fold) {
