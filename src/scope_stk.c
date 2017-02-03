@@ -1973,8 +1973,13 @@ values needed for the previous call.
         set_template_param_symbol_to_error(tpp->param_symbol);
       } else {
         /* The argument is a placeholder but the parameter is not a pack.
-           Discard the placeholder. */
-        tap = tap_to_update;
+           Unless this is a placeholder, advance "tap" so that we will skip
+           to the next parameter above. */
+        if (is_start_of_pack_expansion_templ_arg(tap_to_update)) {
+          tap_to_update = NULL;
+        } else {
+          tap = tap_to_update;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (tap_to_update != NULL) {
