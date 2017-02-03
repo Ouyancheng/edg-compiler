@@ -1,5 +1,22 @@
 Version 4.13
 
+2/3/17   [EDGcpfe/17888]
+Unification of constexpr evaluation
+
+The implementation of C++11 constexpr evaluation significantly extended the
+existing infrastructure for folding constant-expressions in the front end.
+That approach was impractical to implement to the new capabilities added by
+C++14, which prompted the addition of an IL interpreter to the front end.
+However, that interpreter was originally only used to evaluate calls to
+constexpr functions and constructors in C++14 mode.  The interpreter has now
+been extensively reworked to be usable for, potentially, all constant-
+expression evaluations.  In particular, it is now used for constexpr calls
+in both C++11 and C++14 modes, as well as several other contexts that expect
+constant expressions.  Although the traditional folding code is also still
+used in various places, the extensions supporting C++11 constexpr evaluation
+(a significant amount of the code in folding.c) have been removed.
+
+
 2/2/17   [EDGcpfe/17983]
 Inlining of nested "if" statements had caused aborts
 
