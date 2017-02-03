@@ -29,7 +29,6 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "declarator.h"
-#include "interpret.h"
 #if COROUTINES_ALLOWED
 #include "func_def.h"
 #endif /* COROUTINES_ALLOWED */
