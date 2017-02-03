@@ -15934,6 +15934,7 @@ Call scan_member_constant_initializer_expression for the variable var.
   scan_member_constant_initializer_expression(dps, constant);
   var->init_kind = (an_init_kind)initk_static;
   var->initializer.constant = move_local_constant_to_il(&constant);
+  var->has_explicit_initializer = TRUE;
 }  /* scan_member_constant_for_variable */
 
 
@@ -16388,6 +16389,7 @@ template declaration and is NULL otherwise.
               (curr_token == tok_assign &&
                next_token() == tok_removed_expr))) {
     /* The initializer was extracted for "on-demand" instantiation. */
+    var->has_explicit_initializer = TRUE;
     var->initializer_in_class = TRUE;
     /* The "=" token is not part of the initializer, so it may still be
        present. */
