@@ -12268,8 +12268,13 @@ being looked up is known to be a type.
       if (options & CTWS_IS_PARENT) {
         lookup_options |= IDL_MUST_BE_CLASS_OR_NAMESPACE;
       } else if (is_type) {
-        a_template_arg_ptr	sym_arg_list;
-        sym_arg_list = template_arg_list_for_symbol(orig_sym);
+        a_template_arg_ptr	sym_arg_list = NULL;
+        a_type_ptr		orig_type;
+        orig_type = type_symbol_type(orig_sym);
+        if (orig_type->kind == (a_type_kind)tk_typeref ||
+            is_immediate_class_type(orig_type)) {
+          sym_arg_list = template_arg_list_for_symbol(orig_sym);
+        }  /* if */
         /* If the original type was a template instance, look for a template
            name. */
         if (sym_arg_list != NULL) {
