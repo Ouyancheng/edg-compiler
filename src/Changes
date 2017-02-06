@@ -4,11 +4,13 @@ Version 4.13
 Function with deduced return type as template static data member initializer
 
 An internal error (in force_instantiation_to_deduce_return_type) could
-result if a static member function with a deduced return type was called
-in the initializer of a static data member of the same class template.
-This usage is not allowed in normal (non-template) classes and the
-validity in class templates is unclear.  The front end now accepts this
-usage pending possible clarification by the standards committee.
+result if a static member function with a deduced return type was used
+in a way that required the return type to be determined, and that use was
+in a context that was part of the "normal" parsing of the class template
+(i.e., not one of the contexts in which parsing is done once the class
+definition is complete).  This usage is not allowed in normal (non-template)
+classes and the validity in class templates is unclear.  The front end now
+accepts this usage pending possible clarification by the standards committee.
 
   template <class ...> struct A {
     static auto f() {}
