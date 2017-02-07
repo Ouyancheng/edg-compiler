@@ -916,6 +916,33 @@ Display a CLI metadata file made available by an explicit or implicit
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void disp_subobject_path(a_subobject_path_ptr ptr)
+/*
+Display the indicated subobject path.
+*/
+{
+  disp_name("kind");
+  disp_null_term_string(il_entry_kind_names[(int)ptr->kind]);
+  disp_ptr("next", (char *)ptr->next, iek_subobject_path);
+  switch (ptr->kind) {
+    case iek_field:
+      disp_ptr("variant.field", (char*)ptr->variant.field, iek_field);
+      break;
+    case iek_constant:
+      disp_host_large_integer("ptr_offset",
+                              (a_host_large_integer)ptr->variant.ptr_offset);
+      break;
+    case iek_base_class:
+    case iek_type:
+      disp_ptr("variant.base_class", (char*)ptr->variant.base_class,
+               iek_base_class);
+      break;
+    default:
+      printf("**BAD SUBOBJECT PATH KIND**\n");
+  }  /* switch */
+}  /* disp_subobject_path */
+
+
 static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
 /*
 Display the indicated template parameter coordinate.
@@ -1276,6 +1303,8 @@ display_constant_value:
         default:
           (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
+      disp_ptr("subobject_path", (char *)ptr->variant.address.subobject_path,
+               iek_subobject_path);
       disp_host_large_integer(
           "address.offset", (a_host_large_integer)ptr->variant.address.offset);
       break;
@@ -7547,6 +7576,9 @@ This routine is called during IL walking.
           break;
         case iek_attribute_group:
           disp_attribute_group((an_attribute_group_ptr)entry_ptr);
+          break;
+        case iek_subobject_path:
+          disp_subobject_path((a_subobject_path_ptr)entry_ptr);
           break;
         default:
           (void)printf("**BAD ENTRY KIND**\n");

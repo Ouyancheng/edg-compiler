@@ -3263,9 +3263,9 @@ to those anonymous union objects.
 }  /* make_anon_union_path */
 
 
-static a_boolean add_to_variant_path(a_constexpr_address  *addr,
-                                     a_field_ptr          union_field,
-                                     a_type_ptr           top_type)
+static void add_to_variant_path(a_constexpr_address  *addr,
+                                a_field_ptr          union_field,
+                                a_type_ptr           top_type)
 /*
 The given field of a union object or subobject pointed to by addr is being
 selected.  Add that field to the variant path associated with addr (and, if
@@ -3292,6 +3292,8 @@ be a union type if union_field is an anonymous union field.
     addr->variant.variant_path = alloc_variant_path_entry();
     last_entry = addr->variant.variant_path;
     last_entry->next = NULL;
+    last_entry->field = NULL;
+    last_entry->base_address = NULL;
     addr->flags |= CA_VARIANT_PATH;
   }  /* if */
   if (top_type->kind == (a_type_kind)tk_union) {
@@ -3311,7 +3313,6 @@ be a union type if union_field is an anonymous union field.
   }  /* if */
   last_entry->field = union_field;
   last_entry->base_address = addr->address;
-  return TRUE;
 }  /* add_to_variant_path */
 
 
@@ -3576,9 +3577,52 @@ If con represents an address of a union subobject, interpretation will fail.
         }
         break;
       case tk_union:
-        do_constexpr_fail(result);
-        info_with_pos(ec_constexpr_union_offset, &ips->position, ips);
-        goto done;
+        { /* Look through the subobject path for this union (it must be
+             present). */
+          a_field_ptr           selected_field = NULL;
+          a_subobject_path_ptr  path = con->variant.address.subobject_path;
+          a_variant_path_entry_ptr  last_entry, vpep;
+          for (; path != NULL; path = path->next) {
+            if (path->kind == (an_il_entry_kind)iek_field) {
+              a_type_ptr  tp = parent_class_of(path->variant.field);
+              if (identical_types(obj_type, tp)) {
+                selected_field = path->variant.field;
+                break;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+          check_assertion(selected_field != NULL);
+          /* Update the variant path.  Do not use add_to_variant_path because
+             it implicitly handles anonymous unions, whereas this process
+             traverses them explicitly (we'd account for them twice). */
+          if (cap->flags & CA_VARIANT_PATH) {
+            /* This entry already has a variant path: Find its end. */
+            last_entry = cap->variant.variant_path->next;
+            while (last_entry->next != NULL) {
+              last_entry = last_entry->next;
+            }  /* while */
+          } else {
+            /* No entries yet: Create a first entry to record an array base
+               address if needed. */
+            cap->variant.variant_path = alloc_variant_path_entry();
+            last_entry = cap->variant.variant_path;
+            cap->flags |= CA_VARIANT_PATH;
+          }  /* if */
+          vpep = alloc_variant_path_entry();
+          vpep->next = NULL;
+          vpep->field = selected_field;
+          vpep->base_address = cap->address;
+          last_entry->next = vpep;
+          /* Adjust the remaining target offset to account for (normally a
+             no-op for a union field) and increase the corresponding
+             interpreter offset (not a no-op; i.e., i_offset is not zero
+             because some space is used to store the active field). */
+          t_offset -= selected_field->offset;
+          get_mapped_byte_count(&persistent_map, selected_field, i_offset);
+          cap->address += i_offset;
+          obj_type = skip_typerefs(selected_field->type);
+        }
+        break;
       default:
         /* Scalars are sometimes treated as arrays of one element. */
         if (t_offset == (a_targ_ptrdiff_t)obj_type->size) {
@@ -9593,14 +9637,10 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
-              } else if (parent_class_of(field)->kind ==
-                                                      (a_type_kind)tk_union &&
-                         !add_to_variant_path(&result_addr, field,
-                                              opnd1_type)) {
-                /* We should not return from the failure of adding a variant
-                   path entry. */
-                unexpected_condition();
               } else {
+                if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
+                  add_to_variant_path(&result_addr, field, opnd1_type);
+                }  /* if */
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
                 result_addr.flags &= ~CA_ARRAY_ELEMENT;
@@ -9664,14 +9704,10 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
-              } else if (parent_class_of(field)->kind ==
-                                                      (a_type_kind)tk_union &&
-                         !add_to_variant_path(&result_addr, field,
-                                              opnd1_type)) {
-                /* We should not return from the failure of adding a variant
-                   path entry. */
-                unexpected_condition();
               } else {
+                if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
+                  add_to_variant_path(&result_addr, field, opnd1_type);
+                }  /* if */
                 if (!adjust_this_address(ips, &result_addr, pm_value,
                                          opnd1_type, expr)) {
                   do_constexpr_fail(result);
@@ -10026,25 +10062,28 @@ that are needed for the operation of the interpreter.
 }  /* initialize_interpreter_data */
 
 
-static a_targ_ptrdiff_t translate_interpreter_offset(
-                                                an_interpreter_state  *ips,
-                                                a_constexpr_address   *cap,
-                                                a_type_ptr            type)
+static void translate_interpreter_offset(an_interpreter_state  *ips,
+                                         a_constexpr_address   *cap,
+                                         a_type_ptr            type,
+                                         a_constant_ptr        con)
 /*
 cap represents an interpreter address pointing into interpreter storage for a
-complete object of the given type.  Return the corresponding target offset for
-a ck_address constant representing the same address.
+complete object of the given type.  Record in con->variant.address.offset
+the corresponding target offset for a ck_address constant representing the
+same address.  Also record the associated subobject path.
 */
 {
-  a_targ_ptrdiff_t  t_offset = 0;
+  a_targ_ptrdiff_t  t_offset = 0; /* Total target offset. */
   a_byte            *address = cap->address;
 
   if (address != cap->complete_object) {
-    a_byte            *parent_address = cap->complete_object;
-    a_field_ptr       fp = NULL;
-    a_base_class_ptr  bcp = NULL;
+    a_byte                *parent_address = cap->complete_object;
+    a_field_ptr           fp = NULL;
+    a_base_class_ptr      bcp = NULL;
+    a_subobject_path_ptr  path = NULL, *p_end_path = &path, path_entry;
     do {
-      a_byte_count  i_offset;
+      a_byte_count  i_offset;  /* Local interpreter offset. */
+      path_entry = alloc_subobject_path();
       if (is_immediate_class_type(type)) {
         void  *ptr;
         find_subobject_for_interpreter_address(ips, cap, parent_address, type,
@@ -10053,11 +10092,15 @@ a ck_address constant representing the same address.
           t_offset += fp->offset;
           type = skip_typerefs(fp->type);
           ptr = (void*)fp;
+          path_entry->kind = (an_il_entry_kind)iek_field;
+          path_entry->variant.field = fp;
         } else {
           check_assertion(bcp != NULL);
           t_offset += bcp->offset;
           type = skip_typerefs(bcp->type);
           ptr = (void*)bcp;
+          path_entry->kind = (an_il_entry_kind)iek_base_class;
+          path_entry->variant.base_class = bcp;
         }  /* if */
         get_mapped_byte_count(&persistent_map, ptr, i_offset);
       } else {
@@ -10078,12 +10121,18 @@ a ck_address constant representing the same address.
           pos = i_offset/elem_size;
           t_offset += pos*elem_type->size;
           i_offset = pos*elem_size;
+          path_entry->kind = (an_il_entry_kind)iek_constant;
+          path_entry->variant.ptr_offset = (a_targ_ptrdiff_t)pos;
         }  /* if */
       }  /* if */
       parent_address += i_offset;
+      *p_end_path = path_entry;
+      p_end_path = &path_entry->next;
     } while (parent_address != address);
+    con->variant.address.offset = t_offset;
+    con->variant.address.subobject_path = path;
+    con->implicit_cast = TRUE;
   }  /* if */
-  return t_offset;
 }  /* translate_interpreter_offset */
 
 
@@ -10215,9 +10264,7 @@ diagnostic in *ips.
               top_type = skip_typerefs(cp->type);
             }  /* if */
             if (cap->address != cap->complete_object) {
-              con->variant.address.offset =
-                             translate_interpreter_offset(ips, cap, top_type);
-              con->implicit_cast = TRUE;
+              translate_interpreter_offset(ips, cap, top_type, con);
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */

@@ -808,6 +808,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                 unexpected_condition_str(
                              "walk_entry_and_subtree: bad address const kind");
             }  /* switch */
+            walk_list(ptr->variant.address.subobject_path,
+                      a_subobject_path_ptr, iek_subobject_path);
             break;
           case ck_ptr_to_member:
             remap_ptr(ptr->variant.ptr_to_member.casting_base_class,
@@ -3740,6 +3742,26 @@ after_entry_from_class:
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case iek_subobject_path:
+      { a_subobject_path_ptr ptr = (a_subobject_path_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_subobject_path_ptr, iek_subobject_path);
+        switch (ptr->kind) {
+          case iek_field:
+            remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+            break;
+          case iek_base_class:
+          case iek_type:
+            remap_ptr(ptr->variant.base_class, a_base_class_ptr,
+                      iek_base_class);
+            break;
+          case iek_constant:
+            /* No additional pointers. */
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }
+      break;
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

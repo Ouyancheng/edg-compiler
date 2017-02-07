@@ -5662,6 +5662,23 @@ See alloc_unshared_constant for more details.
 }  /* alloc_unshared_constant_in_region */
 
 
+static a_subobject_path_ptr copy_subobject_path(a_subobject_path_ptr  path)
+/*
+Return a copy of the given subobject path.
+*/
+{
+  a_subobject_path_ptr  copy = NULL, *p_entry = &copy;
+
+  while (path != NULL) {
+    *p_entry = alloc_subobject_path();
+    **p_entry = *path;
+    path = path->next;
+    p_entry = &(*p_entry)->next;
+  }  /* while */
+  return copy;
+}  /* copy_subobject_path */
+
+
 static a_constant_ptr i_copy_constant_full(
                                         a_constant_ptr            old_constant,
                                         a_constant_ptr            new_constant,
@@ -5786,6 +5803,10 @@ copy_constant_full should be called to start a copy.
                                                        options, cblock);
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (old_constant->variant.address.subobject_path != NULL) {
+      new_constant->variant.address.subobject_path =
+            copy_subobject_path(old_constant->variant.address.subobject_path);
     }  /* if */
   } else if (new_constant->kind == (a_constant_repr_kind)ck_template_param) {
     switch (new_constant->variant.template_param.kind) {
@@ -7651,6 +7672,10 @@ alloc_shareable_constant would return a shareable constant.
        case, the constant may need to refer to a local expression, which
        prevents sharing.  Those with assoc_info non-NULL were handled above.
        For others, make a new copy every time. */
+    shareable = FALSE;
+  } else if (constant_is(cp, ck_address) &&
+             cp->variant.address.subobject_path != NULL) {
+    /* Do not share address constants with a subobject path. */
     shareable = FALSE;
   } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Don't share aggregate constants (they come up for compound literals

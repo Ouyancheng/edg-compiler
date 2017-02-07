@@ -895,6 +895,23 @@ it points to the variable, routine, or constant entry.
 }  /* base_object */
 
 
+static a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con)
+/*
+Return a pointer to the last "link" pointer of the subobject path of con (which
+must be a ck_address entry).
+*/
+{
+  a_subobject_path_ptr  *p_link;
+
+  check_assertion(constant_is(con, ck_address));
+  p_link = &con->variant.address.subobject_path;
+  while (*p_link != NULL) {
+    p_link = &(*p_link)->next;
+  }  /* while */
+  return p_link;
+}  /* last_subobject_path_link */
+
+
 void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
                           a_type_ptr        qualifiers_model,
@@ -1026,6 +1043,12 @@ folded to another error constant.
            that no overflow/object-size checking is needed, since the base
            class has to be within the underlying object. */
         set_pointer_offset(result, offset, &err);
+        if (constant_is(result, ck_address)) {
+          a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
+          *p_end_path = alloc_subobject_path();
+          (*p_end_path)->kind = (an_il_entry_kind)iek_base_class;
+          (*p_end_path)->variant.base_class = base_class;
+        }  /* if */
       }  /* if */
     }  /* for */
     /* Set the constant type.  It includes all the type qualifiers from the
@@ -1140,6 +1163,12 @@ ec_no_error if there was no error.
          that no overflow/object-size checking is needed, since the base
          class has to be within the underlying object. */
       set_pointer_offset(result, offset, &err);
+      if (constant_is(result, ck_address)) {
+        a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
+        *p_end_path = alloc_subobject_path();
+        (*p_end_path)->kind = (an_il_entry_kind)iek_type;
+        (*p_end_path)->variant.base_class = bcp;
+      }  /* if */
       release_local_constant(&offset);
     }  /* if */
     implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
@@ -4878,6 +4907,17 @@ detected, or *err_code == ec_no_error if everything went fine.
     set_pointer_offset(result, offset, &err);
     /* If this was an unsigned integer operation, overflow is ignored. */
     if (integer_case && !offset_is_signed) err = FALSE;
+    if (constant_is(result, ck_address)) {
+      a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
+      *p_end_path = alloc_subobject_path();
+      (*p_end_path)->kind = (an_il_entry_kind)iek_constant;
+      (*p_end_path)->variant.ptr_offset =
+                                  value_of_integer_constant(constant_2, &err);
+      if (op == (an_expr_operator_kind)eok_psubtract ||
+          op == (an_expr_operator_kind)eok_subtract) {
+        (*p_end_path)->variant.ptr_offset = -(*p_end_path)->variant.ptr_offset;
+      }  /* if */
+    }  /* if */
   }  /* if */
 have_result:
   if (err) {
@@ -5933,9 +5973,10 @@ the expression is not a glvalue, do not fold (see fold_expr instead).
 }  /* fold_glvalue_expr */
 
 
-static void accum_field_offset(a_constant_ptr  total_offset,
-                               a_field_ptr     field,
-                               a_boolean       *ovflo)
+static void accum_field_offset(a_constant_ptr        total_offset,
+                               a_field_ptr           field,
+                               a_subobject_path_ptr  *p_subobject_path,
+                               a_boolean             *ovflo)
 /*
 total_offset represents an offset: Add to it the offset of the given field,
 and set *ovflo to TRUE if an overflow occurred.
@@ -5953,6 +5994,12 @@ and set *ovflo to TRUE if an overflow occurred.
     /* See if the field is from an anonymous union. */
     field_class = parent_class_of(field);
     ctsp = class_type_supp(field_class);
+    if (p_subobject_path != NULL) {
+      a_subobject_path_ptr  path = alloc_subobject_path();
+      path->next = *p_subobject_path;
+      path->kind = (an_il_entry_kind)iek_field;
+      path->variant.field = field;
+    }  /* if */
     if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
       break;
     }  /* if */
@@ -5991,15 +6038,22 @@ through the usual interface because a field cannot be passed as a constant.
        which can come up as part of the expansion of offsetof. */
     is_constant = FALSE;
   } else {
+    a_subobject_path_ptr  field_path = NULL, *p_field_path;
+    p_field_path = constant_is(result, ck_address) ?
+                                    &field_path : (a_subobject_path_ptr*)NULL;
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, offset);
     /* ... and add the offset of the field. */
-    accum_field_offset(offset, field, &err);
+    accum_field_offset(offset, field, p_field_path, &err);
     /* Put the offset into the result pointer constant.  Note that no
        overflow/object-size checking is needed, since the field has to be
        within the underlying object. */
     set_pointer_offset(result, offset, &err);
     implicit_cast(result, result_type);
+    /* Update the subobject path if applicable. */
+    if (field_path != NULL) {
+      *last_subobject_path_link(result) = field_path;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -7001,7 +7055,8 @@ it is non-NULL).  Otherwise, return TRUE.
     case eok_dot_field:
     case eok_points_to_field:
       check_assertion(is_field_node(args->next));
-      accum_field_offset(offset, node_field(args->next), &ovflo);
+      accum_field_offset(offset, node_field(args->next),
+                         (a_subobject_path_ptr*)NULL, &ovflo);
       break;
     case eok_subscript:
       { a_type_ptr       elem_type = type_pointed_to(args->type);

@@ -54,6 +54,8 @@ extern a_per_instantiation_needed_flags_entry_ptr
            alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+extern a_subobject_path_ptr alloc_subobject_path(void);
+
 extern void set_template_param_constant_kind(
                                       a_constant                     *cp,
                                       a_template_param_constant_kind kind);

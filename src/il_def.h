@@ -699,6 +699,7 @@ typedef enum /*an_il_entry_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_event_interface,  /* an_event_interface */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  iek_subobject_path,	/* a_subobject_path */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -867,6 +868,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_event_interface */               "event-interface",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* iek_subobject_path */		"subobject-path",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -3996,6 +3998,42 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
 ;
 #endif /* DEBUG */
 
+
+typedef struct a_subobject_path  *a_subobject_path_ptr;
+typedef struct a_subobject_path {
+  /* Description of the subobject path for an address constant.  E.g., if
+     "&x.f[3]" is the address of a global variable with array-type field f, it
+     would point to a list of two subobject path entries: The first pointing
+     to the entry representing field f, and the second holding the element
+     offset within that field (+3, in this case). */
+  a_subobject_path_ptr
+		next;
+			/* Pointer the next entry in this path (or NULL if
+			   none). */
+  an_il_entry_kind
+		kind;
+			/* iek_base_class for a base class cast, iek_type for
+			   a derived class cast, iek_field for a field access,
+			   and iek_constant for an array subscript. */
+  union {
+    /* When kind == iek_field. */
+    a_field_ptr
+		field;
+			/* The selected field entry. */
+    /* When kind == iek_constant. */
+    a_targ_ptrdiff_t
+		ptr_offset;
+			/* The offset applied to the pointer. */
+    /* When kind == iek_base_class or iek_type. */
+    a_base_class_ptr
+		base_class;
+			/* The selected base class when kind == iek_base_class
+			   or the base class whose derived class is cast to
+			   when kind == iek_type. */
+  } variant;
+} a_subobject_path;
+		
+
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
      list; in such cases, it may indicate something about the initialization
@@ -4359,6 +4397,11 @@ typedef struct a_constant {
       a_targ_ptrdiff_t
                 offset;
                         /* Byte offset from the base address. */
+      a_subobject_path_ptr
+		subobject_path;
+			/* A description of the subobject referred to by
+			   the given address.  NULL if the address refers
+			   to the complete object or to a function. */
     } address;
     /* When kind == ck_ptr_to_member: */
     struct {
@@ -16920,6 +16963,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(an_event_interface),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sizeof(a_subobject_path),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

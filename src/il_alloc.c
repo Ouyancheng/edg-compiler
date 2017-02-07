@@ -111,7 +111,8 @@ static unsigned long
                 num_il_entity_list_entries_allocated,
                 num_attributes_allocated,
                 num_attribute_args_allocated,
-                num_attribute_groups_allocated;
+                num_attribute_groups_allocated,
+                num_subobject_paths_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
@@ -684,6 +685,24 @@ region if at_file_scope is TRUE.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+a_subobject_path_ptr alloc_subobject_path(void)
+/*
+Allocate an entry for a subobject path and return a pointer to it.  The entry
+is allocated in the current memory region.
+*/
+{
+  a_subobject_path_ptr  entry;
+
+  entry = (a_subobject_path_ptr)alloc_cil(sizeof(a_subobject_path));
+#if DEBUG
+  ++num_subobject_paths_allocated;
+#endif /* DEBUG */
+  entry->next = NULL;
+  entry->kind = (an_il_entry_kind)iek_field;
+  entry->variant.field = NULL;
+  return entry;
+}  /* alloc_subobject_path */
+
 void set_template_param_constant_kind(a_constant                     *cp,
                                       a_template_param_constant_kind kind)
 /*
@@ -813,6 +832,7 @@ fields to default values.
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
+      cp->variant.address.subobject_path = NULL;
       break;
     case ck_ptr_to_member:
       cp->variant.ptr_to_member.casting_base_class = NULL;
@@ -5493,6 +5513,8 @@ Display and return the amount of space used for various IL tables.
                 num_seq_number_lookup_entries_allocated,
                 a_seq_number_lookup_entry);
   db_space_used("constant", num_constants_allocated, a_constant);
+  db_space_used("subobject paths", num_subobject_paths_allocated,
+                a_subobject_path);
   db_space_used("String literal text", string_literal_text_space_allocated,
                 char);
   db_space_used("IL entity list entries", num_il_entity_list_entries_allocated,
@@ -5996,6 +6018,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_attributes_allocated),
       pch_saved_var_array_elem(num_attribute_args_allocated),
       pch_saved_var_array_elem(num_attribute_groups_allocated),
+      pch_saved_var_array_elem(num_subobject_paths_allocated),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -6193,6 +6216,7 @@ initializations that are done for each compilation.
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_SUPPORT_NEEDED */
   num_il_entity_list_entries_allocated   = 0;
+  num_subobject_paths_allocated          = 0;
 #endif /* DEBUG */
 #if CHECKING
   local_constants_in_use                 = 0;
