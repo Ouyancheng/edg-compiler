@@ -802,10 +802,10 @@ remove_any_extraneous_braces:
   }  /* if */
   /* Convert the single value as appropriate. */
   {
-  /* Copy the initialization state for the top-level initialization, except
-     that it should always indicate copy initialization (even if the top level
-     initialization is direct).  The call to convert_initializer will update
-     elem_is.init_con and elem_is.init_dip (possibly to NULL). */
+    /* Copy the initialization state for the top-level initialization, except
+       that it should always indicate copy initialization (even if the top
+       level initialization is direct).  The call to convert_initializer will
+       update elem_is.init_con and elem_is.init_dip (possibly to NULL). */
     an_init_state  elem_is;
     elem_is = *is;
     elem_is.direct_init = FALSE;
@@ -824,7 +824,7 @@ remove_any_extraneous_braces:
       is->constant_expr_ruled_out = TRUE;
       if (constexpr_enabled && is->initializer_must_be_constant) {
         /* No constant-expression could possibly result from this.  Discard
-           the initializer to avoid potential problem with object lifetime
+           the initializer to avoid potential problems with object lifetime
            management later on. */
         if (!is->init_error && !is->no_diagnostics &&
             elem_is.init_dip != NULL) {

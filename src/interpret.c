@@ -394,7 +394,6 @@ Initialize the given data map.
 static void release_data_map_table(a_data_map  *map)
 /*
 Release the storage for the given map's table.
-FIXME: Adding memoizing of tables.
 */
 {
   a_map_index       n_slots = map->hash_mask+1;
@@ -451,8 +450,6 @@ typedef struct a_live_set {
 			/* The hash table proper. */
   a_live_set_index
 		hash_mask;
-			/* Number of overflow entries (used in case of hashing
-			   collisions) in the hash table. */
 			/* The mask to apply to the hash value before indexing
 			   in the table.  This mask is increased as the table
 			   grows. */
@@ -496,7 +493,6 @@ Release the storage for the given set's table.
 static void expand_live_set(a_live_set  *set)
 /*
 Double the number of entries in the given set.  This requires rehashing.
-FIXME: Adding memoizing of tables.
 */
 {
   an_alloc_seq_number  *new_table, *old_table = set->table;
@@ -601,7 +597,7 @@ that are associated with that slot (i.e., have the same hash index).  This
 function makes sure that such entries can be found, by moving up entries as
 needed.
 
-This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth'
+This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth's
 "The Art of Computer Programming" (Sorting and Searching -- Second Edition),
 with the assumption that step R1 has already been performed (idx0 is "j") and
 we know that the subsequent slot is not empty.
@@ -618,7 +614,7 @@ we know that the subsequent slot is not empty.
     for (;;) {
       ridx = hash_alloc_seq_number(rseq) & mask;
       /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
-         slot: The place from where probing will start.  So we cannot move it
+         slot: the place from where probing will start.  So we cannot move it
          ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
          "wrap-around"), do not move the entry and try the next entry
          instead. */
@@ -689,7 +685,7 @@ in_live_set.
 
 /*
 Structure describing the information following the value bytes for a variable
-object: Its allocation sequence number and its prior mapping.
+object: its allocation sequence number and its prior mapping.
 */
 typedef struct a_var_postfix {
   an_alloc_seq_number
@@ -1158,7 +1154,6 @@ Output some information about a data map's contents
 static void expand_ptr_map(a_data_map  *map)
 /*
 Double the number of entries in the given map.  This requires rehashing.
-FIXME: Adding memoizing of tables.
 */
 {
   a_data_map_entry  *new_table, *old_table = map->table;
@@ -1356,7 +1351,7 @@ that are associated with that slot (i.e., have the same hash index).  This
 function makes sure that such entries can be found, by moving up entries as
 needed.
 
-This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth'
+This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth's
 "The Art of Computer Programming" (Sorting and Searching -- Second Edition),
 with the assumption that step R1 has already been performed (idx0 is "j") and
 we know that the subsequent slot is not empty.
@@ -1373,7 +1368,7 @@ we know that the subsequent slot is not empty.
     for (;;) {
       ridx = hash_ptr(rptr) & mask;
       /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
-         slot: The place from where probing will start.  So we cannot move it
+         slot: the place from where probing will start.  So we cannot move it
          ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
          "wrap-around"), do not move the entry and try the next entry
          instead. */
@@ -1674,7 +1669,7 @@ static void get_runtime_array_pos(a_constexpr_address  *cap,
                                   a_byte_count         *p_pos)
 /*
 cap represents a run-time address constant or null pointer and elem_size the
-size of the element type being addressed.  For NULL pointers, set *a_len and
+size of the element type being addressed.  For null pointers, set *a_len and
 *p_pos to zero.  Otherwise, return in *a_len the number of objects pointed to
 if known (the length of an array or one for a non-array object); if unknown,
 return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
@@ -1687,7 +1682,7 @@ addressed (with non-array objects treated as arrays of one element).
   a_constant_ptr  cp;
 
   if (!constant_is(con_addr, ck_address)) {
-    /* Presumably a null pointer (and integer with a pointer type). */
+    /* Presumably a null pointer (an integer with a pointer type). */
     check_assertion(constant_is(con_addr, ck_integer));
     length = 0;
     pos = 0;
@@ -4693,7 +4688,7 @@ Interpret the given range-based for-statement.
   }  /* if */
   for (k = 0; k<4; ++k) {
     var_storage[k] = do_constexpr_alloc_variable(ips, vp[k], &result);
-    mark_complete_object_initialized(var_storage[k]); /*FIXME: needed?*/
+    mark_complete_object_initialized(var_storage[k]);
   }  /* for */
   if (!result) goto unmap_storage;
   /* Initialize the range and its delimiters: */
@@ -9915,8 +9910,8 @@ the value representation of the integer value.
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
           if (tp->kind == (a_type_kind)tk_array) {
-            /* We referring to the array as a whole; not just one element of
-               it.  Record the length in case it is needed later on. */
+            /* We are referring to the array as a whole; not just one element
+               of it.  Record the length in case it is needed later on. */
             cap->length = tp->variant.array.variant.number_of_elements;
           }  /* if */
           if (!temp_lifetime) {
@@ -9952,7 +9947,7 @@ the value representation of the integer value.
         ips->constants = cp;
         clear_runtime_constant_address(cap, cp);
       } else {
-        /* Polymorphic typeid: Not allowed in constant expressions. */
+        /* Polymorphic typeid: not allowed in constant expressions. */
         info_with_pos(ec_constexpr_access_to_runtime_storage,
                       &expr->position, ips);
         do_constexpr_fail(result);

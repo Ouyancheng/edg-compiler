@@ -8525,7 +8525,7 @@ user-defined conversions.
   }  /* if */
   if (vla_enabled && is_expression_operand(operand) &&
       is_directly_variably_modified_type(new_type)) {
-    /* Do prevent the interpreter from evaluating this node, because it could
+    /* Prevent the interpreter from evaluating this node, because it could
        fold away the side-effects of evaluating the variable bounds. */
     operand->variant.expression->do_not_interpret = TRUE;
   }  /* if */
