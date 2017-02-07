@@ -6216,9 +6216,11 @@ tables).
 
   check_assertion_str(exceptions_enabled,
      "insert_code_to_indicate_cleanup_state: called with exceptions disabled");
+#if !INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
   check_assertion(long_lifetime_temps ||
                   (innermost_function_scope != NULL &&
                    has_destructions(innermost_function_scope->lifetime)));
+#endif /* !INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* In the portable scheme, assign the region number to __eh_curr_region. */
   node = node_for_integer_constant((long)cleanup_region_number(cleanup_state),
