@@ -6541,6 +6541,11 @@ conversion to an rvalue is forced externally.
     if (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array) {
       mark_whole_subobject_initialized(ips, result_storage, tp,
                                        complete_object);
+    } else if (tp->kind == (a_type_kind)tk_pointer) {
+      /* If a pointer value is loaded from a glvalue, give the copy its own
+         address structures (so the original will not be freed when the copy
+         is freed). */
+      copy_address_structures(result_storage);
     }  /* if */
   }  /* if */
   return result;
