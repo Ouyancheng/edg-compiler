@@ -5507,7 +5507,7 @@ and make *operand an error operand.
   discard_more_info_list(&diag_list);
   release_local_constant(&constant);
   return result;
-}  /* if */
+}  /* expr_interpret_expression_operand */
 
 
 a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
