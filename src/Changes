@@ -15,7 +15,7 @@ interpreter's restriction has been lifted by using this new information.
 2/7/17   [EDGcpfe/17990]
 Assertion failure in insert_code_to_indicate_cleanup_state
 
-The changes for EDGcpfe/17148 caused an assertion failure (in
+The changes for EDGcpfe/17148 (in version 4.12) caused an assertion failure (in
 insert_code_to_indicate_cleanup_state) for any code that used a function
 try block in configurations that use lowering but have
 INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE set to TRUE.  That has now been
