@@ -4905,9 +4905,11 @@ detected, or *err_code == ec_no_error if everything went fine.
     /* Build the result pointer constant. */
     copy_constant(constant_1, result);
     set_pointer_offset(result, offset, &err);
-    /* If this was an unsigned integer operation, overflow is ignored. */
-    if (integer_case && !offset_is_signed) err = FALSE;
-    if (constant_is(result, ck_address)) {
+    if (integer_case && !offset_is_signed) {
+      /* If this was an unsigned integer operation, overflow is ignored. */
+      err = FALSE;
+    } else if (constant_is(result, ck_address)) {
+      /* Record the change in the associated subobject path. */
       a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
       *p_end_path = alloc_subobject_path();
       (*p_end_path)->kind = (an_il_entry_kind)iek_constant;
