@@ -4003,7 +4003,7 @@ typedef struct a_subobject_path  *a_subobject_path_ptr;
 typedef struct a_subobject_path {
   /* Description of the subobject path for an address constant.  E.g., if
      "&x.f[3]" is the address of a global variable with array-type field f, it
-     would point to a list of two subobject path entries: The first pointing
+     would point to a list of two subobject path entries: the first pointing
      to the entry representing field f, and the second holding the element
      offset within that field (+3, in this case). */
   a_subobject_path_ptr

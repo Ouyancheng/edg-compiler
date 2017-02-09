@@ -4,7 +4,7 @@ Version 4.13
 Address constants pointing into unions
 
 The constexpr interpreter previously could not consume address constants
-pointing into union because the IL representation of such constant was
+pointing into unions because the IL representation of such constant was
 potentially ambiguous: Two identical constants could be produced by taking
 the address of different field components of the union.  The representation
 of address constants has now been extended with a "subobject path" that
