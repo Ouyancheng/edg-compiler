@@ -1,5 +1,13 @@
 Version 4.13
 
+2/10/17  [EDGcpfe/18009]
+Memory corruption and possible aborts in C++/CLI mode
+
+In unpredictable circumstances, a C++/CLI compilation could abort or have
+other incorrect behavior due to use of an uninitialized variable while
+reading metadata.  This is now fixed.
+
+
 2/7/17   [EDGcpfe/17710]
 Address constants pointing into unions
 

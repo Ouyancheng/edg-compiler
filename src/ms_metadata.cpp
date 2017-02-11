@@ -1981,6 +1981,11 @@ public:
   an_element_value(an_element_value&& other)
   {
     other.swap(*this);
+    /* The destructor for the moved-from object will inspect element_type_
+       and potentially take some action based on its value, which at this
+       point is the uninitialized value previously in this->element_type.
+       Ensure that it has an innocuous value. */
+    other.element_type_ = ELEMENT_TYPE_VOID;
   }  /* Move constructor. */
 
   an_element_value& operator=(an_element_value other)
