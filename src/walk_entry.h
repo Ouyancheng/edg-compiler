@@ -636,6 +636,11 @@ by remapping its pointers, and, if DO_SUBTREE_WALK is TRUE, walking its
 subtree and calling the entry_process_func.  When DO_SUBTREE_WALK is
 TRUE, if the entry has already been seen, or if the pointer crosses into
 the file scope, do not process it (but record an orphan in the latter case).
+Note that entry_ptr is frequently cast to the kind of the IL entry through
+the use of the "eptr" macro, rather than through the use of block-scope
+variables.  That's to decrease the amount of stack needed by this routine
+(since it may be deeply recursive) and some compilers (particularly in
+debug builds) don't recognize that these variables are mutually-exclusive.
 */
 {
 #if DO_SUBTREE_WALK
@@ -695,43 +700,44 @@ the file scope, do not process it (but record an orphan in the latter case).
   switch (entry_kind) {
     case iek_source_file:
       {
-        a_source_file_ptr ptr = (a_source_file_ptr)entry_ptr;
-        walk_string_ptr(ptr->file_name, iek_other_text, 0);
-        walk_string_ptr(ptr->full_name, iek_other_text, 0);
-        walk_string_ptr(ptr->name_as_written, iek_other_text, 0);
-        walk_list(ptr->first_child_file, a_source_file_ptr, iek_source_file);
-        remap_ptr(ptr->last_child_file, a_source_file_ptr, iek_source_file);
-        remap_next_ptr(ptr->next, a_source_file_ptr, iek_source_file);
+#define eptr ((a_source_file_ptr)entry_ptr)
+        walk_string_ptr(eptr->file_name, iek_other_text, 0);
+        walk_string_ptr(eptr->full_name, iek_other_text, 0);
+        walk_string_ptr(eptr->name_as_written, iek_other_text, 0);
+        walk_list(eptr->first_child_file, a_source_file_ptr, iek_source_file);
+        remap_ptr(eptr->last_child_file, a_source_file_ptr, iek_source_file);
+        remap_next_ptr(eptr->next, a_source_file_ptr, iek_source_file);
+#undef eptr
       }
       break;
     case iek_seq_number_lookup_entry:
       {
-        a_seq_number_lookup_entry_ptr ptr =
-                                      (a_seq_number_lookup_entry_ptr)entry_ptr;
-        remap_ptr(ptr->source_file, a_source_file_ptr, iek_source_file);
-        remap_next_ptr(ptr->next, a_seq_number_lookup_entry_ptr,
+#define eptr ((a_seq_number_lookup_entry_ptr)entry_ptr)
+        remap_ptr(eptr->source_file, a_source_file_ptr, iek_source_file);
+        remap_next_ptr(eptr->next, a_seq_number_lookup_entry_ptr,
                        iek_seq_number_lookup_entry);
+#undef eptr
       }
       break;
     case iek_constant:
       {
-        a_constant_ptr ptr = (a_constant_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_constant_ptr, iek_constant);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
+#define eptr ((a_constant_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        walk_ptr(eptr->orig_type, a_type_ptr, iek_type);
         /* If backing expressions are kept, they are only keep-in-IL, not
            needed. */
-        walk_ptr_not_needed(ptr->expr, an_expr_node_ptr, iek_expr_node);
-        conditionally_clear_fe_pointer(ptr->rescan_info);
+        walk_ptr_not_needed(eptr->expr, an_expr_node_ptr, iek_expr_node);
+        conditionally_clear_fe_pointer(eptr->rescan_info);
 #if DO_IL_LOWERING
-        conditionally_clear_fe_pointer(ptr->assoc_var);
+        conditionally_clear_fe_pointer(eptr->assoc_var);
 #endif /* DO_IL_LOWERING */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        if (ptr->type != NULL) {
-          definition_needed_if_class(ptr->type);
+        if (eptr->type != NULL) {
+          definition_needed_if_class(eptr->type);
         }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case ck_error:
           case ck_integer:
 #if FIXED_POINT_ALLOWED
@@ -749,39 +755,40 @@ the file scope, do not process it (but record an orphan in the latter case).
             /* No pointers. */
             break;
           case ck_string:
-            walk_string_ptr(ptr->variant.string.value, iek_string_text,
-                            ptr->variant.string.length);
+            walk_string_ptr(eptr->variant.string.value, iek_string_text,
+                            eptr->variant.string.length);
             break;
 #if C99_IL_EXTENSIONS_SUPPORTED
           case ck_complex:
-            walk_ptr(ptr->variant.complex_value, an_internal_complex_value_ptr,
+            walk_ptr(eptr->variant.complex_value,
+                     an_internal_complex_value_ptr,
                      iek_internal_complex_value);
             break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case ck_address:
-            switch (ptr->variant.address.kind) {
+            switch (eptr->variant.address.kind) {
               case abk_routine:
                 /* Routines will be visited from the scope. */
-                remap_ptr(ptr->variant.address.variant.routine, a_routine_ptr,
+                remap_ptr(eptr->variant.address.variant.routine, a_routine_ptr,
                           iek_routine);
                 set_proper_routine_definition_needed_flag(
-                                         ptr->variant.address.variant.routine);
+                                        eptr->variant.address.variant.routine);
                 break;
               case abk_variable:
                 /* Variables will be visited from the scope. */
-                remap_ptr(ptr->variant.address.variant.variable,
+                remap_ptr(eptr->variant.address.variant.variable,
                           a_variable_ptr, iek_variable);
                 break;
               case abk_constant:
               case abk_temporary:
                 /* Constants might not be on the scope constant list, so visit
                    their subtrees. */
-                walk_ptr(ptr->variant.address.variant.constant, a_constant_ptr,
-                         iek_constant);
+                walk_ptr(eptr->variant.address.variant.constant,
+                         a_constant_ptr, iek_constant);
                 break;
               case abk_uuidof:
                 /* Class types will be visited from the scope. */
-                remap_ptr(ptr->variant.address.variant.type, a_type_ptr,
+                remap_ptr(eptr->variant.address.variant.type, a_type_ptr,
                           iek_type);
                 break;
               case abk_typeid:
@@ -791,7 +798,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 /* The recorded type is not limited to the kind of types that
                    are visited from the scope.  So walk the subtree in any
                    case. */
-                walk_ptr(ptr->variant.address.variant.type, a_type_ptr,
+                walk_ptr(eptr->variant.address.variant.type, a_type_ptr,
                          iek_type);
                 break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -801,114 +808,114 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               case abk_label:
                 /* Labels will be visited from the scope. */
-                remap_ptr(ptr->variant.address.variant.label, a_label_ptr,
+                remap_ptr(eptr->variant.address.variant.label, a_label_ptr,
                           iek_label);
                 break;
               default:
                 unexpected_condition_str(
                              "walk_entry_and_subtree: bad address const kind");
             }  /* switch */
-            walk_list(ptr->variant.address.subobject_path,
+            walk_list(eptr->variant.address.subobject_path,
                       a_subobject_path_ptr, iek_subobject_path);
             break;
           case ck_ptr_to_member:
-            remap_ptr(ptr->variant.ptr_to_member.casting_base_class,
+            remap_ptr(eptr->variant.ptr_to_member.casting_base_class,
                       a_base_class_ptr, iek_base_class);
-            walk_ptr(ptr->variant.ptr_to_member.name_reference,
+            walk_ptr(eptr->variant.ptr_to_member.name_reference,
                      a_name_reference_ptr, iek_name_reference);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* coverity[var_deref_model] */
             set_proper_definition_needed_flag(
-                                    pm_class_type_possibly_lowered(ptr->type));
-            if (ptr->variant.ptr_to_member.cast_to_base) {
+                                   pm_class_type_possibly_lowered(eptr->type));
+            if (eptr->variant.ptr_to_member.cast_to_base) {
               /* On a cast from a derived to a base class, mark the derived
                  class's definition as needed. */
               set_proper_definition_needed_flag(
-                 ptr->variant.ptr_to_member.casting_base_class->derived_class);
+                eptr->variant.ptr_to_member.casting_base_class->derived_class);
             }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-            if (ptr->variant.ptr_to_member.is_function_ptr) {
-              remap_ptr(ptr->variant.ptr_to_member.variant.routine,
+            if (eptr->variant.ptr_to_member.is_function_ptr) {
+              remap_ptr(eptr->variant.ptr_to_member.variant.routine,
                         a_routine_ptr, iek_routine);
-              if (ptr->variant.ptr_to_member.variant.routine != NULL) {
+              if (eptr->variant.ptr_to_member.variant.routine != NULL) {
                 set_proper_routine_definition_needed_flag(
-                                   ptr->variant.ptr_to_member.variant.routine);
+                                  eptr->variant.ptr_to_member.variant.routine);
               }  /* if */
             } else {
-              remap_ptr(ptr->variant.ptr_to_member.variant.field, a_field_ptr,
+              remap_ptr(eptr->variant.ptr_to_member.variant.field, a_field_ptr,
                         iek_field);
             }  /* if */
             break;
 #if GNU_EXTENSIONS_ALLOWED
           case ck_label_difference:
-            walk_ptr(ptr->variant.label_difference.from_address,
+            walk_ptr(eptr->variant.label_difference.from_address,
                      a_constant_ptr, iek_constant);
-            walk_ptr(ptr->variant.label_difference.to_address,
+            walk_ptr(eptr->variant.label_difference.to_address,
                      a_constant_ptr, iek_constant);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
           case ck_stack_offset:
-            remap_ptr(ptr->variant.stack_offset.variable, a_variable_ptr,
+            remap_ptr(eptr->variant.stack_offset.variable, a_variable_ptr,
                       iek_variable);
             break;
 #endif /* DO_IL_LOWERING && ... */
           case ck_dynamic_init:
-              walk_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
+              walk_ptr(eptr->variant.dynamic_init, a_dynamic_init_ptr,
                        iek_dynamic_init);
             break;
           case ck_aggregate:
-            walk_list(ptr->variant.aggregate.first_constant, a_constant_ptr,
+            walk_list(eptr->variant.aggregate.first_constant, a_constant_ptr,
                       iek_constant);
-            remap_ptr(ptr->variant.aggregate.last_constant, a_constant_ptr,
+            remap_ptr(eptr->variant.aggregate.last_constant, a_constant_ptr,
                       iek_constant);
             break;
           case ck_init_repeat:
-            walk_ptr(ptr->variant.init_repeat.constant, a_constant_ptr,
+            walk_ptr(eptr->variant.init_repeat.constant, a_constant_ptr,
                      iek_constant);
             break;
           case ck_designator:
-            if (ptr->variant.designator.is_field_designator) {
-              if (ptr->variant.designator.is_generic) {
-                walk_string_ptr(ptr->variant.designator.variant.field_name,
+            if (eptr->variant.designator.is_field_designator) {
+              if (eptr->variant.designator.is_generic) {
+                walk_string_ptr(eptr->variant.designator.variant.field_name,
                                 iek_id_name, 0);
               } else {
-                remap_ptr(ptr->variant.designator.variant.field, a_field_ptr,
+                remap_ptr(eptr->variant.designator.variant.field, a_field_ptr,
                           iek_field);
               }  /* if */
             } else {
-              if (ptr->variant.designator.is_generic) {
-                walk_ptr(ptr->variant.designator.variant.subscript,
+              if (eptr->variant.designator.is_generic) {
+                walk_ptr(eptr->variant.designator.variant.subscript,
                          a_constant_ptr, iek_constant);
               }  /* if */
             }  /* if */
             break;
           case ck_template_param:
-            switch (ptr->variant.template_param.kind) {
+            switch (eptr->variant.template_param.kind) {
               case tpck_param:
               case tpck_member:
                 /* No action required. */
                 break;
               case tpck_expression:
-                walk_ptr(ptr->variant.template_param.variant.expr,
+                walk_ptr(eptr->variant.template_param.variant.expr,
                          an_expr_node_ptr, iek_expr_node);
                 break;
               case tpck_unknown_function:
-                walk_ptr(ptr->variant.template_param.variant.unknown_function.
+                walk_ptr(eptr->variant.template_param.variant.unknown_function.
                                                                conversion_type,
                          a_type_ptr, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                walk_ptr(ptr->variant.template_param.variant.unknown_function
+                walk_ptr(eptr->variant.template_param.variant.unknown_function
                                                       .property_or_event_descr,
                          a_property_or_event_descr_ptr,
                          iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                conditionally_clear_fe_pointer(ptr->variant.template_param.
+                conditionally_clear_fe_pointer(eptr->variant.template_param.
                                               variant.unknown_function.symbol);
                 break;
               case tpck_cast:
               case tpck_address:
-                walk_ptr(ptr->variant.template_param.variant.constant,
+                walk_ptr(eptr->variant.template_param.variant.constant,
                          a_constant_ptr, iek_constant);
                 break;
               case tpck_sizeof:
@@ -916,20 +923,22 @@ the file scope, do not process it (but record an orphan in the latter case).
               case tpck_uuidof:
               case tpck_typeid:
               case tpck_noexcept:
-                walk_ptr(ptr->variant.template_param.variant.templ_sizeof.type,
+                walk_ptr(
+                        eptr->variant.template_param.variant.templ_sizeof.type,
                          a_type_ptr, iek_type);
-                walk_ptr(ptr->variant.template_param.variant.templ_sizeof.expr,
+                walk_ptr(
+                        eptr->variant.template_param.variant.templ_sizeof.expr,
                          an_expr_node_ptr, iek_expr_node);
                 break;
               case tpck_template_ref:
-                walk_ptr(ptr->variant.template_param.variant.template_ref.con,
+                walk_ptr(eptr->variant.template_param.variant.template_ref.con,
                          a_constant_ptr, iek_constant);
-                walk_list(ptr->variant.template_param.variant.
+                walk_list(eptr->variant.template_param.variant.
                                                          template_ref.arg_list,
                           a_template_arg_ptr, iek_template_arg);
                 break;
               case tpck_destructor:
-                walk_ptr(ptr->variant.template_param.variant.destructor.type,
+                walk_ptr(eptr->variant.template_param.variant.destructor.type,
                          a_type_ptr, iek_type);
                 break;
               default:
@@ -941,109 +950,112 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
         }  /* switch */
-        walk_source_corresp_full(ptr->source_corresp,
-                                 (constant_is(ptr, ck_template_param) ||
-                                  ptr->is_named_constant_definition));
+        walk_source_corresp_full(eptr->source_corresp,
+                                 (constant_is(eptr, ck_template_param) ||
+                                  eptr->is_named_constant_definition));
+#undef eptr
       }
       break;
     case iek_param_type:
       {
-        a_param_type_ptr ptr = (a_param_type_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+#define eptr ((a_param_type_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_param_type_ptr, iek_param_type);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        walk_ptr(eptr->declared_type, a_type_ptr, iek_type);
         /* The C language doesn't actually require that parameter types
            be complete if the function is not called.  However, some
            C compilers (e.g., gcc) warn on an incomplete parameter
            type, so keep the class definition to avoid such warnings. */
-        definition_needed_if_class(ptr->type);
-        walk_string_ptr(ptr->name, iek_id_name, 0);
+        definition_needed_if_class(eptr->type);
+        walk_string_ptr(eptr->name, iek_id_name, 0);
         /* The default_arg_expr field is not walked at this level in the
            needed and keep-in-il walks, because we don't know enough about
            the context.  See the uses of walk_param_list_default_arg_exprs. */
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         conditionally_clear_fe_pointer(
-                        ptr->orig_param_type_for_unevaluated_default_arg_expr);
-        walk_list(ptr->entities_defined_in_default_arg,
+                       eptr->orig_param_type_for_unevaluated_default_arg_expr);
+        walk_list(eptr->entities_defined_in_default_arg,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
+        walk_ptr(eptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+        walk_list(eptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
+        conditionally_clear_fe_pointer(eptr->pack_expansion_descr);
+#undef eptr
       }
       break;
     case iek_routine_type_supplement:
       {
-        a_routine_type_supplement_ptr ptr =
-                                      (a_routine_type_supplement_ptr)entry_ptr;
-        walk_list(ptr->param_type_list, a_param_type_ptr, iek_param_type);
-        remap_ptr(ptr->this_class, a_type_ptr, iek_type);
-        walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
-        walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
+#define eptr ((a_routine_type_supplement_ptr)entry_ptr)
+        walk_list(eptr->param_type_list, a_param_type_ptr, iek_param_type);
+        remap_ptr(eptr->this_class, a_type_ptr, iek_type);
+        walk_ptr(eptr->prototype_scope, a_scope_ptr, iek_scope);
+        walk_ptr(eptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Default argument expressions are not walked at the iek_param_type
            level for the needed and keep-in-il walks.  Do them now, except
            if we know we can do them later as part of processing a routine.
            See the comment on walk_param_list_default_arg_exprs. */
-        if (!C_mode() && ptr->assoc_routine == NULL) {
-          walk_param_list_default_arg_exprs(ptr->param_type_list);
+        if (!C_mode() && eptr->assoc_routine == NULL) {
+          walk_param_list_default_arg_exprs(eptr->param_type_list);
         }  /* if */
         /* Do not walk the assoc_routine pointer for the needed or keep-in-il
            traversal.  We don't want this to force keeping of the routine
            definition if it's not otherwise needed. */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
-        remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->assoc_routine, a_routine_ptr, iek_routine);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#undef eptr
       }
       break;
 #if !NEEDED_FLAG_WALK
     case iek_based_type_list_member:
       {
-        a_based_type_list_member_ptr ptr =
-                                       (a_based_type_list_member_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_based_type_list_member_ptr,
+#define eptr ((a_based_type_list_member_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_based_type_list_member_ptr,
                        iek_based_type_list_member);
         /* Do walk_ptr instead of remap_ptr because the reference might
            be to an entity not otherwise in the IL tree, e.g., a front-end-only
            type. */
-        walk_ptr(ptr->based_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->based_type, a_type_ptr, iek_type);
+#undef eptr
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
     case iek_type:
       {
-        a_type_ptr ptr = (a_type_ptr)entry_ptr;
+#define eptr ((a_type_ptr)entry_ptr)
         /* Template parameter scopes are not linked into the IL, so for
            those we walk instead of remap the parent scope pointer. */
-        walk_source_corresp_full(ptr->source_corresp,
-                                (ptr->kind == (a_type_kind)tk_template_param));
-        remap_next_ptr(ptr->next, a_type_ptr, iek_type);
+        walk_source_corresp_full(eptr->source_corresp,
+                                (eptr->kind ==
+                                              (a_type_kind)tk_template_param));
+        remap_next_ptr(eptr->next, a_type_ptr, iek_type);
 #if NEEDED_FLAG_WALK
         /* When walking to set "needed" flags, the based types list in
            general is not walked, but if there is a based type entry for the
            unqualified version of an array type, walk it. */
         { a_type_ptr unqual_array_type;
-          if (ptr->kind == (a_type_kind)tk_array &&
-              is_qualified_version_of_array_typedef(ptr, &unqual_array_type)) {
+          if (eptr->kind == (a_type_kind)tk_array &&
+              is_qualified_version_of_array_typedef(eptr, &unqual_array_type)){
             walk_ptr(unqual_array_type, a_type_ptr, iek_type);
           }  /* if */
         }
 #else /* !NEEDED_FLAG_WALK */
-        walk_list(ptr->based_types, a_based_type_list_member_ptr,
+        walk_list(eptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
 #endif /* NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
-        remap_ptr_not_needed(ptr->typeinfo_var, a_variable_ptr, iek_variable);
+        remap_ptr_not_needed(eptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING */
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case tk_unknown:
             unexpected_condition_str("unknown type in IL walk");
             break;
@@ -1061,48 +1073,48 @@ the file scope, do not process it (but record an orphan in the latter case).
             /* No pointers. */
             break;
           case tk_integer:
-            if (ptr->variant.integer.enum_type) {
-              if (integer_type_is_scoped_enum(ptr)) {
-                walk_ptr(ptr->variant.integer.enum_info.assoc_scope,
+            if (eptr->variant.integer.enum_type) {
+              if (integer_type_is_scoped_enum(eptr)) {
+                walk_ptr(eptr->variant.integer.enum_info.assoc_scope,
                          a_scope_ptr, iek_scope);
               } else {
-                walk_list(ptr->variant.integer.enum_info.constant_list,
+                walk_list(eptr->variant.integer.enum_info.constant_list,
                           a_constant_ptr, iek_constant);
               }  /* if */
             } else {
-              walk_ptr(ptr->variant.integer.enum_info.affiliated_type,
+              walk_ptr(eptr->variant.integer.enum_info.affiliated_type,
                        a_type_ptr, iek_type);
             }  /* if */
-            walk_ptr(ptr->variant.integer.extra_info,
+            walk_ptr(eptr->variant.integer.extra_info,
                      an_integer_type_supplement_ptr,
                      iek_integer_type_supplement);
             break;
           case tk_pointer:
-            walk_ptr(ptr->variant.pointer.type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.pointer.type, a_type_ptr, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            remap_ptr(ptr->variant.pointer.base_variable, a_variable_ptr,
+            remap_ptr(eptr->variant.pointer.base_variable, a_variable_ptr,
                       iek_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             break;
           case tk_array:
-            if (ptr->variant.array.is_variable_size_array &&
-                !ptr->variant.array.is_vla) {
-              walk_ptr(ptr->variant.array.variant.element_count_expr,
+            if (eptr->variant.array.is_variable_size_array &&
+                !eptr->variant.array.is_vla) {
+              walk_ptr(eptr->variant.array.variant.element_count_expr,
                        an_expr_node_ptr, iek_expr_node);
-            } else if (ptr->variant.array.is_template_dependent_size_array) {
-              walk_ptr(ptr->variant.array.variant.element_count_constant,
+            } else if (eptr->variant.array.is_template_dependent_size_array) {
+              walk_ptr(eptr->variant.array.variant.element_count_constant,
                        a_constant_ptr, iek_constant);
             }  /* if */
-            walk_ptr(ptr->variant.array.bound_constant,
+            walk_ptr(eptr->variant.array.bound_constant,
                      a_constant_ptr, iek_constant);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* In some error cases, some array types on the vla_dimensions
                list are incomplete during the needed flag and keep-in-IL
                walks. */
-            if (ptr->variant.array.element_type == NULL) break;
+            if (eptr->variant.array.element_type == NULL) break;
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-            walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
-            definition_needed_if_class(ptr->variant.array.element_type);
+            walk_ptr(eptr->variant.array.element_type, a_type_ptr, iek_type);
+            definition_needed_if_class(eptr->variant.array.element_type);
             break;
           case tk_class:
           case tk_struct:
@@ -1112,191 +1124,194 @@ the file scope, do not process it (but record an orphan in the latter case).
                the definition should be walked. */
             if (
 #if NEEDED_FLAG_WALK
-                class_definition_needed_flag_is_set(ptr)
+                class_definition_needed_flag_is_set(eptr)
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
-                ptr->variant.class_struct_union.keep_definition_in_il
+                eptr->variant.class_struct_union.keep_definition_in_il
 #endif /* NEEDED_FLAG_WALK */
                                                                      )
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             /* Do not insert code here. */
             {
-                walk_list(ptr->variant.class_struct_union.field_list,
+                walk_list(eptr->variant.class_struct_union.field_list,
                           a_field_ptr, iek_field);
             }  /* if */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Handle the class type supplement inline, because we need
                to have a pointer to the class to decide whether or not to
                process definition-related fields. */
-            if (ptr->variant.class_struct_union.extra_info != NULL) {
+            if (eptr->variant.class_struct_union.extra_info != NULL) {
               goto handle_class_type_supplement_for_class;
             }  /* if */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
-            walk_ptr(ptr->variant.class_struct_union.extra_info,
+            walk_ptr(eptr->variant.class_struct_union.extra_info,
                      a_class_type_supplement_ptr, iek_class_type_supplement);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case tk_typeref:
-            walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.typeref.extra_info,
+            walk_ptr(eptr->variant.typeref.type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.typeref.extra_info,
                      a_typeref_type_supplement_ptr,
                      iek_typeref_type_supplement);
 #if DO_IL_LOWERING
 #if KEEP_IN_IL_WALK
-            walk_ptr(ptr->variant.typeref.orig_type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.typeref.orig_type, a_type_ptr, iek_type);
 #else /* !KEEP_IN_IL_WALK */
-            conditionally_clear_fe_pointer(ptr->variant.typeref.orig_type);
+            conditionally_clear_fe_pointer(eptr->variant.typeref.orig_type);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* DO_IL_LOWERING */
             break;
           case tk_ptr_to_member:
-            remap_ptr(ptr->variant.ptr_to_member.class_of_which_a_member,
+            remap_ptr(eptr->variant.ptr_to_member.class_of_which_a_member,
                       a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.ptr_to_member.type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.ptr_to_member.type, a_type_ptr, iek_type);
             break;
           case tk_routine:
-            walk_ptr(ptr->variant.routine.return_type, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.routine.extra_info,
+            walk_ptr(eptr->variant.routine.return_type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.routine.extra_info,
                      a_routine_type_supplement_ptr,
                      iek_routine_type_supplement);
             break;
           case tk_template_param:
-            walk_ptr(ptr->variant.template_param.extra_info,
+            walk_ptr(eptr->variant.template_param.extra_info,
                      a_template_param_type_supplement_ptr,
                      iek_template_param_type_supplement);
             break;
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
           case tk_vector:
-            walk_ptr(ptr->variant.vector.element_type, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.vector.size_constant, a_constant_ptr,
+            walk_ptr(eptr->variant.vector.element_type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.vector.size_constant, a_constant_ptr,
                      iek_constant);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
+#undef eptr
       }
       break;
     case iek_variable:
-      { a_variable_ptr ptr = (a_variable_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        definition_needed_if_class(ptr->type);
-        remap_ptr_not_needed(ptr->assoc_param_type, a_param_type_ptr,
+      {
+#define eptr ((a_variable_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(eptr->type);
+        remap_ptr_not_needed(eptr->assoc_param_type, a_param_type_ptr,
                              iek_param_type);
-        walk_initializer(ptr->init_kind, ptr->initializer);
-        walk_list(ptr->entities_defined_in_initializer,
+        walk_initializer(eptr->init_kind, eptr->initializer);
+        walk_list(eptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->property_or_event_descr, a_property_or_event_descr_ptr,
+        walk_ptr(eptr->property_or_event_descr, a_property_or_event_descr_ptr,
                  iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-        walk_string_ptr(ptr->section, iek_other_text, 0);
+        walk_string_ptr(eptr->section, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-        walk_ptr(ptr->template_info, a_variable_template_info_ptr,
+        walk_ptr(eptr->template_info, a_variable_template_info_ptr,
                  iek_variable_template_info);
 #if GNU_EXTENSIONS_ALLOWED
-        if (ptr->cleanup_routine != NULL) {
-          remap_ptr(ptr->cleanup_routine, a_routine_ptr, iek_routine);
-          set_proper_routine_definition_needed_flag(ptr->cleanup_routine);
+        if (eptr->cleanup_routine != NULL) {
+          remap_ptr(eptr->cleanup_routine, a_routine_ptr, iek_routine);
+          set_proper_routine_definition_needed_flag(eptr->cleanup_routine);
         }  /* if */
-        if (ptr->asm_name_is_valid) {
-          walk_string_ptr(ptr->asm_name_or_reg.name, iek_other_text, 0);
+        if (eptr->asm_name_is_valid) {
+          walk_string_ptr(eptr->asm_name_or_reg.name, iek_other_text, 0);
         }  /* if */
-        walk_ptr(ptr->aliased_variable, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->aliased_variable, a_variable_ptr, iek_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
         /* This has to be iek_id_name because the name is copied from
            a variable name originally. */
-        walk_string_ptr(ptr->comdat_group, iek_id_name, 0);
+        walk_string_ptr(eptr->comdat_group, iek_id_name, 0);
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if DO_IL_LOWERING
-        remap_ptr(ptr->vla_element_count_variable, a_variable_ptr,
+        remap_ptr(eptr->vla_element_count_variable, a_variable_ptr,
                   iek_variable);
 #endif /* DO_IL_LOWERING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
-        conditionally_clear_fe_pointer(ptr->remapping_for_inlining);
+        conditionally_clear_fe_pointer(eptr->remapping_for_inlining);
 #endif /* MINIMAL_INLINING */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-        if (!ptr->is_thread_local) {
-          remap_ptr(ptr->init_routine.dynamic_init_routine,
+        if (!eptr->is_thread_local) {
+          remap_ptr(eptr->init_routine.dynamic_init_routine,
                     a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-        if (ptr->is_thread_local) {
-          remap_ptr(ptr->init_routine.thread.init_routine,
+        if (eptr->is_thread_local) {
+          remap_ptr(eptr->init_routine.thread.init_routine,
                     a_routine_ptr, iek_routine);
-          remap_ptr(ptr->init_routine.thread.wrapper,
+          remap_ptr(eptr->init_routine.thread.wrapper,
                     a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+#undef eptr
       }
       break;
     case iek_variable_template_info:
       {
-        a_variable_template_info_ptr ptr =
-                                       (a_variable_template_info_ptr)entry_ptr;
-        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+#define eptr ((a_variable_template_info_ptr)entry_ptr)
+        walk_list(eptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
-        walk_list(ptr->partial_spec_template_arg_list, a_template_arg_ptr,
+        walk_list(eptr->partial_spec_template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
-        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+        remap_ptr(eptr->assoc_template, a_template_ptr, iek_template);
+#undef eptr
       }
       break;
     case iek_field:
       {
-        a_field_ptr ptr = (a_field_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_field_ptr, iek_field);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        definition_needed_if_class(ptr->type);
-        walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
-        walk_list(ptr->entities_defined_in_initializer,
+#define eptr ((a_field_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_field_ptr, iek_field);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(eptr->type);
+        walk_ptr(eptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_list(eptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
-        walk_ptr(ptr->bit_size_constant, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->bit_size_constant, a_constant_ptr, iek_constant);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->property_or_event_descr, a_property_or_event_descr_ptr,
+        walk_ptr(eptr->property_or_event_descr, a_property_or_event_descr_ptr,
                  iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_C_GEN_BE
-        walk_ptr(ptr->bit_field_alignment_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->bit_field_alignment_type, a_type_ptr, iek_type);
 #endif /* BACK_END_IS_C_GEN_BE */
+#undef eptr
       }
       break;
     case iek_exception_specification:
       {
-        an_exception_specification_ptr ptr =
-                             (an_exception_specification_ptr)entry_ptr;
-        if (ptr->arg_cached) {
+#define eptr ((an_exception_specification_ptr)entry_ptr)
+        if (eptr->arg_cached) {
           /* The exception specification was never required to be
              evaluated.  The token cache pointer is for front end use
              only. */
-          conditionally_clear_fe_pointer(ptr->variant.token_cache);
-        } else if (ptr->is_noexcept) {
-          walk_ptr(ptr->variant.noexcept_arg, a_constant_ptr, iek_constant);
+          conditionally_clear_fe_pointer(eptr->variant.token_cache);
+        } else if (eptr->is_noexcept) {
+          walk_ptr(eptr->variant.noexcept_arg, a_constant_ptr, iek_constant);
         } else {
-          walk_list(ptr->variant.exception_specification_type_list,
+          walk_list(eptr->variant.exception_specification_type_list,
                     an_exception_specification_type_ptr,
                     iek_exception_specification_type);
         }  /* if */
+#undef eptr
       }
       break;
     case iek_exception_specification_type:
       {
-        an_exception_specification_type_ptr ptr =
-                             (an_exception_specification_type_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_exception_specification_type_ptr,
+#define eptr ((an_exception_specification_type_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_exception_specification_type_ptr,
                        iek_exception_specification_type);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* If the exception specification is a class or a pointer to class,
            the class must be complete. */
-        { a_type_ptr temp_type = ptr->type;
+        { a_type_ptr temp_type = eptr->type;
           if (temp_type != NULL) {
             temp_type = skip_typerefs(temp_type);
             if (temp_type->kind == (a_type_kind)tk_pointer) {
@@ -1306,19 +1321,20 @@ the file scope, do not process it (but record an orphan in the latter case).
           }  /* if */
         }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#undef eptr
       }
       break;
     case iek_routine:
       {
-        a_routine_ptr ptr = (a_routine_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_routine_ptr, iek_routine);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
+#define eptr ((a_routine_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_routine_ptr, iek_routine);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* If the routine is a virtual function with a covariant return
            type, the class type in the return type must be complete. */
-        if (ptr->covariant_return_virtual_override) {
-          a_type_ptr temp_type = ptr->type;
+        if (eptr->covariant_return_virtual_override) {
+          a_type_ptr temp_type = eptr->type;
           temp_type = skip_typerefs(temp_type);
           check_assertion_str2(temp_type->kind == (a_type_kind)tk_routine,
                                "walk_entry_and_subtree:",
@@ -1335,21 +1351,21 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* assoc_scope points to a different memory region and is not
            walked automatically.  The entry_process_func can arrange
            to call walk_routine_scope_il if it wants to. */
-        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+        walk_list(eptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
-        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+        remap_ptr(eptr->assoc_template, a_template_ptr, iek_template);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
            before some calls to walk the IL. */
-        if (ptr->function_def_number != NULL_function_def_number) {
+        if (eptr->function_def_number != NULL_function_def_number) {
           /* This is a defined routine, so its return type must be complete. */
-          a_type_ptr rout_type = ptr->type;
+          a_type_ptr rout_type = eptr->type;
           rout_type = skip_typerefs(rout_type);
           definition_needed_if_class(rout_type->variant.routine.return_type);
         }  /* if */
 #if BACK_END_IS_CP_GEN_BE
         if (microsoft_mode && !C_mode() &&
-            ptr->special_kind == (a_special_function_kind)sfk_conversion) {
+            eptr->special_kind == (a_special_function_kind)sfk_conversion) {
           /* In Microsoft mode, a conversion function returning a
              pointer to a class requires that the class be complete so
              it can be compared against the return type of other conversion
@@ -1361,7 +1377,7 @@ the file scope, do not process it (but record an orphan in the latter case).
              where overload resolution gets done again on the output of
              the front end. */
           a_type_ptr return_type =
-                         skip_typerefs(ptr->type)->variant.routine.return_type;
+                        skip_typerefs(eptr->type)->variant.routine.return_type;
           if (is_pointer_or_handle_type(return_type)) {
             return_type = type_pointed_to(return_type);
             if (is_class_struct_union_type(return_type)) {
@@ -1373,41 +1389,41 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if IA64_ABI && DO_IL_LOWERING
-        if (ptr->special_kind == (a_special_function_kind)sfk_constructor ||
-            ptr->special_kind == (a_special_function_kind)sfk_destructor) {
+        if (eptr->special_kind == (a_special_function_kind)sfk_constructor ||
+            eptr->special_kind == (a_special_function_kind)sfk_destructor) {
           conditionally_clear_fe_pointer(
-                                ptr->variant.ctor_dtor.alternate_entry_points);
+                               eptr->variant.ctor_dtor.alternate_entry_points);
         }  /* if */
-        remap_ptr(ptr->primary_ctor_or_dtor, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->primary_ctor_or_dtor, a_routine_ptr, iek_routine);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (rout_is_cli_accessor(ptr)) {
-          remap_ptr(ptr->variant.property_or_event_descr,
+        if (rout_is_cli_accessor(eptr)) {
+          remap_ptr(eptr->variant.property_or_event_descr,
                     a_property_or_event_descr_ptr,
                     iek_property_or_event_descr);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (special_kind_is(ptr, sfk_lambda_entry_point)) {
-          remap_ptr(ptr->variant.lambda_call_operator, a_routine_ptr,
+        if (special_kind_is(eptr, sfk_lambda_entry_point)) {
+          remap_ptr(eptr->variant.lambda_call_operator, a_routine_ptr,
                     iek_routine);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_list(ptr->overridden_functions, an_il_entity_list_entry_ptr,
+        walk_list(eptr->overridden_functions, an_il_entity_list_entry_ptr,
                   iek_il_entity_list_entry);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* No processing of befriending_classes for the "needed" sweep. */
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
         /* Visit befriending classes for the "keep_in_il" sweep. */
-        set_keep_in_il_on_befriending_classes(ptr->befriending_classes);
+        set_keep_in_il_on_befriending_classes(eptr->befriending_classes);
 #else /* !KEEP_IN_IL_WALK */
         /* All cases except NEEDED_FLAG_WALK and KEEP_IN_IL_WALK. */
-        walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
+        walk_list(eptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* !NEEDED_FLAG_WALK */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Default argument expressions are not walked at the iek_param_type
@@ -1415,7 +1431,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            See the comment on walk_param_list_default_arg_exprs. */
         if (!C_mode()) {
           a_routine_type_supplement_ptr rtsp =
-                          skip_typerefs(ptr->type)->variant.routine.extra_info;
+                         skip_typerefs(eptr->type)->variant.routine.extra_info;
           walk_param_list_default_arg_exprs(rtsp->param_type_list);
         }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
@@ -1425,85 +1441,87 @@ the file scope, do not process it (but record an orphan in the latter case).
            needed at all.  The overriding function definition is needed
            only if the thunk definition is needed, and that's handled in
            set_routine_definition_needed. */
-        remap_ptr(ptr->overriding_function_for_wrapper,
+        remap_ptr(eptr->overriding_function_for_wrapper,
                   a_routine_ptr, iek_routine);
         remap_ptr_not_needed(
-                  ptr->overridden_function_for_wrapper,
+                  eptr->overridden_function_for_wrapper,
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-        walk_ptr(ptr->gnu_extra_info, a_gnu_routine_supplement_ptr,
+        walk_ptr(eptr->gnu_extra_info, a_gnu_routine_supplement_ptr,
                  iek_gnu_routine_supplement);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if !NEEDED_FLAG_WALK
-        walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
+        walk_ptr(eptr->generating_using_decl, a_using_decl_ptr,
                  iek_using_decl);
 #endif /* !NEEDED_FLAG_WALK */
+#undef eptr
       }
       break;
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
     case iek_gnu_routine_supplement:
       {
-        a_gnu_routine_supplement_ptr ptr =
-                                       (a_gnu_routine_supplement_ptr)entry_ptr;
-        walk_string_ptr(ptr->section, iek_other_text, 0);
-        walk_ptr(ptr->aliased_routine, a_routine_ptr, iek_routine);
-        if (ptr->aliased_routine != NULL) {
-          set_proper_routine_definition_needed_flag(ptr->aliased_routine);
+#define eptr ((a_gnu_routine_supplement_ptr)entry_ptr)
+        walk_string_ptr(eptr->section, iek_other_text, 0);
+        walk_ptr(eptr->aliased_routine, a_routine_ptr, iek_routine);
+        if (eptr->aliased_routine != NULL) {
+          set_proper_routine_definition_needed_flag(eptr->aliased_routine);
         }  /* if */
 #if LOWER_IFUNC
-        remap_ptr_not_needed(ptr->resolver_var, a_variable_ptr, iek_variable);
+        remap_ptr_not_needed(eptr->resolver_var, a_variable_ptr, iek_variable);
 #endif /* LOWER_IFUNC */
-        walk_ptr(ptr->inline_partner, a_routine_ptr, iek_routine);
-        if (ptr->inline_partner != NULL) {
-          set_proper_routine_definition_needed_flag(ptr->inline_partner);
+        walk_ptr(eptr->inline_partner, a_routine_ptr, iek_routine);
+        if (eptr->inline_partner != NULL) {
+          set_proper_routine_definition_needed_flag(eptr->inline_partner);
         }  /* if */
-        walk_string_ptr(ptr->asm_name, iek_other_text, 0);
+        walk_string_ptr(eptr->asm_name, iek_other_text, 0);
 #if GNU_FUNCTION_MULTIVERSIONING
-        if (ptr->is_representative) {
-          walk_list_not_needed(ptr->mv_info.representative.targeted_versions,
+        if (eptr->is_representative) {
+          walk_list_not_needed(eptr->mv_info.representative.targeted_versions,
                                a_routine_list_entry_ptr,
                                iek_routine_list_entry);
-        } else if (ptr->is_target_specific_version) {
-          walk_ptr(ptr->mv_info.targeted_version.representative,
+        } else if (eptr->is_target_specific_version) {
+          walk_ptr(eptr->mv_info.targeted_version.representative,
                    a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
+#undef eptr
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
     case iek_label:
       {
-        a_label_ptr ptr = (a_label_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_label_ptr, iek_label);
-        remap_ptr_not_needed(ptr->exec_stmt, a_statement_ptr, iek_statement);
+#define eptr ((a_label_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_label_ptr, iek_label);
+        remap_ptr_not_needed(eptr->exec_stmt, a_statement_ptr, iek_statement);
+#undef eptr
       }
       break;
     case iek_expr_node:
       {
-        an_expr_node_ptr ptr = (an_expr_node_ptr)entry_ptr;
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        walk_ptr(ptr->orig_lvalue_type, a_type_ptr, iek_type);
-        if (!is_glvalue_node(ptr)) {
-          definition_needed_if_class(ptr->type);
+#define eptr ((an_expr_node_ptr)entry_ptr)
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        walk_ptr(eptr->orig_lvalue_type, a_type_ptr, iek_type);
+        if (!is_glvalue_node(eptr)) {
+          definition_needed_if_class(eptr->type);
         }  /* if */
-        remap_next_ptr(ptr->next, an_expr_node_ptr, iek_expr_node);
-        conditionally_clear_fe_pointer(ptr->rescan_info);
-        switch (ptr->kind) {
+        remap_next_ptr(eptr->next, an_expr_node_ptr, iek_expr_node);
+        conditionally_clear_fe_pointer(eptr->rescan_info);
+        switch (eptr->kind) {
           case enk_error:
             /* No pointers. */
             break;
           case enk_operation:
-            walk_list(ptr->variant.operation.operands, an_expr_node_ptr,
+            walk_list(eptr->variant.operation.operands, an_expr_node_ptr,
                       iek_expr_node);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Certain operators on pointers require that the type pointed
                to be complete. */
             { a_type_ptr optype;
-              a_type_ptr op1_type = ptr->variant.operation.operands->type;
+              a_type_ptr op1_type = eptr->variant.operation.operands->type;
 
-              switch (ptr->variant.operation.kind) {
+              switch (eptr->variant.operation.kind) {
                 case eok_psubtract:
                 case eok_pdiff:
                 case eok_post_incr:
@@ -1524,8 +1542,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                   goto do_definition_needed_if_class;
                 case eok_subscript:
                 case eok_padd:
-                  optype = ptr->variant.operation.pointer_operand_is_second ?
-                             ptr->variant.operation.operands->next->type :
+                  optype = eptr->variant.operation.pointer_operand_is_second ?
+                             eptr->variant.operation.operands->next->type :
                              op1_type;
                   if (!is_pointer_or_handle_type(optype)) break;
                   optype = type_pointed_to(optype);
@@ -1537,8 +1555,8 @@ do_definition_needed_if_class:
                      complete.  Watch out for the case where the result type
                      is "void *", and watch out for prototype instantiation
                      cases. */
-                  if (is_any_ptr_or_ref_type(ptr->type)) {
-                    optype = type_pointed_to(ptr->type);
+                  if (is_any_ptr_or_ref_type(eptr->type)) {
+                    optype = type_pointed_to(eptr->type);
                     definition_needed_if_class(optype);
                   }  /* if */
                   /* Source type must also be complete, but watch out for
@@ -1552,7 +1570,7 @@ do_definition_needed_if_class:
                   goto do_set_proper_definition_needed_flag;
                 case eok_ref_dynamic_cast:
                   /* Destination class type must be complete. */
-                  definition_needed_if_class(ptr->type);
+                  definition_needed_if_class(eptr->type);
                   /* Source type must also be complete, but watch out for
                      prototype instantiation cases where the first operand
                      isn't a class. */
@@ -1569,7 +1587,7 @@ do_definition_needed_if_class:
                 case eok_derived_class_cast:
                   /* Destination type must be a complete class (or pointer
                      to complete class). */
-                  optype = ptr->type;
+                  optype = eptr->type;
 do_related_class_cast_set_definition_needed:
                   if (is_pointer_or_handle_type(optype)) {
                     optype = type_pointed_to(optype);
@@ -1583,7 +1601,7 @@ do_related_class_cast_set_definition_needed:
                 case eok_pm_derived_class_cast:
                   /* Destination class (pointed to by result type) must be
                      complete. */
-                  optype = pm_class_type_possibly_lowered(ptr->type);
+                  optype = pm_class_type_possibly_lowered(eptr->type);
 do_set_proper_definition_needed_flag:
                   set_proper_definition_needed_flag(optype);
                   break;
@@ -1594,111 +1612,112 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case enk_constant:
-            walk_ptr(ptr->variant.constant.ptr, a_constant_ptr, iek_constant);
-            walk_ptr(ptr->variant.constant.name_reference,
+            walk_ptr(eptr->variant.constant.ptr, a_constant_ptr, iek_constant);
+            walk_ptr(eptr->variant.constant.name_reference,
                      a_name_reference_ptr, iek_name_reference);
             break;
           case enk_variable:
             /* Variables are handled from the scope that contains them.  Do
                not visit them here. */
-            remap_ptr(ptr->variant.variable.ptr, a_variable_ptr, iek_variable);
-            walk_ptr(ptr->variant.variable.name_reference,
+            remap_ptr(eptr->variant.variable.ptr, a_variable_ptr,
+                      iek_variable);
+            walk_ptr(eptr->variant.variable.name_reference,
                      a_name_reference_ptr, iek_name_reference);
             break;
           case enk_routine:
             /* Functions are handled from the scope that contains them.  Do
                not visit them here. */
-            if (node_routine(ptr) != NULL) {
-              remap_ptr(node_routine(ptr), a_routine_ptr, iek_routine);
-              set_proper_routine_definition_needed_flag(node_routine(ptr));
+            if (node_routine(eptr) != NULL) {
+              remap_ptr(node_routine(eptr), a_routine_ptr, iek_routine);
+              set_proper_routine_definition_needed_flag(node_routine(eptr));
             }  /* if */
-            walk_ptr(ptr->variant.routine.name_reference,
+            walk_ptr(eptr->variant.routine.name_reference,
                      a_name_reference_ptr, iek_name_reference);
             break;
           case enk_field:
             /* Fields are handled in processing the tag that contains
                them. */
-            remap_ptr(ptr->variant.field.ptr, a_field_ptr, iek_field);
-            walk_ptr(ptr->variant.field.name_reference,
+            remap_ptr(eptr->variant.field.ptr, a_field_ptr, iek_field);
+            walk_ptr(eptr->variant.field.name_reference,
                      a_name_reference_ptr, iek_name_reference);
             break;
           case enk_temp_init:
-            walk_ptr(ptr->variant.init.dynamic_init,
+            walk_ptr(eptr->variant.init.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
-            walk_ptr(ptr->variant.init.source_type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.init.source_type, a_type_ptr, iek_type);
             /* The type of the temporary requires a definition. */
-            definition_needed_if_class(ptr->type);
+            definition_needed_if_class(eptr->type);
             break;
           case enk_new_delete:
-            walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,
+            walk_ptr(eptr->variant.new_delete, a_new_delete_supplement_ptr,
                      iek_new_delete_supplement);
             break;
           case enk_lambda:
-            walk_ptr(ptr->variant.lambda.ptr, a_lambda_ptr, iek_lambda);
-            walk_ptr(ptr->variant.lambda.initialization, a_dynamic_init_ptr,
+            walk_ptr(eptr->variant.lambda.ptr, a_lambda_ptr, iek_lambda);
+            walk_ptr(eptr->variant.lambda.initialization, a_dynamic_init_ptr,
                      iek_dynamic_init);
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case enk_gcnew:
-            walk_ptr(ptr->variant.gcnew_info, a_gcnew_supplement_ptr,
+            walk_ptr(eptr->variant.gcnew_info, a_gcnew_supplement_ptr,
                      iek_gcnew_supplement);
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           case enk_throw:
-            walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
+            walk_ptr(eptr->variant.throw_info, a_throw_supplement_ptr,
                      iek_throw_supplement);
             break;
           case enk_condition:
-            walk_ptr(ptr->variant.condition, a_condition_supplement_ptr,
+            walk_ptr(eptr->variant.condition, a_condition_supplement_ptr,
                      iek_condition_supplement);
             break;
           case enk_object_lifetime:
-            walk_ptr(ptr->variant.object_lifetime.expr, an_expr_node_ptr,
+            walk_ptr(eptr->variant.object_lifetime.expr, an_expr_node_ptr,
                      iek_expr_node);
-            remap_ptr_not_needed(ptr->variant.object_lifetime.ptr,
+            remap_ptr_not_needed(eptr->variant.object_lifetime.ptr,
                                  an_object_lifetime_ptr, iek_object_lifetime);
             break;
           case enk_typeid:
-            walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
-            definition_needed_if_class(ptr->variant.typeid_info.type);
-            walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
+            walk_ptr(eptr->variant.typeid_info.type, a_type_ptr, iek_type);
+            definition_needed_if_class(eptr->variant.typeid_info.type);
+            walk_ptr(eptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (!ptr->is_cli_typeid)
+            if (!eptr->is_cli_typeid)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
             {
               /* Make sure the definition of type_info is retained, even though
                  the node only uses a pointer to it.  This is necessary with
                  cp_gen_be output. */
-              set_proper_definition_needed_flag(f_skip_typerefs(ptr->type));
+              set_proper_definition_needed_flag(f_skip_typerefs(eptr->type));
             }  /* if */
             break;
           case enk_sizeof:
           case enk_alignof:
-            if (ptr->variant.sizeof_info.is_type) {
-              walk_ptr(ptr->variant.sizeof_info.variant.type, a_type_ptr,
+            if (eptr->variant.sizeof_info.is_type) {
+              walk_ptr(eptr->variant.sizeof_info.variant.type, a_type_ptr,
                        iek_type);
               definition_needed_if_class(
-                                        ptr->variant.sizeof_info.variant.type);
+                                       eptr->variant.sizeof_info.variant.type);
             } else {
-              walk_ptr(ptr->variant.sizeof_info.variant.expr,
+              walk_ptr(eptr->variant.sizeof_info.variant.expr,
                        an_expr_node_ptr, iek_expr_node);
               /* If the expression is an lvalue, make sure its type's
                  definition is kept. */
-              definition_needed_if_class(ptr->
+              definition_needed_if_class(eptr->
                                        variant.sizeof_info.variant.expr->type);
             }  /* if */
             break;
           case enk_sizeof_pack:
-            if (ptr->variant.sizeof_pack.is_template_template) {
-              walk_ptr(ptr->variant.sizeof_pack.variant.templ, a_template_ptr,
+            if (eptr->variant.sizeof_pack.is_template_template) {
+              walk_ptr(eptr->variant.sizeof_pack.variant.templ, a_template_ptr,
                        iek_template);
-            } else if (ptr->variant.sizeof_pack.is_type) {
-              walk_ptr(ptr->variant.sizeof_pack.variant.type, a_type_ptr,
+            } else if (eptr->variant.sizeof_pack.is_type) {
+              walk_ptr(eptr->variant.sizeof_pack.variant.type, a_type_ptr,
                        iek_type);
             } else {
-              walk_ptr(ptr->variant.sizeof_pack.variant.expr,
+              walk_ptr(eptr->variant.sizeof_pack.variant.expr,
                        an_expr_node_ptr, iek_expr_node);
             }  /* if */
             break;
@@ -1707,11 +1726,11 @@ do_set_proper_definition_needed_flag:
             break;
 #if GNU_EXTENSIONS_ALLOWED
           case enk_statement:
-            walk_ptr(ptr->variant.statement, a_statement_ptr, iek_statement);
+            walk_ptr(eptr->variant.statement, a_statement_ptr, iek_statement);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
           case enk_reuse_value:
-            remap_ptr_not_needed(ptr->variant.reused_value_init,
+            remap_ptr_not_needed(eptr->variant.reused_value_init,
                                  a_dynamic_init_ptr,
                                  iek_dynamic_init);
             break;
@@ -1719,9 +1738,9 @@ do_set_proper_definition_needed_flag:
           /* Nodes generated by IL lowering for partial lowering of exception
              handling features. */
           case enk_lowered_eh_construct:
-            switch (ptr->variant.lowered_eh.kind) {
+            switch (eptr->variant.lowered_eh.kind) {
               case leck_caught_object_address:
-                remap_ptr_not_needed(ptr->variant.lowered_eh.variant.
+                remap_ptr_not_needed(eptr->variant.lowered_eh.variant.
                                                          caught_object_handler,
                                      a_handler_ptr, iek_handler);
                 break;
@@ -1731,29 +1750,29 @@ do_set_proper_definition_needed_flag:
               case leck_cleanup_state:
               case leck_unreachable_cleanup_state:
 #if !GENERATE_EH_TABLES
-                remap_ptr_not_needed(ptr->variant.lowered_eh.variant.
+                remap_ptr_not_needed(eptr->variant.lowered_eh.variant.
                                                                    cleanup_ptr,
                                      a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* !GENERATE_EH_TABLES */
                 break;
               case leck_function_prologue:
-                walk_ptr(ptr->variant.lowered_eh.variant.prologue_info,
+                walk_ptr(eptr->variant.lowered_eh.variant.prologue_info,
                          an_eh_prologue_supplement_ptr,
                          iek_eh_prologue_supplement);
                 break;
               case leck_function_epilogue:
                 remap_ptr_not_needed(
-                          ptr->variant.lowered_eh.variant.epilogue_routine,
+                          eptr->variant.lowered_eh.variant.epilogue_routine,
                           a_routine_ptr, iek_routine);
                 break;
               case leck_catch_epilogue:
                 remap_ptr_not_needed(
-                          ptr->variant.lowered_eh.variant.epilogue_handler,
+                          eptr->variant.lowered_eh.variant.epilogue_handler,
                           a_handler_ptr, iek_handler);
                 break;
               case leck_try_epilogue:
                 remap_ptr_not_needed(
-                          ptr->variant.lowered_eh.variant.epilogue_try_block,
+                          eptr->variant.lowered_eh.variant.epilogue_try_block,
                           a_try_supplement_ptr, iek_try_supplement);
                 break;
               case leck_exception_caught:
@@ -1762,13 +1781,13 @@ do_set_proper_definition_needed_flag:
                 break;
 #if !GENERATE_EH_TABLES
               case leck_initialization_completed:
-                remap_ptr_not_needed(ptr->variant.lowered_eh.variant.
+                remap_ptr_not_needed(eptr->variant.lowered_eh.variant.
                                                                   dynamic_init,
                                      a_dynamic_init_ptr, iek_dynamic_init);
                 break;
 #endif /* !GENERATE_EH_TABLES */
               case leck_internal_try:
-                walk_list(ptr->variant.lowered_eh.variant.try_and_catch_expr,
+                walk_list(eptr->variant.lowered_eh.variant.try_and_catch_expr,
                            an_expr_node_ptr, iek_expr_node);
                 break;
               default:
@@ -1786,46 +1805,47 @@ do_set_proper_definition_needed_flag:
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if VLA_DEALLOCATIONS_IN_IL
           case enk_vla_dealloc:
-            remap_ptr(ptr->variant.vla_variable, a_variable_ptr, iek_variable);
+            remap_ptr(eptr->variant.vla_variable, a_variable_ptr,
+                      iek_variable);
             break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
           case enk_type_operand:
-            walk_ptr(ptr->variant.type_operand.type, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.type_operand.name_reference,
+            walk_ptr(eptr->variant.type_operand.type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.type_operand.name_reference,
                      a_name_reference_ptr, iek_name_reference);
-            if (ptr->type_definition_needed) {
-              definition_needed_if_class(ptr->variant.type_operand.type);
+            if (eptr->type_definition_needed) {
+              definition_needed_if_class(eptr->variant.type_operand.type);
             }  /* if */
             break;
           case enk_builtin_operation:
-            walk_list(ptr->variant.builtin_operation.operands,
+            walk_list(eptr->variant.builtin_operation.operands,
                       an_expr_node_ptr, iek_expr_node);
             break;
           case enk_param_ref:
             /* No variant-specific fields to traverse. */
             break;
           case enk_braced_init_list:
-            walk_list(ptr->variant.braced_init_list,
+            walk_list(eptr->variant.braced_init_list,
                       an_expr_node_ptr, iek_expr_node);
             break;
           case enk_c11_generic:
-            walk_list(ptr->variant.c11_generic.operands,
+            walk_list(eptr->variant.c11_generic.operands,
                       an_expr_node_ptr, iek_expr_node);
-            remap_ptr(ptr->variant.c11_generic.result,
+            remap_ptr(eptr->variant.c11_generic.result,
                       an_expr_node_ptr, iek_expr_node);
             break;
 #if BUILTIN_FUNCTIONS_ENABLED
           case enk_builtin_choose_expr:
-            walk_list(ptr->variant.builtin_choose_expr.operands,
+            walk_list(eptr->variant.builtin_choose_expr.operands,
                       an_expr_node_ptr, iek_expr_node);
             break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if COROUTINES_ALLOWED
           case enk_await:
           case enk_yield:
-            walk_ptr(ptr->variant.await_info.operand, an_expr_node_ptr,
+            walk_ptr(eptr->variant.await_info.operand, an_expr_node_ptr,
                      iek_expr_node);
-            walk_list(ptr->variant.await_info.resume_ready_suspend,
+            walk_list(eptr->variant.await_info.resume_ready_suspend,
                       an_expr_node_ptr, iek_expr_node);
             break;
 
@@ -1834,125 +1854,129 @@ do_set_proper_definition_needed_flag:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");
         }  /* switch */
+#undef eptr
       }
       break;
     case iek_for_loop:
       {
-        a_for_loop_ptr ptr = (a_for_loop_ptr)entry_ptr;
-        walk_ptr(ptr->initialization, a_statement_ptr, iek_statement);
-        walk_ptr(ptr->increment, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->for_init_scope, a_scope_ptr, iek_scope);
+#define eptr ((a_for_loop_ptr)entry_ptr)
+        walk_ptr(eptr->initialization, a_statement_ptr, iek_statement);
+        walk_ptr(eptr->increment, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->for_init_scope, a_scope_ptr, iek_scope);
 #if UPC_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->affinity, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->affinity, an_expr_node_ptr, iek_expr_node);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#undef eptr
       }
       break;
     case iek_range_based_for_loop:
       {
-        a_range_based_for_loop_ptr ptr = (a_range_based_for_loop_ptr)entry_ptr;
-
-        remap_ptr(ptr->iterator, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->range, a_variable_ptr, iek_variable);
-        walk_ptr(ptr->range_based_for_scope, a_scope_ptr, iek_scope);
-        walk_ptr(ptr->begin_end_scope, a_scope_ptr, iek_scope);
-        walk_ptr(ptr->iterator_scope, a_scope_ptr, iek_scope);
-        remap_ptr(ptr->begin, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->end, a_variable_ptr, iek_variable);
-        walk_ptr(ptr->ne_call_expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->incr_call_expr, an_expr_node_ptr, iek_expr_node);
+#define eptr ((a_range_based_for_loop_ptr)entry_ptr)
+        remap_ptr(eptr->iterator, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->range, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->range_based_for_scope, a_scope_ptr, iek_scope);
+        walk_ptr(eptr->begin_end_scope, a_scope_ptr, iek_scope);
+        walk_ptr(eptr->iterator_scope, a_scope_ptr, iek_scope);
+        remap_ptr(eptr->begin, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->end, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->ne_call_expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->incr_call_expr, an_expr_node_ptr, iek_expr_node);
+#undef eptr
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_for_each_loop:
       {
-        a_for_each_loop_ptr ptr = (a_for_each_loop_ptr)entry_ptr;
-
-        if (!ptr->uses_prev_decl_iterator) {
-          remap_ptr(ptr->iterator.variable, a_variable_ptr, iek_variable);
+#define eptr ((a_for_each_loop_ptr)entry_ptr)
+        if (!eptr->uses_prev_decl_iterator) {
+          remap_ptr(eptr->iterator.variable, a_variable_ptr, iek_variable);
         } else {
-          remap_ptr(ptr->iterator.prev_decl.variable, a_variable_ptr,
+          remap_ptr(eptr->iterator.prev_decl.variable, a_variable_ptr,
                     iek_variable);
-          remap_ptr(ptr->iterator.prev_decl.field, a_field_ptr,
+          remap_ptr(eptr->iterator.prev_decl.field, a_field_ptr,
                     iek_field);
-          walk_ptr(ptr->iterator.prev_decl.assign_expr,
+          walk_ptr(eptr->iterator.prev_decl.assign_expr,
                    an_expr_node_ptr, iek_expr_node);
         }  /* if */
-        remap_ptr(ptr->collection_expr_ref, a_variable_ptr, iek_variable);
-        walk_ptr(ptr->for_each_scope, a_scope_ptr, iek_scope);
-        walk_ptr(ptr->iterator_scope, a_scope_ptr, iek_scope);
-        remap_ptr(ptr->temporary_variable, a_variable_ptr,
+        remap_ptr(eptr->collection_expr_ref, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->for_each_scope, a_scope_ptr, iek_scope);
+        walk_ptr(eptr->iterator_scope, a_scope_ptr, iek_scope);
+        remap_ptr(eptr->temporary_variable, a_variable_ptr,
                   iek_variable);
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case sfepk_none:
             break;
           case sfepk_array_pattern:
           case sfepk_stl_pattern:
-            remap_ptr(ptr->variant.stl_array_pattern.end_variable,
+            remap_ptr(eptr->variant.stl_array_pattern.end_variable,
                       a_variable_ptr, iek_variable);
-            walk_ptr(ptr->variant.stl_array_pattern.ne_call_expr,
+            walk_ptr(eptr->variant.stl_array_pattern.ne_call_expr,
                      an_expr_node_ptr, iek_expr_node);
-            walk_ptr(ptr->variant.stl_array_pattern.incr_call_expr,
+            walk_ptr(eptr->variant.stl_array_pattern.incr_call_expr,
                      an_expr_node_ptr, iek_expr_node);
             break;
           case sfepk_cli_pattern:
-            walk_ptr(ptr->variant.cli_pattern.movenext_call_expression,
+            walk_ptr(eptr->variant.cli_pattern.movenext_call_expression,
                      an_expr_node_ptr, iek_expr_node);
             break;
           case sfepk_cli_array_pattern:
-            remap_ptr(ptr->variant.cli_array_pattern.upper_bound_vars,
+            remap_ptr(eptr->variant.cli_array_pattern.upper_bound_vars,
                       a_variable_ptr, iek_variable);
-            remap_ptr(ptr->variant.cli_array_pattern.loop_vars,
+            remap_ptr(eptr->variant.cli_array_pattern.loop_vars,
                       a_variable_ptr, iek_variable);
             break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad for each kind");
         }  /* switch */
+#undef eptr
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_switch_case_entry:
       {
-        a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
+#define eptr ((a_switch_case_entry_ptr)entry_ptr)
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->stmt, a_statement_ptr, iek_statement);
+        remap_ptr(eptr->stmt, a_statement_ptr, iek_statement);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
-        walk_ptr(ptr->case_value, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->case_value, a_constant_ptr, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->range_end, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->range_end, a_constant_ptr, iek_constant);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
+        remap_next_ptr(eptr->next, a_switch_case_entry_ptr,
                        iek_switch_case_entry);
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->next_on_sorted_list, a_switch_case_entry_ptr,
+        remap_ptr(eptr->next_on_sorted_list, a_switch_case_entry_ptr,
                   iek_switch_case_entry);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
+#undef eptr
       }
       break;
     case iek_switch_stmt_descr:
       {
-        a_switch_stmt_descr_ptr ptr = (a_switch_stmt_descr_ptr)entry_ptr;
-        walk_list(ptr->cases, a_switch_case_entry_ptr, iek_switch_case_entry);
-        remap_ptr(ptr->default_case, a_switch_case_entry_ptr,
+#define eptr ((a_switch_stmt_descr_ptr)entry_ptr)
+        walk_list(eptr->cases, a_switch_case_entry_ptr, iek_switch_case_entry);
+        remap_ptr(eptr->default_case, a_switch_case_entry_ptr,
                  iek_switch_case_entry);
-        remap_list_ptr(ptr->sorted_cases, a_switch_case_entry_ptr,
+        remap_list_ptr(eptr->sorted_cases, a_switch_case_entry_ptr,
                        iek_switch_case_entry);
+#undef eptr
       }
       break;
     case iek_handler:
       {
-        a_handler_ptr ptr = (a_handler_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_handler_ptr, iek_handler);
+#define eptr ((a_handler_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_handler_ptr, iek_handler);
 #if NEEDED_FLAG_WALK
-        walk_ptr(ptr->parameter, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->parameter, a_variable_ptr, iek_variable);
 #else /* !NEEDED_FLAG_WALK */
         /* The associated parameter, if any, will appear on the variables
            list of the current scope.  Therefore, here we just remap the
            pointer but do not walk the subtree. */
-        remap_ptr(ptr->parameter, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->parameter, a_variable_ptr, iek_variable);
 #endif /* NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        { a_variable_ptr parameter = ptr->parameter;
+        { a_variable_ptr parameter = eptr->parameter;
           if (parameter != NULL) {
             a_type_ptr param_type = parameter->type;
             if (is_any_ptr_or_ref_type(param_type)) {
@@ -1962,46 +1986,49 @@ do_set_proper_definition_needed_flag:
           }  /* if */
         }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-        walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
-        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(eptr->statement, a_statement_ptr, iek_statement);
+        walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-        walk_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#undef eptr
       }
       break;
     case iek_try_supplement:
       {
-        a_try_supplement_ptr ptr = (a_try_supplement_ptr)entry_ptr;
-        walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
-        walk_list(ptr->handlers, a_handler_ptr, iek_handler);
+#define eptr ((a_try_supplement_ptr)entry_ptr)
+        walk_ptr(eptr->statement, a_statement_ptr, iek_statement);
+        walk_list(eptr->handlers, a_handler_ptr, iek_handler);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->finally_statement, a_statement_ptr, iek_statement);
+        walk_ptr(eptr->finally_statement, a_statement_ptr, iek_statement);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
+        remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
+#undef eptr
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_microsoft_try_supplement:
       {
-        a_microsoft_try_supplement_ptr ptr =
-                                     (a_microsoft_try_supplement_ptr)entry_ptr;
-        walk_ptr(ptr->guarded_statement, a_statement_ptr, iek_statement);
-        walk_ptr(ptr->except_expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->cleanup_statement, a_statement_ptr, iek_statement);
+#define eptr ((a_microsoft_try_supplement_ptr)entry_ptr)
+        walk_ptr(eptr->guarded_statement, a_statement_ptr, iek_statement);
+        walk_ptr(eptr->except_expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->cleanup_statement, a_statement_ptr, iek_statement);
+#undef eptr
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_block:
       {
 #if !NEEDED_FLAG_WALK
-        a_block_ptr ptr = (a_block_ptr)entry_ptr;
+#define eptr ((a_block_ptr)entry_ptr)
         /* The associated scope, if any, will appear on the list of local
            scopes for the current scope.  Therefore, here we just remap
            the pointer but do not walk the subtree. */
-        remap_ptr_not_needed(ptr->assoc_scope, a_scope_ptr, iek_scope);
-        remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
+        remap_ptr_not_needed(eptr->assoc_scope, a_scope_ptr, iek_scope);
+        remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
+#undef eptr
 #endif /* !NEEDED_FLAG_WALK */
       }
       break;
@@ -2010,17 +2037,17 @@ do_set_proper_definition_needed_flag:
          second most common, after expr nodes), so do not call a subroutine
          for them. */
       {
-        a_statement_ptr ptr = (a_statement_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_statement_ptr, iek_statement);
-        remap_ptr_not_needed(ptr->parent, a_statement_ptr, iek_statement);
-        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
+#define eptr ((a_statement_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_statement_ptr, iek_statement);
+        remap_ptr_not_needed(eptr->parent, a_statement_ptr, iek_statement);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->source_sequence_entry,
+        remap_ptr(eptr->source_sequence_entry,
                   a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-        switch (ptr->kind) {
+        walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
+        switch (eptr->kind) {
           case stmk_empty:
           case stmk_expr:
 #if GNU_EXTENSIONS_ALLOWED
@@ -2038,42 +2065,42 @@ do_set_proper_definition_needed_flag:
             /* No additional pointers. */
             break;
           case stmk_if:
-            walk_ptr(ptr->variant.if_stmt.then_statement, a_statement_ptr,
+            walk_ptr(eptr->variant.if_stmt.then_statement, a_statement_ptr,
                      iek_statement);
-            walk_ptr(ptr->variant.if_stmt.else_statement, a_statement_ptr,
+            walk_ptr(eptr->variant.if_stmt.else_statement, a_statement_ptr,
                      iek_statement);
             break;
           case stmk_while:
           case stmk_end_test_while:
-            walk_ptr(ptr->variant.loop_statement, a_statement_ptr,
+            walk_ptr(eptr->variant.loop_statement, a_statement_ptr,
                      iek_statement);
             break;
           case stmk_goto:
-            remap_ptr(ptr->variant.label.ptr, a_label_ptr, iek_label);
-            remap_ptr_not_needed(ptr->variant.label.lifetime,
+            remap_ptr(eptr->variant.label.ptr, a_label_ptr, iek_label);
+            remap_ptr_not_needed(eptr->variant.label.lifetime,
                                  an_object_lifetime_ptr, iek_object_lifetime);
             break;
           case stmk_label:
-            remap_ptr_not_needed(ptr->variant.label.ptr, a_label_ptr,
+            remap_ptr_not_needed(eptr->variant.label.ptr, a_label_ptr,
                                  iek_label);
-            remap_ptr_not_needed(ptr->variant.label.lifetime,
+            remap_ptr_not_needed(eptr->variant.label.lifetime,
                                  an_object_lifetime_ptr, iek_object_lifetime);
             break;
           case stmk_return:
-            walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
+            walk_ptr(eptr->variant.return_dynamic_init, a_dynamic_init_ptr,
                      iek_dynamic_init);
             break;
 #if COROUTINES_ALLOWED
           case stmk_coroutine:
-            walk_ptr(ptr->variant.coroutine.descr, a_coroutine_descr_ptr,
+            walk_ptr(eptr->variant.coroutine.descr, a_coroutine_descr_ptr,
                      iek_coroutine_descr);
             break;
 #endif /* COROUTINES_ALLOWED */
           case stmk_block:
             /* Do extra_info before statements to get declarations out
                before the statements that use them. */
-            walk_ptr(ptr->variant.block.extra_info, a_block_ptr, iek_block);
-            walk_list(ptr->variant.block.statements, a_statement_ptr,
+            walk_ptr(eptr->variant.block.extra_info, a_block_ptr, iek_block);
+            walk_list(eptr->variant.block.statements, a_statement_ptr,
                       iek_statement);
             break;
 #if UPC_EXTENSIONS_ALLOWED
@@ -2081,81 +2108,81 @@ do_set_proper_definition_needed_flag:
           case stmk_upc_forall:
 #endif /* UPC_EXTENSIONS_ALLOWED */
           case stmk_for:
-            walk_ptr(ptr->variant.for_loop.extra_info, a_for_loop_ptr,
+            walk_ptr(eptr->variant.for_loop.extra_info, a_for_loop_ptr,
                      iek_for_loop);
-            walk_ptr(ptr->variant.for_loop.statement, a_statement_ptr,
+            walk_ptr(eptr->variant.for_loop.statement, a_statement_ptr,
                      iek_statement);
             break;
           case stmk_range_based_for:
-            walk_ptr(ptr->variant.range_based_for_loop.extra_info,
+            walk_ptr(eptr->variant.range_based_for_loop.extra_info,
                      a_range_based_for_loop_ptr, iek_range_based_for_loop);
-            walk_ptr(ptr->variant.range_based_for_loop.statement,
+            walk_ptr(eptr->variant.range_based_for_loop.statement,
                      a_statement_ptr, iek_statement);
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case stmk_for_each:
-            walk_ptr(ptr->variant.for_each_loop.extra_info,
+            walk_ptr(eptr->variant.for_each_loop.extra_info,
                      a_for_each_loop_ptr, iek_for_each_loop);
-            walk_ptr(ptr->variant.for_each_loop.statement,
+            walk_ptr(eptr->variant.for_each_loop.statement,
                      a_statement_ptr, iek_statement);
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           case stmk_switch_case:
-            remap_ptr_not_needed(ptr->variant.switch_case.switch_statement,
+            remap_ptr_not_needed(eptr->variant.switch_case.switch_statement,
                                  a_statement_ptr, iek_statement);
-            walk_ptr(ptr->variant.switch_case.extra_info,
+            walk_ptr(eptr->variant.switch_case.extra_info,
                      a_switch_case_entry_ptr, iek_switch_case_entry);
             break;
           case stmk_switch:
-            walk_ptr(ptr->variant.switch_stmt.body_statement, a_statement_ptr,
+            walk_ptr(eptr->variant.switch_stmt.body_statement, a_statement_ptr,
                      iek_statement);
-            walk_ptr(ptr->variant.switch_stmt.extra_info,
+            walk_ptr(eptr->variant.switch_stmt.extra_info,
                      a_switch_stmt_descr_ptr, iek_switch_stmt_descr);
             break;
           case stmk_init:
-            remap_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
+            remap_ptr(eptr->variant.dynamic_init, a_dynamic_init_ptr,
                       iek_dynamic_init);
             break;
           case stmk_asm:
-            walk_ptr(ptr->variant.asm_entry, an_asm_entry_ptr,
+            walk_ptr(eptr->variant.asm_entry, an_asm_entry_ptr,
                      iek_asm_entry);
             break;
 #if ASM_FUNCTION_ALLOWED
           case stmk_asm_func_body:
-            walk_string_ptr(ptr->variant.asm_func_body, iek_other_text, 0);
+            walk_string_ptr(eptr->variant.asm_func_body, iek_other_text, 0);
             break;
 #endif /* ASM_FUNCTION_ALLOWED */
           case stmk_try_block:
-            walk_ptr(ptr->variant.try_block, a_try_supplement_ptr,
+            walk_ptr(eptr->variant.try_block, a_try_supplement_ptr,
                      iek_try_supplement);
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case stmk_microsoft_try:
-            walk_ptr(ptr->variant.microsoft_try,
+            walk_ptr(eptr->variant.microsoft_try,
                      a_microsoft_try_supplement_ptr,
                      iek_microsoft_try_supplement);
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           case stmk_decl:
-            walk_list(ptr->variant.decl.entities, an_il_entity_list_entry_ptr,
+            walk_list(eptr->variant.decl.entities, an_il_entity_list_entry_ptr,
                       iek_il_entity_list_entry);
             break;
           case stmk_set_vla_size:
-            remap_ptr(ptr->variant.vla_dimension, a_vla_dimension_ptr,
+            remap_ptr(eptr->variant.vla_dimension, a_vla_dimension_ptr,
                       iek_vla_dimension);
             break;
           case stmk_vla_decl:
-            if (ptr->variant.vla.is_typedef_decl) {
-              remap_ptr(ptr->variant.vla.variant.typedef_type, a_type_ptr,
+            if (eptr->variant.vla.is_typedef_decl) {
+              remap_ptr(eptr->variant.vla.variant.typedef_type, a_type_ptr,
                         iek_type);
             } else {
-              remap_ptr(ptr->variant.vla.variant.variable, a_variable_ptr,
+              remap_ptr(eptr->variant.vla.variant.variable, a_variable_ptr,
                         iek_variable);
             }  /* if */
             break;
 #if GNU_EXTENSIONS_ALLOWED
           case stmk_stmt_expr_result:
-            walk_ptr(ptr->variant.stmt_expr_result.dynamic_init,
+            walk_ptr(eptr->variant.stmt_expr_result.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2163,121 +2190,126 @@ do_set_proper_definition_needed_flag:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad statement kind");
         }  /* switch */
+#undef eptr
       }
       break;
     case iek_pragma:
       {
-        a_pragma_ptr ptr = (a_pragma_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_pragma_ptr, iek_pragma);
-        remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
-                             (an_il_entry_kind)ptr->entity.kind);
+#define eptr ((a_pragma_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_pragma_ptr, iek_pragma);
+        remap_ptr_not_needed(eptr->entity.ptr, a_char_ptr,
+                             (an_il_entry_kind)eptr->entity.kind);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
+        remap_ptr(eptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
-        walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
+        walk_string_ptr(eptr->pragma_text, iek_other_text, 0);
 #if IDENT_DIRECTIVE_AND_PRAGMA
-        if (ptr->kind == (a_pragma_kind)pk_ident_directive) {
-          walk_ptr(ptr->variant.ident_string, a_constant_ptr, iek_constant);
+        if (eptr->kind == (a_pragma_kind)pk_ident_directive) {
+          walk_ptr(eptr->variant.ident_string, a_constant_ptr, iek_constant);
         }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ptr->kind == (a_pragma_kind)pk_comment) {
-          walk_ptr(ptr->variant.comment.str, a_constant_ptr, iek_constant);
-        } else if (ptr->kind == (a_pragma_kind)pk_conform) {
-          walk_string_ptr(ptr->variant.conform.identifier, iek_other_text, 0);
+        if (eptr->kind == (a_pragma_kind)pk_comment) {
+          walk_ptr(eptr->variant.comment.str, a_constant_ptr, iek_constant);
+        } else if (eptr->kind == (a_pragma_kind)pk_conform) {
+          walk_string_ptr(eptr->variant.conform.identifier, iek_other_text, 0);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#undef eptr
       }
       break;
 #if RECORD_HIDDEN_NAMES_IN_IL
 #if !NEEDED_FLAG_WALK
     case iek_hidden_name:
       {
-        a_hidden_name_ptr ptr = (a_hidden_name_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_hidden_name_ptr, iek_hidden_name);
-        walk_ptr(ptr->entity.ptr, a_char_ptr,
-                 (an_il_entry_kind)ptr->entity.kind);
+#define eptr ((a_hidden_name_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_hidden_name_ptr, iek_hidden_name);
+        walk_ptr(eptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)eptr->entity.kind);
+#undef eptr
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
     case iek_template_parameter:
       {
-        a_template_parameter_ptr ptr = (a_template_parameter_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_template_parameter_ptr,
+#define eptr ((a_template_parameter_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_template_parameter_ptr,
                        iek_template_parameter);
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case tpk_error:
             break;
           case tpk_type:
-            walk_ptr(ptr->variant.type.ptr, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.type.default_arg_type, a_type_ptr,
+            walk_ptr(eptr->variant.type.ptr, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.type.default_arg_type, a_type_ptr,
                      iek_type);
             break;
           case tpk_nontype:
-            walk_ptr(ptr->variant.nontype.constant, a_constant_ptr,
+            walk_ptr(eptr->variant.nontype.constant, a_constant_ptr,
                      iek_constant);
-            walk_ptr(ptr->variant.nontype.default_arg_constant,
+            walk_ptr(eptr->variant.nontype.default_arg_constant,
                      a_constant_ptr, iek_constant);
             break;
           case tpk_template:
-            walk_ptr(ptr->variant.templ.class_template, a_template_ptr,
+            walk_ptr(eptr->variant.templ.class_template, a_template_ptr,
                      iek_template);
-            walk_ptr(ptr->variant.templ.default_arg_template, a_template_ptr,
+            walk_ptr(eptr->variant.templ.default_arg_template, a_template_ptr,
                      iek_template);
             break;
           default:
             unexpected_condition_str("unexpected template parameter kind");
         }  /* switch */
+#undef eptr
       }
       break;
     case iek_template_decl:
       {
-        a_template_decl_ptr ptr = (a_template_decl_ptr)entry_ptr;
-        walk_ptr(ptr->parent, a_template_decl_ptr, iek_template_decl);
-        walk_list(ptr->param_list, a_template_parameter_ptr,
+#define eptr ((a_template_decl_ptr)entry_ptr)
+        walk_ptr(eptr->parent, a_template_decl_ptr, iek_template_decl);
+        walk_list(eptr->param_list, a_template_parameter_ptr,
                   iek_template_parameter);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_list(ptr->generic_constraint_clauses,
+        walk_list(eptr->generic_constraint_clauses,
                   a_generic_constraint_clause_ptr,
                   iek_generic_constraint_clause);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        walk_ptr(ptr->scope, a_scope_ptr, iek_scope);
+        walk_ptr(eptr->scope, a_scope_ptr, iek_scope);
+#undef eptr
       }
       break;
     case iek_template:
       {
-        a_template_ptr ptr = (a_template_ptr)entry_ptr;
+#define eptr ((a_template_ptr)entry_ptr)
         /* Template template parameters have a parent scope that is in the
            template declaration scope, so they require a walk_ptr for the
            parent. */
-        walk_source_corresp_full(ptr->source_corresp,
-               (ptr->kind == (a_template_kind)templk_template_template_param));
-        remap_next_ptr(ptr->next, a_template_ptr, iek_template);
+        walk_source_corresp_full(eptr->source_corresp,
+              (eptr->kind == (a_template_kind)templk_template_template_param));
+        remap_next_ptr(eptr->next, a_template_ptr, iek_template);
 #if RECORD_TEMPLATE_STRINGS
-        walk_string_ptr(ptr->text, iek_other_text, 0);
+        walk_string_ptr(eptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
-        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
-        switch (ptr->kind) {
+        walk_ptr(eptr->template_decl, a_template_decl_ptr, iek_template_decl);
+        switch (eptr->kind) {
           case templk_none:
             /* This is an error case; presumably diagnosed in the front end. */
             break;
           case templk_function:
           case templk_member_function:
-            remap_ptr(ptr->prototype_instantiation.routine, a_routine_ptr,
+            remap_ptr(eptr->prototype_instantiation.routine, a_routine_ptr,
                       iek_routine);
             break;
           case templk_class:
           case templk_member_class:
           case templk_member_enum:
-            remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
+            remap_ptr(eptr->prototype_instantiation.type, a_type_ptr,
                       iek_type);
             break;
           case templk_static_data_member:
           case templk_variable:
-            remap_ptr(ptr->prototype_instantiation.variable, a_variable_ptr,
+            remap_ptr(eptr->prototype_instantiation.variable, a_variable_ptr,
                       iek_variable);
             break;
           case templk_template_template_param:
@@ -2288,46 +2320,48 @@ do_set_proper_definition_needed_flag:
                                "walk_entry_and_subtree: bad template kind");
             break;
         }  /* switch */
-        remap_ptr(ptr->canonical_template, a_template_ptr, iek_template);
-        remap_ptr(ptr->definition_template, a_template_ptr, iek_template);
-        remap_ptr(ptr->prototype_template, a_template_ptr, iek_template);
+        remap_ptr(eptr->canonical_template, a_template_ptr, iek_template);
+        remap_ptr(eptr->definition_template, a_template_ptr, iek_template);
+        remap_ptr(eptr->prototype_template, a_template_ptr, iek_template);
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
-        conditionally_clear_fe_pointer(ptr->template_info);
+        conditionally_clear_fe_pointer(eptr->template_info);
+#undef eptr
       }
       break;
 #if RECORD_MACROS_IN_IL
     case iek_macro:
       {
-        a_macro_ptr ptr = (a_macro_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_macro_ptr, iek_macro);
-        walk_string_ptr(ptr->text, iek_other_text, 0);
+#define eptr ((a_macro_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_macro_ptr, iek_macro);
+        walk_string_ptr(eptr->text, iek_other_text, 0);
+#undef eptr
       }
       break;
 #endif /* RECORD_MACROS_IN_IL */
 #if MACRO_INVOCATION_TREE_IN_IL
     case iek_macro_invocation_record_block:
       {
-        a_macro_invocation_record_block_ptr ptr =
-                                (a_macro_invocation_record_block_ptr)entry_ptr;
+#define eptr ((a_macro_invocation_record_block_ptr)entry_ptr)
         int                                 i;
-        walk_ptr(ptr->left_subtree, a_macro_invocation_record_block_ptr,
+        walk_ptr(eptr->left_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
         for (i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
-          remap_ptr(ptr->records[i].assoc_macro, a_macro_ptr, iek_macro);
+          remap_ptr(eptr->records[i].assoc_macro, a_macro_ptr, iek_macro);
         }  /* for */
-        walk_ptr(ptr->right_subtree, a_macro_invocation_record_block_ptr,
+        walk_ptr(eptr->right_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         /* All the macro invocation record blocks are visited by the
            tree traversal, so just map the pointers for the doubly-linked
            list. */
-        remap_ptr(ptr->next, a_macro_invocation_record_block_ptr,
+        remap_ptr(eptr->next, a_macro_invocation_record_block_ptr,
                   iek_macro_invocation_record_block);
-        remap_ptr(ptr->prev, a_macro_invocation_record_block_ptr,
+        remap_ptr(eptr->prev, a_macro_invocation_record_block_ptr,
                   iek_macro_invocation_record_block);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
+#undef eptr
       }
       break;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
@@ -2335,251 +2369,264 @@ do_set_proper_definition_needed_flag:
     case iek_element_position:
       {
 #if !DO_SUBTREE_WALK
-        an_element_position_ptr  ptr = (an_element_position_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_element_position_ptr,
+#define eptr ((an_element_position_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_element_position_ptr,
                        iek_element_position);
+#undef eptr
 #endif /* !DO_SUBTREE_WALK */
       }
       break;
     case iek_decl_position_supplement:
       {
-        a_decl_position_supplement_ptr
-                              ptr = (a_decl_position_supplement_ptr)entry_ptr;
-        walk_list(ptr->extra_positions, an_element_position_ptr,
+#define eptr ((a_decl_position_supplement_ptr)entry_ptr)
+        walk_list(eptr->extra_positions, an_element_position_ptr,
                   iek_element_position);
+#undef eptr
       }
       break;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     case iek_name_qualifier:
       {
-        a_name_qualifier_ptr ptr = (a_name_qualifier_ptr)entry_ptr;
+#define eptr ((a_name_qualifier_ptr)entry_ptr)
         /* The "next" pointer is for front end use only. */
-        conditionally_clear_fe_pointer(ptr->next);
-        if (ptr->is_class) {
-          walk_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
+        conditionally_clear_fe_pointer(eptr->next);
+        if (eptr->is_class) {
+          walk_ptr(eptr->qualifier.class_type, a_type_ptr, iek_type);
           /* "if_class" test is needed because the qualifier can be an
              enum in Microsoft mode. */
-          definition_needed_if_class(ptr->qualifier.class_type);
+          definition_needed_if_class(eptr->qualifier.class_type);
         } else {
-          walk_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
+          walk_ptr(eptr->qualifier.namespace_ptr, a_namespace_ptr,
                    iek_namespace);
         }  /* if */
-        if (ptr->name != NULL) {
-          walk_string_ptr(ptr->name, iek_other_text, 0);
+        if (eptr->name != NULL) {
+          walk_string_ptr(eptr->name, iek_other_text, 0);
         }  /* if */
-        walk_ptr(ptr->previous_qualifier, a_name_qualifier_ptr,
+        walk_ptr(eptr->previous_qualifier, a_name_qualifier_ptr,
                  iek_name_qualifier);
+#undef eptr
       }
       break;
     case iek_name_reference:
       {
-        a_name_reference_ptr ptr = (a_name_reference_ptr)entry_ptr;
+#define eptr ((a_name_reference_ptr)entry_ptr)
         /* Note intentional use of walk_ptr instead of remap_next_ptr, because
            of issues with export creating lists that run between translation
            units. */
-        walk_ptr(ptr->next, a_name_reference_ptr, iek_name_reference);
-        if (ptr->qualifier != NULL) {
-          clear_or_walk_name_reference_field(ptr, ptr->qualifier,
+        walk_ptr(eptr->next, a_name_reference_ptr, iek_name_reference);
+        if (eptr->qualifier != NULL) {
+          clear_or_walk_name_reference_field(eptr, eptr->qualifier,
                                              a_name_qualifier_ptr,
                                              iek_name_qualifier);
         }  /* if */
-        if (ptr->special_kind == (a_special_function_kind)sfk_none) {
-          if (ptr->variant.destructor_type != NULL) {
-            clear_or_walk_name_reference_field(ptr,
-                                               ptr->variant.destructor_type,
+        if (eptr->special_kind == (a_special_function_kind)sfk_none) {
+          if (eptr->variant.destructor_type != NULL) {
+            clear_or_walk_name_reference_field(eptr,
+                                               eptr->variant.destructor_type,
                                                a_type_ptr, iek_type);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
         } else {
           clear_or_walk_name_reference_field(
-                  ptr, ptr->variant.property_or_event_descr,
+                  eptr, eptr->variant.property_or_event_descr,
                   a_property_or_event_descr_ptr, iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
         }  /* if */
+#undef eptr
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_ms_attribute:
       {
-        an_ms_attribute_ptr ptr = (an_ms_attribute_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
-        remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
+#define eptr ((an_ms_attribute_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_ms_attribute_ptr, iek_ms_attribute);
+        remap_ptr(eptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
 #if NEEDED_FLAG_WALK
         /* a_param_type entries and a_base_class entries have no needed flags
            but point back to their associated Microsoft attributes.  Don't
            process those entries since it would cause a recursive loop. */
-        if (ptr->entity.kind != (a_byte_il_entry_kind)iek_param_type &&
-            ptr->entity.kind != (a_byte_il_entry_kind)iek_base_class)
+        if (eptr->entity.kind != (a_byte_il_entry_kind)iek_param_type &&
+            eptr->entity.kind != (a_byte_il_entry_kind)iek_base_class)
 #endif /* NEEDED_FLAG_WALK */
         /* Do not insert code here. */
         {
-          remap_ptr(ptr->entity.ptr, a_char_ptr,
-                    (an_il_entry_kind)ptr->entity.kind);
+          remap_ptr(eptr->entity.ptr, a_char_ptr,
+                    (an_il_entry_kind)eptr->entity.kind);
         }
-        if (ptr->kind == (an_ms_attribute_kind)msak_custom) {
-          remap_ptr(ptr->variant.custom_info.type, a_type_ptr, iek_type);
-          remap_ptr(ptr->variant.custom_info.constructor, a_routine_ptr,
+        if (eptr->kind == (an_ms_attribute_kind)msak_custom) {
+          remap_ptr(eptr->variant.custom_info.type, a_type_ptr, iek_type);
+          remap_ptr(eptr->variant.custom_info.constructor, a_routine_ptr,
                     iek_routine);
-          walk_list(ptr->variant.custom_info.args, an_expr_node_ptr,
+          walk_list(eptr->variant.custom_info.args, an_expr_node_ptr,
                     iek_expr_node);
-          walk_list(ptr->variant.custom_info.named_args,
+          walk_list(eptr->variant.custom_info.named_args,
                     a_custom_ms_attribute_arg_ptr,
                     iek_custom_ms_attribute_arg);
         } else {
-          conditionally_clear_fe_pointer(ptr->variant.info.kind_descr);
-          walk_string_ptr(ptr->variant.info.name, iek_other_text, 0);
-          walk_string_ptr(ptr->variant.info.string, iek_other_text, 0);
-          walk_list(ptr->variant.info.arg_list, an_ms_attribute_arg_ptr,
+          conditionally_clear_fe_pointer(eptr->variant.info.kind_descr);
+          walk_string_ptr(eptr->variant.info.name, iek_other_text, 0);
+          walk_string_ptr(eptr->variant.info.string, iek_other_text, 0);
+          walk_list(eptr->variant.info.arg_list, an_ms_attribute_arg_ptr,
                     iek_ms_attribute_arg);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
+        remap_ptr(eptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+#undef eptr
       }
       break;
     case  iek_ms_attribute_arg:
       {
-        an_ms_attribute_arg_ptr ptr = (an_ms_attribute_arg_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_ms_attribute_arg_ptr,
+#define eptr ((an_ms_attribute_arg_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_ms_attribute_arg_ptr,
                       iek_ms_attribute_arg);
-        walk_string_ptr(ptr->param_name, iek_other_text, 0);
-        switch (ptr->kind) {
+        walk_string_ptr(eptr->param_name, iek_other_text, 0);
+        switch (eptr->kind) {
           case msaak_string:
-            walk_ptr(ptr->variant.string_constant, a_constant_ptr,
+            walk_ptr(eptr->variant.string_constant, a_constant_ptr,
                      iek_constant);
             break;
           case msaak_other:
-            walk_string_ptr(ptr->variant.other_string, iek_other_text, 0);
+            walk_string_ptr(eptr->variant.other_string, iek_other_text, 0);
             break;
           case msaak_uuid:
-            walk_string_ptr(ptr->variant.uuid_string, iek_other_text, 0);
+            walk_string_ptr(eptr->variant.uuid_string, iek_other_text, 0);
             break;
           default:
             break;
         }  /* switch */
+#undef eptr
       }
       break;
     case  iek_custom_ms_attribute_arg:
-      { a_custom_ms_attribute_arg_ptr ptr;
-        ptr = (a_custom_ms_attribute_arg_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_custom_ms_attribute_arg_ptr,
+#define eptr ((a_custom_ms_attribute_arg_ptr)entry_ptr)
+      {
+        remap_next_ptr(eptr->next, a_custom_ms_attribute_arg_ptr,
                       iek_custom_ms_attribute_arg);
-        remap_ptr(ptr->field, a_field_ptr, iek_field);
-        walk_ptr(ptr->expression, an_expr_node_ptr, iek_expr_node);
+        remap_ptr(eptr->field, a_field_ptr, iek_field);
+        walk_ptr(eptr->expression, an_expr_node_ptr, iek_expr_node);
+#undef eptr
       }
       break;
     case iek_property_index_type:
-      { a_property_index_type_ptr  ptr = (a_property_index_type_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_property_index_type_ptr,
+      {
+#define eptr ((a_property_index_type_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_property_index_type_ptr,
                        iek_property_index_type);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+#undef eptr
       }
       break;
     case iek_property_or_event_descr:
-      { a_property_or_event_descr_ptr
-                               ptr = (a_property_or_event_descr_ptr)entry_ptr;
-        if (ptr->is_static) {
-          remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
+      {
+#define eptr ((a_property_or_event_descr_ptr)entry_ptr)
+        if (eptr->is_static) {
+          remap_ptr(eptr->variant.variable, a_variable_ptr, iek_variable);
         } else {
-          remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+          remap_ptr(eptr->variant.field, a_field_ptr, iek_field);
         }  /* if */
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case pek_declspec_property:
-            walk_string_ptr(ptr->get_routine.name, iek_other_text, 0);
-            walk_string_ptr(ptr->set_routine.name, iek_other_text, 0);
+            walk_string_ptr(eptr->get_routine.name, iek_other_text, 0);
+            walk_string_ptr(eptr->set_routine.name, iek_other_text, 0);
             break;
           case pek_cli_property:
-            walk_list(ptr->indices, a_property_index_type_ptr,
+            walk_list(eptr->indices, a_property_index_type_ptr,
                       iek_property_index_type);
-            remap_ptr(ptr->get_routine.ptr, a_routine_ptr, iek_routine);
-            remap_ptr(ptr->set_routine.ptr, a_routine_ptr, iek_routine);
+            remap_ptr(eptr->get_routine.ptr, a_routine_ptr, iek_routine);
+            remap_ptr(eptr->set_routine.ptr, a_routine_ptr, iek_routine);
             break;
           case pek_cli_event:
-            remap_ptr(ptr->add_routine, a_routine_ptr, iek_routine);
-            remap_ptr(ptr->remove_routine, a_routine_ptr, iek_routine);
-            remap_ptr(ptr->raise_routine, a_routine_ptr, iek_routine);
+            remap_ptr(eptr->add_routine, a_routine_ptr, iek_routine);
+            remap_ptr(eptr->remove_routine, a_routine_ptr, iek_routine);
+            remap_ptr(eptr->raise_routine, a_routine_ptr, iek_routine);
 #if KEEP_IN_IL_WALK
-            keep_event_delegate_definition_in_il(ptr);
+            keep_event_delegate_definition_in_il(eptr);
 #endif /* KEEP_IN_IL_WALK */
             break;
           default:
             unexpected_condition();
         }  /* switch */
+#undef eptr
       }
       break;
       case iek_generic_constraint:
         {
-          a_generic_constraint_ptr ptr = (a_generic_constraint_ptr)entry_ptr;
+#define eptr ((a_generic_constraint_ptr)entry_ptr)
           /* Walk the next pointer because the constraint clause is not in
              the IL if all_template_info_in_il is not set. */
-          walk_ptr(ptr->next, a_generic_constraint_ptr,
+          walk_ptr(eptr->next, a_generic_constraint_ptr,
                    iek_generic_constraint);
-          remap_ptr(ptr->type, a_type_ptr, iek_type);
+          remap_ptr(eptr->type, a_type_ptr, iek_type);
+#undef eptr
         }
         break;
       case iek_generic_constraint_clause:
         {
-          a_generic_constraint_clause_ptr ptr =
-                                    (a_generic_constraint_clause_ptr)entry_ptr;
+#define eptr ((a_generic_constraint_clause_ptr)entry_ptr)
           /* The next pointer is handled by the walk_list for the
              a_template_decl entry. */
-          remap_ptr(ptr->type, a_type_ptr, iek_type);
-          walk_ptr(ptr->constraints, a_generic_constraint_ptr,
+          remap_ptr(eptr->type, a_type_ptr, iek_type);
+          walk_ptr(eptr->constraints, a_generic_constraint_ptr,
                    iek_generic_constraint);
+#undef eptr
         }
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
     case iek_ms_if_exists:
       {
-        an_ms_if_exists_ptr ptr = (an_ms_if_exists_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_ms_if_exists_ptr, iek_ms_if_exists);
-        walk_ptr(ptr->entity.ptr, a_char_ptr,
-                 (an_il_entry_kind)ptr->entity.kind);
-        walk_ptr(ptr->name_reference, a_name_reference_ptr,
+#define eptr ((an_ms_if_exists_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_ms_if_exists_ptr, iek_ms_if_exists);
+        walk_ptr(eptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)eptr->entity.kind);
+        walk_ptr(eptr->name_reference, a_name_reference_ptr,
                  iek_name_reference);
+#undef eptr
       }
       break;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
     case iek_object_lifetime:
       {
-        an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
-        remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
-                             (an_il_entry_kind)ptr->entity.kind);
+#define eptr ((an_object_lifetime_ptr)entry_ptr)
+        remap_ptr_not_needed(eptr->entity.ptr, a_char_ptr,
+                             (an_il_entry_kind)eptr->entity.kind);
         /* The destructors list is linked on the field
            "next_in_destruction_list" because the usual "next" is used for
            a different list. */
-        walk_list_on_link_field(ptr->destructions, a_dynamic_init_ptr,
+        walk_list_on_link_field(eptr->destructions, a_dynamic_init_ptr,
                                 iek_dynamic_init, next_in_destruction_list);
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         /* Don't walk the parent pointer for keep_in_il processing because
            that can cause visits to siblings that aren't going to stay in the
            tree. */
-        remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
+        remap_ptr(eptr->parent_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
-        remap_ptr_not_needed(ptr->parent_destruction_sublist,
+        remap_ptr_not_needed(eptr->parent_destruction_sublist,
                              a_dynamic_init_ptr, iek_dynamic_init);
-        walk_list(ptr->child_lifetime, an_object_lifetime_ptr,
+        walk_list(eptr->child_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
-        remap_next_ptr(ptr->next, an_object_lifetime_ptr, iek_object_lifetime);
+        remap_next_ptr(eptr->next, an_object_lifetime_ptr,
+                       iek_object_lifetime);
+#undef eptr
       }
       break;
     case iek_scope:
       {
-        a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
-        a_scope_kind kind = ptr->kind;
+#define eptr ((a_scope_ptr)entry_ptr)
+        a_scope_kind kind = eptr->kind;
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
-        remap_ptr(ptr->prev, a_scope_ptr, iek_scope);
-        remap_ptr(ptr->parent, a_scope_ptr, iek_scope);
+        remap_next_ptr(eptr->next, a_scope_ptr, iek_scope);
+        remap_ptr(eptr->prev, a_scope_ptr, iek_scope);
+        remap_ptr(eptr->parent, a_scope_ptr, iek_scope);
 #else /* !(!NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK) */
-        if (!scope_is(ptr, sck_function)) {
+        if (!scope_is(eptr, sck_function)) {
           /* For needed and keep-in-il walks, don't walk the previous and
              next pointers of function scopes. */
-          remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
-          remap_ptr(ptr->prev, a_scope_ptr, iek_scope);
+          remap_next_ptr(eptr->next, a_scope_ptr, iek_scope);
+          remap_ptr(eptr->prev, a_scope_ptr, iek_scope);
         }  /* if */
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         switch (kind) {
@@ -2590,7 +2637,7 @@ do_set_proper_definition_needed_flag:
           case sck_block:
             /* Call remap_ptr on the handler entry since it is also on a list
                pointed to from the try-block statement. */
-            remap_ptr_not_needed(ptr->variant.assoc_handler, a_handler_ptr,
+            remap_ptr_not_needed(eptr->variant.assoc_handler, a_handler_ptr,
                                  iek_handler);
             /* Also see assoc_block below. */
             break;
@@ -2600,36 +2647,36 @@ do_set_proper_definition_needed_flag:
               /* Function prototype scopes in C++ exist only to carry
                  hidden name lists and thus can leave the associated function
                  type unprocessed if not done here. */
-              walk_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);
+              walk_ptr(eptr->variant.assoc_type, a_type_ptr, iek_type);
               break;
             }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
             /* FALLTHROUGH */
           case sck_class_struct_union:
           case sck_enum:
-            remap_ptr_not_needed(ptr->variant.assoc_type, a_type_ptr,
+            remap_ptr_not_needed(eptr->variant.assoc_type, a_type_ptr,
                                  iek_type);
             break;
           case sck_condition:
-            remap_ptr_not_needed(ptr->variant.assoc_statement, a_statement_ptr,
-                                 iek_statement);
+            remap_ptr_not_needed(eptr->variant.assoc_statement,
+                                 a_statement_ptr, iek_statement);
             break;
           case sck_namespace:
-            remap_ptr_not_needed(ptr->variant.assoc_namespace, a_namespace_ptr,
-                                 iek_namespace);
+            remap_ptr_not_needed(eptr->variant.assoc_namespace,
+                                 a_namespace_ptr, iek_namespace);
             break;
           case sck_function:
             /* "ptr", which points to the routine associated with this scope,
                is done after the declarations. */
-            walk_list(ptr->variant.routine.parameters, a_variable_ptr,
+            walk_list(eptr->variant.routine.parameters, a_variable_ptr,
                       iek_variable);
-            walk_list(ptr->variant.routine.constructor_inits,
+            walk_list(eptr->variant.routine.constructor_inits,
                       a_constructor_init_ptr, iek_constructor_init);
-            walk_ptr(ptr->variant.routine.lifetime_of_local_static_vars,
+            walk_ptr(eptr->variant.routine.lifetime_of_local_static_vars,
                      an_object_lifetime_ptr, iek_object_lifetime);
-            walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
+            walk_ptr(eptr->variant.routine.this_param_variable, a_variable_ptr,
                      iek_variable);
-            remap_ptr_not_needed(ptr->variant.routine.return_value_variable,
+            remap_ptr_not_needed(eptr->variant.routine.return_value_variable,
                                  a_variable_ptr, iek_variable);
             break;
           case sck_template_instantiation:
@@ -2643,8 +2690,8 @@ do_set_proper_definition_needed_flag:
         /* "assoc_block" is done after the declarations. */
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
-        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
-        walk_list(ptr->constants, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+        walk_list(eptr->constants, a_constant_ptr, iek_constant);
 #if DO_SUBTREE_WALK
 #if NEEDED_FLAG_WALK
         /* Do not walk the types and variables lists to set the "needed"
@@ -2654,7 +2701,7 @@ do_set_proper_definition_needed_flag:
            functions as needed.  Note that if IL lowering is done, there
            will be no functions attached to the class anymore. */
         if (kind == (a_scope_kind)sck_class_struct_union) {
-          a_routine_ptr rout = ptr->routines;
+          a_routine_ptr rout = eptr->routines;
           for (; rout != NULL; rout = rout->next) {
             if (rout->is_virtual) {
               walk_ptr(rout, a_routine_ptr, iek_routine);
@@ -2666,44 +2713,45 @@ do_set_proper_definition_needed_flag:
         if (kind == (a_scope_kind)sck_function ||
             kind == (a_scope_kind)sck_block ||
             (kind == (a_scope_kind)sck_class_struct_union &&
-             ptr->variant.assoc_type->source_corresp.is_local_to_function)) {
+             eptr->variant.assoc_type->source_corresp.is_local_to_function)) {
           /* For lists within a function, mark everything to be kept, because
              we don't remove individual entities within function bodies. */
-          walk_list(ptr->types, a_type_ptr, iek_type);
-          walk_list(ptr->variables, a_variable_ptr, iek_variable);
-          walk_list(ptr->routines, a_routine_ptr, iek_routine);
+          walk_list(eptr->types, a_type_ptr, iek_type);
+          walk_list(eptr->variables, a_variable_ptr, iek_variable);
+          walk_list(eptr->routines, a_routine_ptr, iek_routine);
         } else {
           /* For lists not within a function, mark only the needed entities
              to be kept. */
-          walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
-          walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
+          walk_needed_on_list(eptr->types, a_type_ptr, iek_type, kind);
+          walk_needed_on_list(eptr->variables, a_variable_ptr, iek_variable,
                               kind);
-          walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
+          walk_needed_on_list(eptr->routines, a_routine_ptr, iek_routine,
+                              kind);
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         /* Not needed flag walk or keep_in_il walk. */
-        if (ptr->scope_orphaned_list_header_generated) {
+        if (eptr->scope_orphaned_list_header_generated) {
           /* The local types and static variables at function scope or
              block scope within a function are in the file scope memory region.
              They will be processed during the file scope memory region
              walk because a_scope_orphaned_list_header entry for these lists
              would have been created. */
-          remap_list_ptr(ptr->types, a_type_ptr, iek_type);
-          remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
+          remap_list_ptr(eptr->types, a_type_ptr, iek_type);
+          remap_list_ptr(eptr->variables, a_variable_ptr, iek_variable);
         } else {
           /* Not a function or block scope, or one for which the orphan
              lists have not been generated yet. */
-          walk_list(ptr->types, a_type_ptr, iek_type);
-          walk_list(ptr->variables, a_variable_ptr, iek_variable);
+          walk_list(eptr->types, a_type_ptr, iek_type);
+          walk_list(eptr->variables, a_variable_ptr, iek_variable);
         }  /* if */
-        walk_list(ptr->routines, a_routine_ptr, iek_routine);
+        walk_list(eptr->routines, a_routine_ptr, iek_routine);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
         /* Not walking subtrees.  Just remap the pointers. */
-        remap_list_ptr(ptr->types, a_type_ptr, iek_type);
-        remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
-        remap_list_ptr(ptr->routines, a_routine_ptr, iek_routine);
+        remap_list_ptr(eptr->types, a_type_ptr, iek_type);
+        remap_list_ptr(eptr->variables, a_variable_ptr, iek_variable);
+        remap_list_ptr(eptr->routines, a_routine_ptr, iek_routine);
 #endif /* DO_SUBTREE_WALK */
 #if NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed)
         if (kind == (a_scope_kind)sck_function ||
@@ -2713,47 +2761,49 @@ do_set_proper_definition_needed_flag:
              logic to determine if a given variable satisfies the relevant
              criteria. */
           a_variable_ptr var;
-          for (var = ptr->nonstatic_variables; var != NULL; var = var->next) {
+          for (var = eptr->nonstatic_variables; var != NULL; var = var->next) {
             if (nonstatic_variable_always_needed(var)) {
               walk_ptr(var, a_variable_ptr, iek_variable);
             }  /* if */
           }  /* for */
         }  /* if */
 #else /* !(NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed)) */
-        walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
+        walk_list_not_needed(eptr->nonstatic_variables, a_variable_ptr,
                              iek_variable);
 #endif /* NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed) */
-        walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
-        walk_list(ptr->scopes, a_scope_ptr, iek_scope);
-        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
+        walk_list_not_needed(eptr->labels, a_label_ptr, iek_label);
+        walk_list(eptr->scopes, a_scope_ptr, iek_scope);
+        walk_list_with_keep_in_il_reset(eptr->namespaces, a_namespace_ptr,
                                         iek_namespace);
-        walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
+        walk_list_not_needed(eptr->using_decls, a_using_decl_ptr,
                              iek_using_decl);
-        walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
-        walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
-        walk_list(ptr->local_static_variable_inits,
+        walk_list(eptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
+        walk_list(eptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_list(eptr->local_static_variable_inits,
                   a_local_static_variable_init_ptr,
                   iek_local_static_variable_init);
-        walk_list(ptr->vla_dimensions, a_vla_dimension_ptr, iek_vla_dimension);
-        walk_list(ptr->expr_node_refs, a_local_expr_node_ref_ptr,
+        walk_list(eptr->vla_dimensions, a_vla_dimension_ptr,
+                  iek_vla_dimension);
+        walk_list(eptr->expr_node_refs, a_local_expr_node_ref_ptr,
                   iek_local_expr_node_ref);
-        walk_list(ptr->scope_refs, a_local_scope_ref_ptr, iek_local_scope_ref);
-        walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
-        walk_list(ptr->templates, a_template_ptr, iek_template);
+        walk_list(eptr->scope_refs, a_local_scope_ref_ptr,
+                  iek_local_scope_ref);
+        walk_list(eptr->pragmas, a_pragma_ptr, iek_pragma);
+        walk_list(eptr->templates, a_template_ptr, iek_template);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+        walk_list(eptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-        walk_list(ptr->ms_if_exists, an_ms_if_exists_ptr, iek_ms_if_exists);
+        walk_list(eptr->ms_if_exists, an_ms_if_exists_ptr, iek_ms_if_exists);
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
         if (kind == (a_scope_kind)sck_function) {
-          remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
-          walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
+          remap_ptr(eptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+          walk_ptr(eptr->assoc_block, a_statement_ptr, iek_statement);
         } else {
-          remap_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
+          remap_ptr(eptr->assoc_block, a_statement_ptr, iek_statement);
         }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
-        walk_list_not_needed(ptr->hidden_names, a_hidden_name_ptr,
+        walk_list_not_needed(eptr->hidden_names, a_hidden_name_ptr,
                              iek_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2766,21 +2816,22 @@ do_set_proper_definition_needed_flag:
            mark_to_keep_in_il, because it must be done after orphan
            processing. */
         if (kind == (a_scope_kind)sck_function) {
-          set_keep_in_il_on_source_sequence_entries(ptr);
+          set_keep_in_il_on_source_sequence_entries(eptr);
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
-        walk_list_not_needed(ptr->source_sequence_list,
+        walk_list_not_needed(eptr->source_sequence_list,
                              a_source_sequence_entry_ptr,
                              iek_source_sequence_entry);
         /* The src_seq_sublist_list, which appears only on function scopes,
            is not walked at this time: it is handled during orphan list
            processing. */
 #if !NEEDED_FLAG_WALK
-        remap_list_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
+        remap_list_ptr(eptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
                        iek_src_seq_sublist);
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* KEEP_IN_IL_WALK */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#undef eptr
       }
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -2790,90 +2841,94 @@ do_set_proper_definition_needed_flag:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case iek_namespace:
       {
-        a_namespace_ptr ptr = (a_namespace_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_namespace_ptr, iek_namespace);
+#define eptr ((a_namespace_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, a_namespace_ptr, iek_namespace);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->proxy_class, a_type_ptr, iek_type);
+        walk_ptr(eptr->proxy_class, a_type_ptr, iek_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (ptr->is_namespace_alias) {
-          remap_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
+        if (eptr->is_namespace_alias) {
+          remap_ptr(eptr->variant.assoc_namespace, a_namespace_ptr,
                     iek_namespace);
         } else {
           /* When doing the "needed" flag walk, the members of a namespace are
              not considered needed merely because the namespace itself is
              needed. */
-          walk_ptr_not_needed(ptr->variant.assoc_scope, a_scope_ptr,
+          walk_ptr_not_needed(eptr->variant.assoc_scope, a_scope_ptr,
                               iek_scope);
         }  /* if */
+#undef eptr
       }
       break;
 #if !NEEDED_FLAG_WALK
     case iek_using_decl:
       {
-        a_using_decl_ptr ptr = (a_using_decl_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_using_decl_ptr, iek_using_decl);
+#define eptr ((a_using_decl_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_using_decl_ptr, iek_using_decl);
         /* walk_ptr used instead of remap_ptr because the entity referenced
            can be a constant, e.g., in a prototype instantiation. */
-        walk_ptr(ptr->entity.ptr, a_char_ptr,
-                 (an_il_entry_kind)ptr->entity.kind);
-        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
-        if (ptr->is_class_member) {
-          remap_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)eptr->entity.kind);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
+        if (eptr->is_class_member) {
+          remap_ptr(eptr->qualifier.class_type, a_type_ptr, iek_type);
         } else {
-          remap_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
+          remap_ptr(eptr->qualifier.namespace_ptr, a_namespace_ptr,
                     iek_namespace);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
+        remap_ptr(eptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-        remap_ptr(ptr->next_in_overload_set, a_using_decl_ptr, iek_using_decl);
+        remap_ptr(eptr->next_in_overload_set, a_using_decl_ptr,
+                  iek_using_decl);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+#undef eptr
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
     case iek_dynamic_init:
       {
-        a_dynamic_init_ptr ptr = (a_dynamic_init_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
-        remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
-        if (ptr->destructor != NULL) {
-          set_proper_routine_definition_needed_flag(ptr->destructor);
+#define eptr ((a_dynamic_init_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_dynamic_init_ptr, iek_dynamic_init);
+        remap_ptr(eptr->variable, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->destructor, a_routine_ptr, iek_routine);
+        if (eptr->destructor != NULL) {
+          set_proper_routine_definition_needed_flag(eptr->destructor);
         }  /* if */
-        remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
+        remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
 #if !NEEDED_FLAG_WALK
-        remap_next_ptr(ptr->next_in_destruction_list, a_dynamic_init_ptr,
+        remap_next_ptr(eptr->next_in_destruction_list, a_dynamic_init_ptr,
                        iek_dynamic_init);
 #endif /* !NEEDED_FLAG_WALK */
-        remap_ptr_not_needed(ptr->init_expr_lifetime, an_object_lifetime_ptr,
+        remap_ptr_not_needed(eptr->init_expr_lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case dik_none:
           case dik_zero:
             /* No pointers. */
             break;
           case dik_constant:
           case dik_nonconstant_aggregate:
-            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+            walk_ptr(eptr->variant.constant, a_constant_ptr, iek_constant);
             break;
           case dik_expression:
           case dik_class_result_via_ctor:
-            walk_ptr(ptr->variant.expression, an_expr_node_ptr, iek_expr_node);
+            walk_ptr(eptr->variant.expression, an_expr_node_ptr,
+                     iek_expr_node);
             break;
           case dik_constructor:
-            if (ptr->variant.constructor.ptr != NULL) {
-              remap_ptr(ptr->variant.constructor.ptr, a_routine_ptr,
+            if (eptr->variant.constructor.ptr != NULL) {
+              remap_ptr(eptr->variant.constructor.ptr, a_routine_ptr,
                         iek_routine);
               set_proper_routine_definition_needed_flag(
-                                                 ptr->variant.constructor.ptr);
+                                                eptr->variant.constructor.ptr);
             }  /* if */
-            walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
+            walk_list(eptr->variant.constructor.args, an_expr_node_ptr,
                       iek_expr_node);
             break;
           case dik_bitwise_copy:
-            walk_ptr(ptr->variant.bitwise_copy.source, an_expr_node_ptr,
+            walk_ptr(eptr->variant.bitwise_copy.source, an_expr_node_ptr,
                      iek_expr_node);
             break;
           default:
@@ -2881,166 +2936,174 @@ do_set_proper_definition_needed_flag:
                               "walk_entry_and_subtree: bad dynamic init kind");
         }  /* switch */
 #if DO_IL_LOWERING
-        conditionally_clear_fe_pointer(ptr->destructible_entity_descr);
-        conditionally_clear_fe_pointer(ptr->init_destination);
-        conditionally_clear_fe_pointer(ptr->assoc_new);
+        conditionally_clear_fe_pointer(eptr->destructible_entity_descr);
+        conditionally_clear_fe_pointer(eptr->init_destination);
+        conditionally_clear_fe_pointer(eptr->assoc_new);
 #endif /* DO_IL_LOWERING */
-        remap_ptr(ptr->lifetime_of_overlapping_temps, an_object_lifetime_ptr,
+        remap_ptr(eptr->lifetime_of_overlapping_temps, an_object_lifetime_ptr,
                   iek_object_lifetime);
         /* "_not_needed" here to avoid loops in walk. */
-        remap_ptr_not_needed(ptr->master_entry, a_dynamic_init_ptr,
+        remap_ptr_not_needed(eptr->master_entry, a_dynamic_init_ptr,
                              iek_dynamic_init);
-        conditionally_clear_fe_pointer(ptr->rescan_info);
+        conditionally_clear_fe_pointer(eptr->rescan_info);
+#undef eptr
       }
       break;
     case iek_local_static_variable_init:
       {
-        a_local_static_variable_init_ptr ptr =
-                                  (a_local_static_variable_init_ptr)entry_ptr;
-
-        remap_next_ptr(ptr->next, a_local_static_variable_init_ptr,
+#define eptr ((a_local_static_variable_init_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_local_static_variable_init_ptr,
                        iek_local_static_variable_init);
-        remap_ptr_not_needed(ptr->variable, a_variable_ptr, iek_variable);
-        walk_initializer(ptr->init_kind, ptr->initializer);
-        remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
+        remap_ptr_not_needed(eptr->variable, a_variable_ptr, iek_variable);
+        walk_initializer(eptr->init_kind, eptr->initializer);
+        remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
+#undef eptr
       }
       break;
     case iek_vla_dimension:
       {
-        a_vla_dimension_ptr ptr = (a_vla_dimension_ptr)entry_ptr;
-
-        remap_next_ptr(ptr->next, a_vla_dimension_ptr, iek_vla_dimension);
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        if (ptr->dimension_expr != NULL) {
-          walk_ptr(ptr->dimension_expr, an_expr_node_ptr, iek_expr_node);
+#define eptr ((a_vla_dimension_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_vla_dimension_ptr, iek_vla_dimension);
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        if (eptr->dimension_expr != NULL) {
+          walk_ptr(eptr->dimension_expr, an_expr_node_ptr, iek_expr_node);
         } else {
-          remap_ptr(ptr->original_dimension, a_vla_dimension_ptr,
+          remap_ptr(eptr->original_dimension, a_vla_dimension_ptr,
                     iek_vla_dimension);
         }  /* if */
 #if DO_IL_LOWERING
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-        remap_ptr(ptr->total_number_of_elements, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->total_number_of_elements, a_variable_ptr,
+                  iek_variable);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-        remap_ptr(ptr->dimension_variable, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->dimension_variable, a_variable_ptr, iek_variable);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
+#undef eptr
       }
       break;
 #if !NEEDED_FLAG_WALK
 #if DO_IL_LOWERING && IA64_ABI
     case iek_vcall_offset_entry:
       {
-        a_vcall_offset_entry_ptr ptr = (a_vcall_offset_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_vcall_offset_entry_ptr, 
+#define eptr ((a_vcall_offset_entry_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_vcall_offset_entry_ptr, 
                        iek_vcall_offset_entry);
-        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
-        remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
+        remap_ptr(eptr->routine, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->base_class, a_base_class_ptr, iek_base_class);
+#undef eptr
       }
       break;
 #endif /* DO_IL_LOWERING && IA64_ABI */
     case iek_overriding_virtual_function:
       {
-        an_overriding_virtual_function_ptr ptr =
-                                 (an_overriding_virtual_function_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_overriding_virtual_function_ptr,
+#define eptr ((an_overriding_virtual_function_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_overriding_virtual_function_ptr,
                        iek_overriding_virtual_function);
-        remap_ptr(ptr->overriding_function, a_routine_ptr, iek_routine);
-        remap_ptr(ptr->primary_function, a_routine_ptr, iek_routine);
-        remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
-        remap_ptr(ptr->return_adjustment_base_class, a_base_class_ptr,
+        remap_ptr(eptr->overriding_function, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->primary_function, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->base_class, a_base_class_ptr, iek_base_class);
+        remap_ptr(eptr->return_adjustment_base_class, a_base_class_ptr,
                   iek_base_class);
+#undef eptr
       }
       break;
     case iek_derivation_step:
       {
-        a_derivation_step_ptr ptr = (a_derivation_step_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_derivation_step_ptr,
+#define eptr ((a_derivation_step_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_derivation_step_ptr,
                        iek_derivation_step);
-        remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
+        remap_ptr(eptr->base_class, a_base_class_ptr, iek_base_class);
+#undef eptr
       }
       break;
     case iek_base_class_derivation:
       {
-        a_base_class_derivation_ptr ptr =
-                                       (a_base_class_derivation_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_base_class_derivation_ptr,
+#define eptr ((a_base_class_derivation_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_base_class_derivation_ptr,
                        iek_base_class_derivation);
-        walk_list(ptr->path, a_derivation_step_ptr, iek_derivation_step);
+        walk_list(eptr->path, a_derivation_step_ptr, iek_derivation_step);
+#undef eptr
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
     case iek_base_class:
       {
-        a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_base_class_ptr, iek_base_class);
+#define eptr ((a_base_class_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_base_class_ptr, iek_base_class);
 #if IA64_ABI
-        remap_ptr_not_needed(ptr->next_preorder, a_base_class_ptr, 
+        remap_ptr_not_needed(eptr->next_preorder, a_base_class_ptr, 
                              iek_base_class);
-        remap_ptr_not_needed(ptr->primary_base_class, a_base_class_ptr, 
+        remap_ptr_not_needed(eptr->primary_base_class, a_base_class_ptr, 
                              iek_base_class);
 #endif /* IA64_ABI */
-        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+        walk_list(eptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        remap_ptr(ptr->type, a_type_ptr, iek_type);
+        remap_ptr(eptr->type, a_type_ptr, iek_type);
         /* Use an unconditional walk for the orig_type since it can be
            a decltype which won't appear on the types list. */
-        walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
-        set_proper_definition_needed_flag(ptr->type);
-        remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
-        if (ptr->derived_class != NULL) {
-          set_proper_definition_needed_flag(ptr->derived_class);
+        walk_ptr(eptr->orig_type, a_type_ptr, iek_type);
+        set_proper_definition_needed_flag(eptr->type);
+        remap_ptr(eptr->derived_class, a_type_ptr, iek_type);
+        if (eptr->derived_class != NULL) {
+          set_proper_definition_needed_flag(eptr->derived_class);
         }  /* if */
-        conditionally_clear_fe_pointer(ptr->trans_unit_corresp);
+        conditionally_clear_fe_pointer(eptr->trans_unit_corresp);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-        remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
+        remap_ptr_not_needed(eptr->data_section_base_class, a_base_class_ptr,
                              iek_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if !IA64_ABI
-        remap_ptr_not_needed(ptr->pointer_base_class, a_base_class_ptr,
+        remap_ptr_not_needed(eptr->pointer_base_class, a_base_class_ptr,
                              iek_base_class);
 #endif /* !IA64_ABI */
-        walk_list_not_needed(ptr->derivation, a_base_class_derivation_ptr,
+        walk_list_not_needed(eptr->derivation, a_base_class_derivation_ptr,
                              iek_base_class_derivation);
-        walk_list_not_needed(ptr->overriding_virtual_functions,
+        walk_list_not_needed(eptr->overriding_virtual_functions,
                              an_overriding_virtual_function_ptr,
                              iek_overriding_virtual_function);
 #if DO_IL_LOWERING
 #if !IA64_ABI
-        conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
+        conditionally_clear_fe_pointer(eptr->virtual_function_table_var);
 #endif /* !IA64_ABI */
 #endif /* DO_IL_LOWERING */
+#undef eptr
       }
       break;
     case iek_class_list_entry:
       {
-        a_class_list_entry_ptr ptr = (a_class_list_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_class_list_entry_ptr,
+#define eptr ((a_class_list_entry_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_class_list_entry_ptr,
                        iek_class_list_entry);
-        remap_ptr(ptr->class_type, a_type_ptr, iek_type);
+        remap_ptr(eptr->class_type, a_type_ptr, iek_type);
+#undef eptr
       }
       break;
     case iek_routine_list_entry:
       {
-        a_routine_list_entry_ptr ptr = (a_routine_list_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_routine_list_entry_ptr,
+#define eptr ((a_routine_list_entry_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_routine_list_entry_ptr,
                        iek_routine_list_entry);
-        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->routine, a_routine_ptr, iek_routine);
+#undef eptr
       }
       break;
     case iek_class_type_supplement:
       {
-        a_class_type_supplement_ptr ptr;
-        ptr = (a_class_type_supplement_ptr)entry_ptr;
+        /* Note that "eptr" is not used here (because a variable is needed
+           to support branching from elsewhere). */
+        a_class_type_supplement_ptr ctsp =
+                                        (a_class_type_supplement_ptr)entry_ptr;
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         goto after_entry_from_class;
 handle_class_type_supplement_for_class:
         /* Processing comes here from the class type.  For the "needed" and
            "keep_in_il" walk we have to be able to know where the class type
            is. */
-        ptr = ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info;
+        ctsp = ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info;
 after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* Fields to be processed even if the definition of the class is
@@ -3049,22 +3112,22 @@ after_entry_from_class:
            an associated template that is in a template declaration scope
            and therefore doesn't show up elsewhere on the walk.  Thus
            the walk_ptr. */
-        walk_ptr(ptr->assoc_template, a_template_ptr, iek_template);
-        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+        walk_ptr(ctsp->assoc_template, a_template_ptr, iek_template);
+        walk_list(ctsp->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
-        walk_list(ptr->partial_spec_template_arg_list, a_template_arg_ptr,
+        walk_list(ctsp->partial_spec_template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
+        walk_string_ptr(ctsp->uuid_string, iek_other_text, 0);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Recall that entry_ptr is a class pointer in this case. */
         if (is_cli_array_type((a_type_ptr)entry_ptr) &&
-            ptr->template_arg_list != NULL &&
-            is_type_templ_arg(ptr->template_arg_list) &&
-            ptr->template_arg_list->variant.type != NULL &&
-            is_handle_type(ptr->template_arg_list->variant.type)) {
+            ctsp->template_arg_list != NULL &&
+            is_type_templ_arg(ctsp->template_arg_list) &&
+            ctsp->template_arg_list->variant.type != NULL &&
+            is_handle_type(ctsp->template_arg_list->variant.type)) {
           a_type_ptr underlying_type = f_skip_typerefs(
-                        type_pointed_to(ptr->template_arg_list->variant.type));
+                       type_pointed_to(ctsp->template_arg_list->variant.type));
           if (is_immediate_class_type(underlying_type)) {
           /* Keep the underlying class type of a handle of a C++/CLI array
              type in the IL. */
@@ -3076,10 +3139,10 @@ after_entry_from_class:
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
         /* Visit befriending classes for the "keep_in_il" sweep. */
-        set_keep_in_il_on_befriending_classes(ptr->befriending_classes);
+        set_keep_in_il_on_befriending_classes(ctsp->befriending_classes);
 #else /* !KEEP_IN_IL_WALK */
         /* All cases except NEEDED_FLAG_WALK and KEEP_IN_IL_WALK. */
-        walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
+        walk_list(ctsp->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* !NEEDED_FLAG_WALK */
@@ -3098,63 +3161,63 @@ after_entry_from_class:
         {
           /* Fields to be processed only if the definition of the class
              is to be processed: */
-          walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
+          walk_list(ctsp->base_classes, a_base_class_ptr, iek_base_class);
 #if IA64_ABI
-          remap_ptr_not_needed(ptr->preorder_base_classes, a_base_class_ptr,
+          remap_ptr_not_needed(ctsp->preorder_base_classes, a_base_class_ptr,
                                iek_base_class);
-          remap_ptr_not_needed(ptr->primary_base_class, a_base_class_ptr, 
+          remap_ptr_not_needed(ctsp->primary_base_class, a_base_class_ptr, 
                                iek_base_class);
 #endif /* IA64_ABI */
-          remap_ptr(ptr->anonymous_union_field, a_field_ptr, iek_field);
-          walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
-          remap_ptr_not_needed(ptr->virtual_function_info_base_class,
+          remap_ptr(ctsp->anonymous_union_field, a_field_ptr, iek_field);
+          walk_ptr(ctsp->assoc_scope, a_scope_ptr, iek_scope);
+          remap_ptr_not_needed(ctsp->virtual_function_info_base_class,
                                a_base_class_ptr, iek_base_class);
 #if DO_IL_LOWERING && IA64_ABI
-          walk_list_not_needed(ptr->vcall_offsets, a_vcall_offset_entry_ptr, 
+          walk_list_not_needed(ctsp->vcall_offsets, a_vcall_offset_entry_ptr, 
                                iek_vcall_offset_entry);
 #endif /* DO_IL_LOWERING && IA64_ABI */
-          walk_list_not_needed(ptr->friend_routines, a_routine_list_entry_ptr,
+          walk_list_not_needed(ctsp->friend_routines, a_routine_list_entry_ptr,
                                iek_routine_list_entry);
-          walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
+          walk_list_not_needed(ctsp->friend_classes, a_class_list_entry_ptr,
                                iek_class_list_entry);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          conditionally_clear_fe_pointer(ptr->partial_class_bodies);
+          conditionally_clear_fe_pointer(ctsp->partial_class_bodies);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-          remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
+          remap_ptr(ctsp->assoc_operator_new_routine, a_routine_ptr,
                     iek_routine);
 #if !DO_IL_LOWERING
-          if (ptr->assoc_operator_new_routine != NULL) {
+          if (ctsp->assoc_operator_new_routine != NULL) {
             set_proper_routine_definition_needed_flag(
-                                              ptr->assoc_operator_new_routine);
+                                             ctsp->assoc_operator_new_routine);
           }  /* if */
 #endif /* !DO_IL_LOWERING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-          remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
+          remap_ptr(ctsp->assoc_operator_delete_routine, a_routine_ptr,
                     iek_routine);
 #if !DO_IL_LOWERING
-          if (ptr->assoc_operator_delete_routine != NULL) {
+          if (ctsp->assoc_operator_delete_routine != NULL) {
             set_proper_routine_definition_needed_flag(
-                                           ptr->assoc_operator_delete_routine);
+                                          ctsp->assoc_operator_delete_routine);
           }  /* if */
 #endif /* !DO_IL_LOWERING */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-          conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
+          conditionally_clear_fe_pointer(ctsp->virtual_function_table_var);
 #if IA64_ABI
-          conditionally_clear_fe_pointer(ptr->virtual_table_table_var);
+          conditionally_clear_fe_pointer(ctsp->virtual_table_table_var);
 #endif /* IA64_ABI */
-          conditionally_clear_fe_pointer(ptr->subobject_partner);
+          conditionally_clear_fe_pointer(ctsp->subobject_partner);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          conditionally_clear_fe_pointer(ptr->uuid_variable);
+          conditionally_clear_fe_pointer(ctsp->uuid_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-          conditionally_clear_fe_pointer(ptr->promoted_local_types);
+          conditionally_clear_fe_pointer(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #else /* !DO_IL_LOWERING */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-          if (ptr->anonymous_union_kind ==
+          if (ctsp->anonymous_union_kind ==
                                        (an_anonymous_union_kind)auk_variable) {
             /* Deal with cases like
                  static union { typedef int T; };
@@ -3165,7 +3228,7 @@ after_entry_from_class:
                anonymous union must also be marked.  This is a problem only
                for types in anonymous unions; references to data members will
                include a reference to the variable. */
-            if (ptr->assoc_scope->types != NULL) {
+            if (ctsp->assoc_scope->types != NULL) {
               a_variable_ptr anon_union_var;
               /* Recall that entry_ptr is the class pointer. */
               anon_union_var = find_parent_var_of_anon_union_type(
@@ -3178,86 +3241,87 @@ after_entry_from_class:
         }  /* if */
 #if NEED_NAME_MANGLING
 #if !NEEDED_FLAG_WALK
-        if (ptr->defined_in_variable_initializer) {
-          remap_ptr(ptr->lambda_parent.variable, a_variable_ptr, iek_variable);
-        } else if (ptr->defined_in_field_initializer) {
-          remap_ptr(ptr->lambda_parent.field, a_field_ptr, iek_field);
+        if (ctsp->defined_in_variable_initializer) {
+          remap_ptr(ctsp->lambda_parent.variable, a_variable_ptr,
+                    iek_variable);
+        } else if (ctsp->defined_in_field_initializer) {
+          remap_ptr(ctsp->lambda_parent.field, a_field_ptr, iek_field);
         } else {
-          remap_ptr(ptr->lambda_parent.routine, a_routine_ptr, iek_routine);
+          remap_ptr(ctsp->lambda_parent.routine, a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* NEED_NAME_MANGLING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr_not_needed(ptr->corresponding_basic_type, a_type_ptr,
+        walk_ptr_not_needed(ctsp->corresponding_basic_type, a_type_ptr,
                             iek_type);
-        walk_ptr_not_needed(ptr->base_dispose_bool_routine, a_routine_ptr,
+        walk_ptr_not_needed(ctsp->base_dispose_bool_routine, a_routine_ptr,
                             iek_routine);
-        walk_ptr_not_needed(ptr->base_idisposable_dispose_routine,
+        walk_ptr_not_needed(ctsp->base_idisposable_dispose_routine,
                             a_routine_ptr, iek_routine);
-        walk_ptr_not_needed(ptr->base_object_finalize_routine, a_routine_ptr,
+        walk_ptr_not_needed(ctsp->base_object_finalize_routine, a_routine_ptr,
                             iek_routine);
-        walk_ptr(ptr->invocation_type, a_type_ptr, iek_type);
-        walk_ptr(ptr->event_interfaces, an_event_interface_ptr,
+        walk_ptr(ctsp->invocation_type, a_type_ptr, iek_type);
+        walk_ptr(ctsp->event_interfaces, an_event_interface_ptr,
                  iek_event_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        walk_ptr(ptr->proxy_of_type, a_type_ptr, iek_type);
+        walk_ptr(ctsp->proxy_of_type, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }
       break;
     case iek_template_param_type_supplement:
       {
-        a_template_param_type_supplement_ptr ptr =
-                               (a_template_param_type_supplement_ptr)entry_ptr;
+#define eptr ((a_template_param_type_supplement_ptr)entry_ptr)
         /* Use walk_ptr instead of remap_ptr because proxy classes are
            not linked into the IL. */
-        walk_ptr(ptr->class_type, a_type_ptr, iek_type);
-        remap_ptr(ptr->orig_nested_type, a_type_ptr, iek_type);
-        conditionally_clear_fe_pointer(ptr->template_symbol);
+        walk_ptr(eptr->class_type, a_type_ptr, iek_type);
+        remap_ptr(eptr->orig_nested_type, a_type_ptr, iek_type);
+        conditionally_clear_fe_pointer(eptr->template_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (all_template_info_in_il) {
-          remap_ptr(ptr->generic_constraints, a_generic_constraint_ptr,
+          remap_ptr(eptr->generic_constraints, a_generic_constraint_ptr,
                     iek_generic_constraint);
         } else {
-          walk_ptr(ptr->generic_constraints, a_generic_constraint_ptr,
+          walk_ptr(eptr->generic_constraints, a_generic_constraint_ptr,
                    iek_generic_constraint);
         }  /*if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#undef eptr
       }
       break;
     case iek_typeref_type_supplement:
       {
-        a_typeref_type_supplement_ptr ptr =
-                                      (a_typeref_type_supplement_ptr)entry_ptr;
-        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+#define eptr ((a_typeref_type_supplement_ptr)entry_ptr)
+        walk_list(eptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
         if (!prototype_instantiations_in_il) {
-          conditionally_clear_fe_pointer(ptr->orig_template_arg_list);
+          conditionally_clear_fe_pointer(eptr->orig_template_arg_list);
         } else {
-          walk_list(ptr->orig_template_arg_list, a_template_arg_ptr,
+          walk_list(eptr->orig_template_arg_list, a_template_arg_ptr,
                     iek_template_arg);
         }  /* if */
-        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->proxy_class, a_type_ptr, iek_type);
-        walk_ptr(ptr->operator_type_arg, a_type_ptr, iek_type);
+        remap_ptr(eptr->assoc_template, a_template_ptr, iek_template);
+        walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->proxy_class, a_type_ptr, iek_type);
+        walk_ptr(eptr->operator_type_arg, a_type_ptr, iek_type);
+#undef eptr
       }
       break;
     case iek_constructor_init:
       {
-        a_constructor_init_ptr ptr = (a_constructor_init_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_constructor_init_ptr,
+#define eptr ((a_constructor_init_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_constructor_init_ptr,
                        iek_constructor_init);
-        switch (ptr->kind) {
+        switch (eptr->kind) {
           case cik_virtual_base_class:
           case cik_direct_base_class:
             /* With prototype instantiations, there can be generated base
                class entries. */
-            walk_ptr(ptr->variant.base_class, a_base_class_ptr,
+            walk_ptr(eptr->variant.base_class, a_base_class_ptr,
                      iek_base_class);
             break;
           case cik_field:
-            remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+            remap_ptr(eptr->variant.field, a_field_ptr, iek_field);
             break;
           case cik_delegation:
             /* No variant field. */
@@ -3266,48 +3330,51 @@ after_entry_from_class:
             unexpected_condition_str(
                           "walk_entry_and_subtree: bad constructor init kind");
         }  /* switch */
-        walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
-        walk_ptr(ptr->source.expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(eptr->source.expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->orig_type, a_type_ptr, iek_type);
+#undef eptr
       }
       break;
     case iek_asm_entry:
       {
-        an_asm_entry_ptr ptr = (an_asm_entry_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
-        walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
+#define eptr ((an_asm_entry_ptr)entry_ptr)
+        walk_source_corresp(eptr->source_corresp);
+        remap_next_ptr(eptr->next, an_asm_entry_ptr, iek_asm_entry);
+        walk_ptr(eptr->asm_string, a_constant_ptr, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
-        walk_list(ptr->operands, an_asm_operand_ptr, iek_asm_operand);
-        walk_list(ptr->clobbers, a_named_register_list_ptr, 
+        walk_list(eptr->operands, an_asm_operand_ptr, iek_asm_operand);
+        walk_list(eptr->clobbers, a_named_register_list_ptr, 
                   iek_named_register_list);
-        walk_list(ptr->labels, a_label_list_ptr, iek_label_list);
+        walk_list(eptr->labels, a_label_list_ptr, iek_label_list);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#undef eptr
       }
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case iek_asm_operand:
       {
-        an_asm_operand_ptr ptr = (an_asm_operand_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_asm_operand_ptr, iek_asm_operand);
-        walk_string_ptr(ptr->name, iek_other_text, 0);
+#define eptr ((an_asm_operand_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_asm_operand_ptr, iek_asm_operand);
+        walk_string_ptr(eptr->name, iek_other_text, 0);
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-        walk_string_ptr(ptr->constraints_string, iek_other_text, 0);
+        walk_string_ptr(eptr->constraints_string, iek_other_text, 0);
 #else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-        walk_list(ptr->constraints,
+        walk_list(eptr->constraints,
                   an_asm_operand_constraint_ptr, iek_asm_operand_constraint);
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-        walk_ptr(ptr->expression, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->expression, an_expr_node_ptr, iek_expr_node);
+#undef eptr
       }
       break;
 #if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
     case iek_asm_operand_constraint:
 #if !DO_SUBTREE_WALK
       {
-        an_asm_operand_constraint_ptr ptr =
-                                      (an_asm_operand_constraint_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_asm_operand_constraint_ptr,
+#define eptr ((an_asm_operand_constraint_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_asm_operand_constraint_ptr,
                        iek_asm_operand_constraint);
+#undef eptr
       }
 #endif /* !DO_SUBTREE_WALK */
       break;
@@ -3315,111 +3382,115 @@ after_entry_from_class:
     case iek_named_register_list:
 #if !DO_SUBTREE_WALK
       {
-        a_named_register_list_ptr ptr = (a_named_register_list_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_named_register_list_ptr,
+#define eptr ((a_named_register_list_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_named_register_list_ptr,
                        iek_named_register_list);
+#undef eptr
       }
 #endif /* !DO_SUBTREE_WALK */
       break;
     case iek_label_list:
       {
-        a_label_list_ptr ptr = (a_label_list_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_label_list_ptr, iek_label_list);
-        remap_ptr(ptr->label, a_label_ptr, iek_label);
+#define eptr ((a_label_list_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_label_list_ptr, iek_label_list);
+        remap_ptr(eptr->label, a_label_ptr, iek_label);
+#undef eptr
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case iek_template_arg:
       {
-        a_template_arg_ptr ptr = (a_template_arg_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_template_arg_ptr, iek_template_arg);
-        if (is_type_templ_arg(ptr)) {
-          walk_ptr(ptr->variant.type, a_type_ptr, iek_type);
-        } else if (is_nontype_templ_arg(ptr)) {
-          if (!ptr->is_array_bound_of_unknown_type) {
-            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+#define eptr ((a_template_arg_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_template_arg_ptr, iek_template_arg);
+        if (is_type_templ_arg(eptr)) {
+          walk_ptr(eptr->variant.type, a_type_ptr, iek_type);
+        } else if (is_nontype_templ_arg(eptr)) {
+          if (!eptr->is_array_bound_of_unknown_type) {
+            walk_ptr(eptr->variant.constant, a_constant_ptr, iek_constant);
           }  /* if */
-        } else if (is_template_templ_arg(ptr)) {
+        } else if (is_template_templ_arg(eptr)) {
           /* A template template argument. */
-          walk_ptr(ptr->variant.templ.ptr, a_template_ptr, iek_template);
-        } else if (is_start_of_pack_expansion_templ_arg(ptr)) {
+          walk_ptr(eptr->variant.templ.ptr, a_template_ptr, iek_template);
+        } else if (is_start_of_pack_expansion_templ_arg(eptr)) {
           /* A start of pack expansion argument. */
         } else {
           unexpected_condition();
         }  /* if */
-        conditionally_clear_fe_pointer(ptr->arg_operand);
-        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
+        conditionally_clear_fe_pointer(eptr->arg_operand);
+        conditionally_clear_fe_pointer(eptr->pack_expansion_descr);
+#undef eptr
       }
       break;
     case iek_new_delete_supplement:
       {
-        a_new_delete_supplement_ptr ptr =
-                                        (a_new_delete_supplement_ptr)entry_ptr;
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        definition_needed_if_class(ptr->type);
-        walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
-        if (ptr->routine != NULL) {
-          set_proper_routine_definition_needed_flag(ptr->routine);
+#define eptr ((a_new_delete_supplement_ptr)entry_ptr)
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(eptr->type);
+        walk_ptr(eptr->routine, a_routine_ptr, iek_routine);
+        if (eptr->routine != NULL) {
+          set_proper_routine_definition_needed_flag(eptr->routine);
         }  /* if */
-        walk_list(ptr->arg, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
-        walk_ptr(ptr->freeing_of_storage_on_exception, a_dynamic_init_ptr,
+        walk_list(eptr->arg, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(eptr->freeing_of_storage_on_exception, a_dynamic_init_ptr,
                  iek_dynamic_init);
-        walk_ptr(ptr->number_of_elements, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->number_of_elements, an_expr_node_ptr, iek_expr_node);
+#undef eptr
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_gcnew_supplement:
       {
-        a_gcnew_supplement_ptr ptr = (a_gcnew_supplement_ptr)entry_ptr;
-
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        definition_needed_if_class(ptr->type);
-        walk_list(ptr->cli_array_dimension_lengths, an_expr_node_ptr,
+#define eptr ((a_gcnew_supplement_ptr)entry_ptr)
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(eptr->type);
+        walk_list(eptr->cli_array_dimension_lengths, an_expr_node_ptr,
                   iek_expr_node);
-        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+#undef eptr
       }
     break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_throw_supplement:
       {
-        a_throw_supplement_ptr ptr = (a_throw_supplement_ptr)entry_ptr;
-        walk_ptr(ptr->type, a_type_ptr, iek_type);
-        definition_needed_if_class(ptr->type);
-        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+#define eptr ((a_throw_supplement_ptr)entry_ptr)
+        walk_ptr(eptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(eptr->type);
+        walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if !ABI_CHANGES_FOR_RTTI
-        walk_list_not_needed(ptr->accessible_base_classes,
+        walk_list_not_needed(eptr->accessible_base_classes,
                              an_accessible_base_class_ptr,
                              iek_accessible_base_class);
 #endif /* !ABI_CHANGES_FOR_RTTI */
-        remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
-        if (ptr->destructor != NULL) {
-          set_proper_routine_definition_needed_flag(ptr->destructor);
+        remap_ptr(eptr->destructor, a_routine_ptr, iek_routine);
+        if (eptr->destructor != NULL) {
+          set_proper_routine_definition_needed_flag(eptr->destructor);
         }  /* if */
+#undef eptr
       }
       break;
     case iek_condition_supplement:
       {
-        a_condition_supplement_ptr ptr = (a_condition_supplement_ptr)entry_ptr;
+#define eptr ((a_condition_supplement_ptr)entry_ptr)
 
-        walk_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
-        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr_not_needed(eptr->scope, a_scope_ptr, iek_scope);
+        walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
+#undef eptr
       }
       break;
 #if !ABI_CHANGES_FOR_RTTI
 #if !NEEDED_FLAG_WALK
     case iek_accessible_base_class:
       {
-        an_accessible_base_class_ptr ptr =
-                                      (an_accessible_base_class_ptr)entry_ptr;
-        
-        remap_next_ptr(ptr->next, an_accessible_base_class_ptr,
+#define eptr ((an_accessible_base_class_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_accessible_base_class_ptr,
                        iek_accessible_base_class);
-        remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
+        remap_ptr(eptr->base_class, a_base_class_ptr, iek_base_class);
+#undef eptr
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
@@ -3427,27 +3498,26 @@ after_entry_from_class:
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
       {
-        an_eh_prologue_supplement_ptr ptr =
-                                      (an_eh_prologue_supplement_ptr)entry_ptr;
-        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+#define eptr ((an_eh_prologue_supplement_ptr)entry_ptr)
+        remap_ptr(eptr->routine, a_routine_ptr, iek_routine);
 #if GENERATE_EH_TABLES
-        remap_ptr(ptr->region_table, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->array_table, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->region_table, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->array_table, a_variable_ptr, iek_variable);
 #endif /* GENERATE_EH_TABLES */
+#undef eptr
       }
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
     case iek_source_sequence_entry:
       {
-        a_source_sequence_entry_ptr ptr =
-                                       (a_source_sequence_entry_ptr)entry_ptr;
-        an_il_entry_kind            kind = (an_il_entry_kind)ptr->entity.kind;
+#define eptr ((a_source_sequence_entry_ptr)entry_ptr)
+        an_il_entry_kind            kind = (an_il_entry_kind)eptr->entity.kind;
 
 #if !KEEP_IN_IL_WALK
-        remap_next_ptr(ptr->next, a_source_sequence_entry_ptr,
+        remap_next_ptr(eptr->next, a_source_sequence_entry_ptr,
                        iek_source_sequence_entry);
-        remap_ptr(ptr->prev, a_source_sequence_entry_ptr,
+        remap_ptr(eptr->prev, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* !KEEP_IN_IL_WALK */
 #if CHECKING
@@ -3472,286 +3542,304 @@ after_entry_from_class:
             kind == iek_linkage_spec_block ||
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
             kind == iek_static_assertion) {
-          walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
+          walk_ptr(eptr->entity.ptr, a_char_ptr, kind);
         } else {
-          remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
+          remap_ptr(eptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
+#undef eptr
       }
       break;
     case iek_src_seq_secondary_decl:
       {
-        a_src_seq_secondary_decl_ptr ptr =
-                                      (a_src_seq_secondary_decl_ptr)entry_ptr;
-        an_il_entry_kind             kind = (an_il_entry_kind)ptr->entity.kind;
+#define eptr ((a_src_seq_secondary_decl_ptr)entry_ptr)
+        an_il_entry_kind kind = (an_il_entry_kind)eptr->entity.kind;
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
            IL.  Similarly, friend function declarations may refer to routines
            that do not appear on any list (e.g., dependent class members) and
            must be walked here. */
-        if (kind == iek_type || ptr->friend_decl) {
-          walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
+        if (kind == iek_type || eptr->friend_decl) {
+          walk_ptr(eptr->entity.ptr, a_char_ptr, kind);
         } else {
-          remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
+          remap_ptr(eptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
-        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
-        walk_ptr(ptr->name_reference, a_name_reference_ptr,
+        walk_ptr(eptr->declared_type, a_type_ptr, iek_type);
+        walk_ptr(eptr->name_reference, a_name_reference_ptr,
                  iek_name_reference);
-        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
+        walk_ptr(eptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#undef eptr
       }
       break;
     case iek_src_seq_end_of_construct:
       {
-        a_src_seq_end_of_construct_ptr ptr =
-                                    (a_src_seq_end_of_construct_ptr)entry_ptr;
-        an_il_entry_kind             kind = (an_il_entry_kind)ptr->entity.kind;
+#define eptr ((a_src_seq_end_of_construct_ptr)entry_ptr)
+        an_il_entry_kind kind = (an_il_entry_kind)eptr->entity.kind;
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
            IL. */
         if (kind == iek_type) {
-          walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
+          walk_ptr(eptr->entity.ptr, a_char_ptr, kind);
         } else {
-          remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
+          remap_ptr(eptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
+#undef eptr
       }
       break;
 #if !KEEP_IN_IL_WALK
     case iek_src_seq_sublist:
       {
-        a_src_seq_sublist_ptr ptr = (a_src_seq_sublist_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_src_seq_sublist_ptr, iek_src_seq_sublist);
-        walk_list(ptr->source_sequence_list, a_source_sequence_entry_ptr,
+#define eptr ((a_src_seq_sublist_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_src_seq_sublist_ptr, iek_src_seq_sublist);
+        walk_list(eptr->source_sequence_list, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-        remap_ptr(ptr->last_source_sequence_entry, a_source_sequence_entry_ptr,
-                  iek_source_sequence_entry);
+        remap_ptr(eptr->last_source_sequence_entry,
+                  a_source_sequence_entry_ptr, iek_source_sequence_entry);
+#undef eptr
       }
       break;
 #endif /* !KEEP_IN_IL_WALK */
     case iek_instantiation_directive:
       {
-        an_instantiation_directive_ptr ptr =
-                                    (an_instantiation_directive_ptr)entry_ptr;
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
-        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
+#define eptr ((an_instantiation_directive_ptr)entry_ptr)
+        remap_ptr(eptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)eptr->entity.kind);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
+        walk_ptr(eptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#undef eptr
       }
       break;
     case iek_static_assertion:
       {
-        a_static_assertion_ptr ptr = (a_static_assertion_ptr)entry_ptr;
-        walk_ptr(ptr->condition, a_constant_ptr, iek_constant);
-        walk_ptr(ptr->string_literal, a_constant_ptr, iek_constant);
+#define eptr ((a_static_assertion_ptr)entry_ptr)
+        walk_ptr(eptr->condition, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->string_literal, a_constant_ptr, iek_constant);
+#undef eptr
       }
       break;
 #if GENERATE_LINKAGE_SPEC_BLOCKS
     case iek_linkage_spec_block:
       {
-        a_linkage_spec_block_ptr ptr = (a_linkage_spec_block_ptr)entry_ptr;
-        walk_ptr(ptr->name_string, a_constant_ptr, iek_constant);
+#define eptr ((a_linkage_spec_block_ptr)entry_ptr)
+        walk_ptr(eptr->name_string, a_constant_ptr, iek_constant);
+#undef eptr
       }
       break;
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
     case iek_scope_orphaned_list_header:
       {
-        a_scope_orphaned_list_header_ptr ptr =
-                                   (a_scope_orphaned_list_header_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_scope_orphaned_list_header_ptr,
+#define eptr ((a_scope_orphaned_list_header_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_scope_orphaned_list_header_ptr,
                        iek_scope_orphaned_list_header);
-        remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
+        remap_ptr(eptr->assoc_routine, a_routine_ptr, iek_routine);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Don't walk these lists.  They will have been walked from the
            function scope if necessary. */
-        remap_list_ptr(ptr->orphaned_types, a_type_ptr, iek_type);
-        remap_list_ptr(ptr->orphaned_variables, a_variable_ptr, iek_variable);
-        remap_list_ptr(ptr->orphaned_namespaces, a_namespace_ptr,
+        remap_list_ptr(eptr->orphaned_types, a_type_ptr, iek_type);
+        remap_list_ptr(eptr->orphaned_variables, a_variable_ptr,
+                       iek_variable);
+        remap_list_ptr(eptr->orphaned_namespaces, a_namespace_ptr,
                        iek_namespace);
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
-        walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
-        walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
-        walk_list(ptr->orphaned_namespaces, a_namespace_ptr, iek_namespace);
+        walk_list(eptr->orphaned_types, a_type_ptr, iek_type);
+        walk_list(eptr->orphaned_variables, a_variable_ptr, iek_variable);
+        walk_list(eptr->orphaned_namespaces, a_namespace_ptr, iek_namespace);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        walk_list(ptr->orphaned_src_seq_sublists,
+        walk_list(eptr->orphaned_src_seq_sublists,
                   a_src_seq_sublist_ptr, iek_src_seq_sublist);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && */
+#undef eptr
       }
       break;
 #if ONE_INSTANTIATION_PER_OBJECT
     case iek_per_instantiation_needed_flags_entry:
       {
 #if !DO_SUBTREE_WALK
-        a_per_instantiation_needed_flags_entry_ptr ptr =
-                         (a_per_instantiation_needed_flags_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_per_instantiation_needed_flags_entry_ptr,
+#define eptr ((a_per_instantiation_needed_flags_entry_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_per_instantiation_needed_flags_entry_ptr,
                        iek_per_instantiation_needed_flags_entry);
+#undef eptr
 #endif /* !DO_SUBTREE_WALK */
       }
       break;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
     case iek_local_expr_node_ref:
-      { a_local_expr_node_ref_ptr ptr = (a_local_expr_node_ref_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_local_expr_node_ref_ptr,
+      {
+#define eptr ((a_local_expr_node_ref_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_local_expr_node_ref_ptr,
                        iek_local_expr_node_ref);
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->referrer.ptr, a_char_ptr,
-                 (an_il_entry_kind)ptr->referrer.kind);
+        walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->referrer.ptr, a_char_ptr,
+                 (an_il_entry_kind)eptr->referrer.kind);
+#undef eptr
       }
       break;
     case iek_local_scope_ref:
       {
-#if !NEEDED_FLAG_WALK
-        a_local_scope_ref_ptr ptr = (a_local_scope_ref_ptr)entry_ptr;
-#endif /* !NEEDED_FLAG_WALK */
-        remap_next_ptr(ptr->next, a_local_scope_ref_ptr, iek_local_scope_ref);
-        remap_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
-        remap_ptr_not_needed(ptr->referrer.ptr, a_char_ptr,
-                             (an_il_entry_kind)ptr->referrer.kind);
+#define eptr ((a_local_scope_ref_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_local_scope_ref_ptr, iek_local_scope_ref);
+        remap_ptr_not_needed(eptr->scope, a_scope_ptr, iek_scope);
+        remap_ptr_not_needed(eptr->referrer.ptr, a_char_ptr,
+                             (an_il_entry_kind)eptr->referrer.kind);
+#undef eptr
       }
       break;
     case iek_il_entity_list_entry:
       {
-#if !NEEDED_FLAG_WALK
-        an_il_entity_list_entry_ptr  ptr =
-                                       (an_il_entity_list_entry_ptr)entry_ptr;
-#endif /* !NEEDED_FLAG_WALK */
-        remap_next_ptr(ptr->next, an_il_entity_list_entry_ptr,
+#define eptr ((an_il_entity_list_entry_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_il_entity_list_entry_ptr,
                        iek_il_entity_list_entry);
-        walk_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
-                            (an_il_entry_kind)ptr->entity.kind);
+        walk_ptr_not_needed(eptr->entity.ptr, a_char_ptr,
+                            (an_il_entry_kind)eptr->entity.kind);
+#undef eptr
       }
       break;
     case iek_lambda:
-      { a_lambda_ptr  ptr = (a_lambda_ptr)entry_ptr;
-        walk_list(ptr->capture_list, a_lambda_capture_ptr, iek_lambda_capture);
-        walk_ptr(ptr->closure_class, a_type_ptr, iek_type);
-        set_proper_definition_needed_flag(ptr->closure_class);
-        if (ptr->is_generic && !prototype_instantiations_in_il) {
-          conditionally_clear_fe_pointer(ptr->lambda_routine);
+      {
+#define eptr ((a_lambda_ptr)entry_ptr)
+        walk_list(eptr->capture_list, a_lambda_capture_ptr,
+                  iek_lambda_capture);
+        walk_ptr(eptr->closure_class, a_type_ptr, iek_type);
+        set_proper_definition_needed_flag(eptr->closure_class);
+        if (eptr->is_generic && !prototype_instantiations_in_il) {
+          conditionally_clear_fe_pointer(eptr->lambda_routine);
         } else {
-          walk_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+          walk_ptr(eptr->lambda_routine, a_routine_ptr, iek_routine);
         }  /* if */
-        set_proper_routine_definition_needed_flag(ptr->lambda_routine);
+        set_proper_routine_definition_needed_flag(eptr->lambda_routine);
+#undef eptr
       }
       break;
     case iek_lambda_capture:
-      { a_lambda_capture_ptr  ptr = (a_lambda_capture_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_lambda_capture_ptr, iek_lambda_capture);
-        if (ptr->is_init_capture) {
-          walk_ptr(ptr->captured.initializer, a_dynamic_init_ptr,
+      {
+#define eptr ((a_lambda_capture_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_lambda_capture_ptr, iek_lambda_capture);
+        if (eptr->is_init_capture) {
+          walk_ptr(eptr->captured.initializer, a_dynamic_init_ptr,
                    iek_dynamic_init);
-          conditionally_clear_fe_pointer(ptr->capture_info.init_capture_dps);
+          conditionally_clear_fe_pointer(eptr->capture_info.init_capture_dps);
         } else {
-          remap_ptr(ptr->captured.variable, a_variable_ptr, iek_variable);
-          remap_ptr(ptr->capture_info.source_closure_field, a_field_ptr,
+          remap_ptr(eptr->captured.variable, a_variable_ptr, iek_variable);
+          remap_ptr(eptr->capture_info.source_closure_field, a_field_ptr,
                     iek_field);
         }  /* if */
-        remap_ptr(ptr->closure_field, a_field_ptr, iek_field);
+        remap_ptr(eptr->closure_field, a_field_ptr, iek_field);
+#undef eptr
       }
       break;
     case iek_attribute:
-      { an_attribute_ptr  ptr = (an_attribute_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_attribute_ptr, iek_attribute);
-        walk_string_ptr(ptr->name, iek_id_name, 0);
-        walk_string_ptr(ptr->namespace_name, iek_id_name, 0);
+      {
+#define eptr ((an_attribute_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, an_attribute_ptr, iek_attribute);
+        walk_string_ptr(eptr->name, iek_id_name, 0);
+        walk_string_ptr(eptr->namespace_name, iek_id_name, 0);
         /* Argument entries may be shared between copies of an attribute (e.g.,
            the attribute entries associated with a_routine and their copies
            recorded in a secondary source sequence entry for that routine).
            As a consequence, walk_list cannot be used here. */
-        walk_ptr(ptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
-        walk_ptr(ptr->group, an_attribute_group_ptr, iek_attribute_group);
-        conditionally_clear_fe_pointer(ptr->assoc_info);
-        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
+        walk_ptr(eptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
+        walk_ptr(eptr->group, an_attribute_group_ptr, iek_attribute_group);
+        conditionally_clear_fe_pointer(eptr->assoc_info);
+        conditionally_clear_fe_pointer(eptr->pack_expansion_descr);
+#undef eptr
       }
       break;
     case iek_attribute_arg:
-      { an_attribute_arg_ptr  ptr = (an_attribute_arg_ptr)entry_ptr;
-        walk_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
-        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
-        switch (ptr->kind) {
+      {
+#define eptr ((an_attribute_arg_ptr)entry_ptr)
+        walk_ptr(eptr->next, an_attribute_arg_ptr, iek_attribute_arg);
+        conditionally_clear_fe_pointer(eptr->pack_expansion_descr);
+        switch (eptr->kind) {
           case aak_empty:
             /* Nothing to do. */
             break;
           case aak_token:
           case aak_raw_token:
-            walk_string_ptr(ptr->variant.token, iek_id_name, 0);
+            walk_string_ptr(eptr->variant.token, iek_id_name, 0);
             break;
           case aak_constant:
-            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+            walk_ptr(eptr->variant.constant, a_constant_ptr, iek_constant);
             break;
           case aak_type:
-            walk_ptr(ptr->variant.type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.type, a_type_ptr, iek_type);
             break;
           default:
             unexpected_condition();
         }  /* switch */
+#undef eptr
       }
       break;
     case iek_attribute_group:
       /* No pointer members. */
       break;
     case iek_integer_type_supplement:
-      { an_integer_type_supplement_ptr  ptr =
-                                    (an_integer_type_supplement_ptr)entry_ptr;
+      {
+#define eptr ((an_integer_type_supplement_ptr)entry_ptr)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
-        remap_ptr(ptr->boxed_type, a_type_ptr, iek_type);
+        walk_string_ptr(eptr->uuid_string, iek_other_text, 0);
+        remap_ptr(eptr->boxed_type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
-        conditionally_clear_fe_pointer(ptr->uuid_variable);
+        conditionally_clear_fe_pointer(eptr->uuid_variable);
 #endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        walk_ptr(ptr->base_type, a_type_ptr, iek_type);
-        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+        walk_ptr(eptr->base_type, a_type_ptr, iek_type);
+        remap_ptr(eptr->assoc_template, a_template_ptr, iek_template);
+#undef eptr
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_cli_metadata_file:
       {
-#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        a_cli_metadata_file_ptr ptr = (a_cli_metadata_file_ptr)entry_ptr;
-#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
-        remap_next_ptr(ptr->next, a_cli_metadata_file_ptr,
+#define eptr ((a_cli_metadata_file_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_cli_metadata_file_ptr,
                        iek_cli_metadata_file);
-        walk_string_ptr(ptr->name_as_written, iek_other_text, 0);
-        walk_string_ptr(ptr->full_name, iek_other_text, 0);
+        walk_string_ptr(eptr->name_as_written, iek_other_text, 0);
+        walk_string_ptr(eptr->full_name, iek_other_text, 0);
+#undef eptr
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
     case iek_coroutine_descr:
-      { a_coroutine_descr_ptr  ptr = (a_coroutine_descr_ptr)entry_ptr;
-        remap_ptr(ptr->traits, a_type_ptr, iek_type);
-        walk_ptr(ptr->handle, a_variable_ptr, iek_variable);
-        walk_ptr(ptr->promise, a_variable_ptr, iek_variable);
-        conditionally_clear_fe_pointer(ptr->fixups);
+      {
+#define eptr ((a_coroutine_descr_ptr)entry_ptr)
+        remap_ptr(eptr->traits, a_type_ptr, iek_type);
+        walk_ptr(eptr->handle, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->promise, a_variable_ptr, iek_variable);
+        conditionally_clear_fe_pointer(eptr->fixups);
+#undef eptr
       }
       break;
 #endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_event_interface:
-      { an_event_interface_ptr ptr = (an_event_interface_ptr)entry_ptr;
-        walk_ptr(ptr->next, an_event_interface_ptr, iek_event_interface);
-        remap_ptr(ptr->interface_type, a_type_ptr, iek_type);
+      {
+#define eptr ((an_event_interface_ptr)entry_ptr)
+        walk_ptr(eptr->next, an_event_interface_ptr, iek_event_interface);
+        remap_ptr(eptr->interface_type, a_type_ptr, iek_type);
+#undef eptr
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_subobject_path:
-      { a_subobject_path_ptr ptr = (a_subobject_path_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_subobject_path_ptr, iek_subobject_path);
-        switch (ptr->kind) {
+      {
+#define eptr ((a_subobject_path_ptr)entry_ptr)
+        remap_next_ptr(eptr->next, a_subobject_path_ptr, iek_subobject_path);
+        switch (eptr->kind) {
           case iek_field:
-            remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+            remap_ptr(eptr->variant.field, a_field_ptr, iek_field);
             break;
           case iek_base_class:
           case iek_type:
-            remap_ptr(ptr->variant.base_class, a_base_class_ptr,
+            remap_ptr(eptr->variant.base_class, a_base_class_ptr,
                       iek_base_class);
             break;
           case iek_constant:
@@ -3760,6 +3848,7 @@ after_entry_from_class:
           default:
             unexpected_condition();
         }  /* switch */
+#undef eptr
       }
       break;
     case iek_id_name:

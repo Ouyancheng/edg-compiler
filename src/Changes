@@ -1,5 +1,18 @@
 Version 4.13
 
+2/12/17  [EDGcpfe/17299]
+Less stack usage during IL walks
+
+The primary routine used to perform IL walks (i.e., WALK_ENTRY_ROUTINE_NAME
+whose name is a macro set to various function names as needed) has been
+updated to use fewer local variables, thereby potentially decreasing the
+stack usage on each invocation.  That should decrease the likelihood of a
+stack overflow on deeply nested constructs.  Note that the effectiveness of
+this optimization depends on how well the compiler that is used to compile
+the code detects and eliminates local variables that are not in range (and
+may not result in any savings in some cases).
+
+
 2/10/17  [EDGcpfe/18009]
 Memory corruption and possible aborts in C++/CLI mode
 
