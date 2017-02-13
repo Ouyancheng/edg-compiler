@@ -1280,6 +1280,7 @@ allocated.
   tap->template_template_param_checked = FALSE;
   tap->is_pack_element = FALSE;
   tap->is_pack = FALSE;
+  tap->has_pack_ellipsis = FALSE;
 #if CENTERLINE_CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

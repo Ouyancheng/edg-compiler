@@ -16278,6 +16278,16 @@ all arguments were explicit.
       if (arg_ptr->pack_expansion_descr != NULL && first_pack == NULL) {
         first_pack = arg_ptr;
       }  /* if */
+      /* Record whether, for a pack expansion in an instantiation, the
+         argument was part of a pack expansion.  This is needed for
+         C++-generating back end cases where pack_expansion_descr is NULL
+         in some alias-in-template-decl cases. */
+      arg_ptr->has_pack_ellipsis =
+                         pesep != NULL && pesep->instantiation_descr != NULL &&
+                         depth_innermost_instantiation_scope !=
+                                                              NO_SCOPE_DEPTH &&
+                         scope_stack[depth_innermost_instantiation_scope].
+                                                        alias_in_template_decl;
       if (param_ptr->is_pack) {
         /* Record that this argument was associated with a pack. */
         arg_ptr->is_pack_element = TRUE;

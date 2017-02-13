@@ -6710,6 +6710,12 @@ typedef struct a_template_arg {
 			/* If this is an element of a nonreal instantiation
 			   argument list, this is TRUE if the associated
 			   template parameter is a pack. */
+  a_bit_field	has_pack_ellipsis:1;
+			/* This is similar to is_pack, but is for used
+			   by the C++-generating back end to emit an
+			   ellipsis in some alias-in-template-declaration
+			   cases where setting is_pack is not desired because
+			   it has other implications in the front end. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */

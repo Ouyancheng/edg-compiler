@@ -427,7 +427,7 @@ Output the indicated template argument in the way described by octl.
       unexpected_condition();
       break;
   }  /* switch */
-  if (tap->is_pack) octl->output_str("...", octl);
+  if (tap->is_pack || tap->has_pack_ellipsis) octl->output_str("...", octl);
 }  /* form_a_template_arg */
 
 

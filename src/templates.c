@@ -8020,14 +8020,6 @@ a type in certain ways (see template_arg_list_is_dependent).
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("cpioc") ||
-        db_flag_is_set("dump_ss_full")) {
-      fputs("partial instantiation of \"", f_debug);
-      db_type_name(class_type);
-      fputs("\":\n", f_debug);
-    }  /* if */
-#endif /* DEBUG */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (tssp->variant.class_template.cannot_be_specialized &&
@@ -8052,6 +8044,14 @@ a type in certain ways (see template_arg_list_is_dependent).
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("cpioc") ||
+      db_flag_is_set("dump_ss_full")) {
+    fputs("partial instantiation of \"", f_debug);
+    db_type_name(class_type);
+    fputs("\":\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
   if (class_template_sym == symbol_for_std_initializer_list) {
     ctsp->is_initializer_list = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

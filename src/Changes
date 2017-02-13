@@ -1,5 +1,21 @@
 Version 4.13
 
+2/13/17  [EDGcpfe/17184]
+Incorrect pack expansions when using C++-generating back end
+
+Incorrect output could be created by the C++-generating back end in some
+cases involving alias template instantiations.  In the example below,
+the "X<U>::x" was incorrectly emitted as "B<T>::x", but is now emitted
+as "B<T...>::x".
+
+  template <int> struct A;
+  template <typename> struct B;
+  template <typename... T> class C {
+    template <typename> using X = B<T...>;
+    template <typename U, typename A<X<U>::x>::t> C();
+  };
+
+
 2/12/17   [EDGcpfe/16042,EDGcpfe/17978]
 Assertion failure in mangled_template_arguments_or_parameter_pack
 
