@@ -3085,6 +3085,7 @@ in ps_arg_list.
                                           CTWS_IS_PARTIAL_SPECIALIZATION_CHECK,
                                           &copy_error, &ctws_state);
       eta_options = eta_options_for_template(template_sym, tssp);
+      eta_options |= ETA_IS_PARTIAL_ORDER_CHECK;
       if (!copy_error &&
           equiv_template_arg_lists(instance_tap, test_arg_list, eta_options)) {
         result = TRUE;
@@ -6667,9 +6668,13 @@ the same constant.
       check_assertion_str(is_nonreal_member || pack_seen,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
-    } else if (arg1->is_pack != arg2->is_pack) {
+    } else if (arg1->is_pack != arg2->is_pack ||
+               ((options & ETA_IS_PARTIAL_ORDER_CHECK) != 0 &&
+                arg1->has_pack_ellipsis != arg2->has_pack_ellipsis)) {
       /* Two instantiations one with and one without an expansion.
-         Don't share the types. */
+         Don't share the types.  A mismatch of has_pack_ellipsis is allowed
+         when comparing the substituted argument created during the checking
+         of partial ordering. */
       equiv = FALSE;
     } else if (is_nontype_templ_arg(arg1)) {
       /* Both are constant arguments.  If they are not identical, this is a
