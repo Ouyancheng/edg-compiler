@@ -907,11 +907,15 @@ Bit flags for calls of f_types_are_compatible et al.
 			   placeholder should be considered compatible with
 			   a tk_typeref entry indicating a deduced type for
 			   such a placeholder. */
-#define TCF_LAST TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH
+#define TCF_CHECK_ENABLE_IF_ATTRIBUTES 0x40000
+#define TCF_LAST TCF_CHECK_ENABLE_IF_ATTRIBUTES
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,TCF_LAST)*/
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
+
+extern a_boolean compatible_enable_if_attributes(a_type_ptr  rtp1,
+                                                 a_type_ptr  rtp2);
 
 extern a_boolean f_types_are_compatible_full(
                                           a_type_ptr                   type_1,
@@ -955,9 +959,9 @@ circuit some of the processing in common cases.
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING))
 /* Use types_are_strictly_compatible when an error type is incompatible with
    any type, including an error type. */
-#define types_are_strictly_compatible(t1, t2)                         \
+#define types_are_strictly_compatible(t1, t2, flags)                  \
          ((t1) == (t2) ? !is_error_type(t1) :                         \
-            f_types_are_compatible((t1), (t2), TCF_NO_FLAGS))
+            f_types_are_compatible((t1), (t2), flags))
 /* Use types_are_compatible_ignoring_qualifiers to check compatibility while
    ignoring first-level qualifiers. */
 #define types_are_compatible_ignoring_qualifiers(t1, t2)              \
@@ -968,11 +972,12 @@ circuit some of the processing in common cases.
 /* Use routine_types_are_redecl_compatible to check types of routines, ignoring
    top-level calling convention modifiers.  This is intended for redeclaration
    checking, as in "are these declaring the same function?" */
-#define routine_types_are_redecl_compatible(t1, t2, extra_flags)      \
-         ((t1) == (t2) ||                                             \
-          f_types_are_compatible((t1), (t2),                          \
-                                 TCF_IGNORE_CALLING_CONVENTIONS |     \
+#define routine_types_are_redecl_compatible(t1, t2, extra_flags)          \
+         ((t1) == (t2) ||                                                 \
+          f_types_are_compatible((t1), (t2),                              \
+                                 TCF_IGNORE_CALLING_CONVENTIONS |         \
                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED | \
+                                 TCF_CHECK_ENABLE_IF_ATTRIBUTES |         \
                                  (extra_flags)/*lint --e(835)*/))
 
 #define types_are_compatible_for_impl_conversion(t1, t2)              \

@@ -15159,6 +15159,74 @@ returned should only be used locally and not linked into the IL tree.
   return con_val;
 }  /* var_constant_value */
 
+
+static a_boolean enable_if_cond_is_true_constant(an_attribute_ptr  ap)
+/*
+Return TRUE if the given enable_if attribute's condition expression can be
+folded to a constant of "true" value.  If it can be folded at all, this may
+keep the folded result recorded in the attribute.
+*/
+{
+  a_boolean             result = FALSE;
+  an_attribute_arg_ptr  aap = ap->arguments;
+
+  if (aap == NULL || aap->kind != aak_expression) {
+    /* Something went wrong with scanning the attribute. */
+  } else {
+    an_expr_node_ptr  cond = aap->variant.expr;
+    a_constant_ptr    il_cp = NULL;
+    if (is_constant_node(cond)) {
+      il_cp = node_constant(cond);
+    } else {
+      a_constant_ptr  cp = local_constant();
+      a_diag_list     diag_list;
+      if (interpret_expr(cond, /*force_prvalue=*/TRUE, cp, &diag_list)) {
+        /* The condition expression is unconditionally constant.  Record the
+           constant in the attribute to avoid repeating the interpretation in
+           the future. */
+        a_memory_region_number region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        il_cp = move_local_constant_to_il(&cp);
+        aap->variant.expr = alloc_node_for_constant(il_cp);
+        switch_back_to_original_region(region_to_switch_back_to);
+      }  /* if */
+      discard_more_info_list(&diag_list);
+      release_local_constant(&cp);
+    }  /* if */
+    if (il_cp != NULL && !is_false_constant(il_cp)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* enable_if_cond_is_true_constant */
+
+
+static void require_true_enable_if_condition(a_type_ptr         rtp,
+                                             a_source_position  *diag_pos)
+/*
+rtp is a routine type with one or more associated enable_if attributes.  If
+any cannot be evaluated to a "true" value (because they cannot be evaluated
+at all, or because the value is "false") issue an error at diag_pos.
+*/
+{
+  an_attribute_ptr  ap;
+  a_boolean         issue_diag = FALSE;
+
+  ap = find_attribute(ak_enable_if, rtp->source_corresp.attributes);
+
+  check_assertion(ap != NULL);
+  do {
+    if (!enable_if_cond_is_true_constant(ap)) {
+      issue_diag = TRUE;
+    }  /* if */
+    ap = find_attribute(ak_enable_if, ap->next);
+  } while (ap != NULL);
+  if (issue_diag) {
+    expr_pos_error(ec_address_of_nontrue_enable_if_function, diag_pos);
+  }  /* if */
+}  /* require_true_enable_if_condition */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- allow_on_managed is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15280,6 +15348,7 @@ TRUE.  If the member is a bit field, issue an error.
     set_ptr_to_data_member_constant(field, constant);
   } else {
     a_routine_ptr rout;
+    a_type_ptr    rtp;
 #if CHECKING
     if (base_member_sym->kind != (a_symbol_kind)sk_member_function) {
       internal_error("make_ptr_to_member_constant_operand: bad kind");
@@ -15289,6 +15358,11 @@ TRUE.  If the member is a bit field, issue an error.
     rout = base_member_sym->variant.routine.ptr;
     if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
       finalize_deduced_return_type(rout, position);
+    }  /* if */
+    rtp = skip_typerefs(rout->type);
+    if (rtp->kind == (a_type_kind)tk_routine &&
+        rtp->variant.routine.extra_info->has_enable_if_attribute) {
+      require_true_enable_if_condition(rtp, position);
     }  /* if */
     set_ptr_to_member_function_constant(rout, constant);
     if (!rout->is_virtual) {
@@ -17625,18 +17699,25 @@ in the source (and *operator_position gives its position).
     normalize_error_operand(operand);
     change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   } else {
+    if (is_a_function_designator(operand)) {
+      /* Check whether the designated function has an enable_if attribute
+         condition that is not known to be "true". */
+      a_type_ptr  rtp = skip_typerefs(operand->type);
+      if (rtp->kind == (a_type_kind)tk_routine &&
+          rtp->variant.routine.extra_info->has_enable_if_attribute) {
+        require_true_enable_if_condition(rtp, &operand->position);
+      }  /* if */
 #if CHECKING
-    if (is_an_lvalue(operand) ||
-        is_a_function_designator(operand) ||
-        (reference_case && is_an_xvalue(operand))) {
+    } else if (is_an_lvalue(operand) ||
+               (reference_case && is_an_xvalue(operand))) {
       /* Okay. */
     } else {
 #if DEBUG
       db_operand(operand);
 #endif /* DEBUG */
       internal_error("take_address_of_or_reference_to_lvalue: not an lvalue");
-    }  /* if */
 #endif /* CHECKING */
+    }  /* if */
     /* Check for taking the address of a bit field. */
     if (check_for_taking_the_address_of_a_bit_field(operand, err_pos)) {
       /* Error issued by the subroutine. */
@@ -20195,19 +20276,28 @@ by an "&" operator and *ampersand_position gives its position.
   a_boolean        try_folding = FALSE;
   a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
   a_boolean        template_constant = FALSE;
+  a_routine_ptr    rout;
+  a_type_ptr       rtp;
 
   check_assertion(is_expression_operand(operand) &&
                   is_a_function_designator(operand));
   orig_operand = *operand;
   expr = make_node_from_operand(operand);
   check_assertion(expr->is_lvalue || is_error_node(expr));
+  rout = routine_from_function_expr(expr);
+  if (rout != NULL) {
+    rtp = skip_typerefs(rout->type);
+    if (!will_call &&
+        rtp->variant.routine.extra_info->has_enable_if_attribute) {
+      require_true_enable_if_condition(rtp, &operand->position);
+    }  /* if */
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && !will_call && !operand->allow_addr_of_managed_member) {
-    a_routine_ptr rout = routine_from_function_expr(expr);
     if (rout != NULL &&
         rout->source_corresp.is_class_member &&
         is_managed_class_type(parent_class_of(rout)) &&
-        routine_type_is_nonstatic_member_function(rout->type)) {
+        routine_type_is_nonstatic_member_function(rtp)) {
       /* In C++/CLI, it's illegal to take the address of a member of a
          managed class (except in certain exceptional contexts). */
       expr_pos_error(ec_address_of_managed_member_function,
@@ -20222,9 +20312,8 @@ by an "&" operator and *ampersand_position gives its position.
      address_taken flag of the function). */
   try_folding = (expr_stack->favor_constant_result && !will_call);
   if (!try_folding && is_template_dependent_context()) {
-    a_routine_ptr rout = routine_from_function_expr(expr);
     if (rout != NULL &&
-        !routine_type_is_nonstatic_member_function(rout->type) &&
+        !routine_type_is_nonstatic_member_function(rtp) &&
         rout->source_corresp.is_class_member &&
         parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
       /* In a prototype instantiation, a static member function of the

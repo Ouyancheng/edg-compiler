@@ -100,7 +100,8 @@ standard-attribute syntax).
       if ((is_gcc_attribute(ap) ||
            ((gnu_mode || ms_extensions) &&
             ap->family == (a_byte_attribute_family)af_alignas)) &&
-          !is_type_transforming_attribute(ap)) {
+          !is_type_transforming_attribute(ap) &&
+          ap->kind != (an_attribute_kind)ak_enable_if) {
         *p_from = ap->next;
         /* Non-nested postfix attributes are recorded as al_postfix.  Others
            are recorded as al_id_equivalent. */
@@ -125,8 +126,7 @@ standard-attribute syntax).
         p_to = &ap->next;
       } else {
         if (dps->in_nested_declarator &&
-            ap->syntactic_location ==
-                                    (a_byte_attribute_location)al_postfix) {
+            ap->syntactic_location == (a_byte_attribute_location)al_postfix) {
           /* A non-GNU attribute after a nested declarator is not valid. */
           if (!error_issued) {
             pos_error(ec_invalid_attribute_location, &ap->position);
@@ -137,6 +137,23 @@ standard-attribute syntax).
         p_from = &ap->next;
       }  /* if */
     } while (*p_from != NULL);
+  }  /* if */
+  if (dps->pending_prefix_enable_if_attr && !dps->in_nested_declarator &&
+      syn_loc == al_post_func) {
+    /* A prefix "enable_if" attribute should be handled at this point.  Move
+       it from the "prefix_attributes" list, to the list pointed to by
+       "attributes" (and about to be applied). */
+    an_attribute_ptr  *p_ap = &dps->prefix_attributes, to_move;
+    for (;;) {
+      check_assertion(*p_ap != NULL);
+      if ((*p_ap)->kind == (an_attribute_kind)ak_enable_if) {
+        to_move = *p_ap;
+        *p_ap = to_move->next;
+        to_move->next = attributes;
+        attributes = to_move;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
   if (attributes != NULL) {
     /* Microsoft __declspec attributes cannot appear in declarators (with an

@@ -5460,6 +5460,15 @@ are expected to be NULL in that case.
         unknown_dependent_function = TRUE;
       }  /* if */
     }  /* if */
+    if (!C_mode() && routine != NULL && routine_type != NULL &&
+        skip_typerefs(routine_type)->variant.routine.extra_info
+                                   ->has_enable_if_attribute) {
+      /* Force the use of overload resolution if an enable_if attribute is
+         present on the function declaration (to ensure that the enable_if
+         condition is checked). */
+      overloaded_function_case = TRUE;
+      overloaded_function_symbol = symbol_for(routine);
+    }  /* if */
     /* Change the kind in the reference entry for the function from an
        address-taken entry back to a simple reference. */
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
@@ -26298,6 +26307,58 @@ class type if necessary.  In modern C++ modes, this routine implements
      and some normalization of the expression. */
   (void)check_boolean_controlling_expr(result);
 }  /* process_boolean_controlling_expression */
+
+
+an_expr_node_ptr process_boolean_attribute_expression(an_expr_node_ptr expr)
+/*
+The specified expression has appeared in an attribute argument and is
+supposed to produce a boolean value.  Process the expression as a boolean
+controlling expression, issuing errors if necessary, and return the
+processed expression.
+*/
+{
+  an_operand operand;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  make_expression_operand(expr, &operand);
+  process_boolean_controlling_expression(&operand);
+  expr = make_node_from_operand(&operand);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return expr;
+}  /* process_boolean_attribute_expression */
+
+
+an_expr_node_ptr scan_expr_for_attribute(void)
+/*
+Scan a top-level expression that appears as an argument in an attribute.
+*/
+{
+  an_expr_node_ptr      result;
+  an_operand            operand;
+  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   expr_stack_entry;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  /* Scan the expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  result = make_node_from_operand(&operand);
+  result = wrap_up_full_expression(result);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return result;
+}  /* scan_expr_for_attribute */
 
 
 /*

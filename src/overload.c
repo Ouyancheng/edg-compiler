@@ -27,6 +27,7 @@ overload.c -- Expression processing overload resolution.
 #include "trans_corresp.h"
 #include "func_def.h"
 #include "decl_inits.h"
+#include "interpret.h"
 
 /* Forward declarations required because of out-of-order references. */
 static void free_candidate_function_list(a_candidate_function_ptr cfp);
@@ -4956,6 +4957,98 @@ done:
 }  /* arg_count_mismatch */
 
 
+static a_boolean enable_if_cond_is_constant(an_attribute_ptr  ap,
+                                            a_boolean         *val)
+/*
+Return TRUE if the given enable_if attribute's condition expression can be
+folded to a constant.  If so, return whether it is a "true" value in *val.
+If applicable, record the folded value in ap.
+*/
+{
+  a_boolean             result = FALSE;
+  an_attribute_arg_ptr  aap = ap->arguments;
+
+  if (aap == NULL || aap->kind != aak_expression) {
+    /* Something went wrong with scanning the attribute. */
+  } else {
+    an_expr_node_ptr  cond = aap->variant.expr;
+    a_constant_ptr    il_cp = NULL;
+    if (is_constant_node(cond)) {
+      /* A constant value is already recorded. */
+      il_cp = node_constant(cond);
+    } else {
+      a_constant_ptr  cp = local_constant();
+      a_diag_list     diag_list;
+      if (interpret_expr(cond, /*force_prvalue=*/TRUE, cp, &diag_list)) {
+        /* The condition expression is unconditionally constant.  Record the
+           constant in the attribute to avoid repeating the interpretation in
+           the future. */
+        a_memory_region_number region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        il_cp = move_local_constant_to_il(&cp);
+        aap->variant.expr = alloc_node_for_constant(il_cp);
+        switch_back_to_original_region(region_to_switch_back_to);
+      }  /* if */
+      discard_more_info_list(&diag_list);
+      release_local_constant(&cp);
+    }  /* if */
+    if (il_cp != NULL) {
+      result = TRUE;
+      *val = !is_false_constant(il_cp);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* enable_if_cond_is_constant */
+
+
+/*ARGSUSED*/ /* arg_match_list, arg_list, and selector are not currently
+                used. */
+static a_boolean enable_if_attribute_fails(
+                                     a_routine_ptr             rp,
+                                     an_arg_match_summary_ptr  arg_match_list,
+                                     an_arg_list_elem_ptr      arg_list,
+                                     an_operand                *selector)
+/*
+rp has one or more associated enable_if attributes of the form
+
+  __attribute((enable_if(<cond>, "text")))
+
+Attempt to evaluate <cond> for the given argument list (arg_list and selector)
+with the given conversions.  Return TRUE if any such evaluation fails or
+produces a "false" result.
+*/
+{
+  a_boolean             failed = FALSE;
+  a_type_ptr            rtp = skip_typerefs(rp->type);
+  an_attribute_ptr      ap;
+
+  ap = find_attribute(ak_enable_if, rtp->source_corresp.attributes);
+  check_assertion(ap != NULL);
+  do {
+    a_boolean  cond;
+    if (enable_if_cond_is_constant(ap, &cond)) {
+      if (!cond) {
+        failed = TRUE;
+        break;
+      }  /* if */
+    } else {
+      a_diagnostic_ptr  dp;
+      a_diag_list       diag_list;
+      clear_diag_list(&diag_list);
+      dp = pos_start_error(ec_nonconstant_enable_if_attr, &error_position);
+      more_info_diagnostic(ec_attribute_declared_here, &ap->position,
+                           &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+      failed = TRUE;
+      break;
+    }  /* if */
+    ap = find_attribute(ak_enable_if, ap->next);
+  } while (ap != NULL);
+  return failed;
+}  /* enable_if_attribute_fails */
+
+
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
                  a_symbol_ptr             overloaded_function_symbol,
@@ -5618,6 +5711,14 @@ next_argument:
         goto reject_function;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (rtsp->has_enable_if_attribute &&
+      enable_if_attribute_fails(routine, arg_match_list, arg_list,
+                                bound_function_selector)) {
+    /* This function has an associated enable_if attribute whose condition
+       cannot be evaluated to "true" (it either evaluates to "false" or cannot
+       be evaluated at all). */
+    goto reject_function;
   }  /* if */
 accept_function:
   /* The function is a viable candidate.  Add it to the candidates list. */
@@ -7379,6 +7480,70 @@ is a constructor.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static int compare_enable_if_attributes(a_candidate_function_ptr cfp1,
+                                        a_candidate_function_ptr cfp2)
+/*
+If cfp1 has more specific enable_if attributes that cfp2 return +1.  If the
+converse is true, return -1.  Otherwise, return 0.
+*/
+{
+  int          result = 0;
+  a_symbol_ptr sym1 = cfp1->function_symbol, sym2 = cfp2->function_symbol;
+  
+  if (sym1 != NULL && sym2 != NULL) {
+    a_routine_ptr  rp1 = func_sym_routine(sym1), rp2 = func_sym_routine(sym2);
+    a_type_ptr     rtp1 = skip_typerefs(rp1->type),
+                   rtp2 = skip_typerefs(rp2->type);
+    a_boolean      has_attr1, has_attr2;
+    has_attr1 = rtp1->variant.routine.extra_info->has_enable_if_attribute;
+    has_attr2 = rtp2->variant.routine.extra_info->has_enable_if_attribute;
+    if (!has_attr1 && !has_attr2) {
+      /* Nothing more to do. */
+    } else if (!has_attr1) {
+      result = -1;
+    } else if (!has_attr2) {
+      result = +1;
+    } else {
+      /* Compare the attributes. */
+      an_attribute_ptr  ap1, ap2;
+      ap1 = find_attribute(ak_enable_if, rtp1->source_corresp.attributes);
+      ap2 = find_attribute(ak_enable_if, rtp2->source_corresp.attributes);
+      for (;;) {
+        if (ap1 == NULL || ap2 == NULL) {
+          if (ap1 != NULL) {
+            /* The first candidate has more attributes and is therefore
+               "more specialized" in a way. */
+            result = +1;
+          } else if (ap2 != NULL) {
+            /* The second candidate has more attributes and is therefore
+               "more specialized" in a way. */
+            result = -1;
+          }  /* if */
+          break;
+        } else {
+          /* Check whether the enable_if expressions are equivalent. */
+          an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
+          if (aap1 == NULL || aap2 == NULL ||
+              aap1->kind != aak_expression || aap2->kind != aak_expression) {
+            /* Something was wrong with the attribute argument. */
+            break;
+          } else if (!compare_expressions(
+                                     aap1->variant.expr, aap2->variant.expr,
+                                     CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+            /* The expressions are not equivalent.  We therefore don't
+               compare further. */
+            break;
+          }  /* if */
+        }  /* if */
+        ap1 = find_attribute(ak_enable_if, ap1->next);
+        ap2 = find_attribute(ak_enable_if, ap2->next);
+      }  /* while */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compare_enable_if_attributes */
+
+
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
 /*
@@ -7498,6 +7663,8 @@ other.  Return
     /* A conversion function of a managed class wins over a constructor. */
     cmp = -1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if ((cmp = compare_enable_if_attributes(cfp1, cfp2)) != 0) {
+    /* Clang's enable_if attributes can distinguish candidates. */
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
@@ -8663,6 +8830,17 @@ source position for errors.
 }  /* evaluate_unused_template_arguments */
 
 
+static a_boolean rout_has_enable_if_attr(a_routine_ptr  rout)
+/*
+Return TRUE if the given routine has an associated enable_if attribute.
+*/
+{
+  a_type_ptr  rtp = skip_typerefs(rout->type);
+
+  return rtp->variant.routine.extra_info->has_enable_if_attribute;
+}  /* rout_has_enable_if_attr */
+
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -8954,8 +9132,8 @@ in_instantiation:
         /* If the function is a single non-overloaded function, overload
            resolution is not required. */
         function_symbol = fundamental_symbol_of(overloaded_function_symbol);
-        if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
-             function_symbol->kind == (a_symbol_kind)sk_member_function) &&
+        if (is_simple_function_symbol(function_symbol) &&
+            !rout_has_enable_if_attr(function_symbol->variant.routine.ptr) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(overloaded_function_symbol) &&
             !is_cli_param_array_routine_symbol(overloaded_function_symbol) &&
@@ -9039,8 +9217,8 @@ in_instantiation:
         /* If the function is a single non-overloaded function, overload
            resolution is not required. */
         function_symbol = fundamental_symbol_of(symbol_list->symbol);
-        if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
-             function_symbol->kind == (a_symbol_kind)sk_member_function) &&
+        if (is_simple_function_symbol(function_symbol) &&
+            !rout_has_enable_if_attr(function_symbol->variant.routine.ptr) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(symbol_list->symbol) &&
             !is_cli_param_array_routine_symbol(symbol_list->symbol) &&

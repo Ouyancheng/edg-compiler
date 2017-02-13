@@ -11312,7 +11312,8 @@ a diagnostic should be issued by the caller.
          point of use). */
       if (microsoft_mode && microsoft_version <= 1300 &&
           types_are_strictly_compatible(tp1->variant.routine.return_type,
-                                        tp2->variant.routine.return_type)) {
+                                        tp2->variant.routine.return_type,
+                                        TCF_NO_FLAGS)) {
         /* Older Microsoft compilers accept conflicting declarations if they
            are completely compatible. */
       } else if (((microsoft_mode && microsoft_version > 1300) ||

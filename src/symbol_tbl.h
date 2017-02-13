@@ -6413,6 +6413,14 @@ or sk_member_function symbol.
   (skip_typerefs((sym)->variant.routine.ptr->type))
 
 /*
+Get the routine entry associated with a function or function template.
+*/
+#define func_sym_routine(sym)                                         \
+  (symbol_is(sym, sk_function_template) ?                             \
+       (sym)->variant.template_info->variant.function.routine :       \
+       (sym)->variant.routine.ptr)
+
+/*
 Extract a pointer to the symbol supplement for a static data member.  The
 result may be NULL.
 */

@@ -3771,6 +3771,9 @@ after_entry_from_class:
           case aak_type:
             walk_ptr(eptr->variant.type, a_type_ptr, iek_type);
             break;
+          case aak_expression:
+            walk_ptr(eptr->variant.expr, an_expr_node_ptr, iek_expr_node);
+            break;
           default:
             unexpected_condition();
         }  /* switch */

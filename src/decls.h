@@ -966,6 +966,10 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a parameter declaration that only
 			   refers to enclosing template parameter packs
 			   (not to any local ones). */
+  a_bit_field	pending_prefix_enable_if_attr:1;
+			/* TRUE if a prefix enable if attribute was
+			   encountered that cannot be properly applied until
+			   until a function declarator is seen. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

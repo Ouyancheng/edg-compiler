@@ -1588,6 +1588,9 @@ Display a_routine_type_supplement.
   if (ptr->result_should_be_used) {
     disp_boolean("result_should_be_used", TRUE);
   }  /* if */
+  if (ptr->has_enable_if_attribute) {
+    disp_boolean("has_enable_if_attribute", TRUE);
+  }  /* if */
   if (ptr->is_const) {
     disp_boolean("is_const", TRUE);
   }  /* if */
@@ -5717,6 +5720,7 @@ Display the indicated attribute argument entry.
     case aak_token:              kind_name = "token";               break;
     case aak_constant:           kind_name = "constant";            break;
     case aak_type:               kind_name = "type";                break;
+    case aak_expression:         kind_name = "expression";          break;
     default:                     kind_name = "** BAD KIND **";      break;
   }  /* switch */
   disp_name("kind");
@@ -5748,6 +5752,9 @@ Display the indicated attribute argument entry.
       break;
     case aak_type:
       disp_ptr("type", (char*)aap->variant.type, iek_type);
+      break;
+    case aak_expression:
+      disp_ptr("expression", (char*)aap->variant.expr, iek_expr_node);
       break;
     default:
       /* Do nothing. */

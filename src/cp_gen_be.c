@@ -4900,6 +4900,9 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
       case aak_type:
         gen_type(aap->variant.type);
         break;
+      case aak_expression:
+        gen_expression(aap->variant.expr);
+        break;
       default:
         unexpected_condition();
     }  /* switch */

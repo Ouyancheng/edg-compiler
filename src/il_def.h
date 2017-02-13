@@ -2349,6 +2349,7 @@ enum an_attribute_arg_kind_tag {
 			   represented with two tokens: "z" and "=". */
   aak_constant,		/* A constant argument. */
   aak_type,		/* A type argument. */
+  aak_expression,	/* An expression argument. */
   aak_last
 };
 
@@ -2399,6 +2400,9 @@ typedef struct an_attribute_arg {
     /* When kind == aak_type: */
     a_type_ptr
 		type;	/* The argument type. */
+    /* When kind == aak_expression: */
+    an_expr_node_ptr
+		expr;	/* The argument expression. */
   } variant;
 } an_attribute_arg;
 
@@ -2524,6 +2528,10 @@ typedef enum an_attribute_kind_tag {
   ak_nodiscard,		/* "nodiscard" (std). */
   ak_maybe_unused,	/* "maybe_unused" (std). */
   ak_fallthrough,	/* "fallthrough" (std). */
+
+  /* Nonstandard attributes that do not require specific configuration
+     flags. */
+  ak_enable_if,		/* "enable_if" (clang). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -6550,6 +6558,9 @@ typedef struct a_routine_type_supplement {
   a_bit_field	result_should_be_used:1;
 			/* TRUE if the type was declared with the attribute
 			   "warn_unused_result". */ 
+  a_bit_field	has_enable_if_attribute:1;
+			/* TRUE if the type was declared with the attribute
+			   "enable_if" clang attribute. */
   a_bit_field	is_const:1;
 			/* TRUE if the type was declared with the "const"
 			   attribute.  Note that this flag is not set on the

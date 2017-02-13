@@ -958,6 +958,11 @@ extern a_boolean scan_custom_ms_attribute_arg_list(an_ms_attribute_ptr attr);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern an_expr_node_ptr scan_expr_for_attribute(void);
+
+extern an_expr_node_ptr process_boolean_attribute_expression(
+                                                        an_expr_node_ptr expr);
+
 #endif /* ifndef EXPR_H */
 
 

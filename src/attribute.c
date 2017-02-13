@@ -70,6 +70,7 @@ since attributes usually do not create new entries).
 
 /* Header files common to all files. */
 #include "fe_common.h"
+#include "expr.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -128,6 +129,7 @@ typedef struct an_attr_descr {
 			     "n": an identifier is expected
 			     "sn": a narrow string literal is expected
 			     "sx": a string literal is expected (wide/narrow)
+			     "X": an expression
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A code can be followed by a "+" to indicate that
@@ -155,7 +157,8 @@ typedef struct an_attr_descr {
 			   string cstr.  cstr[0] indicates the attribute
 			   family: 'c' for [[...]] (standard C++11), 'g' for
 			   __attribute((...)) in GNU modes, 's' for
-			   __attribute((...)) in Sun mode, and 'm' for
+			   __attribute((...)) in Sun mode, 'l' for
+			   __attribute((...)) in Clang mode, and 'm' for
 			   __declspec(...) in Microsoft mode.  cstr[1] is
 			   '+' if the attribute only applies in C++ modes,
 			   'c' if it only applies in C mode, and 'x' if it
@@ -165,8 +168,8 @@ typedef struct an_attr_descr {
 			   first two characters can be followed by a bracketed
 			   namespace name.  E.g., if name is "test" and cstr
 			   is "c+[xyz]", then this is a description entry for
-			   [[xyz::test ... ]].  If cstr[0] is 'g' or 'm', the
-			   first two characters can be followed by a
+			   [[xyz::test ... ]].  If cstr[0] is 'g', 'l' or 'm',
+			   the first two characters can be followed by a
 			   parenthesized range of applicable versions.  E.g.,
 			   "gx(30100-39999)" means the attribute is valid in 
 			   GNU C/C++ modes with gnu_version >= 30100 and
@@ -223,6 +226,9 @@ static an_attr_descr known_attr_table[] = {
   { "nodiscard", "", "1c+(201701-|M(1910-))", ak_nodiscard },
   { "maybe_unused", "", "1c+(201701-|M(1910-))", ak_maybe_unused },
   { "fallthrough", "", "1c+(201701-|M(1910-))", ak_fallthrough },
+
+  /* Nonstandard attributes. */
+  { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -515,6 +521,7 @@ static an_attr_application_fn apply_common_attr;
 static an_attr_application_fn apply_const_attr;
 static an_attr_application_fn apply_constructor_attr;
 static an_attr_application_fn apply_destructor_attr;
+static an_attr_application_fn apply_enable_if_attr;
 #if GNU_X86_ATTRIBUTES_ALLOWED
 static an_attr_application_fn apply_fastcall_attr;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
@@ -612,6 +619,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
   { ak_maybe_unused, "c|t|v|p|d|r|e|E", apply_maybe_unused_attr },
   { ak_fallthrough, "s", apply_fallthrough_attr },
+  /* Nonstandard attributes. */
+  { ak_enable_if, "t", apply_enable_if_attr },
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -1274,6 +1283,14 @@ string.
       /* A range specification follows. */
       match = attribute_condition_satisfied(gnu_version, cond+2, ap);
     }  /* if */
+  } else if (cond[0] == 'l' && clang_mode) {
+    match = (cond[1] == 'x') ||
+            (cond[1] == 'c' && C_mode()) ||
+            (cond[1] == '+' && !C_mode());
+    if (match && cond[2] == '(') {
+      /* A range specification follows. */
+      match = attribute_condition_satisfied(clang_version, cond+2, ap);
+    }  /* if */
   }  /* if */
   return match;
 }  /* cond_matches_gnu_attr_mode */
@@ -1458,6 +1475,33 @@ return a pointer to the argument's representation.
   }  /* if */
   return aap;
 }  /* scan_attr_type_arg */
+
+
+static an_attribute_arg_ptr scan_attr_expr_arg(an_attribute_ptr  ap)
+/*
+Scan an expression argument for the given attribute.  If an error occurs, set
+ap->kind to ak_unrecognized and return NULL.  Otherwise, return a pointer to
+the argument's representation.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL;
+  a_source_position     arg_pos = pos_curr_token;
+  an_expr_node_ptr      expr;
+
+  expr = scan_expr_for_attribute();
+  if (!is_error_node(expr)) {
+    aap = alloc_attribute_arg();
+    aap->kind = (an_attribute_arg_kind)aak_expression;
+    aap->position = arg_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    aap->end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    aap->variant.expr = expr;
+  } else {
+    make_attr_unrecognized(ap);
+  }  /* if */
+  return aap;
+}  /* scan_attr_expr_arg */
 
 
 static an_attribute_arg_ptr scan_attr_integer_constant_arg(
@@ -1774,6 +1818,10 @@ ak_unrecognized.
           /* Scan a type-id and record it as an attribute argument. */
           *p_aap = scan_attr_type_arg(ap);
           break;
+        case 'X':
+          /* Scan an expression. */
+          *p_aap = scan_attr_expr_arg(ap);
+          break;
         case '*':
           /* Scan the remaining tokens (including commas) up until an unmatched
              parenthesis, bracket, or brace, and record each one as an
@@ -1924,6 +1972,11 @@ families need not be equal.
             break;
           case aak_type:
             result = identical_types(aap1->variant.type, aap2->variant.type);
+            break;
+          case aak_expression:
+            result = compare_expressions(aap1->variant.expr,
+                                         aap2->variant.expr,
+                                         CC_NO_OPTIONS);
             break;
           default:
             unexpected_condition();
@@ -3303,6 +3356,9 @@ Output the given attribute to f_debug.
         case aak_type:
           db_abbreviated_type(aap->variant.type);
           break;
+        case aak_expression:
+          db_expression(aap->variant.expr);
+          break;
         default:
           (void)fprintf(f_debug, "**BAD ATTR ARG**");
       }  /* switch */
@@ -3523,7 +3579,7 @@ typeref pointing to the attributes on top of T otherwise.  Return the type
 entry to which the attributes are attached through *p_type.  If attributes is
 NULL, do nothing.  assoc_info is the value that should be recorded in the
 assoc_info field of the attribute while it is applied to the type: Normally,
-it is a pointer to the a_decl_parse_state associated with the construct
+it is a pointer to the a_decl_parse_state associated with the construct that
 produces *p_type.
 */
 {
@@ -3647,8 +3703,7 @@ error occurs.
                                       parent_class_or_null(parent_class),
                                       ctws_state, p_error);
   }  /* if */
-  if (!*p_error && t_args != NULL &&
-      aap->variant.constant->kind == (a_constant_repr_kind)ck_template_param) {
+  if (!*p_error && t_args != NULL) {
     aap->variant.constant = copy_template_param_con_with_substitution(
                                    aap->variant.constant, t_args, t_params,
                                    (a_type_ptr)NULL, &aap->position,
@@ -3721,6 +3776,41 @@ instantiation.
   }  /* switch */
   return result;
 }  /* attribute_applies_to_partial_instantiation */
+
+
+static an_expr_node_ptr substitute_attribute_expr(
+                                              an_expr_node_ptr     expr,
+                                              a_template_arg_ptr   t_args,
+                                              a_template_param_ptr t_params,
+                                              a_source_position    *position,
+                                              a_boolean            *p_error,
+                                              a_ctws_state         *ctws_state)
+/*
+Do template argument substitution for the given expression (which appears as
+an argument in an attribute) and return the substituted expression.  t_args
+represents the template arguments for that specialization and t_params the
+associated template parameters.  *position is the position of the expression.
+If p_error is non-NULL, *p_error is set to TRUE if the substitution results in
+an invalid entity.  If p_error is NULL, a substitution error is diagnosed as
+an error.  ctws_state is the state information for the substitution.
+*/
+{
+  a_constant_ptr constant = local_constant();
+  a_constant_ptr alloc_con;
+
+  expr = copy_template_param_expr(expr, t_args, t_params, (a_type_ptr)NULL,
+                                  position, CTWS_NON_CONSTANT_EXPR, p_error,
+                                  ctws_state, constant, &alloc_con);
+  if (expr == NULL) {
+    if (alloc_con != NULL) {
+      expr = alloc_node_for_allocated_constant(alloc_con);
+    } else {
+      expr = alloc_node_for_constant(constant);
+    }  /* if */
+  }  /* if */
+  release_local_constant(&constant);
+  return expr;
+}  /* substitute_attribute_expr */
 
 
 an_attribute_ptr copy_of_attributes_with_substitution(
@@ -3837,6 +3927,13 @@ an error.
               (*p_aap)->variant.type = aap->variant.type;
               substitute_attribute_arg_type(*p_aap, t_params, t_args,
                                             parent_class, &ctws_state, &err);
+              break;
+            case aak_expression:
+              (*p_aap)->variant.expr = substitute_attribute_expr(
+                                                        (*p_aap)->variant.expr,
+                                                        t_args, t_params,
+                                                        &((*p_aap)->position),
+                                                        &err, &ctws_state);
               break;
             default:
               unexpected_condition();
@@ -4814,6 +4911,64 @@ diagnostic to suppress).
   }  /* if */
   return entity;
 }  /* apply_fallthrough_attr */
+
+
+static void deferred_check_enable_if_attr(a_decl_parse_state_ptr  dps)
+/*
+A check for the "enable_if" attribute has been deferred and can now be
+completed.
+*/
+{
+
+  if (dps->sym == NULL || !is_function_or_template_symbol(dps->sym)) {
+    pos_st_warning(ec_wrong_entity_for_attribute, &dps->start_pos,
+                   "enable_if");
+  }  /* if */
+}  /* deferred_check_enable_if_attr */
+
+
+static char* apply_enable_if_attr(an_attribute_ptr  ap,
+                                  char              *entity,
+                                  an_il_entry_kind  entity_kind)
+/*
+The given entity must be a routine.  Apply the GNU "enable_if" attribute to
+it and return the entity.
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+  an_expr_node_ptr      expr;
+
+  check_assertion(entity_kind == iek_type &&
+                  aap != NULL &&
+                  aap->kind == (an_attribute_arg_kind)aak_expression &&
+                  aap->next != NULL);
+  expr = aap->variant.expr;
+  check_assertion(!is_error_node(expr));
+  expr = process_boolean_attribute_expression(expr);
+  aap->variant.expr = expr;
+  if (is_error_node(expr)) {
+    /* The expression must be convertible to bool. */
+    make_attr_unrecognized(ap);
+  } else {
+    a_type_ptr          rtp = (a_type_ptr)entity;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    check_assertion(dps != NULL);
+    if (rtp->kind != (a_type_kind)tk_routine || dps->in_nested_declarator) {
+      pos_st_warning(ec_wrong_entity_for_attribute, &ap->position,
+                     attribute_display_name(ap));
+      make_attr_unrecognized(ap);
+    } else {
+      /* Set a flag on the routine's type to indicate that an enable_if
+         attribute is present. */
+      rtp->variant.routine.extra_info->has_enable_if_attribute = TRUE;
+    }  /* if */
+    if (ap->kind == (an_attribute_kind)ak_enable_if) {
+      add_end_of_parse_action(deferred_check_enable_if_attr, dps,
+                              /*secondary_decls=*/TRUE);
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_enable_if_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

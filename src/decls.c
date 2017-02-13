@@ -204,6 +204,7 @@ be restored).
     dps->is_lambda = FALSE;
     dps->is_alias = FALSE;
     dps->param_with_only_enclosing_pack_refs = FALSE;
+    dps->pending_prefix_enable_if_attr = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -3877,7 +3878,8 @@ indicating that error recovery should proceed as if no error had occurred
       if (C_mode()) {
         compat = types_are_compatible(old_type, type_ptr);
       } else {
-        compat = types_are_strictly_compatible(old_type, type_ptr);
+        compat = types_are_strictly_compatible(old_type, type_ptr,
+                                               TCF_CHECK_ENABLE_IF_ATTRIBUTES);
         if (!compat &&
             routine_types_are_redecl_compatible(old_type, type_ptr,
                                                 TCF_NO_FLAGS)) {
@@ -15694,7 +15696,7 @@ If the function definition represented by *dps includes postfix GNU attributes
 issue an error.
 */
 {
-  if (dps->id_attributes != NULL && gnu_attributes_enabled) {
+  if (dps->id_attributes != NULL && gnu_attributes_enabled && !clang_mode) {
     an_attribute_ptr  ap = dps->id_attributes;
     for (; ap != NULL; ap = ap->next) {
       if (is_gcc_attribute(ap) &&

@@ -6790,6 +6790,49 @@ this kind of redeclaration.
 }  /* check_gpp_template_redecl_match */
 
 
+a_boolean compatible_enable_if_attributes(a_type_ptr  rtp1,
+                                          a_type_ptr  rtp2)
+/*
+Return TRUE if the enable_if attributes associated with the given routine
+types are compatible.
+*/
+{
+  a_boolean  compatible = TRUE;
+
+  if (rtp1->variant.routine.extra_info->has_enable_if_attribute !=
+                  rtp2->variant.routine.extra_info->has_enable_if_attribute) {
+    compatible = FALSE;
+  } else {
+    an_attribute_ptr  ap1, ap2;
+    ap1 = find_attribute(ak_enable_if, rtp1->source_corresp.attributes);
+    ap2 = find_attribute(ak_enable_if, rtp2->source_corresp.attributes);
+    for (;;) {
+      if (ap1 == NULL || ap2 == NULL) {
+        compatible = (ap1 == ap2);
+        break;
+      } else {
+        /* Check whether the expressions are equivalent. */
+        an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
+        if (aap1 == NULL || aap2 == NULL ||
+            aap1->kind != aak_expression || aap2->kind != aak_expression) {
+          /* Something was wrong with the attribute argument. */
+          compatible = FALSE;
+          break;
+        } else if (!compare_expressions(
+                                     aap1->variant.expr, aap2->variant.expr,
+                                     CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+          compatible = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      ap1 = find_attribute(ak_enable_if, ap1->next);
+      ap2 = find_attribute(ak_enable_if, ap2->next);
+    }  /* while */
+  }  /* if */
+  return compatible;
+}  /* compatible_enable_if_attributes */
+
+
 a_boolean f_types_are_compatible_full(a_type_ptr                   type_1,
                                       a_type_ptr                   type_2,
                                       a_type_compat_flags_set      flags,
@@ -7103,6 +7146,7 @@ check_typerefs:
              types must be compatible, and the "this" parameter types (if any)
              must be compatible. */
           { a_type_compat_flags_set  rt_flags;
+            a_boolean                check_enable_if_attr;
             /* The flag indicating that calling conventions should be ignored
                does not apply to function types on which this function type
                is based. */
@@ -7121,6 +7165,13 @@ check_typerefs:
             }  /* if */
             if (deduced_return_types_enabled) {
               rt_flags |= TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH;
+            }  /* if */
+            /* In some cases, the "enable_if" attributes must be checked. */
+            if (flags & TCF_CHECK_ENABLE_IF_ATTRIBUTES) {
+              check_enable_if_attr = TRUE;
+              flags &= ~TCF_CHECK_ENABLE_IF_ATTRIBUTES;
+            } else {
+              check_enable_if_attr = FALSE;
             }  /* if */
             if (f_types_are_compatible_full(
                                           type_1->variant.routine.return_type,
@@ -7146,6 +7197,10 @@ check_typerefs:
                          allow_base_derived_this_match &&
                          find_base_class_of(rtsp1->this_class,
                                             rtsp2->this_class))))))) &&
+                (!check_enable_if_attr ||
+                 !(rtsp1->has_enable_if_attribute ||
+                   rtsp2->has_enable_if_attribute) ||
+                 compatible_enable_if_attributes(type_1, type_2)) &&
                 (ignore_calling_conventions ||
                  routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
@@ -12274,6 +12329,14 @@ the old list.  Only callable in C++ mode.  See ARM 13.
         }  /* if */
       }  /* if */
     }  /* for */
+    if ((old_extra_info->has_enable_if_attribute ||
+         new_extra_info->has_enable_if_attribute) &&
+        !compatible_enable_if_attributes(new_type, old_type)) {
+      /* If the enable_if attributes do not match, the types are
+         distinguishable. */
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
     /* Falling through to here means the parameter types are all
        indistinguishable. */
     if ((old_this_class == NULL) != (new_this_class == NULL)) {

@@ -6974,7 +6974,8 @@ is none, create a new one.
   prev_conv_hdr = NULL;
   conv_hdr = conversion_header_list;
   for (; conv_hdr != NULL; conv_hdr = conv_hdr->next) {
-    if (types_are_strictly_compatible(type, conv_hdr->type)) {
+    if (types_are_strictly_compatible(type, conv_hdr->type,
+                                      TCF_CHECK_ENABLE_IF_ATTRIBUTES)) {
       /* Found it.  Move it to the front of the list. */
       if (prev_conv_hdr != NULL) {
         prev_conv_hdr->next = conv_hdr->next;
@@ -9037,8 +9038,16 @@ the latter will be NULL for variables.
           rout_type = skip_typerefs(rout_type);
           if (param_types_are_compatible(rout_type, other_type,
                                          TCF_NO_FLAGS)) {
-            /* Param types are compatible, so we have a match. */
-            break;
+            /* Param types are compatible, so we have a match, unless a
+               special situation applies.  The only such special situation
+               at this time occurs with the enable_if attributes. */
+            if (!(rout_type->variant.routine.extra_info
+                                                 ->has_enable_if_attribute ||
+                  other_type->variant.routine.extra_info
+                                                 ->has_enable_if_attribute) ||
+                compatible_enable_if_attributes(rout_type, other_type)) {
+              break;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
