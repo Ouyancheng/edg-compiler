@@ -1493,12 +1493,12 @@ This is now fixed.
 Generic lambdas and local object lifetimes
 
 The front end previously did not correctly handle object lifetimes in local
-scopes that may be reactivated due to the presences of generic lambdas.  This
+scopes that may be reactivated due to the presence of generic lambdas.  This
 manifested itself typically as an internal error in pop_scope_full (in file
 scope_stk.c, with message "unexpected curr_object_lifetime for function or
-block scope").  The changes for EDGcpfe/17300 attempted to address this issue,
-but did so incompletely (fixing some cases, but breaking some others).  A more
-comprehensive change is now implemented.
+block scope").  The changes for EDGcpfe/17300 (in release 4.12) attempted to
+address this issue, but did so incompletely (fixing some cases, but causing
+regressions for some others).  A more comprehensive change is now implemented.
 
 
 12/1/16  [EDGcpfe/17812]
