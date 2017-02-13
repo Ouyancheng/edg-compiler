@@ -4968,7 +4968,7 @@ If applicable, record the folded value in ap.
   a_boolean             result = FALSE;
   an_attribute_arg_ptr  aap = ap->arguments;
 
-  if (aap == NULL || aap->kind != aak_expression) {
+  if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
     /* Something went wrong with scanning the attribute. */
   } else {
     an_expr_node_ptr  cond = aap->variant.expr;
@@ -7524,7 +7524,8 @@ converse is true, return -1.  Otherwise, return 0.
           /* Check whether the enable_if expressions are equivalent. */
           an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
           if (aap1 == NULL || aap2 == NULL ||
-              aap1->kind != aak_expression || aap2->kind != aak_expression) {
+              aap1->kind != (an_attribute_arg_kind)aak_expression ||
+              aap2->kind != (an_attribute_arg_kind)aak_expression) {
             /* Something was wrong with the attribute argument. */
             break;
           } else if (!compare_expressions(

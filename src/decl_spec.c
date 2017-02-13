@@ -9367,7 +9367,7 @@ dps->specifier_attributes list.
         *end_to_specifier = ap;
         end_to_specifier = &ap->next;
       } else {
-        if ((*p_ap)->kind == (an_attribute_kind)ak_enable_if) {
+        if ((*p_ap)->kind == (a_byte_attribute_kind)ak_enable_if) {
           dps->pending_prefix_enable_if_attr = TRUE;
         }  /* if */
         /* Proceed to the next attribute. */

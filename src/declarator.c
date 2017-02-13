@@ -101,7 +101,7 @@ standard-attribute syntax).
            ((gnu_mode || ms_extensions) &&
             ap->family == (a_byte_attribute_family)af_alignas)) &&
           !is_type_transforming_attribute(ap) &&
-          ap->kind != (an_attribute_kind)ak_enable_if) {
+          ap->kind != (a_byte_attribute_kind)ak_enable_if) {
         *p_from = ap->next;
         /* Non-nested postfix attributes are recorded as al_postfix.  Others
            are recorded as al_id_equivalent. */
@@ -146,7 +146,7 @@ standard-attribute syntax).
     an_attribute_ptr  *p_ap = &dps->prefix_attributes, to_move;
     for (;;) {
       check_assertion(*p_ap != NULL);
-      if ((*p_ap)->kind == (an_attribute_kind)ak_enable_if) {
+      if ((*p_ap)->kind == (a_byte_attribute_kind)ak_enable_if) {
         to_move = *p_ap;
         *p_ap = to_move->next;
         to_move->next = attributes;

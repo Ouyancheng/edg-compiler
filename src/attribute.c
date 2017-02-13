@@ -4963,7 +4963,7 @@ it and return the entity.
          attribute is present. */
       rtp->variant.routine.extra_info->has_enable_if_attribute = TRUE;
     }  /* if */
-    if (ap->kind == (an_attribute_kind)ak_enable_if) {
+    if (ap->kind == (a_byte_attribute_kind)ak_enable_if) {
       add_end_of_parse_action(deferred_check_enable_if_attr, dps,
                               /*secondary_decls=*/TRUE);
     }  /* if */

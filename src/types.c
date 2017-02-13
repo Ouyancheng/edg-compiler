@@ -6814,7 +6814,8 @@ types are compatible.
         /* Check whether the expressions are equivalent. */
         an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
         if (aap1 == NULL || aap2 == NULL ||
-            aap1->kind != aak_expression || aap2->kind != aak_expression) {
+            aap1->kind != (an_attribute_arg_kind)aak_expression ||
+            aap2->kind != (an_attribute_arg_kind)aak_expression) {
           /* Something was wrong with the attribute argument. */
           compatible = FALSE;
           break;

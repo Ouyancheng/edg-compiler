@@ -15170,7 +15170,7 @@ keep the folded result recorded in the attribute.
   a_boolean             result = FALSE;
   an_attribute_arg_ptr  aap = ap->arguments;
 
-  if (aap == NULL || aap->kind != aak_expression) {
+  if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
     /* Something went wrong with scanning the attribute. */
   } else {
     an_expr_node_ptr  cond = aap->variant.expr;
