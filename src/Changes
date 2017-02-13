@@ -1,5 +1,22 @@
 Version 4.13
 
+2/12/17   [EDGcpfe/16042,EDGcpfe/17978]
+Assertion failure in mangled_template_arguments_or_parameter_pack
+
+In configurations that use mangling, but not lowering, an assertion failure
+(in mangled_template_arguments_or_parameter_pack) could occur while mangling
+certain nonreal types that are created during the substitution and deduction
+process.  Those top-level types are now ignored during mangling.  For example
+(with --c++11):
+
+  template <class T> struct A { typedef T type; };
+  template <template <class...> class T, class... U>
+  void f(typename T<U...>::type);
+  int main() {
+    f<A,int>(42);
+  }
+
+
 2/12/17  [EDGcpfe/17299]
 Less stack usage during IL walks
 

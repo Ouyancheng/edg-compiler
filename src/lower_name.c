@@ -12430,8 +12430,20 @@ compression and truncation.
 
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
+#if DO_IL_LOWERING
     /* Ignore types such as prototype instantiations. */
     if (ignore_type_in_back_end(type)) continue;
+#else /* !DO_IL_LOWERING */
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.is_nonreal_class &&
+        !type->variant.class_struct_union.is_prototype_instantiation) {
+      /* Ignore nonreal types that are not prototype instantiations.  These
+         may contain "partially substituted" types that are used during the
+         substitution and deduction process and whose template arguments
+         may have inconsistent values. */
+      continue;
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangle_type_name(type, /*force_mangling=*/FALSE);
     /* If the type is a class, process its scope. */
     if (is_immediate_class_type(type)) {
