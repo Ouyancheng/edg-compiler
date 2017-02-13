@@ -491,6 +491,14 @@ NULL") when using edgcdisp to display the IL.  For example (with --c++11):
   }
 
 
+1/9/17   [EDGcpfe/17822]
+Small IA-64 mangling performance gains
+
+Some changes were made to speed up substitution processing in the mangling of
+names in the IA-64 ABI.  These resulted in some small performance gains in
+some cases.
+
+
 1/6/17   [EDGcpfe/17921]
 GNU compatibility: alignment of routines
 
