@@ -6555,8 +6555,8 @@ typedef struct a_routine_type_supplement {
 			   exception).  Usually, the type was declared with the
 			   GNU attribute "noreturn" or "volatile". */
   a_bit_field	has_enable_if_attribute:1;
-			/* TRUE if the type was declared with the attribute
-			   "enable_if" clang attribute. */
+			/* TRUE if the type was declared with the "enable_if"
+			   clang attribute. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	result_should_be_used:1;
 			/* TRUE if the type was declared with the attribute

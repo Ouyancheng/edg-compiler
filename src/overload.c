@@ -7483,7 +7483,7 @@ is a constructor.
 static int compare_enable_if_attributes(a_candidate_function_ptr cfp1,
                                         a_candidate_function_ptr cfp2)
 /*
-If cfp1 has more specific enable_if attributes that cfp2 return +1.  If the
+If cfp1 has more specific enable_if attributes than cfp2 return +1.  If the
 converse is true, return -1.  Otherwise, return 0.
 */
 {
