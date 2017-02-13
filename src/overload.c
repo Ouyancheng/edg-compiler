@@ -7495,6 +7495,12 @@ converse is true, return -1.  Otherwise, return 0.
     a_type_ptr     rtp1 = skip_typerefs(rp1->type),
                    rtp2 = skip_typerefs(rp2->type);
     a_boolean      has_attr1, has_attr2;
+    if (rtp1->kind != (a_type_kind)tk_routine ||
+        rtp2->kind != (a_type_kind)tk_routine) {
+      /* This can occur in error situations. */
+      expect_error();
+      goto done;
+    }  /* if */
     has_attr1 = rtp1->variant.routine.extra_info->has_enable_if_attribute;
     has_attr2 = rtp2->variant.routine.extra_info->has_enable_if_attribute;
     if (!has_attr1 && !has_attr2) {
@@ -7541,6 +7547,7 @@ converse is true, return -1.  Otherwise, return 0.
       }  /* while */
     }  /* if */
   }  /* if */
+done:
   return result;
 }  /* compare_enable_if_attributes */
 
