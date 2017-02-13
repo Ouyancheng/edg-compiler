@@ -559,7 +559,7 @@ previous value of dctl->end_of_name for later restoration.
     if (n > (unsigned long)((dctl->end_of_name - p) - 1)) {
       /* Bad number (bigger than the amount of text remaining). */
       bad_mangled_name(dctl);
-      n = ((dctl->end_of_name - p) - 1);
+      n = (unsigned long)((dctl->end_of_name - p) - 1);
       goto end_of_routine;
     }  /* if */
     p++;
@@ -2103,7 +2103,7 @@ suppress it (in cases where it is duplicated).
   if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
     p += 2;
     /* Put out the function name. */
-    if (nchars != 0) nchars -= (p - ptr);
+    if (nchars != 0) nchars -= (unsigned long)(p - ptr);
     p = full_demangle_identifier(p, nchars,
                                  /*suppress_parent_and_local_info=*/FALSE,
                                  dctl);
@@ -2377,7 +2377,7 @@ template parameters.
            to handle that case. */
         if (nchars != 0) {
           if (nchars > (p - ptr)) {
-            nchars -= (p - ptr);
+            nchars -= (unsigned long)(p - ptr);
           } else {
             bad_mangled_name(dctl);
           }  /* if */
@@ -2504,7 +2504,7 @@ template parameters.
   if (nchars_left != NULL) {
     /* Return the count of characters not taken.  We're not required to
        end at the right place. */
-    *nchars_left = nchars-(end_ptr-ptr);
+    *nchars_left = nchars - (unsigned long)(end_ptr-ptr);
   } else if (((nchars != 0) ? (end_ptr-ptr == nchars) : (*end_ptr == '\0')) ||
              (stop_on_underscores &&
               get_char(end_ptr,   dctl) == '_' &&
@@ -2579,9 +2579,9 @@ is TRUE, suppress any function-local information.
           has_function_local_info = TRUE;
           nchars2 = nchars;
           /* Set the length for the scan below to stop just before "__L". */
-          nchars = p2 - p;
+          nchars = (unsigned long)(p2 - p);
           p2 += 3;  /* Points to block number after "__L". */
-          nchars2 -= (p2 - p);
+          nchars2 -= (unsigned long)(p2 - p);
           /* Output the block number and function name. */
           if (base_name_only) dctl->suppress_id_output++;
           p2 = demangle_function_local_indication(p2, nchars2, &instance,
@@ -2601,7 +2601,7 @@ is TRUE, suppress any function-local information.
        lambda has already emitted it. */
     if (!instance_emitted && !base_name_only) emit_instance(instance, dctl);
     p = p2;
-    if (nchars_left != NULL) *nchars_left = orig_end - p2;
+    if (nchars_left != NULL) *nchars_left = (unsigned long)(orig_end - p2);
   }  /* if */
   dctl->end_of_name = prev_end;
   return p;
@@ -2769,7 +2769,7 @@ a few special quirks.
       if (nested_name_case) {
         /* Nested class name. */
         a_const_char  *end_ptr = demangle_type_name(p, dctl);
-        unsigned long chars_taken = end_ptr - p;
+        unsigned long chars_taken = (unsigned long)(end_ptr - p);
         nchars -= chars_taken;
         p = end_ptr;
       } else {
@@ -3538,10 +3538,10 @@ information.
          the number is different). */
       /* Set a length for the name without the function-local indication,
          for the processing in the rest of this routine. */
-      nchars = (p - 2) - ptr;
+      nchars = (unsigned long)((p - 2) - ptr);
       /* Demangle the function name and block number. */
       p++;  /* Points to the block number following "__L". */
-      if (nchars2 != 0) nchars2 -= (p - ptr);
+      if (nchars2 != 0) nchars2 -= (unsigned long)(p - ptr);
       function_local_end_ptr =
               demangle_function_local_indication(p, nchars2, &instance, dctl);
       has_function_local_info = TRUE;
