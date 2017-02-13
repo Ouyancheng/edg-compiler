@@ -8834,9 +8834,6 @@ being popped.
           /* This is not the "final pop" of the local scope: Don't perform the
              usual cleanup operations associated with popping the lifetime. */
           curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-          if (kind == (a_scope_kind)sck_function) {
-            curr_object_lifetime->has_implicit_child = TRUE;
-          }  /* if */
         } else {
           (void)pop_object_lifetime();
         }  /* if */
