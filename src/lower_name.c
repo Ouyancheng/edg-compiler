@@ -384,7 +384,7 @@ typedef struct a_substitution {
 A hash table indexed by a substitutable entity (using subst_hash as
 the hashing function).  Each entry in the array points to a list of
 substitutions with the same hash value.  An entity may be on this list multiple
-times (because of different values for a_substitution::is_pack_expansion.
+times (because of different values for a_substitution::is_pack_expansion).
 */
 #define SUBSTITUTION_CACHE_SIZE 0x100
 static a_substitution_ptr substitution_cache[SUBSTITUTION_CACHE_SIZE];
@@ -742,8 +742,8 @@ entry.
   char *entity = (char*)type;
 
   if (type->kind == (a_type_kind)tk_class && symbol_for(type) != NULL) {
-    /* If this class is a proxy class for a template parameter,
-       use the template parameter as the entity. */
+    /* If this class is a proxy class for a template parameter, use the
+       template parameter as the entity. */
     type = class_symbol_supp(symbol_for(type))->template_param_for_proxy_class;
     if (type != NULL) entity = (char *)type;
   } else if (type->kind == (a_type_kind)tk_typeref) {
