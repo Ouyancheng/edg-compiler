@@ -10156,6 +10156,9 @@ in folding_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables (and arrays) that have distinct copies for distinct
+     compilation units. */
+  register_trans_unit_variable(curr_init_aggr_con);
 }  /* folding_one_time_init */
 
 
