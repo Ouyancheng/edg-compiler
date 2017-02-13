@@ -40,7 +40,7 @@ this attribute in current standard header files shipped with Clang.
 
 
 2/13/17  [EDGcpfe/17184]
-Incorrect pack expansions when using C++-generating back end
+C++-generating back end: incorrect pack expansions
 
 Incorrect output could be created by the C++-generating back end in some
 cases involving alias template instantiations.  In the example below,
