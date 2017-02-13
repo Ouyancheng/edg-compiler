@@ -497,6 +497,8 @@ static an_attr_application_fn apply_nodiscard_attr;
 static an_attr_application_fn apply_maybe_unused_attr;
 static an_attr_application_fn apply_fallthrough_attr;
 
+static an_attr_application_fn apply_enable_if_attr;
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
    Microsoft configurations. */
@@ -521,7 +523,6 @@ static an_attr_application_fn apply_common_attr;
 static an_attr_application_fn apply_const_attr;
 static an_attr_application_fn apply_constructor_attr;
 static an_attr_application_fn apply_destructor_attr;
-static an_attr_application_fn apply_enable_if_attr;
 #if GNU_X86_ATTRIBUTES_ALLOWED
 static an_attr_application_fn apply_fastcall_attr;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */

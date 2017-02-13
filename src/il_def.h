@@ -6554,13 +6554,13 @@ typedef struct a_routine_type_supplement {
 			   not to return normally (it can still "return" via an
 			   exception).  Usually, the type was declared with the
 			   GNU attribute "noreturn" or "volatile". */
+  a_bit_field	has_enable_if_attribute:1;
+			/* TRUE if the type was declared with the attribute
+			   "enable_if" clang attribute. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	result_should_be_used:1;
 			/* TRUE if the type was declared with the attribute
 			   "warn_unused_result". */ 
-  a_bit_field	has_enable_if_attribute:1;
-			/* TRUE if the type was declared with the attribute
-			   "enable_if" clang attribute. */
   a_bit_field	is_const:1;
 			/* TRUE if the type was declared with the "const"
 			   attribute.  Note that this flag is not set on the
