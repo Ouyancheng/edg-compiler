@@ -3095,8 +3095,8 @@ do_set_proper_definition_needed_flag:
       {
         /* Note that "eptr" is not used here (because a variable is needed
            to support branching from elsewhere). */
-        a_class_type_supplement_ptr ctsp =
-                                        (a_class_type_supplement_ptr)entry_ptr;
+        a_class_type_supplement_ptr ctsp;
+        ctsp = (a_class_type_supplement_ptr)entry_ptr;
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         goto after_entry_from_class;
 handle_class_type_supplement_for_class:
