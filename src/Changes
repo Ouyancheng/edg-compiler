@@ -1,5 +1,17 @@
 Version 4.13
 
+2/13/17  [EDGcpfe/15944,EDGcpfe/16165]
+NULL pointer dereference in add_mv_distinction
+
+In some configurations (C++-generating back ends that do mangling), having
+two function definitions with the same "target" attribute had resulted in
+dereferencing a NULL pointer (in add_mv_distinction).  Now fixed.  For example
+(with --gnu_version 40800):
+
+  void __attribute((target("sse"))) f() {}
+  void __attribute((target("sse"))) f() {}
+
+
 2/13/17  [EDGcpfe/17738]
 Clang compatibility: enable_if attribute
 

@@ -11355,6 +11355,11 @@ names are generated at a different time (see mangled_resolver_name).
        C-generating back end because the names contain "."). */
     if (is_mv_default_routine(routine)) {
       /* No suffix is added for the "default" routine. */
+    } else if (grsp->mv_info.targeted_version.representative == NULL) {
+      /* Shouldn't happen (but does in some configurations when there are
+         errors).  Mangled name doesn't really matter in this case, so don't
+         emit anything. */
+      check_assertion(total_errors != 0);
     } else if (has_exactly_one_target_specific_routine(
                               grsp->mv_info.targeted_version.representative)) {
       /* No suffix is added if there is only a single target-specific
