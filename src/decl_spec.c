@@ -9342,6 +9342,9 @@ dps->specifier_attributes list.
         *p_ap = ap->next;
         ap->next = NULL;
         ap->syntactic_location = (a_byte_attribute_location)al_prefix;
+        if (ap->kind == (a_byte_attribute_kind)ak_enable_if) {
+          dps->pending_prefix_enable_if_attr = TRUE;
+        }  /* if */
         *end_to_prefix = ap;
         end_to_prefix = &ap->next;
       } else {
