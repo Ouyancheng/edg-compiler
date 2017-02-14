@@ -2535,8 +2535,8 @@ the end" of a field subobject, that field is returned.
     a_field_ptr       last_fp = next_alloc_field(fp);
     a_base_class_ptr  bcp, last_bcp;
     a_boolean         okay = TRUE, check_virtual_bases = FALSE;
-    a_byte_count      offset = cap->address - parent_address, sub_offset,
-                      type_size;
+    a_byte_count      offset = (a_byte_count)(cap->address - parent_address),
+                      sub_offset, type_size;
     sub_offset = sizeof(a_type_ptr);
     do_host_alignment(sub_offset);
     /* First search through the fields. */
@@ -2738,7 +2738,7 @@ Mark the complete object at the given address as fully initialized.
 #define mark_subobject_initialized(subobj, complete_obj)                     \
 {                                                                            \
   a_byte        *start_byte = (complete_obj);                                \
-  a_byte_count  off = (subobj)-start_byte;                                   \
+  a_byte_count  off = (a_byte_count)((subobj)-start_byte);                   \
   a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;                \
   a_byte_count  bit_pos = off%CHAR_BIT;                                      \
   start_byte[-(int)byte_pos] |= (a_byte)(1<<bit_pos);                        \
@@ -2759,7 +2759,7 @@ indicated subobject and all its subobject as initialized.
   if (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array) {
     a_boolean     result = TRUE;
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-    a_byte_count  off = subobj - complete_obj;
+    a_byte_count  off = (a_byte_count)(subobj - complete_obj);
     a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
     a_byte_count  bit_pos = off%CHAR_BIT;
     while (n_bytes != 0) {
@@ -2901,7 +2901,7 @@ Return TRUE if the subobject pointed to by address (part of the given complete
 object) is initialized.
 */
 {
-  a_byte_count  off = address-complete_object;
+  a_byte_count  off = (a_byte_count)(address-complete_object);
   a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
   a_byte_count  bit_pos = off%CHAR_BIT;
 
@@ -10109,7 +10109,7 @@ same address.  Also record the associated subobject path.
         }  /* if */
         get_mapped_byte_count(&persistent_map, ptr, i_offset);
       } else {
-        i_offset = address-parent_address;
+        i_offset = (a_byte_count)(address - parent_address);
         if (i_offset != 0) {
           a_type_ptr    elem_type;
           a_byte_count  pos, elem_size;
@@ -10286,7 +10286,7 @@ diagnostic in *ips.
               } else {
                 base_address = cap->address;
               }  /* if */
-              offset = cap->address - base_address;
+              offset = (a_byte_count)(cap->address - base_address);
               if (!is_array_element(cap) ||
                   (butp->incomplete && butp->kind == (a_type_kind)tk_array)) {
                 /* This can happen when binding a reference to an array with
