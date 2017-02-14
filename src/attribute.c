@@ -3763,18 +3763,13 @@ Returns TRUE if the specified attribute kind applies to a partial
 instantiation.
 */
 {
-  a_boolean result;
+  a_boolean result = FALSE;
 
-  switch (kind) {
 #if GNU_EXTENSIONS_ALLOWED
-    case ak_abi_tag:
-      result = gnu_version >= 40900;
-      break;
+  if (kind == (an_attribute_kind)ak_abi_tag) {
+    result = gnu_version >= 40900;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    default:
-      result = FALSE;
-      break;
-  }  /* switch */
   return result;
 }  /* attribute_applies_to_partial_instantiation */
 
