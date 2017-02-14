@@ -4807,9 +4807,12 @@ upper-case mapping each UTF-16 code unit.
       break;
     } else if (file1_utf16_char != file2_utf16_char) {
       /* The UTF-16 code units are different.  Compare their
-         locale-insensitive upper-case mappings. */
-      file1_utf16_char = (unsigned short)CharUpperW((LPWSTR)file1_utf16_char);
-      file2_utf16_char = (unsigned short)CharUpperW((LPWSTR)file2_utf16_char);
+         locale-insensitive upper-case mappings.  The cast via DWORD_PTR
+         is done to avoid a warning from the Microsoft compiler. */
+      file1_utf16_char =
+               (unsigned short)(DWORD_PTR)CharUpperW((LPWSTR)file1_utf16_char);
+      file2_utf16_char =
+               (unsigned short)(DWORD_PTR)CharUpperW((LPWSTR)file2_utf16_char);
       if (file1_utf16_char != file2_utf16_char) {
         /* The upper-case mappings of the UTF-16 code units are different. */
         result = file2_utf16_char - file1_utf16_char;
