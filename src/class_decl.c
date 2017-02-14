@@ -20125,7 +20125,7 @@ issue an error if it is not actually constexpr.
       }  /* if */
     }  /* if */
     if (is_constexpr) {
-      if (ctor_rp->compiler_generated) {
+      if (ctor_rp->compiler_generated || ctor_rp->is_defaulted) {
         ctor_rp->is_constexpr = TRUE;
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */

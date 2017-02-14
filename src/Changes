@@ -1,5 +1,20 @@
 Version 4.13
 
+2/14/17  [EDGcpfe/18003]
+Defaulted default constructor and constexpr
+
+A defaulted default constructor was sometimes not treated as a constexpr
+constructor when it should have been.  For example:
+
+  struct S {
+    S() = default;  // Previously not implicitly "constexpr".
+    virtual void f() {}
+  };
+  constexpr S s{};  // Previously an error.  Now okay.
+
+This is now fixed.
+
+
 2/13/17  [EDGcpfe/17803]
 Warnings when building with Microsoft Visual C++
 
