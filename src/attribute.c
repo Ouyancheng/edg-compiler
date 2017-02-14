@@ -3756,6 +3756,9 @@ if a substitution error occurs.
 }  /* substitute_attribute_arg_type */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* kind is not used in some configurations. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean attribute_applies_to_partial_instantiation(
                                                         an_attribute_kind kind)
 /*
