@@ -1823,6 +1823,7 @@ when it is a secondary file.
   mem_manage_trans_unit_init();
   host_envir_trans_unit_init();
   error_trans_unit_init();
+  folding_trans_unit_init();
   il_trans_unit_init();
   interpret_trans_unit_init();
   decls_trans_unit_init();

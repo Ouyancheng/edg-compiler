@@ -10162,6 +10162,16 @@ in folding_init.)
 }  /* folding_one_time_init */
 
 
+void folding_trans_unit_init(void)
+/*
+Initialize static variables related to folding.  These are variables that
+need initialization for every (primary and secondary) translation unit.
+*/
+{
+  curr_init_aggr_con = NULL;
+}  /* folding_trans_unit_init */
+
+
 void folding_init(void)
 /*
 Initialize static variables related to folding.  This is done as a
@@ -10170,7 +10180,6 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  curr_init_aggr_con = NULL;
 }  /* folding_init */
 
 

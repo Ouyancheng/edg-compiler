@@ -272,6 +272,8 @@ extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);
 
 extern void folding_one_time_init(void);
 
+extern void folding_trans_unit_init(void);
+
 extern void folding_init(void);
 
 #endif /* ifndef FOLDING_H */
