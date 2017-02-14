@@ -7488,9 +7488,11 @@ converse is true, return -1.  Otherwise, return 0.
 */
 {
   int          result = 0;
-  a_symbol_ptr sym1 = cfp1->function_symbol, sym2 = cfp2->function_symbol;
+  a_symbol_ptr csym1 = cfp1->function_symbol, csym2 = cfp2->function_symbol;
   
-  if (sym1 != NULL && sym2 != NULL) {
+  if (csym1 != NULL && csym2 != NULL) {
+    a_symbol_ptr   sym1 = fundamental_symbol_of(csym1);
+    a_symbol_ptr   sym2 = fundamental_symbol_of(csym2);
     a_routine_ptr  rp1 = func_sym_routine(sym1), rp2 = func_sym_routine(sym2);
     a_type_ptr     rtp1 = skip_typerefs(rp1->type),
                    rtp2 = skip_typerefs(rp2->type);
