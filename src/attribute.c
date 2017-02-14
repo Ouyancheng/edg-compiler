@@ -70,7 +70,6 @@ since attributes usually do not create new entries).
 
 /* Header files common to all files. */
 #include "fe_common.h"
-#include "expr.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -83,6 +82,7 @@ since attributes usually do not create new entries).
 
 /* Other required header files. */
 #include "disambig.h"
+#include "expr.h"
 #include "layout.h"
 #include "statements.h"
 
