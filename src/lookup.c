@@ -248,9 +248,9 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 {
   a_symbol_ptr			sym;
   a_scope_number		scope_number;
-  a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
   a_boolean			projection_allowed =
-                                           (options & IDL_PROJ_SYMBOL_ALLOWED);
+                                      (options & IDL_PROJ_SYMBOL_ALLOWED) != 0;
   a_scope_stack_entry_ptr	ssep;
   a_name_space_kind		required_name_space_kind = nsk_other;
 
@@ -4482,13 +4482,13 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 {
   a_symbol_ptr sym, tag_symbol, class_symbol;
   a_symbol_ptr type_tag_symbol;
-  a_boolean    must_be_class_or_namespace
-                                 = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
-  a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean    must_be_class_or_namespace =
+                              (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+  a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+  a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
   a_boolean    is_field_selection_operand =
-                                    (options & IDL_IS_FIELD_SELECTION_OPERAND);
-  a_boolean    is_using_declaration = (options & IDL_USING_DECLARATION);
+                              (options & IDL_IS_FIELD_SELECTION_OPERAND) != 0;
+  a_boolean    is_using_declaration = (options & IDL_USING_DECLARATION) != 0;
   a_class_symbol_supplement_ptr
                cssp;
   a_symbol_ptr insert_sym;
@@ -4496,7 +4496,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    is_proxy_or_nonreal_class_lookup = FALSE;
   a_boolean    any_nonreal_base_classes = FALSE;
   a_boolean    direct_class_members_only =
-                                (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
+                               (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
   a_boolean    dependent_conversion_operator = FALSE;
   a_boolean    is_prototype_instantiation_lookup = FALSE;
   a_boolean    is_typename_lookup = (options & IDL_TYPENAME_LOOKUP) != 0;
@@ -5524,11 +5524,11 @@ inline namespaces.
   a_symbol_ptr	type_tag_symbol = NULL;
   a_symbol_ptr	namespace_symbol = NULL;
   a_boolean   	must_be_class_or_namespace
-                                 = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
-  a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS);
+                            = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+  a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+  a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
   a_boolean	is_linkage_or_friend_lookup =
-                         (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
+                    (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP)) != 0;
   a_boolean	is_linkage_lookup =
                          ((options & IDL_LINKAGE_LOOKUP) != 0);
   a_boolean	is_declarator_lookup = (options & IDL_IS_DECLARATOR) != 0;
@@ -5763,8 +5763,8 @@ file scope.
   a_symbol_ptr  sym;
   a_boolean     must_be_class_or_namespace
                                   = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean     must_be_tag = (options & IDL_MUST_BE_TAG);
-  a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean     must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+  a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
   a_symbol_ptr	synth_sym = NULL;
   a_boolean	any_errors = FALSE;
   a_boolean	is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;

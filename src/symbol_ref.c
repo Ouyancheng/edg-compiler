@@ -1770,8 +1770,9 @@ entries are being generated, ssep may point to an "empty" entry already
 created for this entity; otherwise, it is NULL.
 */
 {
-  a_boolean                is_definition = srk_flags & SRK_DEFINITION;
-  a_boolean                is_tentative_def = srk_flags & SRK_TENTATIVE_DEF;
+  a_boolean                is_definition = (srk_flags & SRK_DEFINITION) != 0;
+  a_boolean                is_tentative_def =
+                                         (srk_flags & SRK_TENTATIVE_DEF) != 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                is_primary_decl = FALSE;
   a_boolean                set_first_decl_flag = FALSE;

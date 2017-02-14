@@ -25224,9 +25224,12 @@ traversal_start:
              except perhaps for added qualifiers.  We may use that to avoid
              unneeded partial instantiations of member operator templates in
              the second pass. */
-          have_near_perfect_match = TRUE;
+          a_type_ptr       dst_type = type_pointed_to(arg_match->param_type);
+          a_type_qualifier_set
+                           dst_tqs = get_type_qualifiers(dst_type);
           near_perfect_match_added_tqs &= 
-                              arg_match->conversion.std.type_qualifiers_added;
+                                   (dst_tqs ^ source_cv_qualifiers) & dst_tqs;
+          have_near_perfect_match = TRUE;
         }  /* if */
       }  /* if */
       goto next_function;
@@ -25486,9 +25489,12 @@ traversal_start:
              except perhaps for added qualifiers.  We may use that to avoid
              unneeded partial instantiations of member operator templates in
              the second pass. */
-          have_near_perfect_match = TRUE;
+          a_type_ptr       dst_type = type_pointed_to(arg_match->param_type);
+          a_type_qualifier_set
+                           dst_tqs = get_type_qualifiers(dst_type);
           near_perfect_match_added_tqs &= 
-                              arg_match->conversion.std.type_qualifiers_added;
+                                   (dst_tqs ^ source_cv_qualifiers) & dst_tqs;
+          have_near_perfect_match = TRUE;
         }  /* if */
       }  /* if */
       goto next_function;

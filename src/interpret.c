@@ -759,7 +759,7 @@ typedef struct an_interpreter_state {
 			   C++11 constexpr evaluation and to implement
 			   __builtin_constant_p (a GCC extension). */
   a_bit_field
-		suspend_diag_list;
+		suspend_diag_list:1;
 			/* TRUE if diagnostic records should not be added to
 			   diag_list.  Used to implement __builtin_constant_p
 			   (a GCC extension). */

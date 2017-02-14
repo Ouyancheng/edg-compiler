@@ -1,5 +1,12 @@
 Version 4.13
 
+2/13/17  [EDGcpfe/17803]
+Warnings when building with Microsoft Visual C++
+
+A number of warnings emitted by the Microsoft Visual C++ compiler when building
+the front end (with option -W3) have been addressed.
+
+
 2/13/17  [EDGcpfe/15944,EDGcpfe/16165]
 NULL pointer dereference in add_mv_distinction
 

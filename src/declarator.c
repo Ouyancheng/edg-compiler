@@ -2937,8 +2937,9 @@ an error if a default argument expression is encountered.
         decl_specifiers(dsi_flags, &param_state, &local_decl_pos_block);
         dso_flags = param_state.dso_flags;
         param_storage_class = param_state.declared_storage_class;
-        dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
-        defines_something = dso_flags & DSO_DEFINES_SOMETHING;
+        dangling_type_specifier =
+                               (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) != 0;
+        defines_something = (dso_flags & DSO_DEFINES_SOMETHING) != 0;
         if (last_param_type == NULL && curr_token == tok_rparen) {
           if (dso_flags & DSO_JUST_VOID) {
             /* The first and only parameter-declaration is just "void", which

@@ -587,7 +587,7 @@ and FALSE otherwise.
   if (!is_signed) {
     /* An unsigned overflow occurred if there was a carry out of the last
        (high-order) operation. */
-    *err = carry;
+    *err = (carry != 0);
   } else {
     /* A signed overflow occurred if the two operands have the same sign and
        the result has a different sign. */
@@ -913,7 +913,7 @@ underflow occurred.
     /* An unsigned underflow occurred if there was a borrow during the
        last (high-order) operation, which means the result would be
        negative. */
-    *err = borrow;
+    *err = (borrow != 0);
   } else {
     /* A signed underflow or overflow occurred if the two operands have
        different signs and the result does not have the same sign as

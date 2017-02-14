@@ -24281,8 +24281,9 @@ function definition and cache its tokens if appropriate.
 */
 {
   a_symbol_ptr  rout_sym = decl_info->decl_state.sym;
-  a_boolean     is_friend = (decl_info->decl_state.dso_flags & DSO_FRIEND);
+  a_boolean     is_friend;
 
+  is_friend = (decl_info->decl_state.dso_flags & DSO_FRIEND) != 0;
 #if CHECKING
   if (is_friend) {
     /* The inline flag is set for friend functions in decl_friend_function,
@@ -26784,7 +26785,7 @@ that is provided if this is a member template declaration.
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
                            (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
-  friend_specified = dso_flags & DSO_FRIEND;
+  friend_specified = (dso_flags & DSO_FRIEND) != 0;
   if (friend_specified) {
     class_state->any_friend_decls = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

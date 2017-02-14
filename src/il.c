@@ -5706,7 +5706,7 @@ copy_constant_full should be called to start a copy.
                         (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
                                     CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) != 0;
   a_boolean      constexpr_master_copy =
-                              (options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+                         (options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR) != 0;
   a_boolean      force_copy = (constexpr_master_copy ||
                                old_constant->part_of_constexpr_master_expr);
   a_constant_ptr local_con = local_constant();

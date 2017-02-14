@@ -8458,7 +8458,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
   a_boolean  identifier_names_address_space = FALSE;
 
   if (!C_mode()) {
-    a_boolean  is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION);
+    a_boolean  is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION) != 0;
     an_identifier_options_set
                options = GID_NO_OPTIONS;
     /* In case the identifier has not yet been coalesced, do it now. */
@@ -8734,9 +8734,9 @@ storage class specifier tokens are consumed by this routine, except for "auto"
 which is processed after any other specifiers have also been consumed.
 */
 {
-  a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
+  a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER) != 0;
   a_boolean          is_member_decl =
-                                    (input_flags & DSI_IS_MEMBER_DECLARATION);
+                               (input_flags & DSI_IS_MEMBER_DECLARATION) != 0;
   a_boolean          is_named_register = FALSE;
   a_source_position  pos_first_token;
 
@@ -9584,9 +9584,10 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   a_symbol_ptr               curr_token_type_symbol;
   a_boolean                  err = FALSE;
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
-  a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
+  a_boolean                  is_parameter =
+                                        (input_flags & DSI_IS_PARAMETER) != 0;
   a_boolean                  is_member_decl =
-                                    (input_flags & DSI_IS_MEMBER_DECLARATION);
+                               (input_flags & DSI_IS_MEMBER_DECLARATION) != 0;
   a_boolean                  vacuous_decl_allowed;
   a_boolean                  specifier_allows_vacuous_decl;
   a_boolean                  declares_something = FALSE;
@@ -9637,7 +9638,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   decl_specifiers_seen = DS_NONE;
-  type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
+  type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED) != 0;
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
   auto_type_allowed = state->auto_type_allowed ||
                       state->trailing_return_type_allowed;
