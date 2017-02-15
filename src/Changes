@@ -1,5 +1,21 @@
 Version 4.13
 
+2/15/17  [EDGcpfe/17988]
+C++-generating back end: format of user-defined literal-operator-ids
+
+When generating code for g++ and clang target compilers, the C++-generating
+back end previously put out user-defined literal-operator-ids using the
+format with a space between the "" and the suffix identifier. As a result,
+a literal-operator-id like ""if was put out as "" if, which is a syntax
+error. The C++-generating back end has now been changed to use this format
+only when actually required by the target compilers: only in C++11 mode
+and, for g++, only for versions prior to 4.8. In all other cases, the
+format without the space is used. For example:
+
+  long double operator""if(long double);  // previously put out as "" if
+                                          // for all gnu and clang targets
+
+
 2/15/17  [EDGcpfe/18020]
 Internal error on invalid variable template declaration
 
