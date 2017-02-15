@@ -654,62 +654,74 @@ function call and issue a warning if the routine or return type have the
 */
 {
   node = skip_parens(node);
-  while (is_operation_node(node)) {
-    if (node_operator_is(node, eok_cast)) {
-      if (is_void_type(node->type)) {
-        /* This is an explicit cast to void: suppress the warning. */
+  for (;;) {
+    if (is_operation_node(node)) {
+      if (node_operator_is(node, eok_cast)) {
+        if (is_void_type(node->type)) {
+          /* This is an explicit cast to void: suppress the warning. */
+          break;
+        } else {
+          /* Skip this cast. */
+          node = node->variant.operation.operands;
+        }  /* if */
+      } else if (node_operator_is(node, eok_comma)) {
+        /* Follow the right branch of the comma expression. */
+        node = node->variant.operation.operands->next;
+      } else if (node_operator_is(node, eok_question)) {
+        /* Recurse to follow the second and third branches of an eok_question
+           operation. */
+        check_expression_for_nodiscard_warning(
+                                       node->variant.operation.operands->next);
+        check_expression_for_nodiscard_warning(
+                                 node->variant.operation.operands->next->next);
+        break;
+      } else if (is_call_node(node)) {
+        /* Some type of function call; see if the nodiscard attribute is
+           applicable. */
+        an_error_code error_code = ec_no_error;
+        /* Retrieve the type of the routine being called. */
+        a_type_ptr  tp = type_of_call(node);
+        /* For the nodiscard attribute, there are two cases: the routine
+           can have the attribute attached to it, or the class/enum return
+           type might have the attribute.  In either case, an explicit cast
+           to void suppresses these warnings. */
+        a_routine_ptr rp =
+                  routine_from_function_expr(node->variant.operation.operands);
+        if (rp != NULL && rp->has_nodiscard_attribute &&
+            !is_void_type(rp->type->variant.routine.return_type)) {
+          error_code = ec_nodiscard_routine;
+        } else {
+          /* Look at the function's return type. */
+          a_type_ptr rtp = f_skip_typerefs(return_type_of(tp));
+          if (is_immediate_class_type(rtp) &&
+              class_type_supp(rtp)->has_nodiscard_attribute) {
+            error_code = ec_nodiscard_return_type;
+          } else if (is_immediate_enum_type(rtp) &&
+                     integer_type_supp(rtp)->has_nodiscard_attribute) {
+            error_code = ec_nodiscard_return_type;
+          }  /* if */
+        }  /* if */
+        if (error_code != ec_no_error) {
+          expr_pos_warning(error_code, &node->position);
+        }  /* if */
         break;
       } else {
-        /* Skip this cast. */
-        node = node->variant.operation.operands;
+        /* Didn't find a call node -- no warning. */
+        break;
       }  /* if */
-    } else if (node_operator_is(node, eok_comma)) {
-      /* Follow the right branch of the comma expression. */
-      node = node->variant.operation.operands->next;
-    } else if (node_operator_is(node, eok_question)) {
-      /* Recurse to follow the second and third branches of an eok_question
-         operation. */
-      check_expression_for_nodiscard_warning(
-                                       node->variant.operation.operands->next);
-      check_expression_for_nodiscard_warning(
-                                 node->variant.operation.operands->next->next);
-      break;
-    } else if (is_call_node(node)) {
-      /* Some type of function call; see if the nodiscard attribute is
-         applicable. */
-      an_error_code error_code = ec_no_error;
-      /* Retrieve the type of the routine being called. */
-      a_type_ptr  tp = type_of_call(node);
-      /* For the nodiscard attribute, there are two cases: the routine
-         can have the attribute attached to it, or the class/enum return
-         type might have the attribute.  In either case, an explicit cast
-         to void suppresses these warnings. */
-      a_routine_ptr rp =
-                  routine_from_function_expr(node->variant.operation.operands);
-      if (rp != NULL && rp->has_nodiscard_attribute &&
-          !is_void_type(rp->type->variant.routine.return_type)) {
-        error_code = ec_nodiscard_routine;
-      } else {
-        /* Look at the function's return type. */
-        a_type_ptr rtp = f_skip_typerefs(return_type_of(tp));
-        if (is_immediate_class_type(rtp) &&
-            class_type_supp(rtp)->has_nodiscard_attribute) {
-          error_code = ec_nodiscard_return_type;
-        } else if (is_immediate_enum_type(rtp) &&
-                   integer_type_supp(rtp)->has_nodiscard_attribute) {
-          error_code = ec_nodiscard_return_type;
-        }  /* if */
-      }  /* if */
-      if (error_code != ec_no_error) {
-        expr_pos_warning(error_code, &node->position);
-      }  /* if */
-      break;
+    } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
+               (node->variant.init.dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression ||
+                node->variant.init.dynamic_init->kind ==
+                             (a_dynamic_init_kind)dik_class_result_via_ctor)) {
+      /* Follow an expression in a dynamic init. */
+      node = node->variant.init.dynamic_init->variant.expression;
     } else {
-      /* Didn't find a call node -- no warning. */
+      /* No expression. */
       break;
     }  /* if */
     node = skip_parens(node);
-  }  /* while */
+  }  /* for */
 }  /* check_expression_for_nodiscard_warning */
 
 
