@@ -23266,6 +23266,7 @@ template symbol supplement for this template should be returned to the caller.
   is_variable_template = sym != NULL && symbol_is(sym, sk_variable_template);
   if (sym != NULL) {
     check_assertion(symbol_is(sym, sk_static_data_member) ||
+                    symbol_is(sym, sk_variable) ||
                     symbol_is(sym, sk_variable_template));
     tssp = template_supplement_for_symbol(sym);
     if (tssp != NULL) {

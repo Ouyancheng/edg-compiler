@@ -1,5 +1,16 @@
 Version 4.13
 
+2/15/17  [EDGcpfe/18020]
+Internal error on invalid variable template declaration
+
+An internal error could occur (in variable_template_declaration) on an
+invalid variable template declaration that finds a prior declaration of
+a non-template variable.  Now fixed.
+
+  namespace A { int i = 1; }
+  template <class T> A :: i { } ;
+
+
 2/14/17  [EDGcpfe/18003]
 Defaulted default constructor and constexpr
 
