@@ -1686,11 +1686,16 @@ addressed (with non-array objects treated as arrays of one element).
     check_assertion(constant_is(con_addr, ck_integer));
     length = 0;
     pos = 0;
+  } else if (elem_size == 0) {
+    /* In some modes (e.g., GNU C), types can have size zero.  Any length and
+       position is a-priori possible. */
+    length = MAX_ARRAY_LENGTH;
+    pos = 0;
   } else {
     switch(con_addr->variant.address.kind) {
       case abk_variable:
         tp = skip_typerefs(con_addr->variant.address.variant.variable->type);
-        /* Ignore incomplete arrays and flexible arrays. */
+        /* Ignore incomplete arrays, flexible arrays. */
         if (!tp->incomplete &&
             !(is_immediate_class_type(tp) &&
               tp->variant.class_struct_union.contains_flexible_array_member)) {
