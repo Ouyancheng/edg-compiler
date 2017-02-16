@@ -675,6 +675,9 @@ function call and issue a warning if the routine or return type have the
         check_expression_for_nodiscard_warning(
                                  node->variant.operation.operands->next->next);
         break;
+      } else if (node_operator_is(node, eok_ref_indirect)) {
+        /* Remove a top-level ref-indirect. */
+        node = node->variant.operation.operands;
       } else if (is_call_node(node)) {
         /* Some type of function call; see if the nodiscard attribute is
            applicable. */
