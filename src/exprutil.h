@@ -910,6 +910,11 @@ typedef struct an_expr_stack_entry {
 		uses_this_operand:1;
 			/* Set to TRUE when make_this_variable_operand is
 			   called.  Used to emulate a Clang/GCC bug. */
+  a_bit_field
+		nodiscard_expr_seen:1;
+			/* Set to TRUE when a function call with the nodiscard
+			   attribute or a call that returns a type with the
+			   nodiscard attribute has been seen. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -2808,6 +2813,8 @@ extern a_type_ptr operand_type_after_integral_promotion(an_operand  *operand);
 extern void make_upc_thread_operand(an_operand            *operand,
                                     a_constant_repr_kind  kind);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+
+extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
 
 #if DEBUG
 extern unsigned long show_expr_space_used(void);

@@ -1709,6 +1709,7 @@ is pushed regardless of any of the other factors.
   new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->allow_array_decay_in_constant_expr = FALSE;
   new_entry->uses_this_operand = FALSE;
+  new_entry->nodiscard_expr_seen = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -16501,6 +16502,25 @@ top of the call), and if so return TRUE; otherwise, return FALSE.
 }  /* type_operator_construct_termination_next */
 
 
+a_boolean type_has_nodiscard_attribute(a_type_ptr type)
+/*
+Returns TRUE if the type has the nodiscard attribute applied to it.
+*/
+{
+  a_boolean result = FALSE;
+
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type) &&
+      class_type_supp(type)->has_nodiscard_attribute) {
+    result = TRUE;
+  } else if (is_immediate_enum_type(type) &&
+             integer_type_supp(type)->has_nodiscard_attribute) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* type_has_nodiscard_attribute */
+
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -16620,6 +16640,10 @@ error cases.
         /* Call to pure virtual, e.g., from a constructor or destructor. */
         expr_pos_warning(ec_call_of_pure_virtual, pos);
       }  /* if */
+      if (rout->has_nodiscard_attribute) {
+        /* Note this for processing later. */
+        expr_stack->nodiscard_expr_seen = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Determine the operator to use for the call, and the return type. */
@@ -16647,6 +16671,11 @@ error cases.
       /* C mode call, call of non-member function, or call of static member
          function. */
       op = (an_expr_operator_kind)eok_call;
+    }  /* if */
+    if (nodiscard_attribute_enabled &&
+        type_has_nodiscard_attribute(return_type)) {
+      /* Note this for processing later. */
+      expr_stack->nodiscard_expr_seen = TRUE;
     }  /* if */
   }  /* if */
   /* Make an expression for the function call. */

@@ -695,12 +695,7 @@ function call and issue a warning if the routine or return type have the
           error_code = ec_nodiscard_routine;
         } else {
           /* Look at the function's return type. */
-          a_type_ptr rtp = f_skip_typerefs(return_type_of(tp));
-          if (is_immediate_class_type(rtp) &&
-              class_type_supp(rtp)->has_nodiscard_attribute) {
-            error_code = ec_nodiscard_return_type;
-          } else if (is_immediate_enum_type(rtp) &&
-                     integer_type_supp(rtp)->has_nodiscard_attribute) {
+          if (type_has_nodiscard_attribute(return_type_of(tp))) {
             error_code = ec_nodiscard_return_type;
           }  /* if */
         }  /* if */
@@ -824,9 +819,10 @@ standard attribute is also performed.
     if (!suppress_warning && node_has_side_effects(node, &suppress_warning)) {
       suppress_warning = TRUE;
     }  /* if */
-    if (!has_explicit_cast_to_void && nodiscard_attribute_enabled) {
-      /* Check to see if there's a function call that should generate a
-         warning because of the "nodiscard" attribute. */
+    if (!has_explicit_cast_to_void && expr_stack->nodiscard_expr_seen) {
+      /* The expression has not been explicitly cast to void and somewhere in
+         the expression there is a function call to which the nodiscard
+         attribute applies.  Look further to see if a warning is appropriate.*/
       check_expression_for_nodiscard_warning(node);
     }  /* if */
   }  /* if */
