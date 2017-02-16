@@ -1,5 +1,27 @@
 Version 4.13
 
+2/16/17  [EDGcpfe/18013]
+Microsoft-mode abort on friend function template in secondary translation unit
+
+In Microsoft C++ mode, the front end sometimes aborted (with an internal error
+in trans_unit_for_source_corresp) when processing a friend function template
+during a "nonreal" class template instantiation (a kind of instantiation done
+only in some Microsoft modes).  For example:
+
+  // file1.cpp:
+  /* Empty. */
+
+  // file2.cpp:
+  template<typename T, T> struct X {
+    template<typename< friend f(int, X);
+  };
+  template<int N> struct Y: X<int, N> {};
+
+In Microsoft modes, X<int, N> was instantiated for the nonreal argument N, and
+the declaration of the friend template during that instantiation produced an
+abort.  That is now fixed.
+
+
 2/16/17  [EDGcpfe/18023]
 GNU/Clang compatibility: Injection of friend function templates
 

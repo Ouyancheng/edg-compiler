@@ -10274,10 +10274,17 @@ definition of a member function of a class template.
       /* Normally, we let add_to_routines_list determine which scope to add
          the routine to, but for proxy members nominated in friends, that
          would yield a nonexisting scope; instead we just put those on the
-         file scope list. */
-      add_to_routines_list(rout_ptr,
-                           proxy_member_friend ? DEPTH_OF_FILE_SCOPE :
-                                                 NO_SCOPE_DEPTH);
+         file scope list.  Similarly for friend function templates encountered
+         in Microsoft nonreal class template instantiations. */
+      a_scope_depth  scope_depth;
+      if (proxy_member_friend ||
+          (idlb.is_friend_decl && microsoft_mode &&
+           in_ms_nonreal_class_instantiation())) {
+        scope_depth = DEPTH_OF_FILE_SCOPE;
+      } else {
+        scope_depth = NO_SCOPE_DEPTH;
+      }  /* if */
+      add_to_routines_list(rout_ptr, scope_depth);
     }  /* if */
   } else {
     redeclaration = TRUE;
