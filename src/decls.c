@@ -9790,7 +9790,8 @@ definition of a member function of a class template.
           in_nonreal_instantiation ||
           scope_stack[idlb.effective_decl_level].in_generic_definition;
   if (idlb.is_friend_decl && !friend_function_injection_enabled &&
-      (!gpp_mode || locator->is_operator_name)) {
+      (!(gpp_mode && gnu_version < 50000 && !clang_mode) ||
+       locator->is_operator_name)) {
     /* g++ injects function templates even when they don't inject normal
        functions. */
     set_invisible = TRUE;

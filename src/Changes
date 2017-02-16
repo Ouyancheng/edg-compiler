@@ -1,5 +1,23 @@
 Version 4.13
 
+2/16/17  [EDGcpfe/18023]
+GNU/Clang compatibility: Injection of friend function templates
+
+The entry of 9/9/11 for EDGcpfe/12130 describes how GCC injects friend function
+template names in the surrounding scope (nonstandard behavior).  Newer versions
+of GCC no longer do this and the front end now matches GCC by disabling that
+injection when gnu_version >= 50000.  The front end previously also enabled the
+injection in Clang mode (accidentally) and that is now also fixed.  For
+example:
+
+  class C {
+    template<typename T> friend void f(T) {}
+  };
+  int main() {
+    f(1);  // Now an error in GNU C++ modes with gnu_version >= 50000 and
+  }        // in all Clang C++ modes.
+
+
 2/15/17  [EDGcpfe/17988]
 C++-generating back end: format of user-defined literal-operator-ids
 
