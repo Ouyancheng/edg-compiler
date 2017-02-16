@@ -81,8 +81,8 @@ may be shared, and therefore a copy is made and modified.
 
 void update_array_var_type_from_initializer_constant(a_variable_ptr  var)
 /*
-var is an array variable bound initialized with a constant.  If needed, update
-its bound based on that constant.
+var is an array variable initialized with a constant.  If needed, update its
+bound based on that constant.
 */
 {
   check_assertion(var->init_kind == (an_init_kind)initk_static);
