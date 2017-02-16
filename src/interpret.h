@@ -60,6 +60,8 @@ void clean_up_interpreter(void);
 
 void interpret_trans_unit_init(void);
 
+void interpret_init(void);
+
 void interpret_one_time_init(void);
 
 #endif /* ifndef INTERPRET_H */
