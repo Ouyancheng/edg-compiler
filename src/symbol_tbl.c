@@ -35,6 +35,9 @@ symbol_tbl.c - Symbol table management routines.
 #include "overload.h"
 #include "folding.h"
 #include "sys_predef.h"
+#if DEBUG
+#include "interpret.h"
+#endif /* DEBUG */
 
 
 /* The multiplier used in the hash algorithm that generates an index
@@ -16288,6 +16291,7 @@ for space tracking purposes.
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
   grand_total = db_show_il_c_fe_space_used(grand_total);
   grand_total = db_show_folding_fe_space_used(grand_total);
+  grand_total = db_show_interpret_fe_space_used(grand_total);
   grand_total = db_show_trans_unit_space_used(grand_total);
 
   db_space_used_total();

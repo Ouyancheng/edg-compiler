@@ -314,6 +314,21 @@ static a_storage_stack_state
 			   In particular, data describing the layout of data
 			   in the interpreter. */
 
+static unsigned long count_ones(unsigned long n)
+/*
+Return the number of trailing "ones" in the binary representation of n.
+*/
+{
+  unsigned long r = 0;
+
+  while (n != 0) {
+    if (n&1) {
+      ++r;
+    }  /* if */
+    n >>= 1;
+  }  /* while */
+  return r;
+}  /* count_ones */
 
 /*
 Type to use to index into a data map.
@@ -374,6 +389,14 @@ static a_data_map
 			   In particular, its entries describe the layout of
 			   data in the interpreter. */
 
+#define MAX_WIDTH_REUSABLE_TABLE 10
+static a_data_map_entry
+		*free_map_tables[MAX_WIDTH_REUSABLE_TABLE+1];
+			/* A array of pointers to map tables available for
+			   reuse.  free_map_table[n] points to a list of tables
+			   allocated for 1<<n entries.  Larger tables use
+			   alloc_general and free_general. */
+
 
 static void init_data_map(a_data_map    *map,
                           unsigned int  mask_width)
@@ -384,7 +407,15 @@ Initialize the given data map.
   unsigned      n_slots = (1<<mask_width);
   a_byte_count  size = n_slots*sizeof(a_data_map_entry);
 
-  map->table = (a_data_map_entry*)alloc_general(size);
+  if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
+    map->table = (a_data_map_entry*)alloc_general(size);
+  } else if (free_map_tables[mask_width] != NULL) {
+    map->table = free_map_tables[mask_width];
+    free_map_tables[mask_width] =
+                          (a_data_map_entry*)free_map_tables[mask_width]->ptr;
+  } else {
+    map->table = (a_data_map_entry*)alloc_fe(size);
+  }  /* if */
   memzero((char*)map->table, size_t_arg(size));
   map->hash_mask = n_slots-1;
   map->n_elements = 0;
@@ -396,10 +427,17 @@ static void release_data_map_table(a_data_map  *map)
 Release the storage for the given map's table.
 */
 {
-  a_map_index       n_slots = map->hash_mask+1;
+  a_map_index       mask = map->hash_mask;
+  a_map_index       n_slots = mask+1;
   a_byte_count      size = n_slots*sizeof(a_data_map_entry);
+  unsigned long     mask_width = count_ones(mask);
 
-  free_general(map->table, size);
+  if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
+    free_general(map->table, size);
+  } else {
+    map->table[0].ptr = (a_byte*)free_map_tables[mask_width];
+    free_map_tables[mask_width] = map->table;
+  }  /* if */
 }  /* release_data_map_table */
 
 
@@ -458,16 +496,29 @@ typedef struct a_live_set {
 			/* The number of elements stored in the table. */
 } a_live_set;
 
+static an_alloc_seq_number
+		*free_live_set_tables[MAX_WIDTH_REUSABLE_TABLE+1];
+			/* A array of pointers to live set tables available for
+			   reuse.  free_live_set_table[n] points to a list of
+			   tables allocated for 1<<n entries.  Larger tables
+			   use alloc_general and free_general.*/
+
 
 static void init_live_set(a_live_set  *set)
 /*
 Initialize the given live set.
 */
 {
-  unsigned      n_slots = (1<<3);
+  unsigned      mask_width = 3, n_slots = (1<<mask_width);
   a_byte_count  size = n_slots*sizeof(an_alloc_seq_number);
 
-  set->table = (an_alloc_seq_number*)alloc_general(size);
+  if (free_live_set_tables[mask_width] != NULL) {
+    set->table = free_live_set_tables[mask_width];
+    free_live_set_tables[mask_width] =
+                     *(an_alloc_seq_number**)free_live_set_tables[mask_width];
+  } else {
+    set->table = (an_alloc_seq_number*)alloc_fe(size);
+  }  /* if */
   memzero((char*)set->table, size_t_arg(size));
   set->hash_mask = n_slots-1;
   set->n_elements = 0;
@@ -479,10 +530,17 @@ static void release_live_set_table(a_live_set  *set)
 Release the storage for the given set's table.
 */
 {
-  a_live_set_index  n_slots = set->hash_mask+1;
+  a_live_set_index  mask = set->hash_mask;
+  a_live_set_index  n_slots = mask+1;
   a_byte_count      size = n_slots*sizeof(an_alloc_seq_number);
+  unsigned long     mask_width = count_ones(mask);
 
-  free_general(set->table, size);
+  if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
+    free_general(set->table, size);
+  } else {
+    *(an_alloc_seq_number**)set->table = free_live_set_tables[mask_width];
+    free_live_set_tables[mask_width] = set->table;
+  }  /* if */
 }  /* release_live_set_table */
 
 
@@ -500,8 +558,17 @@ Double the number of entries in the given set.  This requires rehashing.
   a_live_set_index     k, n_slots = mask+1;
   a_byte_count         old_size = n_slots*sizeof(an_alloc_seq_number);
   a_byte_count         new_size = 2*old_size;
+  unsigned long        new_width = count_ones(mask)+1, old_width;
 
-  new_table = (an_alloc_seq_number*)alloc_general(new_size);
+  if (new_width > MAX_WIDTH_REUSABLE_TABLE) {
+    new_table = (an_alloc_seq_number*)alloc_general(new_size);
+  } else if (free_live_set_tables[new_width] != NULL) {
+    new_table = free_live_set_tables[new_width];
+    free_live_set_tables[new_width] =
+                      *(an_alloc_seq_number**)free_live_set_tables[new_width];
+  } else {
+    new_table = (an_alloc_seq_number*)alloc_fe(new_size);
+  }  /* if */
   memzero((char*)new_table, size_t_arg(new_size));
   mask = mask*2+1;
   for (k = 0; k<n_slots; ++k) {
@@ -516,7 +583,13 @@ Double the number of entries in the given set.  This requires rehashing.
   }  /* for */
   set->table = new_table;
   set->hash_mask = mask;
-  free_general(old_table, old_size);
+  old_width = new_width-1;
+  if (old_width > MAX_WIDTH_REUSABLE_TABLE) {
+    free_general(old_table, old_size);
+  } else {
+    *(an_alloc_seq_number**)old_table = free_live_set_tables[old_width];
+    free_live_set_tables[old_width] = old_table;
+  }  /* if */
 }  /* expand_live_set */
 
 
@@ -585,6 +658,7 @@ at idx.
   if (table[(idx+1) & mask] != 0) {                                          \
     check_deleted_live_set_slot(set, idx);                                   \
   }  /* if */                                                                \
+  (set)->n_elements -= 1;                                                    \
 }
 
 
@@ -1161,8 +1235,17 @@ Double the number of entries in the given map.  This requires rehashing.
   a_map_index       k, n_slots = mask+1;
   a_byte_count      old_size = n_slots*sizeof(a_data_map_entry);
   a_byte_count      new_size = 2*old_size;
+  unsigned long     new_width = count_ones(mask)+1, old_width;
 
-  new_table = (a_data_map_entry*)alloc_general(new_size);
+  if (new_width > MAX_WIDTH_REUSABLE_TABLE) {
+    new_table = (a_data_map_entry*)alloc_general(new_size);
+  } else if (free_map_tables[new_width] != NULL) {
+    new_table = free_map_tables[new_width];
+    free_map_tables[new_width] =
+                           (a_data_map_entry*)free_map_tables[new_width]->ptr;
+  } else {
+    new_table = (a_data_map_entry*)alloc_fe(new_size);
+  }  /* if */
   memzero((char*)new_table, size_t_arg(new_size));
   mask = mask*2+1;
   for (k = 0; k<n_slots; ++k) {
@@ -1177,7 +1260,13 @@ Double the number of entries in the given map.  This requires rehashing.
   }  /* for */
   map->table = new_table;
   map->hash_mask = mask;
-  free_general(old_table, old_size);
+  old_width = new_width-1;
+  if (old_width > MAX_WIDTH_REUSABLE_TABLE) {
+    free_general(old_table, old_size);
+  } else {
+    old_table[0].ptr = (a_byte*)free_map_tables[old_width];
+    free_map_tables[old_width] = old_table;
+  }  /* if */
 }  /* expand_ptr_map */
 
 
@@ -10873,6 +10962,47 @@ storage available for another compilation, if any).
   }  /* if */
 }  /* clean_up_interpreter */
 
+#if DEBUG
+
+unsigned long db_show_interpret_fe_space_used(unsigned long  grand_total)
+/*
+Display memory use for entities in front end memory in this file (interpret.c).
+*/
+{
+  unsigned long  k, num, size, total;
+
+  /* Report map tables: */
+  for (k = 0; k < MAX_WIDTH_REUSABLE_TABLE; ++k) {
+    if (free_map_tables[k] != NULL) {
+      char              name[40];
+      a_data_map_entry  *table = free_map_tables[k];
+      unsigned long     cnt = 1;
+      while (table->ptr != NULL) {
+        cnt += 1;
+        table = (a_data_map_entry*)table->ptr;
+      }  /* if */
+      sprintf(name, "data map table width %lu", k);
+      db_space_used_nontype(name, cnt, sizeof(a_data_map_entry)*(1<<k));
+    }  /* if */
+  }  /* for */
+  /* Report live set tables: */
+  for (k = 0; k < MAX_WIDTH_REUSABLE_TABLE; ++k) {
+    if (free_live_set_tables[k] != NULL) {
+      char                 name[40];
+      an_alloc_seq_number  *table = free_live_set_tables[k];
+      unsigned long        cnt = 1;
+      while (*(an_alloc_seq_number**)table != NULL) {
+        cnt += 1;
+        table = *(an_alloc_seq_number**)table;
+      }  /* if */
+      sprintf(name, "live set table width %lu", k);
+      db_space_used_nontype(name, cnt, sizeof(an_alloc_seq_number)*(1<<k));
+    }  /* if */
+  }  /* for */
+  return grand_total;
+}  /* db_show_interpret_fe_space_used */
+
+#endif /* DEBUG */
 
 void interpret_trans_unit_init(void)
 /*
@@ -10900,6 +11030,8 @@ One-time initialization for interpret.c static variables.
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
+  memzero((char*)free_map_tables, sizeof(free_map_tables));
+  memzero((char*)free_live_set_tables, sizeof(free_live_set_tables));
 }  /* interpret_one_time_init */
 
 

@@ -52,6 +52,8 @@ void db_data_map(void  *map_ptr);
 
 void db_live_set(void  *interpreter_state);
 
+unsigned long db_show_interpret_fe_space_used(unsigned long  grand_total);
+
 #endif /* DEBUG */
 
 void clean_up_interpreter(void);
