@@ -1534,6 +1534,7 @@ source file's compilation.
 
   error_init();
   folding_init();
+  interpret_init();
   mem_manage_init();
   host_envir_init();
   host_init();

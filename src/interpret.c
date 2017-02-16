@@ -1428,6 +1428,7 @@ location.
   if (table[(idx+1) & mask].ptr != NULL) {                                   \
     check_deleted_data_map_slot(map, idx);                                   \
   }  /* if */                                                                \
+  (map)->n_elements -= 1;                                                    \
 }
 
 
@@ -11016,6 +11017,16 @@ that need initialization for every (primary and secondary) translation unit.
 }  /* interpret_trans_unit_init */
 
 
+void interpret_init(void)
+/*
+Initialize static variables that need to be reset for every compilation.
+*/
+{
+  memzero((char*)free_map_tables, sizeof(free_map_tables));
+  memzero((char*)free_live_set_tables, sizeof(free_live_set_tables));
+}  /* interpret_init */
+
+
 void interpret_one_time_init(void)
 /*
 One-time initialization for interpret.c static variables.
@@ -11032,8 +11043,6 @@ One-time initialization for interpret.c static variables.
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
-  memzero((char*)free_map_tables, sizeof(free_map_tables));
-  memzero((char*)free_live_set_tables, sizeof(free_live_set_tables));
 }  /* interpret_one_time_init */
 
 
