@@ -1,5 +1,16 @@
 Version 4.13
 
+2/16/17  [EDGcpfe/17686]
+C++17 compatibility: __has_include
+
+The C++17 __has_include operator (as described by C++ Committee document
+P0061R1) has been implemented.  The draft C++17 Standard requires that this
+operator appear only in the constant-expression of a #if statement; this
+restriction is enforced in strict C++17 mode, but in all other aspects the
+processing is identical to the clang and SG10 version of the operator as
+described in the change for EDGcpfe/14634.
+
+
 2/16/17  [EDGcpfe/18004]
 Spurious error on use of array constant in GNU C++ mode
 

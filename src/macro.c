@@ -5331,28 +5331,40 @@ make_inert_macro:
         sprintf(repl_text, "\"%s\"", time_str);
       } else if (macro_symbol == has_include_symbol ||
                  macro_symbol == clang_has_include_next_symbol) {
-        /* The clang and WG21 SG10 __has_include macro or the clang-only
-           has_include_next macro.  Has the value 1 if the named header
-           file would be found by #include or #include_next, respectively,
-           and 0 otherwise. */
+        /* The clang, C++17, and WG21 SG10 __has_include macro or the
+           clang-only has_include_next macro.  Has the value 1 if the named
+           header file would be found by #include or #include_next,
+           respectively, and 0 otherwise. */
         a_boolean    file_found;
         a_seq_number org_seq = curr_seq_number;
-        ++macro_depth;
-        save_delete_source_from_loc = delete_source_from_loc;
-        delete_source_from_loc = NULL;
-        file_found =
-               scan_has_include(macro_symbol == clang_has_include_next_symbol);
-        if (curr_seq_number != org_seq) {
-          /* We moved to a new source line while scanning the macro
-             invocation; delete from the beginning of the current source
-             line and not from the now-obsolete position of the macro
-             name. */
-          delete_source_from_loc = curr_source_line;
+        if (macro_symbol == has_include_symbol && cpp17_mode &&
+            strict_ansi_mode && !in_pp_if_expression) {
+          /* The C++17 Standard requires that __has_include appear only
+             in the constant-expression of a #if. */
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_has_include_not_in_if, &start_pos);
+          ctoken = tok_identifier;
+          *rescan = FALSE;
+          goto return_point;
         } else {
-          delete_source_from_loc = save_delete_source_from_loc;
+          /* Process the __has_include operator. */
+          ++macro_depth;
+          save_delete_source_from_loc = delete_source_from_loc;
+          delete_source_from_loc = NULL;
+          file_found =
+               scan_has_include(macro_symbol == clang_has_include_next_symbol);
+          if (curr_seq_number != org_seq) {
+            /* We moved to a new source line while scanning the macro
+               invocation; delete from the beginning of the current source
+               line and not from the now-obsolete position of the macro
+               name. */
+            delete_source_from_loc = curr_source_line;
+          } else {
+            delete_source_from_loc = save_delete_source_from_loc;
+          }  /* if */
+          --macro_depth;
+          strcpy(repl_text, file_found ? "1" : "0");
         }  /* if */
-        --macro_depth;
-        strcpy(repl_text, file_found ? "1" : "0");
       } else {
         unexpected_condition_str(
                          "macro_invocation: unknown special predefined macro");
@@ -10511,9 +10523,9 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   } else if (C_dialect == C_dialect_cplusplus &&
-             define_portable_feature_test_macros) {
-    /* __has_include is a WG21 SG10 recommendation and must be defined even
-       if we are not in clang mode. */
+             (define_portable_feature_test_macros || cpp17_mode)) {
+    /* __has_include is a WG21 SG10 recommendation and is part of standard
+       C++17, so it must be defined even if we are not in clang mode. */
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);

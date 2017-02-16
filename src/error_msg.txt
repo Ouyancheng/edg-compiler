@@ -2898,6 +2898,7 @@ ec_constexpr_expiring_temporary;;"reference or pointer to temporary with limited
 ec_address_of_nontrue_enable_if_function;;"cannot take the address of a function with an \"enable_if\" attribute whose condition is not unconditionally true"
 ec_nonconstant_enable_if_attr;;"\"enable_if\" attributes with conditions that are not constant values are not currently supported"
 ec_attribute_declared_here;;"attribute was declared here"
+ec_has_include_not_in_if;;"__has_include cannot appear outside #if"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
