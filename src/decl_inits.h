@@ -24,6 +24,9 @@ decl_inits.h -- Declarations related to decl_inits.c (having to do with
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+extern void update_array_var_type_from_initializer_constant(
+                                                         a_variable_ptr  var);
+
 extern a_boolean check_string_constant_initializer_full(
                                                    a_type_ptr      *dst_type,
                                                    a_constant_ptr  string_con,

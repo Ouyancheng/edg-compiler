@@ -3718,6 +3718,9 @@ constant-expression.
       if (curr_token != tok_end_of_source) {
         pos_error(ec_exp_semicolon, &pos_curr_token);
       }  /* if */
+      if (is_incomplete_array_type(var->type)) {
+        update_array_var_type_from_initializer_constant(var);
+      }  /* if */
     }  /* if */
     flush_past_token_cache_terminator();
     pop_lexical_state_stack();

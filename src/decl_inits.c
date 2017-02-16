@@ -79,6 +79,25 @@ may be shared, and therefore a copy is made and modified.
 }  /* set_initialized_array_size */
 
 
+void update_array_var_type_from_initializer_constant(a_variable_ptr  var)
+/*
+var is an array variable bound initialized with a constant.  If needed, update
+its bound based on that constant.
+*/
+{
+  check_assertion(var->init_kind == (an_init_kind)initk_static);
+  if (is_incomplete_array_type(var->type)) {
+    a_type_ptr  tp = skip_typerefs(var->initializer.constant->type);
+    if (tp->kind == (a_type_kind)tk_array &&
+        !has_unknown_specified_bound(tp)) {
+      set_initialized_array_size(
+                     &var->type, tp->variant.array.variant.number_of_elements,
+                     tp->variant.array.is_template_dependent_size_array);
+    }  /* if */
+  }  /* if */
+}  /* update_array_var_type_from_initializer_constant */
+
+
 a_boolean check_string_constant_initializer_full(a_type_ptr      *dst_type,
                                                  a_constant_ptr  string_con,
                                                  a_boolean       *excess)

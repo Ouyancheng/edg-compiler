@@ -30066,6 +30066,18 @@ variable:
             if (c99_mode && !gcc_mode) {
               check_reference_from_inline_function(sym_ptr);
             }  /* if */
+            if (var_ptr->is_template_variable &&
+                var_ptr->source_corresp.is_class_member &&
+                !var_ptr->is_prototype_instantiation &&
+                gpp_mode && !clang_mode && expr_stack->favor_constant_result) {
+              /* In GNU C++ mode, static data member constants may be
+                 instantiated late.  Ensure that they're instantiated in
+                 constant-evaluation contexts.  This may affect the type of
+                 the variable (for arrays with unspecified bounds): So do this
+                 before creating a node for the variable. */
+              ensure_inclass_static_member_constant_initializer_is_scanned(
+                                                                     var_ptr);
+            }  /* if */
             /* Make a variable operand that is an lvalue. */
             make_lvalue_variable_operand(var_ptr,
                                          &start_position,

@@ -1,5 +1,19 @@
 Version 4.13
 
+2/16/17  [EDGcpfe/18004]
+Spurious error on use of array constant in GNU C++ mode
+
+Consider the following example:
+
+  template<typename> struct S {
+    static constexpr int cs[] = { 1, 2, 3 };
+  };
+  constexpr int x = S<int>::cs[1];  // Previously an error in GNU C++11 mode.
+
+Previously, the front end issued a spurious error on the use of cs[1] in
+GNU C++11 mode.  This is now fixed.
+
+
 2/16/17  [EDGcpfe/18025]
 C++-generating back end: qualified names for anonymous union members in
 decltype
