@@ -10976,13 +10976,14 @@ Display memory use for entities in front end memory in this file (interpret.c).
     if (free_map_tables[k] != NULL) {
       char              name[40];
       a_data_map_entry  *table = free_map_tables[k];
-      unsigned long     cnt = 1;
+      unsigned long     cnt = 1, table_size;
       while (table->ptr != NULL) {
         cnt += 1;
         table = (a_data_map_entry*)table->ptr;
       }  /* if */
       sprintf(name, "data map table width %lu", k);
-      db_space_used_nontype(name, cnt, sizeof(a_data_map_entry)*(1<<k));
+      table_size = sizeof(an_alloc_seq_number)*(1<<k);
+      db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
   /* Report live set tables: */
@@ -10990,13 +10991,14 @@ Display memory use for entities in front end memory in this file (interpret.c).
     if (free_live_set_tables[k] != NULL) {
       char                 name[40];
       an_alloc_seq_number  *table = free_live_set_tables[k];
-      unsigned long        cnt = 1;
+      unsigned long        cnt = 1, table_size;
       while (*(an_alloc_seq_number**)table != NULL) {
         cnt += 1;
         table = *(an_alloc_seq_number**)table;
       }  /* if */
       sprintf(name, "live set table width %lu", k);
-      db_space_used_nontype(name, cnt, sizeof(an_alloc_seq_number)*(1<<k));
+      table_size = sizeof(an_alloc_seq_number)*(1<<k);
+      db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
   return grand_total;
