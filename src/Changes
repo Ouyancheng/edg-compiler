@@ -1,5 +1,21 @@
 Version 4.13
 
+2/16/17  [EDGcpfe/18025]
+C++-generating back end: qualified names for anonymous union members in
+decltype
+
+The C++-generating back end generated incorrect code for the name of a
+member of an anonymous union member of a class when the member name is
+used without an object expression as the operand of a decltype operator.
+Such a use requires a qualified name, and the name reference was put out
+without the qualifier.  This is now fixed.  For example:
+
+  struct S {
+     union { int x, y; };
+  };
+  decltype(S::x) a;  // Previously generated as "decltype(x)"
+
+
 2/16/17  [EDGcpfe/18013]
 Microsoft-mode abort on friend function template in secondary translation unit
 

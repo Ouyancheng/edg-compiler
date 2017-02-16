@@ -9535,6 +9535,13 @@ the expression reflects an implicit member access ("this->y"), so the
         check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
         field = node_field(field_expr);
         parent_class = parent_class_of(field);
+        /* Ignore anonymous union levels. */
+        while (class_type_supp(parent_class)->anonymous_union_kind ==
+                                          (an_anonymous_union_kind)auk_field ||
+               parent_class
+                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+          parent_class = parent_class_of(parent_class);
+        }  /* while */
         if (has_name_before_mangling(parent_class) &&
             (!class_is_in_name_context_stack(
                                    parent_class,
