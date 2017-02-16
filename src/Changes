@@ -13,7 +13,7 @@ only in some Microsoft modes).  For example:
 
   // file2.cpp:
   template<typename T, T> struct X {
-    template<typename< friend f(int, X);
+    template<typename> friend int f(int, X);
   };
   template<int N> struct Y: X<int, N> {};
 
