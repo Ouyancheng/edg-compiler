@@ -1,5 +1,15 @@
 Version 4.13
 
+2/16/17  [EDGcpfe/17694]
+C++17 compatibility: hexadecimal floating-point literals
+
+Hexadecimal floating-point literals (as described by C++ Committee
+document P0245R1) are now supported by the front end in C++17 mode.  For
+example, with --c++17:
+
+  double f = 0xC.68p+2;
+
+
 2/16/17  [EDGcpfe/17686]
 C++17 compatibility: __has_include
 

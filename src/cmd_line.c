@@ -3322,6 +3322,7 @@ default mode (e.g., exception handling).
       operator_bool_increment_allowed = FALSE;
       using_attribute_namespaces_enabled = TRUE;
       nodiscard_attribute_enabled = TRUE;
+      hex_floating_point_constants_allowed = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
