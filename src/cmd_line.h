@@ -1981,7 +1981,7 @@ EXTERN a_boolean
 		hex_floating_point_constants_allowed;
 			/* TRUE if hexadecimal floating point constants
 			   are allowed (e.g., 0xabc.def).  This is true in
-			   C99 mode. */
+			   C99 and C++17 modes. */
 
 EXTERN a_boolean
 		binary_literals_allowed;
