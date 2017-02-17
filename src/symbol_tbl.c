@@ -7714,7 +7714,7 @@ Don't put its symbol into the symbol table yet.
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 
-static a_symbol_ptr look_up_name_string_in_namespace(
+a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options)

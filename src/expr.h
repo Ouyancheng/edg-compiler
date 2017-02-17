@@ -956,6 +956,10 @@ extern an_expr_node_ptr make_cli_array_length_nodes(
 
 extern a_boolean scan_custom_ms_attribute_arg_list(an_ms_attribute_ptr attr);
 
+extern a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
+                                         a_boolean  *template_case,
+                                         a_boolean  *err);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern an_expr_node_ptr scan_expr_for_attribute(void);

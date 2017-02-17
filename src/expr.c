@@ -15656,9 +15656,9 @@ indication in *rcblock).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
-                                         a_boolean  *template_case,
-                                         a_boolean  *err)
+a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
+                                  a_boolean  *template_case,
+                                  a_boolean  *err)
 /*
 Extract and return the underlying type of uuidof_type, for a __uuidof
 operator.  Levels like "array of" and "pointer to" are removed.

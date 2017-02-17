@@ -139,6 +139,12 @@ extern void db_microsoft_attribute(an_ms_attribute_ptr	msap);
 extern unsigned long db_show_ms_attrib_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 
+EXTERN a_boolean
+                no_injected_text;
+                        /* TRUE if "injected text" (i.e., code added by the
+                           compiler) is currently enabled.  Set/reset by the
+                           "no_injected_text" Microsoft attribute. */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef MS_ATTRIB_H */

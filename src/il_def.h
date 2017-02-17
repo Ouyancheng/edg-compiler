@@ -7802,6 +7802,9 @@ typedef struct a_class_type_supplement {
 			   type. */
   a_bit_field	is_partial:1;
 			/* TRUE if this is a partial class. */
+  a_bit_field	has_coclass_attribute:1;
+			/* TRUE if the "coclass" Microsoft attribute has been
+			   applied to this class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -15573,6 +15576,8 @@ enum an_ms_attribute_kind_tag {
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   msak_edg_test,
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+  msak_coclass,		/* The [coclass] attribute. */
+  msak_no_injected_text,/* The [no_injected_text] attribute. */
   msak_last		/* Must be last. */
 };
 

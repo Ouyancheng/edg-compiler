@@ -469,11 +469,11 @@ extern a_symbol_ptr find_template_class(
 			     a_boolean		 do_not_create,
 			     a_boolean		 in_subtitution);
 
-#if COROUTINES_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 extern a_symbol_ptr find_class_template_instance(
                                               a_symbol_ptr        class_templ,
                                               a_template_arg_ptr  *arg_list);
-#endif /* COROUTINES_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
 
 extern a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,

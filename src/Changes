@@ -1,5 +1,19 @@
 Version 4.13
 
+2/17/17  [EDGcpfe/17800]
+Microsoft compatibility: coclass and no_injected_text Microsoft attributes
+
+The "coclass" Microsoft attribute is attached to a class or struct and
+creates a COM object.  Visual Studio accomplishes this by "injecting"
+various base classes and member functions.  The front end now adds
+ATL::CComCoClass<class_type, &__uuidof(class_type)> as a direct base class
+to any class type that is annotated with this attribute.  Note that this
+is only a small part of the injected code that Visual Studio generates.
+
+Also, the "no_injected_text" attribute now controls whether or not the
+front end injects code (i.e., adding the base class described above).
+
+
 2/16/17  [EDGcpfe/17694]
 C++17 compatibility: hexadecimal floating-point literals
 

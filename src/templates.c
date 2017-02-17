@@ -9079,7 +9079,7 @@ use the current global value of the template template parameter.
   return sym;
 }  /* find_template_class */
 
-#if COROUTINES_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 
 a_symbol_ptr find_class_template_instance(a_symbol_ptr        class_templ,
                                           a_template_arg_ptr  *arg_list)
@@ -9146,7 +9146,7 @@ tak_start_of_pack_expansion delimiter entries).
 
 }  /* find_class_template_instance */
 
-#endif /* COROUTINES_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
 
 static a_symbol_ptr make_template_variable(
 				a_symbol_ptr		template_sym,

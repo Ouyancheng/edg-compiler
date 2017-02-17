@@ -262,7 +262,7 @@ static void add_attribute_parameter(an_ms_attribute_arg_kind	kind,
 				    a_boolean			is_unnamed,
 				    a_const_char		*values)
 /*
-Add the specified parameter to the list of parameter accepted by the
+Add the specified parameter to the list of parameters accepted by the
 attribute most recently added by make_attribute_description.
 
 "kind" indicates the type of parameter (string, integer, etc.), "name"
@@ -398,7 +398,7 @@ are accepted.
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [coclass] */
-  make_attribute_description((an_ms_attribute_kind)msak_misc,
+  make_attribute_description((an_ms_attribute_kind)msak_coclass,
                              "coclass", (msat_class | msat_struct));
   /* [com_interface_entry] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
@@ -724,7 +724,7 @@ are accepted.
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
                              "multi_value", msat_any);
   /* [no_injected_text] */
-  make_attribute_description((an_ms_attribute_kind)msak_misc,
+  make_attribute_description((an_ms_attribute_kind)msak_no_injected_text,
                              "no_injected_text", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
@@ -2671,7 +2671,8 @@ static a_boolean process_microsoft_attribute(an_ms_attribute_ptr  msap,
                                              an_il_entry_kind     kind)
 /*
 The given attribute requires special processing (e.g., updating the IL entry
-it is bound to): Perform that processing.  Return TRUE if the processing was
+it is bound to): Perform that processing.  entity may be NULL if the attribute
+is not associated with a specific IL entry.  Return TRUE if the processing was
 successful; otherwise, issue any appropriate diagnostics and return FALSE.
 */
 {
@@ -2690,6 +2691,26 @@ successful; otherwise, issue any appropriate diagnostics and return FALSE.
       result = TRUE;
       break;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+    case msak_coclass:
+      /* Set a flag on the class to flag it for subsequent processing. */
+      check_assertion(msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
+                      is_immediate_class_type((a_type_ptr)msap->entity.ptr));
+      class_type_supp((a_type_ptr)msap->entity.ptr)->
+                                                  has_coclass_attribute = TRUE;
+      result = TRUE;
+      break;
+    case msak_no_injected_text:
+      /* Flag to enable/disable injecting code. */
+      if (msap->variant.info.arg_list == NULL) {
+        /* If there is no parameter, the default is TRUE. */
+        no_injected_text = TRUE;
+      } else {
+        check_assertion(msap->variant.info.arg_list->kind ==
+                                      (an_ms_attribute_arg_kind)msaak_boolean);
+        no_injected_text = msap->variant.info.arg_list->variant.integer_value;
+      }  /* if */
+      result = TRUE;
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -3147,6 +3168,10 @@ attributes are added to the appropriate IL list.
       }  /* if */
     }  /* if */
     if (!is_error) {
+      if (msap->kind > (an_ms_attribute_kind)msak_misc) {
+        /* An attribute for which special processing is needed. */
+        is_error = !process_microsoft_attribute(msap, NULL, iek_none);
+      }  /* if */
       /* Add the attribute to the IL. */
       add_to_ms_attributes_list(msap, decl_scope_level);
     }  /* if */
@@ -3457,6 +3482,7 @@ Microsoft attribute processing.
   curr_attribute_descr = NULL;
   /* Build the structure used to describe the various attributes. */
   if (ms_extensions) init_attribute_kinds();
+  no_injected_text = FALSE;
 }  /* ms_attrib_init */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

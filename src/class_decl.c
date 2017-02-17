@@ -9094,6 +9094,28 @@ to FALSE before returning).
 }  /* add_new_direct_base */
 
 
+static a_base_class_sequence_number largest_direct_base_number(
+                                                    a_base_class_ptr bcp,
+                                                    a_base_class_ptr *last_bcp)
+/*
+A utility to return the largest "direct_base_number" in the base class list
+specified by bcp.  If last_bcp is non-NULL, *last_bcp is set to point to the
+last entry in the list.
+*/
+{
+  a_base_class_sequence_number direct_base_number = 0;
+
+  if (last_bcp != NULL) *last_bcp = NULL;
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->next == NULL && last_bcp != NULL) *last_bcp = bcp;
+    if (bcp->direct_base_number > direct_base_number) {
+      direct_base_number = bcp->direct_base_number;
+    }  /* if */
+  }  /* for */
+  return direct_base_number;
+}  /* largest_direct_base_number */
+
+
 static void scan_base_specifier_list(a_class_def_state_ptr  class_state)
 /*
 Scan a list of base class specifiers, which may appear only on a class
@@ -9162,14 +9184,9 @@ can only contain CLI interfaces.
     /* Find the end of the base class list (a base class must already be
        present).  Also find the highest direct base number so far. */
     end_of_base_classes_list = ctsp->base_classes;
-    direct_base_number = end_of_base_classes_list->direct_base_number;
     check_assertion(end_of_base_classes_list != NULL);
-    while (end_of_base_classes_list->next != NULL) {
-      end_of_base_classes_list = end_of_base_classes_list->next;
-      if (end_of_base_classes_list->direct_base_number > direct_base_number) {
-        direct_base_number = end_of_base_classes_list->direct_base_number;
-      }  /* if */
-    }  /* while */
+    direct_base_number = largest_direct_base_number(end_of_base_classes_list,
+                                                    &end_of_base_classes_list);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -9644,11 +9661,8 @@ appropriate.
       /* Find the largest direct base number assigned so far and assign the
          next number to System::Object. */
       bcp = base_classes_of(class_type);
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct_base_number > direct_base_number) {
-          direct_base_number = bcp->direct_base_number;
-        }  /* if */
-      }  /* for */
+      direct_base_number = largest_direct_base_number(bcp,
+                                                      (a_base_class_ptr*)NULL);
       system_object_base->direct_base_number = direct_base_number+1;
     } else if (!is_cli_system_object_type(class_type)) {
       a_base_class_ptr              last_bcp = NULL;
@@ -9659,12 +9673,7 @@ appropriate.
          number. */
       bcp = base_classes_of(class_type);
       if (bcp != NULL) {
-        for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->next == NULL) last_bcp = bcp;
-          if (bcp->direct_base_number > direct_base_number) {
-            direct_base_number = bcp->direct_base_number;
-          }  /* if */
-        }  /* for */
+        direct_base_number = largest_direct_base_number(bcp, &last_bcp);
       }  /* if */
       /* System::Object is derived from virtually and so it cannot be the first
          direct nonvirtual base class.  System::ValueType derives directly from
@@ -9687,6 +9696,93 @@ appropriate.
     }  /* if */
   }  /* if */
 }  /* add_implicit_cli_bases */
+
+
+static void add_implicit_coclass_bases(a_class_def_state_ptr  class_state)
+/*
+The class type specified by class_state->class_type is being defined and
+the COM "coclass" Microsoft attribute has been applied to it.  The effect of
+this attribute is to create a COM object which can implement a COM interface.
+MSVS does this by injecting base classes (documented as CComCoClass,
+CComObjectRootEx, and optionally IProvideClassInfo2Impl), and member functions
+(UpdateRegistry, GetObjectCLSID, GetObjectFriendlyName, GetProgID, and
+GetVersionIndependentProgID) as well as changes related to the COM map.
+
+The full scope of these changes are beyond the scope of the front end (ATL
+attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
+&__uuidof(class_type)> as an implicit direct base class.
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_symbol_ptr        sym, ns_sym;
+  a_template_arg_ptr  tap, template_arg_list;
+  a_type_ptr          base_type, uuidof_type;
+  a_boolean           err = FALSE;
+
+  check_assertion(is_immediate_class_type(class_type) &&
+                  class_type_supp(class_type)->has_coclass_attribute &&
+                  !no_injected_text);
+  ns_sym = look_up_name_string_in_namespace("ATL", (a_namespace_ptr)NULL,
+                                            IDL_MUST_BE_NAMESPACE);
+  if (ns_sym == NULL) {
+    /* No ATL namespace. */
+    err = TRUE;
+  } else {
+    check_assertion(symbol_is(ns_sym, sk_namespace));
+    sym = look_up_name_string_in_namespace("CComCoClass",
+                                           ns_sym->variant.namespace_info.ptr,
+                                           IDL_NO_OPTIONS);
+    if (sym == NULL ||
+        sym->kind != sk_class_template) {
+      /* No CComCoClass symbol or the wrong kind. */
+      err = TRUE;
+    } else {
+      a_boolean         template_case = FALSE;
+      a_constant_ptr    uuidof_con = local_constant();
+      /* Determine the proper uuidof type for the class. */
+      uuidof_type = underlying_uuidof_type(class_type, &template_case, &err);
+      if (!err) {
+        a_base_class_ptr bcp, last_bcp = NULL;
+        a_boolean        may_be_first_direct_nonvirtual_base = TRUE;
+        a_base_class_sequence_number direct_base_number = 0;
+        /* Create a template argument list for the class template that is to be
+           instantiated.  The first argument is class_type.  The second
+           argument is &__uuidof(class_type). */
+        tap = alloc_template_arg((a_templ_arg_kind)tak_type);
+        tap->variant.type = class_type;
+        template_arg_list = tap;
+        tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+        make_uuidof_constant(uuidof_type, uuidof_con);
+        tap->variant.constant = alloc_unshared_constant_in_region(uuidof_con,
+                                                      /*in_file_region=*/TRUE);
+        template_arg_list->next = tap;
+        /* Instantiate (if necessary) the class template with the specified
+           template arguments. */
+        sym = find_class_template_instance(sym, &template_arg_list);
+        check_assertion(sym != NULL &&
+                        sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
+        base_type = sym->variant.class_struct_union.type;
+        /* Determine the last base class entry for class_type and the last
+           direct base number. */
+        bcp = base_classes_of(class_type);
+        if (bcp != NULL) {
+          direct_base_number = largest_direct_base_number(bcp, &last_bcp);
+        }  /* if */
+        /* Add ATL::CComCoClass<class_type, &__uuidof(class_type)> as a
+           direct base class. */
+        add_direct_base_of_type(base_type, class_state, direct_base_number+1,
+                                &last_bcp,
+                                &may_be_first_direct_nonvirtual_base);
+      }  /* if */
+      release_local_constant(&uuidof_con);
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Issue a generic remark if we fail to find ATL::CComCoClass. */
+    pos_remark(ec_coclass_base_requirements_not_met,
+               &class_type->source_corresp.decl_position);
+  }  /* if */
+}  /* add_implicit_coclass_bases */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -21051,15 +21147,10 @@ implementation of IDisposable::Dispose().)
   /* Determine the last base class entry and the last direct base number. */
   bcp = base_classes_of(class_type);
   if (bcp != NULL) {
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->next == NULL) last_bcp = bcp;
-      if (bcp->direct_base_number > direct_base_number) {
-        direct_base_number = bcp->direct_base_number;
-      }  /* if */
-    }  /* for */
+    direct_base_number = largest_direct_base_number(bcp, &last_bcp);
     /* There are no virtual base classes for managed classes.  So if there
-        is already a base class, there must also be a direct nonvirtual
-        base class. */
+       is already a base class, there must also be a direct nonvirtual
+       base class. */
     may_be_first_direct_nonvirtual_base = FALSE;
   }  /* if */
   add_direct_base_of_type(cli_class_type_for(csk_system_idisposable),
@@ -29498,6 +29589,9 @@ classes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled) add_implicit_cli_bases(&class_state);
     check_if_potentially_interface_like(&class_state);
+    if (ctsp->has_coclass_attribute && !no_injected_text) {
+      add_implicit_coclass_bases(&class_state);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (ctsp->base_classes != NULL) wrapup_base_classes(&class_state);
   }  /* if */

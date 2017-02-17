@@ -6760,6 +6760,13 @@ extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
 extern a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
                                                     a_void_ptr	key);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
+extern a_symbol_ptr look_up_name_string_in_namespace(
+                                        a_const_char             *symbol_name,
+                                        a_namespace_ptr          ns_ptr,
+                                        an_id_lookup_options_set options);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
+
 #endif /* ifndef SYMBOL_TBL_H */
 
 /******************************************************************************
