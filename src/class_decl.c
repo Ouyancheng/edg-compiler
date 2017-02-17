@@ -9093,6 +9093,7 @@ to FALSE before returning).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* add_new_direct_base */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_base_class_sequence_number largest_direct_base_number(
                                                     a_base_class_ptr bcp,
@@ -9115,6 +9116,7 @@ last entry in the list.
   return direct_base_number;
 }  /* largest_direct_base_number */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_base_specifier_list(a_class_def_state_ptr  class_state)
 /*
@@ -9733,7 +9735,7 @@ attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
                                            ns_sym->variant.namespace_info.ptr,
                                            IDL_NO_OPTIONS);
     if (sym == NULL ||
-        sym->kind != sk_class_template) {
+        sym->kind != (a_symbol_kind)sk_class_template) {
       /* No CComCoClass symbol or the wrong kind. */
       err = TRUE;
     } else {
