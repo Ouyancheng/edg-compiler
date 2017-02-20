@@ -393,7 +393,7 @@ stack is unwound in this case.
 #endif /* EXCEPTION_HANDLING */
 
 /*
-Define a macros used to define exception specifications.  THROWS_NOTHING
+Define macros used to define exception specifications.  THROWS_NOTHING
 is used so that the throw specifications can be discarded when exception
 handling is not being used, and to allow "noexcept" to be used starting
 with C++11 mode.  NEW_THROWS is used to provide the exception specification
