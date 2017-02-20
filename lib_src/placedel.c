@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -44,6 +44,6 @@ Placement operator delete -- does nothing.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

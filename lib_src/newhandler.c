@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -63,6 +63,6 @@ some reason (i.e., overflow, less than zero, too small for initializer list).
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

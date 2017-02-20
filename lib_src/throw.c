@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2052,6 +2052,6 @@ built without exception handling support.  This version does nothing.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
