@@ -393,16 +393,20 @@ stack is unwound in this case.
 #endif /* EXCEPTION_HANDLING */
 
 /*
-Define a macro used to define exception specifications.  The macro is used
-so that the throw specifications can be discarded when exception handling
-is not being used, and to allow "noexcept" to be used starting with C++11
-mode.
+Define a macros used to define exception specifications.  THROWS_NOTHING
+is used so that the throw specifications can be discarded when exception
+handling is not being used, and to allow "noexcept" to be used starting
+with C++11 mode.  NEW_THROWS is used to provide the exception specification
+of the default operator new.  Originally this was bad_alloc, but starting
+with C++11 operator new has no exception specification.
 */
 #if EXCEPTION_HANDLING
 #if __cplusplus < 201103L
 #define THROW_NOTHING() throw()
+#define NEW_THROWS throw(__EDG_STD_NAMESPACE::bad_alloc)
 #else /* !(__cplusplus < 201103L) */
 #define THROW_NOTHING() noexcept
+#define NEW_THROWS  /* nothing */
 #endif /* __cplusplus < 201103L */
 #else /* !EXCEPTION_HANDLING */
 #define THROW_NOTHING() /* Nothing. */

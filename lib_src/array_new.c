@@ -30,7 +30,7 @@ C++ operator new[]();
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-void *operator new[](size_t size)
+void *operator new[](size_t size) NEW_THROWS
 /*
 Default array operator new.  Just call the normal operator new.
 */
