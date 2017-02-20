@@ -20306,7 +20306,7 @@ by an "&" operator and *ampersand_position gives its position.
   a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
   a_boolean        template_constant = FALSE;
   a_routine_ptr    rout;
-  a_type_ptr       rtp;
+  a_type_ptr       rtp = NULL;
 
   check_assertion(is_expression_operand(operand) &&
                   is_a_function_designator(operand));
