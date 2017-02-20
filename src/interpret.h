@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2015-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 2015-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -73,6 +73,6 @@ void interpret_one_time_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2015-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 2015-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

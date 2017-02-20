@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -976,6 +976,6 @@ extern an_expr_node_ptr process_boolean_attribute_expression(
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1413,6 +1413,6 @@ Casts are not needed for pointer to member function types.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2016 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2017 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
