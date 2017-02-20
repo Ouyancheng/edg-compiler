@@ -1,4 +1,4 @@
-Version 4.13
+Version 4.13, February 22, 2017
 
 2/20/17  [EDGcpfe/18032]
 Build problem when building the runtime with a version without C++11 support
