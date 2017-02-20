@@ -1,5 +1,11 @@
 Version 4.13
 
+2/20/17  [EDGcpfe/18032]
+Build problem when building the runtime with a version without C++11 support
+
+A change in 4.12 could cause build issues when compiling the runtime with
+a front end that did not have C++11 support.  Now fixed.
+
 11/23/16 [EDGcpfe/17767]
 Inadvertent destruction of rethrown object
 

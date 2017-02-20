@@ -395,10 +395,15 @@ stack is unwound in this case.
 /*
 Define a macro used to define exception specifications.  The macro is used
 so that the throw specifications can be discarded when exception handling
-is not being used.
+is not being used, and to allow "noexcept" to be used starting with C++11
+mode.
 */
 #if EXCEPTION_HANDLING
+#if __cplusplus < 201103L
+#define THROW_NOTHING() throw()
+#else /* !(__cplusplus < 201103L) */
 #define THROW_NOTHING() noexcept
+#endif /* __cplusplus < 201103L */
 #else /* !EXCEPTION_HANDLING */
 #define THROW_NOTHING() /* Nothing. */
 #endif /* EXCEPTION_HANDLING */
