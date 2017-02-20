@@ -2507,7 +2507,7 @@ Microsoft compatibility: --ms_rvalue_cast/--no_ms_rvalue_cast
 Command-line options --ms_rvalue_cast and --no_ms_rvalue_cast have been added
 to the front end.  Option --ms_rvalue_cast is equivalent to the option
 combination "--microsoft --no_preserve_lvalues_with_same_type_casts" (see the
-entry for EDGcpfe/14628), wheraas "--no_ms_rvalue_cast" is equivalent to
+entry for EDGcpfe/14628), whereas "--no_ms_rvalue_cast" is equivalent to
 "--microsoft --preserve_lvalues_with_same_type_casts".  By default, the option
 "--no_ms_permissive" also implies "--ms_rvalue_cast".
 
