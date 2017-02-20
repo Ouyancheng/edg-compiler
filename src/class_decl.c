@@ -9704,13 +9704,13 @@ static void add_implicit_coclass_bases(a_class_def_state_ptr  class_state)
 /*
 The class type specified by class_state->class_type is being defined and
 the COM "coclass" Microsoft attribute has been applied to it.  The effect of
-this attribute is to create a COM object which can implement a COM interface.
+this attribute is to create a COM object that can implement a COM interface.
 MSVS does this by injecting base classes (documented as CComCoClass,
 CComObjectRootEx, and optionally IProvideClassInfo2Impl), and member functions
 (UpdateRegistry, GetObjectCLSID, GetObjectFriendlyName, GetProgID, and
 GetVersionIndependentProgID) as well as changes related to the COM map.
 
-The full scope of these changes are beyond the scope of the front end (ATL
+The full scope of these changes is beyond the scope of the front end (ATL
 attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
 &__uuidof(class_type)> as an implicit direct base class.
 */
@@ -9755,8 +9755,7 @@ attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
         template_arg_list = tap;
         tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
         make_uuidof_constant(uuidof_type, uuidof_con);
-        tap->variant.constant = alloc_unshared_constant_in_region(uuidof_con,
-                                                      /*in_file_region=*/TRUE);
+        tap->variant.constant = move_local_constant_to_il(&uuidof_con);
         template_arg_list->next = tap;
         /* Instantiate (if necessary) the class template with the specified
            template arguments. */
@@ -9775,8 +9774,9 @@ attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
         add_direct_base_of_type(base_type, class_state, direct_base_number+1,
                                 &last_bcp,
                                 &may_be_first_direct_nonvirtual_base);
+      } else {
+        release_local_constant(&uuidof_con);
       }  /* if */
-      release_local_constant(&uuidof_con);
     }  /* if */
   }  /* if */
   if (err) {

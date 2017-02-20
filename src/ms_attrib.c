@@ -2692,7 +2692,7 @@ successful; otherwise, issue any appropriate diagnostics and return FALSE.
       break;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
     case msak_coclass:
-      /* Set a flag on the class to flag it for subsequent processing. */
+      /* Set a flag on the class to mark it for subsequent processing. */
       check_assertion(msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
                       is_immediate_class_type((a_type_ptr)msap->entity.ptr));
       class_type_supp((a_type_ptr)msap->entity.ptr)->
