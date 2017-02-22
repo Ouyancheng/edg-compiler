@@ -119,11 +119,11 @@ Set the test version flags to FALSE for demo versions.
 #define DEBUG 0
 #endif /* ifndef DEBUG */
 #else /* !defined(DEMO_VERSION) */
-#ifndef __CYGWIN32__
+#ifndef __CYGWIN__
 /* In development versions, allow values of gnu_version less than 30200 so
    some early gcc compatibility features can be tested. */
 #define MIN_GNU_VERSION 29500
-#endif /* ifndef __CYGWIN32__ */
+#endif /* ifndef __CYGWIN__ */
 #endif /* ifdef DEMO_VERSION */
 
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
@@ -757,7 +757,7 @@ command-line when compiling system headers.
 #include "defines_macosx.h"
 
 #else /* !(defined(__APPLE__) && defined(__MACH__)) */
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 
 /* Options for Windows/Cygwin version. */
 #define DEFAULT_INSTANTIATION_MODE tim_all
@@ -884,7 +884,7 @@ command-line when compiling system headers.
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 52
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
-#else /* ifndef __CYGWIN32__ */
+#else /* ifndef __CYGWIN__ */
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
@@ -939,7 +939,7 @@ command-line when compiling system headers.
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
-#endif /* ifdef __CYGWIN32__ */
+#endif /* ifdef __CYGWIN__ */
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 #endif /* ifdef __hpux */
 #endif /* ifdef __linux__ */
