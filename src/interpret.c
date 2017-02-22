@@ -4075,6 +4075,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               /* Not all elements are covered.  Zero the remainder. */
               init_subobject_to_zero(ips, value, etp, complete_object);
               repeat = 1;
+            } else if (constant_is(elem_con, ck_designator) &&
+                       !elem_con->variant.designator.is_field_designator &&
+                       !elem_con->variant.designator.is_generic) {
+              /* An array designator. */
+              k = elem_con->variant.designator.variant.array_element;
+              elem_con = elem_con->next;
+              continue;
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
@@ -4142,6 +4149,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                  remainder of the class value. */
               a_type_ptr  ftp = skip_typerefs(fp->type);
               init_subobject_to_zero(ips, value+offset, ftp, complete_object);
+            } else if (constant_is(elem_con, ck_designator) &&
+                       elem_con->variant.designator.is_field_designator &&
+                       !elem_con->variant.designator.is_generic) {
+              /* A field designator. */
+              fp = elem_con->variant.designator.variant.field;
+              elem_con = elem_con->next;
+              continue;
             } else if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
               do_constexpr_fail(result);
@@ -4189,7 +4203,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               do_constexpr_fail(result);
             }  /* if */
             break;
-          } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+          } else if (constant_is(elem_con, ck_designator) &&
+                     elem_con->variant.designator.is_field_designator &&
+                     !elem_con->variant.designator.is_generic) {
+            /* A field designator. */
             fp = elem_con->variant.designator.variant.field;
             elem_con = elem_con->next;
           } else {

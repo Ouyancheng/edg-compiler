@@ -1,3 +1,14 @@
+Version 4.14
+
+2/22/17  [EDGcpfe/18037]
+Designators and constexpr initializers
+
+The changes for EDGcpfe/17888 accidentally broke support for designated
+initializers in constexpr initializer (see the entry of 5/19/16 for
+EDGcpfe/16807).  This regression introduced in version 4.13 is now fixed.
+
+
+-------------------------------------------------------------------------------
 Version 4.13, February 22, 2017
 
 2/17/17  [EDGcpfe/17800]
