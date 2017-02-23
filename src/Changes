@@ -13,7 +13,7 @@ __builtin_abs can now also be called in constant-expression contexts.
 Designators and constexpr initializers
 
 The changes for EDGcpfe/17888 accidentally broke support for designated
-initializers in constexpr initializer (see the entry of 5/19/16 for
+initializers in constexpr initializers (see the entry of 5/19/16 for
 EDGcpfe/16807).  This regression introduced in version 4.13 is now fixed.
 
 
