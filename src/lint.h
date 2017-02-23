@@ -1346,6 +1346,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_roldi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rorsi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rordi)*/
+#else /* !BUILTIN_FUNCTIONS_ENABLED */
+/*lint -esym(769,ec_constexpr_string_not_null_terminated)*/
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(755,gnu_routine_supp)*/

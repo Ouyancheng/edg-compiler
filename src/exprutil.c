@@ -16831,11 +16831,14 @@ whether the call was folded or not.
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
       if (constexpr_enabled &&
-          (rout == NULL || rout->is_constexpr ||
+          (rout == NULL ||
 #if GNU_EXTENSIONS_ALLOWED
            rout->implicit_alias ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-           is_gnu_builtin_function(rout)) &&
+#if BUILTIN_FUNCTIONS_ENABLED
+           is_gnu_builtin_function(rout) ||
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+           rout->is_constexpr) &&
           !(clang_mode && expr_stack->in_noexcept_operand_expression) &&
           expr_fold_constexpr_call(function_call_node, call_pos, result,
                                    &diag_list)) {
