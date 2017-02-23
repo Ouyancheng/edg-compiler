@@ -1,5 +1,23 @@
 Version 4.14
 
+2/23/17  [EDGcpfe/17929]
+Lookup in class member alias template instantiations
+
+Name lookup in the instantiation of an class member alias template formerly
+found names declared later in the class, which could result in spurious
+errors or incorrect behavior.  Now fixed.
+
+  template<typename _Tp> struct A {
+    static constexpr int j = 1;
+  };
+  template <typename T> using B = A<int>;
+  struct C {
+    template <typename Arg> using D = B<Arg>;  // formerly found C::B
+    using B = A<int>;
+    static constexpr int i = D<int>::j;
+  };
+
+
 2/22/17  [EDGcpfe/18027]
 Standard C strlen, abs, and constexpr evaluation
 

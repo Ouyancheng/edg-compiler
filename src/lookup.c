@@ -3263,6 +3263,18 @@ that do normal id lookup processing.
                        ((gpp_mode && lookup_state->inclass_exception_spec) ||
                         (ssep->kind != (a_scope_kind)sck_class_reactivation &&
                          ssep->kind != (a_scope_kind)sck_class_struct_union));
+    /* Declaration sequence numbers are not normally checked for class members,
+       but need to be checked for alias template instantiations of alias
+       templates that are class members. */
+    if (!lookup_state->check_decl_seq && is_real_instantiation_context()) {
+      a_scope_stack_entry_ptr	instantiation_ssep;
+      a_symbol_ptr		instance_sym;
+      instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
+      instance_sym = instantiation_ssep->instance_sym;
+      if (instance_sym != NULL && symbol_is(instance_sym, sk_type)) {
+        lookup_state->check_decl_seq = TRUE;
+      }  /* if */
+    }  /* if */
     if (ssep->decl_seq_for_lookup != NO_DECL_SEQUENCE_NUMBER) {
       /* If an explicit declaration sequence number was specified in the scope
          stack entry, use that for lookup in this scope. */
