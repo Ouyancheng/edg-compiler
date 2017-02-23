@@ -5499,12 +5499,66 @@ count_done:
 }  /* do_constexpr_builtin_bitcount */
 
 
+static a_boolean do_constexpr_builtin_strlen(
+                                        an_interpreter_state  *ips,
+                                        a_byte                *arg_bytes,
+                                        a_type_ptr            arg_tp,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                *result_storage)
+/*
+Evaluate the standard strlen function on the operand of type arg_tp stored in
+arg_bytes.  Place the result in *result_storage.  Return FALSE if this fails
+(because the entity pointed to is not a null-terminated string) and record a
+potential diagnostic for the given expression node and interpreter state.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (arg_tp->kind == (a_type_kind)tk_pointer) {
+    a_constexpr_address  *addr = (a_constexpr_address*)arg_bytes;
+    a_type_ptr           tp = skip_typerefs(arg_tp->variant.pointer.type);
+    if (addr->address == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_null_dereference, &call_node->position, ips);
+    } else if (is_array_element(addr) && tp->kind == (a_type_kind)tk_integer) {
+      an_integer_value  *ptr = (an_integer_value*)addr->address;
+      a_byte_count  elem_size, pos, max_len, len = 0;
+      get_array_pos(ips, addr, tp, &max_len, &pos, &elem_size, &result);
+      if (result) {
+        max_len -= pos;
+        while (cmp_integer_values(ptr, /*op_1_signed=*/FALSE,
+                                  (an_integer_value *)&zero_int,
+                                  /*op_2_signed=*/FALSE) != 0) {
+          len += 1;
+          ptr += 1;
+          if (len == max_len) {
+            an_expr_node_ptr  arg = call_node->variant.operation.operands;
+            arg = arg->next;
+            do_constexpr_fail(result);
+            info_with_pos(ec_constexpr_string_not_null_terminated,
+                          &arg->position, ips);
+            break;
+          }  /* if */
+        }  /* while */
+        if (result) {
+          set_integer_value((an_integer_value*)result_storage,
+                            (a_host_large_integer)len);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_strlen */
+
+
 static a_boolean do_constexpr_builtin_function(
-                                      an_interpreter_state    *ips,
-                                      a_routine_ptr           callee,
-                                      an_expr_node_ptr        call_node,
-                                      a_byte                  *result_storage,
-                                      a_boolean               *p_result)
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                *result_storage,
+                                        a_boolean             *p_result)
 /*
 call_node represents a call to the given callee, which is a builtin function.
 If the call belongs to the class of builtin functions that can sometimes be
@@ -5565,6 +5619,44 @@ to FALSE and the reason for the failure is recorded in *ips.
           ips->suspend_diag_list = saved_suspend_diag_list;
         }  /* if */
       }  /* if */
+      break;
+   case bfk_abs:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          check_assertion(tp->kind == (a_type_kind)tk_integer);
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+            do_constexpr_fail(*p_result);
+          } else {
+            an_integer_kind  int_kind = tp->variant.integer.int_kind;
+            *(an_integer_value*)result_storage =
+                                               *(an_integer_value*)arg1_bytes;
+            if (int_kind_is_signed[int_kind] &&
+                cmp_integer_values((an_integer_value *)result_storage,
+                                   /*is_signed=*/TRUE,
+                                   (an_integer_value *)&zero_int,
+                                   /*is_signed=*/TRUE) < 0) {
+              a_boolean  ovfl;
+              negate_integer_value((an_integer_value *)result_storage, &ovfl);
+              if (ovfl ||
+                  cmp_integer_values((an_integer_value *)result_storage,
+                                     /*is_signed=*/TRUE,
+                                     &max_integer_value_of_kind[int_kind],
+                                     /*is_signed=*/TRUE) > 0) {
+                do_constexpr_fail(*p_result);
+                info_with_pos_type(ec_constexpr_integer_overflow,
+                                   &call_node->position, tp, ips);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
       break;
     case bfk_fabs:
     case bfk_fabsf:
@@ -5655,6 +5747,24 @@ to FALSE and the reason for the failure is recorded in *ips.
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !do_constexpr_builtin_bitcount(
                                     callee, arg1_bytes, tp, result_storage)) {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case bfk_strlen:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !do_constexpr_builtin_strlen(ips, arg1_bytes, tp, call_node,
+                                           result_storage)) {
             do_constexpr_fail(*p_result);
           }  /* if */
         }  /* if */
@@ -5802,15 +5912,25 @@ otherwise, return FALSE and update *ips accordingly.
   }  /* if */
   /* Now interpret the call if possible. */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (special_kind_is(callee, sfk_none) &&
-      callee->variant.builtin_function_kind !=
+  {
+    a_routine_ptr  eff_callee = callee;
+#if GNU_EXTENSIONS_ALLOWED
+    if (eff_callee->implicit_alias && !eff_callee->defined &&
+        gnu_routine_supp(eff_callee)->aliased_routine != NULL) {
+      /* Some functions are implicitly aliased to a built-in function. */
+      eff_callee = gnu_routine_supp(eff_callee)->aliased_routine;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    if (special_kind_is(eff_callee, sfk_none) &&
+        eff_callee->variant.builtin_function_kind !=
                                           (a_builtin_function_kind)bfk_none &&
-      do_constexpr_builtin_function(ips, callee, call_node, result_storage,
-                                    &result)) {
-    goto done;
-  } else if (!result) {
-    goto done;
-  }  /* if */
+        do_constexpr_builtin_function(ips, eff_callee, call_node,
+                                      result_storage, &result)) {
+      goto done;
+    } else if (!result) {
+      goto done;
+    }  /* if */
+  }
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,

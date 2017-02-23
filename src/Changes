@@ -1,5 +1,14 @@
 Version 4.14
 
+2/22/17  [EDGcpfe/18027]
+Standard C strlen, abs, and constexpr evaluation
+
+In GNU C++ modes, a declaration of strlen or abs matching the standard
+library specification can be called in constant-expression contexts.
+Furthermore, the corresponding built-in functions __builtin_strlen and
+__builtin_abs can now also be called in constant-expression contexts.
+
+
 2/22/17  [EDGcpfe/18037]
 Designators and constexpr initializers
 

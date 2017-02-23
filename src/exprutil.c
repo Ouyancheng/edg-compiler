@@ -16830,14 +16830,19 @@ whether the call was folded or not.
       a_boolean    call_folded_to_constant = FALSE;
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
-      if (constexpr_enabled && (rout == NULL || rout->is_constexpr) &&
+      if (constexpr_enabled &&
+          (rout == NULL || rout->is_constexpr ||
+#if GNU_EXTENSIONS_ALLOWED
+           rout->implicit_alias ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+           is_gnu_builtin_function(rout)) &&
           !(clang_mode && expr_stack->in_noexcept_operand_expression) &&
           expr_fold_constexpr_call(function_call_node, call_pos, result,
                                    &diag_list)) {
-        /* The call is to a constexpr function and it has been folded to
-           a constant result.  (Clang appears to determine the noexcept
-           operator without folding constexpr calls therein; that is
-           nonstandard behavior, however.) */
+        /* The call is to a constexpr function (or a function otherwise known
+           to the front end) and it has been folded to a constant result.
+           (Clang appears to determine the noexcept operator without folding
+            constexpr calls therein; that is nonstandard behavior, however.) */
         call_folded_to_constant = TRUE;
 #if BUILTIN_FUNCTIONS_ENABLED
       } else if (rout != NULL) {
