@@ -16845,7 +16845,7 @@ whether the call was folded or not.
         /* The call is to a constexpr function (or a function otherwise known
            to the front end) and it has been folded to a constant result.
            (Clang appears to determine the noexcept operator without folding
-            constexpr calls therein; that is nonstandard behavior, however.) */
+           constexpr calls therein; that is nonstandard behavior, however.) */
         call_folded_to_constant = TRUE;
 #if BUILTIN_FUNCTIONS_ENABLED
       } else if (rout != NULL) {
