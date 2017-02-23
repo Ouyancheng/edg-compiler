@@ -1,5 +1,18 @@
 Version 4.14
 
+2/23/17  [EDGcpfe/17925]
+Microsoft compatibility: incorrect substitution of namespace member call
+
+In Microsoft mode, substitution of a dependent call in a decltype expression
+could produce an incorrect result if the global scope contained a function
+template with the same name.  Now fixed.
+
+  template<typename T> void f();
+  namespace N { template<typename T> int f(); }
+  template<typename T> decltype(N::f<T>()) g();
+  int i = g<int>();
+
+
 2/23/17  [EDGcpfe/17929]
 Lookup in class member alias template instantiations
 
