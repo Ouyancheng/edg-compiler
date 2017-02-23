@@ -876,8 +876,6 @@ command-line when compiling system headers.
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 #endif /* ifndef _lint */
-#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
-#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 8
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE 0
