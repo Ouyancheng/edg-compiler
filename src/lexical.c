@@ -9413,8 +9413,13 @@ fixed_point_suffix:
           part_of_pp_num = TRUE;
         } else if (ch == '+' || ch == '-') {
           /* A sign character is part of a pp-number if it follows an
-             exponent indicator. */
-          if (prev_ch == 'e' || prev_ch == 'E' ||
+             exponent indicator.  Note that Microsoft mode has a wrinkle:
+             MSVC accepts a construct like 0xE+0x1 as equivalent to 0xE +
+             0x1, so if the E or e is part of a hexadecimal literal in
+             Microsoft mode, the sign character terminates the number
+             instead of being part of the pp-number. */
+          if (((prev_ch == 'e' || prev_ch == 'E') &&
+               !(microsoft_mode && kind == k_hex)) ||
               ((local_allow_hex_fp_constants || fixed_point_enabled) &&
                (prev_ch == 'p' || prev_ch == 'P'))) {
             part_of_pp_num = TRUE;
