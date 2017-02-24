@@ -1,5 +1,13 @@
 Version 4.14
 
+2/23/17  [EDGcpfe/18043]
+C-generating back end: taking the address of a non-lvalue
+
+In similar circumstances to the issue addressed by EDGcpfe/17944, the
+C-generating back end put out incorrect C code that attempted to take the
+address of a non-lvalue expression.  This additional case is now fixed.
+
+
 2/23/17  [EDGcpfe/17925]
 Microsoft compatibility: incorrect substitution of namespace member call
 

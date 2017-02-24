@@ -5572,9 +5572,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
             if (is_operation_node(operand_1) &&
                 node_operator_is(operand_1, eok_dot_field) &&
-                !operand_1->variant.operation.operands->is_lvalue &&
-                (!optimizable_rvalue_selection(operand_1, &comma_case) ||
-                 comma_case)) {
+                ((!operand_1->variant.operation.operands->is_lvalue &&
+                  (!optimizable_rvalue_selection(operand_1, &comma_case) ||
+                   comma_case)) ||
+                 (operand_1->variant.operation.operands->is_lvalue &&
+                  obj_expr_based_on_comma(operand_1)))) {
               /* The operand is a member access expression that will be
                  generated as a comma expression, to which "&" cannot be
                  applied.  Signal that the ampersand is to be put out on
