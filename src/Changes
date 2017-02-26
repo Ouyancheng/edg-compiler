@@ -8,7 +8,9 @@ preprocessing number that is ill-formed (i.e., requires an error diagnostic)
 because it cannot be converted to a numeric literal.  MSVC accepts such
 constructs, however, treating the "+" character as terminating the
 hexadecimal literal 0xE.  The front end has now been changed to do the same
-in --microsoft mode.
+in Microsoft mode.  For example, with --microsoft:
+
+  int i = 0xE+0x1;   // Now equivalent to 15 (0xE + 0x1) in Microsoft mode
 
 
 2/23/17  [EDGcpfe/18043]
