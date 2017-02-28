@@ -1,5 +1,20 @@
 Version 4.14
 
+2/28/17  [EDGcpfe/18052]
+Spurious error on dependent unary operators in constant operand contexts
+
+The front end sometimes produced a spurious error on certain unary operators
+with template-dependent operands in contexts requiring a constant-expression.
+(The spurious diagnostic suggested the result is not constant.)  For example:
+
+  template<typename T> constexpr bool x = T();
+  template<typename T> struct Y {
+    static constexpr bool v = !x<T>;  // Previously triggered a spurious error.
+  };
+
+This is now fixed.
+
+
 2/24/17  [EDGcpfe/17935]
 Microsoft compatibility: hexadecimal literals and preprocessing numbers
 

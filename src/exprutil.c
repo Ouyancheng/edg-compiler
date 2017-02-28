@@ -14033,16 +14033,15 @@ token sequence number of the operator.
     make_error_operand(result);
   } else {
     did_not_fold = TRUE;
-    template_constant = FALSE;
-    if (op == (an_expr_operator_kind)eok_address_of) {
+    template_constant = (operand_is_dependent(operand) ||
+                         is_template_dependent_type(result_type));
+    if (op == (an_expr_operator_kind)eok_address_of || template_constant) {
       /* "&" doesn't get folded here.  It isn't handled by unary_operation
          and the constant case would involve a constant-addressed lvalue,
          not a constant, but in addition this routine isn't called for the
          non-dependent source "&" operand, so the only cases that get here
          are template dependent cases. */
       try_folding = FALSE;
-      template_constant = (operand_is_dependent(operand) ||
-                           is_template_dependent_type(result_type));
     } else {
       try_folding = TRUE;
     }  /* if */
