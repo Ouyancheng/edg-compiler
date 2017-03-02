@@ -1,5 +1,18 @@
 Version 4.14
 
+3/2/17   [EDGcpfe/18057]
+Some class types inadvertently pre-lowered in gcc mode
+
+Due to the changes for EDGcpfe/17888 (in 4.13), a class type with designated
+initializers could inadvertently be "prelowered" (and mangled), which are
+operations that should only be performed in C++ mode.  Now fixed.  For example
+(with --gcc):
+
+  struct A {
+    int i;
+  } a[1] = { [0] = { 0 } };
+
+
 2/28/17  [EDGcpfe/18052]
 Spurious error on dependent unary operators in constant operand contexts
 

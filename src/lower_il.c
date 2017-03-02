@@ -8576,7 +8576,7 @@ routine assumes the class type is as complete as it will ever get.
   a_source_position           saved_error_position;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
-  check_assertion(is_primary_translation_unit);
+  check_assertion(is_primary_translation_unit && !C_mode());
   /* See if prelowering has already been done. */
   if (!class_has_been_prelowered(class_type)) {
     saved_error_position = error_position;

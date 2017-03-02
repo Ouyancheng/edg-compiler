@@ -13154,7 +13154,7 @@ have already had their designated initializers lowered.
   an_init_con_pos con, earlier_con;
 
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  if (is_immediate_class_type(aggr_type)) {
+  if (!C_mode() && is_immediate_class_type(aggr_type)) {
     prelower_class_type(aggr_type);
   }  /* if */
   set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
