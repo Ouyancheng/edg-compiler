@@ -2477,8 +2477,7 @@ conversion in cases where their value is not used.
       /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
       (void)make_prototyped_runtime_routine("__cxa_bad_typeid",
                                             &bad_typeid_routine,
-                                            void_type(),
-                                            (a_type_ptr)NULL,
+                                            void_type(), void_type(),
                                             (a_type_ptr)NULL,
                                             (a_type_ptr)NULL,
                                             (a_type_ptr)NULL,
@@ -3641,8 +3640,7 @@ return a pointer to it.
   a_routine_ptr routine =
              make_prototyped_runtime_routine("__destroy_exception_object",
                                              &destroy_exception_object_routine,
-                                             void_type(),
-                                             (a_type_ptr)NULL,
+                                             void_type(), void_type(),
                                              (a_type_ptr)NULL,
                                              (a_type_ptr)NULL,
                                              (a_type_ptr)NULL,
@@ -5701,8 +5699,8 @@ Make an expression that does a rethrow, and return a pointer to it.
 {
   an_expr_node_ptr rethrow_node =
                  make_prototyped_runtime_call("__rethrow", &rethrow_routine,
-                                        void_type(),
-                                        NULL, NULL,
+                                        void_type(), void_type(),
+                                        NULL,
                                         (an_expr_node_ptr)NULL);
 
   rethrow_routine->type->variant.routine.extra_info->does_not_return = TRUE;
@@ -5720,8 +5718,8 @@ pointer to it.
   an_expr_node_ptr rethrow_node =
                  make_prototyped_runtime_call("__internal_rethrow",
                                         &internal_rethrow_routine,
-                                        void_type(),
-                                        NULL, NULL,
+                                        void_type(), void_type(),
+                                        NULL,
                                         (an_expr_node_ptr)NULL);
 
   internal_rethrow_routine->type
@@ -6108,8 +6106,8 @@ Lower an enk_throw expression node.
     /* Make the call to the __throw routine, which actually does the
        throw.  It has no arguments. */
     call_node = make_prototyped_runtime_call("__throw", &throw_routine,
-                                       void_type(),
-                                       NULL, NULL,
+                                       void_type(), void_type(),
+                                       NULL,
                                        (an_expr_node_ptr)NULL);
     throw_routine->type->variant.routine.extra_info->does_not_return = TRUE;
     /* Overwrite the original node with a comma expression joining the

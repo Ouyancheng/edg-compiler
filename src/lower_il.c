@@ -11315,8 +11315,8 @@ has already been lowered.
       /* Build "__cxa_bad_cast()" */
       bad_cast_node = make_prototyped_runtime_call("__cxa_bad_cast",
                                              &bad_cast_routine,
-                                             void_type(),
-                                             NULL, NULL,
+                                             void_type(), void_type(),
+                                             NULL,
                                              (an_expr_node_ptr)NULL);
       make_zero_of_proper_type(ptr_type, constant);
       bad_cast_node = make_comma_node(bad_cast_node,

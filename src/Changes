@@ -1,5 +1,20 @@
 Version 4.14
 
+3/2/17   [EDGcpfe/18062]
+Missing void parameter in prototyped runtime routines
+
+The changes for EDGcpfe/17482 added prototypes for all library routines, but
+some library routines that take no parameters had the parameter list omitted
+and others specified a "void" type.  A change has been made to specify
+a "void" parameter type in all cases (affecting __cxa_bad_typeid,
+__destroy_exception_object, __rethrow, __internal_rethrow, __throw,
+__cxa_bad_cast, __cxa_throw_bad_array_new_length, and
+__throw_bad_array_new_length).
+
+Additionally, cxxabi.h has been updated to explicitly specify "void" in cases
+where previously no parameter types were specified.
+
+
 3/2/17   [EDGcpfe/18057]
 Some class types inadvertently pre-lowered in gcc mode
 

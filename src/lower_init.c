@@ -310,6 +310,7 @@ calling sequence.
     *routine = find_existing_runtime_routine(name, rout_type);
   }  /* if */
   if (*routine == NULL) {
+    check_assertion(return_type != NULL && param1_type != NULL);
     /* No existing routine, create one. */
     *routine = make_rout_entry(name, (a_storage_class)sc_extern, return_type,
                                (a_type_ptr)NULL);
@@ -10366,8 +10367,8 @@ the position to insert the necessary code.
                       (an_insert_location *)NULL);
   call_node = make_prototyped_runtime_call(array_new_length_name,
                                            &throw_bad_array_new_length_routine,
-                                           void_type(),
-                                           NULL, NULL,
+                                           void_type(), void_type(),
+                                           NULL,
                                            (an_expr_node_ptr)NULL);
   insert_expr(call_node, &then_insert_location);
   release_local_constant(&zero_constant);
