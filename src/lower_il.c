@@ -6675,7 +6675,7 @@ class_type is the class type whose vtbl is being constructed
                                           "__cxa_pure_virtual",
 #endif /* IA64_ABI */
                                           &pure_virtual_called_routine,
-                                          void_type(), void_type(), NULL, NULL,
+                                          void_type(), NULL, NULL, NULL,
                                           NULL, NULL, NULL, NULL);
     } else if (func_to_call->is_deleted) {
       /* A deleted virtual function.  Put the address of a special runtime
@@ -6687,7 +6687,7 @@ class_type is the class type whose vtbl is being constructed
                                           "__cxa_deleted_virtual",
 #endif /* IA64_ABI */
                                           &deleted_virtual_called_routine,
-                                          void_type(), void_type(), NULL, NULL,
+                                          void_type(), NULL, NULL, NULL,
                                           NULL, NULL, NULL, NULL);
     }  /* if */
     /* Put the pointer to the function into the table. */
@@ -11315,8 +11315,8 @@ has already been lowered.
       /* Build "__cxa_bad_cast()" */
       bad_cast_node = make_prototyped_runtime_call("__cxa_bad_cast",
                                              &bad_cast_routine,
-                                             void_type(), void_type(),
-                                             NULL,
+                                             void_type(),
+                                             NULL, NULL,
                                              (an_expr_node_ptr)NULL);
       make_zero_of_proper_type(ptr_type, constant);
       bad_cast_node = make_comma_node(bad_cast_node,
@@ -20815,7 +20815,7 @@ Do IL lowering of the indicated scope and everything under it.
       a_routine_ptr      underscore_main = NULL;
       an_insert_location insert_location;
       (void)make_prototyped_runtime_routine("_main", &underscore_main,
-                                            void_type(), void_type(), NULL,
+                                            void_type(), NULL, NULL,
                                             NULL, NULL, NULL, NULL, NULL);
       set_block_start_insert_location(scope->assoc_block, &insert_location);
       make_call_statement(underscore_main, (an_expr_node_ptr)NULL,

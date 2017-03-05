@@ -109,10 +109,10 @@ namespace __cxxabiv1 {
 
   extern "C" {
     /* Pure virtual function calls. */
-    void __cxa_pure_virtual(void);
+    void __cxa_pure_virtual();
 
     /* Deleted virtual function calls. */
-    void __cxa_deleted_virtual(void);
+    void __cxa_deleted_virtual();
 
     /* Constructors return void in the IA-64 ABI.  But in the ARM EABI
        variant, they return void*. */
@@ -178,8 +178,8 @@ namespace __cxxabiv1 {
     void __cxa_finalize(void *);
 
     /* Exception-handling support. */
-    void __cxa_bad_cast(void);
-    void __cxa_bad_typeid(void);
+    void __cxa_bad_cast();
+    void __cxa_bad_typeid();
 
     /* Demangling interface. */
     char *__cxa_demangle(const char* __mangled_name,
