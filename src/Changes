@@ -11,12 +11,12 @@ with "(void)" and "()" are both represented in the IL as having no parameters
 
 
 3/2/17   [EDGcpfe/18057]
-Some class types inadvertently pre-lowered in gcc mode
+Some struct types inadvertently pre-lowered in gcc mode
 
-Due to the changes for EDGcpfe/17888 (in 4.13), a class type with designated
-initializers could inadvertently be "prelowered" (and mangled), which are
-operations that should only be performed in C++ mode.  Now fixed.  For example
-(with --gcc):
+Due to the changes for EDGcpfe/17888 (in 4.13), in gcc mode a struct type could
+be "prelowered" (and have its name mangled) if it is used as the type of a
+variable with designated initializers. These operations should only be
+performed in C++ mode.  Now fixed.  For example (with --gcc):
 
   struct A {
     int i;
