@@ -7046,8 +7046,7 @@ has been chosen) will give the namespace an appropriate name.
   return name;
 }  /* give_unnamed_namespace_a_name */
 
-static void mangle_type_name(a_type_ptr type,
-                             a_boolean  force_mangling);
+static void mangle_type_name(a_type_ptr type);
 
 static void give_unnamed_template_param_member_a_name(
                                                 a_type_ptr               type,
@@ -7074,7 +7073,7 @@ caller.
       /* First, give the original type a name if possible (in the mangling
          pre-pass a name may not be available yet), then copy the
          relevant pieces to the template parameter. */
-      mangle_type_name(nested_type, /*force_mangling=*/FALSE);
+      mangle_type_name(nested_type);
       if (has_name(nested_type)) {
         type->source_corresp.name = nested_type->source_corresp.name;
         type->source_corresp.unmangled_name_or_mangled_encoding =
@@ -8973,7 +8972,7 @@ potential performance improvement, allowing re-use of a mangled name).
     if (ok_to_mangle_type) {
       /* No mangled name or mangled encoding, try to mangle the type name
          (if it's possible to do so). */
-      mangle_type_name(type, /*force_mangling=*/FALSE);
+      mangle_type_name(type);
     }  /* if */
     if (!type->source_corresp.name_has_been_mangled) {
       /* This type doesn't need a mangled name; save some context so we can
@@ -12349,15 +12348,14 @@ use them; otherwise, visit the local scopes from the routine scope.
 }  /* do_local_name_mangling */
 
 
-static void mangle_type_name(a_type_ptr type,
-                             a_boolean  force_mangling)
+static void mangle_type_name(a_type_ptr type)
 /*
-Mangle the name of the indicated type, if necessary or if force_mangling is
-TRUE.  Mangling is necessary for nested types and for classes with mangled
-names.  This is done early for the Cfront-like ABI to generate a mangled
-version of the type name that can be reused when building up other mangled
-names, thus saving time.  The mangled form saved is what mangled_type_name
-generates, plus a prefix.
+Mangle the name of the indicated type, if necessary.  Mangling is
+necessary for nested types and for classes with mangled names.
+This is done early for the Cfront-like ABI to generate a mangled
+version of the type name that can be reused when building up
+other mangled names, thus saving time.  The mangled form saved
+is what mangled_type_name generates, plus a prefix.
 */
 {
   a_mangling_control_block mctl;
@@ -12390,23 +12388,22 @@ generates, plus a prefix.
      been mangled on the previous call.  Type names can also have been
      previously mangled (in the Cfront ABI) when they are used as a component
      of another mangled name. */
-  if (force_mangling ||
-      (!type->source_corresp.name_has_been_mangled &&
-       /* Skip types needing a module id for now. */
-       !mctl.lacking_module_id &&
-       /* Mangle nested types. */
-       (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
-        /* Mangle types that need to be individuated. */
-        entity_needs_to_be_individuated(&type->source_corresp, iek_type) ||
-        /* Mangle unnamed types. */
-        !has_name(type) ||
-        /* Mangle template aliases. */
-        (type->kind == (a_type_kind)tk_typeref &&
-         type->variant.typeref.is_template_alias) ||
-        /* Mangle class types with template arguments. */
-        (is_immediate_class_type(type) &&
-         type->variant.class_struct_union.extra_info->
-                                                template_arg_list != NULL)))) {
+  if (!type->source_corresp.name_has_been_mangled &&
+      /* Skip types needing a module id for now. */
+      !mctl.lacking_module_id &&
+      /* Mangle nested types. */
+      (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
+       /* Mangle types that need to be individuated. */
+       entity_needs_to_be_individuated(&type->source_corresp, iek_type) ||
+       /* Mangle unnamed types. */
+       !has_name(type) ||
+       /* Mangle template aliases. */
+       (type->kind == (a_type_kind)tk_typeref &&
+        type->variant.typeref.is_template_alias) ||
+       /* Mangle class types with template arguments. */
+       (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info->
+                                                template_arg_list != NULL))) {
     start_mangling(&mctl);
 #if IA64_ABI
     add_str_to_mangled_name("_Z", &mctl);
@@ -12449,7 +12446,7 @@ compression and truncation.
       continue;
     }  /* if */
 #endif /* DO_IL_LOWERING */
-    mangle_type_name(type, /*force_mangling=*/FALSE);
+    mangle_type_name(type);
     /* If the type is a class, process its scope. */
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
@@ -13255,30 +13252,16 @@ char *mangled_class_name(a_type_ptr type)
 Return the mangled name of the class "type".  This is the encoding used
 for the name of the class as opposed to the encoding for the class as
 a type (for example, it has no length preceding a simple class name).
-The name returned must be copied elsewhere.
+The name returned is in a temporary buffer and must be copied elsewhere.
 */
 {
-#if !IA64_ABI
   a_mangling_control_block mctl;
-#endif /* !IA64_ABI */
-  char                     *result;
+  char                     *buffer;
 
-#if IA64_ABI
-  /* Mangle the type name (if not already mangled), then return a pointer past
-     the "_Z" prefix. */
-  if (!type->source_corresp.name_has_been_mangled) {
-    mangle_type_name(type, /*force_mangling=*/TRUE);
-  }  /* if */
-  check_assertion(type->source_corresp.name != NULL &&
-                  type->source_corresp.name[0] == '_' &&
-                  type->source_corresp.name[1] == 'Z');
-  result = (char *)&type->source_corresp.name[2];
-#else /* !IA64_ABI */
   start_mangling(&mctl);
   mangled_class_name_internal(type, &mctl);
-  result = end_mangling(/*final=*/TRUE, &mctl);
-#endif /* IA64_ABI */
-  return result;
+  buffer = end_mangling(/*final=*/TRUE, &mctl);
+  return buffer;
 }  /* mangled_class_name */
 
 
@@ -13646,7 +13629,7 @@ be embedded in other mangled names.
              !scp->name_has_been_mangled &&
              scp->name == NULL) {
     /* Mangle unnamed types. */
-    mangle_type_name((a_type_ptr)scp, /*force_mangling=*/FALSE);
+    mangle_type_name((a_type_ptr)scp);
 #endif /* !IA64_ABI */
   }  /* if */
 }  /* mangle_promoted_entity_name */

@@ -1,5 +1,28 @@
 Version 4.14
 
+3/6/17   [EDGcpfe/18075]
+Unintended mangling of IA-64 names in some cases
+
+The changes (introduced in 4.13) for EDGcpfe/17873, which were intended to
+increase performance during IA-64 name mangling, introduced a subtle bug that
+caused a mangled and unmangled name to be use for the same lowered class.
+Those changes have now been backed out.  For example:
+
+  struct B {
+    virtual void f();
+  };
+  void B::f() {}
+  #if USED_IN_BASE_CLASS
+  struct D : B {
+    virtual void f();
+  };
+  #endif
+
+In the example above, using "B" as a base class caused it to be given a mangled
+name (whereas it would not have a mangled name in another translation unit
+where it was not used as a base class).
+
+
 3/5/17   [EDGcpfe/18062]
 Function signatures for prototyped runtime routines
 
