@@ -11136,7 +11136,7 @@ Display memory use for entities in front end memory in this file (interpret.c).
         table = *(an_alloc_seq_number**)table;
       }  /* if */
       sprintf(name, "live set table width %lu", k);
-      table_size = sizeof(an_alloc_seq_number)*(1<<k);
+      table_size = sizeof(an_alloc_seq_number)*(1UL<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
