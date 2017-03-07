@@ -7597,14 +7597,18 @@ location is the insert_location2 value (after the assignment statement).
                                          &guard_acquire_routine,
                                          integer_type((an_integer_kind)ik_int),
                                          make_pointer_type((*test_var)->type),
-                                         NULL, var_addr_expr(*test_var));
+                                         NULL,
+                                         var_addr_expr(*test_var)
+                                         /*lint --e(666)*/);
     an_insert_location outer_block_insert_location,
                        release_insert_location;
     an_expr_node_ptr release_node =
                      make_prototyped_runtime_call("__cxa_guard_release",
                                          &guard_release_routine, void_type(),
                                          make_pointer_type((*test_var)->type),
-                                         NULL, var_addr_expr(*test_var));
+                                         NULL,
+                                         var_addr_expr(*test_var)
+                                         /*lint --e(666)*/);
     /* Make the acquire call a boolean controlling expression. */
     acquire_node = boolean_controlling_expr(acquire_node);
     set_block_start_insert_location(outer_then, &outer_block_insert_location);
