@@ -6395,6 +6395,7 @@ the body of the (constructor) function proper.
       n_bytes += sizeof(a_var_postfix);
       alloc_complete_object(ips, n_bytes, params->type, arg_bytes);
       clear_address(arg_bytes, implied_src);
+      mark_complete_object_initialized(arg_bytes);
       *p_arg_ptr = arg_bytes;
     }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
