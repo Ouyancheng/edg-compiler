@@ -1,5 +1,14 @@
 Version 4.14
 
+3/7/17   [EDGcpfe/18081]
+Invalid IL tree generated when IA64_ABI_USE_GUARD_ACQUIRE_RELEASE is TRUE
+
+The changes for EDGcpfe/17482 (in 4.13) inadvertently caused the same
+expression to be used in calls to __cxa_guard_acquire and __cxa_guard_release,
+causing an inconsistent IL tree.  This issue only affects IA-64 configurations
+where IA64_ABI_USE_GUARD_ACQUIRE_RELEASE is TRUE.
+
+
 3/6/17   [EDGcpfe/18075]
 Unintended mangling of IA-64 names in some cases
 
