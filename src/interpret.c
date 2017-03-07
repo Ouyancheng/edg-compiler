@@ -11108,7 +11108,8 @@ unsigned long db_show_interpret_fe_space_used(unsigned long  grand_total)
 Display memory use for entities in front end memory in this file (interpret.c).
 */
 {
-  unsigned long  k, num, size, total;
+  int            k;
+  unsigned long  num, size, total;
 
   /* Report map tables: */
   for (k = 0; k < MAX_WIDTH_REUSABLE_TABLE; ++k) {
@@ -11120,8 +11121,8 @@ Display memory use for entities in front end memory in this file (interpret.c).
         cnt += 1;
         table = (a_data_map_entry*)table->ptr;
       }  /* if */
-      sprintf(name, "data map table width %lu", k);
-      table_size = sizeof(an_alloc_seq_number)*(1<<k);
+      sprintf(name, "data map table width %d", k);
+      table_size = sizeof(an_alloc_seq_number)*(unsigned long)(1<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
@@ -11135,8 +11136,8 @@ Display memory use for entities in front end memory in this file (interpret.c).
         cnt += 1;
         table = *(an_alloc_seq_number**)table;
       }  /* if */
-      sprintf(name, "live set table width %lu", k);
-      table_size = sizeof(an_alloc_seq_number)*(1UL<<k);
+      sprintf(name, "live set table width %d", k);
+      table_size = sizeof(an_alloc_seq_number)*(unsigned long)(1<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
