@@ -5,7 +5,7 @@ Unintended mangling of IA-64 names in some cases
 
 The changes (introduced in 4.13) for EDGcpfe/17873, which were intended to
 increase performance during IA-64 name mangling, introduced a subtle bug that
-caused a mangled and unmangled name to be use for the same lowered class.
+caused a mangled and unmangled name to be used for the same lowered class.
 Those changes have now been backed out.  For example:
 
   struct B {
