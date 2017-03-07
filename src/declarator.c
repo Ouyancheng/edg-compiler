@@ -140,19 +140,20 @@ standard-attribute syntax).
   }  /* if */
   if (dps->pending_prefix_enable_if_attr && !dps->in_nested_declarator &&
       syn_loc == al_post_func) {
-    /* A prefix "enable_if" attribute should be handled at this point.  Move
-       it from the "prefix_attributes" list, to the list pointed to by
-       "attributes" (and about to be applied). */
+    /* One or more prefix "enable_if" attributes should be handled at this
+       point.  Move them from the "prefix_attributes" list, to the list pointed
+       to by "attributes" (and about to be applied). */
     an_attribute_ptr  *p_ap = &dps->prefix_attributes, to_move;
     for (;;) {
-      check_assertion(*p_ap != NULL);
       if ((*p_ap)->kind == (a_byte_attribute_kind)ak_enable_if) {
         to_move = *p_ap;
         *p_ap = to_move->next;
         to_move->next = attributes;
         attributes = to_move;
-        break;
+      } else {
+        p_ap = &(*p_ap)->next;
       }  /* if */
+      if (*p_ap == NULL) break;
     }  /* for */
   }  /* if */
   if (attributes != NULL) {
