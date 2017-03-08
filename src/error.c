@@ -3671,6 +3671,9 @@ that might be required.
     if (dp->kind == dck_primary) {
       a_diagnostic_ptr	mi_dp;
       for (mi_dp = dp->more_info.head; mi_dp != NULL; mi_dp = mi_dp->next) {
+        /* Unlike other messages, the primary diagnostic is not known when
+           the more_info messages are created. */
+        mi_dp->primary_diag = dp;
         construct_message(mi_dp);
       }  /* for */
     }  /* if */

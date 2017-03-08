@@ -1,5 +1,21 @@
 Version 4.14
 
+3/8/17   [EDGcpfe/18033]
+Internal error on constexpr notes when creating raw listing file
+
+An internal error could occur (in write_diag_to_raw_listing) when a
+constexpr "note" message is issued when a raw listing file is being
+generated.  Now fixed.  This example would result in an internal error
+when compiled with the --list option.
+
+  constexpr int f() {
+    return *(new int);
+  }
+  int main() {
+    constexpr int i = f();
+  }
+
+
 3/7/17   [EDGcpfe/18039]
 C++-generating back end: accessible alias template specializations
 
