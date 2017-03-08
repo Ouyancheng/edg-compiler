@@ -1,5 +1,39 @@
 Version 4.14
 
+3/7/17   [EDGcpfe/18039]
+C++-generating back end: accessible alias template specializations
+
+As described in the change for EDGcpfe/11015, when the IL uses a type that
+is inaccessible in the current context, the C++-generating back end attempts
+to substitute an accessible typedef naming that type in the generated code.
+This mechanism did not previously consider instances of alias templates as
+potential substitutes, leading to some cases of an inaccessible type
+erroneously appearing in the generated code.  This has now been fixed.  For
+example, with --c++14:
+
+  namespace Ns {
+  template <int i, typename T> struct C {
+  protected:
+    template <int j, typename T1> struct B {
+      static const T1 value = i + j;
+    };
+    template <int j> struct D: public B<j, int> { };
+  };
+
+  template <int i, typename T> struct E: private C<i, T> {
+    template <long v> struct S: public C<i, T>::template D<v> {
+    };
+  };
+  }
+
+  template <long v> using S = Ns::E<1, int>::S<v>;
+
+  void m(int i) {
+     m(S<1>::value);  // Previously generated as
+                      // Ns::C<1, int>::B<1, int>::value, which is invalid
+  }
+
+
 3/7/17   [EDGcpfe/18077]
 Unbounded loop on prefix enable_if attribute
 

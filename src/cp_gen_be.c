@@ -1468,11 +1468,28 @@ otherwise, return NULL.
   for (entry = &hash_table[bucket];
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
-    if (standalone_identical_types(entry->type->variant.typeref.type, type)) {
+    a_boolean matches =
+           standalone_identical_types(entry->type->variant.typeref.type, type);
+    if (!matches && entry->type->variant.typeref.is_template_alias) {
+      /* Instances of template aliases can also match base classes. */
+      a_base_class_ptr bcp = find_base_class_of(
+                                             entry->type->variant.typeref.type,
+                                             type);
+      if (bcp != NULL &&
+          bcp->derivation->access == (an_access_specifier)as_public) {
+        matches = TRUE;
+      }  /* if */
+    }  /* if */
+    if (matches) {
       /* The typedef matches.  Check whether it can be used. */
       a_type_ptr parent_class = parent_class_or_null(entry->type);
-      if (parent_class != NULL &&
-          is_prototype_instantiation_type(parent_class)) {
+      if (entry->type->variant.typeref.is_template_alias) {
+        /* Alias templates are instantiated separately and thus are not
+           subject to the restriction below, regardless of whether the
+           parent class is a prototype instantiation or not. */
+        result = entry->type;
+      } else if (parent_class != NULL &&
+                 is_prototype_instantiation_type(parent_class)) {
         /* The typedef is a member of a prototype instantiation, so it can
            only be safely used within the scope of its class template. */
         if (class_is_in_name_context_stack(
@@ -1505,7 +1522,8 @@ to the list of typedefs that can be used as a substitute when the
 underlying type is named in a context in which it is not accessible.
 Similarly, if the typedef is a member of the prototype instantiation of a
 class template and the generated code target is MSVC, add it to the list of
-such typedefs.
+such typedefs.  If type is the prototype instantiation of a public alias
+template, add its instances as well in case they may be needed.
 */
 {
   a_type_ptr targ_type;
@@ -1517,14 +1535,53 @@ such typedefs.
   if (entity_name_is_accessible(&type->source_corresp, iek_type,
                                 /*ignore_context=*/TRUE,
                                 &type_for_all_scopes) &&
-      has_name_before_mangling(targ_type) &&
-      !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
-                                 /*ignore_context=*/TRUE,
-                                 &targ_for_all_scopes) &&
-      !target_type_has_circularity(type)) {
-    /* This typedef can be substituted for the target type when that type
-       is inaccessible.  Add it to the table of such typedefs. */
-    add_typedef_to(accessible_typedef_hash_table, type);
+      has_name_before_mangling(targ_type)) {
+    if (!entity_name_is_accessible(&targ_type->source_corresp, iek_type,
+                                   /*ignore_context=*/TRUE,
+                                   &targ_for_all_scopes) &&
+        !target_type_has_circularity(type)) {
+      /* This typedef can be substituted for the target type when that type
+         is inaccessible.  Add it to the table of such typedefs. */
+      add_typedef_to(accessible_typedef_hash_table, type);
+    }  /* if */
+    if (type->variant.typeref.is_template_alias &&
+        type->variant.typeref.is_prototype_instantiation) {
+      /* This is the prototype instantiation of an alias template.  Go
+         through all the instances of that alias template in the parent
+         scope and add them to the hash table. */
+      a_type_ptr     tp;
+      a_template_ptr templ = type->variant.typeref.extra_info->assoc_template;
+      for (tp = type->source_corresp.parent_scope->types; tp != NULL;
+           tp = tp->next) {
+        if (tp->kind == (a_type_kind)tk_typeref &&
+            tp->variant.typeref.is_template_alias &&
+            !tp->variant.typeref.is_prototype_instantiation &&
+            tp->variant.typeref.extra_info->assoc_template == templ) {
+          a_type_ptr under_type = skip_typerefs(tp->variant.typeref.type);
+          add_typedef_to(accessible_typedef_hash_table, tp);
+          if (is_immediate_class_type(under_type)) {
+            /* Also add public base classes of the underlying class type,
+               since the alias type instance may have been used as a
+               qualifier for a member of a base class and we need to find
+               this instance in that case. */
+            a_base_class_ptr bcp;
+            a_type_ptr       saved_under_type = tp->variant.typeref.type;
+            for (bcp = under_type->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+                 bcp != NULL; bcp = bcp->next) {
+              if (bcp->derivation->access == (an_access_specifier)as_public) {
+                /* Temporarily make the typeref type the base class pointer
+                   and add it to the hash table. */
+                tp->variant.typeref.type = bcp->type;
+                add_typedef_to(accessible_typedef_hash_table, tp);
+              }  /* if */
+            }  /* for */
+            /* Restore the original underlying type. */
+            tp->variant.typeref.type = saved_under_type;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (msvc_is_generated_code_target) {
