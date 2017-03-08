@@ -1592,7 +1592,8 @@ types separated by commas (when single_type_required is FALSE).
      allowed so we may need to scan past several tokens in order to look
      for the left parenthesis below. */
   next_tok = next_token();
-  is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
+  is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
+                                        /*is_prescan=*/TRUE);
   if (microsoft_mode && is_start_of_type && curr_token != tok_identifier &&
       next_tok != tok_lparen && next_tok != tok_declspec &&
       next_tok != tok_alignas) {
@@ -1618,9 +1619,10 @@ types separated by commas (when single_type_required is FALSE).
     /* Do not insert code here. */
     if (any_tokens_fetched) {
       /* If we get here we have a type token followed by a token that may or
-         may not be a type.  Use is_type_start to determine if it is
+         may not be a type.  Use is_type_start_full to determine if it is
          something like a type identifier. */
-      is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
+      is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
+                                            /*is_prescan=*/TRUE);
     } else if (next_2_tok != tok_lparen) {
       /* Not a case we need to worry about. */
     } else if (next_tok == tok_identifier) {
@@ -1628,7 +1630,8 @@ types separated by commas (when single_type_required is FALSE).
       cache_curr_token(&cache);
       (void)get_token();
       any_tokens_fetched = TRUE;
-      is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
+      is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
+                                            /*is_prescan=*/TRUE);
     }  /* if */
     next_tok = next_2_tok;
     if (any_tokens_fetched) rescan_cached_tokens(&cache);

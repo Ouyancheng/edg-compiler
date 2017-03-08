@@ -946,18 +946,21 @@ from places such as is_type_start.
 Macro that is TRUE if the current token is an identifier that represents
 the name of a type (a typedef name or, in C++, the name of a class, struct,
 union, or enum).  Also works if the current is the "::" at the start of
-a global qualified name.
+a global qualified name.  options is the an_identifier_options_set flags
+to be passed to curr_id_is_type_name.
 */
 #define type_name_next(options) (is_generalized_identifier_start(options) && \
-                                 curr_id_is_type_name())
+                                 curr_id_is_type_name(options))
 
 
-a_boolean is_type_start(a_boolean is_expr_context)
+a_boolean is_type_start_full(a_boolean is_expr_context,
+                             a_boolean is_prescan)
 /*
 Return TRUE if the current token looks like the start of a type.  A type
 starts with a type-specifier (including a typedef name) or a type-qualifier.
 is_expr_context is TRUE if this is called from a context in which an
-expression is permitted.
+expression is permitted.  is_presan is TRUE if this is called from
+disambiguation.
 */
 {
   a_boolean    is_start = FALSE;
@@ -985,6 +988,9 @@ expression is permitted.
     an_identifier_options_set  gid_options = GID_NO_OPTIONS;
     if (is_expr_context) {
       gid_options |= GID_IS_EXPR_CONTEXT;
+    }  /* if */
+    if (is_prescan) {
+      gid_options |= GID_TEMPLATE_ARGS_OPTIONAL;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_bugs) {
@@ -1015,6 +1021,16 @@ expression is permitted.
     }  /* if */
   }  /* if */
   return(is_start);
+}  /* is_type_start_full */
+
+
+a_boolean is_type_start(a_boolean is_expr_context)
+/*
+Interface to is_type_start_full for contexts that don't need to supply
+the is_prescan flag.
+*/
+{
+  return is_type_start_full(is_expr_context, /*is_prescan=*/FALSE);
 }  /* is_type_start */
 
 

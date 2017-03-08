@@ -41,13 +41,19 @@ a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
-the "::" at the start of a qualified name) is a type name.
+the "::" at the start of a qualified name) is a type name.  If options
+includes GID_TEMPLATE_ARGS_OPTIONAL, this is considered a prescan context.
 */
-#define curr_id_is_type_name()						\
-  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE,   \
-                    /*in_type_check=*/TRUE) != NULL)
+#define curr_id_is_type_name(options)					\
+  (curr_type_symbol(							\
+          /*is_new_type_name=*/FALSE,					\
+          /*in_prescan=*/((options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,	\
+          /*in_type_check=*/TRUE) != NULL)
 
 /* Test whether or not the current token is the start of a type. */
+a_boolean is_type_start_full(a_boolean is_expr_context,
+                             a_boolean is_presan);
+
 extern a_boolean is_type_start(a_boolean is_expr_context);
 
 /*
