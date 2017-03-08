@@ -17,7 +17,7 @@ variable template.  For example:
   int *p = &S::vt<X>;  // Previously triggered an internal error in
                        // GNU C++14 mode.
 
-This is now fixed.
+This regression introduced in version 4.13 is now fixed.
 
 
 3/8/17   [EDGcpfe/18080]
