@@ -46,9 +46,10 @@ includes GID_TEMPLATE_ARGS_OPTIONAL, this is considered a prescan context.
 */
 #define curr_id_is_type_name(options)					\
   (curr_type_symbol(							\
-          /*is_new_type_name=*/FALSE,					\
-          /*in_prescan=*/((options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,	\
-          /*in_type_check=*/TRUE) != NULL)
+     /*is_new_type_name=*/FALSE,					\
+     /*in_prescan=*/							\
+         /*lint -e(835)*/((options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,	\
+     /*in_type_check=*/TRUE) != NULL)
 
 /* Test whether or not the current token is the start of a type. */
 a_boolean is_type_start_full(a_boolean is_expr_context,
