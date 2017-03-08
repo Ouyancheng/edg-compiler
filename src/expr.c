@@ -30067,8 +30067,8 @@ variable:
               check_reference_from_inline_function(sym_ptr);
             }  /* if */
             if (var_ptr->is_template_variable &&
-                var_ptr->source_corresp.is_class_member &&
                 !var_ptr->is_prototype_instantiation &&
+                symbol_is(sym_ptr, sk_static_data_member) &&
                 gpp_mode && !clang_mode && expr_stack->favor_constant_result) {
               /* In GNU C++ mode, static data member constants may be
                  instantiated late.  Ensure that they're instantiated in
