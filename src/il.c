@@ -26,6 +26,7 @@ il.c -- Construction of intermediate language trees.
 #include "exprutil.h"
 #include "folding.h"
 #include "il_walk.h"
+#include "interpret.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "func_def.h"
 /* Needed for access to "alignment_of_field_full". */
@@ -21088,13 +21089,25 @@ to be thrown.  See the definition of the "noexcept" operator in the
 C++11 standard [expr.unary.noexcept].
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
+  a_boolean    result = TRUE;
+  a_diag_list  diag_list;
 
-  set_up_might_throw_traversal_block(&tblock);
-  if (exceptions_enabled) {
-    traverse_expr(expr, &tblock);
+  clear_diag_list(&diag_list);
+  if (constexpr_enabled && !(clang_mode || microsoft_mode) &&
+      is_core_constant_expr(expr, &diag_list)) {
+    /* Core constant-expressions are always "noexcept".  Clang does not
+       appear to implement that yet. */
+    result = FALSE;
+  } else {
+    an_expr_or_stmt_traversal_block tblock;
+    set_up_might_throw_traversal_block(&tblock);
+    if (exceptions_enabled) {
+      traverse_expr(expr, &tblock);
+    }  /* if */
+    result = tblock.result;
   }  /* if */
-  return tblock.result;
+  discard_more_info_list(&diag_list);
+  return result;
 }  /* expr_might_throw */
 
 

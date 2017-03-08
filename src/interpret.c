@@ -10769,6 +10769,59 @@ diagnostic in *ips.
 }  /* copy_interpreter_object_to_constant */
 
 
+a_boolean is_core_constant_expr(an_expr_node_ptr  expr,
+                                a_diag_list_ptr   diag_list)
+/*
+Return TRUE if the given expression is a "core constant expression".  
+Otherwise, return FALSE, and record diagnostic info in *diag_list.
+This is very similar to interpret_expr below, but the result of the evaluation
+in terms of interpreter values is not copied back to an IL representation (that
+copy would diagnose cases that are specific constant expressions but not "core
+constant expressions").
+*/
+{
+  a_boolean             result = TRUE;
+  an_interpreter_state  ips;
+  a_byte                *result_storage;
+  a_byte_count          n_bytes;
+  a_type_ptr            result_type = skip_typerefs(expr->type);
+
+  if (is_constant_node(expr)) {
+    /* The expression is already a constant. */
+    goto done;
+  }  /* if */
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips);
+  ips.position = expr->position;
+  n_bytes = expr_result_size(&ips, expr, result_type, &result); 
+  if (!result) {
+    if (ips.input_error) {
+      /* Interpretation failed due to an error node in the IL.  Continue
+         with an error constant, but treat interpretation as successful. */
+      result = TRUE;
+    }  /* if */
+    /* Nothing more to be done. */
+  } else {
+    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
+      if (ips.input_error) {
+        /* Interpretation failed due to an error node in the IL.  Continue
+           with an error constant, but treat interpretation as successful. */
+      } else {
+        do_constexpr_fail(result);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *diag_list = ips.diag_list;
+  release_interpreter_state(&ips);
+done:
+  return result;
+}  /* is_core_constant_expr */
+
+
 a_boolean interpret_expr(an_expr_node_ptr  expr,
                          a_boolean         force_prvalue,
                          a_constant_ptr    result_con,
