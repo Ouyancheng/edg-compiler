@@ -14683,18 +14683,6 @@ is the one associated with the template.
       /* Update the current packing alignment to reflect any #pragma pack
          directives that were embedded in the template definition string. */
       curr_pack_alignment = tp->final_alignment;
-      if (tp->kind == (a_template_kind)templk_class &&
-          tp->prototype_instantiation.type != NULL &&
-          tp->prototype_instantiation.type->kind == (a_type_kind)tk_typeref &&
-          tp->prototype_instantiation.type->
-                                           variant.typeref.is_template_alias) {
-        /* We have a prototype instantiation of an alias template, even
-           though we didn't use that to generate the definition of the
-           template.  Add it and its instances to the accessible typedefs
-           table so they can be used to represent inaccessible types, if
-           necessary. */
-        register_substitutable_typedef(tp->prototype_instantiation.type);
-      }  /* if */
     }  /* if */
   }  /* if */
   /* Update the canonical template to reflect the number of parameters
