@@ -1,5 +1,18 @@
 Version 4.14
 
+3/9/17   [EDGcpfe/17991]
+Diagnose non-scalar type used in vacuous destructor call
+
+The front end failed to diagnose a vacuous (a.k.a., pseudo) destructor
+call in which the object expression was a non-scalar type.  Now fixed.
+This is still silently accepted in permissive Microsoft mode.
+
+  typedef void V;
+  void f(V *p) {
+    p->~V();
+  }
+
+
 3/9/17   [EDGcpfe/17987]
 Incorrect IL flag for nested class of class template instantiation
 

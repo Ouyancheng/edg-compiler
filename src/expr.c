@@ -7527,7 +7527,21 @@ case).
          what's already there, so we can't use cast_operand here. */
       a_type_ptr new_type = is_arrow_operator ? make_pointer_type(dtor_type) :
                                                 dtor_type;
+      a_type_ptr object_type = operand_1->type;
       an_operand orig_operand;
+      if (is_arrow_operator && object_type->kind == (a_type_kind)tk_pointer) {
+        object_type = type_pointed_to(object_type);
+      }  /* if */
+      /* The object expression of a vacuous destructor call must be a scalar
+         type. */
+      if (!is_error_type(object_type) && !is_scalar_type(object_type)) {
+        if (microsoft_mode && ms_permissive) {
+          /* This is allowed in permissive Microsoft mode. */
+        } else if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_non_scalar_vacuous_dtor_call, &operand_1->position,
+                       object_type);
+        }  /* if */
+      }  /* if */
       orig_operand = *operand_1;
       node = make_node_from_operand(operand_1);
       if (!identical_types(node->type, new_type)) {

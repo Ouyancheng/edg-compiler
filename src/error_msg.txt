@@ -2901,6 +2901,7 @@ ec_attribute_declared_here;;"attribute was declared here"
 ec_has_include_not_in_if;;"__has_include cannot appear outside #if"
 ec_coclass_base_requirements_not_met;;"could not add CComCoClass base class"
 ec_constexpr_string_not_null_terminated;;"not a null-terminated string"
+ec_non_scalar_vacuous_dtor_call;;"non-scalar type %t cannot be used in a vacuous destructor call"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
