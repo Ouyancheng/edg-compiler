@@ -7537,6 +7537,8 @@ case).
       if (!is_error_type(object_type) && !is_scalar_type(object_type)) {
         if (microsoft_mode && ms_permissive) {
           /* This is allowed in permissive Microsoft mode. */
+        } else if (gpp_version_is(<= 40200) && is_array_type(object_type)) {
+          /* g++ accepts array types through version 4.2. */
         } else if (expr_error_should_be_issued()) {
           pos_ty_error(ec_non_scalar_vacuous_dtor_call, &operand_1->position,
                        object_type);
