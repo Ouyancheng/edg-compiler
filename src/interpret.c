@@ -10776,8 +10776,8 @@ Return TRUE if the given expression is a "core constant expression".
 Otherwise, return FALSE, and record diagnostic info in *diag_list.
 This is very similar to interpret_expr below, but the result of the evaluation
 in terms of interpreter values is not copied back to an IL representation (that
-copy would diagnose cases that are specific constant expressions but not "core
-constant expressions").
+copy would diagnose cases that are core constant expressions but not "constant
+expressions").
 */
 {
   a_boolean             result = TRUE;
