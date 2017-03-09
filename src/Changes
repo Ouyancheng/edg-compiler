@@ -1,5 +1,20 @@
 Version 4.14
 
+3/9/17   [EDGcpfe/18070]
+Spurious constexpr failure when adding/subtracting zero from null pointer
+
+The constexpr interpreter previously treated adding or subtracting zero from a
+null pointer as a evaluation failure, which in turn could lead to spurious
+errors.  For example:
+
+  constexpr int* f() { return nullptr; }
+  constexpr int* g() { return f()+0; }
+  constexpr int* r = g();  // Previously an error.  Now okay.
+
+In C++11 mode, this is a regression introduced by version 4.13.  This is now
+fixed.
+
+
 3/9/17   [EDGcpfe/18053]
 Spurious error on constructor inheriting from constexpr base constructor
 
