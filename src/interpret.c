@@ -2761,7 +2761,7 @@ that type.
   a_byte_count  bitmap_size;                                                 \
   if (is_immediate_class_type(utp) ||                                        \
       utp->kind == (a_type_kind)tk_array) {                                  \
-    bitmap_size = (n_bytes-1)/CHAR_BIT+1;                                    \
+    bitmap_size = (n_bytes+CHAR_BIT-1)/CHAR_BIT;                             \
   } else {                                                                   \
     bitmap_size = 0;                                                         \
   }  /* if */                                                                \

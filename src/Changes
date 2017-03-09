@@ -1,5 +1,15 @@
 Version 4.14
 
+3/9/17   [EDGcpfe/18061]
+Spurious excessive interpreter memory use for zero-length types
+
+The front end sometimes attempted to allocate very large blocks of memory to
+represent values of zero-length types in the interpreter (possible in GNU C
+mode).  This attempt could fail on some platforms, resulting in a spurious
+"out of memory" error.  This regression introduced in version 4.13 is now
+fixed.
+
+
 3/9/17   [EDGcpfe/18072]
 Position of expression nodes after folding
 
