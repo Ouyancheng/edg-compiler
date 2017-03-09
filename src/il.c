@@ -26,9 +26,9 @@ il.c -- Construction of intermediate language trees.
 #include "exprutil.h"
 #include "folding.h"
 #include "il_walk.h"
-#include "interpret.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "func_def.h"
+#include "interpret.h"
 /* Needed for access to "alignment_of_field_full". */
 #include "layout.h"
 #include "pch.h"
