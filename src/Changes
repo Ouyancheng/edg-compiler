@@ -1,5 +1,22 @@
 Version 4.14
 
+3/9/17   [EDGcpfe/17828]
+C++-generating back end: dependent expression values for enumerators
+
+In configurations in which template definitions are generated from
+prototype instantiations, the C++-generating back end previously sometimes
+omitted the expression value for an enumerator for certain complex
+expressions involving template parameters.  This is now fixed.  For
+example, with --c++11:
+
+  template <int R, int... E> struct S;
+
+  template <int R, int... Tail> struct S<R, 0, Tail...> : S<R+1> {
+    enum : int { X = 1 + S<R+1>::X }; // Previously "{ X }" with no expression
+  };
+
+
+
 3/8/17   [EDGcpfe/18065]
 GNU C++14-mode abort on member variable template
 

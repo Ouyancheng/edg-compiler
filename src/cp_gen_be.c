@@ -7833,31 +7833,37 @@ is the one associated with the definition of the enum.
           explicit_enum_expr = TRUE;
         }  /* if */
       } else {
-        an_expr_node_ptr con_expr;
         /* This constant involves a template parameter. */
         check_assertion(enum_con->kind ==
                                       (a_constant_repr_kind)ck_template_param);
+        explicit_enum_expr = TRUE;
         if (enum_con->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-            (is_initial_implicit_zero ||
-             (enum_con->variant.template_param.variant.constant->kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
+          if (is_initial_implicit_zero) {
+            /* No explicit_expression is needed for the first constant. */
+            explicit_enum_expr = FALSE;
+          } else if (enum_con->variant.template_param.variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-              enum_con->variant.template_param.variant.constant->
+                     enum_con->variant.template_param.variant.constant->
                                                  variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression &&
-              (con_expr = expr_node_from_tpck_expression(
-                 enum_con->variant.template_param.variant.constant)) != NULL &&
-              is_operation_node(con_expr) &&
-              con_expr->variant.operation.compiler_generated))) {
-          /* Either the constant is the initial implicit zero or it is a
-             compiler-generated expression, which only occurs if it is the
-             incremented value of the preceding constant; no explicit
-             expression is needed. */
-          explicit_enum_expr = FALSE;
-        } else {
-          /* Any other kind of constant must involve an explicit
-             expression. */
-          explicit_enum_expr = TRUE;
+                             (a_template_param_constant_kind)tpck_expression) {
+            an_expr_node_ptr con_expr = expr_node_from_tpck_expression(
+                            enum_con->variant.template_param.variant.constant);
+            if (is_operation_node(con_expr)) {
+              if (node_operator_is(con_expr, eok_cast) &&
+                  con_expr->variant.operation.compiler_generated) {
+                /* Skip over a compiler-generated cast of the expression to
+                   the underlying type. */
+                con_expr = con_expr->variant.operation.operands;
+              }  /* if */
+              if (is_operation_node(con_expr) &&
+                  con_expr->variant.operation.compiler_generated)
+                /* The constant is a compiler-generated expression, which
+                   only occurs if it is the incremented value of the
+                   preceding constant; no explicit expression is needed. */
+                explicit_enum_expr = FALSE;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
       if (explicit_enum_expr) {
