@@ -30124,12 +30124,23 @@ next_declaration:
           class_tssp->cache.decl_info->enclosing_scope != NULL &&
           scope_is(class_tssp->cache.decl_info->enclosing_scope,
                    sck_class_struct_union)) {
-        /* An instantiation of a nested class template whose definition
-           originally appeared inside the parent class definition. */
+        /* A prototype instantiation of a nested class template whose
+           definition originally appeared inside the parent class
+           definition. */
+      } else if (cssp->corresp_prototype_sym) {
+        /* A real instantiation of a nested class of a class template: Copy
+           the flag from the prototype instantiation. */
+        if (cssp->corresp_prototype_sym
+                ->variant.class_struct_union.type
+                ->variant.class_struct_union
+                         .nested_class_defined_outside_of_parent) {
+          class_type->variant.class_struct_union
+                             .nested_class_defined_outside_of_parent = TRUE;
+        }  /* if */
       } else {
         /* A nested class defined outside the parent class definition. */
         class_type->variant.class_struct_union
-                               .nested_class_defined_outside_of_parent = TRUE;
+                           .nested_class_defined_outside_of_parent = TRUE;
       }  /* if */
       if (is_template_instantiation || instantiation_scope_pushed) {
         /* The class reactivation scope is popped along with the template

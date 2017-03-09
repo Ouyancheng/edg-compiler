@@ -1,5 +1,14 @@
 Version 4.14
 
+3/9/17   [EDGcpfe/17987]
+Incorrect IL flag for nested class of class template instantiation
+
+The flag nested_class_defined_outside_of_parent was sometimes incorrectly set
+to TRUE for nested classes of class template instantiations.  This is now
+fixed.  (See also EDGcpfe/11936, which addresses a similar issue for nested
+class templates.)
+
+
 3/9/17   [EDGcpfe/18061]
 Spurious excessive interpreter memory use for zero-length types
 
