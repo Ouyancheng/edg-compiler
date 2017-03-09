@@ -1,5 +1,28 @@
 Version 4.14
 
+3/9/17   [EDGcpfe/18053]
+Spurious error on constructor inheriting from constexpr base constructor
+
+Consider:
+
+  template<typename T> struct B {
+    constexpr B(T) {}  // (1)
+  };
+  template<typename T> struct D: B<T> {
+    using B<T>::B;  // (2)
+  };
+  struct N { N(); } n;  // Nonliteral type.
+  D<N> d(n);  // Previously triggered an error.  Now okay.
+
+The inheriting constructor (2) "acquires" the constexpr specifier from the
+base constructor B, but when instantiating these constructors for T = N the
+resulting parameter lists do not satisfy the requirement that the parameter
+types be literal types.  This should not be an error for parameter lists that
+are the result of template instantiation (as is the case here), but the front
+end previously failed to make that allowance for inheriting constructors and
+an error was issued as a consequence of that.  This is now fixed.
+
+
 3/9/17   [EDGcpfe/17828]
 C++-generating back end: dependent expression values for enumerators
 

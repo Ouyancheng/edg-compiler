@@ -7815,10 +7815,22 @@ position.
       }  /* if */
     } else {
       a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
+      a_boolean         template_instance = rout_is_real_template_instance(rp);
+      if (!template_instance && rp->is_inheriting_ctor) {
+        /* An inheriting constructor not generated from a base constructor
+           template is never marked as a template instance, but if it is
+           generated for a class template instance, it should be considered
+           a template instance in this context. */
+        a_type_ptr  parent = parent_class_of(rp);
+        if (parent->variant.class_struct_union.is_template_class &&
+            !parent->variant.class_struct_union.is_specialized) {
+          template_instance = TRUE;
+        }  /* if */
+      }  /* if */
       for (; ptp != NULL; ptp = ptp->next) {
         if (!could_be_literal_type(ptp->type)) {
           okay = FALSE;
-          if (!rout_is_real_template_instance(rp)) {
+          if (!template_instance) {
             pos_ty_error(ec_nonliteral_param_type_in_constexpr_function,
                          diag_pos, ptp->type);
           }  /* if */
