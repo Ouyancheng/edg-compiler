@@ -19025,9 +19025,9 @@ selection operator, in which case it points to the type of the left operand.
         if (next_tok == tok_colon_colon &&
             is_dtor_or_finalizer_token(next_tok_2)) {
           might_be_qualifier = TRUE;
-          if (strict_ansi_mode) {
-            /* A vacuous destructor/finalizer reference is no longer permitted
-               to use a type keyword, only a typedef name. */
+          if (!type_keyword_in_dtor_allowed) {
+            /* A vacuous destructor/finalizer reference is not normally
+               permitted to use a type keyword, only a typedef name. */
             pos_error(ec_exp_identifier, &error_position);
           }  /* if */
         }  /* if */
@@ -20055,9 +20055,10 @@ selection operator, in which case it points to the type of the left operand.
             err = TRUE;
           }  /* if */
         } else if (curr_token == tok_decltype ||
-                   (!strict_ansi_mode &&
+                   (type_keyword_in_dtor_allowed &&
                     (dtor_or_finalizer_type = type_keyword()) != NULL)) {
-          /* "~decltype(x)" or a type keyword such as "~int". */
+          /* "~decltype(x)" or a type keyword such as "~int" (which is
+             allowed for some modes). */
           if (curr_token == tok_decltype) {
             a_type_ptr	tp;
             /* might_be_id_start is passed in as TRUE to prevent the token

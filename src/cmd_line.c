@@ -2733,6 +2733,7 @@ by a command line option.
        operator delete. */
     implicit_noexcept_enabled = FALSE;
   }  /* if */
+  type_keyword_in_dtor_allowed = TRUE;
 }  /* set_cfront_mode_flags */
 
 
@@ -4106,6 +4107,7 @@ checked again here.)
   /* In-class specializations are supported. */
   allow_in_class_specializations = TRUE;
   allow_default_arg_on_template_member_definition = TRUE;
+  type_keyword_in_dtor_allowed = TRUE;
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     type_traits_helpers_enabled = FALSE;
   }  /* if */
@@ -4482,6 +4484,7 @@ before this routine is called.
   allow_default_arg_on_template_member_definition = TRUE;
   floating_point_template_parameters_allowed = FALSE;
   equiv_typedefs_are_lookup_equivalent = FALSE;
+  type_keyword_in_dtor_allowed = (gnu_version <= 30300);
   /* Early GNU C++ compilers do not check accessibility of friend function
      declarations. */
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
@@ -11178,6 +11181,7 @@ variables declared in cmd_line.h.
                               DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS;
   special_subscript_cost = DEFAULT_SPECIAL_SUBSCRIPT_COST;
   long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
+  type_keyword_in_dtor_allowed = FALSE;
   allow_in_class_specializations = FALSE;
   record_form_of_name_reference = DEFAULT_RECORD_FORM_OF_NAME_REFERENCE;
   defs_from_cmd_line = NULL;

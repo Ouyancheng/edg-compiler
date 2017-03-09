@@ -875,6 +875,11 @@ EXTERN a_boolean
 			   This means the rules described in the K&R I book,
 			   not the rules used by the pcc compiler. */
 
+EXTERN a_boolean
+		type_keyword_in_dtor_allowed;
+			/* TRUE if a vacuous destructor call can use a
+			   type keyword (e.g., p->~int()). */
+
 EXTERN a_def_undef_string_ptr
 		defs_from_cmd_line;
 			/* The list of -D and -U options from the command
