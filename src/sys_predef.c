@@ -487,6 +487,10 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   a_const_char      *saved_start_of_curr_token = start_of_curr_token;
   a_const_char      *saved_end_of_curr_token = end_of_curr_token;
   a_symbol_locator  saved_locator_for_curr_id = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position saved_curr_construct_end_position =
+                                                   curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean         saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
@@ -535,6 +539,9 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   start_of_curr_token = saved_start_of_curr_token;
   end_of_curr_token = saved_end_of_curr_token;
   locator_for_curr_id = saved_locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return result;
 }  /* builtin_function_type */
 

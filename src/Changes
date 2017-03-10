@@ -1,5 +1,22 @@
 Version 4.14
 
+3/10/17  [EDGcpfe/18096]
+Incorrect end_position with builtin functions
+
+The changes for builtin functions (in 4.12) introduced the possibility that
+curr_construct_end_position could be overwritten during the processing of
+a builtin function (in configurations where EXTRA_SOURCE_POSITIONS_IN_IL is
+TRUE).  In the example below (with --gcc), the end_position of the "if"
+statement was incorrect.  Now fixed.
+
+  typedef __builtin_va_list __gnuc_va_list;
+  typedef __gnuc_va_list va_list;
+  void f(va_list ap) {
+    if (0) { }
+    __builtin_va_end(ap);
+  }
+
+
 3/9/17   [EDGcpfe/18093]
 Type keywords as vacuous destructor names disallowed in most modes
 
