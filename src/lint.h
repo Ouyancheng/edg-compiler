@@ -435,6 +435,8 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_data_map)*/
 /*lint -esym(765, db_live_set)*/
 /*lint -esym(714, db_live_set)*/
+/*lint -esym(765, db_object_alloc_num)*/
+/*lint -esym(714, db_object_alloc_num)*/
 #endif /* DEBUG */
 #if !UPC_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/
