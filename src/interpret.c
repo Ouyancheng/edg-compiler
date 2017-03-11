@@ -2741,6 +2741,10 @@ indicated storage, because that result could set the active field.)
 
 #if DEBUG
 
+static a_boolean
+		object_alloc_tracking_enabled;
+			/* TRUE if complete allocations should be tracked
+			   for debugging purposes. */ 
 static a_data_map
 		object_alloc_map;
 			/* Map tracking allocations of complete objects. */
@@ -2754,7 +2758,7 @@ static void object_alloc_intercept(void)
 /*
 Called if the object indicated by object_alloc_to_intercept is allocated.
 Place a breakpoint on this function to find out when a certain complete object
-is allocated.
+is allocated.  (Requires object_tracking_enabled to be TRUE.)
 */
 {
   fprintf(f_debug, "Allocated interpreter object #%u\n",
@@ -2770,21 +2774,23 @@ db_object_alloc_num and can be assigned to object_alloc_to_intercept when the
 front end starts up to find where the object is originally allocated.
 */
 {
-  static a_boolean     map_ready = FALSE;
-  static a_byte_count  alloc_num = 0;
-  if (!map_ready) {
-    init_data_map(&object_alloc_map, /*mask_width=*/5U);
-    map_ready = TRUE;
+  if (object_alloc_tracking_enabled) {
+    static a_boolean     map_ready = FALSE;
+    static a_byte_count  alloc_num = 0;
+    if (!map_ready) {
+      init_data_map(&object_alloc_map, /*mask_width=*/5U);
+      map_ready = TRUE;
+    }  /* if */
+    alloc_num += 1;
+    if (alloc_num == object_alloc_to_intercept) {
+      object_alloc_intercept();
+    }  /* if */
+    map_byte_count(&object_alloc_map, ptr, alloc_num);
   }  /* if */
-  alloc_num += 1;
-  if (alloc_num == object_alloc_to_intercept) {
-    object_alloc_intercept();
-  }  /* if */
-  map_byte_count(&object_alloc_map, ptr, alloc_num);
 }  /* track_complete_object_alloc */
 
 
-static a_byte_count db_object_alloc_num(a_byte  *ptr)
+unsigned long db_object_alloc_num(a_byte  *ptr)
 /*
 Return the unique integer value associated with ptr by
 track_complete_object_alloc.
@@ -2792,7 +2798,7 @@ track_complete_object_alloc.
 {
   a_byte_count  alloc_num;
   get_mapped_byte_count(&object_alloc_map, ptr, alloc_num);
-  return alloc_num;
+  return (unsigned long)alloc_num;
 }  /* db_object_alloc_num */
 
 #else /* !DEBUG */
@@ -11296,6 +11302,7 @@ One-time initialization for interpret.c static variables.
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
 #if DEBUG
+  object_alloc_tracking_enabled = FALSE;
   object_alloc_to_intercept = 0;
 #endif /* DEBUG */
 }  /* interpret_one_time_init */

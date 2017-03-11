@@ -57,6 +57,8 @@ void db_live_set(void  *interpreter_state);
 
 unsigned long db_show_interpret_fe_space_used(unsigned long  grand_total);
 
+unsigned long db_object_alloc_num(a_byte  *ptr);
+
 #endif /* DEBUG */
 
 void clean_up_interpreter(void);
