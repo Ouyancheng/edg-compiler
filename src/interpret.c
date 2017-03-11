@@ -2741,10 +2741,11 @@ indicated storage, because that result could set the active field.)
 
 #if DEBUG
 
-a_data_map	object_alloc_map;
+static a_data_map
+		object_alloc_map;
 			/* Map tracking allocations of complete objects. */
 
-a_byte_count
+static a_byte_count
 		object_alloc_to_intercept;
 			/* The allocation number to intercept (0 if none). */
 
