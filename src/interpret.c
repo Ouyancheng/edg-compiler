@@ -2784,7 +2784,7 @@ front end starts up to find where the object is originally allocated.
 }  /* track_complete_object_alloc */
 
 
-a_byte_count db_object_alloc_num(a_byte  *ptr)
+static a_byte_count db_object_alloc_num(a_byte  *ptr)
 /*
 Return the unique integer value associated with ptr by
 track_complete_object_alloc.
