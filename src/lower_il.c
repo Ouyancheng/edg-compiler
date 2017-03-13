@@ -15414,16 +15414,10 @@ cast.  See lower_expr for typical invocation.
                  node_has_side_effects(operand_node, (a_boolean *)NULL)) {
         /* Issue a warning to let the user know we're ignoring
            this __assume expression. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (operand_node->expr_range.start.seq != 0) {
-          pos_warning(ec_assume_expression_discarded,
-                      &operand_node->expr_range.start);
-        } else
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Do not insert code here. */
-        {
-          pos_warning(ec_assume_expression_discarded, &error_position);
-        }
+        pos_warning(ec_assume_expression_discarded,
+                    expr->variant.operation.operands->position.seq == 0 ?
+                                  &error_position :
+                                  &expr->variant.operation.operands->position);
         /* Turn __assume(expr) into (void)0 if expr has side effects to
            avoid problems with destructible entities inside the expression. */
         operand_node = node_for_integer_constant((long)0,
