@@ -2985,6 +2985,13 @@ if setting the positions in the underlying expression.
     }  /* if */
     if (expr->position.seq != 0) {
       /* A position has been recorded already.  Don't override it. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (expr->expr_range.start.seq == 0) {
+        /* The range hasn't been recorded yet.  Update it. */
+        expr->expr_range.start = operand->position;
+        expr->expr_range.end = operand->end_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (is_operation_node(expr) &&
                expr->variant.operation.compiler_generated &&
                !expr->variant.operation.call_uses_operator_syntax) {
