@@ -1057,6 +1057,14 @@ entries, as an aid to debugging.
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
 /*
+Flag to enable tracking of object allocations in the IL interpreter, as an
+aid to debugging.
+*/
+#ifndef TRACK_INTERPRETER_ALLOCATIONS
+#define TRACK_INTERPRETER_ALLOCATIONS FALSE
+#endif /* TRACK_INTERPRETER_ALLOCATIONS */
+
+/*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.

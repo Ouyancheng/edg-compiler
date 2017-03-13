@@ -8554,6 +8554,11 @@ file.
 #else /* !defined(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION) */
   comment_undefined_macro_name(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION);
 #endif /* defined(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION) */
+#if defined(TRACK_INTERPRETER_ALLOCATIONS)
+  define_numeric_valued_macro(TRACK_INTERPRETER_ALLOCATIONS);
+#else /* !defined(TRACK_INTERPRETER_ALLOCATIONS) */
+  comment_undefined_macro_name(TRACK_INTERPRETER_ALLOCATIONS);
+#endif /* defined(TRACK_INTERPRETER_ALLOCATIONS) */
 #if defined(TYPE_FOR_AN_FP_VALUE_PART)
   define_string_valued_macro(TYPE_FOR_AN_FP_VALUE_PART);
 #else /* !defined(TYPE_FOR_AN_FP_VALUE_PART) */

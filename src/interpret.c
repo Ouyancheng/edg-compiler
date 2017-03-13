@@ -2739,12 +2739,8 @@ indicated storage, because that result could set the active field.)
     record_subobject_derivation(storage_ptr, NULL);                          \
   }  /* if */                                                                \
 
-#if DEBUG
+#if DEBUG && TRACK_INTERPRETER_ALLOCATIONS
 
-static a_boolean
-		object_alloc_tracking_enabled;
-			/* TRUE if complete allocations should be tracked
-			   for debugging purposes. */ 
 static a_data_map
 		object_alloc_map;
 			/* Map tracking allocations of complete objects. */
@@ -2758,7 +2754,7 @@ static void object_alloc_intercept(void)
 /*
 Called if the object indicated by object_alloc_to_intercept is allocated.
 Place a breakpoint on this function to find out when a certain complete object
-is allocated.  (Requires object_tracking_enabled to be TRUE.)
+is allocated.
 */
 {
   fprintf(f_debug, "Allocated interpreter object #%u\n",
@@ -2774,19 +2770,18 @@ db_object_alloc_num and can be assigned to object_alloc_to_intercept when the
 front end starts up to find where the object is originally allocated.
 */
 {
-  if (object_alloc_tracking_enabled) {
-    static a_boolean     map_ready = FALSE;
-    static a_byte_count  alloc_num = 0;
-    if (!map_ready) {
-      init_data_map(&object_alloc_map, /*mask_width=*/5U);
-      map_ready = TRUE;
-    }  /* if */
-    alloc_num += 1;
-    if (alloc_num == object_alloc_to_intercept) {
-      object_alloc_intercept();
-    }  /* if */
-    map_byte_count(&object_alloc_map, ptr, alloc_num);
+  static a_boolean     map_ready = FALSE;
+  static a_byte_count  alloc_num = 0;
+
+  if (!map_ready) {
+    init_data_map(&object_alloc_map, /*mask_width=*/5U);
+    map_ready = TRUE;
   }  /* if */
+  alloc_num += 1;
+  if (alloc_num == object_alloc_to_intercept) {
+    object_alloc_intercept();
+  }  /* if */
+  map_byte_count(&object_alloc_map, ptr, alloc_num);
 }  /* track_complete_object_alloc */
 
 
@@ -2801,9 +2796,9 @@ track_complete_object_alloc.
   return (unsigned long)alloc_num;
 }  /* db_object_alloc_num */
 
-#else /* !DEBUG */
+#else /* !(DEBUG && TRACK_INTERPRETER_ALLOCATIONS) */
 #define track_complete_object_alloc(ptr)  /*Nothing*/
-#endif /* DEBUG */
+#endif /* DEBUG && TRACK_INTERPRETER_ALLOCATIONS */
 
 
 /*
@@ -11301,10 +11296,9 @@ One-time initialization for interpret.c static variables.
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
-#if DEBUG
-  object_alloc_tracking_enabled = FALSE;
+#if DEBUG && TRACK_INTERPRETER_ALLOCATIONS
   object_alloc_to_intercept = 0;
-#endif /* DEBUG */
+#endif /* DEBUG && TRACK_INTERPRETER_ALLOCATIONS */
 }  /* interpret_one_time_init */
 
 
