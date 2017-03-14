@@ -4955,6 +4955,30 @@ have_result:
 }  /* do_padd */
 
 
+static a_boolean same_string_base_address_constants(a_constant_ptr  cp1,
+                                                    a_constant_ptr  cp2)
+/*
+Return TRUE if cp1 and cp2 are both ck_address/abk_constant entries pointing
+to ck_string constants that point to the same underlying string value.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (constant_is(cp1, ck_address) &&
+      cp1->variant.address.kind == (an_address_base_kind)abk_constant &&
+      constant_is(cp2, ck_address) &&
+      cp2->variant.address.kind == (an_address_base_kind)abk_constant) {
+    a_constant_ptr  base_cp1 = cp1->variant.address.variant.constant;
+    a_constant_ptr  base_cp2 = cp2->variant.address.variant.constant;
+    if (constant_is(base_cp1, ck_string) && constant_is(base_cp2, ck_string) &&
+        base_cp1->variant.string.value == base_cp2->variant.string.value) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* same_string_base_address_constants */
+
+
 void do_pdiff(a_constant        *constant_1,
               a_constant        *constant_2,
               a_constant        *result,
@@ -4983,7 +5007,8 @@ integral type, as in "(int)&x - (int)&x".
   *err_severity = es_warning;
   /* The two pointers must be in the same base object, or the operation
      cannot be folded. */
-  if (base_object(constant_1) != base_object(constant_2)) {
+  if (base_object(constant_1) != base_object(constant_2) &&
+      !same_string_base_address_constants(constant_1, constant_2)) {
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && constant_is_address_of_label(constant_1) &&
         constant_is_address_of_label(constant_2)) {

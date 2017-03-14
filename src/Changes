@@ -1,5 +1,19 @@
 Version 4.14
 
+3/14/17  [EDGcpfe/18104]
+C-mode difference between string offsets
+
+Prior to version 4.13, the front end accept the following case in C mode:
+
+	int d = &"string"[1] - &"string"[0];
+
+4.13 no longer considered the result of the subtraction a constant making that
+initializer invalid in C mode.  (The standard leaves unspecified whether the
+two "string" literals denote the same object, and therefore whether the
+subtraction is valid.)  Now, the case is accepted again, fixing what is
+arguably a regression introduced by version 4.13.
+
+
 3/10/17  [EDGcpfe/18096]
 Incorrect end_position with builtin functions
 
