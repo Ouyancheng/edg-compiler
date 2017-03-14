@@ -30127,7 +30127,8 @@ next_declaration:
         /* A prototype instantiation of a nested class template whose
            definition originally appeared inside the parent class
            definition. */
-      } else if (cssp->corresp_prototype_sym) {
+      } else if (!class_state.is_nonreal_instantiation &&
+                 cssp->corresp_prototype_sym != NULL) {
         /* A real instantiation of a nested class of a class template: Copy
            the flag from the prototype instantiation. */
         if (cssp->corresp_prototype_sym
