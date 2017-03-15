@@ -30683,11 +30683,6 @@ called.
     /* "this" cannot be used in a constant expression. */
     expr_pos_error(ec_expr_not_constant, &start_position);
     make_error_operand(result);
-  } else if (!in_potential_constant_constexpr_context() &&
-             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                          &start_position)) {
-    /* "this" not allowed in C++11 constant expressions. */
-    make_error_operand(result);
   } else if (curr_expr_is_potentially_unevaluated() && in_lambda_body() &&
              !variable_this_exists_full(&dummy_var, &dummy_type,
                                         /*allow_lambda_this=*/FALSE,
