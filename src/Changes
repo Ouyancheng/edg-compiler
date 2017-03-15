@@ -1,5 +1,22 @@
 Version 4.14
 
+3/15/17  [EDGcpfe/18110]
+Constant-folding and pointers to weak variables/functions
+
+In GNU C++11 mode, the front end previously folded a comparison of a pointer-
+to-function value with a null pointer value even when the function pointed to
+is declared to be "weak" (in GNU mode).  For example:
+
+  static int w() __attribute((weakref("wf")));
+  bool g() {
+    static void *const ptr = (void*)&w;
+    return ptr != 0;  // Previously folded to "return 1;".
+  }
+
+This was incorrect since the address of a weak function (or variable) may be
+null.  This is now fixed.
+
+
 3/15/17  [EDGcpfe/17665]
 Microsoft compatibility: this->enumerator
 

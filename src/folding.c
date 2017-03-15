@@ -843,11 +843,15 @@ integral type.
 }  /* set_pointer_offset */
 
 
-static char *base_object(a_constant *constant)
+static char *base_object(a_constant  *constant,
+                         a_boolean   *unknown)
 /*
 Return a pointer to the "base object" that underlies the pointer constant.
 This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
-it points to the variable, routine, or constant entry.
+it points to the variable, routine, or constant entry.  An exception are
+pointers to "weak" variables or functions: Their "base object" is considered
+unknown and *unknown is set to TRUE in those cases (it is left unchanged
+otherwise).
 */
 {
   char *object = NULL;
@@ -863,10 +867,24 @@ it points to the variable, routine, or constant entry.
 #endif /* CHECKING */
     switch (constant->variant.address.kind) {
       case abk_variable:
-        object = (char *)constant->variant.address.variant.variable;
+        { a_variable_ptr  vp = constant->variant.address.variant.variable;
+          object = (char *)vp;
+#if GNU_EXTENSIONS_ALLOWED
+          if (vp->is_weak) {
+            *unknown = TRUE;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        }
         break;
       case abk_routine:
-        object = (char *)constant->variant.address.variant.routine;
+        { a_routine_ptr  rp = constant->variant.address.variant.routine;
+          object = (char *)rp;
+#if GNU_EXTENSIONS_ALLOWED
+          if (rp->is_weak) {
+            *unknown = TRUE;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        }
         break;
       case abk_constant:
       case abk_temporary:
@@ -5001,17 +5019,21 @@ integral type, as in "(int)&x - (int)&x".
   an_integer_value difference, size_intval;
   a_type_ptr       object_type;
   a_boolean        err, offset_1_is_signed, offset_2_is_signed;
+  a_boolean        cannot_fold = FALSE;
 
-  *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
   /* The two pointers must be in the same base object, or the operation
      cannot be folded. */
-  if (base_object(constant_1) != base_object(constant_2) &&
-      !same_string_base_address_constants(constant_1, constant_2)) {
+  if (base_object(constant_1, &cannot_fold) !=
+                                      base_object(constant_2, &cannot_fold) &&
+      (cannot_fold ||
+       !same_string_base_address_constants(constant_1, constant_2))) {
+    if (cannot_fold) {
+      /* Nothing more to do. */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && constant_is_address_of_label(constant_1) &&
-        constant_is_address_of_label(constant_2)) {
+    } else if (gnu_mode && constant_is_address_of_label(constant_1) &&
+               constant_is_address_of_label(constant_2)) {
       /* An exception is the difference of two label addresses in GNU mode. */
       clear_constant(result, (a_constant_repr_kind)ck_label_difference);
       result->variant.label_difference.from_address =
@@ -5028,11 +5050,9 @@ integral type, as in "(int)&x - (int)&x".
          the result is the first constant cast to the integral result type. */
       copy_constant(constant_1, result);
       implicit_cast(result, integer_type(targ_ptrdiff_t_int_kind));
-    } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      *did_not_fold = TRUE;
+    } else {
+      cannot_fold = TRUE;
     }  /* if */
   } else {
     /* The pointers are in the same base object, so the difference of
@@ -5081,7 +5101,7 @@ integral type, as in "(int)&x - (int)&x".
   }  /* if */
 #if DEBUG
   if (debug_level  >= 5) {
-    if (*did_not_fold) {
+    if (cannot_fold) {
       fprintf(f_debug, "do_pdiff: did not fold\n");
     } else {
       db_binary_operation("pd", constant_1, constant_2, result, *err_code);
@@ -5090,6 +5110,7 @@ integral type, as in "(int)&x - (int)&x".
 #endif /* DEBUG */
   release_local_constant(&offset_2);
   release_local_constant(&offset_1);
+  *did_not_fold = cannot_fold;
 } /* do_pdiff */
 
 
@@ -5110,13 +5131,14 @@ set if the operation cannot be folded.
 */
 {
   a_constant_ptr offset_1 = local_constant(), offset_2 = local_constant();
-  int            result_value = 0;
-  int            cmp;
+  int            result_value = 0, cmp;
+  a_boolean      cannot_fold = FALSE;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
-  if (base_object(constant_1) != base_object(constant_2)) {
+  if (base_object(constant_1, &cannot_fold) !=
+                                      base_object(constant_2, &cannot_fold)) {
     /* The pointers are in different objects.  In C++11 and following,
        equality comparisons of constant addresses are required to work in
        the obvious fashion.  In earlier versions of the language, however,
@@ -5126,9 +5148,12 @@ set if the operation cannot be folded.
        However, that seems pointless, and could actually cause problems
        (maybe a smart compiler puts i and j at the same address because
        their lifetimes are disjoint). */
-    if (constexpr_enabled &&
-        (op == (an_expr_operator_kind)eok_eq ||
-         op == (an_expr_operator_kind)eok_ne)) {
+    if (cannot_fold) {
+      /* The base object of at least one of the constants is not known for
+         sure: Do not attempt to fold the result. */
+    } else if (constexpr_enabled &&
+               (op == (an_expr_operator_kind)eok_eq ||
+                op == (an_expr_operator_kind)eok_ne)) {
       /* Constant pointers to different objects compare unequal. */
       result_value = (op == (an_expr_operator_kind)eok_ne);
       set_constant_kind(result, (a_constant_repr_kind)ck_integer);
@@ -5137,7 +5162,7 @@ set if the operation cannot be folded.
     } else {
       /* Pre-C++11 or relational comparison (which cannot be folded, even
          in C++11). */
-      *did_not_fold = TRUE;
+      cannot_fold = TRUE;
       if (op == (an_expr_operator_kind)eok_eq ||
           op == (an_expr_operator_kind)eok_ne) {
         /* However, "&var != NULL" or "&var == NULL" can often be folded. */
@@ -5154,7 +5179,7 @@ set if the operation cannot be folded.
           var = constant_2->variant.address.variant.variable;
         }  /* if */
         if (var != NULL && variable_has_non_null_address(var)) {
-          *did_not_fold = FALSE;
+          cannot_fold = FALSE;
           result_value = (op == (an_expr_operator_kind)eok_ne);
           set_constant_kind(result, (a_constant_repr_kind)ck_integer);
           set_integer_value(&result->variant.integer_value,
@@ -5183,7 +5208,7 @@ set if the operation cannot be folded.
   }  /* if */
 #if DEBUG
   if (debug_level  >= 5) {
-    if (*did_not_fold) {
+    if (cannot_fold) {
       fprintf(f_debug, "do_pcompare: did not fold\n");
     } else {
       db_binary_operation(db_operator_names[op],
@@ -5193,6 +5218,7 @@ set if the operation cannot be folded.
 #endif /* DEBUG */
   release_local_constant(&offset_1);
   release_local_constant(&offset_2);
+  *did_not_fold = cannot_fold;
 }  /* do_pcompare */
 
 
