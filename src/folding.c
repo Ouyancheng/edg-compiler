@@ -5014,8 +5014,8 @@ if everything went fine.  Also handles address constants cast to an
 integral type, as in "(int)&x - (int)&x".
 */
 {
-  a_constant_ptr   offset_2 = local_constant();
-  a_constant_ptr   offset_1 = local_constant();
+  a_constant_ptr   offset_2 = local_constant(), offset_1 = local_constant();
+  char             *base_1, *base_2;
   an_integer_value difference, size_intval;
   a_type_ptr       object_type;
   a_boolean        err, offset_1_is_signed, offset_2_is_signed;
@@ -5025,10 +5025,11 @@ integral type, as in "(int)&x - (int)&x".
   *err_severity = es_warning;
   /* The two pointers must be in the same base object, or the operation
      cannot be folded. */
-  if (base_object(constant_1, &cannot_fold) !=
-                                      base_object(constant_2, &cannot_fold) &&
-      (cannot_fold ||
-       !same_string_base_address_constants(constant_1, constant_2))) {
+  base_1 = base_object(constant_1, &cannot_fold);
+  base_2 = base_object(constant_2, &cannot_fold);
+  if ((base_1 != base_2 &&
+       !same_string_base_address_constants(constant_1, constant_2)) ||
+      cannot_fold) {
     if (cannot_fold) {
       /* Nothing more to do. */
 #if GNU_EXTENSIONS_ALLOWED
@@ -5131,14 +5132,15 @@ set if the operation cannot be folded.
 */
 {
   a_constant_ptr offset_1 = local_constant(), offset_2 = local_constant();
+  char           *base_1, *base_2;
   int            result_value = 0, cmp;
   a_boolean      cannot_fold = FALSE;
 
-  *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
-  if (base_object(constant_1, &cannot_fold) !=
-                                      base_object(constant_2, &cannot_fold)) {
+  base_1 = base_object(constant_1, &cannot_fold);
+  base_2 = base_object(constant_2, &cannot_fold);
+  if (base_1 != base_2 || cannot_fold) {
     /* The pointers are in different objects.  In C++11 and following,
        equality comparisons of constant addresses are required to work in
        the obvious fashion.  In earlier versions of the language, however,
