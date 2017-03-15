@@ -1,5 +1,28 @@
 Version 4.14
 
+3/14/17  [EDGcpfe/18029]
+C++-generating back end: qualified field names in member access expressions
+
+The C++-generating back end previously used a qualified field name in a
+member access expression when the field is a member of a base class of the
+class of the object expression.  Recent versions of g++ give an error when
+compiling the generated code, so member access expressions are now put out
+using a qualified name only if the field is hidden by a name in an
+intermediate base class.  For example:
+
+  struct A {
+    struct B {};
+    B m1[1];
+    B m2;
+  };
+
+  template <typename> struct C : A {
+    void m_fn1() {
+      &m2 != m1;  // Previously generated as &(A::m2) != A::m1
+    }
+  };
+
+
 3/14/17  [EDGcpfe/18104]
 C-mode difference between string offsets
 
