@@ -4312,20 +4312,17 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                ((curr_token == tok_semicolon ||
                  curr_token == tok_removed_template_body) &&
                 (vacuous_decl_allowed || is_friend_decl ||
-                 is_template_specific_decl ||
-                 has_declspec_attributes(dps->tag_attributes))) ||
+                 is_template_specific_decl || dps->tag_attributes != NULL)) ||
                previously_invisible) {
       /* Vacuous declarations are not usually permitted to use qualified names
          (even so, the declarations are accepted with warning in nonstrict
          modes).  Exceptions are friend declarations and template
          specialization declarations.  We also treat vacuous declarations with
-         attributes as actual declaration since the attributes may have a
+         attributes as actual declarations since the attributes may have a
          significant declarative effect.
          If an elaborated type specifier makes visible a class name that was
          previously invisible (e.g., the first declaration was a friend), we
          we treat the elaborated type specifier as a declaration. */
-      /* Declarations with Microsoft declspec attributes (e.g.,
-         "struct __declspec(dllimport) N::S;") are treated as redeclarations.*/
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {
@@ -4335,6 +4332,23 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       } else {
         /* A declaration of the form "class A;", when A has already been
            declared, is treated as a redeclaration (not a reference). */
+        if (locator.is_qualified_name && !is_friend_decl &&
+            !is_explicit_instantiation && !is_template_specialization &&
+            curr_token == tok_semicolon &&
+            (dps->tag_attributes == NULL ||
+             !has_declspec_attributes(dps->tag_attributes))) {
+          /* When an elaborated type specifier is the sole constituent of a
+             declaration (except for explicit specializations or explicit
+             instantiations, or certain friend declarations), it cannot have a
+             qualified name (e.g., "class ::A;"). */
+          /* Declarations with Microsoft declspec attributes (e.g.,
+             "struct __declspec(dllimport) N::S;") are treated as
+             redeclarations (without a diagnostic). */
+          pos_diagnostic((strict_ansi_mode || clang_mode) ? es_error :
+                                                            es_warning,
+                         ec_qualified_name_not_allowed,
+                         &locator.source_position);
+        }  /* if */
       }  /* if */
       record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                                 (a_source_sequence_entry_ptr)NULL);
