@@ -9649,14 +9649,14 @@ the expression reflects an implicit member access ("this->y"), so the
     m_write_tok_ch('.');
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {
-    a_class_type_supplement_ptr  ctsp;
     /* Use a qualified name if the class in which we want to name the member
        is not the class indicated by the pointer.  A namespace qualifier may
        also be needed if we're emitting a reference to a field of a namespace
        scope anonymous union. */
-    ctsp = class_type_supp(selection_class);
-    if (selection_class->variant.class_struct_union.originally_unnamed &&
-        ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
+    if (is_immediate_class_type(selection_class) &&
+        selection_class->variant.class_struct_union.originally_unnamed &&
+        class_type_supp(selection_class)->anonymous_union_kind ==
+                                       (an_anonymous_union_kind)auk_variable) {
       /* This is a field of an anonymous union variable.  If the enclosing
          scope is a namespace (not the global namespace), a qualifier may need
          to be emitted. */
@@ -9676,7 +9676,15 @@ the expression reflects an implicit member access ("this->y"), so the
         curr_name_context->field_selection_context = TRUE;
         new_name_context = curr_name_context;
       }  /* if */
-      gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
+      if (node_field(field_expr)->source_corresp.qualification_needed ||
+          !class_is_in_name_context_stack(
+                                  naming_class,
+                                  /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
+        /* Only use a qualifier for a base class member if it is hidden by a
+           name in an intermediate base class. */
+        gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (node_field(field_expr)->is_captured_this) {
