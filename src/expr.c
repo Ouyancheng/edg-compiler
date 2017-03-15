@@ -33960,7 +33960,6 @@ is considered a full-expression.
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           template_dependent_case = FALSE;
 
   db_enter(3, "scan_bool_constant_expression");
   save_expr_stack(&saved_expr_stack);
@@ -33971,13 +33970,9 @@ is considered a full-expression.
   transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  if (is_template_dependent_context() &&
-      is_template_dependent_type(result.type)) {
-    template_dependent_case = TRUE;
-  }  /* if */
   /* Convert to bool. */
   process_boolean_controlling_expression(&result);
-  if (template_dependent_case && is_expression_operand(&result)) {
+  if (is_template_dependent_context() && is_expression_operand(&result)) {
     /* In template-dependent contexts we cannot always fold the result to a
        constant. */
     make_template_param_expr_constant(result.variant.expression, constant);

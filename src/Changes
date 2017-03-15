@@ -1,5 +1,20 @@
 Version 4.14
 
+3/15/17  [EDGcpfe/17514]
+Dependent static_assert conditions
+
+The front end previously incorrectly handled certain dependent static_assert
+conditions.  For example:
+
+  template<typename T> void g() {
+    constexpr T cond;
+    static_assert(static_cast<bool>(cond), "Unexpected");
+  }
+
+Previously the front end issued an error claiming the static_assert condition
+is not constant.  This is now fixed.
+
+
 3/14/17  [EDGcpfe/18029]
 C++-generating back end: qualified field names in member access expressions
 
