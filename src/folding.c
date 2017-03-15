@@ -843,6 +843,9 @@ integral type.
 }  /* set_pointer_offset */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* unknown is not used in some configurations. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static char *base_object(a_constant  *constant,
                          a_boolean   *unknown)
 /*
