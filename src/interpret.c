@@ -3912,7 +3912,24 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         }  /* if */
         switch (con->variant.address.kind) {
           case abk_routine:
-            make_function_address(value, con->variant.address.variant.routine);
+            { a_routine_ptr  rp = con->variant.address.variant.routine;
+#if GNU_EXTENSIONS_ALLOWED
+              if (rp->is_weak) {
+                /* Weakly declared functions have no definite address (they
+                   could have a null address). */
+                a_source_position  *diag_pos;
+                diag_pos = &con->source_corresp.decl_position;
+                if (diag_pos->seq == 0) {
+                  diag_pos = &ips->position;
+                }  /* if */
+                info_with_pos_sym(ec_constexpr_weak_address, diag_pos,
+                                  symbol_for(rp), ips);
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+              make_function_address(value, rp);
+            }
             break;
           case abk_variable:
             { /* Check if the variable has a constant value, and if so ensure
@@ -3980,6 +3997,21 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 }  /* if */
                 obj_type = vtp;
               } else {
+#if GNU_EXTENSIONS_ALLOWED
+                if (vp->is_weak) {
+                  /* Weakly declared functions have no definite address (they
+                     could have a null address). */
+                  a_source_position  *diag_pos;
+                  diag_pos = &con->source_corresp.decl_position;
+                  if (diag_pos->seq == 0) {
+                    diag_pos = &ips->position;
+                  }  /* if */
+                  info_with_pos_sym(ec_constexpr_weak_address, diag_pos,
+                                    symbol_for(vp), ips);
+                  do_constexpr_fail(result);
+                  break;
+                }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
                 clear_runtime_constant_address(value, con);
               }  /* if */
             }
@@ -10156,9 +10188,19 @@ the value representation of the integer value.
             }  /* if */
           } else {
             /* A reference to a run-time variable.  This may not be valid,
-               but we cannot tell at this time. */
+               but we cannot usually tell at this time. */
             a_constant_ptr  con;
             a_byte          *con_ptr;
+#if GNU_EXTENSIONS_ALLOWED
+            if (var->is_weak) {
+              /* Weakly declared functions have no definite address (they could
+                 have a null address). */
+              info_with_pos_sym(ec_constexpr_weak_address, &expr->position,
+                                symbol_for(var), ips);
+              do_constexpr_fail(result);
+              break;
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
             get_mapped_ptr(&ips->map, &var->initializer, con_ptr);
             con = (a_constant_ptr)con_ptr;
             if (con == NULL) {
@@ -10187,6 +10229,16 @@ the value representation of the integer value.
     case enk_routine:
       { a_routine_ptr  rp = node_routine(expr);
         if (!rp->is_prototype_instantiation) {
+#if GNU_EXTENSIONS_ALLOWED
+          if (rp->is_weak) {
+            /* Weakly declared functions have no definite address (they could
+               have a null address). */
+            info_with_pos_sym(ec_constexpr_weak_address, &expr->position,
+                              symbol_for(rp), ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           make_function_address(result_storage, node_routine(expr));
         } else {
           info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
