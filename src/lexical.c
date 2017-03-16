@@ -4550,8 +4550,6 @@ are accepted, but only if they do not have any embedded comments:
 	#if !defined(NAME)
 	#if defined(NAME)
 
-are not supported.
-
 This include guard detection mechanism is implemented using a simple
 state machine.  The state information is recorded in the input stack
 entry.
