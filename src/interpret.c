@@ -10148,12 +10148,13 @@ the value representation of the integer value.
               } else if (is_immediate_class_type(tp) ||
                          tp->kind == (a_type_kind)tk_array) {
                 /* Mark subobjects as initialized. */
-                a_byte_count  bitmap_size = (n_bytes-1)/CHAR_BIT+1;
-                (void)memset(complete_object-bitmap_size-sizeof(a_type_ptr)-1,
-                             ~0, bitmap_size);
+                mark_whole_subobject_initialized(ips, result_storage, tp,
+                                                 complete_object);
               }  /* if */
-              /* Mark the destination storage as fully initialized. */
-              mark_complete_object_initialized(complete_object);
+              if (complete_object == result_storage) {
+                /* Mark the destination storage as fully initialized. */
+                mark_complete_object_initialized(complete_object);
+              }  /* if */
             }  /* if */
           } else {
             a_constant_ptr  con = var_constant_value(var);
