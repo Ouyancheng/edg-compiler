@@ -851,7 +851,7 @@ static char *base_object(a_constant  *constant,
 /*
 Return a pointer to the "base object" that underlies the pointer constant.
 This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
-it points to the variable, routine, or constant entry.  An exception are
+it points to the variable, routine, or constant entry.  An exception is
 pointers to "weak" variables or functions: Their "base object" is considered
 unknown and *unknown is set to TRUE in those cases (it is left unchanged
 otherwise).

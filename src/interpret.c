@@ -10193,8 +10193,8 @@ the value representation of the integer value.
             a_byte          *con_ptr;
 #if GNU_EXTENSIONS_ALLOWED
             if (var->is_weak) {
-              /* Weakly declared functions have no definite address (they could
-                 have a null address). */
+              /* Weakly declared variables have no definite address (they
+                 could have a null address). */
               info_with_pos_sym(ec_constexpr_weak_address, &expr->position,
                                 symbol_for(var), ips);
               do_constexpr_fail(result);
