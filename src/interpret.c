@@ -10267,19 +10267,25 @@ the value representation of the integer value.
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           compute_prefix_size_for_type(tp, n_bytes, prefix_size);
-          if (!temp_lifetime && ips->extension_state != NULL) {
+          if (!temp_lifetime) {
             /* A lifetime-extended temporary.  Switch to the storage stack
                state that was saved at the time the stmk_init statement was
                started. */
-            /* If we're processing the initializer of a static-lifetime
-               variable, e.g.,
-                 constexpr std::initializer_list<int> x = { 1, 2 };
-               there is no extended-lifetime storage.  Instead, the result
-               will eventually be stored in IL, which is persistent across
-               interpreter invocations. */
-            alloc_bytes(ips->extension_state, n_bytes+prefix_size, tmp_bytes);
-            alloc_seq_number = ips->extension_state->alloc_seq_number;
-            ips->extension_state = NULL;
+            if (ips->extension_state != NULL) {
+              alloc_bytes(ips->extension_state, n_bytes+prefix_size,
+                          tmp_bytes);
+              alloc_seq_number = ips->extension_state->alloc_seq_number;
+              ips->extension_state = NULL;
+            } else {
+              /* If we're processing the initializer of a static-lifetime
+                 variable, e.g.,
+                   constexpr std::initializer_list<int> x = { 1, 2 };
+                 there is no extended-lifetime storage.  Instead, the result
+                 will eventually be stored in IL, which is persistent across
+                 interpreter invocations. */
+              alloc_static_bytes(ips, n_bytes+prefix_size, tmp_bytes);
+              alloc_seq_number = 0;
+            }  /* if */
           } else {
             alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
             alloc_seq_number = ips->storage_stack.alloc_seq_number;
