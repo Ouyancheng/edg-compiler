@@ -18,7 +18,7 @@ claiming an uninitialized class type subobject.  For example:
     constexpr C() {}
     B b;
   };
-  C constexpr c;  // Previously an error.  Now okay.
+  C constexpr c;  // Previously an error in some configurations.  Now okay.
 
 In C++11 mode (but not C++14 mode), this was a regression introduced by
 version 4.13 of the front end.  Now fixed.
