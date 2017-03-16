@@ -3999,7 +3999,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               } else {
 #if GNU_EXTENSIONS_ALLOWED
                 if (vp->is_weak) {
-                  /* Weakly declared functions have no definite address (they
+                  /* Weakly declared variables have no definite address (they
                      could have a null address). */
                   a_source_position  *diag_pos;
                   diag_pos = &con->source_corresp.decl_position;
