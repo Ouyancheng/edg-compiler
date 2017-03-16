@@ -1,5 +1,20 @@
 Version 4.14
 
+3/15/17  [EDGcpfe/18099,EDGcpfe/18112]
+Representation of constant-folded call returning a reference
+
+In some cases, the result of a call returning a reference was reduced to just
+an enk_variable node.  Doing so lost information about the call and could lead
+the C++-generating back end to produce incorrect code.  For example:
+
+  constexpr int&& m(int &x) { return static_cast<int&&>(x); }
+  int x = 42;
+  int &&rr = m(x);  // Previously incorrectly rendered by the C++-generating
+                    // back end as "int &&rr = (x);"
+
+This is now fixed.
+
+
 3/15/17  [EDGcpfe/18110]
 Constant-folding and pointers to weak variables/functions
 
