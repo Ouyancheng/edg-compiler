@@ -453,7 +453,7 @@ command-line when compiling system headers.
 #define TARG_ALIGNOF_LONG_DOUBLE_win64 4
 #define TARG_ALIGNOF_LONG_LONG_win64 8
 #define TARG_ALIGNOF_NEAR_POINTER_win64 2
-#define TARG_ALIGNOF_POINTER_win64 4
+#define TARG_ALIGNOF_POINTER_win64 8
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER_win64 4
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION_win64 4
 #define TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_win64 4
@@ -516,7 +516,7 @@ command-line when compiling system headers.
 #define TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT_win64 8
 #define TARG_HAS_SIGNED_CHARS_win64 1
 #define TARG_HOST_STRING_CHAR_BIT_win64 8
-#define TARG_IA64_VTABLE_ENTRY_INT_KIND_win64 ((an_integer_kind)ik_long)
+#define TARG_IA64_VTABLE_ENTRY_INT_KIND_win64 ((an_integer_kind)ik_long_long)
 #define TARG_INT_FIELD_ALIGNMENT_win64 4
 #define TARG_INT128_FIELD_ALIGNMENT_win64 16
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT_win64 0
@@ -562,7 +562,8 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_LONG_DOUBLE_win64 12
 #define TARG_SIZEOF_LONG_LONG_win64 8
 #define TARG_SIZEOF_NEAR_POINTER_win64 2
-#define TARG_SIZEOF_POINTER_win64 4
+#define TARG_SIZEOF_POINTER_win64 8
+
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER_win64 4
 #if IA64_ABI
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION_win64 12
@@ -595,8 +596,8 @@ command-line when compiling system headers.
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS_win64 1
 #define TARG_VAR_HANDLE_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND_win64 ((an_integer_kind)ik_short)
-#define TARG_WCHAR_T_INT_KIND_win64 ((an_integer_kind)ik_long)
-#define TARG_WINT_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_int)
+#define TARG_WCHAR_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
+#define TARG_WINT_T_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
 #define TARG_WORD_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_win64 1
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_win64 4
