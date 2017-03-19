@@ -1,5 +1,16 @@
 Version 4.14
 
+3/19/17  [EDGcpfe/18097]
+Declaration position for explicitly specialized class template instance
+
+The decl_position in the symbol entry for an explicitly specialized class
+template instance was not set to the specialization position when the
+explicit specialization was only a declaration, not a definition, of the
+class.  Now fixed.
+
+  template <typename T> class A;
+  template <> class A<int>;
+
 
 3/17/17  [EDGcpfe/18091]
 Comparing string literal address in Microsoft mode

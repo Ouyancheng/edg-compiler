@@ -3880,6 +3880,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                 if (tag_sym != NULL) {
                   cssp->referencing_namespace =
                                           parent_namespace_for_symbol(tag_sym);
+                  /* Use the position of the first specialization declaration
+                     as the symbol's decl_position. */
+                  tag_sym->decl_position = tag_position;
                 }  /* if */
                 if (instantiation_mode == tim_local) {
                   /* In tim_local mode generated instances have internal
