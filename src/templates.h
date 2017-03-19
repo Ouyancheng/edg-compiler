@@ -327,9 +327,6 @@ typedef int an_equiv_templ_arg_options_set;
 			/* TRUE if, when dependent decltypes appear in a type,
 			   they must appear in both entities being compared
 			   and the expressions must match. */
-#define ETA_IS_PARTIAL_ORDER_CHECK		0x80
-			/* TRUE when comparing template argument lists
-			   to determine if partial ordering was successful. */
 
 /*
 Flags used to specify options to equiv_template_param_lists.
