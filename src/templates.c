@@ -3099,6 +3099,16 @@ in ps_arg_list.
        does not want one returned. */
     free_template_arg_list(*ps_arg_list);
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("partial_ord")) {
+    fprintf(f_debug, "mpp match=%d\n", result);
+    fprintf(f_debug, "mpp instance: \n");
+    db_symbol(instance_sym, "", 2);
+    fprintf(f_debug, "mpp template: \n");
+    db_symbol(template_sym, "", 2);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /*lint --e{438} for spurious "last value assigned to local_arg_list
     not used (LINTBUG). */
   return result;
@@ -3277,6 +3287,12 @@ templates being ordered are class or variable template partial specializations.
     new_pscp->template_arg_list = templ_arg_list;
     new_pscp->next = *psc_list;
     *psc_list = new_pscp;
+#if DEBUG
+    if (db_flag_is_set("partial_ord")) {
+      fprintf(f_debug, "atpoc: adding: \n");
+      db_symbol(new_sym, "", 2);
+    }  /* if */
+#endif /* DEBUG */
   } else {
     /* If we are not adding the entry to the list, free the template
        argument list. */
@@ -3328,6 +3344,12 @@ to TRUE.
         } else {
           prev_pscp->next = next_pscp;
         }  /* if */
+#if DEBUG
+        if (db_flag_is_set("partial_ord")) {
+          fprintf(f_debug, "Removing partial ord because of decl_seq:\n");
+          db_symbol(pscp->symbol, "", 2);
+        }  /* if */
+#endif /* DEBUG */
         /* Free the entry.  This also frees the template argument list. */
         free_partial_order_candidate(pscp);
       }  /* if */
