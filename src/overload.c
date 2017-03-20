@@ -21963,10 +21963,15 @@ TRUE, the result *p_dip and *p_constant are not constructed.
         if (local_error_detected) err = TRUE;
       } else if (def_ctor_err) {
         err = TRUE;
-      } else if (ctor_routine == NULL) {
-        trivial_ctor = TRUE;
       }  /* if */
-      if (!err && ctor_called != NULL) *ctor_called = ctor_routine;
+      if (!err) {
+        if (ctor_called != NULL) {
+          *ctor_called = ctor_routine;
+        }  /* if */
+        if (ctor_routine == NULL) {
+          trivial_ctor = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (!err && generate_il) {
       if (trivial_ctor) {

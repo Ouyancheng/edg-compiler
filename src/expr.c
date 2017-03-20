@@ -39712,7 +39712,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
       }  /* if */
       break;
     case ok_expression:
-      *expression = result.variant.expression;
+      *expression = make_node_from_operand(&result);
       *expression = wrap_up_full_expression(*expression);
       *is_constant = FALSE;
       break;

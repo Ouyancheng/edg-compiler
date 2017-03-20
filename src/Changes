@@ -1,5 +1,14 @@
 Version 4.14
 
+3/19/17  [EDGcpfe/18120]
+Abort when rescanning array new-expression in return type
+
+In some complex cases, rescanning a function template declaration with a
+return type containing a array new expression could result in an internal
+error in get_expr_rescan_info ("missing default rescan info").  This is now
+fixed.
+
+
 3/19/17  [EDGcpfe/18119]
 Incorrect partial ordering in some cases involving pack expansions
 
