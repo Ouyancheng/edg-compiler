@@ -14869,7 +14869,7 @@ none).
        iteration of this loop. */
     if (is_list) { *overload_sym_ptr = new_sym; }
   } else if (already_in_lookup_set(overload_sym, sym,
-                                   /*is_using_dir=*/
+                                   /*merge_c_funcs=*/
                                                 ((gpp_mode && !clang_mode) ||
                                                  microsoft_mode),
                                    IDL_NO_OPTIONS)) {
