@@ -5667,10 +5667,9 @@ Extract the constant value from the operand *operand and place it in
           if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             constant->expr = NULL;
           }  /* if */
-        } else if (expr_stack->possible_rescan_context &&
-                   is_template_dependent_context()) {
-          make_template_param_expr_constant(operand->variant.expression,
-                                            constant);
+        } else if (is_template_dependent_context()) {
+          an_expr_node_ptr  node = make_node_from_operand(operand);
+          make_template_param_expr_constant(node, constant);
         } else if (expr_error_should_be_issued()) {
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &operand->position);
