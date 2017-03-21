@@ -20757,6 +20757,10 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
   return is_invariant;
 }  /* is_invariant_expr */
 
+static an_expr_node_ptr
+		last_routine_scope_variable_node_found;
+			/* A pointer to the last node found by
+			   check_for_routine_scope_variable. */
 
 static void check_for_routine_scope_variable(
                                     an_expr_node_ptr                    expr,
@@ -20769,6 +20773,7 @@ enk_variable node that refers to a variable in a local scope.
 {
   if (expr != NULL && is_variable_node(expr) &&
       !in_file_scope(node_variable(expr))) {
+    last_routine_scope_variable_node_found = expr;
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
@@ -20796,6 +20801,16 @@ local scope.
   }  /* if */
   return result;
 }  /* expr_has_reference_to_routine_scope_variable */
+
+
+an_expr_node_ptr get_routine_scope_variable_node_found(void)
+/*
+Return a pointer to the enk_variable node found by the last call of
+expr_has_reference_to_routine_scope_variable that produced TRUE.
+*/
+{
+  return last_routine_scope_variable_node_found;
+}  /* get_routine_scope_variable_node_found */
 
 
 static a_routine_ptr alloc_or_dealloc_routine_from_new_delete(
@@ -27483,6 +27498,7 @@ in il_init.)
       pch_saved_var_array_elem(module_id_scp),
       pch_saved_var_array_elem(module_id_kind),
 #endif /* MODULE_ID_NEEDED */
+      pch_saved_var_array_elem(last_routine_scope_variable_node_found),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -27669,6 +27685,7 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
+  last_routine_scope_variable_node_found = NULL;
 #if DEBUG
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;

@@ -39817,10 +39817,12 @@ required adjustment to make that possible.
        the expression into the routine scope memory region and make a local
        expression reference node for it instead of pointing to it
        directly. */
-    a_scope_ptr      func_scope = get_innermost_function_scope();
     an_expr_node_ptr expr = constant->variant.template_param.variant.expr;
-    check_assertion(func_scope != NULL);
-    switch_il_region(mem_region_for_routine(func_scope->variant.routine.ptr));
+    an_expr_node_ptr var_node = get_routine_scope_variable_node_found();
+    a_variable_ptr   var = node_variable(var_node);
+    a_routine_ptr    rp = var->source_corresp.enclosing_routine;
+    a_scope_ptr      func_scope = scope_for_routine(rp);
+    switch_il_region(mem_region_for_routine(rp));
     expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
     switch_il_region(file_scope_region_number);
     make_local_expr_node_ref(expr,

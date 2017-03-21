@@ -1234,6 +1234,8 @@ extern a_boolean is_invariant_expr(
 extern a_boolean expr_has_reference_to_routine_scope_variable(
                                                         an_expr_node_ptr expr);
 
+extern an_expr_node_ptr get_routine_scope_variable_node_found(void);
+
 extern a_boolean expr_might_throw(an_expr_node_ptr expr);
 
 extern a_boolean dynamic_init_might_throw(a_dynamic_init_ptr expr);
