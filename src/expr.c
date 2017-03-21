@@ -21139,8 +21139,15 @@ not (or, in some anachronism cases, convert it to an lvalue).
     if (is_an_lvalue(operand) ||
         is_a_function_designator(operand)) {
       /* Okay, the operand is already an lvalue. */
-    } else if (allow_xvalue && is_an_xvalue(operand)) {
-      /* An xvalue operand is okay as is. */
+    } else if (is_an_xvalue(operand)) {
+      if (allow_xvalue) {
+        /* An xvalue operand is okay as is. */
+      } else {
+        if (!is_error_operand(operand)) {
+          error_in_operand(ec_expr_not_an_lvalue, operand);
+          *processed = TRUE;
+        }  /* if */
+      }  /* if */
     } else if ((any_cfront_mode() || 
                 allow_nonconst_ref_anachronism) &&
                is_class_struct_union_type(operand->type)) {
