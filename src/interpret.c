@@ -7410,7 +7410,7 @@ the value representation of the integer value.
                               make_interpreter_copy_of_constant(ips, new_con);
                 }  /* if */
                 release_local_constant(&new_con);
-                break;
+                if (!result) break;
               } else if (result_addr->address == NULL) {
                 /* No adjustment needed. */
               } else {
