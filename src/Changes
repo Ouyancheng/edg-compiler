@@ -1,5 +1,26 @@
 Version 4.14
 
+3/22/17  [EDGcpfe/18114]
+GNU C++ compatibility: friend function template injection and parsing
+
+Version 4.13 was changed to no longer inject friend function template names
+in g++ mode (see EDGcpfe/18023).  However, while g++ does not inject function
+template names in a way that necessarily allows them to be called, it appears
+that they still make the name visible for lookup purposes, and in particular
+the name is recognized as a template name for parsing purposes.  We now
+emulate this behavior in g++ mode when gnu_version >= 50000.
+
+  class A {
+    template <typename> friend void f(A *);
+    template <typename> friend void g(void *);
+  };
+  void g(A *a, void* v) {
+    f<int>(a);  // now accepted (again)
+    g<int>(v);  // now parses, but function not visible to ADL
+  }
+
+
+
 3/21/17  [EDGcpfe/18135]
 Memory corruption on interpreting some derived-to-base conversions
 

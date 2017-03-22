@@ -2092,8 +2092,13 @@ Macro that initializes a lookup state variable.
                                   (lookup_state).required_name_space_kind) && \
    ((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
     /*lint --e(506)*/							\
-    invisible_okay ||							\
-    (lookup_state).is_linkage_lookup ||					\
+    invisible_okay ||\
+    /* g++ versions >= 50000 make the function template symbol visible	\
+       for parsing purposes, but it is ignored by overload		\
+       resolution. */							\
+    (gpp_version_is(>= 50000) &&					\
+     symbol_is_or_contains_function_template(fund_sym)) ||		\
+   (lookup_state).is_linkage_lookup ||					\
     (lookup_state).is_friend_lookup) &&					\
    /* Alias symbols can have the ignore_in_decl_scope flag set.  When	\
       this is set, ignore the symbol if it is the template associated	\
