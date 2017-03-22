@@ -7408,7 +7408,6 @@ the value representation of the integer value.
                 } else {
                   result_addr->variant.addr_con =
                               make_interpreter_copy_of_constant(ips, new_con);
-                  *(a_constexpr_address*)result_storage = *result_addr;
                 }  /* if */
                 release_local_constant(&new_con);
                 break;
