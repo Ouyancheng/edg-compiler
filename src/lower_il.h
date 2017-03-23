@@ -350,6 +350,14 @@ typedef struct a_destructible_entity_descr {
 			   destruction (because the destruction may be for
 			   either a complete or subobject destruction and
 			   that isn't known until run-time). */
+  a_byte_boolean
+                is_destruction_for_partial_static_aggregate;
+                        /* TRUE if this destruction is for a partial aggregate
+                           of a static variable.  Such destructions are left
+                           on the destruction list, but should be ignored
+                           once the static variable has been completely
+                           constructed (because static variables use a
+                           different destruction mechanism). */
   a_variable_ptr
 		delegation_dtor_arg;
 			/* When use_delegation_dtor is TRUE, this variable

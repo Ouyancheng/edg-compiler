@@ -1219,6 +1219,7 @@ Clear the fields of a destructible entity description to default values.
   dedp->needs_subobject_construction_vtbl = FALSE;
   dedp->construction_vtbls_var_is_array = FALSE;
   dedp->use_delegation_dtor = FALSE;
+  dedp->is_destruction_for_partial_static_aggregate = FALSE;
   dedp->delegation_dtor_arg = NULL;
   dedp->construction_vtbls_var = NULL;
   dedp->subobject_construction_base_class = NULL;
@@ -7757,6 +7758,9 @@ is first on the destruction list.
 
   while (dip != NULL && dip != preceding_init &&
          dip->destruction_is_for_partially_constructed_aggregate) {
+    check_assertion(dip->destructible_entity_descr != NULL);
+    dip->destructible_entity_descr->
+                            is_destruction_for_partial_static_aggregate = TRUE;
     dip = dip->next_in_destruction_list;
   }  /* while */
   curr_context->latest_initialization = dip;
@@ -9872,14 +9876,30 @@ do_assignment:;
         /* Now that the static aggregate has been fully constructed, remove
            any destructions for partially constructed aggregates that may
            still be a part of the cleanup state. */
+        a_dynamic_init_ptr save_curr_cleanup_state =
+                                              curr_context->curr_cleanup_state;
         adjust_cleanup_state_for_static_aggregate_init(
                                                latest_initialization_on_entry);
+        if (save_curr_cleanup_state != curr_context->curr_cleanup_state) {
+          /* If the cleanup state has changed as a result of the removal above,
+             adjust the next destruction in the list to point to the current
+             cleanup state and insert code to indicate the new cleanup state.*/
+          dip->next_in_destruction_list = curr_context->latest_initialization;
+          if (exceptions_enabled) {
+            insert_code_to_indicate_cleanup_state(
+                                              curr_context->curr_cleanup_state,
+                                              insert_location,
+                                              /*unreachable=*/FALSE);
+          }  /* if */
+        }  /* if */
       }  /* if */
       /* For static variables (local or global), generate code to record
          at runtime the need for a destruction later. */
       record_needed_destruction(dip, ipdp, eff_insert_location);
     } else {
-      /* Initializations of nonstatic variables. */
+      /* Initializations of nonstatic variables, and members of static
+         aggregates (the partial-aggregate cleanup for those is more like
+         automatic variable cleanup than static variable cleanup). */
       a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
       check_assertion_str(dedp != NULL, "lower_dynamic_init: missing dedp");
       dedp->initialization_done = TRUE;
