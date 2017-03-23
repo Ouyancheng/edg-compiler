@@ -1,5 +1,27 @@
 Version 4.14
 
+3/23/17  [EDGcpfe/18144]
+Microsoft compatibility: lookup in variadic function templates
+
+Our implementation of variadic templates requires that a prototype
+instantiation be done on variadic functions and function templates.
+The emulation of what we call "Microsoft nonreal base class lookup"
+had been suppressed for variadic templates.  That emulation is now
+enabled for variadic templates (allowing the example below to be
+accepted).
+
+  template<typename... Ts> struct A : Ts...  {
+    template <typename T, typename... U> void f(int i) { }
+  };
+  template<typename ... Ts> struct B : A<Ts...> {
+    virtual void g() {
+      f<Ts...>(1);  // should be "this->template f<Ts...>(1)"
+    }
+  };
+  class C {};
+  B<C> b;
+
+
 3/23/17  [EDGcpfe/9829,EDGcpfe/18126]
 Incorrect cleanup during a throw after initialization of static aggregate
 

@@ -7742,9 +7742,7 @@ can have a Microsoft mode nonreal instantiation.
 {
   a_boolean	result = FALSE;
 
-  if (!is_variadic_template_context() &&
-      !primary_tssp->is_variadic &&
-      primary_tssp->partial_specializations == NULL &&
+  if (primary_tssp->partial_specializations == NULL &&
       primary_tssp->variant.class_template.prototype_instantiation_complete) {
     result = TRUE;
   }  /* if */
