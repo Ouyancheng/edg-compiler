@@ -24,7 +24,7 @@ emulate this behavior in g++ mode when gnu_version >= 50000.
 3/21/17  [EDGcpfe/18135]
 Memory corruption on interpreting some derived-to-base conversions
 
-The constexpr interpreter sometimes corrupted its own stack when evaluation a
+The constexpr interpreter sometimes corrupted its own stack when evaluating a
 derived-to-base conversion applied to a run-time address.  For example:
 
   struct B1 {};
