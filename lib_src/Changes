@@ -1,3 +1,28 @@
+Version 4.14
+
+3/24/17  [EDGcpfe/18147]
+Destructions for static objects before main is called
+
+In the Cfront ABI, the run time library had failed to destroy static objects
+if the process exited before the main routine is called.  In certain cases
+the objects had been inadvertently destroyed by a separate bug that is now
+fixed (see the Changes entry for EDGcpfe/18126), making this more visible.
+For example:
+
+  extern "C" int printf(const char *,...);
+  extern "C" void exit(int);
+  struct A {
+    ~A() { printf("~A()\n"); }
+  };
+  struct Exit {
+    Exit() { exit(0); }
+  };
+  A a;    // had not been destroyed in Cfront ABI configurations
+  Exit e;
+  int main() {}
+
+
+-------------------------------------------------------------------------------
 Version 4.13, February 22, 2017
 
 2/20/17  [EDGcpfe/18032]

@@ -140,6 +140,11 @@ a needed destruction entry that is to be added to the front of the
 list of needed destructions.
 */
 {
+  if (needed_destruction_head == NULL) {
+    /* If this is the first static destruction, register to be called when
+       the program exits so that destructions can be properly handled. */
+    __register_finalization_routine();
+  }  /* if */
   __record_destruction_on_list(&needed_destruction_head, ndp);
 }  /* __record_needed_destruction */
 

@@ -149,7 +149,7 @@ called when the program exits.
 void __call_ctors()
 /*
 Call functions to perform static construction of objects.  This routine
-first determines whether the executable as been processed using the
+first determines whether the executable has been processed using the
 "patch" or "munch" utility and then uses the appropriate method to
 call the static initializer functions.
 */
@@ -164,12 +164,6 @@ call the static initializer functions.
      an array of pointers to constructors and destructors.  The array
      is linked into the executable. */
   use_patch_info = (__head != NULL);
-  /* Establish that the termination routines should be called when exit()
-     is called or when main() returns normally.  This needs to be done
-     before any of the constructor routines are called so that if
-     exit is called during static initialization, any constructed objects
-     will be destroyed. */
-  __register_finalization_routine();
   if (use_patch_info) {
     /* Walk through the linked list of constructor/destructor function
        pointers and call each initialization (constructor) function.
