@@ -135,14 +135,19 @@ extern "C" void on_exit(void_c_function_ptr, char *);
 void __register_finalization_routine(void)
 /*
 Register the function that handles static destruction so that it will be
-called when the program exits.
+called when the program exits.  May be called multiple times (and is
+effectively a no-op on invocations after the first).
 */
 {
+  static a_boolean already_registered = FALSE;
+  if (!already_registered) {
+    already_registered = TRUE;
 #if USE_ATEXIT
-  atexit((void_c_function_ptr)__call_dtors);
+    atexit((void_c_function_ptr)__call_dtors);
 #elif defined(sun)
-  on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
+    on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
 #endif /* USE_ATEXIT */
+  }  /* if */
 }  /* __register_finalization_routine */
 
 

@@ -94,6 +94,7 @@ list of destructions for the current thread.
 {
   if (__thread_needed_destruction_head == NULL) {
     /* Arrange to be notified when the thread terminates. */
+    __register_finalization_routine();
     if (__thread_register_finalization_routine() != 0) {
       /* Abort the execution. */
       __abort_execution(ec_thread_registration_failed);
