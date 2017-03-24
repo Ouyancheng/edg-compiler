@@ -9882,9 +9882,7 @@ do_assignment:;
                                                latest_initialization_on_entry);
         if (save_curr_cleanup_state != curr_context->curr_cleanup_state) {
           /* If the cleanup state has changed as a result of the removal above,
-             adjust the next destruction in the list to point to the current
-             cleanup state and insert code to indicate the new cleanup state.*/
-          dip->next_in_destruction_list = curr_context->latest_initialization;
+             insert code to indicate the new cleanup state. */
           if (exceptions_enabled) {
             insert_code_to_indicate_cleanup_state(
                                               curr_context->curr_cleanup_state,

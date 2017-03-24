@@ -357,7 +357,9 @@ typedef struct a_destructible_entity_descr {
                            on the destruction list, but should be ignored
                            once the static variable has been completely
                            constructed (because static variables use a
-                           different destruction mechanism). */
+                           different destruction mechanism).  This flag is set
+                           only after the static variable has been (fully)
+                           initialized. */
   a_variable_ptr
 		delegation_dtor_arg;
 			/* When use_delegation_dtor is TRUE, this variable
