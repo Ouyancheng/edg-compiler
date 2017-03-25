@@ -9895,7 +9895,7 @@ do_assignment:;
          at runtime the need for a destruction later. */
       record_needed_destruction(dip, ipdp, eff_insert_location);
     } else {
-      /* Initializations of nonstatic variables, and members of static
+      /* Initializations of nonstatic variables and members of static
          aggregates (the partial-aggregate cleanup for those is more like
          automatic variable cleanup than static variable cleanup). */
       a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
