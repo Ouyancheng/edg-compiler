@@ -1342,8 +1342,9 @@ target_type_has_circularity.  If type matches type_to_match, it sets
 
 static a_boolean target_type_has_circularity(a_type_ptr type)
 /*
-Return TRUE if the target of type (a typedef) is used in the qualifiers that
-will be used to name the typedef.  This can arise in an example like
+Return TRUE if the target of type (a typedef) is used in the qualifiers or
+template arguments that will be used to name the typedef.  This can arise
+in an example like
 
     template<typename T> struct S {
       typedef T type;
@@ -1352,23 +1353,31 @@ will be used to name the typedef.  This can arise in an example like
 If X is a non-public type, an attempt to substitute S<X>::type for an
 occurrence of X in the generated code will result in an infinite recursion
 on the template argument, so this case must be detected and not added to
-the list of accessible typedefs.
+the list of accessible typedefs.  Similarly, an instance of an alias
+template where the target type is a template argument would also cause an
+infinite recursion.
 */
 {
-  a_boolean  has_circularity = FALSE;
+  a_boolean                      has_circularity = FALSE;
+  a_type_tree_traversal_flag_set ttt_flags;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
-  if (type->source_corresp.is_class_member) {
+  type_to_match = skip_typerefs(type->variant.typeref.type);
+  if (type->variant.typeref.is_template_alias) {
+    /* Check that the target type does not appear in the template arguments
+       of the alias template instance. */
+    ttt_flags = TTT_TEMPLATE_ARGS;
+    has_circularity = traverse_type_tree(type, ttt_check_type_match,
+                                         ttt_flags);
+  }  /* if */
+  if (!has_circularity && type->source_corresp.is_class_member) {
     a_type_ptr parent_class = parent_class_of(type);
-    a_type_tree_traversal_flag_set ttt_flags = (TTT_TEMPLATE_ARGS |
-                                                TTT_SKIP_TYPEREFS |
-                                                TTT_PARENT_CLASSES);
+    ttt_flags = (TTT_TEMPLATE_ARGS | TTT_SKIP_TYPEREFS | TTT_PARENT_CLASSES);
     /* We skip typerefs in the comparison to allow for cv-qualification.
        That results in a more conservative approach than is absolutely
        necessary, as a given template argument might be an accessible
        typedef instead of its inaccessible target type, but it's better to
        be safe than sorry. */
-    type_to_match = skip_typerefs(type->variant.typeref.type);
     has_circularity = traverse_type_tree(parent_class, ttt_check_type_match,
                                          ttt_flags);
   }  /* if */
@@ -1558,7 +1567,9 @@ template, add its instances as well in case they may be needed.
             !tp->variant.typeref.is_prototype_instantiation &&
             tp->variant.typeref.extra_info->assoc_template == templ) {
           a_type_ptr under_type = skip_typerefs(tp->variant.typeref.type);
-          add_typedef_to(accessible_typedef_hash_table, tp);
+          if (!target_type_has_circularity(tp)) {
+            add_typedef_to(accessible_typedef_hash_table, tp);
+          }  /* if */
           if (is_immediate_class_type(under_type)) {
             /* Also add public base classes of the underlying class type,
                since the alias type instance may have been used as a
@@ -1573,7 +1584,9 @@ template, add its instances as well in case they may be needed.
                 /* Temporarily make the typeref type the base class pointer
                    and add it to the hash table. */
                 tp->variant.typeref.type = bcp->type;
-                add_typedef_to(accessible_typedef_hash_table, tp);
+                if (!target_type_has_circularity(tp)) {
+                  add_typedef_to(accessible_typedef_hash_table, tp);
+                }  /* if */
               }  /* if */
             }  /* for */
             /* Restore the original underlying type. */
