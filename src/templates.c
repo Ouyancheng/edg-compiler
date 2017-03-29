@@ -23338,7 +23338,7 @@ template symbol supplement for this template should be returned to the caller.
     err = TRUE;
   } else if (!is_initial_decl &&
              tssp->variant.variable.decl_cache.decl_info != NULL &&
-	     !symbol_is(sym, sk_static_data_member) &&
+             !symbol_is(sym, sk_static_data_member) &&
              (!equiv_template_param_lists(tssp->variant.variable.decl_cache.
                                                          decl_info->parameters,
                                           decl_state->decl_info->parameters,
