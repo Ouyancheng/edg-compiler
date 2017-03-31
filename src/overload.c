@@ -11999,8 +11999,9 @@ next parameter.
     /* We've previously encountered a parameter pack or a pack expansion, so
        we can't correlate parameters and arguments. */
     do_default_promotion = FALSE;
-  } else if (arg_list_elem->pack_expansion_descr != NULL ||
-             (ptp != NULL && ptp->is_parameter_pack)) {
+  } else if (is_template_dependent_context() &&
+             (arg_list_elem->pack_expansion_descr != NULL ||
+              (ptp != NULL && ptp->is_parameter_pack))) {
     /* The current argument is a pack expansion, or the current parameter is
        a parameter pack, so we can no longer correlate parameters and
        arguments. */

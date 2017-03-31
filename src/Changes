@@ -1,5 +1,13 @@
 Version 4.14
 
+3/31/17  [EDGcpfe/18136]
+Internal error in prep_generic_operand_full with variadic templates and SFINAE
+
+In somewhat complicated situations involving SFINAE tests performed on calls
+that involve variadic template expansions, the front end sometimes aborted with
+an internal error in prep_generic_operand_full.  This problem is now fixed.
+
+
 3/23/17  [EDGcpfe/18144]
 Microsoft compatibility: lookup in variadic function templates
 
