@@ -6808,7 +6808,7 @@ called only if global variable warning_on_for_init_difference is TRUE.
 }  /* report_for_init_difference */
 
 
-extern void report_excessive_rescan_depth(void)
+void report_excessive_rescan_depth(void)
 /*
 A template has been instantiated to many times in the process of deduction.
 Issue an error, and record the excess in the scope stack that earlier levels
