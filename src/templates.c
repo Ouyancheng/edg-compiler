@@ -13495,13 +13495,13 @@ during wrapup processing by compare_function_templates.
   }  /* if */
   /* The pending deduction count is incremented during the substitution
      process below to detect recursive calls of this routine. */
-  if (tssp->variant.function.pending_deductions >=
-                                                  max_pending_instantiations) {
+  if (tssp->variant.function.pending_deductions > max_pending_instantiations) {
     if (new_arg_list != NULL) {
       *new_arg_list = NULL;
       new_arg_list = NULL;
     }  /* if */
     templ_arg_list = NULL;
+    report_excessive_rescan_depth();
   }  /* if */
   if (new_arg_list != NULL) {
     /* An explicit template argument list was specified, initialize the

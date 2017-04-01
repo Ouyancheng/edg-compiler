@@ -2847,6 +2847,7 @@ the scope being pushed.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
+  ssep->rescan_depth_exceeded = FALSE;
   ssep->in_decltype_context = FALSE;
   ssep->pragma_pack_is_local     = FALSE;
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
@@ -6806,6 +6807,37 @@ called only if global variable warning_on_for_init_difference is TRUE.
   }  /* if */
 }  /* report_for_init_difference */
 
+
+extern void report_excessive_rescan_depth(void)
+/*
+A template has been instantiated to many times in the process of deduction.
+Issue an error, and record the excess in the scope stack that earlier levels
+of deduction can be cut short (not doing so opens the door to the possibility
+of reaching this point again repeatedly for the same root-level deduction,
+potentially entering an exponential-time process).
+*/
+{
+  a_scope_depth  sd = depth_innermost_instantiation_scope;
+return;
+
+  if (scope_stack[sd].rescan_depth_exceeded) {
+    /* This routine has already been called for the current instantiation
+       scope.  No need to issue multiple errors. */
+  } else {
+    /* Scan the scope stack for consecutive rescan instantiation entries,
+       marking each one with a flag that indicates the rescan depth limit was
+       exceeded.  Also mark those instantiation scope entries to appear in the
+       diagnostic we are about to emit (ordinarily, rescan entries are not
+       reported when listing the instantiation context, but this is the
+       exception to that rule). */
+    while (sd != NO_SCOPE_DEPTH && scope_stack[sd].is_rescan) {
+      scope_stack[sd].rescan_depth_exceeded = TRUE;
+      scope_stack[sd].exclude_from_context_output = FALSE;
+      sd = scope_stack[sd-1].depth_innermost_instantiation_scope;
+    }  /* while */
+    pos_error(ec_excessive_rescan_depth, &error_position);
+  }  /* if */
+}  /* report_excessive_deduction_depth */
 
 static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
                                                 a_boolean    do_tags,

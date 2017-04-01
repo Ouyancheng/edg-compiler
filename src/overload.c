@@ -4412,8 +4412,10 @@ template arguments, or NULL if deduction failed.
      instead of ">=" so that the recursion will normally be detected during
      instantiation instead of deduction, because that produces a better
      diagnostic. */
-  if (tssp->variant.function.pending_deductions >
-                                         max_pending_instantiations) goto skip;
+  if (tssp->variant.function.pending_deductions > max_pending_instantiations) {
+    report_excessive_rescan_depth();
+    goto skip;
+  }  /*  if */
   ++(tssp->variant.function.pending_deductions);
   /* Push an instantiation scope that can be used by the substitution and
      deduction process to find information about the template. */
@@ -5233,7 +5235,10 @@ the point of call.  conv_context describes the context of the conversion.
         }  /* if */
         /* Avoid infinite recursion. */
         if (tssp->variant.function.pending_deductions >
-                              max_pending_instantiations) goto reject_function;
+                                                 max_pending_instantiations) {
+          report_excessive_rescan_depth();
+          goto reject_function;
+        }  /* if */
         ++(tssp->variant.function.pending_deductions);
         push_instantiation_scope_for_rescan(function_symbol);
         routine_type = substitute_template_arguments(
@@ -6064,17 +6069,30 @@ retry2:
                                  matched_except_for_missing_selector,
                                  matched_except_for_selector,
                                  &discarded_because_post_decl);
-    if (in_init_list_ctor_pass &&
-        *candidate_functions != saved2_candidate_functions) {
-      /* We just matched an initializer-list constructor using the
-         braced-init-list as a single argument.  Remember that in the
-         candidate function entry. */
-      (*candidate_functions)->init_list_ctor_case = TRUE;
-    }  /* if */
-    if (discarded_because_post_decl) {
-      any_discarded_because_post_decl = TRUE;
+    if (*candidate_functions == saved2_candidate_functions) {
+      /* The candidate was rejected. */
+      a_scope_depth  sd = depth_innermost_instantiation_scope;
+      if (sd != NO_SCOPE_DEPTH && scope_stack[sd].rescan_depth_exceeded) {
+        /* The function was rejected because the depth of instantiations
+           performed for deduction was exceeded.  Do not continue with
+           another candidate, since that could repeat a similar excess,
+           leading potentially to an exponential-time process. */
+        expect_error();
+        break;
+      }  /* if */
+      if (discarded_because_post_decl) {
+        any_discarded_because_post_decl = TRUE;
+      } else {
+        any_not_discarded_because_post_decl = TRUE;
+      }  /* if */
     } else {
-      any_not_discarded_because_post_decl = TRUE;
+      /* The candidate was accepted. */
+      if (in_init_list_ctor_pass) {
+        /* We just matched an initializer-list constructor using the
+           braced-init-list as a single argument.  Remember that in the
+           candidate function entry. */
+        (*candidate_functions)->init_list_ctor_case = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
   if (in_init_list_ctor_pass &&

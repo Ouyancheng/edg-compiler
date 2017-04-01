@@ -2903,6 +2903,7 @@ ec_coclass_base_requirements_not_met;;"could not add CComCoClass base class"
 ec_constexpr_string_not_null_terminated;;"not a null-terminated string"
 ec_non_scalar_vacuous_dtor_call;;"non-scalar type %t cannot be used in a vacuous destructor call"
 ec_constexpr_weak_address;;"address of \"weak\" %n is not constant"
+ec_excessive_rescan_depth;;"too many recursive substitutions of function template signatures"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

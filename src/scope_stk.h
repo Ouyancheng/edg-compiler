@@ -977,6 +977,11 @@ typedef struct a_scope_stack_entry {
   a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
+  a_bit_field	rescan_depth_exceeded:1;
+			/* TRUE for a chain of instantiation scopes for which
+			   is_rescan is TRUE and for which excessive recursion
+			   has been detected.  (Used to short overload
+			   resolution.) */
   a_bit_field	in_decltype_context:1;
 			/* TRUE when scanning the expression in a decltype
 			   operator. */
@@ -2168,6 +2173,8 @@ extern a_boolean routine_defined(a_routine_ptr  rp);
 
 extern void report_for_init_difference(a_symbol_ptr       sym,
                                        a_source_position  *pos);
+
+extern void report_excessive_rescan_depth(void);
 
 extern void push_name_linkage(a_name_linkage_kind  kind);
 

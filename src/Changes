@@ -1,5 +1,33 @@
 Version 4.14
 
+3/31/17  [EDGcpfe/18156]
+Exponential-time deduction situations
+
+The C++11 SFINAE rules may require the recursive partial instantiation of
+function templates.  The front end detects when this recursion exceeds a limit,
+but previously such a situation just caused it to discard a candidate at the
+level at which the recursion exceeded the limit.  It then proceeded trying the
+next candidate at that level.  Since every recursion level can contain more
+than one candidate, this process could potentially result in an exponential
+time process.  For example:
+
+  template<typename T> auto split(T p) -> decltype(start(p));
+  template<typename T> auto split(T &p) -> decltype(start(p));
+  template<typename T> auto start(T p) -> decltype(split(p));
+  struct X {} x;
+  int r = start(x);
+
+Here, a call of "start" considered two candidates for "split" during the
+deduction process for "start".  Each of those candidates recursively triggered
+a new deduction for "start", and the next level now had double the number of
+candidates to consider.  This process continued creating a binary tree of a
+depth determined by the recursion limit, but the total number of examined tree
+nodes was an exponential function of that depth, causing the front end to
+seemingly be stuck in an unbounded loop.  Now, when the first branch of the
+tree is trimmed to the recursion limit, the complete deduction process is
+abandoned and an error message is issued indicating the problem.
+
+
 3/31/17  [EDGcpfe/18136]
 Internal error in prep_generic_operand_full with variadic templates and SFINAE
 
