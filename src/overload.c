@@ -9311,15 +9311,16 @@ in_instantiation:
                                       &inaccessible_match,
                                       &matched_except_for_missing_selector,
                                       &matched_except_for_selector);
-        a_scope_depth  sd = depth_innermost_instantiation_scope;
         some_function_tried = TRUE;
-        if (sd != NO_SCOPE_DEPTH && scope_stack[sd].rescan_depth_exceeded) {
-          /* The function was rejected because the depth of instantiations
-             performed for deduction was exceeded.  Do not continue with
-             another candidate, since that could repeat a similar excess,
-             leading potentially to an exponential-time process. */
-          break;
-        }  /* if */
+        { a_scope_depth  sd = depth_innermost_instantiation_scope;
+          if (sd != NO_SCOPE_DEPTH && scope_stack[sd].rescan_depth_exceeded) {
+            /* The function was rejected because the depth of instantiations
+               performed for deduction was exceeded.  Do not continue with
+               another candidate, since that could repeat a similar excess,
+               leading potentially to an exponential-time process. */
+            break;
+          }  /* if */
+        }
       }  /* for */
       free_list_of_symbol_list_entries(symbol_list);
     }  /* if */
