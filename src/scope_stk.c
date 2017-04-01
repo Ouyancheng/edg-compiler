@@ -6818,7 +6818,6 @@ potentially entering an exponential-time process).
 */
 {
   a_scope_depth  sd = depth_innermost_instantiation_scope;
-return;
 
   if (scope_stack[sd].rescan_depth_exceeded) {
     /* This routine has already been called for the current instantiation
