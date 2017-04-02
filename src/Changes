@@ -1,5 +1,23 @@
 Version 4.14
 
+4/2/17   [EDGcpfe/16986,EDGcpfe/17029]
+Initializers with braces in template declarations
+
+The template processing in the front end used a prescan that did not
+work properly in some cases involving braced initializers.  This could
+result in spurious errors when such initializers were used in contexts
+such as the return type of a function and the template argument list
+of a partial specialization.  Now fixed.
+
+  struct A {
+    constexpr operator bool() const { return true; }
+  };
+  template<bool> struct B {
+    typedef int type;
+  };
+  template<typename T> typename B<A{}>::type f() { return false; }
+
+
 4/2/17   [EDGcpfe/18047,EDGcpfe/18159]
 Incorrect symbol variant used for static data member declarations
 

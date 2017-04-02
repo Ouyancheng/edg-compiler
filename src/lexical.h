@@ -2190,8 +2190,9 @@ void move_cached_tokens(a_cached_token_ptr	first_token,
                         a_token_cache		*to_cache);
 
 
-extern void update_reusable_cache_rescan_location(
-				a_pack_expansion_stack_entry_ptr	pesep);
+extern
+void update_reusable_cache_rescan_location(
+					a_cached_token_handle	token_handle);
 
 extern void increment_variadic_rescans_for_reusable_cache(void);
 

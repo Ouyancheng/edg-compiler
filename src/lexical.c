@@ -1670,14 +1670,16 @@ tokens may be added to it.
   a_cached_token_ptr	ctp = cache->first_token;
   a_cached_token_ptr	prev_ctp = NULL;
 
-  for (; ctp->next != NULL; ctp = ctp->next) {
-    prev_ctp = ctp;
-  }  /* for */
-  cache->last_token = prev_ctp;
-  prev_ctp->next = NULL;
-  /* Free the terminator token. */
-  free_cached_token_from_reusable_cache(cache, ctp,
-                                        /*keep_pragma_tokens=*/FALSE);
+  if (ctp != NULL) {
+    for (; ctp->next != NULL; ctp = ctp->next) {
+      prev_ctp = ctp;
+    }  /* for */
+    cache->last_token = prev_ctp;
+    prev_ctp->next = NULL;
+    /* Free the terminator token. */
+    free_cached_token_from_reusable_cache(cache, ctp,
+                                          /*keep_pragma_tokens=*/FALSE);
+  }  /* if */
 }  /* remove_cache_terminator */
 
 
@@ -1958,15 +1960,7 @@ If include_last_token is TRUE, last_tsn is included in the cache.
        source token marking the end of the cache. */
     if (ctp->ending_token_sequence_number >= last_tsn ||
         (a_token_kind)ctp->token == tok_end_of_source) break;
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
-      /* The token sequence looks something like:
-		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
-         where token-n3 is the first token to be copied.  We also want to
-         copy any pragmas that precede token-n3 to the destination cache.
-         When we break out of the loop first_ctp_to_copy will point to
-         pragma-n2. */
-      last_ctp_to_copy = ctp->next;
-    }  /* if */
+    last_ctp_to_copy = ctp->next;
   }  /* for */
   check_assertion_str(ctp != NULL || last_tsn == NO_TOKEN_SEQUENCE_NUMBER,
                       "copy_tokens_from_cache: last_tsn missing");
@@ -2762,19 +2756,22 @@ tokens therein and clear the cache.
 }  /* discard_token_cache */
 
 
-static a_token_kind get_token_from_cached_token_rescan_list(void)
+static a_token_kind get_token_from_cached_token_rescan_list(
+					a_boolean	*no_tokens_on_list)
 /*
 Remove the first token from cached_token_rescan_list, establish it as the
 current token, and return its token kind.  This routine and
 get_token_from_reusable_cache_stack are very similar.  If a change is
 made to one routine the other should be checked to see if it needs
-an equivalent change.
+an equivalent change.  If the rescan list contains only pragma entries,
+it is possible for there to be no actual token.  *no_tokens_on_list
+is set to TRUE in that case, FALSE otherwise.
 */
 {
   a_token_kind       ctoken;
   a_cached_token_ptr ctp;
 
-  db_enter(4, "get_token_from_cached_token_rescan_list");
+  *no_tokens_on_list = FALSE;
   for (;;) {
     /* Remove the first entry from the list. */
     ctp = cached_token_rescan_list;
@@ -2790,6 +2787,11 @@ an equivalent change.
                   "get_token_from...: pragma found in suppress_pragma mode");
     curr_token_pragmas = ctp->variant.pragmas;
     free_cached_token(ctp);
+    if (cached_token_rescan_list == NULL) {
+      *no_tokens_on_list = TRUE;
+      ctoken = tok_error;
+      goto done;
+    }  /* if */
   }  /* for */
   /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved
      is not a cached pp-token.  If it is, flush any cached pp-tokens and
@@ -2866,24 +2868,24 @@ an equivalent change.
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
   free_cached_token(ctp);
+done:
   if (cached_token_rescan_list == NULL) {
     recalc_any_initial_get_token_tests_needed();
   }  /* if */
-  db_exit();
   return ctoken;
 }  /* get_token_from_cached_token_rescan_list */
 
 
 void update_reusable_cache_rescan_location(
-				a_pack_expansion_stack_entry_ptr	pesep)
+					a_cached_token_handle	token_handle)
 /*
 Update the current reusable token cache information to begin rescanning
-tokens from the token specified by pesep.
+tokens from the token specified by token_handle;
 */
 {
   /* Discard any tokens on the non-reusable rescan list. */
   while (cached_token_rescan_list != NULL) (void)get_token();
-  reusable_cache_stack->next_cached_token = pesep->first_token_handle;
+  reusable_cache_stack->next_cached_token = token_handle;
   (void)get_token();
 }  /* update_reusable_cache_rescan_location */
 
@@ -2951,6 +2953,7 @@ an equivalent change.
   curr_token_sequence_number = ctp->token_sequence_number;
   last_token_sequence_number_of_token = ctp->ending_token_sequence_number;
   curr_cached_token_handle = ctp->token_handle;
+  check_assertion(ctp->token_handle == ctp || ctp->token_handle == NULL);
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
@@ -12889,16 +12892,20 @@ to speed in some cases.
       process_curr_token_pragmas();
       recalc_any_initial_get_token_tests_needed();
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 restart:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If there are cached tokens to be rescanned, first check the
        cached_token_rescan_list and take the first token on the list if
        it is non-NULL, otherwise check the reusable cache stack. */
     /* If there are cached tokens to be rescanned, take the first on the
        list. */
     if (cached_token_rescan_list != NULL) {
-      ctoken = get_token_from_cached_token_rescan_list();
+      a_boolean	no_tokens_on_list;
+      ctoken = get_token_from_cached_token_rescan_list(&no_tokens_on_list);
+      if (no_tokens_on_list) {
+        /* There were only pragma entries on the list.  Go back and check
+           for other token sources. */
+        goto restart;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Mark the point at which the end of the __if_exists tokens was
          encountered. */
@@ -14426,6 +14433,7 @@ added to the cache.
     /* Reset the token cache when starting a new caching region. */
     discard_token_cache(&lssep->cache);
     lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+    clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   }  /* if */
   lssep->cache_tokens++;
   if (include_curr_token &&
@@ -14446,6 +14454,7 @@ lexical state.
   a_lexical_state_stack_entry_ptr	lssep;
 
   lssep = curr_lexical_state_stack_entry;
+  check_assertion(lssep->cache_tokens != 0);
   lssep->cache_tokens--;
 }  /* end_caching_fetched_tokens */
 

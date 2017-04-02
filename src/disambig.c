@@ -1811,9 +1811,8 @@ cache passed by the caller are flushed.
   /* Initialize the disambiguation state block. */
   init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
                       /*suppress_packs=*/TRUE,
-                      /*cache_tokens=*/FALSE);
+                      /*cache_tokens=*/TRUE);
   state.set_decl_class_type = TRUE;
-  rescan_reusable_cache(decl_token_cache_ptr);
   prescan_declaration(&state,
                       DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_TEMPLATE_DECL,
                      /*is_top_level=*/TRUE);

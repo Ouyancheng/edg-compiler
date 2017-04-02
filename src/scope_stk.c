@@ -12081,7 +12081,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
   if (!done) {
     if (!pesep->is_rescan) {
       /* Reset the token position to the start of the pack expansion. */
-      update_reusable_cache_rescan_location(pesep);
+      update_reusable_cache_rescan_location(pesep->first_token_handle);
     }  /* if */
     pesep->instantiation_descr->after_first_element = TRUE;
   } else if (pesep != NULL) {

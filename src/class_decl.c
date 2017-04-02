@@ -15263,6 +15263,7 @@ decl_member_function_template.
 */
 {
   a_decl_parse_state  *dps = &decl_info->decl_state;
+  a_boolean           generic_lambda_completed = FALSE;
 
   if (!is_error_type(dps->type)) {
     a_symbol_locator    loc;
@@ -15301,6 +15302,7 @@ decl_member_function_template.
       rp->type->variant.routine.extra_info->assoc_routine = rp;
       complete_generated_member_template(templ_state, (a_func_info_block*)NULL,
                                          dps->sym);
+      generic_lambda_completed = TRUE;
     } else {
       /* The ordinary (i.e., non-generic case): Call decl_member_function. */
       decl_member_function(&loc, func_info, class_state, decl_info,
@@ -15326,6 +15328,10 @@ decl_member_function_template.
     /* A generic lambda: Pop the template declaration scope. */
     check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
     pop_scope();
+    if (!generic_lambda_completed) {
+      /* In non-error cases, this will have been done indirectly above. */
+      end_caching_fetched_tokens();
+    }  /* if */
   }  /* if */
 }  /* decl_call_operator_for_lambda */
 
@@ -16299,6 +16305,8 @@ template declaration and is NULL otherwise.
     var_templ_tssp = sym->variant.template_info;
     var = var_templ_tssp->variant.variable.prototype_variable;
     var->type = member_type;
+    make_template_decl_cache(templ_state, curr_token_sequence_number,
+                             /*include_last_token=*/FALSE);
     set_template_cache_info(&var_templ_tssp->variant.variable.decl_cache,
                             &templ_state->decl_token_cache,
                             templ_state->decl_info);
@@ -31309,6 +31317,7 @@ For example:
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
   report_gnu_cpp11_extension_if_needed(&pos_curr_token, ec_lambdas_is_cpp11);
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   /* Initialize the closure class and set up a context in which members
      can be added. */
   decl_level = decl_level_for_lambda_closure_class(&bad_scope);
@@ -31334,6 +31343,10 @@ For example:
   scan_optional_lambda_declarator(lambda, &func_info, &decl_info,
                                   &templ_state);
   record_end_of_lambda_header(lambda);
+  if (!lambda->is_generic) {
+    /* Stop background caching if this is not a generic lambda. */
+    end_caching_fetched_tokens();
+  }  /* if */
   /* Declare the call operator for the closure class. */
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info,
                                 &templ_state);

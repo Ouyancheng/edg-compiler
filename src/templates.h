@@ -139,6 +139,9 @@ typedef struct a_tmpl_decl_state {
 			   a variable template. */
   a_boolean	is_enum;
 			/* TRUE if this is an enum template declaration. */
+  a_boolean	caching_tokens;
+			/* TRUE if we are currently doing background
+			   caching of tokens for this declaration. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -216,6 +219,10 @@ typedef struct a_tmpl_decl_state {
   a_token_cache	param_list_cache;
 			/* Token cache containing the template parameter
 			   list(s). */
+  a_token_sequence_number
+		first_decl_cache_tsn;
+			/* The token sequence number of the first token that
+			   should be included in the decl_token_cache. */
   a_token_cache	decl_token_cache;
 			/* Token cache containing the template declaration
 			   (the portion that follows the template parameter
@@ -479,6 +486,11 @@ extern a_symbol_ptr find_template_variable(
 				a_boolean		is_use);
 
 extern a_namespace_ptr determine_referencing_namespace(void);
+
+extern void make_template_decl_cache(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_token_sequence_number	last_tsn,
+				a_boolean		include_last_token);
 
 extern void set_template_arg_to_error(a_template_arg_ptr	tap);
 

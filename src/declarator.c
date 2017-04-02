@@ -3435,14 +3435,12 @@ an error if a default argument expression is encountered.
                  (3) functions and member functions declared outside any class
                      definition: The default argument can be scanned as soon as
                      the function/member function is known. */
-            if (is_member_or_friend_function) {
+            if (invalid_default_arg) {
+              /* During a prototype instantiation default arguments are
+                 cached but not rescanned.  Issue the syntax error here. */
+              pos_error(ec_exp_primary_expr, &pos_curr_token);
+            } else if (is_member_or_friend_function) {
               /* Cache a default argument for a member or friend function. */
-              if (invalid_default_arg &&
-                  scope_stack[depth_scope_stack].in_prototype_instantiation) {
-                /* During a prototype instantiation default arguments are
-                   cached but not rescanned.  Issue the syntax error here. */
-                pos_error(ec_exp_primary_expr, &pos_curr_token);
-              }  /* if */
               prescan_member_function_default_arg_expr(ptp_for_scan,
 						       is_friend_decl,
                                                        param_number);
