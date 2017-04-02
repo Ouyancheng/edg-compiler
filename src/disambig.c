@@ -1793,8 +1793,7 @@ routine to do lookahead, etc.
 }  /* is_decl_not_expr */
 
 
-a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,
-                                       a_boolean     *is_friend_decl)
+a_type_ptr prescan_and_find_declarator(a_boolean     *is_friend_decl)
 /*
 Scan the declaration that follows "template <...>" and find the
 declarator.  Record the class of which a member of the declarator.

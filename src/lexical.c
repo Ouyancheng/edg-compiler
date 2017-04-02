@@ -1417,7 +1417,6 @@ Allocate a reusable cache entry.  Reuse a freed entry if possible.
   rsep->token_cache = NULL;
   clear_token_cache(&rsep->copy_of_token_cache, /*is_reusable=*/TRUE);
   rsep->variadic_rescans_in_progress = 0;
-  rsep->skip_terminator = FALSE;
   rsep->discard_cache_when_done = FALSE;
   return rsep;
 }  /* alloc_reusable_cache_entry */
@@ -1659,28 +1658,6 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
   /* Add the end-of-source token to the end of the cache. */
   add_cached_token_to_cache(ctp, cache);
 }  /* terminate_token_cache */
-
-
-void remove_cache_terminator(a_token_cache *cache)
-/*
-Remove the terminator token from the token cache so that additional
-tokens may be added to it.
-*/
-{ 
-  a_cached_token_ptr	ctp = cache->first_token;
-  a_cached_token_ptr	prev_ctp = NULL;
-
-  if (ctp != NULL) {
-    for (; ctp->next != NULL; ctp = ctp->next) {
-      prev_ctp = ctp;
-    }  /* for */
-    cache->last_token = prev_ctp;
-    prev_ctp->next = NULL;
-    /* Free the terminator token. */
-    free_cached_token_from_reusable_cache(cache, ctp,
-                                          /*keep_pragma_tokens=*/FALSE);
-  }  /* if */
-}  /* remove_cache_terminator */
 
 
 a_cached_token_ptr build_cached_token(a_token_kind	      kind,
@@ -2483,8 +2460,7 @@ discard_curr_token.
 }  /* rescan_cached_tokens */
 
 
-void rescan_reusable_cache_full(a_token_cache	*cache,
-			        a_boolean	skip_terminator)
+void rescan_reusable_cache(a_token_cache	*cache)
 /*
 This routine is similar to rescan_cached_tokens except that the token
 cache provided by the caller is not destroyed while it is scanned.
@@ -2494,8 +2470,7 @@ reusable caches being scanned.  The cached token rescan list
 pointer is saved in the entry for the reusable cache so that
 it can be restored when the cache has been exhausted.  The current
 token is cached so that it will be fetched again after the reusable
-tokens have been rescanned.  skip_terminator is TRUE if the terminating
-tok_end_of_source token from cache should be bypassed.
+tokens have been rescanned.
 */
 {
   a_token_cache               cache_for_curr_token;
@@ -2525,7 +2500,6 @@ tok_end_of_source token from cache should be bypassed.
     /* Set the next token pointer of the reusable cache entry to the front
        of the cache. */
     rcep->next_cached_token = cache->first_token;
-    rcep->skip_terminator = skip_terminator;
     /* Indicate that the special case code at the beginning of get_token
        is needed to cached token rescanning. */
     any_initial_get_token_tests_needed = TRUE;
@@ -2533,16 +2507,6 @@ tok_end_of_source token from cache should be bypassed.
     (void)get_token();
   }  /* if */
   db_exit();
-}  /* rescan_reusable_cache_full */
-
-
-void rescan_reusable_cache(a_token_cache	*cache)
-/*
-Interface to rescan_reusable_cache_full that supplies a default
-value for skip_terminator.
-*/
-{
-  rescan_reusable_cache_full(cache, /*skip_terminator=*/FALSE);
 }  /* rescan_reusable_cache */
 
 
@@ -2993,12 +2957,8 @@ an equivalent change.
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
-  while ((reusable_cache_stack->next_cached_token == NULL ||
-          (reusable_cache_stack->next_cached_token->next == NULL &&
-           reusable_cache_stack->skip_terminator &&
-           reusable_cache_stack->next_cached_token->token ==
-                                     (a_small_token_kind)tok_end_of_source)) &&
-          reusable_cache_stack->variadic_rescans_in_progress == 0) {
+  while (reusable_cache_stack->next_cached_token == NULL &&
+         reusable_cache_stack->variadic_rescans_in_progress == 0) {
      /* Don't pop this entry of the stack if it is currently being used
         for a variadic template rescan. */
      pop_reusable_cache_stack();
