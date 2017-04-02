@@ -1,5 +1,19 @@
 Version 4.14
 
+4/2/17   [EDGcpfe/18047,EDGcpfe/18159]
+Incorrect symbol variant used for static data member declarations
+
+A change made in version 4.13 could cause an incorrect symbol variant
+to be used in certain error cases.  This could result in an abort
+(in reconcile_template_param_lists).  Now fixed.
+
+  template<class T> struct A { static int const i = 1; };
+  template<class T> int const A<T>::i;
+  // Invalid redefinitions:
+  template<class T> struct A { static int const i = 1; };
+  template<class T> int const A<T>::i;
+
+
 3/31/17  [EDGcpfe/18156]
 Exponential-time deduction situations
 
