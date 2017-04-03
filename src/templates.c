@@ -4497,10 +4497,7 @@ list passed in.  The pointer to the start of the list is returned.
        ctp != NULL; prev_ctp = next_prev_ctp, ctp = ctp->next) {
     /* Stop searching if there are no more entries to be processed. */
     if (curr_tcsp == NULL && start_found_list == NULL) break;
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
-      /* Don't use a pragma entry as a previous token. */
-      next_prev_ctp = ctp;
-    }  /* if */
+    next_prev_ctp = ctp;
     if (curr_tcsp != NULL &&
         ctp->token_sequence_number == curr_tcsp->first_token_number) {
       /* We've found the first token of the current segment.  Move it to

@@ -1252,20 +1252,36 @@ Issue a diagnostic on unimplemented keywords.
 }  /* unimplemented_keyword_diagnostic */
 
 
-void clear_token_cache(a_token_cache *cache,
-		       a_boolean     reusable)
+static void clear_token_cache_full(a_token_cache *cache,
+				   a_boolean      reusable,
+				   a_boolean      is_background)
 /*
 Initialize a token cache, presumably so tokens can be added to it.
+reusable is TRUE if this should be a reusable cache.  is_background
+is TRUE if this is a background cache used to cache tokens as they
+are fetched.
 */
 {
   cache->next = NULL;
   cache->first_token = NULL;
   cache->last_token  = NULL;
   cache->is_reusable = reusable;
+  cache->is_background_cache = FALSE;
 #if DEBUG
   cache->token_count = 0;
   cache->pragma_count = 0;
 #endif /* DEBUG */
+}  /* clear_token_cache_full */
+
+
+void clear_token_cache(a_token_cache *cache,
+		       a_boolean     reusable)
+/*
+Interface to clear_token_cache_full that provides a default value for
+is_background.
+*/
+{
+  clear_token_cache_full(cache, reusable, /*is_background=*/FALSE);
 }  /* clear_token_cache */
 
 
@@ -1750,7 +1766,16 @@ This is used to save tokens for later rescanning.
      the token cache entry for the current token. */
   if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
     add_pragma_entry_to_cache(cache);
-    curr_token_pragmas = NULL;
+    /* Normally the curr_token_pragmas list is cleared when a token  is
+       cached, but for background caching purposes a copy of the pragmas
+       is made so that they can be processed by the current caller and
+       again (if and when) the token is obtained from a copy of the
+       cached tokens. */
+    if (!cache->is_background_cache) {
+      curr_token_pragmas = NULL;
+    } else {
+      curr_token_pragmas = make_copy_of_pragma_list(curr_token_pragmas);
+    }  /* if */
   }  /* if */
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
@@ -14306,7 +14331,8 @@ to it.
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
   lssep->error_position = null_source_position;
-  clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
+  clear_token_cache_full(&lssep->cache, /*is_reusable=*/FALSE,
+                         /*is_background=*/TRUE);
   lssep->caching_tokens = FALSE;
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
@@ -14393,7 +14419,8 @@ added to the cache.
     /* Reset the token cache when starting a new caching region. */
     discard_token_cache(&lssep->cache);
     lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-    clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
+    clear_token_cache_full(&lssep->cache, /*is_reusable=*/FALSE,
+                          /*is_background=*/TRUE);
   }  /* if */
   lssep->cache_tokens++;
   if (include_curr_token &&

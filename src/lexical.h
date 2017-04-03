@@ -261,6 +261,10 @@ typedef struct a_token_cache {
 			   for a template cache).  This should be TRUE if
 			   there is any possibility that the cache may
 			   be reused. */
+  a_byte_boolean
+		is_background_cache;
+			/* TRUE if this is a cache that is being used to
+			   automatically cache tokens as they are fetched. */
 #if DEBUG
   unsigned long	token_count;
 			/* The number of tokens in this cache.  Used for

@@ -1136,6 +1136,7 @@ with a token that is to be cached.
 */
 {
   a_pending_pragma_ptr		ppp;
+  a_pending_pragma_ptr		saved_curr_token_pragmas;
   a_pragma_kind_description_ptr	pkdp;
   an_immediate_pragma_function_ptr
                                 ipfp;
@@ -1147,7 +1148,11 @@ with a token that is to be cached.
     add_source_sequence_entry_to_curr_token_pragmas(pbk_immediate);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
+  /* Clear curr_token_pragmas so that enclosing pragmas won't be considered
+     part of this pragma. */
+  saved_curr_token_pragmas = curr_token_pragmas;
+  curr_token_pragmas = NULL;
+  for (ppp = saved_curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
     pkdp = ppp->descr_ptr;
     if (pkdp->binding_kind == (a_pragma_binding_kind)pbk_immediate) {
       if (!ppp->has_been_processed) {
@@ -1169,6 +1174,8 @@ with a token that is to be cached.
       }  /* if */
     }  /* if */
   }  /* for */
+  check_assertion(curr_token_pragmas == NULL);
+  curr_token_pragmas = saved_curr_token_pragmas;
 }  /* process_immediate_pragmas */
 
 
