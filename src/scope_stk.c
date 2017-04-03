@@ -6811,10 +6811,10 @@ called only if global variable warning_on_for_init_difference is TRUE.
 void report_excessive_rescan_depth(void)
 /*
 A template has been instantiated to many times in the process of deduction.
-Issue an error, and record the excess in the scope stack that earlier levels
-of deduction can be cut short (not doing so opens the door to the possibility
-of reaching this point again repeatedly for the same root-level deduction,
-potentially entering an exponential-time process).
+Issue an error, and record the excess in the scope stack to allow earlier
+levels of deduction to be cut short (not doing so opens the door to the
+possibility of reaching this point again repeatedly for the same root-level
+deduction, potentially entering an exponential-time process).
 */
 {
   a_scope_depth  sd = depth_innermost_instantiation_scope;
@@ -6825,10 +6825,10 @@ potentially entering an exponential-time process).
   } else {
     /* Scan the scope stack for consecutive rescan instantiation entries,
        marking each one with a flag that indicates the rescan depth limit was
-       exceeded.  Also mark those instantiation scope entries to appear in the
-       diagnostic we are about to emit (ordinarily, rescan entries are not
-       reported when listing the instantiation context, but this is the
-       exception to that rule). */
+       exceeded.  Also mark those instantiation scope entries so that they
+       will appear in the diagnostic we are about to emit (ordinarily, rescan
+       entries are not reported when listing the instantiation context, but
+       this is the exception to that rule). */
     while (sd != NO_SCOPE_DEPTH && scope_stack[sd].is_rescan) {
       scope_stack[sd].rescan_depth_exceeded = TRUE;
       scope_stack[sd].exclude_from_context_output = FALSE;

@@ -6499,7 +6499,7 @@ and record it in *dps.  Also update positions in decl_pos_block.
   if (!dps->auto_type_specifier_seen || dps->decltype_auto_specifier_seen) {
     pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
   }  /* if */
-  if (dps->type->kind == tk_pointer &&
+  if (dps->type->kind == (a_type_kind)tk_pointer &&
       !dps->type->variant.pointer.is_reference) {
     pos_error(ec_invalid_struct_binding_syntax, &dps->declarator_start_pos);
   }  /* if */

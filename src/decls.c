@@ -17045,7 +17045,7 @@ representing the individual bindings.
     p_end_bindings = &container->variant.bindings;
     /* Check some contraints. */
     if (dps->dso_flags & DSO_INLINE) {
-      pos_error(ec_struct_binding_constexpr, &dps->inline_pos);
+      pos_error(ec_struct_binding_inline, &dps->inline_pos);
     } else if (dps->dso_flags & DSO_CONSTEXPR) {
       pos_error(ec_struct_binding_constexpr, &dps->constexpr_pos);
     } else if (dps->declared_storage_class !=
@@ -17058,7 +17058,7 @@ representing the individual bindings.
   /* Rescan the bracketed list of binding names and declare a variable
      for each binding (initializing each one as appropriate). */
   rescan_cached_tokens(dps->variant.struct_bindings_cache);
-  required_token(tok_lbracket, ec_exp_lbracket);
+  (void)required_token(tok_lbracket, ec_exp_lbracket);
   add_stop_token(tok_comma);
   do {
     a_decl_parse_state  binding_dps;
@@ -17143,7 +17143,7 @@ representing the individual bindings.
     (void)get_token();
   } while (loop_token(tok_comma));
   remove_stop_token(tok_comma);
-  required_token(tok_rbracket, ec_exp_rbracket);
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
   if (curr_token != tok_end_of_source) expect_error();
   flush_past_token_cache_terminator();
   if (n < n_elements) {

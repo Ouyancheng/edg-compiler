@@ -29043,7 +29043,7 @@ is an lvalue.
         expr_tokens_ready = TRUE;
       }  /* if */
       rescan_reusable_cache(&expr_tokens);
-      internal_opnd_array = opnds;
+      internal_opnd_array = opnds;  /*lint !e789*/
       n_internal_opnds = 2;
       save_expr_stack(&saved_expr_stack);
       push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -29062,7 +29062,7 @@ is an lvalue.
       }  /* if */
       internal_type_array = saved_internal_type_array;
       n_internal_types = saved_n_internal_types;
-      required_token(tok_semicolon, ec_exp_semicolon);
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
     }  /* if */
     if (!err) {
       check_assertion(*p_icp != NULL && is_expression_component(*p_icp));
@@ -32540,14 +32540,14 @@ an error operand if n >= n_internal_opnds.
   a_boolean  success = FALSE;
 
   (void)get_token();
-  required_token(tok_lparen, ec_exp_lparen);
+  (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   if (curr_token == tok_int_constant) {
     a_constant_ptr  cp = &const_for_curr_token;
     if (sign_of_integer_constant(cp) >= 0) {
       a_boolean             ovflo;
       a_host_large_unsigned n = unsigned_value_of_integer_constant(cp, &ovflo);
-      if (!ovflo && n < n_internal_opnds) {
+      if (!ovflo && (int)n < n_internal_opnds) {
         *local_result = *internal_opnd_array[n];
         success = TRUE;
       }  /* if */
@@ -32559,7 +32559,7 @@ an error operand if n >= n_internal_opnds.
   } else {
     expr_syntax_error(ec_exp_int_constant);
   }  /* if */
-  required_token(tok_rparen, ec_exp_rparen);
+  (void)required_token(tok_rparen, ec_exp_rparen);
   if (!success) {
     make_error_operand(local_result);
   }  /* if */
