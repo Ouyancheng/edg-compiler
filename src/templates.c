@@ -23504,7 +23504,7 @@ template symbol supplement for this template should be returned to the caller.
     /* There is no initializer.  Stop the background caching and save
        the declaration up to this point. */
     make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
-                             /*include_last_token=*/TRUE);
+                             /*include_last_token=*/FALSE);
   } /* if */
   if (tssp != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
