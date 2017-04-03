@@ -19079,7 +19079,7 @@ This routine creates the declaration cache from the background cache that
 is being created.  It also terminates the background caching.  The cache
 from the starting token (from decl_state) to last_tsn is extracted and
 is pointed to by decl_token_cache in decl_state.  include_last_token
-is indicates whether last_tsn should be included in dec_cache.
+indicates whether last_tsn should be included in dec_cache.
 */
 {
   /* Discard the existing decl_token_cache.  This is used during
@@ -25576,7 +25576,7 @@ any non-empty template parameter lists that were scanned.
     }  /* if */
   }  /* if */
   dps->sym = sym;
-  /* If we haven't already done so, stop the background caching of  tokens. */
+  /* If we haven't already done so, stop the background caching of tokens. */
   end_caching_template_decl(decl_state);
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template &&
       !sym->is_class_member) {
