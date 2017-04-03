@@ -12208,7 +12208,8 @@ name.
          sb_entity = sb_entity->next) {
       a_source_correspondence *sb_scp = 
                                (a_source_correspondence*)sb_entity->entity.ptr;
-      check_assertion(sb_entity->entity.kind == iek_variable &&
+      check_assertion(sb_entity->entity.kind ==
+                                          (a_byte_il_entry_kind)iek_variable &&
                       unmangled_name_of(sb_scp) != NULL);
 #if IA64_ABI
       mangled_name_with_length(unmangled_name_of(sb_scp), mctl);

@@ -9382,14 +9382,26 @@ Do IL lowering of the indicated list of namespaces and everything under it.
 }  /* lower_namespace_list */
 
 
-static void lower_variable_list(a_variable_ptr variable_list)
+static void lower_variable_list(a_variable_ptr *variable_list)
 /*
 Do IL lowering of the indicated list of variables and everything under it.
+Remove any struct binding variables with initk_binding from the list (during
+lowering they will be replaced by an expression and are not needed by a
+back end).
 */
 {
-  a_variable_ptr variable;
+  a_variable_ptr variable, var_next, *prev = variable_list;
 
-  for (variable = variable_list; variable != NULL; variable = variable->next) {
+  for (variable = *variable_list; variable != NULL; variable = var_next) {
+    var_next = variable->next;
+    if (variable->init_kind == (an_init_kind)initk_binding) {
+      /* Remove this variable from the list. */
+      check_assertion((*prev) == variable);
+      (*prev) = variable->next;
+      variable->next = NULL;
+    } else {
+      prev = &(variable->next);
+    }  /* if */
     if (!ignore_variable_in_back_end(variable)) {
       lower_variable(variable);
     }  /* if */
@@ -20658,7 +20670,7 @@ Do IL lowering of the indicated scope and everything under it.
         param_var->type = implicit_this_param_type_of(routine_type);
       }  /* if */
     }  /* if */
-    lower_variable_list(scope->variant.routine.parameters);
+    lower_variable_list(&scope->variant.routine.parameters);
     /* For any parameters that are passed by copy constructor, change the
        parameter type to pointer-to-class. */
     for (param_var = scope->variant.routine.parameters;
@@ -20706,7 +20718,7 @@ Do IL lowering of the indicated scope and everything under it.
     /* Lower the file-scope lists or the lists for a class or namespace
        scope. */
     lower_type_list(scope->types);
-    lower_variable_list(scope->variables);
+    lower_variable_list(&scope->variables);
     if (scope_kind == (a_scope_kind)sck_class_struct_union &&
         allow_anachronisms) {
       /* Change the storage class of static data members that have external
@@ -20766,7 +20778,7 @@ Do IL lowering of the indicated scope and everything under it.
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
     }  /* if */
   }  /* if */
-  lower_variable_list(scope->nonstatic_variables);
+  lower_variable_list(&scope->nonstatic_variables);
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
@@ -20933,7 +20945,7 @@ not reachable from the normal file-scope IL tree.
     /* Don't process routines that are prototype instantiations. */
     if (ignore_routine_in_back_end(solhp->assoc_routine)) continue;
     lower_type_list(solhp->orphaned_types);
-    lower_variable_list(solhp->orphaned_variables);
+    lower_variable_list(&solhp->orphaned_variables);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
         lower_vla_variable_types(solhp->orphaned_variables);
