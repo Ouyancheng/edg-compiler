@@ -9635,6 +9635,17 @@ do_assignment:;
            copy is implied.  Determine the source location. */
         source_node = implied_source_of_copy(source_desc, ipdp,
                                              /*result_is_lvalue=*/TRUE);
+      } else if (dip->variant.constructor.is_array_copy) {
+        /* Nontrivial copying of an array (which occurs in the structured
+           binding case).  The first argument is the source of the copy;
+           remove it from the list. */
+        source_node = dip->variant.constructor.args;
+        dip->variant.constructor.args = source_node->next;
+        source_node->next = NULL;
+      }  /* if */
+      if (source_node != NULL) {
+        /* Adjust the implied source (the source node is an lvalue). */
+        check_assertion(source_node->is_lvalue);
         source_node = add_address_of_to_node(source_node);
         /* Cast the expression to the right type to eliminate qualifier and
            type-as-subobject differences.  Use the pointer version of
