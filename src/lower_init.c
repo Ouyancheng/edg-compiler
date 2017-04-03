@@ -12294,6 +12294,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
       */
       non_C_case = TRUE;
       break;
+    case dik_bitwise_copy:
+      non_C_case = TRUE;
+      break;
     default:
       unexpected_condition_str("lower_stmk_init: bad dynamic init kind");
   }  /* switch */
