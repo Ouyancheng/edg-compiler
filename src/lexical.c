@@ -1252,36 +1252,20 @@ Issue a diagnostic on unimplemented keywords.
 }  /* unimplemented_keyword_diagnostic */
 
 
-static void clear_token_cache_full(a_token_cache *cache,
-				   a_boolean      reusable,
-				   a_boolean      is_background)
+void clear_token_cache(a_token_cache *cache,
+		       a_boolean     reusable)
 /*
 Initialize a token cache, presumably so tokens can be added to it.
-reusable is TRUE if this should be a reusable cache.  is_background
-is TRUE if this is a background cache used to cache tokens as they
-are fetched.
 */
 {
   cache->next = NULL;
   cache->first_token = NULL;
   cache->last_token  = NULL;
   cache->is_reusable = reusable;
-  cache->is_background_cache = FALSE;
 #if DEBUG
   cache->token_count = 0;
   cache->pragma_count = 0;
 #endif /* DEBUG */
-}  /* clear_token_cache_full */
-
-
-void clear_token_cache(a_token_cache *cache,
-		       a_boolean     reusable)
-/*
-Interface to clear_token_cache_full that provides a default value for
-is_background.
-*/
-{
-  clear_token_cache_full(cache, reusable, /*is_background=*/FALSE);
 }  /* clear_token_cache */
 
 
