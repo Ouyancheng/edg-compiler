@@ -7712,7 +7712,6 @@ Don't put its symbol into the symbol table yet.
 }  /* make_symbol_for_namespace_abi */
 
 #endif /* IA64_ABI */
-#if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 
 a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
@@ -7737,7 +7736,6 @@ call of file_scope_id_lookup or namespace_qualified_id_lookup.
   return sym;
 }  /* look_up_name_string_in_namespace */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void init_cli_symbol(a_cli_symbol_kind  csk);

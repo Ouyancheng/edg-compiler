@@ -2732,8 +2732,6 @@ otherwise.
   (void)get_token();
   /* A '(' should be next. */
   if (required_token(tok_lparen, ec_exp_lparen)) {
-    a_source_position  pos;
-    pos = pos_curr_token;
     add_stop_token(tok_rparen);
     if (curr_token == tok_int_constant) {
       a_constant_ptr  cp = &const_for_curr_token;
