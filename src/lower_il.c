@@ -9466,6 +9466,11 @@ local-variable-static-init entry.
          as part of the file scope, and the initialization (in the function
          scope memory region) is gone by then. */
       break;
+    case initk_binding:
+      /* Lower the bound expression.  In some cases this may already have
+         been lowered. */
+      lower_expr_if_necessary(initializer->bound_expr);
+      break;
     default:
       unexpected_condition_str("lower_initializer: bad kind");
   }  /* switch */
@@ -15222,33 +15227,49 @@ cast.  See lower_expr for typical invocation.
 #endif /* GNU_FUNCTION_MULTIVERSIONING || LOWER_IFUNC */
       break;
     case enk_variable:
+      var = node_variable(expr);
 #if MINIMAL_INLINING
-      if (expr->is_lvalue &&
-          (node_variable(expr)->is_parameter ||
-           node_variable(expr)->is_handler_param)) {
+      if (expr->is_lvalue && (var->is_parameter || var->is_handler_param)) {
         /* Set flag indicating that this parameter is used as an lvalue. */
-        node_variable(expr)->param_used_as_lvalue = TRUE;
+        var->param_used_as_lvalue = TRUE;
       }  /* if */
 #endif /* MINIMAL_INLINING */
+      if (var->init_kind == (an_init_kind)initk_binding) {
+        /* The variable is an alias for another expression.  Replace this
+           node by a clone of that expression (which should have already been
+           lowered). */
+        an_expr_node_ptr expr_copy;
+        lower_expr_if_necessary(var->initializer.bound_expr);
+#if EXPENSIVE_CHECKING
+        check_assertion(!node_has_side_effects(var->initializer.bound_expr,
+                                               (a_boolean *)NULL));
+#endif /* EXPENSIVE_CHECKING */
+        if (expr->is_lvalue == var->initializer.bound_expr->is_lvalue) {
+          /* If lvalue-ness is the same, just use a copy. */
+          expr_copy = copy_expr_tree(var->initializer.bound_expr,
+                                     CE_NO_OPTIONS);
+        } else {
+          /* If an rvalue is needed, create one. */
+          check_assertion(var->initializer.bound_expr->is_lvalue);
+          expr_copy = rvalue_expr_for_lvalue(var->initializer.bound_expr);
+        }  /* if */
+        overwrite_node(expr, expr_copy);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-      if (node_variable(expr)->is_vla && expr->is_lvalue) {
+      } else if (var->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used. */
         lower_vla_variable_lvalue(expr);
         /* The expression is no longer an enk_variable expression, so
            skip the checks below (they don't apply to array variables
            anyway). */
-      } else
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-      /* Do not add code here. */
-      {
-        var = node_variable(expr);
+      } else {
         /* If the variable is a parameter that's passed by copy constructor,
            an implicit indirection must be added. */
         /* assoc_param_type is NULL on the "this" parameter variable and
            the return value pointer variable. */
-        if (var->is_parameter && var->assoc_param_type != NULL &&
-            var->assoc_param_type->passed_via_copy_constructor) {
+        if (var->is_parameter && var->variant.assoc_param_type != NULL &&
+            var->variant.assoc_param_type->passed_via_copy_constructor) {
           /* Add an indirection, but don't change the node's type or
              lvalueness.  The type was "wrong" because the parameter type
              was changed in lowering, but the indirection here cancels
@@ -19987,6 +20008,18 @@ been removed from the scope variables list).
     lower_constant_init_of_promoted_static(variable,
                                            variable->initializer.constant);
   }  /* if */
+  if (variable->is_struct_binding) {
+    /* The expression for a structured binding variable is allocated in the
+       function scope that it appears in.  Lower it and copy the lowered
+       expression to the file scope. */
+    a_memory_region_number region_to_switch_back_to;
+    lower_expr_if_necessary(variable->initializer.bound_expr);
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    variable->initializer.bound_expr =
+                           copy_expr_tree(variable->initializer.bound_expr,
+                                          CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER);
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if ((variable->decl_modifiers & DM_DLLIMPORT) != 0) {
     /* If the variable has become dllimport as a consequence of its promotion,
@@ -20075,10 +20108,12 @@ scope that is part of the indicated routine) to the file scope.
     while (list != NULL) {
       variable = list;
       if (variable->source_corresp.decl_position.seq != 0 &&
-          !variable->is_anonymous_parent_object) {
+          !variable->is_anonymous_parent_object &&
+          !variable->is_struct_binding) {
         /* Count the number of variables declared in the source (that excludes
-           compiler-generated variables).  The count is used later to optimize
-           the removal of these variables from stmk_decl statements. */
+           compiler-generated variables and binding variables for structured
+           bindings).  The count is used later to optimize the removal of these
+           variables from stmk_decl statements. */
         n_promoted_source_vars += 1;
       }  /* if */
       list = list->next;
@@ -20631,8 +20666,8 @@ Do IL lowering of the indicated scope and everything under it.
          param_var = param_var->next) {
       /* assoc_param_type is NULL on the "this" parameter variable and
          the return value pointer variable. */
-      if (param_var->assoc_param_type != NULL &&
-          param_var->assoc_param_type->passed_via_copy_constructor) {
+      if (param_var->variant.assoc_param_type != NULL &&
+          param_var->variant.assoc_param_type->passed_via_copy_constructor) {
         param_var->type = make_pointer_type(param_var->type);
       }  /* if */
     }  /* for */

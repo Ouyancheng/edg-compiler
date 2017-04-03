@@ -7528,6 +7528,30 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
+static void gen_structured_bindings_list(a_variable_ptr  container)
+/*
+Render the bracketed list of structured bindings for the given structured
+bindings container variable.
+*/
+{
+  an_il_entity_list_entry_ptr  ep = container->variant.bindings;
+
+  write_tok_ch('[');
+  for (;;) {
+    a_variable_ptr  vp = (a_variable_ptr)ep->entity.ptr;
+    set_decl_position(&vp->source_corresp, (a_src_seq_secondary_decl_ptr)NULL);
+    gen_bare_name(&vp->source_corresp, iek_variable);
+    if (ep->next != NULL) {
+      write_tok_str(", ");
+      ep = ep->next;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  write_tok_ch(']');
+}  /* gen_structured_bindings_list */
+
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- mode is not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -7590,9 +7614,15 @@ recorded).
       set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the name. */
-    if (gen_name_from_name_reference(name_ref, scp, entry_kind,
-                                     /*is_declaration=*/TRUE,
-                                     /*suppress_declarator_parens=*/FALSE)) {
+    if (entry_kind == iek_variable &&
+        ((a_variable*)scp)->is_struct_binding_container) {
+      /* A structured binding container has no name.  Render instead the
+         bracketed list of bindings. */
+      gen_structured_bindings_list((a_variable*)scp);
+    } else if (gen_name_from_name_reference(
+                                      name_ref, scp, entry_kind,
+                                      /*is_declaration=*/TRUE,
+                                      /*suppress_declarator_parens=*/FALSE)) {
       /* We generated the name reference in its source form. */
     } else if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration (using typedef type).  The rules for using
@@ -7602,7 +7632,7 @@ recorded).
       gen_decl_name(scp, entry_kind, force_unqualified_name);
     }  /* if */
     if (entry_kind == iek_variable && ((a_variable*)scp)->is_parameter) {
-      attributes = ((a_variable*)scp)->assoc_param_type->attributes;
+      attributes = ((a_variable*)scp)->variant.assoc_param_type->attributes;
     } else if (sec_decl == NULL) {
       attributes = scp->attributes;
     } else {

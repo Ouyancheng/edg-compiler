@@ -28475,7 +28475,7 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
 {
   a_template_decl_info_ptr     template_decl_info = NULL;
   a_template_param_ptr         template_param, end_template_param_list = NULL;
-  an_auto_param_descr_ptr      apdp = dps->auto_params;
+  an_auto_param_descr_ptr      apdp = dps->variant.auto_params;
   a_template_param_list_pos    param_pos = 1;
 #define AUTO_PARAM_NAME_PREFIX "<auto-"
 #define AUTO_PARAM_NAME_SUFFIX ">"

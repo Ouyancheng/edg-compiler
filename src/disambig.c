@@ -571,9 +571,9 @@ Return TRUE if token can follow a typeof of the form "typeof(expression)".
 static void prescan_type_operator(a_disambig_state_ptr       state,
 				  a_disambig_flag_set        flags)
 /*
-Scan past (and cache) a decltype, alignas, __underlying_type, typeof, or
-__edg_vector_type__ specifier.  (alignas isn't strictly a type operator, but it
-is syntactically similar.)
+Scan past (and cache) a decltype, alignas, __underlying_type, typeof,
+__edg_type_, or __edg_vector_type__ specifier.  (alignas isn't strictly a type
+operator, but it is syntactically similar.)
 */
 {
   a_boolean	is_typeof = curr_token == tok_typeof;
@@ -895,8 +895,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            "int ...". */
         if (record_auto_params) {
           an_auto_param_descr_ptr  apdp;
-          check_assertion(state->decl_parse_state != NULL);
-          apdp = state->decl_parse_state->auto_params;
+          a_decl_parse_state       *dps = state->decl_parse_state;
+          check_assertion(dps != NULL && dps->is_lambda);
+          apdp = dps->variant.auto_params;
           if (apdp != NULL && apdp->param_num == 0) {
             /* The ellipsis follows an "auto" parameter in a lambda declarator.
                Record the fact that it is a parameter pack. */
@@ -908,6 +909,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_underlying_type:
       case tok_typeof:
       case tok_edg_vector_type:
+      case tok_edg_internal_type:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
         prescan_type_operator(state, flags);
@@ -1005,10 +1007,11 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       if (record_auto_params) param_flags |= DFS_RECORD_AUTO_PARAMS;
       prescan_declaration(state, param_flags, /*is_top_level=*/FALSE);
       if (record_auto_params) {
-        a_decl_parse_state_ptr  dps = state->decl_parse_state;
+        a_decl_parse_state_ptr   dps = state->decl_parse_state;
+        an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
         param_num += 1;
-        if (dps->auto_params != NULL && dps->auto_params->param_num == 0) {
-          dps->auto_params->param_num = param_num;
+        if (apdp != NULL && apdp->param_num == 0) {
+          apdp->param_num = param_num;
         }  /* if */
       } else if (terminate_disambiguation(state)) {
         goto done;
@@ -1278,9 +1281,10 @@ part of a declarator is found, may_be_decl is set to FALSE.
     a_boolean	is_name_start;
     /* An ellipsis indicating a parameter pack declaration might be next. */
     if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+      a_decl_parse_state  *dps = state->decl_parse_state;
       get_token_and_coalesce_if_identifier(flags);
-      if (state->decl_parse_state != NULL) {
-        an_auto_param_descr_ptr  apdp = state->decl_parse_state->auto_params;
+      if (dps != NULL && dps->is_lambda) {
+        an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
         if (apdp != NULL && apdp->param_num == 0) {
           /* The current declarator is for an "auto" parameter in a lambda
              declarator.  Record the fact that it is a parameter pack. */
@@ -1982,18 +1986,18 @@ indicate that the lambda is a C++14 generic lambda.
   check_assertion(curr_token == tok_lparen);
   get_token_and_coalesce_if_identifier(DFS_RECORD_AUTO_PARAMS);
   prescan_function_declarator(&state, DFS_RECORD_AUTO_PARAMS);
-  if (dps->auto_params != NULL) {
+  if (dps->variant.auto_params != NULL) {
     /* Any "auto" parameter descriptions will have been recorded in reverse
        order of appearance (because it simplifies list management).  Reverse
        the list to get back to the normal order. */
-    an_auto_param_descr_ptr  ptr = dps->auto_params, new_start = NULL;
+    an_auto_param_descr_ptr  ptr = dps->variant.auto_params, new_start = NULL;
     do {
       an_auto_param_descr_ptr  next = ptr->next;
       ptr->next = new_start;
       new_start = ptr;
       ptr = next;
     } while (ptr != NULL);
-    dps->auto_params = new_start;
+    dps->variant.auto_params = new_start;
   }  /* if */
   check_assertion_or_expect_error(state.may_be_decl);
   wrapup_disambig_state(&state);

@@ -789,6 +789,30 @@ extern an_expr_node_ptr make_assignment_expr(
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr);
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+extern void determine_get_call_for_tuple_like_binding(
+                                           a_variable_ptr     container,
+                                           a_type_ptr         tp,
+                                           a_targ_size_t      elem_idx,
+                                           a_source_position  *diag_pos,
+                                           an_init_component  **p_icp,
+                                           a_boolean          *lvalue_binding);
+
+extern void record_init_for_array_struct_binding(a_decl_parse_state  *dps,
+                                                 an_init_component   *icp);
+
+extern void record_struct_binding_expr_for_array_element(
+                                                  a_variable_ptr  container,
+                                                  a_variable_ptr  binding,
+                                                  a_targ_size_t   n);
+
+extern void record_struct_binding_expr_for_field(a_variable_ptr  container,
+                                                 a_variable_ptr  binding,
+                                                 a_field_ptr     field);
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 extern a_boolean in_lambda_body(void);
 
 extern a_scope_depth scope_depth_for_capture(a_variable_ptr var,

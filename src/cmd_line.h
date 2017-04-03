@@ -550,6 +550,11 @@ EXTERN a_boolean
 			   TRUE in C++11, but FALSE in C++14. */
 
 EXTERN a_boolean
+		struct_bindings_enabled;
+			/* TRUE if structured bindings (a C++17 feature) are
+			   accepted. */
+
+EXTERN a_boolean
 		mangle_had_been_implicitly_const;
 			/* When TRUE, non-static member functions that had
 			   been implicitly const in C++11 but not C++14 are

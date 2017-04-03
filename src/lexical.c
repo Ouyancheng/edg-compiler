@@ -21340,6 +21340,119 @@ is used as the beginning and end source position for each token in the string.
 }  /* insert_string_into_token_stream */
 
 
+void cache_tokens_from_string(a_const_char       *string,
+                              a_token_cache_ptr  cache,
+                              a_source_position  *position_for_tokens)
+/*
+Scan "string" as a sequence of tokens an place them in the given cache,
+giving each token the given position (both the start and end position of
+those tokens).  Macros are not expanded.
+*/
+{
+  a_boolean		save_treat_newline_as_token;
+  a_text_buffer_ptr	buffer;
+  a_token_cache		curr_token_cache;
+  a_boolean		save_no_modifs_to_curr_source_line;
+  a_const_char		*save_curr_source_line;
+  a_const_char		*save_after_end_of_curr_source_line;
+  a_boolean		save_caching_tokens;
+  a_boolean		save_expand_macros;
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  a_const_char		*save_curr_char_loc = NULL;
+  a_pointer_registration
+			save_curr_char_loc_reg;
+  a_pointer_registration_ptr
+			save_registered_pointers = registered_pointers;
+  a_source_position     save_pos_curr_token = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     save_end_pos_curr_token = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
+  if (token_insertion_buffer == NULL) {
+    token_insertion_buffer = alloc_text_buffer(1024);
+  }  /* if */
+  /* Copy the string to the buffer. */
+  buffer = token_insertion_buffer;
+  reset_text_buffer(buffer);
+  add_string_to_text_buffer(buffer, string);
+  /* Add the lexical escape for a newline. */
+  add_char_to_text_buffer(buffer, LE_ESCAPE);
+  add_char_to_text_buffer(buffer, LE_NEWLINE);
+  /* Add the end of line escape. */
+  add_char_to_text_buffer(buffer, LE_ESCAPE);
+  add_char_to_text_buffer(buffer, LE_END_OF_LINE);
+
+  /* Save the current token position. */
+  save_curr_char_loc = curr_char_loc;
+  save_treat_newline_as_token = treat_newline_as_token;
+  token_insertion_position = *position_for_tokens;
+  save_no_modifs_to_curr_source_line = no_modifs_to_curr_source_line;
+  save_curr_source_line = curr_source_line;
+  save_after_end_of_curr_source_line = after_end_of_curr_source_line;
+  save_caching_tokens = caching_tokens;
+  save_expand_macros = expand_macros;
+
+  /* Reset the information used by get_token to fetch the tokens from
+     the string in the text buffer. */
+  treat_newline_as_token = TRUE;
+  no_modifs_to_curr_source_line = FALSE;
+  curr_char_loc = buffer->buffer;
+  curr_source_line = curr_char_loc;
+  after_end_of_curr_source_line = &buffer->buffer[buffer->size];
+  in_token_insertion_from_string = TRUE;
+  caching_tokens = TRUE;
+  expand_macros = FALSE;
+  /* Push a marker into the cached token rescan list indicating that
+     tokens should be fetched from the insert string. */
+  push_string_insert_cache_entry();
+
+  /* Cache the current token so it can be restored when we're done. */
+  clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
+  cache_curr_token(&curr_token_cache);
+
+  /* Fetch tokens from the buffer.  Stop on a newline. */
+  for (;;) {
+    /* All of the tokens should have begin and end positions as specified by
+       the caller. */
+    pos_curr_token = *position_for_tokens;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos_curr_token = *position_for_tokens;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (get_token() == tok_newline) break;
+    cache_curr_token(cache);
+  }  /* for */
+
+  /* Restore the original position from which tokens are being fetched. */
+  curr_char_loc = save_curr_char_loc;
+  after_end_of_curr_source_line = save_after_end_of_curr_source_line;
+  treat_newline_as_token = save_treat_newline_as_token;
+  no_modifs_to_curr_source_line = save_no_modifs_to_curr_source_line;
+  in_token_insertion_from_string = FALSE;
+  curr_source_line = save_curr_source_line;
+  caching_tokens = save_caching_tokens;
+  expand_macros = save_expand_macros;
+  pos_curr_token = save_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos_curr_token = save_end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  /* Resume fetching tokens from the previous source. */
+  pop_string_insert_cache_entry();
+  /* Get the next token from the normal input stream.  This is needed because
+     the correct current token must be available for rescan_cached_tokens. */
+  (void)get_token();
+  /* If the string is inserted before the current token, rescan the current
+     token. */
+  rescan_cached_tokens(&curr_token_cache);
+  /* Drop any local pointer registrations. */
+  registered_pointers = save_registered_pointers;
+}  /* cache_tokens_from_string */
+
+
 void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
 /*
 Active the token cache containing the pragma to be scanned and push a

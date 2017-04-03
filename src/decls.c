@@ -202,6 +202,7 @@ be restored).
     dps->is_explicit_override = FALSE;
     dps->is_init_capture = FALSE;
     dps->is_lambda = FALSE;
+    dps->is_struct_binding_decl = FALSE;
     dps->is_alias = FALSE;
     dps->param_with_only_enclosing_pack_refs = FALSE;
     dps->pending_prefix_enable_if_attr = FALSE;
@@ -221,7 +222,7 @@ be restored).
     dps->auto_type = NULL;
     dps->deduced_auto_type = NULL;
     dps->param_id = NULL;
-    dps->param_id_list = NULL;
+    dps->variant.param_id_list = NULL;
     dps->upc_block_size = UPC_BLOCK_SIZE_NONE;
     dps->p_postfix_entities = NULL;
     dps->assoc_func_decl_state = NULL;
@@ -282,7 +283,6 @@ be restored).
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
   dps->strongest_alignment = NULL;
-  dps->auto_params = NULL;
   dps->routine_fixup = NULL;
 }  /* clear_decl_parse_state_fields */
 
@@ -449,8 +449,8 @@ void record_auto_param_descr(a_decl_parse_state_ptr  dps)
 /*
 Allocate an entry to describe an "auto" type specifier encountered while
 prescanning a function declarator (for a C++14 generic lambda) and add it to
-the front of the list pointed to by dps->auto_params.  The "auto" specifier
-must be the current token.
+the front of the list pointed to by dps->variant.auto_params.  The "auto"
+specifier must be the current token.
 */
 {
   an_auto_param_descr_ptr  entry;
@@ -465,7 +465,7 @@ must be the current token.
     ++num_auto_param_descriptions_allocated;
 #endif /* DEBUG */
   }  /* if */
-  entry->next = dps->auto_params;
+  entry->next = dps->variant.auto_params;
   entry->template_type_parameter = NULL;
   entry->auto_tsn = curr_token_sequence_number;
   entry->param_num = 0;
@@ -474,7 +474,7 @@ must be the current token.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  dps->auto_params = entry;
+  dps->variant.auto_params = entry;
 }  /* record_auto_param_descr */
 
 
@@ -484,12 +484,12 @@ Return the "an_auto_param_descr" entries pointed to by dps to the list of
 available entries.
 */
 {
-  if (dps->auto_params != NULL) {
-    an_auto_param_descr_ptr  last = dps->auto_params;
+  if (dps->is_lambda && dps->variant.auto_params != NULL) {
+    an_auto_param_descr_ptr  last = dps->variant.auto_params;
     while (last->next != NULL) last = last->next;
     last->next = avail_auto_param_descriptions;
-    avail_auto_param_descriptions = dps->auto_params;
-    dps->auto_params = NULL;
+    avail_auto_param_descriptions = dps->variant.auto_params;
+    dps->variant.auto_params = NULL;
   }  /* if */
 }  /* free_auto_param_descriptions */
 
@@ -2332,6 +2332,7 @@ is invalid.  Also promote the fields of the union type to the current scope.
      Error checking is also done. */
   check_anonymous_union_symbols(assoc_object_sym, /*is_nonstd=*/FALSE);
 }  /* decl_anonymous_union_variable */
+
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -6819,11 +6820,11 @@ for use in generating cross-reference output describing this declaration.
 #if RECORD_HIDDEN_NAMES_IN_IL
     /* Block extern declarations have associated hidden name entries; so we
        must make sure there is an IL scope to attach those entries to. */
-      if (scope_stack[effective_decl_level].kind == (a_scope_kind)sck_block &&
-          scope_stack[effective_decl_level].il_scope == NULL &&
-          linkage != idl_none) {
-        (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
-      }  /* if */
+    if (scope_stack[effective_decl_level].kind == (a_scope_kind)sck_block &&
+        scope_stack[effective_decl_level].il_scope == NULL &&
+        linkage != idl_none) {
+      (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
+    }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   *ext_sym = NULL;
@@ -12916,10 +12917,14 @@ specifier is restored.  dps describes the linkage-specification declaration.
     add_stop_token(tok_rbrace);
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+      a_param_id_ptr  param_id_list = NULL;
+      if (!dps->is_lambda && !dps->is_struct_binding_decl) {
+        param_id_list = dps->variant.param_id_list;
+      }  /* if */
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl,
                   /*is_top_level_declaration=*/FALSE,
-                  /*marked_as_gnu_extension=*/FALSE, dps->param_id_list,
+                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
                   (a_source_range *)NULL);
     }  /* while */
     /* Restore the default linkage to the value it had before the declaration
@@ -12963,10 +12968,14 @@ specifier is restored.  dps describes the linkage-specification declaration.
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
       a_decl_parse_state  *saved_dps = scope_stack_top().decl_parse_state;
+      a_param_id_ptr  param_id_list = NULL;
+      if (!dps->is_lambda && !dps->is_struct_binding_decl) {
+        param_id_list = dps->variant.param_id_list;
+      }  /* if */
       scope_stack_top().decl_parse_state = dps;
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl, dps->is_top_level_declaration,
-                  /*marked_as_gnu_extension=*/FALSE, dps->param_id_list,
+                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
                   &linkage_spec_range);
       scope_stack_top().decl_parse_state = saved_dps;
       /* pop_name_linkage will already have been called in declaration
@@ -15868,7 +15877,7 @@ cases).
     param_id = NULL;
   } else {
     /* Check that the name declared was mentioned in the parameter list. */
-    param_id = param_id_on_list(locator, state->param_id_list);
+    param_id = param_id_on_list(locator, state->variant.param_id_list);
     if (param_id == NULL) {
       /* The identifier was not found on the list.  Issue an error.  Leaving
          param_id set to NULL, ensures the declaration will be treated as a
@@ -16751,6 +16760,403 @@ that the type of the initializer is consistent with the type of the variable.
 
 #endif /* CHECKING */
 
+
+static a_boolean is_tuple_like_type(a_type_ptr     tp,
+                                    a_targ_size_t  *n_elements,
+                                    a_boolean      *p_err)
+/*
+If the given type is a tuple-like type, return TRUE and set n_elements to the
+number of elements in the tuple.  Set *p_err to TRUE if n_elements cannot be
+determined (and return FALSE in that case).  A type T is tuple-like if it the
+expression "std::tuple_size<T>::value" is a valid integral constant expression.
+The value of that expression is the number of elements in the tuple.
+*/
+{
+  a_boolean           result = FALSE, err = FALSE;
+  a_symbol_ptr        ts_sym, ts_inst_sym, value_sym;
+  a_type_ptr          ts_inst;
+  a_template_arg_ptr  tap;
+  a_constant_ptr      cp;
+  a_boolean           overflow;
+
+  ts_sym = look_up_class_template_in_std("tuple_size");
+  if (ts_sym == NULL) goto done;
+  /* Instantiate tuple_size<T> for T = tp. */
+  tap = alloc_template_arg((a_templ_arg_kind)tak_type);
+  tap->variant.type = tp;
+  ts_inst_sym = find_class_template_instance(ts_sym, &tap);
+  if (ts_inst_sym == NULL ||
+      !symbol_is(ts_inst_sym, sk_class_or_struct_tag)) {
+    goto done;
+  }  /* if */
+  ts_inst = type_symbol_type(ts_inst_sym);
+  complete_type_is_needed(ts_inst);
+  if (ts_inst->incomplete) goto done;
+  /* Look up "tuple_size<T>::value".  If it is an enumerator constant or a
+     constant-valued variable (static data member), it may hold a valid
+     size value. */
+  value_sym = look_up_name_string_in_class("value", ts_inst, IDL_NO_OPTIONS);
+  if (value_sym == NULL) {
+    cp = NULL;
+  } else if (symbol_is(value_sym, sk_constant)) {
+    cp = value_sym->variant.constant;
+  } else if (symbol_is(value_sym, sk_variable)) {
+    cp = var_constant_value(value_sym->variant.variable.ptr);
+  } else if (symbol_is(value_sym, sk_static_data_member)) {
+    cp = var_constant_value(value_sym->variant.static_data_member.variable);
+  } else {
+    cp = NULL;
+  }  /* if */
+  if (cp == NULL || !is_integral_or_unscoped_enum_type(cp->type) ||
+      (*n_elements = (a_targ_size_t)unsigned_value_of_integer_constant(
+                                                               cp, &overflow),
+       overflow)) {
+    pos_ty_error(ec_invalid_tuple_size, &error_position, tp);
+    err = TRUE;
+  }  /* if */
+  if (!err && !have_access_to_symbol(value_sym)) {
+    pos_sy_error(ec_no_access_to_name, &error_position, value_sym);
+  }  /* if */
+  if (err) {
+    *p_err = TRUE;
+  } else {
+    result = TRUE;
+  }  /* if */
+done:
+  return result;
+}  /* is_tuple_like_type */
+
+
+static a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
+                                          a_type_ptr         tp,
+                                          a_targ_size_t      elem_idx,
+                                          a_source_position  *diag_pos,
+                                          an_init_component  **p_icp)
+/*
+Return the type of a binding variable for a tuple-like container.  tp
+represents the container type E (from the container e represented by container)
+and elem_idx is the element number n (starting at zero) being bound to.  The
+returned type entry is an lvalue or rvalue reference to
+std::tuple_element<n, E>::type.  It is an lvalue reference if the initializer
+for the binding is an lvalue; otherwise, it is an rvalue reference.
+
+The initializer for the binding is returned in *p_icp.  If E is a class type
+with a member "get", that initializer is "e.get<n>()"; otherwise, it is
+"get<n>(e)" where get is looked up using argument-dependent lookup only.
+*/
+{
+  a_type_ptr             e_type, te_inst;
+  a_symbol_ptr           te_sym, te_inst_sym, e_type_sym;
+  a_template_arg_ptr     tap;
+  a_constant_ptr         n_constant;
+  a_boolean              lvalue_binding;
+
+  te_sym = look_up_class_template_in_std("tuple_element");
+  if (te_sym == NULL) {
+    pos_error(ec_missing_std_tuple_element, diag_pos);
+    e_type = error_type();
+    goto done;
+  }  /* if */
+  /* Instantiate tuple_element<n, T> for n = elem_idx and T = tp. */
+  tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+  n_constant = local_constant();
+  set_integer_constant(n_constant, (a_host_large_integer)elem_idx,
+                       targ_size_t_int_kind);
+  tap->variant.constant = alloc_shareable_constant(n_constant);
+  release_local_constant(&n_constant);
+  tap->next = alloc_template_arg((a_templ_arg_kind)tak_type);
+  tap->next->variant.type = tp;
+  te_inst_sym = find_class_template_instance(te_sym, &tap);
+  if (te_inst_sym == NULL ||
+      !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
+    char  num_str[100];
+    (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
+    pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
+                   tp);
+    e_type = error_type();
+    goto done;
+  }  /* if */
+  te_inst = type_symbol_type(te_inst_sym);
+  complete_type_is_needed(te_inst);
+  if (te_inst->incomplete) {
+    char  num_str[100];
+    (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
+    pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
+                   tp);
+    e_type = error_type();
+    goto done;
+  }  /* if */
+  /* Look up "tuple_element<n, T>::type" and make sure it produces a type. */
+  e_type_sym = look_up_name_string_in_class("type", te_inst, IDL_NO_OPTIONS);
+  if (e_type_sym == NULL || !is_type_symbol(e_type_sym)) {
+    pos_stsy_error(ec_not_a_member, diag_pos, "type", te_inst_sym);
+    e_type = error_type();
+    goto done;
+  }  /* if */
+  e_type = type_symbol_type(e_type_sym);
+  /* Determine the initializer. */
+  determine_get_call_for_tuple_like_binding(container, tp, elem_idx, diag_pos,
+                                            p_icp, &lvalue_binding);
+  /* Add a reference on top of e_type, applying the reference-collapsing
+     rules if needed.  An lvalue reference is added if lvalue_binding is
+     TRUE, an rvalue reference otherwise. */
+  if (is_reference_type(e_type)) {
+    e_type = make_reference_to_reference(e_type,
+                                         /*rvalue_ref=*/!lvalue_binding,
+                                         /*tracking_ref=*/FALSE,
+                                         TQ_NONE, diag_pos, (a_boolean*)NULL);
+  } else {
+    e_type = lvalue_binding ? make_reference_type(e_type)
+                            : make_rvalue_reference_type(e_type);
+  }  /* if */
+done:
+  return e_type;
+}  /* tuple_like_binding_type */
+
+
+static a_field_ptr  get_direct_fields_if_nonempty(a_type_ptr  tp)
+/*
+tp is a class or struct type.  Return NULL if it has no fields or if all its
+fields are unnamed bit fields.  Otherwise, return its list of fields.
+*/
+{
+  a_field_ptr  result = tp->variant.class_struct_union.field_list, fp = result;
+
+  while (fp != NULL && fp->is_bit_field && !has_name(fp)) {
+    fp = fp->next;
+  }  /* if */
+  return fp == NULL ? fp : result;
+}  /* get_direct_fields_if_nonempty */
+
+
+static a_boolean check_simple_struct_for_binding(
+                                               a_type_ptr         tp,
+                                               a_targ_size_t      *n_elements,
+                                               a_field_ptr        *p_fields,
+                                               a_source_position  *pos)
+/*
+Return TRUE if the given type is a simple class type whose nonstatic data
+members are all direct members or all members for the same unambiguous
+base class.  If so, set *n_elements to the number of such data members and
+*p_fields to the list of fields to bind too (this list may include unnamed
+bit fields that should not be bound to).  Otherwise, issue a diagnostic at
+the given position.
+*/
+{
+  a_boolean    result = TRUE;
+  a_field_ptr  fields = NULL;
+
+  tp = skip_typerefs(tp);
+  if (tp->kind != (a_type_kind)tk_struct &&
+      tp->kind != (a_type_kind)tk_class) {
+    pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+    result = FALSE;
+  } else {
+    a_base_class_ptr  bcp = base_classes_of(tp);
+    /* Set fields to the direct data members of tp first. */
+    fields = get_direct_fields_if_nonempty(tp);
+    /* Now explore the base classes for similar members and issue an error
+       if we find some in multiple places. */
+    for (; bcp != NULL; bcp = bcp->next) {
+      a_field_ptr  base_fields = get_direct_fields_if_nonempty(bcp->type);
+      if (base_fields != NULL) {
+        if (fields != NULL) {
+          pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+          result = FALSE;
+          break;
+        } else {
+          fields = base_fields;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (result) {
+      /* No errors: Count the number of members we will bind to. */
+      a_field_ptr    fp = fields;
+      a_targ_size_t  n = 0;
+      while (fp != NULL) {
+        if (!fp->is_bit_field || has_name(fp)) {
+          n += 1;
+          if (fp->is_anonymous_parent_object ||
+              field_is_property_or_event(fp)) {
+            pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* if */
+        fp = fp->next;
+      }  /* while */
+      if (result) {
+        check_assertion(n != 0);
+        *n_elements = n;
+        *p_fields = fields;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_simple_struct_for_binding */
+
+
+static void decl_struct_bindings(a_decl_parse_state  *dps)
+/*
+dps represents a structured binding declaration (and the container variable,
+which has just been declared, in particular).  declare the variables
+representing the individual bindings.
+*/
+{
+  a_boolean       err = FALSE, tuple_case = FALSE, array_case = FALSE;
+  a_boolean       dependent_case = FALSE;
+  a_variable_ptr  container;
+  a_type_ptr      container_type;
+  a_targ_size_t   n_elements, n = 0;
+  a_field_ptr     fp;
+  a_type_qualifier_set
+                  container_tqs = TQ_NONE;
+  an_il_entity_list_entry_ptr
+                   *p_end_bindings;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean        saved_sses_disallowed = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  if (symbol_is(dps->sym, sk_variable)) {
+    /* Determine the number of elements to bind to (when known). */
+    container = dps->sym->variant.variable.ptr;
+    container->is_struct_binding_container = TRUE;
+    container_type = container->type;
+    if (is_reference_type(container_type)) {
+      container_type = type_pointed_to(container_type);
+    }  /* if */
+    container_tqs = get_type_qualifiers(container_type);
+    if (is_error_type(container_type)) {
+      err = TRUE;
+      expect_error();
+    } else if (is_template_dependent_type(container_type)) {
+      dependent_case = TRUE;
+      n_elements = 0;
+    } else if (is_array_type(container_type)) {
+      array_case = TRUE;
+      n_elements = skip_typerefs(container_type)
+                                   ->variant.array.variant.number_of_elements;
+    } else if (is_tuple_like_type(container_type, &n_elements, &err)) {
+      tuple_case = TRUE;
+    } else if (!check_simple_struct_for_binding(container_type, &n_elements,
+                                                &fp, &dps->declarator_pos)) {
+      err = TRUE;
+    }  /* if */
+    p_end_bindings = &container->variant.bindings;
+    /* Check some contraints. */
+    if (dps->dso_flags & DSO_INLINE) {
+      pos_error(ec_struct_binding_constexpr, &dps->inline_pos);
+    } else if (dps->dso_flags & DSO_CONSTEXPR) {
+      pos_error(ec_struct_binding_constexpr, &dps->constexpr_pos);
+    } else if (dps->declared_storage_class !=
+                                            (a_storage_class)sc_unspecified) {
+      pos_error(ec_struct_binding_storage_class, &dps->storage_class_pos);
+    }  /* if */
+  } else {
+    err = TRUE;
+  }  /* if */
+  /* Rescan the bracketed list of binding names and declare a variable
+     for each binding (initializing each one as appropriate). */
+  rescan_cached_tokens(dps->variant.struct_bindings_cache);
+  required_token(tok_lbracket, ec_exp_lbracket);
+  add_stop_token(tok_comma);
+  do {
+    a_decl_parse_state  binding_dps;
+    an_id_linkage_kind  linkage = idl_none;
+    a_symbol_ptr        ext_sym;
+    a_variable_ptr      vp;
+    an_init_component   *icp = NULL;
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+      continue;
+    } else if (err || dependent_case) {
+      /* Don't keep a count. */
+    } else if (n == n_elements) {
+      pos_error(ec_too_many_struct_bindings, &pos_curr_token);
+      err = TRUE;
+    } else {
+      n += 1;
+    }  /* if */
+    /* Declare variable representing the binding. */
+    init_decl_parse_state(&binding_dps);
+    binding_dps.start_pos = pos_curr_token;
+    binding_dps.declarator_pos = pos_curr_token;
+    binding_dps.storage_class = container->storage_class;
+    if (err) {
+      binding_dps.type = error_type();
+    } else if (dependent_case) {
+      binding_dps.type = type_of_unknown_templ_param_nontype;
+    } else if (array_case) {
+      binding_dps.type = array_element_type(container_type);
+    } else if (tuple_case) {
+      binding_dps.type = tuple_like_binding_type(
+                                               container, container_type, n-1,
+                                               &dps->declarator_pos, &icp);
+      if (is_error_type(binding_dps.type)) {
+        err = TRUE;
+      }  /* if */
+    } else {  /* Struct-like case. */
+      fp = next_initializable_field(fp);
+      binding_dps.type = make_qualified_type(fp->type, container_tqs);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    decl_variable(&locator_for_curr_id, &binding_dps,
+                  SRK_DECLARATION | SRK_DEFINITION | SRK_INITIALIZATION,
+                  &linkage, &ext_sym, (a_decl_pos_block*)NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    /* Update the variable describing the binding.  That includes determining
+       its initializer. */ 
+    if (binding_dps.sym == NULL || !symbol_is(binding_dps.sym, sk_variable)) {
+      expect_error();
+      err = TRUE;
+    } else {
+      /* Mark the binding variable as such and link it with its container. */
+      an_il_entity_list_entry_ptr  list_entry = alloc_il_entity_list_entry();
+      vp = binding_dps.sym->variant.variable.ptr;
+      vp->is_struct_binding = TRUE;
+      vp->variant.container = container;
+      list_entry->entity.kind = (a_byte_il_entry_kind)iek_variable;
+      list_entry->entity.ptr = (char*)vp;
+      *p_end_bindings = list_entry;
+      p_end_bindings = &list_entry->next;
+    }  /* if */
+    /* Record an initializer for the binding variable (if applicable). */
+    if (err || dependent_case) {
+      /* No initializer to record. */
+    } else if (array_case) {
+      record_struct_binding_expr_for_array_element(container, vp, n-1);
+    } else if (tuple_case) {
+      record_struct_binding_expr_for_tuple_element(&binding_dps, icp);
+      mark_variable_value_set(binding_dps.sym);
+    } else {  /* Struct-like case. */
+      record_struct_binding_expr_for_field(container, vp, fp);
+      fp = fp->next;
+    }  /* if */
+    if (icp != NULL) free_init_component_list(icp);
+    record_symbol_reference(SRK_REFERENCE | SRK_USE, symbol_for(container),
+                            &pos_curr_token, /*update_il_entry=*/TRUE);
+    /* Skip over the binding name. */
+    (void)get_token();
+  } while (loop_token(tok_comma));
+  remove_stop_token(tok_comma);
+  required_token(tok_rbracket, ec_exp_rbracket);
+  if (curr_token != tok_end_of_source) expect_error();
+  flush_past_token_cache_terminator();
+  if (n < n_elements) {
+    pos_error(ec_missing_bindings, &dps->declarator_pos);
+  }  /* if */
+  if (!err) {
+    /* Discard the name of the container variable in the IL (to avoid
+       misleading back ends). */
+    container->source_corresp.name = NULL;
+  }  /* if */
+}  /* decl_struct_bindings */
+
+
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
                                  a_decl_pos_block    *decl_pos_block)
@@ -17291,6 +17697,9 @@ if one is present.
                                                     iek_variable);
   }  /* if */
 #endif /* MODULE_ID_NEEDED */
+  if (state->is_struct_binding_decl) {
+    decl_struct_bindings(state);
+  }  /* if */
 }  /* variable_declaration */
 
 
@@ -18429,7 +18838,9 @@ parse state with fields described by the corresponding given parameters.
   dps.is_old_style_param_decl = is_old_style_param_decl;
   dps.is_top_level_declaration = is_top_level_declaration;
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
-  dps.param_id_list = param_id_list;
+  if (param_id_list != NULL) {
+    dps.variant.param_id_list = param_id_list;
+  }  /* if */
   scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
   db_exit();
   return;

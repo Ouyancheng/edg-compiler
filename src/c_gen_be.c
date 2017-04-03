@@ -1599,6 +1599,9 @@ Print the name of the indicated variable.
       master_param_var = master_param_var->next;
     }  /* for */
   }  /* if */
+  /* Any references to bindings for structured variables should have been
+     removed during lowering. */
+  check_assertion(variable->init_kind != (an_init_kind)initk_binding);
   if (variable->is_this_parameter) {
     /* "this" parameter in C++. */
     m_write_tok_str("this");

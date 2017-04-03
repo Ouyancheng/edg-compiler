@@ -3324,6 +3324,7 @@ default mode (e.g., exception handling).
       using_attribute_namespaces_enabled = TRUE;
       nodiscard_attribute_enabled = TRUE;
       hex_floating_point_constants_allowed = TRUE;
+      struct_bindings_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11558,6 +11559,7 @@ variables declared in cmd_line.h.
   define_portable_feature_test_macros = TRUE;
   sized_deallocation_enabled = FALSE;
   constexpr_implies_const = TRUE;
+  struct_bindings_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
 #if COROUTINES_ALLOWED
   coroutines_enabled = FALSE;

@@ -2380,6 +2380,10 @@ Dump the initializer of a variable for debug purposes.
     for (a = 0; a < level; a++) fputs(" ", f_debug);
     if (var->init_kind == (an_init_kind)initk_function_local) {
       fprintf(f_debug, "local static initialization\n");
+    } else if (var->init_kind == (an_init_kind)initk_binding) {
+      fprintf(f_debug, "binding: ");
+      (void)fputc('\n', f_debug);
+      db_expr_node(var->initializer.bound_expr, 2);
     } else if (var->init_kind == (an_init_kind)initk_static) {
       fprintf(f_debug, "static init: ");
       db_static_initializer(var->initializer.constant);
@@ -13633,6 +13637,9 @@ constant; otherwise, return NULL.
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
+  } else if (init_kind == (an_init_kind)initk_binding) {
+    /* Bindings cannot currently produce constant values. */
+    con_val = NULL;
   }  /* if */
   return con_val;
 }  /* initializer_constant */
@@ -27499,6 +27506,8 @@ in il_init.)
       pch_saved_var_array_elem(module_id_kind),
 #endif /* MODULE_ID_NEEDED */
       pch_saved_var_array_elem(last_routine_scope_variable_node_found),
+      pch_saved_var_array_elem(internal_type_array),
+      pch_saved_var_array_elem(n_internal_types),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -27570,6 +27579,8 @@ in il_init.)
   register_trans_unit_variable(module_id_scp);
   register_trans_unit_variable(module_id_kind);
 #endif /* MODULE_ID_NEEDED */
+  register_trans_unit_variable(internal_type_array);
+  register_trans_unit_variable(n_internal_types);
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -27674,6 +27685,8 @@ need initialization for every (primary and secondary) translation unit.
   module_id_scp = NULL;
   module_id_kind = iek_none;
 #endif /* MODULE_ID_NEEDED */
+  internal_type_array = NULL;
+  n_internal_types = 0;
 }  /* il_trans_unit_init */
 
 

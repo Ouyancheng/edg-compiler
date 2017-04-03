@@ -1713,7 +1713,7 @@ actually declares a function, member function, or function template).
       a_boolean  may_cache = FALSE;
       if (is_top_level_declarator &&
           !((dps->dso_flags & DSO_FRIEND) != 0 && dps->in_class_scope) &&
-          (!dps->is_lambda || dps->auto_params != NULL)) {
+          (!dps->is_lambda || dps->variant.auto_params != NULL)) {
         /* A noexcept argument should generally be cached for later
            instantiation if we are in a template or class definition.  However,
            that's not the case if we're in an ordinary friend function
@@ -6483,6 +6483,48 @@ done:
 }  /* type_is_derived_from_function_declarator */
 
 
+static void cache_struct_bindings_list(a_decl_parse_state    *dps,
+                                       a_decl_pos_block_ptr  decl_pos_block)
+/*
+The current token is a left bracket that looks like the beginning of a
+structured bindings list.  Cache the list (including the delimiting brackets)
+and record it in *dps.  Also update positions in decl_pos_block.
+*/
+{
+  a_token_cache_ptr  cache = alloc_token_cache();
+
+  check_assertion(curr_token == tok_lbracket);
+  decl_pos_block->decl_pos = pos_curr_token;
+  dps->declarator_pos = pos_curr_token;
+  if (!dps->auto_type_specifier_seen || dps->decltype_auto_specifier_seen) {
+    pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
+  }  /* if */
+  if (dps->type->kind == tk_pointer &&
+      !dps->type->variant.pointer.is_reference) {
+    pos_error(ec_invalid_struct_binding_syntax, &dps->declarator_start_pos);
+  }  /* if */
+  clear_token_cache(cache, /*reusable=*/FALSE);
+  if (cache_token_stream_until_matching_token(cache, CTS_NO_OPTIONS)) {
+    /* A syntax error.  We'll run into it again when we parse the cache
+       later on. */
+    expect_error();
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->declarator_range.end = end_pos_curr_token;
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  cache_curr_token(cache);
+  (void)get_token();
+  terminate_token_cache(cache);
+  dps->is_struct_binding_decl = TRUE;
+  dps->variant.struct_bindings_cache = cache;
+  /* An initializer starting with '=' or '{' should be next. */
+  if (curr_token != tok_assign && curr_token != tok_lbrace) {
+    pos_error(ec_exp_assign_or_lbrace, &pos_curr_token);
+  }  /* if */
+}  /* cache_struct_bindings_list */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
                      Microsoft mode, and p_left_qualifiers is used only when
@@ -6945,6 +6987,15 @@ etc.).
                       (complete_type != NULL &&
                        is_or_contains_error_type(complete_type)));
       parenthesized_initializer_allowed = FALSE;
+    } else if (curr_token == tok_lbracket && struct_bindings_enabled &&
+               specifiers_type != NULL && !abstract_declarator_allowed &&
+               !state->in_class_scope) {
+      /* This looks like the bracket introducing a list of structured
+         bindings. */
+      declarator_pos = pos_curr_token;
+      make_struct_binding_container_locator(locator, &declarator_pos);
+      cache_struct_bindings_list(state, decl_pos_block);
+      goto past_postfix_declarator_operators;
     } else {
       /* Real (non-abstract) declarator. */
       check_assertion(locator != NULL);
@@ -7085,7 +7136,6 @@ etc.).
                parenthesized initializer. */
           } else if (curr_token == tok_identifier && !gpp_mode) {
             a_token_cache       cache;
-
             clear_token_cache(&cache, /*reusable=*/FALSE);
             cache_curr_token(&cache);
             /* Advance past all comma-identifier pairs till what should be
@@ -7408,6 +7458,7 @@ function_lparen:
       break;
     }  /* if */
   }  /* while */
+past_postfix_declarator_operators:
   /* Set the referenced flag on the specifiers type if this is the top-level
      scan of the declarator (i.e., if specifiers_type is non-NULL) -- but
      do this only if a real declarator was scanned.  This enables us to

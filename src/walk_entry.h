@@ -619,6 +619,10 @@ over the list of nonstatic variables in the scope.
       walk_ptr((initializer).dynamic, a_dynamic_init_ptr,             \
                iek_dynamic_init);                                     \
       break;                                                          \
+    case initk_binding:                                               \
+      walk_ptr((initializer).bound_expr, an_expr_node_ptr,            \
+               iek_expr_node);                                        \
+      break;                                                          \
     default:                                                          \
       report_bad_init_kind();                                         \
   }  /* switch */                                                     \
@@ -1196,8 +1200,15 @@ debug builds) don't recognize that these variables are mutually-exclusive.
         remap_next_ptr(eptr->next, a_variable_ptr, iek_variable);
         walk_ptr(eptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(eptr->type);
-        remap_ptr_not_needed(eptr->assoc_param_type, a_param_type_ptr,
-                             iek_param_type);
+        if (eptr->is_struct_binding) {
+          remap_ptr(eptr->variant.container, a_variable_ptr, iek_variable);
+        } else if (eptr->is_struct_binding_container) {
+          walk_list(eptr->variant.bindings, an_il_entity_list_entry_ptr,
+                    iek_il_entity_list_entry);
+        } else {
+          remap_ptr_not_needed(eptr->variant.assoc_param_type,
+                               a_param_type_ptr, iek_param_type);
+        }  /* if */
         walk_initializer(eptr->init_kind, eptr->initializer);
         walk_list(eptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);

@@ -584,7 +584,7 @@ the parameter really apply to the underlying variable, apply them to the
 variable.
 */
 {
-  a_param_type_ptr  ptp = vp->assoc_param_type;
+  a_param_type_ptr  ptp = vp->variant.assoc_param_type;
 
   if (ptp->attributes != NULL) {
     an_attribute_ptr  vap = get_param_variable_attr_copies(ptp);
@@ -777,7 +777,7 @@ associated with a variadic parameter, but not the initial one.
     vp->source_corresp.scope_depth = decl_scope_level;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   }  /* if */
-  vp->assoc_param_type = ptp;
+  vp->variant.assoc_param_type = ptp;
   ptp->name = vp->source_corresp.name;
   attach_param_variable_attributes(vp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2742,7 +2742,7 @@ construction (if any is needed).
   rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
   for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
     a_variable_ptr  vp = implicitly_generated_param_variable(ptp->type);
-    vp->assoc_param_type = ptp;
+    vp->variant.assoc_param_type = ptp;
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
   scope->variant.routine.constructor_inits =
@@ -2868,7 +2868,7 @@ operator routine or do bitwise assignment.
   ptp = rtsp->param_type_list;
   move_assign = is_rvalue_reference_type(ptp->type);
   source_var = implicitly_generated_param_variable(ptp->type);
-  source_var->assoc_param_type = ptp;
+  source_var->variant.assoc_param_type = ptp;
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
   err_pos = &class_type->source_corresp.decl_position;

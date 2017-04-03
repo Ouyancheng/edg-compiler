@@ -2238,6 +2238,7 @@ the associated variant fields to default values.
       dip->variant.constructor.is_implicit_copy_for_copy_initialization= FALSE;
       dip->variant.constructor.value_initialization = FALSE;
       dip->variant.constructor.has_sequenced_arguments = FALSE;
+      dip->variant.constructor.is_array_copy = FALSE;
 #if CENTERLINE_CHECKING
       dip->variant.constructor.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -2396,7 +2397,7 @@ Clear the fields of the given variable to default values.
   set_default_source_corresp(vp->source_corresp);
   vp->next                        = NULL;
   vp->type                        = NULL;
-  vp->assoc_param_type            = NULL;
+  vp->variant.assoc_param_type    = NULL;
   vp->storage_class               = (a_storage_class)sc_unspecified;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_storage_class      = (a_storage_class)sc_unspecified;
@@ -2434,6 +2435,8 @@ Clear the fields of the given variable to default values.
   vp->used                        = FALSE;
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
+  vp->is_struct_binding           = FALSE;
+  vp->is_struct_binding_container = FALSE;
   vp->declared_using_type_without_linkage
                                   = FALSE;
   vp->is_parameter_pack           = FALSE;

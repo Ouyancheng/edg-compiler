@@ -639,10 +639,12 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_trivially_copy_assignable */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_builtin_addressof */
+   (an_opname_kind)onk_none,          /* tok_edg_internal_type */
    (an_opname_kind)onk_none,          /* tok_edg_vector_type */
    (an_opname_kind)onk_none,          /* tok_edg_size_type */
    (an_opname_kind)onk_none,          /* tok_edg_ptrdiff_type */
    (an_opname_kind)onk_none,          /* tok_edg_bool_type */
+   (an_opname_kind)onk_none,          /* tok_edg_internal_opnd */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
@@ -2723,6 +2725,10 @@ extern void insert_string_into_token_stream(
                                         a_boolean         insert_after,
                                         a_boolean         p_expand_macros,
                                         a_source_position position_for_tokens);
+
+extern void cache_tokens_from_string(a_const_char       *string,
+                                     a_token_cache_ptr  cache,
+                                     a_source_position  *position_for_tokens);
 
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);

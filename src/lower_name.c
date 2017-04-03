@@ -12196,8 +12196,33 @@ name.
                                 &discriminator_scp,
                                 /*force_individuation=*/FALSE,
                                 mctl);
-  /* Output the name of the member. */
-  mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
+  if (kind == iek_variable &&
+      ((a_variable_ptr)scp)->is_struct_binding_container) {
+    /* Structured binding containers get their own name mangling. */
+    an_il_entity_list_entry_ptr sb_entity;
+#if IA64_ABI
+    add_str_to_mangled_name("DC", mctl);
+#endif /* IA64_ABI */
+    for (sb_entity = ((a_variable_ptr)scp)->variant.bindings;
+         sb_entity != NULL;
+         sb_entity = sb_entity->next) {
+      a_source_correspondence *sb_scp = 
+                               (a_source_correspondence*)sb_entity->entity.ptr;
+      check_assertion(sb_entity->entity.kind == iek_variable &&
+                      unmangled_name_of(sb_scp) != NULL);
+#if IA64_ABI
+      mangled_name_with_length(unmangled_name_of(sb_scp), mctl);
+#else /* !IA64_ABI */
+      unexpected_condition(); // FIXME
+#endif /* IA64_ABI */
+    }  /* for */
+#if IA64_ABI
+    add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+  } else {
+    /* Output the name of the member. */
+    mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (kind == iek_variable &&
       ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
@@ -12647,6 +12672,9 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
   } else if (is_class_or_namespace_member(variable)) {
     /* Static data members and members of namespaces need mangled names. */
     mangling_needed = TRUE;
+  } else if (variable->is_struct_binding_container) {
+    /* Structured binding containers are given mangled names. */
+    mangling_needed = TRUE;
 #if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
   } else {
     /* A file-scope variable that usually wouldn't need mangling, but it may
@@ -12723,8 +12751,8 @@ also does type name mangling.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         variable_templates_enabled) {
       /* Generally, file-scope variables are not mangled, but variable
-         templates and variables with the GNU abi_tag attribute require
-         mangling. */
+         templates, variables with the GNU abi_tag attribute, and structured
+         bindings require mangling. */
       for (variable = scope->variables;
            variable != NULL;
            variable = variable->next) {
@@ -13613,7 +13641,10 @@ be embedded in other mangled names.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
-      add_discriminator_if_necessary(scp, &mctl);
+      if (scp->name == NULL) {
+        // FIXME: not sure about this.
+        add_discriminator_if_necessary(scp, &mctl);
+      }  /* if */
     } else {
       /* String literal.  The name is "s" and the discriminator encodes the
          sequence number.  Note that sequence numbers and discriminator values

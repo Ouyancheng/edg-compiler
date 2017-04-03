@@ -2715,6 +2715,54 @@ issued in some cases.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_type_ptr scan_edg_internal_type()
+/*
+Scan a construct of the form
+
+	__edg_internal_type__(<integral constant N>)
+
+and return internal_type_array[N] if N<n_internal_types or an error type
+otherwise.
+*/
+{
+  a_type_ptr             result;
+  a_boolean              success = FALSE;
+  a_host_large_unsigned  n;
+
+  (void)get_token();
+  /* A '(' should be next. */
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    a_source_position  pos;
+    pos = pos_curr_token;
+    add_stop_token(tok_rparen);
+    if (curr_token == tok_int_constant) {
+      a_constant_ptr  cp = &const_for_curr_token;
+      if (sign_of_integer_constant(cp) >= 0) {
+        a_boolean             ovflo;
+        n = unsigned_value_of_integer_constant(cp, &ovflo);
+        if (!ovflo && n < n_internal_types) {
+          success = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!success) {
+        pos_error(ec_integer_overflow, &pos_curr_token);
+      }  /* if */
+      (void)get_token();
+    } else {
+      syntax_error(ec_exp_int_constant);
+    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  }  /* if */
+  if (success) {
+    result = internal_type_array[n];
+  } else {
+    result = error_type();
+  }  /* if */
+  return result;
+}  /* scan_edg_internal_type */
+
+
 static a_type_ptr scan_edg_vector_type()
 /*
 Scan a construct of the form
@@ -9173,7 +9221,7 @@ dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
   check_assertion(func_dps != NULL && curr_token == tok_auto &&
                   scope_is(ssep, sck_func_prototype));
   if (func_dps->is_lambda) {
-    auto_param_descr = func_dps->auto_params;
+    auto_param_descr = func_dps->variant.auto_params;
     if (auto_param_descr != NULL) {
       /* We're scanning the parameter of a lambda and a prescan previously
          determined it was a generic lambda.  This is essentially a template
@@ -10769,6 +10817,11 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         goto no_get_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_edg_internal_type:
+        *type_ptr = scan_edg_internal_type();
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        goto no_get_token;
       case tok_edg_size_type:
         /* An EDG-specific way to specify size_t. */
         *type_ptr = integer_type(targ_size_t_int_kind);

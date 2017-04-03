@@ -6153,6 +6153,7 @@ An <unqualified-name> encodes a name that is not qualified, e.g.,
                        ::= <ctor-dtor-name>  # Not handled here
                        ::= <source-name>   
                        ::= <unnamed-type-name>   
+                       ::= DC <source-name>+ E    # structured binding
 
 Constructor and destructor names do not get here; see
 demangle_nested_name_components.  *is_no_return_name is returned TRUE
@@ -6171,6 +6172,20 @@ caller does not need the value.
               ptr[1] == 'l')) {
     /* <unnamed-type-name> */
     ptr = demangle_unnamed_type(ptr, dctl);
+  } else if (*ptr == 'D' && ptr[1] == 'C') {
+    /* A mangled name for a structured binding container. */
+    ptr += 2;
+    write_id_str("[struct binding for ", dctl);
+    while (*ptr != 'E' && *ptr != '\0') {
+      ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+      if (*ptr != 'E' && *ptr != '\0') write_id_ch(',', dctl);
+    }  /* while */
+    if (*ptr != 'E') {
+      bad_mangled_name(dctl);
+    } else {
+      write_id_ch(']', dctl);
+      ptr++;
+    }  /* if */
   } else {
     /* <operator-name> */
     write_id_str("operator ", dctl);
@@ -7091,7 +7106,7 @@ substitution, the name of the last component in the substitution is used.
       ptr = demangle_type(ptr, dctl);
     } else {
       /* Not a substitution or template parameter, so an <unqualified-name>. */
-      if (*ptr != 'C' && *ptr != 'D') {
+      if (*ptr != 'C' && (*ptr != 'D' || ptr[1] == 'C')) {
         /* Normal case, not a constructor or destructor name. */
         prev_component_name = ptr;
         ptr = demangle_unqualified_name(ptr, is_no_return_name, dctl);

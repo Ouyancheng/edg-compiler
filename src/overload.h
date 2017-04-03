@@ -1204,6 +1204,7 @@ extern a_symbol_ptr select_overloaded_copy_constructor(
                                    a_type_ptr            class_type,
                                    a_type_qualifier_set  source_cv_qualifiers,
                                    a_boolean             source_is_rvalue,
+                                   a_boolean             ignore_explicit_ctors,
                                    a_source_position     *pos,
                                    a_boolean             *ambiguous,
                                    a_boolean             *uncallable,

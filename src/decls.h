@@ -166,7 +166,8 @@ extension keywords that construct a type specifier.
 */
 #define or_is_edg_type_keyword(tok)                                       \
   || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
-      (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type)
+      (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type ||       \
+      (tok) == tok_edg_internal_type)
 
 /*
 Macro that can be redefined by users to include checking for user-defined
@@ -967,6 +968,9 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_lambda:1;
 			/* TRUE if this is a state entry created to track a
 			   lambda declaration. */
+  a_bit_field	is_struct_binding_decl:1;
+			/* TRUE if this is a state entry created to track a
+			   structured binding declaration. */
   a_bit_field	is_alias:1;
 			/* TRUE if this is an alias declaration. */
   a_bit_field	param_with_only_enclosing_pack_refs:1;
@@ -1077,12 +1081,27 @@ typedef struct a_decl_parse_state {
 			   old-style C parameter definition.  May be NULL even
 			   when is_old_style_param_decl is TRUE in error
 			   cases. */
-  a_param_id_ptr
+  union {
+    /* When is_lambda and is_struct_binding_decl are FALSE: */
+    a_param_id_ptr
 		param_id_list;
 			/* When calling scan_nonmember_declaration to parse an
 			   old-style C parameter definition this points to the
 			   list of parameter id entries encountered in the
 			   associated function declarator.  Otherwise, NULL. */
+    /* When is_lambda is TRUE: */
+    an_auto_param_descr_ptr
+		auto_params;
+			/* A list of entries describing "auto" type specifiers
+			   encountered while prescanning a function declarator
+			   (for a C++14 generic lambda). */
+    /* When is_struct_binding_decl is TRUE: */
+    a_token_cache_ptr
+		struct_bindings_cache;
+			/* A token cache holding the bracket-enclosed list of
+			   identifiers (presumably) denoting one or more
+			   structured bindings. */
+  } variant;
   a_targ_alignment
 		alignment;
 			/* The explicit alignment specified for the declared
@@ -1139,11 +1158,6 @@ typedef struct a_decl_parse_state {
 			/* A list of positions for various elements of a
 			   declaration that aren't recorded directly in the
 			   corresponding IL entry. */
-  an_auto_param_descr_ptr
-		auto_params;
-			/* A list of entries describing "auto" type specifiers
-			   encountered while prescanning a function declarator
-			   (for a C++14 generic lambda). */
   a_routine_fixup_ptr
 		routine_fixup;
 			/* A routine fixup entry for a non-member, non-template

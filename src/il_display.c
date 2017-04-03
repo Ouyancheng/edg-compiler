@@ -2569,6 +2569,10 @@ Display the indicated init kind and initializer.
     case initk_function_local:
       (void)printf ("initk_function_local\n");
       break;
+    case initk_binding:
+      (void)printf ("initk_binding\n");
+      disp_ptr("binding", (char *)ptr->bound_expr, iek_expr_node);
+      break;
     default:
       (void)printf("**BAD INITIALIZATION KIND**\n");
   }  /* switch */
@@ -2697,8 +2701,12 @@ Display the indicated variable.
   disp_source_corresp(&ptr->source_corresp, iek_variable);
   disp_ptr("next", (char *)ptr->next, iek_variable);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  if (ptr->assoc_param_type != NULL) {
-    disp_ptr("assoc_param_type", (char *)ptr->assoc_param_type,
+  if (ptr->is_struct_binding) {
+    disp_ptr("container", (char *)ptr->variant.container, iek_variable);
+  } else if (ptr->is_struct_binding_container) {
+    disp_entity_list("bindings", ptr->variant.bindings);
+  } else if (ptr->variant.assoc_param_type != NULL) {
+    disp_ptr("assoc_param_type", (char *)ptr->variant.assoc_param_type,
              iek_param_type);
   }  /* if */
   disp_name("storage_class");

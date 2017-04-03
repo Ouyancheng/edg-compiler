@@ -2542,6 +2542,7 @@ constructor.
                                       param_type,
                                       get_type_qualifiers(arg_operand->type),
                                       is_an_rvalue(arg_operand),
+                                      /*ignore_explicit_ctors=*/FALSE,
                                       &arg_operand->position,
                                       &ambiguous,
                                       &uncallable,
@@ -13670,6 +13671,7 @@ not_direct_binding_case:
                                    unqual_return_type,
                                    get_type_qualifiers(return_type),
                                    result_is_an_xvalue,
+                                   /*ignore_explicit_ctors=*/FALSE,
                                    &source_operand->position,
                                    &ambiguous, &uncallable,
                                    /*inaccessible_match=*/(a_symbol **)NULL,
@@ -19584,6 +19586,7 @@ cases.
                                       class_type,
                                       get_type_qualifiers(source_type),
                                       /*source_is_rvalue=*/TRUE,
+                                      /*ignore_explicit_ctors=*/FALSE,
                                       err_pos,
                                       &ambiguous, &uncallable,
                                       /*inaccessible_match=*/(a_symbol **)NULL,
@@ -25078,6 +25081,7 @@ a_symbol_ptr select_overloaded_copy_constructor(
                                    a_type_ptr            class_type,
                                    a_type_qualifier_set  source_cv_qualifiers,
                                    a_boolean             source_is_rvalue,
+                                   a_boolean             ignore_explicit_ctors,
                                    a_source_position     *pos,
                                    a_boolean             *ambiguous,
                                    a_boolean             *uncallable,
@@ -25180,28 +25184,32 @@ traversal_start:
       if (select_templates != symbol_is(sym, sk_function_template)) {
         /* sym should not be considered in this pass. */
         goto next_function;
-      } else if (have_near_perfect_match &&
-                 symbol_is(sym, sk_function_template)) {
-        /* Rule out templates that cannot match better than a nontemplate
-           "exact match" we have already found.  We do this to avoid partially
-           instantiating these templates, thereby avoiding potential errors
-           resulting from those instantiations. */
-        a_routine_ptr     rp = sym->variant.template_info
-                                  ->variant.function.routine;
-        a_param_type_ptr  ptp = function_type_params(rp->type);
-        if (ptp != NULL &&
-            (is_lvalue_reference_type(ptp->type) ||
-             (!source_is_rvalue && is_rvalue_reference_type(ptp->type)))) {
-          /* We know that there is a non-template candidate that is a perfect
-             match, except perhaps for added qualifiers.  If the template
-             does not require strictly fewer qualifier additions, it won't be
-             a better match. */
-          a_type_ptr  param_type_under_ref = type_pointed_to(ptp->type);
-          a_type_qualifier_set
-                      param_tqs = get_type_qualifiers(param_type_under_ref);
-          if (!any_qualifier_in_set_missing(param_tqs,
-                                            near_perfect_match_added_tqs)) {
-            goto next_function;
+      } else {
+        a_routine_ptr  rp = func_sym_routine(sym);
+        if (ignore_explicit_ctors && rp->is_explicit_constructor) {
+          goto next_function;
+        }  /* if */
+        if (have_near_perfect_match &&
+            symbol_is(sym, sk_function_template)) {
+          /* Rule out templates that cannot match better than a nontemplate
+             "exact match" we have already found.  We do this to avoid
+             partially instantiating these templates, thereby avoiding
+             potential errors resulting from those instantiations. */
+          a_param_type_ptr  ptp = function_type_params(rp->type);
+          if (ptp != NULL &&
+              (is_lvalue_reference_type(ptp->type) ||
+               (!source_is_rvalue && is_rvalue_reference_type(ptp->type)))) {
+            /* We know that there is a non-template candidate that is a perfect
+               match, except perhaps for added qualifiers.  If the template
+               does not require strictly fewer qualifier additions, it won't be
+               a better match. */
+            a_type_ptr  param_type_under_ref = type_pointed_to(ptp->type);
+            a_type_qualifier_set
+                        param_tqs = get_type_qualifiers(param_type_under_ref);
+            if (!any_qualifier_in_set_missing(param_tqs,
+                                              near_perfect_match_added_tqs)) {
+              goto next_function;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

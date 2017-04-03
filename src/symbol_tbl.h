@@ -5197,6 +5197,9 @@ extern void make_literal_opname_locator(a_const_char      *ud_suffix,
                                         a_symbol_locator  *locator,
                                         a_source_position *pos);
 
+extern void make_struct_binding_container_locator(a_symbol_locator  *locator,
+                                                  a_source_position *pos);
+
 extern void make_type_conversion_locator(a_type_ptr         type,
                                          a_symbol_locator   *locator,
                                          a_source_position  *pos);
@@ -6759,6 +6762,13 @@ extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
 
 extern a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
                                                     a_void_ptr	key);
+
+extern a_symbol_ptr look_up_name_string_in_class(
+                                        a_const_char             *symbol_name,
+                                        a_type_ptr               class_type,
+                                        an_id_lookup_options_set options);
+
+extern a_symbol_ptr look_up_class_template_in_std(a_const_char  *ctname);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 extern a_symbol_ptr look_up_name_string_in_namespace(

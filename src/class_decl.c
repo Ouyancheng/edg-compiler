@@ -30681,7 +30681,7 @@ corresponding template declaration scope is pushed.
       /* Prescan the parameter list to look for one or more "auto" parameters
          that would make this a generic lambda. */
       prescan_lambda_parameter_clause(dps);
-      if (dps->auto_params != NULL) {
+      if (dps->variant.auto_params != NULL) {
         /* At least one "auto" parameter was seen: Set up a member function
            template context. */
         lambda->is_generic = TRUE;

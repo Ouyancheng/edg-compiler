@@ -1281,10 +1281,12 @@ typedef enum /*a_token_kind*/ {
   tok_is_trivially_copy_assignable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_builtin_addressof,
+  tok_edg_internal_type,
   tok_edg_vector_type,
   tok_edg_size_type,
   tok_edg_ptrdiff_type,
   tok_edg_bool_type,
+  tok_edg_internal_opnd,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1462,10 +1464,12 @@ EXTERN a_const_char
    "__is_trivially_copy_assignable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__builtin_addressof",
+   "__edg_type__",
    "__edg_vector_type__",
    "__edg_size_type__",
    "__edg_ptrdiff_type__",
    "__edg_bool_type__",
+   "__edg_opnd__",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -3721,12 +3725,17 @@ typedef struct a_dynamic_init {
 			   the constructor is not known. */
       an_expr_node_ptr
 		args;   /* The actual arguments with which the constructor
-			   should be called, not including the
-			   argument for the destination, and, when
+			   should be called, not including the argument for
+			   the destination, and, when
 			   is_copy_constructor_with_implied_source is TRUE,
 			   also not including the argument for the source.
-			   NULL if there are no arguments other than the
-			   implicit one(s). */
+			   If is_array_copy is TRUE, the first argument is not
+			   the one that the constructor should be called with,
+			   but an expression that produces an array to copy:
+			   Its elements should be passed to repeated calls of
+			   the constructor (possibly with the additional
+			   arguments on this list, if any).  NULL if there are
+			   no arguments other than the implicit one(s). */
       a_bit_field
 		is_copy_constructor_with_implied_source:1;
 			/* The constructor is a copy constructor in which the
@@ -3759,6 +3768,14 @@ typedef struct a_dynamic_init {
 			   order from left to right.  This comes up when a
 			   C++11 initializer list ends up being the argument
 			   list for a constructor. */
+      a_bit_field
+		is_array_copy:1;
+			/* TRUE if this represents the nontrivial copying of
+			   an array.  In that case, the array to copy will be
+			   the first expression on the args list (it should
+			   not be passed to the constructor directly; instead,
+			   its elements should be passed to repeated calls of
+			   the constructor). */
       bitfield_to_avoid_codecenter_warnings()
     } constructor;
     /* When kind == dik_bitwise_copy: */
@@ -9621,11 +9638,14 @@ enum an_init_kind_tag {
   initk_zero,		/* Initialization to zero (static or dynamic).
 			   Also serves to distinguish a tentative definition
 			   from a real definition. */
-  initk_function_local	/* Either dynamic or aggregate-constant initialization
+  initk_function_local,	/* Either dynamic or aggregate-constant initialization
 			   of a local static variable.  The variable itself
 			   does not point at the initializer; rather the
 			   initialization is represented by a local static
 			   variable init entry. */
+  initk_binding		/* For the bindings in a structured binding, the
+			   lvalue expression they stand for.  (This is not
+			   an "initialization" in the traditional sense.) */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_kind;
@@ -9656,6 +9676,11 @@ typedef union an_initializer {
 			   be statically initialized) but a destructor must
 			   be called when the variable's lifetime terminates,
 			   a dynamic init entry will also be supplied. */
+  /* When the initialization kind is initk_binding: */
+  an_expr_node_ptr
+		bound_expr;
+			/* The expression a binding is bound to (for bindings
+			   that are not ordinary reference variables). */
 } an_initializer;
 
 
@@ -9811,7 +9836,9 @@ typedef struct a_variable {
                            scope. */
   a_type_ptr    type;
 			/* Type of the variable. */
-  a_param_type_ptr
+  union {
+    /* When is_struct_binding and is_struct_binding_container are FALSE: */
+    a_param_type_ptr
 		assoc_param_type;
 			/* If is_parameter is TRUE and is_this_parameter is
 			   FALSE, points to the associated a_param_type entry.
@@ -9820,6 +9847,17 @@ typedef struct a_variable {
 			/* Left NULL for implicit parameters added by IL
 			   lowering. */
 #endif /* DO_IL_LOWERING */
+    /* When is_struct_binding is TRUE: */
+    a_variable_ptr
+		container;
+			/* The unnamed variable to which this binding
+			   refers. */
+    /* When is_struct_binding_container is TRUE: */
+    an_il_entity_list_entry_ptr
+		bindings;
+			/* A list of entries pointing to the a_variable entries
+			   representing the associated bindings. */
+  } variant;
   a_storage_class
                 storage_class;
                         /* Storage class.  The storage class is not necessarily
@@ -9957,6 +9995,15 @@ typedef struct a_variable {
                            taken somewhere. */
   a_bit_field	is_parameter:1;
                         /* TRUE if this is a parameter of a function. */
+  a_bit_field	is_struct_binding:1;
+			/* TRUE if this is a binding variable in a structured
+			   binding declaration.  Such variables are list on
+			   the "bindings" list of the associated container
+			   variable, but not on the "entities" list of the
+			   associated stmk_decl entry. */
+  a_bit_field	is_struct_binding_container:1;
+			/* TRUE if this is the underlying variable referred to
+			   by the structured binding variables. */
   a_bit_field	referenced_non_locally:1;
 			/* TRUE if the variable is a local static variable
 			   that is referenced from outside of its function
@@ -14619,7 +14666,10 @@ typedef struct a_statement {
       an_il_entity_list_entry_ptr
 		entities;
 			/* A list of tagged pointers to the entities declared
-			   by this statement. */
+			   by this statement (this does not include
+			   structured bindings, which are listed separately
+			   by their container variable; the container variable
+			   itself has an associated stmk_decl entry). */
     } decl;
     /* When kind == stmk_set_vla_size: */
     a_vla_dimension_ptr

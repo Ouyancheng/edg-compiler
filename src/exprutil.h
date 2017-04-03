@@ -536,6 +536,15 @@ typedef struct an_operand {
 } an_operand;
 
 
+EXTERN an_operand_ptr
+		*internal_opnd_array;
+			/* Pointer to an array of operands available when
+			   scanning internal expressions. */
+
+EXTERN int	n_internal_opnds;
+			/* Length of the array pointed to by
+			   internal_opnd_array. */
+
 /*
 Entry describing an expression, in a form that can be dynamically allocated
 and linked onto a list.
@@ -1766,16 +1775,16 @@ extern void rewrite_event_ref_for_call(
                                    an_operand        *operand,
                                    an_operand        *bound_function_selector);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
 void call_named_member_function(an_operand           *selector_operand,
                                 a_const_char         *member_name,
+                                a_template_arg_ptr   templ_arg_list,
                                 an_arg_list_elem_ptr alep,
                                 an_operand           *orig_operand,
                                 an_operand           *result);
-#endif /* COROUTINES_ALLOWED */
 
 extern
 void call_adl_named_function(a_const_char            *func_name,
+                             a_template_arg_ptr      templ_arg_list,
                              an_arg_list_elem_ptr    alep,
                              a_source_position       *pos,
                              a_token_sequence_number tok_seq_number,

@@ -511,16 +511,29 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         icp = elem_icp;
       }  /* if */
     }  /* if */
-    if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
-                                 undeduced_type,
-                                 dps->auto_type,
-                                 /*keep_placeholder=*/FALSE,
-                                 (an_operand *)NULL,
-                                 icp,
-                                 &dps->declarator_pos,
-                                 &dps->type,
-                                 &deduced_auto_type,
-                                 &still_dependent)) {
+    if (dps->is_struct_binding_decl && is_expression_component(icp) &&
+        dps->type->kind != (a_type_kind)tk_pointer &&
+        is_array_type(operand_of_arg_list_elem(icp)->type)) {
+      /* For a declaration like "auto [x, y] = array;" where there is no
+         ref-qualifier (i.e., no "&" or "&&" preceding the "["), the type
+         deduction is different in that it deduces an actual array type
+         instead of a pointer to the underlying element type. */
+      a_type_qualifier_set  tqs = get_type_qualifiers(dps->type);
+      a_type_ptr            tp = operand_of_arg_list_elem(icp)->type;
+      dps->deduced_auto_type = tp;
+      tp = make_qualified_type(tp, tqs);
+      dps->type = tp;
+      dps->specifiers_type = tp;
+    } else if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
+                                        undeduced_type,
+                                        dps->auto_type,
+                                        /*keep_placeholder=*/FALSE,
+                                        (an_operand *)NULL,
+                                        icp,
+                                        &dps->declarator_pos,
+                                        &dps->type,
+                                        &deduced_auto_type,
+                                        &still_dependent)) {
       if (still_dependent) {
         /* Deduction was not done because the types are still dependent. */
         dps->type = undeduced_type;
@@ -28453,6 +28466,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_pretty_function_name:
     case tok_decorated_function_name:
     case tok_nullptr:
+    case tok_edg_internal_opnd:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_native_nullptr:
     case tok_cli_typeid:
@@ -28964,6 +28978,331 @@ in *operand.  It's an lvalue for the field.
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+void determine_get_call_for_tuple_like_binding(
+                                           a_variable_ptr     container,
+                                           a_type_ptr         tp,
+                                           a_targ_size_t      elem_idx,
+                                           a_source_position  *diag_pos,
+                                           an_init_component  **p_icp,
+                                           a_boolean          *lvalue_binding)
+/*
+Let e be the given structured binding container variable of a tuple-like type.
+If tp has a member "get", produce an expression "e.get<elem_idx>()".
+Otherwise, produce "get<elem_index>(e)" where "get" is looked up via argument-
+dependent lookup only.  Set *lvalue_binding to TRUE if the produced expression
+is an lvalue.
+*/
+{
+  a_constant_ptr    i_con = local_constant();
+  a_symbol_ptr      mem_sym;
+  a_symbol_locator  loc;
+
+  set_integer_constant(i_con, (a_host_large_integer)elem_idx,
+                       targ_size_t_int_kind);
+  clear_locator(&loc, diag_pos);
+  (void)find_symbol("get", sizeof("get")-1, &loc);
+  mem_sym = class_qualified_id_lookup(&loc, tp, IDL_NO_OPTIONS);
+  if (mem_sym != NULL) {
+    /* We have to evaluate "e.get<i>()".  This is more complex than it seems
+       because "e.get<i>" might designate a static member function or a
+       variable template instance rather than a bound member function.  For
+       the cases that do not call a member function, we create the expression
+       from tokens. */
+    a_boolean            err = FALSE;
+    an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+    an_operand           e_opnd, i_opnd;
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    make_lvalue_variable_operand(container, diag_pos, diag_pos, &e_opnd,
+                                 (a_ref_entry *)NULL);
+    make_constant_operand(i_con, &i_opnd);
+    if (is_function_or_template_symbol(mem_sym)) {
+      a_template_arg_ptr    tap;
+      an_arg_operand_ptr    tap_opnd = alloc_arg_operand();
+      tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+      tap->arg_operand = tap_opnd;
+      make_constant_operand(i_con, &tap_opnd->operand);
+      *p_icp = alloc_init_component((an_init_component_kind)ick_expression);
+      call_named_member_function(&e_opnd, "get", tap,
+                                 (an_arg_list_elem_ptr)NULL, &e_opnd,
+                                 operand_of_arg_list_elem(*p_icp));
+    } else {
+      static a_token_cache   expr_tokens;
+      static a_boolean       expr_tokens_ready = FALSE;
+      a_type_ptr             *saved_internal_type_array = internal_type_array;
+      a_host_large_unsigned  saved_n_internal_types = n_internal_types;
+      an_operand_ptr         opnds[2] = { &e_opnd, &i_opnd };
+      if (!expr_tokens_ready) {
+        clear_token_cache(&expr_tokens, /*reusable=*/TRUE);
+        cache_tokens_from_string("__edg_opnd__(0).get<__edg_opnd__(1)>();",
+                                 &expr_tokens, diag_pos);
+        expr_tokens_ready = TRUE;
+      }  /* if */
+      rescan_reusable_cache(&expr_tokens);
+      internal_opnd_array = opnds;
+      n_internal_opnds = 2;
+      save_expr_stack(&saved_expr_stack);
+      push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/FALSE);
+      expr_stack->suppress_diagnostics = TRUE;
+      add_stop_token(tok_semicolon);
+      *p_icp = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
+      remove_stop_token(tok_semicolon);
+      if (expr_stack->any_suppressed_error) {
+        char  num_str[100];
+        (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
+        pos_stty_error(ec_failed_tuple_container_member_get, diag_pos, num_str,
+                       container->type);
+        err = TRUE;
+      }  /* if */
+      internal_type_array = saved_internal_type_array;
+      n_internal_types = saved_n_internal_types;
+      required_token(tok_semicolon, ec_exp_semicolon);
+    }  /* if */
+    if (!err) {
+      check_assertion(*p_icp != NULL && is_expression_component(*p_icp));
+      *lvalue_binding = is_an_lvalue(operand_of_arg_list_elem(*p_icp));
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+  } else {
+    /* No "get" member: Create a call "get<i>(e)" instead where "get" is
+       looked up using argument-dependent lookup. */
+    an_arg_list_elem_ptr  arg;
+    a_template_arg_ptr    tap;
+    an_arg_operand_ptr    tap_opnd = alloc_arg_operand();
+    tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+    tap->arg_operand = tap_opnd;
+    make_constant_operand(i_con, &tap_opnd->operand);
+    arg = alloc_init_component((an_init_component_kind)ick_expression);
+    *p_icp = alloc_init_component((an_init_component_kind)ick_expression);
+    make_lvalue_variable_operand(container, diag_pos, diag_pos,
+                                 operand_of_arg_list_elem(arg),
+                                 (a_ref_entry *)NULL);
+    call_adl_named_function("get", tap, arg, diag_pos,
+                            curr_token_sequence_number,
+                            ec_tuple_get_no_matching_overload,
+                            ec_ambiguous_overloaded_function,
+                            ec_struct_binding_undefined_identifier,
+                            operand_of_arg_list_elem(*p_icp),
+                            (an_expr_node_ptr*)NULL);
+    free_arg_list(arg);
+    *lvalue_binding = is_an_lvalue(operand_of_arg_list_elem(*p_icp));
+  }  /* if */
+  release_local_constant(&i_con);
+}  /* determine_get_call_for_tuple_like_binding */
+
+
+void record_init_for_array_struct_binding(a_decl_parse_state  *dps,
+                                          an_init_component   *icp)
+/*
+Record the initializer for a structured binding container variable of array
+type.  The container declaration is represented by dps and its initializer by
+icp.
+*/
+{
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  a_type_ptr           atype = dps->type, etype;
+  a_boolean            err = FALSE, bitwise_copy = FALSE;
+  a_dynamic_init_ptr   dip, array_dip;
+  an_operand           operand;
+  a_routine_ptr        cctor = NULL, dtor = NULL;
+  a_source_position    *pos = &dps->declarator_pos;
+
+  check_assertion(is_array_type(atype));
+  etype = underlying_array_element_type(atype);
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
+  if (is_braced_init_component(icp)) {
+    /* This should be a braced singleton. */
+    icp = icp->variant.braced.list;
+    check_assertion(icp != NULL && is_last_elem(icp));
+  }  /* if */
+  check_assertion(is_expression_component(icp));
+  extract_operand_from_expression_component(icp, &operand, /*free_icp=*/FALSE);
+  if (is_class_struct_union_type(etype)) {
+    /* Find the proper copy constructor for copying an element of an array
+       of class objects. */
+    a_type_ptr    tp = skip_typerefs(etype);
+    a_symbol_ptr  cctor_sym, inaccessible_match;
+    a_boolean     ambiguous, uncallable;
+    a_type_qualifier_set
+                  tqs = get_type_qualifiers(operand.type);
+    cctor_sym = select_overloaded_copy_constructor(
+                                 tp, tqs, /*source_is_rvalue=*/FALSE,
+                                 !dps->init_state.direct_init, pos,
+                                 &ambiguous, &uncallable, &inaccessible_match,
+                                 &bitwise_copy);
+    if (bitwise_copy) {
+      reference_to_trivial_copy_constructor(tp, tp, pos, /*check_access=*/TRUE,
+                                            /*elided_reference=*/FALSE,
+                                            (a_boolean*)NULL);
+    } else if (ambiguous) {
+      pos_ty_error(ec_ambiguous_copy_constructor, pos, tp);
+      err = TRUE;
+    } else if (cctor_sym == NULL) {
+      /* No applicable copy constructor. */
+      if (tqs == TQ_CONST && inaccessible_match == NULL) {
+        /* The common case:  missing const copy constructor. */
+        pos_ty_error(ec_missing_const_copy_constructor, pos, tp);
+      } else {
+        /* Unusual case: volatile or const-volatile expected, or skipped
+           because inaccessible. */
+        a_diagnostic_ptr  dp;
+        dp = pos_ty_start_error(ec_no_suitable_copy_constructor, pos, tp);
+        add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
+        end_diagnostic(dp);
+      }  /* if */
+      err = TRUE;
+    } else {
+      /* Exactly one copy constructor is best: Mark it referenced. */
+      reference_to_implicitly_invoked_function(cctor_sym, pos, tp,
+                                               /*honor_virtual=*/FALSE,
+                                               /*evaluated=*/TRUE,
+                                               /*instantiate=*/TRUE,
+                                               /*check_access=*/TRUE,
+                                               /*elided_reference=*/FALSE,
+                                               (a_boolean*)NULL);
+      cctor = cctor_sym->variant.routine.ptr;
+    }  /* if */
+    if (exceptions_enabled && !err) {
+      /* Exceptions are enabled, so see if a destructor is needed to destroy
+         previous copies if a throw is done part-way through the array copy.
+         Note that this can apply even if the initialization is done by a
+         bitwise copy. */
+      dtor = expr_select_destructor(tp, tp, pos, /*honor_virtual=*/FALSE);
+    }  /* if */
+  } else {
+    /* For a non-class array, do a bitwise copy. */
+    bitwise_copy = TRUE;
+  }  /* if */
+  /* Build the dynamic initialization entry. */
+  if (err) {
+    /* Some previous error. */
+    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+  } else if (bitwise_copy) {
+    /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
+       entry.  The source is implied. */
+    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
+  } else {
+    /* The copy uses a copy constructor.  Use a dik_constructor dynamic
+       init entry with an implied source. */
+    dip = alloc_expr_ctor_dynamic_init(cctor, (an_expr_node_ptr)NULL, atype,
+                                       /*add_default_args=*/TRUE,
+                                       /*implied_source=*/TRUE,
+                                       /*value_init=*/FALSE,
+                                       /*sequenced_args=*/FALSE,
+                                       /*fold_constexpr=*/TRUE,
+                                       /*check_constexpr=*/FALSE,
+                                       &dps->declarator_pos);
+  }  /* if */
+  pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
+  if (dtor != NULL) {
+    /* Indicate a destructor to be called for cleanup if an exception is
+       thrown part-way through the copy. */
+    record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
+    record_partial_aggregate_cleanup_destruction(dip, /*evaluated=*/TRUE);
+  }  /* if */
+  if (err) {
+    /* Nothing more to do. */
+  } else if (bitwise_copy) {
+    /* Record the source. */
+    dip->variant.bitwise_copy.source = make_node_from_operand(&operand);
+  } else {
+    a_targ_size_t     n_elems;
+    an_expr_node_ptr  array_arg = make_node_from_operand(&operand);
+    /* Add the array operand as a "special" constructor operand. */
+    check_assertion(
+            dip->variant.constructor.is_copy_constructor_with_implied_source);
+    array_arg->next = dip->variant.constructor.args;
+    dip->variant.constructor.args = array_arg;
+    dip->variant.constructor.is_copy_constructor_with_implied_source = FALSE;
+    dip->variant.constructor.is_array_copy = TRUE;
+    /* To repeat the initialization for each element of an array, add
+       ck_init_repeat/ck_dynamic_init. */
+    n_elems = num_array_elements(atype);
+    array_dip =
+           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+    repeat_nonconstant_init(dip, atype, etype, array_dip, n_elems);
+    dip = array_dip;
+  }  /* if */
+  dps->init_state.init_dip = dip;
+}  /* record_init_for_array_struct_binding */
+
+
+void record_struct_binding_expr_for_array_element(a_variable_ptr  container,
+                                                  a_variable_ptr  binding,
+                                                  a_targ_size_t   n)
+/*
+The current token is the identifier declaring a structured binding (described
+by binding) to the n-th element of the given container variable C.  Create the
+bound expression (C[n]) and record it in *binding.
+*/
+{
+  a_constant_ptr    n_constant = local_constant();
+  an_expr_node_ptr  c_node, n_node, bound_expr;
+
+  set_integer_constant(n_constant, (a_host_large_integer)n,
+                       targ_size_t_int_kind);
+  n_node = alloc_node_for_constant(alloc_shareable_constant(n_constant));
+  release_local_constant(&n_constant);
+  c_node = var_lvalue_expr(container);
+  if (is_reference_type(container->type)) {
+    c_node->is_lvalue = FALSE;
+    c_node = add_ref_indirection_to_node(c_node);
+  }  /* if */
+  c_node = conv_array_expr_to_pointer(c_node);
+  c_node->next = n_node;
+  bound_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
+                                  binding->type, c_node);
+  bound_expr->is_lvalue = TRUE;
+  binding->init_kind = (an_init_kind)initk_binding;
+  binding->initializer.bound_expr = bound_expr;
+  mark_variable_value_set(symbol_for(binding));
+}  /* record_struct_binding_expr_for_array_element */
+
+
+void record_struct_binding_expr_for_field(a_variable_ptr  container,
+                                          a_variable_ptr  binding,
+                                          a_field_ptr     field)
+/*
+The current token is the identifier declaring a structured binding (described
+by binding) to the given field f of the given container variable C.  Create the
+bound expression (C.f) and record it in *binding.
+*/
+{
+  an_operand           selector, result_opnd;
+  a_symbol_locator     field_loc;
+  an_expr_stack_entry  expr_stack_entry;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(container, &pos_curr_token, &pos_curr_token,
+                               &selector, (a_ref_entry_ptr)NULL);
+  make_locator_for_symbol(symbol_for(field), &field_loc);
+  do_field_selection_operation(&selector, container->type,
+                               /*is_arrow_operator=*/FALSE,
+                               /*compiler_generated=*/TRUE,
+                               &field_loc,
+                               &pos_curr_token,
+                               end_position_or_null(&end_pos_curr_token),
+                               (a_ref_entry_ptr)NULL, &result_opnd);
+  binding->init_kind = (an_init_kind)initk_binding;
+  binding->initializer.bound_expr = make_node_from_operand(&result_opnd);
+  mark_variable_value_set(symbol_for(binding));
+  pop_expr_stack();
+}  /* record_struct_binding_expr_for_field */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean in_lambda_body(void)
 /*
@@ -31760,11 +32099,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     }  /* if */
     /* Add the initialization to the aggregate being built up.  Allocate the
         aggregate if this is the first capture. */
-     if (aggr_con == NULL) {
-       aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-       aggr_con->type = lambda->closure_class;
-     }  /* if */
-     add_constant_to_aggregate(init_con, aggr_con);
+    if (aggr_con == NULL) {
+      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      aggr_con->type = lambda->closure_class;
+    }  /* if */
+    add_constant_to_aggregate(init_con, aggr_con);
   }  /* for */
   /* Make a dynamic initializer for the aggregate.  If no initialization
      is needed, make a dik_none dynamic init. */
@@ -32186,6 +32525,45 @@ Scan a user-defined literal and return an operand for it in *operand.
   /* Skip over the user-defined literal token. */
   (void)get_token();
 }  /* scan_ud_literal */
+
+
+static void scan_internal_operand(an_operand  *local_result)
+/*
+Scan a construct of the form
+
+	__edg_opnd__( int-constant )
+
+and return internal_opnd_array[n] where n is the value of int-constant, or
+an error operand if n >= n_internal_opnds.
+*/
+{
+  a_boolean  success = FALSE;
+
+  (void)get_token();
+  required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  if (curr_token == tok_int_constant) {
+    a_constant_ptr  cp = &const_for_curr_token;
+    if (sign_of_integer_constant(cp) >= 0) {
+      a_boolean             ovflo;
+      a_host_large_unsigned n = unsigned_value_of_integer_constant(cp, &ovflo);
+      if (!ovflo && n < n_internal_opnds) {
+        *local_result = *internal_opnd_array[n];
+        success = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!success) {
+      pos_error(ec_integer_overflow, &pos_curr_token);
+    }  /* if */
+    (void)get_token();
+  } else {
+    expr_syntax_error(ec_exp_int_constant);
+  }  /* if */
+  required_token(tok_rparen, ec_exp_rparen);
+  if (!success) {
+    make_error_operand(local_result);
+  }  /* if */
+}  /* scan_internal_operand */
 
 
 static void scan_expr_full(an_operand               *result,
@@ -33142,6 +33520,11 @@ type_start:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
     default:
+
+    case tok_edg_internal_opnd:
+      scan_internal_operand(&local_result);
+      break;
+
 bad_start_of_primary:
       set_err_pos_to_curr_token();
       expr_syntax_error(ec_exp_primary_expr);
@@ -35666,9 +36049,11 @@ to implement a co_yield expression.
        functions. */
     use_member_calls = TRUE;
     call_named_member_function(&ready_operand, "await_ready",
+                               (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
                                &ready_operand, &ready_call);
     call_named_member_function(&resume_operand, "await_resume",
+                               (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
                                &resume_operand, &resume_call);
   } else {
@@ -35677,14 +36062,16 @@ to implement a co_yield expression.
     an_arg_list_elem_ptr  alep;
     use_member_calls = FALSE;
     alep = alloc_arg_list_elem_for_operand(&ready_operand);
-    call_adl_named_function("await_ready", alep, pos, tok_seq_number,
+    call_adl_named_function("await_ready", (a_template_arg_ptr)NULL,
+                            alep, pos, tok_seq_number,
                             ec_await_no_matching_overload,
                             ec_ambiguous_overloaded_function,
                             ec_await_undefined_identifier,
                             &ready_call, (an_expr_node_ptr*)NULL);
     free_arg_list(alep);
     alep = alloc_arg_list_elem_for_operand(&resume_operand);
-    call_adl_named_function("await_resume", alep, pos, tok_seq_number,
+    call_adl_named_function("await_resume", (a_template_arg_ptr)NULL,
+                            alep, pos, tok_seq_number,
                             ec_await_no_matching_overload,
                             ec_ambiguous_overloaded_function,
                             ec_await_undefined_identifier,
@@ -35760,12 +36147,14 @@ operation.  This routine frees *suspend_arg.
   /* Now create the await_suspend call. */
   if (use_member_call) {
     an_operand  *selector = operand_of_arg_list_elem(suspend_arg);
-    call_named_member_function(selector, "await_suspend", handle_arg,
-                               selector, &suspend_call);
+    call_named_member_function(selector, "await_suspend",
+                               (a_template_arg_ptr)NULL, handle_arg, selector,
+                               &suspend_call);
     free_arg_list(handle_arg);
   } else {
     append_elem(suspend_arg, handle_arg);
-    call_adl_named_function("await_suspend", suspend_arg, pos, tok_seq_number,
+    call_adl_named_function("await_suspend", (a_template_arg_ptr)NULL,
+                            suspend_arg, pos, tok_seq_number,
                             ec_await_no_matching_overload,
                             ec_ambiguous_overloaded_function,
                             ec_await_undefined_identifier,
@@ -37546,7 +37935,8 @@ expression.
     }  /* if */
   } else if (operand_is_lvalue_for_variable(&result, &param_var) &&
              param_var->is_parameter &&
-             is_array_type(param_var->assoc_param_type->declared_type)) {
+             is_array_type(param_var->variant.assoc_param_type
+                                    ->declared_type)) {
     /* Microsoft allows a parameter whose type is an array to be used
        as the collection in a for-each statement, e.g.,
          void f(int b[10]) {
@@ -37559,7 +37949,7 @@ expression.
     an_expr_node_ptr expr;
     an_operand       orig_operand;
     orig_operand = result;
-    collection_type = param_var->assoc_param_type->declared_type;
+    collection_type = param_var->variant.assoc_param_type->declared_type;
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     expr = make_node_from_operand(&result);
     expr = add_indirection_to_node(expr);
@@ -37897,8 +38287,8 @@ initializer of *variable.
        clarifies that this is "pure ADL" (and not a normal+ADL) lookup. */
     make_enhanced_for_expression_operand(range_var, &range_operand);
     arg_list = alloc_arg_list_elem_for_operand(&range_operand);
-    call_adl_named_function(function_name, arg_list, expr_position,
-                            tok_seq_number,
+    call_adl_named_function(function_name, (a_template_arg_ptr)NULL,
+                            arg_list, expr_position, tok_seq_number,
                             ec_range_based_for_no_matching_overload,
                             ec_ambiguous_overloaded_function,
                             ec_range_based_for_undefined_identifier,
@@ -38919,7 +39309,8 @@ This routine frees *alep.
     }  /* if */
     mem_fun_name = alep == NULL ? "return_void" : "return_value";
   }  /* if */
-  call_named_member_function(&selector_operand, mem_fun_name, alep,
+  call_named_member_function(&selector_operand, mem_fun_name,
+                             (a_template_arg_ptr)NULL, alep,
                              &selector_operand, &call_operand);
   result = make_node_from_operand(&call_operand);
   if (void_expr != NULL) {
@@ -42805,14 +43196,16 @@ the copy constructor.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  cctor_sym = select_overloaded_copy_constructor(class_type,
-                                                 required_qualifiers,
-                                                 source_is_rvalue,
-                                                 pos,
-                                                 ambiguous,
-                                                 (a_boolean *)NULL,
-                                                 inaccessible_match,
-                                                 class_bitwise_copy);
+  cctor_sym = select_overloaded_copy_constructor(
+                                              class_type,
+                                              required_qualifiers,
+                                              source_is_rvalue,
+                                              /*ignore_explicit_ctors=*/FALSE,
+                                              pos,
+                                              ambiguous,
+                                              (a_boolean *)NULL,
+                                              inaccessible_match,
+                                              class_bitwise_copy);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return cctor_sym;

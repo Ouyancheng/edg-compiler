@@ -1276,9 +1276,11 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_upc_elemsizeof,  "upc_elemsizeof");
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  enter_keyword((a_token_kind)tok_edg_internal_type,  "__edg_type__");
   enter_keyword((a_token_kind)tok_edg_size_type,      "__edg_size_type__");
   enter_keyword((a_token_kind)tok_edg_ptrdiff_type,   "__edg_ptrdiff_type__");
   enter_keyword((a_token_kind)tok_edg_bool_type,      "__edg_bool_type__");
+  enter_keyword((a_token_kind)tok_edg_internal_opnd,  "__edg_opnd__");
   db_exit();
 }  /* keyword_init */
 

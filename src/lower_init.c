@@ -1903,8 +1903,8 @@ for an array initialization in GNU C++ mode).
       /* The implied source is a local variable from a lambda capture. */
       if (is_reference_type(var->type) ||
           (var->is_parameter &&
-           var->assoc_param_type != NULL &&
-           var->assoc_param_type->passed_via_copy_constructor)) {
+           var->variant.assoc_param_type != NULL &&
+           var->variant.assoc_param_type->passed_via_copy_constructor)) {
         /* Variable is a reference or a parameter passed via copy constructor,
            add an indirection. */
         set_var_indirect_init_pos_descr(var, &source_ipd);
@@ -4128,13 +4128,15 @@ a parameter in expr (if one exists) with a corresponding parameter.
                     orig_ptr->is_parameter &&
                     new_ptr->is_parameter &&
                     (orig_ptr->is_this_parameter ||
-                     orig_ptr->assoc_param_type != NULL) &&
+                     orig_ptr->variant.assoc_param_type != NULL) &&
                     (new_ptr->is_this_parameter ||
-                     new_ptr->assoc_param_type != NULL) &&
-                    (orig_ptr->assoc_param_type == NULL ||
-                     new_ptr->assoc_param_type == NULL ||
-                     orig_ptr->assoc_param_type->passed_via_copy_constructor ==
-                      new_ptr->assoc_param_type->passed_via_copy_constructor));
+                     new_ptr->variant.assoc_param_type != NULL) &&
+                    (orig_ptr->variant.assoc_param_type == NULL ||
+                     new_ptr->variant.assoc_param_type == NULL ||
+                     orig_ptr->variant.assoc_param_type
+                             ->passed_via_copy_constructor ==
+                                       new_ptr->variant.assoc_param_type
+                                              ->passed_via_copy_constructor));
         node_variable(expr) = new_ptr;
         break;
       }  /* if */
@@ -4156,13 +4158,15 @@ a parameter in expr (if one exists) with a corresponding parameter.
                     orig_ptr->is_parameter &&
                     new_ptr->is_parameter &&
                     (orig_ptr->is_this_parameter ||
-                     orig_ptr->assoc_param_type != NULL) &&
+                     orig_ptr->variant.assoc_param_type != NULL) &&
                     (new_ptr->is_this_parameter ||
-                     new_ptr->assoc_param_type != NULL) &&
-                    (orig_ptr->assoc_param_type == NULL ||
-                     new_ptr->assoc_param_type == NULL ||
-                     orig_ptr->assoc_param_type->passed_via_copy_constructor ==
-                      new_ptr->assoc_param_type->passed_via_copy_constructor));
+                     new_ptr->variant.assoc_param_type != NULL) &&
+                    (orig_ptr->variant.assoc_param_type == NULL ||
+                     new_ptr->variant.assoc_param_type == NULL ||
+                     orig_ptr->variant.assoc_param_type
+                             ->passed_via_copy_constructor ==
+                                       new_ptr->variant.assoc_param_type
+                                              ->passed_via_copy_constructor));
           ptr->captured.variable = new_ptr;
           break;
         }  /* if */
@@ -4639,7 +4643,7 @@ operator of a no-capture lambda.
          param_type != NULL;
          param_type = param_type->next) {
       param_var = make_lowered_param_variable(param_type->type);
-      param_var->assoc_param_type = param_type;
+      param_var->variant.assoc_param_type = param_type;
       if (last_param_var == NULL) {
         new_routine_scope->variant.routine.parameters = param_var;
       } else {
@@ -9375,6 +9379,12 @@ C99 mode for the same reason.
       an_expr_node_ptr expr = dip->variant.expression;
       if (in_file_scope(expr)) {
         dip->variant.expression = copy_expr_to_function_memory_region(expr);
+      }  /* if */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy) {
+      an_expr_node_ptr expr = dip->variant.bitwise_copy.source;
+      if (in_file_scope(expr)) {
+        dip->variant.bitwise_copy.source =
+                                    copy_expr_to_function_memory_region(expr);
       }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* Don't copy for the constructor array case; a copy will be done later
@@ -18289,7 +18299,7 @@ Note: this is called when lowering C and C++.
        param_type != NULL;
        param_type = param_type->next) {
     param_var = make_lowered_param_variable(param_type->type);
-    param_var->assoc_param_type = param_type;
+    param_var->variant.assoc_param_type = param_type;
     if (last_param_var == NULL) {
       scope->variant.routine.parameters = param_var;
     } else {

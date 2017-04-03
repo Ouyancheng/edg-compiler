@@ -3825,7 +3825,6 @@ initializer, already copied and substituted.
   a_boolean              is_aggregate = FALSE, is_var_init;
   a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
   a_boolean              saved_no_diagnostics = is->no_diagnostics;
-  a_type_ptr             atype;
   a_routine_ptr          dtor_rp = NULL;
   a_boolean              need_to_free_icp_tree = FALSE;
   a_boolean              saved_reduce_backing_expression_use;
@@ -3886,22 +3885,29 @@ initializer, already copied and substituted.
     case tk_array:
       /* Arrays are aggregates. */
       is_aggregate = TRUE;
-      atype = dtype;
-      aggr_init_array(&icp, &atype, is, diag_pos, &is->init_con);
-      if (atype != dtype) {
-        /* Presumably an incomplete array type whose length is now known.
-           Update the recorded type. */
-        check_assertion(dps != NULL);
-        dps->type = atype;
-      }  /* if */
-      if (is_error_type(atype)) {
-        is->init_error = TRUE;
-        if (!is->no_diagnostics) expect_error();
+      if (is_var_init && dps->is_struct_binding_decl) {
+        /* Something like "auto [x, y]{ array };".  The array in the braces
+           must be copied. */
+        /* This is a case where an array has to be copied. */
+        record_init_for_array_struct_binding(dps, icp);
       } else {
-        a_type_ptr  etype = underlying_array_element_type(atype);
-        etype = skip_typerefs(etype);
-        if (is_immediate_class_type(etype)) {
-          dtor_rp = get_init_destructor(etype, is, diag_pos);
+        a_type_ptr  atype = dtype;
+        aggr_init_array(&icp, &atype, is, diag_pos, &is->init_con);
+        if (atype != dtype) {
+          /* Presumably an incomplete array type whose length is now known.
+             Update the recorded type. */
+          check_assertion(dps != NULL);
+          dps->type = atype;
+        }  /* if */
+        if (is_error_type(atype)) {
+          is->init_error = TRUE;
+          if (!is->no_diagnostics) expect_error();
+        } else {
+          a_type_ptr  etype = underlying_array_element_type(atype);
+          etype = skip_typerefs(etype);
+          if (is_immediate_class_type(etype)) {
+            dtor_rp = get_init_destructor(etype, is, diag_pos);
+          }  /* if */
         }  /* if */
       }  /* if */
       break;
@@ -4259,7 +4265,14 @@ to use for diagnostics by default.
   is->elided_braces_disallowed = FALSE;
   is_array_var = (tp->kind == (a_type_kind)tk_array);
   is_string_var = is_array_var && may_be_string_type(tp);
-  if (!is_string_var && !C_mode()) {
+  if (!is_array_var) {
+    /* Nothing to check at this time. */
+  } else if (dps->is_struct_binding_decl) {
+    /* Something like:
+           auto f()->int(&)[2];
+           auto [ x, y ] = f();
+       The array will have to be copied into the container variable. */
+  } else if (!is_string_var && !C_mode()) {
     /* In standard C++, the only valid case here is string initialization.  We
        cannot in general know whether this is a string initialization until
        we've parsed the expression, but if the destination type isn't a string
@@ -4270,7 +4283,7 @@ to use for diagnostics by default.
        the corresponding class type: Each element of the array is then
        initialized with that value.  Set is_gnu_array_fill to TRUE for that
        case. */
-    if (gpp_mode && is_array_var && !is_incomplete_array_type(tp)) {
+    if (gpp_mode && !is_incomplete_array_type(tp)) {
       a_type_ptr  etp = tp->variant.array.element_type;
       etp = skip_typerefs(etp);
       if (is_immediate_class_type(etp) && !is_aggregate_type(etp)) {
@@ -4296,6 +4309,9 @@ to use for diagnostics by default.
   if (is_error_component(expr_icp)) {
     /* An error occurred earlier.  Continue with an error constant. */
     make_error_result = TRUE;
+  } else if (is_array_var && dps->is_struct_binding_decl) {
+    /* This is a case where an array has to be copied. */
+    record_init_for_array_struct_binding(dps, expr_icp);
   } else if (is_string_var &&
              try_string_literal_init(expr_icp, &dps->type, is,
                                      &is->init_con)) {
@@ -5187,6 +5203,49 @@ returned set to TRUE.
 #endif /* DEBUG */
   db_exit();
 }  /* initializer */
+
+
+void record_struct_binding_expr_for_tuple_element(a_decl_parse_state  *dps,
+                                                  an_init_component   *icp)
+/*
+Process the initializer (icp) for a binding to an element of a tuple-like
+type (the binding's declaration is represented by *dps).
+*/
+{
+  an_init_state   *is = &dps->init_state;
+  a_variable_ptr  binding;
+
+  check_assertion(dps->sym != NULL && symbol_is(dps->sym, sk_variable));
+  binding = dps->sym->variant.variable.ptr;
+  check_assertion(binding != NULL);
+  is->elements_are_full_expressions = TRUE;
+  convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
+                      /*fill_in_dtor=*/TRUE, is);
+  if (is->init_error && is->init_con == NULL && is->init_dip == NULL) {
+    /* For error cases, record an error constant. */
+    a_constant_ptr  err_constant = local_constant();
+    set_error_constant(err_constant);
+    is->init_con = move_local_constant_to_il(&err_constant);
+    is->init_dip = NULL;
+    expect_error();
+  }  /* if */
+  if (is->init_dip == NULL &&
+      !var_has_static_or_thread_storage_duration(binding)) {
+    /* Local variables are always initialized with a dynamic initializer. */
+    is->init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    is->init_dip->variant.constant = is->init_con;
+    is->init_con = NULL;
+  }  /* if */
+  if (is->init_dip != NULL) {
+    /* Tie the initialization to the variable and generate an stmk_init
+       statement if needed. */
+    a_local_static_variable_init_ptr  local_static_var_init = NULL;
+    gen_dynamic_initialization(binding, is->init_dip, &local_static_var_init,
+                               &dps->declarator_pos,
+                               (a_decl_pos_block_ptr)NULL,
+                               (a_statement_ptr *)NULL);
+  }  /* if */
+}  /* record_struct_binding_expr_for_tuple_element */
 
 
 static void expr_init_field(a_decl_parse_state  *dps,

@@ -8424,9 +8424,8 @@ namespace abi was encountered in the source.
 }  /* enter_symbol_for_namespace_abi */
 
 #endif /* IA64_ABI */
-#if COROUTINES_ALLOWED
 
-static a_symbol_ptr look_up_name_string_in_class(
+a_symbol_ptr look_up_name_string_in_class(
                                         a_const_char             *symbol_name,
                                         a_type_ptr               class_type,
                                         an_id_lookup_options_set options)
@@ -8445,6 +8444,30 @@ any.
   return sym;
 }  /* look_up_name_string_in_class */
 
+
+a_symbol_ptr look_up_class_template_in_std(a_const_char  *ctname)
+/*
+Look up a class template of the given name in namespace std and return its
+associated symbol, or NULL if it is not found.
+*/
+{
+  a_namespace_ptr  std_nsp;
+  a_symbol_ptr     result_sym = NULL;
+
+  if (symbol_for_namespace_std != NULL) {
+    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
+    if (std_nsp != NULL) {
+      result_sym = look_up_name_string_in_namespace(
+                                             ctname, std_nsp, IDL_NO_OPTIONS);
+      if (result_sym != NULL && !symbol_is(result_sym, sk_class_template)) {
+        result_sym = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result_sym;
+}  /* look_up_class_template_in_std */
+
+#if COROUTINES_ALLOWED
 
 static
 a_symbol_ptr look_up_class_template_in_std_experimental(a_const_char  *ctname)
@@ -9595,6 +9618,37 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
   }  /* if */
   locator->symbol_header = sym_hdr_ptr;
 }  /* make_literal_opname_locator */
+
+
+void make_struct_binding_container_locator(a_symbol_locator  *locator,
+                                           a_source_position *pos)
+/*
+Make a unique locator in *locator for a structured binding container variable.
+*/
+{
+  static unsigned long  sb_counter = 0;
+  unsigned long         sb_num, n_digits = 0;
+  char                  *str;
+  sizeof_t              len;
+  a_symbol_header_ptr   sym_hdr = alloc_symbol_header();
+
+  sb_counter += 1;
+  /* Count the number of decimal digits in the binding numbed. */
+  sb_num = sb_counter;
+  do {
+    n_digits += 1;
+    sb_num /= 10;
+  } while (sb_num != 0);
+#define SB_NAME_PATTERN "<struct binding %lu>"
+  len = sizeof(SB_NAME_PATTERN)+n_digits-(sizeof("%lu")-1);
+  str = alloc_primary_file_scope_il((sizeof_t)len);
+  sprintf(str, SB_NAME_PATTERN, sb_counter);
+#undef SB_NAME_PATTERN
+  sym_hdr->identifier = str;
+  sym_hdr->identifier_length = len-1;
+  clear_locator(locator, pos);
+  locator->symbol_header = sym_hdr;
+}  /* make_struct_binding_container_locator */
 
 
 void make_type_conversion_locator(a_type_ptr         type,

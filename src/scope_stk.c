@@ -6038,7 +6038,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                source explicitly annotated the parameter as being unused
                through the "maybe_unused" or GNU "unused" attribute. */
           } else {
-            a_param_type_ptr	ptp = var_ptr->assoc_param_type;
+            a_param_type_ptr	ptp = var_ptr->variant.assoc_param_type;
             if (ptp != NULL && ptp->is_pack_element && sym->is_invisible) {
               /* Non-initial pack element parameter variables are marked as
                  invisible.  Such symbols are never marked as referenced. */
@@ -10652,7 +10652,7 @@ to be part of the function template such as a lambda nested therein.
   }  /* if */
   for (vp = ssep->il_scope->variant.routine.parameters;
        vp != NULL; vp = vp->next) {
-    if (vp->assoc_param_type->param_num == param_num) {
+    if (vp->variant.assoc_param_type->param_num == param_num) {
       result_vp = vp;
       break;
     }  /* if */
@@ -10660,7 +10660,7 @@ to be part of the function template such as a lambda nested therein.
   *elements = 0;
   /* Count the number of pack elements. */
   for (; vp != NULL; vp = vp->next) {
-    if (vp->assoc_param_type->param_num != param_num) break;
+    if (vp->variant.assoc_param_type->param_num != param_num) break;
     (*elements)++;
   }  /* for */
 done:
@@ -11990,9 +11990,9 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
         a_variable_ptr	next_vp = vp == NULL ? NULL : vp->next;
         if (next_vp == NULL ||
-            next_vp->assoc_param_type == NULL ||
-            vp->assoc_param_type->param_num !=
-                                        next_vp->assoc_param_type->param_num) {
+            next_vp->variant.assoc_param_type == NULL ||
+            vp->variant.assoc_param_type->param_num !=
+                               next_vp->variant.assoc_param_type->param_num) {
           arg_prp->curr_argument.variable = NULL;
           done = TRUE;
         } else {
@@ -12209,8 +12209,8 @@ form.
         prp = alloc_pack_reference(kind);
         prp->symbol = pack_symbol;
         if (kind == prk_variable) {
-          prp->param_num = pack_symbol->
-                            variant.variable.ptr->assoc_param_type->param_num;
+          prp->param_num = pack_symbol->variant.variable.ptr
+                                      ->variant.assoc_param_type->param_num;
         } else if (kind == prk_parameter) {
           a_param_id_ptr  pip = pack_symbol->variant.param_id;
           prp->param_num = pip->param_num;

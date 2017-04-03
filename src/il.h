@@ -35,7 +35,6 @@ EXTERN a_const_char
 #endif /* VAR_INITIALIZERS */
                                                        ;
 
-
 #if ORPHAN_PROCESSING_NEEDED
 /*
 It is necessary to maintain a list of IL entries that are allocated in
@@ -141,6 +140,16 @@ EXTERN a_const_char
 /* Pointer types for types defined in il_to_str.h. */
 typedef struct an_il_to_str_output_control_block
                                         *an_il_to_str_output_control_block_ptr;
+
+EXTERN a_type_ptr
+		*internal_type_array;
+			/* Pointer to an array of types usable by internal
+			   expression code. */
+
+EXTERN a_host_large_unsigned
+		n_internal_types;
+			/* Number of elements pointed to by
+			   internal_type_array. */
 
 EXTERN a_type_ptr
 		type_of_type_info;

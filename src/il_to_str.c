@@ -6415,8 +6415,9 @@ Do the output in the way described by octl.
     if (var->is_not_common) {
       form_simple_attribute("__nocommon__", &need_leading_space, octl);
     }  /* if */
-    if (var->assoc_param_type != NULL &&
-        var->assoc_param_type->is_transparent) {
+    if (var->is_parameter &&
+        var->variant.assoc_param_type != NULL &&
+        var->variant.assoc_param_type->is_transparent) {
       form_simple_attribute("__transparent_union__", &need_leading_space,
                             octl);
     }  /* if */

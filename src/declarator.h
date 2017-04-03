@@ -89,7 +89,8 @@ to "abstract") declarator.
       or_is_microsoft_declarator_keyword(curr_token) or_is_near_or_far() || \
       (C_dialect == C_dialect_cplusplus &&                                  \
        (curr_token == tok_ampersand ||                                      \
-        (rvalue_references_enabled && curr_token == tok_and_and)            \
+        (rvalue_references_enabled && curr_token == tok_and_and) ||         \
+        (struct_bindings_enabled && curr_token == tok_lbracket)             \
         or_is_cli_declarator_operator(curr_token)                 ||        \
         curr_token == tok_operator))))
 

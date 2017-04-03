@@ -3389,11 +3389,20 @@ static a_boolean is_bit_field_extract_node(an_expr_node_ptr node)
 Return TRUE if the given expression node is a bit-field extraction.
 */
 {
-  a_boolean is_bit_field_extract =
-       (is_operation_node(node) &&
-        (node_operator_is((node), eok_dot_field) ||
-         node_operator_is((node), eok_points_to_field)) &&
-        node_field((node)->variant.operation.operands->next)->is_bit_field);
+  a_boolean is_bit_field_extract = FALSE;
+
+  if (is_operation_node(node) &&
+      (node_operator_is((node), eok_dot_field) ||
+       node_operator_is((node), eok_points_to_field)) &&
+      node_field((node)->variant.operation.operands->next)->is_bit_field) {
+    is_bit_field_extract = TRUE;
+  } else if (is_variable_node(node)) {
+    a_variable_ptr  vp = node_variable(node);
+    if (vp->init_kind == (an_init_kind)initk_binding) {
+      is_bit_field_extract =
+                        is_bit_field_extract_node(vp->initializer.bound_expr);
+    }  /* if */
+  }  /* if */
   return is_bit_field_extract;
 }  /* is_bit_field_extract_node */
 
@@ -18229,8 +18238,8 @@ from being re-introduced once lowering has eliminated it).
     check_assertion(!is_any_reference_type(lvalue_type));
 #if DO_IL_LOWERING
     if (il_lowering_underway &&
-        var->is_parameter && var->assoc_param_type != NULL &&
-        var->assoc_param_type->passed_via_copy_constructor &&
+        var->is_parameter && var->variant.assoc_param_type != NULL &&
+        var->variant.assoc_param_type->passed_via_copy_constructor &&
         is_pointer_type(lvalue_type) && !is_pointer_type(node->type)) {
       /* IL lowering rewrites the types of variables that are parameters
          passed by copy constructor, to add a "pointer-to" to the type.
@@ -21101,10 +21110,10 @@ selector expression used to designate the event.
 }  /* rewrite_event_for_call */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
 
 void call_named_member_function(an_operand           *selector_operand,
                                 a_const_char         *member_name,
+                                a_template_arg_ptr   templ_arg_list,
                                 an_arg_list_elem_ptr alep,
                                 an_operand           *orig_operand,
                                 an_operand           *result)
@@ -21113,12 +21122,15 @@ Create in *result the representation of a call of the form
 
 	expr.member(a1, a2, ...)
 
+or (if template_arg_list is non-NULL)
+
+	expr.member<...>(a1, a2, ...)
+
 where expr is given by selector_operand, member is determined by member_name,
+the explicit template arguments (if any) are represented by templ_arg_list,
 and a1, a2, ... is represented by alep (possibly NULL).  Operand details other
 than the bound_function and virtual_function flags will be copied from
 orig_operand to the function operand created before assembling the final call.
-
-Currently, the call must be to a nonstatic member function.
 */
 {
   a_type_ptr        class_type;
@@ -21174,28 +21186,28 @@ Currently, the call must be to a nonstatic member function.
     /* Do overload resolution to determine the function to call. */
     if (!nonreal_case &&
         !select_and_prepare_to_call_overloaded_function(
-                                       member_sym,
-                                       /*is_template_id=*/FALSE,
-                                       (a_template_arg_ptr)NULL,
-                                       /*have_selector=*/TRUE,
-                                       selector_operand,
-                                       alep,
-                                       /*do_arg_dep_lookup=*/FALSE,
-                                       /*use_pure_arg_dep_lookup=*/FALSE,
-                                       /*use_std_for_arg_dep_lookup=*/FALSE,
-                                       /*try_surrogate_functions=*/FALSE,
-                                       /*is_property=*/FALSE,
-                                       /*compiler_generated=*/TRUE,
-                                       ec_no_matching_function,
-                                       ec_ambiguous_overloaded_function,
-                                       ec_undefined_identifier,
-                                       (an_operand *)NULL,
-                                       &selector_operand->position,
-                                       (a_token_sequence_number)0,
-                                       (a_source_position *)NULL,
-                                       (a_boolean *)NULL,
-                                       &function_operand,
-                                       &arg_node_list)) {
+                                    member_sym,
+                                    /*is_template_id=*/templ_arg_list != NULL,
+                                    templ_arg_list,
+                                    /*have_selector=*/TRUE,
+                                    selector_operand,
+                                    alep,
+                                    /*do_arg_dep_lookup=*/FALSE,
+                                    /*use_pure_arg_dep_lookup=*/FALSE,
+                                    /*use_std_for_arg_dep_lookup=*/FALSE,
+                                    /*try_surrogate_functions=*/FALSE,
+                                    /*is_property=*/FALSE,
+                                    /*compiler_generated=*/TRUE,
+                                    ec_no_matching_function,
+                                    ec_ambiguous_overloaded_function,
+                                    ec_undefined_identifier,
+                                    (an_operand *)NULL,
+                                    &selector_operand->position,
+                                    (a_token_sequence_number)0,
+                                    (a_source_position *)NULL,
+                                    (a_boolean *)NULL,
+                                    &function_operand,
+                                    &arg_node_list)) {
       /* Some error occurred. */
       make_error_operand(result);
     } else {
@@ -21242,9 +21254,9 @@ Currently, the call must be to a nonstatic member function.
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* call_named_member_function */
                            
-#endif /* COROUTINES_ALLOWED */
 
 void call_adl_named_function(a_const_char            *func_name,
+                             a_template_arg_ptr      templ_arg_list,
                              an_arg_list_elem_ptr    alep,
                              a_source_position       *pos,
                              a_token_sequence_number tok_seq_number,
@@ -21256,13 +21268,18 @@ void call_adl_named_function(a_const_char            *func_name,
 /*
 Create in *result the representation of a call of the form
 
+	func<...>(a1, a2, ...)
+
+or
+
 	func(a1, a2, ...)
 
-where func is determined by looking up func_name strictly through argument-
-dependent lookup (i.e., ordinary lookup is not done), and a1, a2, ... is
-represented by alep (possibly NULL).  tok_seq_number is the token sequence
-number from where the lookup of func_name should be done.  pos is the position
-to use for this call.
+(if templ_arg_list is NULL) where func is determined by looking up func_name
+strictly through argument- dependent lookup (i.e., ordinary lookup is not
+done), the template argument list is represented by templ_arg_list (NULL means
+there is none), and a1, a2, ... is represented by alep (possibly NULL).
+tok_seq_number is the token sequence number from where the lookup of func_name
+should be done.  pos is the position to use for this call.
 
 err_none_applies, err_ambiguous, and err_undefined_identifier are error codes
 to be issued when, respectively, functions are found but none are viable,
@@ -21289,8 +21306,8 @@ call.
   /* Determine which function will be called. */
   if (select_and_prepare_to_call_overloaded_function(
                                      sym,
-                                     /*is_template_id=*/FALSE,
-                                     (a_template_arg_ptr)NULL,
+                                     /*is_template_id=*/templ_arg_list != NULL,
+                                     templ_arg_list,
                                      /*have_selector=*/FALSE,
                                      (an_operand *)NULL,
                                      alep,
@@ -22175,6 +22192,8 @@ Do one-time initialization of variables related to expression processing.
       pch_saved_var_array_elem(num_arg_match_summaries_allocated),
       pch_saved_var_array_elem(num_candidate_functions_allocated),
 #endif /* DEBUG */
+      pch_saved_var_array_elem(internal_opnd_array),
+      pch_saved_var_array_elem(n_internal_opnds),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -22192,6 +22211,8 @@ Do one-time initialization of variables related to expression processing.
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  register_trans_unit_variable(internal_opnd_array);
+  register_trans_unit_variable(n_internal_opnds);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
@@ -22219,6 +22240,8 @@ re-initialized for each translation unit.
 #if C99_IL_EXTENSIONS_SUPPORTED
   imaginary_unit = NULL;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  internal_opnd_array = NULL;
+  n_internal_opnds = 0;
 }  /* expr_trans_unit_init */
 
 
