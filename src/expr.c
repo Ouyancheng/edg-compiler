@@ -32562,6 +32562,7 @@ an error operand if n >= n_internal_opnds.
     expr_syntax_error(ec_exp_int_constant);
   }  /* if */
   (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
   if (!success) {
     make_error_operand(local_result);
   }  /* if */
@@ -33521,12 +33522,11 @@ type_start:
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-    default:
-
     case tok_edg_internal_opnd:
       scan_internal_operand(&local_result);
       break;
 
+    default:
 bad_start_of_primary:
       set_err_pos_to_curr_token();
       expr_syntax_error(ec_exp_primary_expr);
