@@ -29035,7 +29035,7 @@ is an lvalue.
       static a_boolean       expr_tokens_ready = FALSE;
       a_type_ptr             *saved_internal_type_array = internal_type_array;
       a_host_large_unsigned  saved_n_internal_types = n_internal_types;
-      an_operand_ptr         opnds[2] = { &e_opnd, &i_opnd };
+      an_operand_ptr         opnds[2];
       if (!expr_tokens_ready) {
         clear_token_cache(&expr_tokens, /*reusable=*/TRUE);
         cache_tokens_from_string("__edg_opnd__(0).get<__edg_opnd__(1)>();",
@@ -29043,8 +29043,10 @@ is an lvalue.
         expr_tokens_ready = TRUE;
       }  /* if */
       rescan_reusable_cache(&expr_tokens);
-      internal_opnd_array = opnds;  /*lint !e789*/
       n_internal_opnds = 2;
+      opnds[0] = &e_opnd;
+      opnds[1] = &i_opnd;
+      internal_opnd_array = opnds;  /*lint !e789*/
       save_expr_stack(&saved_expr_stack);
       push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                       /*force_object_lifetime=*/FALSE,
