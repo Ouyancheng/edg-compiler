@@ -25127,6 +25127,10 @@ alias
                                                    curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  /* Stop the background caching and save the declaration up to this
+     point. */
+  make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
+                           /*include_last_token=*/TRUE);
   /* The next token should be "=". */
   if (curr_token == tok_assign) {
     /* Skip past the "=". */
