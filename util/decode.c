@@ -2943,7 +2943,7 @@ to the character position following what was demangled.
         break;
       case 'm':
         /* Microsoft intrinsic __intN types (Visual C++ 6.0 and later), as
-           well as GNU 128-bit integers (m16). */
+           well as GNU 128-bit integers (m16) and GNU __float80/__float128. */
         switch (get_char(p++, dctl)) {
           case '1':
             if (get_char(p, dctl) == '6') {
@@ -2961,6 +2961,24 @@ to the character position following what was demangled.
             break;
           case '8':
             s = "__int64";
+            break;
+          case 'f':
+            if (get_char(p++, dctl) == '1') {
+              switch (get_char(p++, dctl)) {
+                case '0':
+                  s = "__float80";
+                  break;
+                case '6':
+                  s = "__float128";
+                  break;
+                default:
+                  bad_mangled_name(dctl);
+                  s = "";
+              }  /* switch */
+            } else {
+              bad_mangled_name(dctl);
+              s = "";
+            }  /* if */
             break;
           default:
             bad_mangled_name(dctl);
@@ -5082,7 +5100,11 @@ demangled as part of the template function instead).
         s = "double";
         break;
       case 'e':
+        /* Also __float80 in some configurations. */
         s = "long double";
+        break;
+      case 'g':
+        s = "__float128";
         break;
       case 'u':
         /* A vendor extended type is specified as:
