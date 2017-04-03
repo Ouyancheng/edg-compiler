@@ -1766,16 +1766,7 @@ This is used to save tokens for later rescanning.
      the token cache entry for the current token. */
   if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
     add_pragma_entry_to_cache(cache);
-    /* Normally the curr_token_pragmas list is cleared when a token  is
-       cached, but for background caching purposes a copy of the pragmas
-       is made so that they can be processed by the current caller and
-       again (if and when) the token is obtained from a copy of the
-       cached tokens. */
-    if (!cache->is_background_cache) {
-      curr_token_pragmas = NULL;
-    } else {
-      curr_token_pragmas = make_copy_of_pragma_list(curr_token_pragmas);
-    }  /* if */
+    curr_token_pragmas = NULL;
   }  /* if */
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
@@ -14331,8 +14322,7 @@ to it.
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
   lssep->error_position = null_source_position;
-  clear_token_cache_full(&lssep->cache, /*is_reusable=*/FALSE,
-                         /*is_background=*/TRUE);
+  clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   lssep->caching_tokens = FALSE;
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
@@ -14419,8 +14409,7 @@ added to the cache.
     /* Reset the token cache when starting a new caching region. */
     discard_token_cache(&lssep->cache);
     lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-    clear_token_cache_full(&lssep->cache, /*is_reusable=*/FALSE,
-                          /*is_background=*/TRUE);
+    clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   }  /* if */
   lssep->cache_tokens++;
   if (include_curr_token &&
