@@ -13642,10 +13642,7 @@ be embedded in other mangled names.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
-      if (scp->name == NULL) {
-        // FIXME: not sure about this.
-        add_discriminator_if_necessary(scp, &mctl);
-      }  /* if */
+      add_discriminator_if_necessary(scp, &mctl);
     } else {
       /* String literal.  The name is "s" and the discriminator encodes the
          sequence number.  Note that sequence numbers and discriminator values
