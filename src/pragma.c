@@ -1174,6 +1174,7 @@ with a token that is to be cached.
       }  /* if */
     }  /* if */
   }  /* for */
+  check_assertion(curr_token_pragmas == NULL);
   curr_token_pragmas = saved_curr_token_pragmas;
 }  /* process_immediate_pragmas */
 
