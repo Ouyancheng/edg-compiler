@@ -28116,17 +28116,17 @@ assignment was a braced-init-list (allowed in C++11 mode),
               /* The first operand is a pointer, so the second one must be
                  integral or enum. */
               if (check_integral_or_enum_operand(&operand_2)) {
+#if GNU_EXTENSIONS_ALLOWED
                 if (nonobject_pointer) {
                   /* GNU C accepts arithmetic on void and function pointers.
                      Issue a warning in any case (unless prefixed with the
                      GNU __extension__ keyword. */
-#if GNU_EXTENSIONS_ALLOWED
                   if (!expr_stack->marked_as_gnu_extension) {
                     expr_pos_warning(ec_nonobject_pointer_arithmetic,
                                      &operator_position);
                   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
                 }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
                 pointer_add_sub = TRUE;
               }  /* if */
             }  /* if */

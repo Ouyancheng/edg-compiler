@@ -377,6 +377,7 @@ extern int fileno(FILE *);
 /*lint -esym(752,isnan)*/
 #endif /* ifdef __sun */
 #if !GNU_EXTENSIONS_ALLOWED
+/*lint -esym(769,ec_nonobject_pointer_arithmetic)*/
 /*lint -esym(769,ec_noreturn_function_does_return)*/
 /*lint -esym(769,ec_invalid_empty_initializer_list)*/
 /*lint -esym(759,constant_prvalue_pointer_full)*/
