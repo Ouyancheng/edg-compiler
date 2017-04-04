@@ -496,10 +496,12 @@ back ends.  This is TRUE for dependent template entities.
 
 /*
 Return TRUE if var should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
+back ends.  This is TRUE for dependent template entities as well as variables
+used for structured bindings.
 */
 #define ignore_variable_in_back_end(var)				\
-  ((var)->is_prototype_instantiation || (var)->is_nonreal)
+  ((var)->is_prototype_instantiation || (var)->is_nonreal ||            \
+   (var)->init_kind == ((an_init_kind)initk_binding))
 
 /*
 Return TRUE if constant should be ignored by IL lowering and code generating
