@@ -6838,6 +6838,7 @@ deduction, potentially entering an exponential-time process).
   }  /* if */
 }  /* report_excessive_deduction_depth */
 
+
 static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
                                                 a_boolean    do_tags,
                                                 a_boolean    do_typedefs)

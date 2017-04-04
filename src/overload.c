@@ -12972,6 +12972,14 @@ by this routine.
   if (call_position == NULL) {
     call_position = &orig_function_operand->position;
   }  /* if */
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+      scope_stack[depth_innermost_instantiation_scope].rescan_depth_exceeded) {
+    /* We've run into a seemingly unbounded recursion.  Avoid selecting more
+       branches of that recursion, since it could lead to an exponential-time
+       process. */
+    expect_error();
+    goto done;
+  }  /* if */
   /* Select the best function out of the overload set. */
   function_symbol = select_overloaded_function(
                                        overloaded_function_symbol,
@@ -13132,6 +13140,7 @@ by this routine.
     process_call_argument_list(arg_list, &arg_block);
     *arg_expr_list = arg_block.argument_head;
   }  /* if */
+done:
   db_exit();
   return okay;
 }  /* select_and_prepare_to_call_overloaded_function */
