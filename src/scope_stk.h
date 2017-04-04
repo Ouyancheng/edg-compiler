@@ -980,7 +980,7 @@ typedef struct a_scope_stack_entry {
   a_bit_field	rescan_depth_exceeded:1;
 			/* TRUE for a chain of instantiation scopes for which
 			   is_rescan is TRUE and for which excessive recursion
-			   has been detected.  (Used to short-circuit overload
+			   has been detected.  (Used to short overload
 			   resolution.) */
   a_bit_field	in_decltype_context:1;
 			/* TRUE when scanning the expression in a decltype
