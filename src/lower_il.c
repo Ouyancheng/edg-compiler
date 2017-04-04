@@ -9385,9 +9385,6 @@ Do IL lowering of the indicated list of namespaces and everything under it.
 static void lower_variable_list(a_variable_ptr variable_list)
 /*
 Do IL lowering of the indicated list of variables and everything under it.
-Remove any struct binding variables with initk_binding from the list (during
-lowering they will be replaced by an expression and are not needed by a
-back end).
 */
 {
   a_variable_ptr variable;
