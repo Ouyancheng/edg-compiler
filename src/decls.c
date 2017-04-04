@@ -17005,14 +17005,14 @@ representing the individual bindings.
 {
   a_boolean       err = FALSE, tuple_case = FALSE, array_case = FALSE;
   a_boolean       dependent_case = FALSE;
-  a_variable_ptr  container;
-  a_type_ptr      container_type;
-  a_targ_size_t   n_elements, n = 0;
-  a_field_ptr     fp;
+  a_variable_ptr  container = NULL;
+  a_type_ptr      container_type = NULL;
+  a_targ_size_t   n_elements = 0, n = 0;
+  a_field_ptr     fp = NULL;
   a_type_qualifier_set
                   container_tqs = TQ_NONE;
   an_il_entity_list_entry_ptr
-                   *p_end_bindings;
+                   *p_end_bindings = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean        saved_sses_disallowed = source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -17031,7 +17031,6 @@ representing the individual bindings.
       expect_error();
     } else if (is_template_dependent_type(container_type)) {
       dependent_case = TRUE;
-      n_elements = 0;
     } else if (is_array_type(container_type)) {
       array_case = TRUE;
       n_elements = skip_typerefs(container_type)
@@ -17113,6 +17112,7 @@ representing the individual bindings.
     if (binding_dps.sym == NULL || !symbol_is(binding_dps.sym, sk_variable)) {
       expect_error();
       err = TRUE;
+      vp = NULL;
     } else {
       /* Mark the binding variable as such and link it with its container. */
       an_il_entity_list_entry_ptr  list_entry = alloc_il_entity_list_entry();
