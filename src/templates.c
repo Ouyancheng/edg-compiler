@@ -20742,39 +20742,22 @@ function declarator.
   a_boolean		missing_end;
 
   db_enter(3, "cache_function_template_body");
-  if (deleted_functions_enabled && curr_token == tok_assign &&
-      next_token() == tok_delete) {
-    /* Although "= delete" is technically the definition of the template, we
-       want to see those tokens during partial instantiations.  So they
-       shouldn't be cached again as part of the body. */
+  if (cache_function_body(p_token_cache, is_constructor, &missing_end,
+                          (a_token_sequence_number*)NULL,
+                          (a_token_sequence_number*)NULL,
+                          &start_pos, &end_pos) || missing_end) {
+    /* Even a partial definition is considered to define something. */
     decl_state->defines_something = TRUE;
-    decl_state->is_deleted = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->definition_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->definition_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)get_token();
-  } else {
-    if (cache_function_body(p_token_cache, is_constructor, &missing_end,
-                            (a_token_sequence_number*)NULL,
-                            (a_token_sequence_number*)NULL,
-                            &start_pos, &end_pos) || missing_end) {
-      /* Even a partial definition is considered to define something. */
-      decl_state->defines_something = TRUE;
-    }  /* if */
-    if (missing_end) {
-      /* The ending brace of the function template was not found.  This is
-         usually the result of a mismatched delimiter. */
-      pos_error(ec_template_missing_closing_brace, decl_pos);
-    }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->definition_range.start = start_pos;
-    decl_state->definition_range.end = end_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  if (missing_end) {
+    /* The ending brace of the function template was not found.  This is
+       usually the result of a mismatched delimiter. */
+    pos_error(ec_template_missing_closing_brace, decl_pos);
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->definition_range.start = start_pos;
+  decl_state->definition_range.end = end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* cache_function_template_body */
 
@@ -24177,6 +24160,22 @@ caller.
       err = TRUE;
     } /* if */
   } /* if */
+  if (deleted_functions_enabled && curr_token == tok_assign &&
+      next_token() == tok_delete) {
+    /* Although "= delete" is technically the definition of the template, we
+       want to see those tokens during partial instantiations.  So fetch
+       them now before the declaration cache is made. */
+    decl_state->defines_something = TRUE;
+    decl_state->is_deleted = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->definition_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)get_token();
+  }  /* if */
   /* Stop the background caching and save the declaration up to this point.
      This is not done for the generated conversion operator for a generic
      lambda. */
