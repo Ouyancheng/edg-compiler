@@ -1,5 +1,21 @@
 Version 4.14
 
+4/4/17   [EDGcpfe/15044]
+GNU compatibility: Non-object pointer arithmetic and __extension__
+
+In GNU modes, the front end often accepts pointer arithmetic on pointer to void
+and pointer to function types.  Ordinarily, a warning is issued in those cases,
+but now that warning is not issued if the expression is prefixed with the GNU
+keyword __extension__.  For example:
+
+  extern void *p;
+  int g() {
+    void *q = p+1;                // Accepted with a warning in GNU C mode.
+    void *r = __extension__(p+1); // Accepted with no warning in GNU C mode.
+    return q == r;
+  }
+
+
 4/4/17   [EDGcpfe/17693,EDGcpfe/17993]
 C++17 compatibility: Direct-list-initialization of enums from numeric values
 

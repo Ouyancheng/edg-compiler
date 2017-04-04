@@ -57,22 +57,19 @@ expr.h -- Declarations related to expression parsing.
 			   be left in that form, so that it has a chance
 			   to be rewritten in the "put" form.  By default,
 			   it will be rewritten in the "get" form. */
-#define EOPT_MARKED_AS_GNU_EXTENSION 0x40
-			/* The caller of scan_expr scanned over the GNU keyword
-			   __extension__. */
-#define EOPT_PTR_TO_MEMBER_CONTEXT 0x80
+#define EOPT_PTR_TO_MEMBER_CONTEXT 0x40
 			/* The expression is the immediate operand of the
 			   unary "&" operator where a pointer-to-member
 			   constant would be valid (presumably without
 			   intervening parentheses). */
-#define EOPT_OPERAND_OF_OFFSETOF 0x100
+#define EOPT_OPERAND_OF_OFFSETOF 0x80
 			/* This expression is in the top-level chain of the
 			   second operand of __builtin_offsetof. */
-#define EOPT_DELEGATE_INITIALIZER 0x200
+#define EOPT_DELEGATE_INITIALIZER 0x100
 			/* This expression is a top-level expression in the
 			   initializer for a C++/CLI gcnew of a delegate
 			   type. */
-#define EOPT_LOGICAL_NOT_OPERAND 0x400
+#define EOPT_LOGICAL_NOT_OPERAND 0x200
 			/* This expression is an operand for a logical "not"
 			   operator. */
 #define EOPT_NO_OPTIONS 0

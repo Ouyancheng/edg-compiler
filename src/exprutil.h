@@ -924,6 +924,13 @@ typedef struct an_expr_stack_entry {
 			/* Set to TRUE when a function call with the nodiscard
 			   attribute or a call that returns a type with the
 			   nodiscard attribute has been seen. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field
+		marked_as_gnu_extension:1;
+			/* Set to TRUE when the expression is prefixed with
+			   the GNU __extension__ keyword.  In that case, some
+			   diagnostics are inhibited. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

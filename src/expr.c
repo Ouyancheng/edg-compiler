@@ -1841,8 +1841,12 @@ constructs, in which case offsetof_case is TRUE.
           is_pointer_type(pointer_operand->type) &&
           is_void_type(type_pointed_to(pointer_operand->type))) {
         /* GNU C allows a pointer to "void" to be subscripted. */
-        expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                         &operator_position);
+#if GNU_EXTENSIONS_ALLOWED
+        if (!expr_stack->marked_as_gnu_extension) {
+          expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                           &operator_position);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         result_type = type_pointed_to(pointer_operand->type);
       } else if (
                  /* One operand must be a pointer to object. */
@@ -8980,8 +8984,12 @@ case.
                            is_function_type(type_pointed_to(operand->type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
-            expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                             &operator_position);
+#if GNU_EXTENSIONS_ALLOWED
+            if (!expr_stack->marked_as_gnu_extension) {
+              expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                               &operator_position);
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           } else if (!check_object_pointer_operand(
                                      operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -9263,8 +9271,12 @@ and return the result in *result (or an error indication in *rcblock).
                            is_function_type(type_pointed_to(operand.type)))) {
             /* GNU C allows void and function pointers to be incremented and
                decremented. */
-            expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                             &operator_position);
+#if GNU_EXTENSIONS_ALLOWED
+            if (!expr_stack->marked_as_gnu_extension) {
+              expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                               &operator_position);
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -24605,8 +24617,12 @@ that case.
             (is_void_type(type_pointed_to(operand_1->type)) ||
              is_function_type(type_pointed_to(operand_1->type)))) {
           /* GNU accepts arithmetic on void and function pointers. */
-          expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                           &operator_position);
+#if GNU_EXTENSIONS_ALLOWED
+          if (!expr_stack->marked_as_gnu_extension) {
+            expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                             &operator_position);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
@@ -24689,8 +24705,10 @@ that case.
              the address of a label. */
           if (!operand_is_address_of_label(operand_1) &&
               !operand_is_address_of_label(&operand_2)) {
-            expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                             &operator_position);
+            if (!expr_stack->marked_as_gnu_extension) {
+              expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                               &operator_position);
+            }  /* if */
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (!check_object_pointer_operand(
@@ -24749,9 +24767,14 @@ that case.
          arithmetic on pointers to void and pointers to functions. */
       if (gcc_mode && (is_void_type(type_pointed_to(operand_2.type)) ||
                        is_function_type(type_pointed_to(operand_2.type)))) {
-        /* Fine, but issue a warning because some versions of GNU C (2.96 in
-           particular) are more strict. */
-        expr_pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+#if GNU_EXTENSIONS_ALLOWED
+        if (!expr_stack->marked_as_gnu_extension) {
+          /* Fine, but issue a warning because some versions of GNU C (2.96 in
+             particular) are more strict. */
+          expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                           &operator_position);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
         /* Pointer to incomplete array is also allowed. */
@@ -28095,9 +28118,14 @@ assignment was a braced-init-list (allowed in C++11 mode),
               if (check_integral_or_enum_operand(&operand_2)) {
                 if (nonobject_pointer) {
                   /* GNU C accepts arithmetic on void and function pointers.
-                     Issue a warning in any case. */
-                  expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                                   &operator_position);
+                     Issue a warning in any case (unless prefixed with the
+                     GNU __extension__ keyword. */
+#if GNU_EXTENSIONS_ALLOWED
+                  if (!expr_stack->marked_as_gnu_extension) {
+                    expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                                     &operator_position);
+                  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
                 }  /* if */
                 pointer_add_sub = TRUE;
               }  /* if */
@@ -32598,8 +32626,7 @@ see expr.h).
   a_token_kind      ntoken;
   a_ref_entry_ptr   saved_ref_list, selector_ref_entry_list, last_rep;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean         marked_as_gnu_extension = 
-                               (local_options & EOPT_MARKED_AS_GNU_EXTENSION);
+  a_boolean         saved_marked_as_gnu_extension;
   a_boolean         gnu_not_evaluated_case = FALSE;
   an_expr_stack_entry
                     expr_stack_entry;
@@ -32626,10 +32653,11 @@ see expr.h).
     goto end_of_routine;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (curr_token == tok_extension && !marked_as_gnu_extension) {
+  saved_marked_as_gnu_extension = expr_stack->marked_as_gnu_extension;
+  if (curr_token == tok_extension && !expr_stack->marked_as_gnu_extension) {
     /* Ignore the GNU __extension__ annotation. */
     (void)get_token();
-    marked_as_gnu_extension = TRUE;
+    expr_stack->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -33541,6 +33569,13 @@ bad_start_of_primary:
       make_error_operand(&local_result);
   }  /* switch */
 
+#if GNU_EXTENSIONS_ALLOWED
+  if (expr_stack->marked_as_gnu_extension && !saved_marked_as_gnu_extension) {
+    mark_operand_as_gnu_extension(&local_result);
+    expr_stack->marked_as_gnu_extension = saved_marked_as_gnu_extension;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
   /* At the top of the loop, the operand is in "local_result". */
   /* Loop, taking one or more operators of appropriate precedence.
      For example, if the code above has scanned the "2" of "1+2*3*4+5",
@@ -33873,9 +33908,6 @@ end_expr:
   copy_operand(&local_result, result);
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (marked_as_gnu_extension) {
-    mark_operand_as_gnu_extension(result);
-  }  /* if */
   if (gnu_not_evaluated_case) {
     /* This is a not-evaluated subexpression in a constant expression
        in GNU mode.  It was scanned as a normal expression.
@@ -34084,6 +34116,7 @@ is FALSE, dip can be NULL.)
                   /*force_object_lifetime=*/repeated_in_loop,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
+#if GNU_EXTENSIONS_ALLOWED
   /* If we are in a GNU statement expression, this may be the last statement
      thereof.  If so, it wouldn't really be a "void" expression because its
      value is the value of the GNU statement expression.  For now, mark the
@@ -34092,11 +34125,16 @@ is FALSE, dip can be NULL.)
   if (is_statement_expr) {
     expr_stack->in_cctor_elision_initializer = TRUE;
   }  /* if */
+  if (marked_as_gnu_extension) {
+    expr_stack->marked_as_gnu_extension = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST,
-            marked_as_gnu_extension ? EOPT_MARKED_AS_GNU_EXTENSION
-                                    : EOPT_NO_OPTIONS);
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 #if GNU_EXTENSIONS_ALLOWED
+  if (marked_as_gnu_extension) {
+    mark_operand_as_gnu_extension(&result);
+  }  /* if */
   if (is_statement_expr &&
       ((curr_token == tok_semicolon && next_token() == tok_rbrace) ||
        /* Also handle the case where the semicolon was omitted. */

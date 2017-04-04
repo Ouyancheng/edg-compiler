@@ -1636,6 +1636,9 @@ as in a decltype.
   new_entry->current_lambda_in_header = old_entry->current_lambda_in_header;
   new_entry->p_end_of_entities_defined_in_expression =
                            old_entry->p_end_of_entities_defined_in_expression;
+#if GNU_EXTENSIONS_ALLOWED
+  new_entry->marked_as_gnu_extension |= old_entry->marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
@@ -1710,6 +1713,9 @@ is pushed regardless of any of the other factors.
   new_entry->allow_array_decay_in_constant_expr = FALSE;
   new_entry->uses_this_operand = FALSE;
   new_entry->nodiscard_expr_seen = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  new_entry->marked_as_gnu_extension = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
