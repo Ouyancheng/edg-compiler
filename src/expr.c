@@ -34077,6 +34077,9 @@ expressions).
 }  /* scan_integer_expression */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- marked_as_gnu_extension is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 an_expr_node_ptr scan_void_expression(
                                   a_boolean           repeated_in_loop,
                                   a_boolean           marked_as_gnu_extension,
