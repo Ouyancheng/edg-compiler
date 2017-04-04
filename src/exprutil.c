@@ -10346,6 +10346,7 @@ assuming "a" and "b" are vectors of four integer types.
              elem_type->kind == scalar_type->kind &&
              !is_immediate_enum_type(scalar_type) &&
              !is_narrowing_conversion(scalar_type, scalar_con, elem_type,
+                                      /*check_enum_target=*/FALSE,
                                       (an_error_code*)NULL)) {
     result = TRUE;
   } else {
@@ -22044,6 +22045,7 @@ user-defined conversions.
                                    /*is_copy_initialization=*/FALSE,
                                    &operand->variant.constant,
                                    bool_type(),
+                                   /*singleton_braced_init=*/FALSE,
                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                    /*suppress_extensions=*/FALSE,
                                    ec_expr_not_bool,

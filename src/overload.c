@@ -67,6 +67,7 @@ static a_boolean adjust_deduction_pair(
                                     a_boolean            *consider_nondeduced);
 static a_boolean check_narrowing_conversion(an_operand  *source_operand,
                                             a_type_ptr  dest_type,
+                                            a_boolean   check_enum_target,
                                             a_boolean   error_on_narrowing,
                                             a_boolean   warning_on_narrowing,
                                             a_boolean   *treat_as_warning);
@@ -913,6 +914,7 @@ destination type (this comes up in a Microsoft-mode extension).
                                            /*is_copy_initialization=*/FALSE,
                                            (a_constant_ptr)NULL,
                                            eff_dest_type,
+                                           /*singleton_braced_init=*/FALSE,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                            /*suppress_extensions=*/FALSE,
                                            ec_no_error,
@@ -3082,6 +3084,7 @@ copy-initialization).
                                  /*is_copy_initialization=*/TRUE,
                                  arg_operand_constant,
                                  param_type,
+                                 /*singleton_braced_init=*/FALSE,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                  /*suppress_extensions=*/TRUE,
                                  ec_simple_incompatible_param,
@@ -12704,7 +12707,9 @@ specific function being called.
                    error_on_narrowing = !(gpp_mode || microsoft_mode);
 retry_narrowing_diagnostic:
         (void)check_narrowing_conversion(operand_of_arg_list_elem(alep),
-                                         param->type, error_on_narrowing,
+                                         param->type,
+                                         /*check_enum_target=*/FALSE,
+                                         error_on_narrowing,
                                          !error_on_narrowing,
                                          &treat_as_warning);
         if (error_on_narrowing && treat_as_warning) {
@@ -13769,6 +13774,7 @@ not_direct_binding_case:
                                             /*source_is_function=*/FALSE,
                                             orig_is_copy_initialization,
                                             (a_constant_ptr)NULL, dest_type,
+                                            /*singleton_braced_init=*/FALSE,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                             /*suppress_extensions=*/TRUE,
                                             ec_no_error, &std_conversion)) {
@@ -13894,6 +13900,7 @@ not_direct_binding_case:
                                     /*source_is_function=*/FALSE,
                                     orig_is_copy_initialization,
                                     (a_constant_ptr)NULL, dest_type,
+                                    /*singleton_braced_init=*/FALSE,
                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, &std_conversion)) {
@@ -15059,6 +15066,7 @@ the target type to be used).
                                       /*is_copy_initialization=*/FALSE,
                                       /*source_constant=*/(a_constant *)NULL,
                                       eff_specific_type,
+                                      /*singleton_braced_init=*/FALSE,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                       /*suppress_extensions=*/TRUE,
                                       ec_no_error, &std_conv))
@@ -15147,6 +15155,7 @@ the target type to be used).
                                             /*is_copy_initialization=*/FALSE,
                                             source_constant,
                                             eff_specific_type,
+                                            /*singleton_braced_init=*/FALSE,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                             /*suppress_extensions=*/TRUE,
                                             ec_no_error, &std_conv)) {
@@ -18674,6 +18683,8 @@ conversion.
                                         is_copy_initialization,
                                         source_constant,
                                         dest_type,
+                                        (conv_context &
+                                               CCO_SINGLETON_BRACED_INIT) != 0,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                         /*suppress_extensions=*/FALSE,
                                         incompatible_err,
@@ -22144,12 +22155,15 @@ TRUE, the result *p_dip and *p_constant are not constructed.
 
 static a_boolean check_narrowing_conversion(an_operand  *source_operand,
                                             a_type_ptr  dest_type,
+                                            a_boolean   check_enum_target,
                                             a_boolean   error_on_narrowing,
                                             a_boolean   warning_on_narrowing,
                                             a_boolean   *treat_as_warning)
 /*
 Check for the narrowing conversions defined in [dcl.init.list] of the
 C++11 standard.  source_operand is being converted to dest_type.
+If check_enum_target is TRUE, converting to an enumeration type with a
+fixed underlying type is checked as if dest_type were the underlying type.
 On narrowing, issue an error if error_on_narrowing is TRUE, a warning
 if warning_on_narrowing is TRUE, no diagnostic at all otherwise.  In all
 cases, return TRUE if the conversion is a narrowing conversion.
@@ -22186,7 +22200,7 @@ initialization processing.
     con = value_of_constant_var_lvalue_operand(source_operand);
   }  /* if */
   is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
-                                         &err_code);
+                                         check_enum_target, &err_code);
   if (warning_on_narrowing && is_narrowing &&
       err_code == ec_constant_narrowing_conversion &&
       is_integral_type(source_type) && is_integral_type(dest_type)) {
@@ -23018,6 +23032,7 @@ will be an lvalue instead of the usual prvalue.
       if (check_narrowing &&
           check_narrowing_conversion(operand_of_arg_list_elem(icp),
                                      dest_type,
+                                     /*check_enum_target=*/FALSE,
                                      /*error_on_narrowing=*/FALSE,
                                      /*warning_on_narrowing=*/FALSE,
                                      (a_boolean *)NULL)) {
@@ -23045,6 +23060,9 @@ will be an lvalue instead of the usual prvalue.
       if (check_narrowing &&
           check_narrowing_conversion(&operand,
                                      dest_type,
+                                     direct_init_fixed_base_enum_enabled &&
+                                     (conv_context &
+                                               CCO_SINGLETON_BRACED_INIT) != 0,
                                      error_on_narrowing,
                                      /*warning_on_narrowing=*/FALSE,
                                      &force_narrowing_warning_check)) {
@@ -23107,6 +23125,7 @@ will be an lvalue instead of the usual prvalue.
             (warning_on_narrowing || force_narrowing_warning_check) &&
             check_narrowing_conversion(&operand,
                                        dest_type,
+                                       /*check_enum_target=*/FALSE,
                                        /*error_on_narrowing=*/FALSE,
                                        /*warning_on_narrowing=*/TRUE,
                                        (a_boolean *)NULL)) {
@@ -23520,6 +23539,7 @@ will be an lvalue instead of the usual prvalue.
         }  /* while */
       }  /* if */
       init_handled_at_this_level = FALSE;
+      conv_context |= CCO_SINGLETON_BRACED_INIT;
       prep_list_initializer(list, dest_type, is_direct_init,
                             check_narrowing,
                             warning_on_narrowing,

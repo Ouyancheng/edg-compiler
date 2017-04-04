@@ -2273,6 +2273,13 @@ EXTERN a_boolean
                         /* TRUE if the C++17 standard "nodiscard" attribute
                            is enabled. */
 
+EXTERN a_boolean
+		direct_init_fixed_base_enum_enabled;
+			/* TRUE if direct list initialization of an enum
+			   from a numeric value is permitted if the enum
+			   has a fixed underlying type (a C++17
+			   feature). */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

@@ -11428,6 +11428,7 @@ Return TRUE if the conversion was successful.
                                /*is_copy_initialization=*/FALSE,
                                tap->variant.constant,
                                type_required,
+                               /*singleton_braced_init=*/FALSE,
                                /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                /*suppress_extensions=*/FALSE,
                                ec_no_error,

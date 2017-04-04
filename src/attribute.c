@@ -5323,6 +5323,7 @@ attribute to it and return the entity.
                                    /*is_copy_initialization=*/FALSE,
                                    (a_constant*)NULL,
                                    rtsp->param_type_list->type,
+                                   /*singleton_braced_init=*/FALSE,
                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                    /*suppress_extensions=*/TRUE,
                                    ec_nonstandard_conversion_for_cleanup,

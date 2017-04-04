@@ -3325,6 +3325,7 @@ default mode (e.g., exception handling).
       nodiscard_attribute_enabled = TRUE;
       hex_floating_point_constants_allowed = TRUE;
       struct_bindings_enabled = TRUE;
+      direct_init_fixed_base_enum_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11572,6 +11573,7 @@ variables declared in cmd_line.h.
   utf8_char_literals_enabled = FALSE;
   deduced_return_types_enabled = FALSE;
   warn_on_deduced_return_types = FALSE;
+  direct_init_fixed_base_enum_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

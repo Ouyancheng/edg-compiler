@@ -274,6 +274,9 @@ typedef int a_conv_context_set;
 #define CCO_CONVERTED_CONSTANT_EXPR ((a_conv_context_set)0x80000)
 			/* Used when the conversion context is a "converted
 			   constant expression" (a C++11 concept). */
+#define CCO_SINGLETON_BRACED_INIT ((a_conv_context_set)0x100000)
+			/* Used when the conversion source is a single
+			   value enclosed in braces. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

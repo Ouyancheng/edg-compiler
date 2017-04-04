@@ -4595,10 +4595,13 @@ Note that the returned type is intended as an rvalue type, so qualifiers like
 a_boolean is_narrowing_conversion(a_type_ptr    source_type,
                                   a_constant    *source_constant,
                                   a_type_ptr    dest_type,
+                                  a_boolean     check_enum_target,
                                   an_error_code *err_code)
 /*
 Return TRUE if converting from source_type to dest_type is a narrowing
-conversion as defined by [dcl.init.list] of the C++11 standard.
+conversion as defined by [dcl.init.list] of the C++11 standard.  If
+check_enum_target is TRUE, converting to an enumeration type with a fixed
+underlying type is checked as if dest_type were the underlying type.
 If source_constant is non-NULL, it gives the known constant value of
 the source; if it's NULL, it's assumed the source is not constant.
 If err_code is non-NULL, *err_code is set to an appropriate error
@@ -4728,7 +4731,10 @@ and a vector are compatible.
            without loss. */
         is_narrowing = FALSE;
       }  /* if */
-    } else if (is_integral_type(dest_type)) {
+    } else if (is_integral_type(dest_type) ||
+               (check_enum_target && is_enum_type(dest_type) &&
+                (dest_type->variant.integer.has_explicit_enum_base ||
+                 dest_type->variant.integer.is_scoped_enum))) {
       check_assertion(source_type->kind == (a_type_kind)tk_integer &&
                       dest_type->kind   == (a_type_kind)tk_integer);
       if (source_type->size > dest_type->size ||
@@ -9901,6 +9907,7 @@ a_boolean impl_conversion_possible(
                           a_boolean            is_copy_initialization,
                           a_constant           *source_constant,
                           a_type_ptr           dest_type,
+                          a_boolean            singleton_braced_init,
                           a_boolean            allow_qualifier_or_eh_mismatch,
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
@@ -10019,6 +10026,7 @@ See conversion_possible.
                                       is_copy_initialization,
                                       (a_constant_ptr)NULL,
                                       dest_type->variant.vector.element_type,
+                                      /*singleton_braced_init=*/FALSE,
                                       allow_qualifier_or_eh_mismatch,
                                       suppress_extensions,
                                       default_warning_code,
@@ -10040,9 +10048,12 @@ See conversion_possible.
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
     } else if (!C_mode() && is_enum(dest_type)) {
-      /* Conversion to an enum type in C++.  We already know this is not
-         a conversion of an enum type to itself, so this is an error case:
-         you can't convert other types to enum implicitly. */
+      /* Conversion to an enum type in C++.  We already know this is not a
+         conversion of an enum type to itself, so this is usually an error
+         case: you can't convert other types to enum implicitly.  In C++17,
+         a direct braced initialization with a single element to an
+         enumeration type with a fixed underlying type is allowed,
+         however. */
       if (cfront_2_1_mode && is_integral_or_enum(source_type) &&
           !integer_type_is_scoped_enum(dest_type)) {
         /* cfront 2.1 allows conversion of integral or other enum types to
@@ -10051,6 +10062,17 @@ See conversion_possible.
            duplicate that behavior.) */
         okay = TRUE;
         std_conv->warning_suggested = ec_mixed_enum_type;
+      } else if (direct_init_fixed_base_enum_enabled &&
+                 (dest_type->variant.integer.has_explicit_enum_base ||
+                  dest_type->variant.integer.is_scoped_enum) &&
+                 !is_copy_initialization && singleton_braced_init) {
+        /* This is the C++17-style direct list initialization of an enum
+           with a fixed underlying type from a numeric value, which is
+           permitted in this mode.  For example:
+             enum byte : unsigned char { };
+             byte b{ 42 }; */
+        okay = TRUE;
+        std_conv->nontrivial_conversion = FALSE;
       }  /* if */
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
@@ -10286,7 +10308,7 @@ Does not handle user-defined conversions.
     } else if (!is_narrowing_conversion(source_type,
                                         source_is_constant ? source_constant :
                                                             (a_constant *)NULL,
-                                        dest_type,
+                                        dest_type, /*check_enum_target=*/FALSE,
                                         &local_err_code)) {
       okay = TRUE;
     }  /* if */
@@ -10468,6 +10490,7 @@ exception specifications are not checked.
                                        /*is_copy_initialization=*/FALSE,
                                        (a_constant *)NULL,
                                        source_type,
+                                       /*singleton_braced_init=*/FALSE,
                                        allow_qualifier_or_eh_mismatch,
                                        suppress_extensions,
                                        ec_bad_cast,
@@ -10616,6 +10639,7 @@ C++ mode.  See [expr.static.cast].
                                          source_is_function,
                                          /*is_copy_initialization=*/FALSE,
                                          source_constant, dest_type,
+                                         /*singleton_braced_init=*/FALSE,
                                          allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,
                                          default_warning_code,

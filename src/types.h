@@ -668,6 +668,7 @@ extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
 extern a_boolean is_narrowing_conversion(a_type_ptr    source_type,
                                          a_constant    *source_constant,
                                          a_type_ptr    dest_type,
+                                         a_boolean     check_enum_target,
                                          an_error_code *err_code);
 extern a_type_ptr expr_complete_object_type(an_expr_node_ptr node,
                                             a_boolean        call_case);
@@ -1214,6 +1215,7 @@ extern a_boolean impl_conversion_possible(
                           a_boolean            is_copy_initialization,
                           a_constant           *source_constant,
                           a_type_ptr           dest_type,
+                          a_boolean            singleton_braced_init,
                           a_boolean            allow_qualifier_or_eh_mismatch,
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
