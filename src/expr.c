@@ -29235,6 +29235,10 @@ icp.
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
     repeat_nonconstant_init(dip, atype, etype, array_dip, n_elems);
     dip = array_dip;
+    if (dtor != NULL) {
+      /* Record the end-of-lifetime destructor. */
+      record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
+    }  /* if */
   }  /* if */
   dps->init_state.init_dip = dip;
 }  /* record_init_for_array_struct_binding */
