@@ -4657,8 +4657,9 @@ can be NULL.
                    /*p_okay_in_constexpr_body=*/NULL);
   } else {
     /* Scan an expression.  It may be omitted. */
-    if (curr_token != tok_semicolon) expression_statement(
-                                           /*marked_as_gnu_extension=*/FALSE);
+    if (curr_token != tok_semicolon) {
+      expression_statement(/*marked_as_gnu_extension=*/FALSE);
+    }  /* if */
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   if (!C_mode()) {

@@ -10348,7 +10348,8 @@ the value representation of the integer value.
       break;
     case enk_param_ref:
       { a_byte  *this_bytes = NULL;
-        if (expr->variant.param_ref.param_num == 0) {
+        if (ips->curr_call_frame != NULL &&
+            expr->variant.param_ref.param_num == 0) {
           /* An entry representing "this" in a field initializer.  The code
              handling constructor calls (which initializes members based on
              field initializers when needed) associated the address of the
