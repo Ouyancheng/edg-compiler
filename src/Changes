@@ -1,5 +1,29 @@
 Version 4.14
 
+4/5/17   [EDGcpfe/17413,EDGcpfe/17705]
+C++17: Structured Bindings (IL CHANGE)
+
+The front end now supports "structured bindings" (also known as "decomposition
+declarations") as introduced into the working paper for C++17 by P0217R3.  For
+example:
+
+  struct S { int i:3, j; } s = { 1, 2 };
+  auto [x, y] = s;
+  int r = x;   // r is set to 1.
+  int p = &x;  // Error: x is a bit field.
+
+A few IL changes are of note.  First, the assoc_param_type field of a_variable
+has been moved to a "variant" sub-field.  Second, the array case requires
+copying built-in arrays.  In the case of array elements requiring copy
+constructor invocations, this is represented by an aggregate initializer with
+a dik_constructor entry whose first "argument" is the array (and a flag
+is_array_copy indicating that this is a special case); see il_def.h for
+details.  Finally, the individual bindings are always represented with
+a_variable entries.  However, when binding fields or array elements, these do
+not represent traditional stored variables but "expression aliased".  A new
+initializer kind initk_binding characterizes these cases.
+
+
 4/4/17   [EDGcpfe/15044]
 GNU compatibility: Non-object pointer arithmetic and __extension__
 
