@@ -4038,6 +4038,7 @@ their syntactic location recorded as al_implicit.
     if (do_copy) {
       copy_attribute(ap, *p_attr);
       (*p_attr)->next = NULL;
+      (*p_attr)->assoc_info = NULL;
       (*p_attr)->syntactic_location = (a_byte_attribute_location)al_implicit;
       p_attr = &(*p_attr)->next;
     }  /* if */

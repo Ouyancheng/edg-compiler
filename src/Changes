@@ -1,5 +1,17 @@
 Version 4.14
 
+4/5/17   [EDGcpfe/18169]
+Reference to uninitialized storage
+
+With the changes for EDGcpfe/17722 (in 4.13), the front end can access
+uninitialized storage in cases where an attribute appertains to a parameter,
+resulting in undefined behavior.  For example (with --c++14):
+
+  int func([[deprecated]] int arg) {
+    return arg;
+  }
+
+
 4/5/17   [EDGcpfe/18175]
 Clang compatibility: Builtin functions with --clang --ms_extensions
 
