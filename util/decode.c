@@ -2388,6 +2388,41 @@ template parameters.
         end_ptr = p;
       }  /* if */
       goto end_of_routine;
+    } else if (start_of_id_is("SBC__", p, dctl)) {
+      /* Mangled name for a structured binding container. */
+      write_id_str("structured binding for [", dctl);
+      for (p = p+5; *p != '\0';) {
+        if (get_char(p, dctl) == '_') {
+          if (get_char(p+1, dctl) == '_') {
+            if (get_char(p+2, dctl) == '_') {
+              if (get_char(p+3, dctl) == '_') {
+                /* Quadruple underscore -- end of structured binding. */
+                p += 4;
+              } else {
+                p += 3;
+                bad_mangled_name(dctl);
+              }  /* if */
+              break;
+            } else {
+              /* Double underscore -- structured binding delimiter. */
+              write_id_ch(',', dctl);
+              p += 2;
+            }  /* if */
+          } else {
+            /* Underscore followed by non-underscore -- just copy to output. */
+            write_id_ch('_', dctl);
+            write_id_ch(p[1], dctl);
+            p += 2;
+          }  /* if */
+        } else {
+          /* Not an underscore -- just copy to output. */
+          write_id_ch(*p, dctl);
+          p += 1;
+        } /* if */
+      }  /* for */
+      write_id_ch(']', dctl);
+      end_ptr = p;
+      goto end_of_routine;
     } else {
       /* Something unrecognized. */
     }  /* if */
@@ -6175,7 +6210,7 @@ caller does not need the value.
   } else if (*ptr == 'D' && ptr[1] == 'C') {
     /* A mangled name for a structured binding container. */
     ptr += 2;
-    write_id_str("[struct binding for ", dctl);
+    write_id_str("[structured binding for ", dctl);
     while (*ptr != 'E' && *ptr != '\0') {
       ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
       if (*ptr != 'E' && *ptr != '\0') write_id_ch(',', dctl);

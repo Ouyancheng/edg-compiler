@@ -340,6 +340,13 @@ differs (see the IA-64 ABI spec for details).
 
 #endif /* IA64_ABI */
 
+/*
+Utility that returns TRUE if the variable is a structured binding container
+that requires a mangled name.
+*/
+#define struct_binding_container_needs_mangling(vp)                           \
+  ((vp)->is_struct_binding_container &&                                       \
+   (vp)->storage_class == (a_storage_class)sc_unspecified)
 
 #if IA64_ABI
 
@@ -12119,6 +12126,7 @@ namespace or class member, appropriate qualification is added to the mangled
 name.
 */
 {
+  an_il_entity_list_entry_ptr sb_entity;
 #if !IA64_ABI
   a_const_char *name;
 
@@ -12133,7 +12141,6 @@ name.
     /* For an unnamed member, use the generated name.  This can happen for
        an anonymous union in a namespace. */
     name = scp->name;
-    check_assertion(name != NULL);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (kind == iek_variable &&
@@ -12142,8 +12149,30 @@ name.
     add_abi_tag_mangling(scp->attributes, mctl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Copy the name. */
-  add_str_to_mangled_name(name, mctl);
+  if (kind == iek_variable &&
+      struct_binding_container_needs_mangling((a_variable_ptr)scp)) {
+    /* Give structured binding containers their own mangled name based on the
+       binding variables it refers to.  Separate binding variable names with
+       double underscores and add an extra double-underscore to mark the
+       end. */
+    add_str_to_mangled_name("__SBC__", mctl);
+    for (sb_entity = ((a_variable_ptr)scp)->variant.bindings;
+         sb_entity != NULL;
+         sb_entity = sb_entity->next) {
+      a_source_correspondence *sb_scp =
+                               (a_source_correspondence*)sb_entity->entity.ptr;
+      check_assertion(sb_entity->entity.kind ==
+                                          (a_byte_il_entry_kind)iek_variable &&
+                      unmangled_name_of(sb_scp) != NULL);
+      add_str_to_mangled_name(unmangled_name_of(sb_scp), mctl);
+      add_str_to_mangled_name("__", mctl);
+    }  /* for */
+    add_str_to_mangled_name("__", mctl);
+  } else {
+    /* Copy the name. */
+    check_assertion(name != NULL);
+    add_str_to_mangled_name(name, mctl);
+  }  /* if */
   if (kind == iek_variable) {
     /* For variable templates, emit the template argument list now. */
     add_variable_template_indication((a_variable_ptr)scp, mctl);
@@ -12197,29 +12226,20 @@ name.
                                 /*force_individuation=*/FALSE,
                                 mctl);
   if (kind == iek_variable &&
-      ((a_variable_ptr)scp)->is_struct_binding_container) {
+      struct_binding_container_needs_mangling((a_variable_ptr)scp)) {
     /* Structured binding containers get their own name mangling. */
-    an_il_entity_list_entry_ptr sb_entity;
-#if IA64_ABI
     add_str_to_mangled_name("DC", mctl);
-#endif /* IA64_ABI */
     for (sb_entity = ((a_variable_ptr)scp)->variant.bindings;
          sb_entity != NULL;
          sb_entity = sb_entity->next) {
-      a_source_correspondence *sb_scp = 
+      a_source_correspondence *sb_scp =
                                (a_source_correspondence*)sb_entity->entity.ptr;
       check_assertion(sb_entity->entity.kind ==
                                           (a_byte_il_entry_kind)iek_variable &&
                       unmangled_name_of(sb_scp) != NULL);
-#if IA64_ABI
       mangled_name_with_length(unmangled_name_of(sb_scp), mctl);
-#else /* !IA64_ABI */
-      unexpected_condition(); // FIXME
-#endif /* IA64_ABI */
     }  /* for */
-#if IA64_ABI
     add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
   } else {
     /* Output the name of the member. */
     mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
@@ -12248,7 +12268,8 @@ Add to the mangled name the encoding for the name of the variable
 variable).
 */
 {
-  if (!has_name(variable)) {
+  if (!has_name(variable) &&
+      !struct_binding_container_needs_mangling(variable)) {
     /* An anonymous union can cause an unnamed member of a namespace:
          namespace {
            static union {float bf;};
@@ -12663,7 +12684,11 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED */
 
   if (!has_name(variable)) {
-    /* Unnamed variables do not need mangled names. */
+    /* Unnamed variables do not need mangled names (except some structured
+       binding containers are given mangled names). */
+    if (struct_binding_container_needs_mangling(variable)) {
+      mangling_needed = TRUE;
+    }  /* if */
   } else if (!is_name_linkage_kind_subject_to_name_mangling(
                                       variable->source_corresp.name_linkage)) {
     /* Do not mangle namespace members with extern "C" linkage. */
@@ -12672,9 +12697,6 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
     mangling_needed = TRUE;
   } else if (is_class_or_namespace_member(variable)) {
     /* Static data members and members of namespaces need mangled names. */
-    mangling_needed = TRUE;
-  } else if (variable->is_struct_binding_container) {
-    /* Structured binding containers are given mangled names. */
     mangling_needed = TRUE;
 #if ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED
   } else {
