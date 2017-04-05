@@ -14241,8 +14241,9 @@ is needed for a call.
         /* Empty pack expansions can result in templ_ptp having no
            corresponding ptp. */
         if (templ_ptp->param_num != ptp->param_num) {
-          check_assertion(variadic_templates_enabled &&
-                          templ_ptp->param_num < ptp->param_num);
+          check_assertion_or_expect_error(
+                                        variadic_templates_enabled &&
+                                        templ_ptp->param_num < ptp->param_num);
           do {
             templ_ptp = templ_ptp->next;
           } while (templ_ptp != NULL && templ_ptp->param_num < ptp->param_num);
@@ -14257,15 +14258,18 @@ is needed for a call.
       }  /* if */
       check_assertion(templ_ptp->param_num == ptp->param_num);
       if (templ_ptp->has_default_arg) {
-	check_assertion(daefp != NULL);
-        /* Mark the parameter as having a default argument that can be
-           evaluated later when/if needed. */
-        ptp->has_default_arg = TRUE;
-        ptp->default_arg_appeared_in_class_definition =
+	if (daefp == NULL || daefp->param_number > ptp->param_num) {
+          expect_error();
+        } else {
+          /* Mark the parameter as having a default argument that can be
+             evaluated later when/if needed. */
+          ptp->has_default_arg = TRUE;
+          ptp->default_arg_appeared_in_class_definition =
                           templ_ptp->default_arg_appeared_in_class_definition;
-        ptp->has_unevaluated_template_default = TRUE;
-        ptp->orig_param_type_for_unevaluated_default_arg_expr =
+          ptp->has_unevaluated_template_default = TRUE;
+          ptp->orig_param_type_for_unevaluated_default_arg_expr =
                                                              daefp->param_type;
+        }  /* if */
       }  /* if */
       ptp = ptp->next;
       /* Don't move templ_ptp (or daefp) ahead if ptp is a new element of the
@@ -14282,7 +14286,11 @@ is needed for a call.
                         (templ_ptp != NULL && templ_ptp->is_parameter_pack));
 #endif /* CHECKING */
       } else if (ptp->param_num > templ_ptp->param_num) {
-        if (templ_ptp->has_default_arg) daefp = daefp->next;
+        if (daefp == NULL) {
+          expect_error();
+        } else {
+          if (templ_ptp->has_default_arg) daefp = daefp->next;
+        }  /* if */
         templ_ptp = templ_ptp->next;
       }  /* if */
     }  /* while */
