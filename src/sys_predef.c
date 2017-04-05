@@ -315,7 +315,7 @@ restrictions).
         version = clang_version;
       } else {
         check_assertion(*p == 'm');
-        result = result && microsoft_mode;
+        result = result && ms_extensions;
         version = microsoft_version;
       }  /* if */
       p++;

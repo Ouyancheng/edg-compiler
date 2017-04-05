@@ -1,5 +1,20 @@
 Version 4.14
 
+4/5/17   [EDGcpfe/18175]
+Clang compatibility: Builtin functions with --clang --ms_extensions
+
+A change has been made to enable "Microsoft builtins" when ms_extensions
+is TRUE (previously they were only enabled when microsoft_version was TRUE).
+A separate change has also been made to disable the diagnostic that occurs
+when a difference in dllimport/dllexport flags is detected on a builtin
+function.  For example (with --clang --ms_extensions):
+
+  __declspec(dllimport) __declspec(noreturn) void __cdecl _exit(int _Code);
+  void f() {
+    __debugbreak();
+  }
+
+
 4/5/17   [EDGcpfe/17413,EDGcpfe/17705]
 C++17: Structured Bindings (IL CHANGE)
 

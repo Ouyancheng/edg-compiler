@@ -4586,8 +4586,13 @@ be issued at the given position.
          declarations). */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
-         previous declaration, issue a discretionary error. */
-      if (is_redecl) {
+         previous declaration, issue a discretionary error (except for
+         builtin functions). */
+      if (is_redecl
+#if BUILTIN_FUNCTIONS_ENABLED
+          && !symbol_for(routine)->header->is_builtin_function
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+                                                              ) {
         pos_sy_diagnostic(es_discretionary_error,
                           ec_redeclaration_adds_dll_interface, diag_pos,
                           symbol_for(routine));
