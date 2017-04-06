@@ -8,7 +8,7 @@ when MICROSOFT_EXTENSIONS_ALLOWED was TRUE.  A change has been made to
 support it in all configurations.
 
 
-4/6/17   [EDGcpfe/18142]
+4/6/17   [EDGcpfe/18089,EDGcpfe/18142]
 Spurious Microsoft-mode error on call to constexpr template member function
 
 In Microsoft mode, a call to a constexpr member function instance from within
