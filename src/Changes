@@ -22,7 +22,7 @@ Unbounded loop in constexpr interpreter on default member initializer
 
 In some cases where a default member initializer depended on the address of a
 data member, the front end could end up in an unbounded loop in the constexpr
-interpreter (in function translate_interpreter_offset.  For example:
+interpreter (in function translate_interpreter_offset).  For example:
 
   struct B {};
   struct D: B {} ;
