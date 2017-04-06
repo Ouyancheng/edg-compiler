@@ -3439,6 +3439,15 @@ an error if a default argument expression is encountered.
               /* During a prototype instantiation default arguments are
                  cached but not rescanned.  Issue the syntax error here. */
               pos_error(ec_exp_primary_expr, &pos_curr_token);
+              if (curr_token == tok_lbrace) {
+                /* Cache and discard a brace initializer when one is not
+                   allowed. */
+                prescan_default_function_arg_expr(
+                                              (a_param_type_ptr)NULL,
+                                              (a_def_arg_expr_fixup_ptr*)NULL,
+                                              /*is_template_function=*/FALSE,
+                                              /*is_friend_decl=*/FALSE, 0);
+              }  /* if */
             } else if (is_member_or_friend_function) {
               /* Cache a default argument for a member or friend function. */
               prescan_member_function_default_arg_expr(ptp_for_scan,
