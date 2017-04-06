@@ -23712,8 +23712,12 @@ will be an lvalue instead of the usual prvalue.
   }  /* if */
   if (delay_folding) {
     /* Do not attempt to fold a dynamic initializer. */
-  } else if (generate_il && curr_expr_kind_is_const()) {
-    /* The result is required to be constant.  Check that it is. */
+  } else if (generate_il && curr_expr_kind_is_const() &&
+             (!constexpr_enabled ||
+              (is != NULL && is->initializer_must_be_constant))) {
+    /* The result is required to be constant.  Check that it is.  (Note that
+       when constexpr is enabled, an intermediate expression need not be
+       constant; only the top-level initializer.) */
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
         constant = dip->variant.constant;

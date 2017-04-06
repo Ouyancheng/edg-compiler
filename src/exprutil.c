@@ -15920,7 +15920,13 @@ If it indicates a destructor, add it to the current object lifetime.
        on the assumption that a back end will generate the dead code,
        but we don't need to put the entry on the destructions list
        or generate the cleanup code. */
-    if (curr_expr_is_evaluated()) {
+    if (curr_expr_kind_is_const()) {
+#if CHECKING
+      if (dip->destructor != NULL || is_dynamic_init_for_vla(dip)) {
+        expect_error();
+      }  /* if */
+#endif /* CHECKING */
+    } else if (curr_expr_is_evaluated()) {
       record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                          /*block_lifetime=*/FALSE);
     }  /* if */
@@ -19890,7 +19896,7 @@ cases so we don't do it here.
                                    /*clear_backing_expr=*/FALSE,
                                    /*allow_C_mode_const_var=*/TRUE)) != NULL) {
           if ((curr_expr_kind_is_const() ||
-              expr_stack->is_vla_dimension_expression ||
+               expr_stack->is_vla_dimension_expression ||
               (curr_expr_kind_is(ek_sizeof) &&
                expr_stack->favor_constant_result))) {
             /* Issue a warning in contexts where this treatment makes a
