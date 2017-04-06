@@ -18946,6 +18946,9 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_metadata is not used in this case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_top_level_generated_code(a_const_char      *buffer,
                                    an_assembly_index assembly_index,
                                    a_boolean         is_metadata)
