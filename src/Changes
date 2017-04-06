@@ -1,5 +1,22 @@
 Version 4.14
 
+4/5/17   [EDGcpfe/18141]
+Abort in interpreter on member access from a null pointer value
+
+Consider the following example:
+
+  struct S {
+    int x, y[1];
+  };
+  int* g() {
+    return ((struct S *)0)->y;
+  }
+
+The interpreter produced a ck_integer run-time constant for the returned
+expression but later treated it as a ck_address constant instead, potentially
+triggering an abort in variable_has_constant_address.  That is now fixed.
+
+
 4/5/17   [EDGcpfe/18158]
 Unbounded loop in constexpr interpreter on default member initializer
 

@@ -10538,27 +10538,32 @@ diagnostic in *ips.
           a_constant_ptr  rt_con = cap->variant.addr_con;
           /* Catch the case of a pointer or reference to a variable that is
              not constant-valued. */
-          if (rt_con->variant.address.kind ==
+          if (constant_is(rt_con, ck_address)) {
+            if (rt_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
-            a_variable_ptr  vp = rt_con->variant.address.variant.variable;
-            if (!variable_has_constant_address(vp)) {
-              a_symbol_ptr  var_sym = symbol_for(vp);
-              do_constexpr_fail(result);
-              if (var_sym == NULL) {
-                /* A variable with no associated symbol (likely an anonymous
-                   union parent object). */
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &vp->source_corresp.decl_position, ips);
+              a_variable_ptr  vp = rt_con->variant.address.variant.variable;
+              if (!variable_has_constant_address(vp)) {
+                a_symbol_ptr  var_sym = symbol_for(vp);
+                do_constexpr_fail(result);
+                if (var_sym == NULL) {
+                  /* A variable with no associated symbol (likely an anonymous
+                     union parent object). */
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &vp->source_corresp.decl_position, ips);
                 
-              } else {
-                info_with_pos_sym(ec_variable_not_constant_addressed,
-                                  &ips->position, var_sym, ips);
+                } else {
+                  info_with_pos_sym(ec_variable_not_constant_addressed,
+                                    &ips->position, var_sym, ips);
+                }  /* if */
+                break;
               }  /* if */
-              break;
             }  /* if */
+          } else {
+            /* Some "address" constants are integers cast to a pointer type. */
+            check_assertion(constant_is(rt_con, ck_integer));
           }  /* if */
-          /* Copy the address constant to result_con. */
-          (void)copy_constant_full(cap->variant.addr_con, con,
+          /* Copy the run-time constant to result_con. */
+          (void)copy_constant_full(rt_con, con,
                                    CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
           con->type = type;
           if (type->variant.pointer.is_reference) {
