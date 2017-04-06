@@ -7739,6 +7739,54 @@ call of file_scope_id_lookup or namespace_qualified_id_lookup.
   return sym;
 }  /* look_up_name_string_in_namespace */
 
+
+static a_symbol_ptr make_internal_template(a_const_char    *symbol_name,
+                                           a_const_char    *definition_string,
+                                           a_namespace_ptr ns_ptr,
+                                           a_boolean       is_metadata)
+/*
+Declare and define the template specified by symbol_name and return the symbol
+associated with it.  The definition is provided by definition_string.
+These templates are generated internally to implement C++/CLI and C++/CX
+features like cli::interior_ptr or Platform::WriteOnlyArray as well as
+builtin alias templates (e.g., __make_integer_seq).  is_metadata is TRUE if
+the template is for a C++/CLI type and FALSE otherwise.
+*/
+{
+  a_template_symbol_supplement_ptr tssp;
+  a_symbol_ptr                     result_sym;
+
+  check_assertion(internal_templates_enabled);
+  scan_top_level_generated_code(definition_string, (an_assembly_index)0,
+                                is_metadata);
+  result_sym = look_up_name_string_in_namespace(
+                                           symbol_name, ns_ptr,
+                                           IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+  check_assertion(result_sym != NULL &&
+                  symbol_is(result_sym, sk_class_template));
+  tssp = result_sym->variant.template_info;
+  tssp->variant.class_template.cannot_be_specialized = TRUE;
+  return result_sym;
+}  /* make_internal_template */
+
+
+void make_make_integer_seq_internal_template(void)
+/*
+Creates a builtin alias template for "__make_integer_seq" at the file scope.
+*/
+{
+  /* Note that the target type of the alias template (i.e., "T") is arbitrary
+     here as the template will be instantiated programatically (by
+     instantiate_make_integer_seq). */
+  check_assertion(variadic_templates_enabled);
+  symbol_for_make_integer_seq = make_internal_template(
+      "__make_integer_seq",
+      "template<template<typename U, U... K> class S, typename T, T N>"
+      "  __internal_alias_decl __make_integer_seq = T;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+}  /* make_make_integer_seq_internal_template */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void init_cli_symbol(a_cli_symbol_kind  csk);
@@ -7856,54 +7904,6 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
   enter_symbol_for_namespace(symbol, &locator);
   cli_symbols[(int)csk_cli_namespace] = symbol;
 }  /* make_symbol_for_namespace_cli */
-
-
-static a_symbol_ptr make_internal_template(a_const_char    *symbol_name,
-                                           a_const_char    *definition_string,
-                                           a_namespace_ptr ns_ptr,
-                                           a_boolean       is_metadata)
-/*
-Declare and define the template specified by symbol_name and return the symbol
-associated with it.  The definition is provided by definition_string.
-These templates are generated internally to implement C++/CLI and C++/CX
-features like cli::interior_ptr or Platform::WriteOnlyArray as well as
-builtin alias templates (e.g., __make_integer_seq).  is_metadata is TRUE if
-the template is for a C++/CLI type and FALSE otherwise.
-*/
-{
-  a_template_symbol_supplement_ptr tssp;
-  a_symbol_ptr                     result_sym;
-
-  check_assertion(internal_templates_enabled);
-  scan_top_level_generated_code(definition_string, (an_assembly_index)0,
-                                is_metadata);
-  result_sym = look_up_name_string_in_namespace(
-                                           symbol_name, ns_ptr,
-                                           IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
-  check_assertion(result_sym != NULL &&
-                  symbol_is(result_sym, sk_class_template));
-  tssp = result_sym->variant.template_info;
-  tssp->variant.class_template.cannot_be_specialized = TRUE;
-  return result_sym;
-}  /* make_internal_template */
-
-
-void make_make_integer_seq_internal_template(void)
-/*
-Creates a builtin alias template for "__make_integer_seq" at the file scope.
-*/
-{
-  /* Note that the target type of the alias template (i.e., "T") is arbitrary
-     here as the template will be instantiated programatically (by
-     instantiate_make_integer_seq). */
-  check_assertion(variadic_templates_enabled);
-  symbol_for_make_integer_seq = make_internal_template(
-      "__make_integer_seq",
-      "template<template<typename U, U... K> class S, typename T, T N>"
-      "  __internal_alias_decl __make_integer_seq = T;",
-      (a_namespace_ptr)NULL,
-      /*is_metadata=*/FALSE);
-}  /* make_make_integer_seq_internal_template */
 
 
 static void make_symbol_for_cli_array(void)

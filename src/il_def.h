@@ -261,16 +261,16 @@ typedef struct a_seq_number_lookup_entry {
 } a_seq_number_lookup_entry;
 
 
+/*
+Type of an integer index into a table of assemblies being imported from.
+*/
+typedef unsigned short an_assembly_index;
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Type of integer "tokens" for entities stored in metadata files.
 */
 typedef unsigned int a_cpp_cli_token;
-
-/*
-Type of an integer index into a table of assemblies being imported from.
-*/
-typedef unsigned short an_assembly_index;
 
 /*
 Type of an integer index indicating a scope within an assembly.

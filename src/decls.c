@@ -18946,7 +18946,6 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 void scan_top_level_generated_code(a_const_char      *buffer,
                                    an_assembly_index assembly_index,
                                    a_boolean         is_metadata)
@@ -18961,7 +18960,9 @@ templates (e.g., __make_integer_seq).
 */
 {
   a_token_cache     cache;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         saved_scanning_generated_code_from_metadata;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         saved_scanning_generated_code;
   a_boolean         saved_next_token_is_top_level_decl_start;
   a_source_position insert_position;
@@ -18975,19 +18976,25 @@ templates (e.g., __make_integer_seq).
   source_sequence_entries_disallowed = TRUE;
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
+  scanning_generated_code_from_metadata = is_metadata;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   saved_scanning_generated_code = scanning_generated_code;
   saved_next_token_is_top_level_decl_start =
                                             next_token_is_top_level_decl_start;
-  scanning_generated_code_from_metadata = is_metadata;
   scanning_generated_code = TRUE;
   check_assertion(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE);
   if (assembly_index != 0) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     /* Determine the position information to use for this assembly file. */
     a_cli_metadata_file_ptr cmfp = map_assembly_index_to_cmfp(assembly_index);
     check_assertion(is_metadata && cli_or_cx_enabled && cmfp != NULL);
     insert_position = cmfp->inserted_position;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Most likely code that originates in the front end itself; use a
        NULL source position. */
@@ -19013,8 +19020,10 @@ templates (e.g., __make_integer_seq).
   check_assertion(curr_token == tok_end_of_source);
   (void)get_token();
   /* Restore the flags. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code_from_metadata 
                                  = saved_scanning_generated_code_from_metadata;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scanning_generated_code = saved_scanning_generated_code;
   next_token_is_top_level_decl_start =
                                       saved_next_token_is_top_level_decl_start;
@@ -19025,7 +19034,6 @@ templates (e.g., __make_integer_seq).
                                       saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* scan_top_level_generated_code */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 void decls_trans_unit_init(void)

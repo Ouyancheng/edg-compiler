@@ -1231,19 +1231,6 @@ EXTERN a_boolean
 			/* TRUE if we are scanning code generated from
 			   metadata. */
 
-EXTERN a_boolean
-		scanning_generated_code;
-			/* TRUE if we are scanning code generated from
-			   internal definitions (e.g., metadata or builtin
-			   templates). */
-
-EXTERN a_boolean
-		internal_templates_enabled;
-			/* TRUE if the front end defines "internal templates"
-			   as a means for enabling certain C++/CLI or C++/CX
-			   templates (e.g., cli::pin_ptr) or other builtin
-			   alias templates (e.g., __make_integer_seq). */
-
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
    mode and Microsoft bugs with macros.  This will allow optimizers to remove
@@ -1268,10 +1255,6 @@ EXTERN a_boolean
 		cli_or_cx_enabled;
 EXTERN a_boolean 
 		scanning_generated_code_from_metadata;
-EXTERN a_boolean
-		scanning_generated_code;
-EXTERN a_boolean
-		internal_templates_enabled;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
 #define ms_extensions FALSE
@@ -1282,10 +1265,21 @@ EXTERN a_boolean
 #define cppcx_enabled FALSE
 #define cli_or_cx_enabled FALSE
 #define scanning_generated_code_from_metadata FALSE
-#define scanning_generated_code FALSE
-#define internal_templates_enabled FALSE
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+EXTERN a_boolean
+		scanning_generated_code;
+			/* TRUE if we are scanning code generated from
+			   internal definitions (e.g., metadata or builtin
+			   templates). */
+
+EXTERN a_boolean
+		internal_templates_enabled;
+			/* TRUE if the front end defines "internal templates"
+			   as a means for enabling certain C++/CLI or C++/CX
+			   templates (e.g., cli::pin_ptr) or other builtin
+			   alias templates (e.g., __make_integer_seq). */
 
 EXTERN a_boolean
                 use_cppcli_fill_ins;

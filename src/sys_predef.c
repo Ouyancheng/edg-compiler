@@ -1055,14 +1055,12 @@ Enter predeclared symbols as required by the implementation.
     preload_builtin_symbols();
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!C_mode() &&
       ((microsoft_mode && microsoft_version >= 1900) ||
        clang_mode)) {
     /* Create an alias template for "__make_integer_seq". */
     make_make_integer_seq_internal_template();
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     enter_upc_predefined_macros();
