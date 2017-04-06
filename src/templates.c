@@ -30872,15 +30872,21 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
 
   db_enter(5, "update_instantiation_required_flag");
   defer_inline = (options & SIR_DEFER_INLINE) != 0;
-  /* Inline functions are not treated differently for instantiation purposes
-     in Microsoft mode and g++ mode.  However, in g++ mode virtual functions
-     are instantiated when the enclosing class is defined. */
-  if (microsoft_bugs || gpp_mode) defer_inline = TRUE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
   if (is_function_symbol(sym)) {
     a_routine_ptr	rp = sym->variant.routine.ptr;
-    rout_is_constexpr = rp->is_constexpr;
+    if (rp->is_constexpr) {
+      rout_is_constexpr = rp->is_constexpr;
+    } else {
+      if (microsoft_bugs || gpp_mode) {
+        /* Non-constexpr inline functions are not treated differently for
+           instantiation purposes in Microsoft mode and g++ mode.  However, in
+           g++ mode virtual functions are instantiated when the enclosing class
+           is defined. */
+        defer_inline = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if ((options & SIR_CONSTANT_CONTEXT) != 0 && is_function_symbol(sym)) {
     /* constexpr functions in constant contexts should always be instantiated
