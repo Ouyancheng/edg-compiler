@@ -1287,6 +1287,7 @@ typedef enum /*a_token_kind*/ {
   tok_edg_ptrdiff_type,
   tok_edg_bool_type,
   tok_edg_internal_opnd,
+  tok_clang_version,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1470,6 +1471,7 @@ EXTERN a_const_char
    "__edg_ptrdiff_type__",
    "__edg_bool_type__",
    "__edg_opnd__",
+   "clang version",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */

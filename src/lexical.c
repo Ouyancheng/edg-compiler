@@ -8832,7 +8832,7 @@ the kind of token.
 #if FIXED_POINT_ALLOWED
                  k_fixed_point,
 #endif /* FIXED_POINT_ALLOWED */
-                 k_float} kind;
+                 k_float, k_clang_version} kind;
   a_token_kind 
                 ctoken = tok_error;
   a_boolean     err = FALSE;
@@ -9112,6 +9112,22 @@ float_accum_1:
       skip_digit_separator(1);
       first_digit_seen = TRUE;
     } while (isdigit((unsigned char)*(++curr_char_loc)));
+    if (*curr_char_loc == '.' && kind == k_decimal && !fetch_pp_tokens
+        && clang_mode) {
+      /* In some clang attributes (notably the "availability" attribute),
+         attribute values can take "version numbers" (e.g., 10.12.1).  Parse
+         such entities as strings in a tok_clang_version token.  Note that
+         other "version number" values (e.g., 10.12 or 10) will be treated
+         as floating-point or integer constants, so attribute parsing needs to
+         be able to handle all of these. */
+      do {
+        /* No need to skip digit separators here. */
+        /* Assume version numbers have only decimal digits. */
+      } while (isdigit((unsigned char)*(++curr_char_loc)) ||
+               *curr_char_loc == '.');
+      kind = k_clang_version;
+      goto skip_suffix;
+    }  /* if */
   }  /* if */
   /* Check for the presence of an exponent. */
   if (kind == k_hex) {
@@ -9278,9 +9294,10 @@ fixed_point_suffix:
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
 
+skip_suffix:
   /* Here, start_of_curr_token marks the beginning, and curr_char_loc one
-     past the end of the constant.  kind and ctoken are set correctly.
-     The suffix (if any) has been accumulated. */
+     past the end of the constant.  kind is set correctly.  The suffix (if any)
+     has been accumulated. */
   end_of_curr_token = curr_char_loc - 1;
 
 #if DEBUG
@@ -9295,6 +9312,7 @@ fixed_point_suffix:
       case k_fixed_point: ks = "fixed-point"; break;
 #endif /* FIXED_POINT_ALLOWED */
       case k_float:       ks = "float";       break;
+      case k_clang_version: ks = "clang_version"; break;
       default:            ks = "<bad kind>";
     }  /* switch */
     fprintf(f_debug, "Numeric token = \"%.*s\", kind = %s\n",
@@ -9343,6 +9361,7 @@ fixed_point_suffix:
                                 ) ||
        (fetch_pp_tokens && (!generate_pp_output || microsoft_mode ||
                             in_preprocessing_directive || macro_depth > 0))) &&
+      kind != k_clang_version &&
       C_dialect != C_dialect_pcc) {
     int       char_bytes;
     a_boolean part_of_pp_num;
@@ -9483,6 +9502,13 @@ fixed_point_suffix:
         }  /* if */
         conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_float_constant;
+        break;
+      case k_clang_version:
+        conv_string_literal(start_of_curr_token, end_of_curr_token + 1,
+                            SCLK_ORDINARY_STRING_LITERAL,
+                            end_of_curr_token - start_of_curr_token + 1,
+                            &err_code, &err_pos);
+        ctoken = tok_clang_version;
         break;
       default:
         unexpected_condition_str("scan_number: bad kind");

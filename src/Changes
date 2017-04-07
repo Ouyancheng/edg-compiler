@@ -1,5 +1,19 @@
 Version 4.14
 
+4/7/17   [EDGcpfe/18109]
+Clang compatibility: Accepting patch-level "version number" in attribute
+
+The Clang "availability" attribute can take "version numbers" as arguments,
+but when those version numbers specify patch-level information, e.g., 10.12.1,
+the value cannot be parsed as a floating-point token and a spurious error
+is given.  A change has been made (only in Clang emulation mode) to parse
+such strings (i.e., a series of decimal digits and periods) as a new
+tok_clang_version token.  The following example (with --clang) now compiles
+(but the "availability" attribute is still ignored):
+
+  void f1() __attribute__((availability(tvos,introduced=10.12.1)));
+
+
 4/6/17   [EDGcpfe/18151]
 Spurious "limited lifetime" folding error
 
