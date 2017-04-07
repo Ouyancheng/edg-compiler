@@ -2866,7 +2866,7 @@ first byte after the prefix).
 
 /*
 Allocate a complete object of type utp in the interpreter's static storage
-area.
+area.  The static storage is zeroed.
 */
 #define alloc_static_object(ips, utp, storage_ptr, p_result)                 \
 {                                                                            \
@@ -2878,7 +2878,7 @@ area.
     do_host_alignment(data_size);                                            \
     total_size = prefix_size+data_size+sizeof(a_var_postfix);                \
     alloc_static_bytes(ips, total_size, ptr);                                \
-    memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));         \
+    memzero((char*)ptr, size_t_arg(total_size));                             \
     data_ptr = ptr+prefix_size;                                              \
     ((a_var_postfix*)(data_ptr+data_size))->alloc_seq_number = 0;            \
     record_complete_object_type(utp, data_ptr);                              \

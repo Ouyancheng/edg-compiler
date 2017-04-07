@@ -1,5 +1,22 @@
 Version 4.14
 
+4/7/17   [EDGcpfe/18153]
+Invalid folding result with certain constexpr array variables
+
+In some cases, the folded value of accessing an element of a constexpr array
+variable produced random results.  For example:
+
+  int main () {
+    constexpr char d[2] = "";
+    constexpr char l = d[1];
+    constexpr wchar_t f[2] = L"";
+    constexpr wchar_t n = f[1];
+    static_assert(n == 0, "Unexpected");  // Failed on some platforms.
+  }
+
+This is now fixed.
+
+
 4/7/17   [EDGcpfe/18109]
 Clang compatibility: Accepting patch-level "version number" in attribute
 
