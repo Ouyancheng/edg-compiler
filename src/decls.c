@@ -16772,7 +16772,7 @@ static a_boolean is_tuple_like_type(a_type_ptr     tp,
 /*
 If the given type is a tuple-like type, return TRUE and set n_elements to the
 number of elements in the tuple.  Set *p_err to TRUE if n_elements cannot be
-determined (and return FALSE in that case).  A type T is tuple-like if it the
+determined (and return FALSE in that case).  A type T is tuple-like if the
 expression "std::tuple_size<T>::value" is a valid integral constant expression.
 The value of that expression is the number of elements in the tuple.
 */
@@ -16941,8 +16941,8 @@ static a_boolean check_simple_struct_for_binding(
                                                a_source_position  *pos)
 /*
 Return TRUE if the given type is a simple class type whose nonstatic data
-members are all direct members or all members for the same unambiguous
-base class.  If so, set *n_elements to the number of such data members and
+members are all direct members or all members of the same unambiguous base
+class.  If so, set *n_elements to the number of such data members and
 *p_fields to the list of fields to bind too (this list may include unnamed
 bit fields that should not be bound to).  Otherwise, issue a diagnostic at
 the given position.
@@ -17004,7 +17004,7 @@ the given position.
 static void decl_struct_bindings(a_decl_parse_state  *dps)
 /*
 dps represents a structured binding declaration (and the container variable,
-which has just been declared, in particular).  declare the variables
+which has just been declared, in particular).  Declare the variables
 representing the individual bindings.
 */
 {
@@ -17081,7 +17081,7 @@ representing the individual bindings.
     } else {
       n += 1;
     }  /* if */
-    /* Declare variable representing the binding. */
+    /* Declare the variable representing the binding. */
     init_decl_parse_state(&binding_dps);
     binding_dps.start_pos = pos_curr_token;
     binding_dps.declarator_pos = pos_curr_token;

@@ -21370,7 +21370,7 @@ void cache_tokens_from_string(a_const_char       *string,
                               a_token_cache_ptr  cache,
                               a_source_position  *position_for_tokens)
 /*
-Scan "string" as a sequence of tokens an place them in the given cache,
+Scan "string" as a sequence of tokens and place them in the given cache,
 giving each token the given position (both the start and end position of
 those tokens).  Macros are not expanded.
 */

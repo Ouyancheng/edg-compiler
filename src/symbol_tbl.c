@@ -9634,7 +9634,7 @@ Make a unique locator in *locator for a structured binding container variable.
   a_symbol_header_ptr   sym_hdr = alloc_symbol_header();
 
   sb_counter += 1;
-  /* Count the number of decimal digits in the binding numbed. */
+  /* Count the number of decimal digits in the binding number. */
   sb_num = sb_counter;
   do {
     n_digits += 1;

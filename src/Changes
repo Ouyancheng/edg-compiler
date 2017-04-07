@@ -159,7 +159,7 @@ a dik_constructor entry whose first "argument" is the array (and a flag
 is_array_copy indicating that this is a special case); see il_def.h for
 details.  Finally, the individual bindings are always represented with
 a_variable entries.  However, when binding fields or array elements, these do
-not represent traditional stored variables but "expression aliased".  A new
+not represent traditional stored variables but "expression aliases".  A new
 initializer kind initk_binding characterizes these cases.
 
 

@@ -21288,9 +21288,9 @@ or
 	func(a1, a2, ...)
 
 (if templ_arg_list is NULL) where func is determined by looking up func_name
-strictly through argument- dependent lookup (i.e., ordinary lookup is not
-done), the template argument list is represented by templ_arg_list (NULL means
-there is none), and a1, a2, ... is represented by alep (possibly NULL).
+strictly through argument-dependent lookup (i.e., ordinary lookup is not done),
+the template argument list is represented by templ_arg_list (NULL means there
+is none), and a1, a2, ... is represented by alep (possibly NULL).
 tok_seq_number is the token sequence number from where the lookup of func_name
 should be done.  pos is the position to use for this call.
 

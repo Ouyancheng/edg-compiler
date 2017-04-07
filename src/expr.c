@@ -32571,8 +32571,8 @@ Scan a construct of the form
 
 	__edg_opnd__( int-constant )
 
-and return internal_opnd_array[n] where n is the value of int-constant, or
-an error operand if n >= n_internal_opnds.
+and set *local_result to internal_opnd_array[n] where n is the value of
+int-constant, or to an error operand if n >= n_internal_opnds.
 */
 {
   a_boolean  success = FALSE;

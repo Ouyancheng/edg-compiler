@@ -9999,8 +9999,8 @@ typedef struct a_variable {
                         /* TRUE if this is a parameter of a function. */
   a_bit_field	is_struct_binding:1;
 			/* TRUE if this is a binding variable in a structured
-			   binding declaration.  Such variables are list on
-			   the "bindings" list of the associated container
+			   binding declaration.  Such variables appear on the
+			   "bindings" list of the associated container
 			   variable, but not on the "entities" list of the
 			   associated stmk_decl entry. */
   a_bit_field	is_struct_binding_container:1;

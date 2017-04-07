@@ -3887,8 +3887,7 @@ initializer, already copied and substituted.
       is_aggregate = TRUE;
       if (is_var_init && dps->is_struct_binding_decl) {
         /* Something like "auto [x, y]{ array };".  The array in the braces
-           must be copied. */
-        /* This is a case where an array has to be copied. */
+           must be copied (this is unusual for built-in arrays). */
         record_init_for_array_struct_binding(dps, icp);
       } else {
         a_type_ptr  atype = dtype;
