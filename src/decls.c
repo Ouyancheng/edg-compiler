@@ -16943,9 +16943,9 @@ static a_boolean check_simple_struct_for_binding(
 Return TRUE if the given type is a simple class type whose nonstatic data
 members are all direct members or all members of the same unambiguous base
 class.  If so, set *n_elements to the number of such data members and
-*p_fields to the list of fields to bind too (this list may include unnamed
-bit fields that should not be bound to).  Otherwise, issue a diagnostic at
-the given position.
+*p_fields to the list of fields to bind to (this list may include unnamed bit
+fields that should not be bound to).  Otherwise, issue a diagnostic at the
+given position.
 */
 {
   a_boolean    result = TRUE;
