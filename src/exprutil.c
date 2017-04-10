@@ -5884,7 +5884,6 @@ in *diag_list).  pos is the source position of the call.
   if (constexpr_call_folding_should_be_done()) {
     a_constant_ptr  result_con = local_constant();
     a_boolean       release_constant = TRUE;
-    an_error_code   failure_warning = ec_no_error;
     folded = interpret_constexpr_call(call_expr, result_con, diag_list);
     if (folded) {
       make_constant_operand(result_con, result);
@@ -5912,8 +5911,6 @@ in *diag_list).  pos is the source position of the call.
         release_constant = FALSE;
         make_expression_operand(temp_node, result);
       }  /* if */
-    } else if (failure_warning != ec_no_error) {
-      expr_pos_warning(failure_warning, pos);
     }  /* if */
     if (release_constant) release_local_constant(&result_con);
   }  /* if */
