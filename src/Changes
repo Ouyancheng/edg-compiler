@@ -1,5 +1,19 @@
 Version 4.14
 
+4/10/17  [EDGcpfe/18165]
+Microsoft compatibility: Default arguments and out-of-class member definitions
+
+Ordinarily, an out-of-class definition of a member function of a class template
+can not specify default arguments.  In Microsoft mode, however, this was
+accepted with a warning.  Now, it is an error in non-permissive Microsoft
+modes.  For example:
+
+  template<typename> struct S { void f(int); };
+  template<typename T> void S<T>::f(int = 0) {}
+    // Now an error in non-permissive Microsoft modes.  (Still accepted
+    // with a warning in permissive Microsoft modes.)
+
+
 4/10/17  [EDGcpfe/18178]
 GNU compatibility: References to static data members
 

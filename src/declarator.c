@@ -3386,7 +3386,8 @@ an error if a default argument expression is encountered.
                      cached. */
                   cache_default_arg = TRUE;
                 } else {
-                  pos_diagnostic(ms_extensions ? es_warning : es_error,
+                  pos_diagnostic((ms_extensions && ms_permissive) ? es_warning
+                                                                  : es_error,
                                  ec_default_arg_expr_not_allowed,
                                  &pos_curr_token);
                   ignore_default_arg_expr = TRUE;
