@@ -4624,8 +4624,10 @@ before this routine is called.
     }  /* if */
     if (gnu_version >= 40700 || clang_mode) {
       /* GCC versions since 4.7, as well as clang, accept the extended
-         friend syntax in non-C++11 mode. */
+         friend syntax in non-C++11 mode, as well as decltype as a
+         base specifier. */
       extended_friends_enabled = TRUE;
+      enable_decltype_in_base_specifier_and_mem_initializer = TRUE;
     }  /* if */
   }  /* if */
   if (!cpp14_mode) {
