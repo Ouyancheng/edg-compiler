@@ -16541,7 +16541,7 @@ template declaration and is NULL otherwise.
     if (symbol_is(sym, sk_variable_template)) {
       a_src_seq_secondary_decl_ptr sssdp;
       a_template_ptr               il_template_entry;
-      check_assertion(var_templ_tssp == NULL);
+      check_assertion(var_templ_tssp != NULL);
       il_template_entry = var_templ_tssp->il_template_entry;
       check_assertion(il_template_entry != NULL);
       /* The template entry has its own source sequence entry.  Discard the
