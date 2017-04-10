@@ -30947,11 +30947,11 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       add_to_list = FALSE;
     }  /* if */
   } else if (sym == tip->template_sym) {
-      /* Somehow a member function of a nonreal class (e.g., a prototype
-         instantiation of a class template) has been referenced.  (This
-         can occur in a sizeof operation applied to the address of a
-         static member function -- anywhere else?).  Do not instantiate
-         the function. */
+      /* Somehow a member of a nonreal class (e.g., a prototype instantiation
+         of a class template) has been referenced.  (This can occur, e.g., in
+         a sizeof operation applied to the address of a static member function
+         or in a statement like "(void)X<T>::m;" where m is a static data
+         member).  Do not instantiate the member. */
     add_to_list = FALSE;
   } else if (!value) {
     /* When value is FALSE we still add the entry to the instantiations

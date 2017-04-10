@@ -5871,7 +5871,7 @@ an unnamed namespace.
   if (unnamed_ns_member) {
     /* A member of an unnamed namespace must be defined if used.  We also
        give a diagnostic if a member is declared but not used. */
-    if (vp->source_corresp.referenced &&
+    if (vp->used &&
         vp->storage_class == (a_storage_class)sc_extern &&
         !vp->is_member_constant) {
       pos_sy_error(ec_never_defined, &vp->source_corresp.decl_position,
