@@ -3386,9 +3386,14 @@ an error if a default argument expression is encountered.
                      cached. */
                   cache_default_arg = TRUE;
                 } else {
-                  pos_diagnostic((ms_extensions && ms_permissive) ? es_warning
-                                                                  : es_error,
-                                 ec_default_arg_expr_not_allowed,
+                  an_error_severity  sev = es_error;
+                  if (ms_extensions &&
+                      (microsoft_version < 1911 || ms_permissive)) {
+                    /* MSVC accepts this, except for recent versions in
+                       non-permissive modes. */
+                    sev = es_warning;
+                  }  /* if */
+                  pos_diagnostic(sev, ec_default_arg_expr_not_allowed,
                                  &pos_curr_token);
                   ignore_default_arg_expr = TRUE;
                   /* Set a flag that indicates that this default argument
