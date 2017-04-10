@@ -13,6 +13,7 @@ behavior is only enabled when microsoft_version < 1910.  For example:
     void f() {
       g(this);  // Previously accepted in all Microsoft C++ modes.  Now
     }           // an error if microsoft_version >= 1910.
+  };
 
 
 4/10/17  [EDGcpfe/18182]
