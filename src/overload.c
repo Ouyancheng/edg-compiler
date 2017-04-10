@@ -5721,7 +5721,7 @@ next_argument:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (rtsp->has_enable_if_attribute &&
+  if (rtsp->has_enable_if_attribute && routine != NULL &&
       enable_if_attribute_fails(routine, arg_match_list, arg_list,
                                 bound_function_selector)) {
     /* This function has an associated enable_if attribute whose condition
