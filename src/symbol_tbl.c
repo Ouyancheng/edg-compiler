@@ -4561,7 +4561,8 @@ this is not allowed, an error will be issued by the caller.
       a_type_ptr  tp = orig_tp;
       tp  = skip_typerefs(tp);
       check_assertion((is_immediate_class_type(tp) ||
-                       is_immediate_enum_type(tp)) &&
+                       is_immediate_enum_type(tp) ||
+                       type_is_typedef(orig_tp)) &&
                       symbol_for(orig_tp)->header == old_sym->header);
 #endif /* CHECKING */
       err = FALSE;

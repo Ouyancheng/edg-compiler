@@ -1,5 +1,22 @@
 Version 4.14
 
+4/10/17  [EDGcpfe/18182]
+Microsoft compatibility: internal error on nonstandard elaborated type
+specifier
+
+Microsoft allows an elaborated type specifier to declare a type that
+hides an existing typedef name in that scope.  An internal error could
+occur (in symbols_may_coexist_in_curr_scope) if the type being hidden was
+a typedef to a type that was not a class or enumeration type.  Now fixed.
+The problem was caused by an assertion check that was too strict, so
+versions without CHECKING enabled worked properly.
+
+  typedef void *t;
+  class A {
+    struct t *v;
+  };
+
+
 4/10/17  [EDGcpfe/18165]
 Microsoft compatibility: Default arguments and out-of-class member definitions
 
