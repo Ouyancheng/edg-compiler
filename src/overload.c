@@ -3432,12 +3432,15 @@ have_level:;
                  arg_operand != NULL &&
                  ((microsoft_version < 1300 &&
                    is_constant_operand(arg_operand)) ||
-                  is_this_parameter_operand(arg_operand,
-                                            (a_variable_ptr *)NULL))) {
+                  (microsoft_version < 1910 &&
+                   is_this_parameter_operand(arg_operand,
+                                             (a_variable_ptr *)NULL)))) {
         /* A reference to non-const that's deduced can bind to an rvalue in
            Microsoft bugs mode (VC++ 6.0, 7.0 beta) if the operand
            is a constant (fixed as of the real 7.0).  Binding to "this"
-           is allowed in all versions (at least up to 7.1). */
+           is allowed in versions up to 1900 (MSVC really only accepts that
+           case when the parameter was originally of the form T&, not if it
+           was of the form T*&). */
       } else if (microsoft_bugs &&
                  arg_operand != NULL &&
                  microsoft_can_bind_ref_to_rvalue(arg_operand)) {

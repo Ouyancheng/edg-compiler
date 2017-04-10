@@ -1,5 +1,20 @@
 Version 4.14
 
+4/10/17  [EDGcpfe/18160]
+Microsoft compatibility: Binding of "this" to deduced lvalue reference
+
+In Microsoft mode, the front end previously permitted binding of "this" to an
+lvalue reference parameter with a deduced type (see the entry of 10/5/04) even
+though the type underlying the reference is not "const".  Now, this nonstandard
+behavior is only enabled when microsoft_version < 1910.  For example:
+
+  template<typename T> void g(T&);
+  struct X {
+    void f() {
+      g(this);  // Previously accepted in all Microsoft C++ modes.  Now
+    }           // an error if microsoft_version >= 1910.
+
+
 4/10/17  [EDGcpfe/18182]
 Microsoft compatibility: internal error on nonstandard elaborated type
 specifier
