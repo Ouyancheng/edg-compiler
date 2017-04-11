@@ -981,6 +981,10 @@ typedef struct a_decl_parse_state {
 			/* TRUE if a prefix enable_if attribute was
 			   encountered that cannot be properly applied until
 			   a function declarator is seen. */
+  a_bit_field	keep_terminating_token:1;
+			/* TRUE if the token terminating the declaration
+			   (usually a semicolon) should not be consumed or
+			   checked. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1545,11 +1549,11 @@ extern an_asm_entry_ptr asm_declaration(a_boolean         asm_decl_allowed,
                                         a_boolean         is_asm_statement,
                                         an_attribute_ptr  *p_attributes);
 
-extern a_variable_ptr condition_declaration(void);
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void for_each_iterator_declaration(a_statement_ptr sp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern a_variable_ptr check_condition_declaration(a_decl_parse_state  *dps);
 
 extern void static_assert_declaration(a_boolean  leave_semicolon);
 

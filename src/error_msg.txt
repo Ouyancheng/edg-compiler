@@ -2919,6 +2919,9 @@ ec_struct_binding_inline;;"a structured binding cannot be declared \"inline\""
 ec_struct_binding_constexpr;;"a structured binding cannot be declared \"constexpr\""
 ec_struct_binding_storage_class;;"a structured binding cannot declare an explicit storage class"
 ec_invalid_tuple_size;;"std::tuple_size<%t>::value is not a valid integral constant-expression"
+ec_condition_does_not_declare_a_variable;;"a condition declaration must declare only a variable"
+ec_condition_decl_must_have_initializer;;"a condition declaration must include an initializer"
+ec_parenthesized_init_not_allowed;;"a parenthesized initializer is not permitted for a condition declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

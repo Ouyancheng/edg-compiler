@@ -13350,8 +13350,7 @@ If var_scope is NULL, use the current scope in the scope stack.
     var_scope = ensure_il_scope_exists(&scope_stack[decl_scope_level]);
     check_assertion(var_scope != NULL);
   }  /* if */
-  check_assertion(var_scope->kind == (a_scope_kind)sck_function ||
-                  var_scope->kind == (a_scope_kind)sck_block);
+  check_assertion(is_local_scope_kind(var_scope->kind));
   check_assertion(curr_il_region_number != file_scope_region_number);
   lsvip = alloc_local_static_variable_init();
   lsvip->next = var_scope->local_static_variable_inits;
@@ -13521,9 +13520,7 @@ the specified variable.  (It is an internal error for none to be found.)
 {
   a_local_static_variable_init_ptr lsvip = NULL;
 
-  check_assertion(scope != NULL &&
-                  (scope->kind == (a_scope_kind)sck_function ||
-                   scope->kind == (a_scope_kind)sck_block));
+  check_assertion(scope != NULL && is_local_scope_kind(scope->kind));
   for (; lsvip == NULL && scope != NULL; scope = scope->parent) {
     for (lsvip = scope->local_static_variable_inits;
          lsvip != NULL;

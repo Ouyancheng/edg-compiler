@@ -206,6 +206,7 @@ be restored).
     dps->is_alias = FALSE;
     dps->param_with_only_enclosing_pack_refs = FALSE;
     dps->pending_prefix_enable_if_attr = FALSE;
+    dps->keep_terminating_token = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -13585,24 +13586,18 @@ to NULL.
   return ap;
 }  /* asm_declaration */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_variable_ptr condition_or_for_each_declaration(
-                                            a_statement_ptr for_each_statement)
+void for_each_iterator_declaration(a_statement_ptr for_each_statement)
 /*
-Scan a condition declaration (when for_each_statement is NULL) or an iterator
-declaration in a "for each" statement (when for_each_statement is non-NULL).
-"for each" statements only occur in Microsoft mode (and some types are
-further restricted to C++/CLI mode).  Syntax for a condition declaration:
+Scan a "for each" iteration variable declaration.  "for each" statements are
+allowed only in Microsoft mode and some types of "for each" are allowed only
+in C++/CLI mode.  Syntax:
 
-  type-specifier-seq declarator = assignment-expression
+  for each (type-specifier-seq declarator in assignment-expression)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Syntax for an iterator declaration in a "for each" statement:
-
-  type-specifier-seq declarator in assignment-expression
-
-(But the "in assignment-expression" part is not scanned here.)
-
-Return a pointer to the variable that is declared.
+Only the part marked is scanned in this routine.
 */
 {
   a_decl_flag_set              dsi_flags;
@@ -13615,7 +13610,7 @@ Return a pointer to the variable that is declared.
   a_decl_pos_block             decl_pos_block;
   a_decl_parse_state           state;
 
-  db_enter(3, "condition_or_for_each_declaration");
+  db_enter(3, "for_each_iterator_declaration");
   /* Scan the declaration specifiers.  "typedef" is not allowed and may
      not introduce a new class or enumeration. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
@@ -13711,106 +13706,111 @@ Return a pointer to the variable that is declared.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (missing_declarator) {
     /* Now issue the error for the missing declarator. */
-    if (for_each_statement != NULL) {
-      /* Add tok_identifier so we will stop on "in" if it appears. */
-      add_stop_token(tok_identifier);
-      syntax_error(ec_exp_id_in_for_each_decl);
-      remove_stop_token(tok_identifier);
-    } else {
-      syntax_error(ec_exp_declarator_in_condition_decl);
-    }  /* if */
+    /* Add tok_identifier so we will stop on "in" if it appears. */
+    add_stop_token(tok_identifier);
+    syntax_error(ec_exp_id_in_for_each_decl);
+    remove_stop_token(tok_identifier);
   } else {
-    decl_pos_block.var_init_range.start = pos_curr_token;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (for_each_statement != NULL) {
-      /* C++/CLI "for each" statement.  The "in" and collection expression
-         are not scanned here. */
-      a_for_each_loop_ptr felp = 
+    /* The "in" and collection expression are not scanned here. */
+    a_for_each_loop_ptr felp = 
                           for_each_statement->variant.for_each_loop.extra_info;
-      vp->is_enhanced_for_iterator = TRUE;
-      felp->uses_prev_decl_iterator = FALSE;
-      felp->iterator.variable = vp;
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      /* The C++03 syntax for condition explicitly requires the "= expr"
-         syntax for initialization (that is, parenthesized initializers are
-         disallowed, as is implicit initialization of objects with default
-         constructors).  C++11 adds list-initialization syntax as a valid
-         option. */
-      if (curr_token == tok_assign) {
-        /* Advance past the "=". */
-        (void)get_token();
-      } else if (!C_mode() && curr_token == tok_lbrace) {
-        /* This looks like a C++11-style direct list initializer. */
-        state.has_direct_initializer = TRUE;
-      } else {
-        (void)required_token(tok_assign, ec_exp_assign);
-      }  /* if */
-      initializer(&state, &locator.source_position, idl_none,
-                  /*parenthesized_initializer=*/FALSE,
-                  &incomplete_type_error_reported, &decl_pos_block);
-    }  /* if */
+    decl_pos_block.var_init_range.start = pos_curr_token;
+    vp->is_enhanced_for_iterator = TRUE;
+    felp->uses_prev_decl_iterator = FALSE;
+    felp->iterator.variable = vp;
     /* Reset the error position to the source position of the declarator. */
     error_position = locator.source_position;
   }  /* if */
   if (is_incomplete_type(vp->type)) {
-    /* Incomplete type is not allowed.  (This test is delayed until after
-       having seen the initializer so we can handle the Microsoft extension
-       that permits "if (char s[] = "x") ...".) */
+    /* Incomplete type is not allowed. */
     if (!incomplete_type_error_reported) {
       pos_error(incomplete_type_err_code(vp->type), &state.start_pos);
     }  /* if */
     vp->type = error_type();
   }  /* if */
-  /* Both in the error and normal case consider the variable set.  Don't
-     do this earlier so we can catch "if (int x = x);". */
+  /* Both in the error and normal case consider the variable set. */
   mark_variable_value_set(sym);
   run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
-  db_exit();
-  /* Return a pointer to the variable. */
-  return vp;
-}  /* condition_or_for_each_declaration */
-
-
-a_variable_ptr condition_declaration(void)
-/*
-Scan a condition declaration.  Syntax:
-
-  type-specifier-seq declarator = assignment-expression
-
-Return a pointer to the variable that is declared.
-*/
-{
-  a_variable_ptr vp;
-
-  db_enter(3, "condition_declaration");
-  vp = condition_or_for_each_declaration((a_statement_ptr)NULL);
-  db_exit();
-  return vp;
-}  /* condition_declaration */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-void for_each_iterator_declaration(a_statement_ptr sp)
-/*
-Scan a "for each" iteration variable declaration.  "for each" statements are
-allowed only in Microsoft mode and some types of "for each" are allowed only
-in C++/CLI mode.  Syntax:
-
-  for each (type-specifier-seq declarator in assignment-expression)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Only the part marked is scanned in this routine.
-*/
-{
-  db_enter(3, "for_each_iterator_declaration");
-  (void)condition_or_for_each_declaration(sp);
   db_exit();
 }  /* for_each_iterator_declaration */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_variable_ptr check_condition_declaration(a_decl_parse_state  *dps)
+/*
+A declaration was just scanned with *dps representing the state at the end of
+that processing.  We now know that the declaration is a
+"condition-declaration": Check that the constraints for such a declaration are
+satisfied and issue diagnostics accordingly.  E.g.:
+
+    if (static int i = 3) {}
+
+Here the constraint that no storage class specifiers be provided is violated,
+and this routine issues an error in that case.
+
+Return the variable being declared (if there were no severe errors) or an
+error variable generated for error recovery purposes.
+*/
+{
+  a_symbol_ptr    sym = dps->sym;
+  a_variable_ptr  vp = NULL;
+  a_source_position  *diag_pos = &dps->declarator_pos;
+
+  if (diag_pos->seq == 0) {
+    diag_pos = &dps->start_pos;
+  }  /* if */
+  if (sym == NULL || !symbol_is(sym, sk_variable) ||
+      dps->secondary_declarator) {
+    pos_error(ec_condition_does_not_declare_a_variable, diag_pos);
+  } else {
+    vp = sym->variant.variable.ptr;
+    if ((strict_ansi_mode || clang_mode || gpp_mode) ?
+            (dps->declared_storage_class != (a_storage_class)sc_unspecified)
+          : (vp->storage_class != (a_storage_class)sc_auto)) {
+      pos_error(ec_storage_class_not_allowed, &dps->specifiers_pos);
+      vp = NULL;
+      goto done_with_checks;
+    }  /* if */
+    if (is_array_type(vp->type)) {
+      if (microsoft_mode) {
+        pos_warning(ec_array_condition_always_true, diag_pos);
+      } else {
+        pos_error(ec_array_type_not_allowed, &dps->start_pos);
+        vp = NULL;
+        goto done_with_checks;
+      }  /* if */
+    }  /* if */
+    if (dps->dso_flags & DSO_DEFINES_SOMETHING) {
+      /* The specifiers contain a class or enum definition. */
+      pos_error(ec_type_definition_not_allowed, &dps->specifiers_pos);
+    }  /* if */
+    if (!vp->has_explicit_initializer) {
+      pos_error(ec_condition_decl_must_have_initializer, diag_pos);
+      vp = NULL;
+      goto done_with_checks;
+    }  /*if */
+    if (vp->has_parenthesized_initializer) {
+      pos_error(ec_parenthesized_init_not_allowed, diag_pos);
+    }  /* if */
+  }  /* if */
+done_with_checks:
+  if (vp == NULL) {
+    /* An error should have been expected. */
+    expect_error();
+    dps->sym = alloc_symbol((a_symbol_kind)sk_variable,
+                            (a_symbol_header_ptr)NULL, diag_pos);
+    dps->sym->is_error = TRUE;
+    vp = make_variable(error_type(), (a_storage_class)sc_auto,
+                       decl_scope_level);
+    set_source_corresp(&vp->source_corresp, dps->sym);
+    vp->init_kind = (an_init_kind)initk_static;
+    vp->initializer.constant = alloc_error_constant();
+    dps->sym->variant.variable.ptr  = vp;
+  }  /* if */
+  /* Both in the error and normal case consider the variable set. */
+  mark_variable_value_set(dps->sym);
+  return vp;
+}  /* check_condition_declaration */
 
 
 static void make_static_assert_string_for_output(a_constant_ptr error_string)
@@ -18771,6 +18771,7 @@ deferred_fixups:
                                                   /*for_instantiation=*/FALSE);
   }  /* if */
 check_for_semicolon:
+  if (dps->keep_terminating_token) goto return_point;
   /* Check for a final semicolon. */
   if (!required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
     goto return_point;

@@ -3577,6 +3577,7 @@ A pointer to the expression node is returned.
   a_scope_ptr               scope;
   a_boolean                 is_switch_expr;
   a_control_flow_descr_ptr  cfdp;
+  a_decl_parse_state        dps;
 
   db_enter(3, "start_condition_block_and_scan_declaration");
   /* Push the new scope, and bind the if, switch, for, or while statement to
@@ -3595,7 +3596,10 @@ A pointer to the expression node is returned.
   node->variant.condition->scope = scope;
   /* Scan the variable declaration.  Unless there was an error, it will have
      been initialized. */
-  vp = condition_declaration();
+  init_decl_parse_state(&dps);
+  dps.keep_terminating_token = TRUE;
+  scan_nonmember_declaration(&dps, (a_source_range*)NULL);
+  vp = check_condition_declaration(&dps);
   if (vp->init_kind == (an_init_kind)initk_dynamic) {
     node->variant.condition->dynamic_init = vp->initializer.dynamic;
   }  /* if */
