@@ -37,7 +37,7 @@ versions without CHECKING enabled worked properly.
 Microsoft compatibility: Default arguments and out-of-class member definitions
 
 Ordinarily, an out-of-class definition of a member function of a class template
-can not specify default arguments.  In Microsoft mode, however, this was
+cannot specify default arguments.  In Microsoft mode, however, this was
 accepted with a warning.  Now, it is an error in non-permissive Microsoft
 modes when microsoft_version >= 1911.  For example:
 
