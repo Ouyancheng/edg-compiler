@@ -1977,11 +1977,14 @@ Replace the current token with new_token.
 */
 {
   curr_token = new_token;
-  /* If tokens are being cached as they are fetched, update the copy in
-     the cache. */
+  /* If tokens are being cached as they are fetched, and the token being
+     updated is at the end of the cache, update the copy in the cache. */
   if (curr_lexical_state_stack_entry->cache_tokens != 0) {
-    curr_lexical_state_stack_entry->cache.last_token->token =
-                                                 (a_small_token_kind)new_token;
+    a_cached_token_ptr ctp;
+    ctp = curr_lexical_state_stack_entry->cache.last_token;
+    if (ctp->token_sequence_number == curr_token_sequence_number) {
+      ctp->token = (a_small_token_kind)new_token;
+    }  /* if */
   }  /* if */
 }  /* replace_curr_token */
 
