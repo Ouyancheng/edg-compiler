@@ -1,5 +1,13 @@
 Version 4.14
 
+4/12/17  [EDGcpfe/18185]
+Abort when folding result of accessing anonymous union members
+
+In some cases, when an expression producing a pointer or reference to an
+anonymous member was interpreted, the front end aborted with an internal
+error in find_subobject_for_interpreter_address.  This is now fixed.
+
+
 4/10/17  [EDGcpfe/18160]
 Microsoft compatibility: Binding of "this" to deduced lvalue reference
 
