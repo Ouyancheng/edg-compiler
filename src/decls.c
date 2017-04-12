@@ -13764,9 +13764,10 @@ error variable generated for error recovery purposes.
     pos_error(ec_condition_does_not_declare_a_variable, diag_pos);
   } else {
     vp = sym->variant.variable.ptr;
-    if ((strict_ansi_mode || clang_mode || gpp_mode) ?
-            (dps->declared_storage_class != (a_storage_class)sc_unspecified)
-          : (vp->storage_class != (a_storage_class)sc_auto)) {
+    if (((strict_ansi_mode || clang_mode || gpp_mode) ?
+              (dps->declared_storage_class != (a_storage_class)sc_unspecified)
+            : (vp->storage_class != (a_storage_class)sc_auto)) ||
+        (dps->dso_flags & DSO_STORAGE_CLASS_SPECIFIERS) != 0) {
       pos_error(ec_storage_class_not_allowed, &dps->specifiers_pos);
       vp = NULL;
       goto done_with_checks;
