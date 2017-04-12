@@ -3398,7 +3398,6 @@ to those anonymous union objects.
   a_field_ptr               aufp = au_sym->variant.field.ptr;
   a_symbol_ptr              au_parent;
   a_byte_count              offset;
-  a_boolean                 new_last_entry = FALSE;
 
   au_parent = au_sym->variant.field.anonymous_parent_object;
   if (au_parent != NULL) {
@@ -3408,16 +3407,15 @@ to those anonymous union objects.
       /* aufp is not the top-most anonymous union.  Recurse to determine its
          parent's address, then append a variant entry to select it. */
       make_anon_union_path(au_parent, p_last_entry, p_addr);
-      new_last_entry = TRUE;
     }  /* if */
   }  /* if */
   last_entry = *p_last_entry;
   vpep = alloc_variant_path_entry();
   vpep->next = NULL;
   last_entry->next = vpep;
-  if (new_last_entry) {
-    /* We recursively added an entry for a parent anonymous union.  Update
-       that entry's fields. */
+  if (parent_class_of(aufp)->kind == (a_type_kind)tk_union) {
+    /* aufp is a member of a union itself (always the case in recursive calls,
+       but also if the original call is for a member of an ordinary union). */
     last_entry->field = aufp;
     last_entry->base_address = *p_addr;
   }  /* if */
