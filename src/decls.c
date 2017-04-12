@@ -13759,9 +13759,15 @@ error variable generated for error recovery purposes.
   if (diag_pos->seq == 0) {
     diag_pos = &dps->start_pos;
   }  /* if */
-  if (sym == NULL || !symbol_is(sym, sk_variable) ||
-      dps->secondary_declarator) {
+  if (sym == NULL) {
+    pos_error((dps->dso_flags & DSO_DEFINES_SOMETHING) ?
+                    ec_condition_does_not_declare_a_variable
+                  : ec_useless_decl,
+               diag_pos);
+  } else if (!symbol_is(sym, sk_variable)) {
     pos_error(ec_condition_does_not_declare_a_variable, diag_pos);
+  } else if (dps->secondary_declarator) {
+    pos_error(ec_condition_with_multiple_declarators, diag_pos);
   } else {
     vp = sym->variant.variable.ptr;
     if (((strict_ansi_mode || clang_mode || gpp_mode) ?
