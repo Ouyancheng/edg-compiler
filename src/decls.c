@@ -13760,7 +13760,7 @@ error variable generated for error recovery purposes.
     diag_pos = &dps->start_pos;
   }  /* if */
   if (sym == NULL) {
-    if (dps->type == NULL || is_error_type(dps->type)) {
+    if (dps->type != NULL && is_error_type(dps->type)) {
       expect_error();
     } else {
       pos_error((dps->dso_flags & DSO_DEFINES_SOMETHING) ?
@@ -18011,6 +18011,7 @@ processing should proceed after the call.
         syntax_error(ec_exp_declaration);
         discard_curr_construct_pragmas();
         remove_stop_token(tok_semicolon);
+        state->type = error_type();
       }  /* if */
       /* Give up on scanning a declaration (assume we're at the end of one). */
       end_of_decl_action = eoda_skip_final_token;
