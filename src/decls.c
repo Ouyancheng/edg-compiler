@@ -13760,10 +13760,14 @@ error variable generated for error recovery purposes.
     diag_pos = &dps->start_pos;
   }  /* if */
   if (sym == NULL) {
-    pos_error((dps->dso_flags & DSO_DEFINES_SOMETHING) ?
-                    ec_condition_does_not_declare_a_variable
-                  : ec_useless_decl,
-               diag_pos);
+    if (dps->type == NULL || is_error_type(dps->type)) {
+      expect_error();
+    } else {
+      pos_error((dps->dso_flags & DSO_DEFINES_SOMETHING) ?
+                      ec_condition_does_not_declare_a_variable
+                    : ec_useless_decl,
+                 diag_pos);
+    }  /* if */
   } else if (!symbol_is(sym, sk_variable)) {
     pos_error(ec_condition_does_not_declare_a_variable, diag_pos);
   } else if (dps->secondary_declarator) {
