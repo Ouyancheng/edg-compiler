@@ -13806,7 +13806,7 @@ error variable generated for error recovery purposes.
   }  /* if */
 done_with_checks:
   if (vp == NULL) {
-    /* An error should have been expected. */
+    /* An error should have been issued. */
     expect_error();
     dps->sym = alloc_symbol((a_symbol_kind)sk_variable,
                             (a_symbol_header_ptr)NULL, diag_pos);
