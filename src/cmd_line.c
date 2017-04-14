@@ -2549,6 +2549,7 @@ option values if they were not already set by a command line option.
         nodiscard_attribute_enabled = TRUE;
       }  /* if */
       if (microsoft_version >= 1911) {
+        struct_bindings_enabled = TRUE;
         selection_initializers_enabled = TRUE;
       }  /* if */
     } else {
