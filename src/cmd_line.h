@@ -555,6 +555,11 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		selection_initializers_enabled;
+			/* TRUE if selection statements can include an
+			   initializer (a C++17 feature). */
+
+EXTERN a_boolean
 		mangle_had_been_implicitly_const;
 			/* When TRUE, non-static member functions that had
 			   been implicitly const in C++11 but not C++14 are

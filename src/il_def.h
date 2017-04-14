@@ -12786,6 +12786,16 @@ typedef struct a_condition_supplement {
 			/* The value to be tested in the selection or
 			   iteration statement, i.e., the (possibly converted)
 			   variable declared in the condition. */
+  a_statement_ptr
+		initialization;
+			/* The optional initialization statement in a C++17
+			   selection statement.  E.g., in
+			       if (init(); x == 0) ...
+			   this represents the "init();" statement.  Note that
+			   this is always NULL for the condition in a "for"
+			   loop (where the "initialization" is recorded in
+			   "a_for_loop" entries) or "while" loop (where it is
+			   not permitted). */
 } a_condition_supplement;
 
 

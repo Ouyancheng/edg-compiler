@@ -438,12 +438,16 @@ copy_template_arg_list_with_substitution_rebuilding_arg_operands(
 			a_boolean		*copy_error,
 			a_ctws_state_ptr	ctws_state);
 
-extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
+extern an_expr_node_ptr scan_integer_expression(
+                                        a_boolean              is_switch_expr,
+                                        an_init_component_ptr  cache);
 
-extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
-                                             a_boolean marked_as_gnu_extension,
-                                             a_boolean is_statement_expr,
-                                             a_dynamic_init_ptr  *dip);
+extern an_expr_node_ptr scan_void_expression(
+                                  a_boolean           repeated_in_loop,
+                                  a_boolean           marked_as_gnu_extension,
+                                  a_boolean           is_statement_expr,
+                                  a_dynamic_init_ptr  *dip,
+                                  an_init_component   *cache);
 
 extern
 an_expr_node_ptr scan_typed_expression(a_type_ptr         required_type,
@@ -693,7 +697,8 @@ extern void scan_dependent_type_parenthesized_initializer(an_init_state  *is);
 
 extern a_constant_ptr scan_case_label_constant(a_type_ptr switch_type);
 
-extern an_expr_node_ptr scan_boolean_controlling_expression(void);
+extern an_expr_node_ptr scan_boolean_controlling_expression(
+                                                an_init_component_ptr  cache);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_const_char *scan_uuidof_operand(void);
@@ -987,6 +992,8 @@ extern an_expr_node_ptr scan_expr_for_attribute(void);
 
 extern an_expr_node_ptr process_boolean_attribute_expression(
                                                         an_expr_node_ptr expr);
+
+extern an_init_component_ptr cache_expression(void);
 
 #endif /* ifndef EXPR_H */
 

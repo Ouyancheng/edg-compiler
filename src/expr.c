@@ -1958,6 +1958,27 @@ return a pointer to the init_component.
 }  /* scan_expr_into_new_init_component */
 
 
+an_init_component_ptr cache_expression(void)
+/*
+Scan an expression with PREC_LOWEST and EOPT_NO_OPTIONS and return an
+init-component for it.
+*/
+{
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+  an_init_component    *icp;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  icp = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
+  pop_expr_stack();
+  return icp;
+}  /* cache_expression */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -34032,13 +34053,17 @@ used for constant expressions.
 }  /* process_integer_expression */
 
 
-an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr)
+an_expr_node_ptr scan_integer_expression(a_boolean              is_switch_expr,
+                                         an_init_component_ptr  cache)
 /*
 Scan an integral expression, e.g., the selector expression for a switch
 statement, and return a pointer to the expression tree.  is_switch_expr
 is TRUE if this is the expression in a switch statement.  Note that
 this is not used for constant expressions (e.g., integral constant
 expressions).
+
+If cache is non-NULL, it represents the already-cached expression: In that
+case, just process that expression.
 */
 {
   an_expr_node_ptr    expression;
@@ -34053,8 +34078,13 @@ expressions).
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (cache == NULL) {
+    /* Scan the expression. */
+    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  } else {
+    extract_operand_from_expression_component(cache, &result,
+                                              /*free_icp=*/TRUE);
+  }  /* if */
   /* Check that the expression is integral or convertible to an integral
      type. */
   process_integer_expression(&result, is_switch_expr);
@@ -34084,7 +34114,8 @@ an_expr_node_ptr scan_void_expression(
                                   a_boolean           repeated_in_loop,
                                   a_boolean           marked_as_gnu_extension,
                                   a_boolean           is_statement_expr,
-                                  a_dynamic_init_ptr  *dip)
+                                  a_dynamic_init_ptr  *dip,
+                                  an_init_component   *cache)
 /*
 Scan a "void expression," i.e., one whose value is discarded.  This is used
 for expression statements and for the increment expression of a "for".  It is
@@ -34103,6 +34134,9 @@ If the scanned expression is the final expression of the statement expression
 and its value must be transferred through copy construction, NULL is returned
 and *dip is set to an entry representing that transfer.  (If is_statement_expr
 is FALSE, dip can be NULL.)
+
+If cache is non-NULL, it represents the already-cached expression: In that
+case, just process that expression.
 */
 {
   an_expr_node_ptr    expression;
@@ -34132,8 +34166,13 @@ is FALSE, dip can be NULL.)
     expr_stack->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (cache == NULL) {
+    /* Scan the expression. */
+    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  } else {
+    extract_operand_from_expression_component(cache, &result,
+                                              /*free_icp=*/TRUE);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (marked_as_gnu_extension) {
     mark_operand_as_gnu_extension(&result);
@@ -42764,13 +42803,17 @@ selector type.
 }  /* scan_case_label_constant */
 
 
-an_expr_node_ptr scan_boolean_controlling_expression(void)
+an_expr_node_ptr scan_boolean_controlling_expression(
+                                                 an_init_component_ptr  cache)
 /*
 Scan an expression that is used in controlling contexts that need a boolean
 result, such as if, while, do while, or for statements.  The type of the
 expression must be (if bool is enabled) bool or convertible to bool, or
 (if bool is disabled) scalar or a pointer-to-member type; or it must be of a
 class type that can be converted to those types.
+
+If cache is non-NULL, it represents the already-cached expression: In that
+case, just process that expression.
 */
 {
   an_operand          result;
@@ -42785,9 +42828,13 @@ class type that can be converted to those types.
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-
+  if (cache == NULL) {
+    /* Scan the expression. */
+    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  } else {
+    extract_operand_from_expression_component(cache, &result,
+                                              /*free_icp=*/TRUE);
+  }  /* if */
   /* Check its type and normalize it. */
   process_boolean_controlling_expression(&result);
   expr = make_node_from_operand(&result);

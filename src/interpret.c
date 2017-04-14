@@ -3624,6 +3624,9 @@ Macro to interpret a full-expression.
   restore_storage_stack(ips, saved_stack_for_full_expr);                      \
 }
 
+static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
+                                        a_statement_ptr       stmt);
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
@@ -4574,6 +4577,44 @@ done:
 }  /* do_constexpr_dynamic_init */
 
 
+static a_boolean do_constexpr_init_variable(an_interpreter_state   *ips,
+                                            a_variable_ptr         vp,
+                                            a_byte                 *storage,
+                                            a_source_position      *pos)
+/*
+Evaluate the (dynamic) initializer of the given variable.  Return FALSE if an
+error occurs.
+*/
+{
+  a_boolean              result = TRUE;
+  a_storage_stack_state  saved_stack_for_full_expr;
+  a_dynamic_init_ptr     dip = vp->initializer.dynamic;
+
+  save_storage_stack(ips, saved_stack_for_full_expr);
+  if (vp->extends_lifetime) {
+    /* Start a new stack for temporaries in this expression, but keep a
+       pointer to the original stack to allocate the lifetime-extended
+       temporary. */
+    init_constexpr_stack(&ips->storage_stack);
+    ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
+    ips->extension_state = &saved_stack_for_full_expr;
+  }  /* if */
+  if (storage == NULL) {
+    get_stack_bytes(ips, vp, storage);
+  }  /* if */
+  result = do_constexpr_dynamic_init(ips, dip, pos, storage, storage);
+  mark_complete_object_initialized(storage);
+  if (vp->extends_lifetime) {
+    /* Release the ordinary storage stack blocks for this expression.
+       The large blocks will be released by the call to
+       restore_storage_stack below. */
+    release_constexpr_stack(&ips->storage_stack);
+  }  /* if */
+  restore_storage_stack(ips, saved_stack_for_full_expr);
+  return result;
+}  /* do_constexpr_init_variable */
+
+
 static a_boolean do_constexpr_condition_alloc(
                                             an_interpreter_state   *ips,
                                             an_expr_node_ptr       expr,
@@ -4588,15 +4629,35 @@ successful.
 {
   a_boolean                   result = TRUE;
   a_condition_supplement_ptr  csp = expr->variant.condition;
-  a_variable_ptr              cond_var;
+  a_statement_ptr             init = csp->initialization;
+  a_dynamic_init_ptr          cond_var_init = csp->dynamic_init;
 
-  if (csp->dynamic_init == NULL) {
+  if (cond_var_init == NULL && init == NULL) {
     expect_error()
     do_constexpr_fail(result);
   } else {
     save_storage_stack(ips, *vs_state);
-    cond_var = csp->dynamic_init->variable;
-    (void)do_constexpr_alloc_variable(ips, cond_var, &result);
+    if (init != NULL) {
+      if (init->kind == (a_statement_kind)stmk_decl) {
+        /* Allocate storage for any variables. */
+        an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
+        for (; p != NULL; p = p->next) {
+          if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+            a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
+            (void)do_constexpr_alloc_variable(ips, vp, &result);
+            if (!result) break;
+          }  /* if */
+        }  /* for */
+      } else if (init->kind == (a_statement_kind)stmk_expr) {
+        /* Nothing to allocate just now. */
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+    if (result && cond_var_init != NULL) {
+      a_variable_ptr  cond_var = cond_var_init->variable;
+      (void)do_constexpr_alloc_variable(ips, cond_var, &result);
+    }  /* if */
     if (!result) {
       restore_storage_stack(ips, *vs_state);
     }  /* if */
@@ -4616,9 +4677,25 @@ recorded in *vs_state.
 */
 {
   a_condition_supplement_ptr  csp = expr->variant.condition;
-  a_variable_ptr              cond_var = csp->dynamic_init->variable;
+  a_statement_ptr             init = csp->initialization;
+  a_dynamic_init_ptr          cond_var_init = csp->dynamic_init;
 
-  do_constexpr_unmap_variable(ips, cond_var);
+  if (cond_var_init != NULL) {
+    a_variable_ptr  cond_var = cond_var_init->variable;
+    do_constexpr_unmap_variable(ips, cond_var);
+  }  /* if */
+  if (init != NULL) {
+    if (init->kind == (a_statement_kind)stmk_decl) {
+      /* Allocate storage for any variables. */
+      an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
+      for (; p != NULL; p = p->next) {
+        if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+          a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
+          do_constexpr_unmap_variable(ips, vp);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
   restore_storage_stack(ips, *vs_state);
 }  /* do_constexpr_condition_dealloc */
 
@@ -4643,35 +4720,44 @@ skip_typerefs(expr->type).
   save_storage_stack((ips), saved_stack_for_full_expr);
   if (has_cond_var) {
     a_condition_supplement_ptr  csp = expr->variant.condition;
-    a_dynamic_init_ptr          dip = csp->dynamic_init;
-    a_variable_ptr              cond_var = dip->variable;
-    a_byte                      *var_bytes;
-    if (cond_var->extends_lifetime) {
-      /* Start a new stack for temporaries in this expression, but keep a
-         pointer to the original stack to allocate the lifetime-extended
-         temporary. */
-      init_constexpr_stack(&ips->storage_stack);
-      ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
-      ips->extension_state = &saved_stack_for_full_expr;
+    a_dynamic_init_ptr          cond_var_init = csp->dynamic_init;
+    a_statement_ptr             init = csp->initialization;
+    if (init != NULL) {
+      /* A C++17-style initializer.  E.g., "if (int x = f(); x+1) ...". */
+      if (init->kind == (a_statement_kind)stmk_decl) {
+        /* Evaluate the initializer of each variable. */
+        an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
+        for (; p != NULL; p = p->next) {
+          if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+            a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
+            if (!do_constexpr_init_variable(
+                                         ips, vp, (a_byte*)NULL,
+                                         &vp->source_corresp.decl_position)) {
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      } else if (init->kind == (a_statement_kind)stmk_expr) {
+        result = do_constexpr_statement(ips, init);
+      } else {
+        unexpected_condition();
+      }  /* if */
     }  /* if */
-    get_stack_bytes(ips, cond_var, var_bytes);
-    result = do_constexpr_dynamic_init(
-                             ips, dip, &expr->position, var_bytes, var_bytes);
-    if (!result) {
-      /* Zero the variable, so do_constexpr_condition_clean does not attempt
-         to access uninitialized storage. */
-      a_type_ptr    vtp = skip_typerefs(cond_var->type);
-      a_boolean     local_result = TRUE;
-      a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &local_result);
-      check_assertion(local_result);
-      memzero(var_bytes, size_t_arg(n_bytes));
-    }  /* if */
-    mark_complete_object_initialized(var_bytes);
-    if (cond_var->extends_lifetime) {
-      /* Release the ordinary storage stack blocks for normal temporaries
-         allocated for the initializer.  Any large blocks will be released by
-         the call to restore_storage_stack below. */
-      release_constexpr_stack(&ips->storage_stack);
+    if (cond_var_init != NULL && result) {
+      a_variable_ptr  cond_var = cond_var_init->variable;
+      if (!do_constexpr_init_variable(
+                                  ips, cond_var, (a_byte*)NULL,
+                                   &cond_var->source_corresp.decl_position)) {
+        /* Zero the variable, so do_constexpr_condition_cleanup does not
+           attempt to access uninitialized storage. */
+        a_type_ptr    vtp = skip_typerefs(cond_var->type);
+        a_boolean     local_result = TRUE;
+        a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &local_result);
+        a_byte        *var_bytes;
+        check_assertion(local_result);
+        get_stack_bytes(ips, cond_var, var_bytes);
+        memzero(var_bytes, size_t_arg(n_bytes));
+      }  /* if */
     }  /* if */
     expr_to_evaluate = csp->expr;
   } else {
@@ -4693,20 +4779,42 @@ static void do_constexpr_condition_cleanup(an_interpreter_state   *ips,
 /*
 expr is an enk_condition node representing the condition expression of a
 statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
-Clean up the variable value (currently, that means disposing of the "variant
-path" structures).  This does not deallocate or unmap the variable (since for
-loop constructs it may be needed again).
+Clean up the variable values (currently, that means disposing of the "variant
+path" structures).  This does not deallocate or unmap the variables (since for
+loop constructs they may be needed again).
 */
 {
   a_condition_supplement_ptr  csp = expr->variant.condition;
-  a_variable_ptr              cond_var = csp->dynamic_init->variable;
+  a_statement_ptr             init = csp->initialization;
+  a_dynamic_init_ptr          cond_var_init = csp->dynamic_init;
 
-  if (skip_typerefs(cond_var->type)->kind == (a_type_kind)tk_pointer) {
-    a_byte               *var_bytes;
-    a_constexpr_address  *cap;
-    get_stack_bytes(ips, cond_var, var_bytes);
-    cap = (a_constexpr_address*)var_bytes;
-    release_variant_path_if_needed(cap);
+  if (cond_var_init != NULL) {
+    a_variable_ptr  cond_var = cond_var_init->variable;
+    if (skip_typerefs(cond_var->type)->kind == (a_type_kind)tk_pointer) {
+      a_byte               *var_bytes;
+      a_constexpr_address  *cap;
+      get_stack_bytes(ips, cond_var, var_bytes);
+      cap = (a_constexpr_address*)var_bytes;
+      release_variant_path_if_needed(cap);
+    }  /* if */
+  }  /* if */
+  if (init != NULL) {
+    if (init->kind == (a_statement_kind)stmk_decl) {
+      /* Allocate storage for any variables. */
+      an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
+      for (; p != NULL; p = p->next) {
+        if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+          a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
+          if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
+            a_byte               *var_bytes;
+            a_constexpr_address  *cap;
+            get_stack_bytes(ips, vp, var_bytes);
+            cap = (a_constexpr_address*)var_bytes;
+            release_variant_path_if_needed(cap);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* do_constexpr_condition_cleanup */
 
@@ -5408,30 +5516,12 @@ done_with_switch:
       { a_dynamic_init_ptr     dip = stmt->variant.dynamic_init;
         a_variable_ptr         vp = dip->variable;
         a_byte                 *var_storage;
-        a_storage_stack_state  saved_stack_for_full_expr;
         /* Allocate and bind storage for the variable. */
         var_storage = do_constexpr_alloc_variable(ips, vp, &result);
         if (!result) break;
         /* Evaluate the initializer. */
-        save_storage_stack((ips), saved_stack_for_full_expr);
-        if (vp->extends_lifetime) {
-          /* Start a new stack for temporaries in this expression, but keep a
-             pointer to the original stack to allocate the lifetime-extended
-             temporary. */
-          init_constexpr_stack(&ips->storage_stack);
-          ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
-          ips->extension_state = &saved_stack_for_full_expr;
-        }  /* if */
-        result = do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                           var_storage, var_storage);
-        mark_complete_object_initialized(var_storage);
-        if (vp->extends_lifetime) {
-          /* Release the ordinary storage stack blocks for this expression.
-             The large blocks will be released by the call to
-             restore_storage_stack below. */
-          release_constexpr_stack(&ips->storage_stack);
-        }  /* if */
-        restore_storage_stack(ips, saved_stack_for_full_expr);
+        result = do_constexpr_init_variable(
+                                       ips, vp, var_storage, &stmt->position);
       }
       break;
     case stmk_decl:

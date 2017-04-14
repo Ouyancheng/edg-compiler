@@ -13853,6 +13853,33 @@ of a statement or short-circuit operator, and also a full expression
 }  /* gen_full_boolean_controlling_expression */
 
 
+static void gen_init_statement(a_statement_ptr  init_stmt)
+/*
+Generate an init-statement (a for-init statement or a C++17 selection statement
+initializer).
+*/
+{
+      check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
+      /* Process the declaration/initialization.  If there are several, they
+         must be put out as a comma-separated list.  A loop is necessary
+         in case a tag is declared in the specifiers list. */
+      while (ss_entry_kind(curr_source_sequence_entry) !=
+                                                iek_src_seq_end_of_construct) {
+        gen_declaration(/*for_init=*/TRUE);
+      }  /* while */
+      /* The declaration is followed by an end-of-construct entry. */
+#if CHECKING
+      { a_src_seq_end_of_construct_ptr ssecp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+        check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
+                             ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
+                            "gen_for_statement: bad end-of-construct");
+      }
+#endif /* CHECKING */
+      adv_curr_source_sequence_entry();
+}  /* gen_init_statement */
+
 static void gen_condition(a_statement_ptr statement)
 /*
 Generate code for the "condition" of an if, while, switch, or for statement.
@@ -13869,10 +13896,26 @@ This can be a condition declaration or simply an expression.
       gen_full_boolean_controlling_expression(expr);
     }  /* if */
   } else {
-    /* Condition declaration. */
-    gen_variable_decl(/*is_condition=*/TRUE, /*is_iterator=*/FALSE,
-                      /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
-                      (a_boolean *)NULL);
+    a_statement_ptr  init_stmt = expr->variant.condition->initialization;
+    if (init_stmt != NULL) {
+      if (init_stmt->kind == (a_statement_kind)stmk_decl) {
+        gen_init_statement(init_stmt);
+      } else {
+        gen_statement(init_stmt);
+      }  /* if */
+    }  /* if */
+    if (expr->variant.condition->dynamic_init != NULL) {
+      /* Condition declaration. */
+      gen_variable_decl(/*is_condition=*/TRUE, /*is_iterator=*/FALSE,
+                        /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
+                        (a_boolean *)NULL);
+    } else {
+      if (statement->kind == (a_statement_kind)stmk_switch) {
+        gen_full_expression(expr->variant.condition->expr);
+      } else {
+        gen_full_boolean_controlling_expression(expr->variant.condition->expr);
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* gen_condition */  
 
@@ -13923,25 +13966,7 @@ Generate code for the indicated "for" statement.
       /* Anything other than a declaration, e.g., all C cases. */
       gen_statement(init_stmt);
     } else {
-      check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
-      /* Process the declaration/initialization.  If there are several, they
-         must be put out as a comma-separated list.  A loop is necessary
-         in case a tag is declared in the specifiers list. */
-      while (ss_entry_kind(curr_source_sequence_entry) !=
-                                                iek_src_seq_end_of_construct) {
-        gen_declaration(/*for_init=*/TRUE);
-      }  /* while */
-      /* The declaration is followed by an end-of-construct entry. */
-#if CHECKING
-      { a_src_seq_end_of_construct_ptr ssecp =
-                                  ss_entry_ptr(curr_source_sequence_entry,
-                                               a_src_seq_end_of_construct_ptr);
-        check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
-                             ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
-                            "gen_for_statement: bad end-of-construct");
-      }
-#endif /* CHECKING */
-      adv_curr_source_sequence_entry();
+      gen_init_statement(init_stmt);
     }  /* if */
   }  /* if */
   /* Generate the termination-test expression if there is one. */

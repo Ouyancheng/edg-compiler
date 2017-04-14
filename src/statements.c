@@ -1900,6 +1900,68 @@ over.
   add_to_control_flow_descr_list(cfdp);
 }  /* record_trivial_init_control_flow */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void record_sse_for_decl_statement(a_statement_ptr  sp)
+/*
+Record a source sequence entry for the given stmk_decl statement.  Because
+such statements are decided after prescanning for declaration vs. expression
+ambiguities, the source sequence entry is not always recorded at the end of
+the list of source sequence entries for the current scope.  Also, the case
+of a stmk_decl entry created for a C++17 "if" or "switch" initializer needs
+extra case (since it is created after the declaration is fully scanned).
+*/
+{
+  a_boolean                      early_sses_present = FALSE;
+  a_source_sequence_entry_ptr    move_to_point = NULL;
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+
+  /* Identify if any source sequence entries have been added during
+     declaration vs. expression disambiguation. */
+  if (C_mode()) {
+    /* Nothing to do. */
+  } else {
+    /* We recorded the last source sequence entry emitted before starting
+       a look-ahead procedure that may have added additional entries.  The
+       new entry should be moved ahead of those additional entries. */
+    a_source_sequence_entry_ptr  prev_last;
+    prev_last = sssep->last_sse_before_expr_decl_disambiguation;
+    if (prev_last != NULL) {
+      if (prev_last->next != NULL) {
+        /* An entry was appended directly after the last one recorded before
+           disambiguation. */
+        early_sses_present = TRUE;
+        move_to_point = prev_last->next;
+      } else if (scope_is(&scope_stack_top(), sck_condition) &&
+                 (sssep->kind == ssk_if || sssep->kind == ssk_switch)) {
+        /* A stmk_decl entry in a condition scope of an "if" or "switch".
+           This can happen in C++17 with constructs like:
+                 switch (int x = f(); int y = x+1) ...
+        */
+        early_sses_present = TRUE;
+        move_to_point = scope_stack_top().source_sequence_list;
+      }  /* if */
+    } else if (scope_stack_top().source_sequence_list != NULL) {
+      /* At the time we started disambiguation, the source sequence list for
+         this scope was empty, but now additional entries have been added.
+         Move the new entry to the head of the list. */
+      early_sses_present = TRUE;
+      move_to_point = scope_stack_top().source_sequence_list;
+    }  /* if */
+  }  /* if */
+  f_update_source_sequence_list((char*)sp, (an_il_entry_kind)iek_statement,
+                                (a_source_sequence_entry_ptr)NULL);
+  if (early_sses_present) {
+    /* One or more source sequence entries were added as a side effect of
+       disambiguation before we added the entry for the statement above.
+       Move the entry for the statement to before those added entries. */
+    move_src_seq_entry(sp->source_sequence_entry, depth_scope_stack,
+                       move_to_point, depth_scope_stack);
+  }  /* if */
+}  /* record_sse_for_decl_stmt */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 
 static void decl_statement(a_boolean  marked_as_gnu_extension,
                            a_boolean  *p_okay_in_constexpr_body)
@@ -1929,32 +1991,7 @@ body of a constexpr function or constructor.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
-    a_boolean                    early_sses_present = FALSE;
-    a_source_sequence_entry_ptr  move_to_point = NULL;
-    /* Identify if any source sequence entries have been added during
-       declaration vs. expression disambiguation. */
-    if (C_mode()) {
-      /* Nothing to do. */
-    } else if (sssep->last_sse_before_expr_decl_disambiguation != NULL) {
-      if (sssep->last_sse_before_expr_decl_disambiguation->next != NULL) {
-        early_sses_present = TRUE;
-        move_to_point = sssep->last_sse_before_expr_decl_disambiguation->next;
-      }  /* if */
-    } else {
-      if (scope_stack_top().source_sequence_list != NULL) {
-        early_sses_present = TRUE;
-        move_to_point = scope_stack_top().source_sequence_list;
-      }  /* if */
-    }  /* if */
-    f_update_source_sequence_list((char*)sp, (an_il_entry_kind)iek_statement,
-                                  (a_source_sequence_entry_ptr)NULL);
-    if (early_sses_present) {
-      /* One or more source sequence entries were added as a side effect of
-         disambiguation before we added the entry for the statement above.
-         Move the entry for the statement to before those added entries. */
-      move_src_seq_entry(sp->source_sequence_entry, depth_scope_stack,
-                         move_to_point, depth_scope_stack);
-    }  /* if */
+    record_sse_for_decl_statement(sp);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   init_decl_parse_state(&dps);
@@ -1985,7 +2022,7 @@ body of a constexpr function or constructor.
      caused the statement stack to be reallocated. */
   sssep = &struct_stmt_stack_top();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (sssep->for_init) {
+  if (sssep->for_init && !source_sequence_entries_disallowed) {
     /* Add a source sequence entry marking the end of the for-init
        declaration.  This marker is necessary in case what immediately
        follows in the source sequence list is an entry for a condition
@@ -2101,9 +2138,7 @@ function prototype scope are not recorded).
            scope_stack[decl_level].number != sym->decl_scope) {
       decl_level -= 1;
     }  /* while */
-    if (decl_level >= 0 &&
-        (scope_stack[decl_level].kind == (a_scope_kind)sck_function ||
-         scope_stack[decl_level].kind == (a_scope_kind)sck_block)) {
+    if (decl_level >= 0 && is_local_scope_kind(scope_stack[decl_level].kind)) {
       a_memory_region_number         region_to_switch_back_to;
       a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
       an_il_entity_list_entry_ptr    *p = sssep->p_declared_entities;
@@ -3563,23 +3598,38 @@ statement implicitly defines a local scope.
 }  /* dependent_statement */
 
 
-static an_expr_node_ptr start_condition_block_and_scan_declaration(
-                                                            a_statement_ptr sp)
+static void scan_structured_control_value(a_statement_ptr    sp,
+                                          an_init_component  *cached_expr)
 /*
-Start a condition block and scan the declaration for the condition.
-This involves pushing an sck_condition scope, allocating an
-enk_condition expression node, and scanning the variable declaration.
-A pointer to the expression node is returned.
+Scan a C++ control value (a boolean control value or a switch value) for the
+given statement that is more than just an expression.  In C++, the following
+additional forms are possible (shown with "if" for simplicity):
+
+    if (<declaration>) ...
+    if (<declaration>; <expression>) ... 
+    if (<expression>; <declaration>) ... 
+    if (<expression>; <expression>) ... 
+
+The latter three forms are a C++17 feature (enabled when the global variable
+selection_initializers_enabled is TRUE) that only applies of "if" and "switch"
+statements.  For the latter two forms, the first expression has already been
+scanned into *cached_expr.
+
+Scan the remainder of the construct.  This includes creating an sck_condition
+scope and an enk_condition node (the node is attached to sp).
 */
 {
-  an_expr_node_ptr          node, value_expr;
-  a_variable_ptr            vp;
-  a_scope_ptr               scope;
-  a_boolean                 is_switch_expr;
-  a_control_flow_descr_ptr  cfdp;
-  a_decl_parse_state        dps;
+  an_expr_node_ptr               node, value_expr;
+  a_variable_ptr                 vp;
+  a_scope_ptr                    scope;
+  a_boolean                      initializer_scanned = FALSE;
+  a_boolean                      is_switch_expr =
+                                  (sp->kind == (a_statement_kind)stmk_switch);
+  a_control_flow_descr_ptr       cfdp;
+  a_decl_parse_state             dps;
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+  an_il_entity_list_entry_ptr    entity_list;
 
-  db_enter(3, "start_condition_block_and_scan_declaration");
   /* Push the new scope, and bind the if, switch, for, or while statement to
      it. */
   scope = push_scope((a_scope_kind)sck_condition, NO_SCOPE_NUMBER,
@@ -3594,37 +3644,105 @@ A pointer to the expression node is returned.
      declaration. */
   node = alloc_expr_node((an_expr_node_kind)enk_condition);
   node->variant.condition->scope = scope;
-  /* Scan the variable declaration.  Unless there was an error, it will have
-     been initialized. */
-  init_decl_parse_state(&dps);
-  dps.keep_terminating_token = TRUE;
-  scan_nonmember_declaration(&dps, (a_source_range*)NULL);
+  sp->expr = node;
+  if (cached_expr != NULL) {
+    a_statement_ptr  expr_sp = alloc_statement((a_statement_kind)stmk_expr);
+    expr_sp->position = *init_component_pos(cached_expr);
+    expr_sp->expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
+                                         /*marked_as_gnu_extension=*/FALSE,
+                                         /*is_statement_expr=*/FALSE,
+                                         (a_dynamic_init**)NULL, cached_expr);
+    node->variant.condition->initialization = expr_sp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!source_sequence_entries_disallowed) {
+      stmt_update_source_sequence_list(expr_sp);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    initializer_scanned = TRUE;
+  } else {
+    /* Scan the upcoming declaration.  In C++17, this may be an initialization
+       statement (terminated by a semicolon).  Otherwise, it is a condition
+       declaration which should be a single variable with an initializer. */
+    init_decl_parse_state(&dps);
+    dps.keep_terminating_token = TRUE;
+    scan_nonmember_declaration(&dps, (a_source_range*)NULL);
+    /* Re-load sssep since the call to scan_nonmember_declaration may have
+       caused the statement stack to be reallocated. */
+    sssep = &struct_stmt_stack_top();
+    if (curr_token == tok_semicolon && selection_initializers_enabled &&
+        (sp->kind == (a_statement_kind)stmk_if || is_switch_expr) &&
+        cached_expr == NULL) {
+      /* The declaration we just scanned is a C++17-style initializer for a
+         selection statement. */
+      a_statement_ptr  decl_sp = alloc_statement((a_statement_kind)stmk_decl);
+      decl_sp->position = dps.start_pos;
+      node->variant.condition->initialization = decl_sp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!source_sequence_entries_disallowed) {
+        record_sse_for_decl_statement(decl_sp);
+        /* Add a source sequence entry marking the end of the declaration.
+           This marker is necessary in case what immediately follows in the
+           source sequence list is an entry for a condition declaration.
+           E.g., without the marker, there would be no source sequence entry
+           distinction between 
+             if (int i = 0; int j = 3);
+           and
+             if (int i = 0, j = 3; j);
+         */
+        add_end_of_construct_source_sequence_entry(
+                         (char*)decl_sp, (a_byte_il_entry_kind)iek_statement);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      decl_sp->variant.decl.entities = *sssep->p_declared_entities;
+      end_potential_decl_statement();
+      initializer_scanned = TRUE;
+    }  /* if */
+  }  /* if */
+  if (initializer_scanned) {
+    /* An C++17-style initializer was scanned (expression or declaration).
+       The current token is a semicolon: Skip past it and determine if what
+       follows is an ordinary expression or a condition declaration. */
+    a_disambig_flag_set  flags = DFS_REAL_DECLARATOR_ALLOWED |
+                                 DFS_IS_CONDITION;
+    check_assertion(curr_token == tok_semicolon);
+    (void)get_token();
+    start_potential_decl_statement(&entity_list);
+    if (is_decl_not_expr(flags)) {
+      init_decl_parse_state(&dps);
+      dps.keep_terminating_token = TRUE;
+      scan_nonmember_declaration(&dps, (a_source_range*)NULL);
+      end_potential_decl_statement();
+    } else {
+      end_potential_decl_statement();
+      /* Scan the controlling expression. */
+      if (is_switch_expr) {
+        value_expr = scan_integer_expression(is_switch_expr,
+                                             (an_init_component*)NULL);
+      } else {
+        value_expr = scan_boolean_controlling_expression(
+                                                    (an_init_component*)NULL);
+      }  /* if */
+      goto done;
+    }  /* if */
+  }  /* if */
   vp = check_condition_declaration(&dps);
   if (vp->init_kind == (an_init_kind)initk_dynamic) {
     node->variant.condition->dynamic_init = vp->initializer.dynamic;
   }  /* if */
-  /* The node points to an expression that represents the value of the
+  /* The condition is an expression that represents the value of the
      initialized variable, converted if necessary. */
-  is_switch_expr = (sp->kind == (a_statement_kind)stmk_switch);
-  node->variant.condition->expr = value_expr =
-                           make_condition_value_expression(vp, is_switch_expr);
+  value_expr = make_condition_value_expression(vp, is_switch_expr);
+done:
   /* Copy the type of the variable expression into the condition node (since
      all expression nodes need to have a type). */
+  node->variant.condition->expr = value_expr;
   node->type = value_expr->type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the source range for the condition declaration. */
   node->expr_range.start = cfdp->source_pos;
-  if (vp->initializer_range.end.seq != 0) {
-    node->expr_range.end = vp->initializer_range.end;
-  } else {
-    node->expr_range.end =
-                vp->source_corresp.decl_pos_info->variant.declarator_range.end;
-  }  /* if */
+  node->expr_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  db_exit();
-  /* Return the condition node. */
-  return node;
-}  /* start_condition_block_and_scan_declaration */
+}  /* scan_structured_control_value */
 
 
 static void finish_condition_block(void)
@@ -3680,7 +3798,7 @@ Do processing required when done with a block scope.
 
 
 static void scan_condition(a_statement_ptr  sp,
-                           a_boolean        *is_condition_decl)
+                           a_boolean        *p_is_condition_decl)
 /*
 Scan a "condition", which is either an expression or in C++ a condition
 declaration; if the latter, set *is_condition_decl to TRUE.  This routine
@@ -3689,22 +3807,57 @@ statements since they are not allowed to have condition declarations even
 in C++.
 */
 {
-  a_disambig_flag_set  flags = DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_CONDITION;
+  a_disambig_flag_set          flags = DFS_REAL_DECLARATOR_ALLOWED |
+                                       DFS_IS_CONDITION;
+  an_il_entity_list_entry_ptr  entity_list;
+  a_boolean                    is_condition_decl, potential_decl_stmt = FALSE;
 
   if (sp->kind == (a_statement_kind)stmk_for) {
     flags |= DFS_CONDITION_IS_FOR_STMT;
+  } else if (selection_initializers_enabled &&
+             (sp->kind == (a_statement_kind)stmk_if ||
+              sp->kind == (a_statement_kind)stmk_switch)) {
+    start_potential_decl_statement(&entity_list);
+    potential_decl_stmt = TRUE;
   }  /* if */
   if (!C_mode() && is_decl_not_expr(flags)) {
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
-    *is_condition_decl = TRUE;
-    sp->expr = start_condition_block_and_scan_declaration(sp);
-  } else if (sp->kind == (a_statement_kind)stmk_switch) {
-    /* Scan the controlling expression and check to see that it is integral. */
-    sp->expr = scan_integer_expression(/*is_switch_expr=*/TRUE);
+    is_condition_decl = TRUE;
+    scan_structured_control_value(sp, (an_init_component*)NULL);
   } else {
-    /* Scan the controlling expression and check to see that it is scalar. */
-    sp->expr = scan_boolean_controlling_expression();
+    is_condition_decl = FALSE;
+    if (potential_decl_stmt) {
+      end_potential_decl_statement();
+    }  /* if */
+  }  /* if */
+  if (is_condition_decl) {
+    /* Nothing more to scan. */
+  } else {
+    an_init_component_ptr  cache = NULL;
+    if (potential_decl_stmt && !is_condition_decl) {
+      /* An expression is next, but it may be followed by a condition
+         declaration.  Cache the expression and check for a semicolon that
+         follows it. */
+      cache = cache_expression();
+      if (curr_token == tok_semicolon) {
+        scan_structured_control_value(sp, cache);
+        is_condition_decl = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_condition_decl) {
+      /* Nothing more to scan. */
+    } else if (sp->kind == (a_statement_kind)stmk_switch) {
+      /* Scan the controlling expression and check to see that it is
+         integral. */
+      sp->expr = scan_integer_expression(/*is_switch_expr=*/TRUE, cache);
+    } else {
+      /* Scan the controlling expression and check to see that it is scalar. */
+      sp->expr = scan_boolean_controlling_expression(cache);
+    }  /* if */
+  }  /* if */
+  if (is_condition_decl) {
+    *p_is_condition_decl = TRUE;
   }  /* if */
 }  /* scan_condition */
 
@@ -4088,7 +4241,7 @@ See also 3.6.5.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression();
+  sp->expr = scan_boolean_controlling_expression((an_init_component*)NULL);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -4325,7 +4478,8 @@ statement.  Its form is
     add_stop_token(tok_rparen);
     /* Scan the expression and check to see that it is integral. */
     sp->variant.microsoft_try->except_expr =
-                             scan_integer_expression(/*is_switch_expr=*/FALSE);
+                             scan_integer_expression(/*is_switch_expr=*/FALSE,
+                                                     (an_init_component*)NULL);
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -4543,9 +4697,8 @@ the statement was preceded by the GNU C __extension__ keyword.
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Scan the expression. */
   expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
-                              marked_as_gnu_extension,
-                              is_statement_expr,
-                              &dip);
+                              marked_as_gnu_extension, is_statement_expr,
+                              &dip, (an_init_component*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   if (dip != NULL) {
     /* The result of a GNU statement expression that requires nontrivial
@@ -4843,7 +4996,8 @@ The affinity can be an expression or the keyword "continue".
                         scan_void_expression(/*repeated_in_loop=*/TRUE,
                                              /*marked_as_gnu_extension=*/FALSE,
                                              /*is_statement_expr=*/FALSE,
-                                             (a_dynamic_init_ptr*)NULL);
+                                             (a_dynamic_init_ptr*)NULL,
+                                             (an_init_component*)NULL);
       /* Restore the global variable. */
       suppress_used_before_set_warnings = saved_flag;
       curr_reachability = saved_reachability;
@@ -6784,7 +6938,8 @@ Each has the form
   sp->expr = NULL;
   if (curr_token != tok_semicolon) {
     /* Scan the notification condition expression. */
-    sp->expr = scan_integer_expression(/*is_switch_expr=*/FALSE);
+    sp->expr = scan_integer_expression(/*is_switch_expr=*/FALSE,
+                                       (an_init_component*)NULL);
   }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);

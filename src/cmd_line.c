@@ -3325,6 +3325,7 @@ default mode (e.g., exception handling).
       nodiscard_attribute_enabled = TRUE;
       hex_floating_point_constants_allowed = TRUE;
       struct_bindings_enabled = TRUE;
+      selection_initializers_enabled = TRUE;
       direct_init_fixed_base_enum_enabled = TRUE;
     }  /* if */
   }  /* if */
@@ -11563,6 +11564,7 @@ variables declared in cmd_line.h.
   sized_deallocation_enabled = FALSE;
   constexpr_implies_const = TRUE;
   struct_bindings_enabled = FALSE;
+  selection_initializers_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
 #if COROUTINES_ALLOWED
   coroutines_enabled = FALSE;

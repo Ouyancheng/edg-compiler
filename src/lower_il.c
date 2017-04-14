@@ -18015,13 +18015,17 @@ statements don't contain an enk_condition).
       lower_statement(statement->variant.switch_stmt.body_statement);
     }  /* if */
   } else {
-    /* A condition declaration.  Non-loop cases like
+    /* An initialization statement and/or condition declaration.  Non-loop
+       cases like
+
          if (A x = y) { ... }
        are transformed into
          {
            A x = y;
            if (x) { ... }
          }
+       Similarly for the initialization statement case.
+
        The test in the "if" actually uses the expression from the "expr"
        field of the condition, which is the value of the declared variable
        converted to a testable type if necessary.  Loop cases like
@@ -18124,24 +18128,66 @@ statements don't contain an enk_condition).
       begin_object_lifetime(scope->lifetime, &insert_location);
     }  /* if */
     check_assertion(pending_stmk_init_statements == NULL);
-    /* Generate code for the initialization, and insert it at the beginning
-       of the new block. */
-    set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
-    lower_dynamic_init(csp->dynamic_init, &ipd,
-                       (an_implied_copy_source *)NULL,
-                       (a_variable_ptr)NULL,
-                       LDIO_FULL_EXPR,
-                       /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL,
-                       (a_constant **)NULL);
-    if (pending_stmk_init_statements != NULL) {
-      /* Lowering of the dynamic init may have created some statements to
-         initialize temporaries (in the case where the value is a simple
-         constant, e.g., "if (char* const& s = "zzz");"). These statements
-         need to be inserted within block_stmt (where the temporary is
-         defined), but before they are used (by code that was inserted by
-         lower_dynamic_init above). */
-      insert_pending_stmk_init_statements(block_stmt);
+    if (csp->initialization != NULL) {
+      /* The condition has a C++17 initialization statement.  The statement
+         is either a declaration statement or an expression statement and
+         is basically "freestanding" (i.e., it's not on a list of statements
+         in a block somewhere). */
+      lower_statement(csp->initialization);
+      if (csp->initialization->kind == (a_statement_kind)stmk_decl) {
+        /* Dynamic initialization of variables is indicated by an stmk_init
+           statement, but there are no stmk_init statements in this case.
+           Loop through all variables in this declaration statement and create
+           stmk_init statements (at the beginning of the block) for each of the
+           dynamically initialized variables.  Then lower the statements (to
+           ensure that lower_dynamic_init is called). */
+        an_il_entity_list_entry_ptr ielep;
+        for (ielep = csp->initialization->variant.decl.entities;
+             ielep != NULL;
+             ielep = ielep->next) {
+          if (ielep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+            a_statement_ptr stmk_init_stmt;
+            a_variable_ptr vp = (a_variable_ptr)(ielep->entity.ptr);
+            if (vp->init_kind == (an_init_kind)initk_dynamic) {
+              stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+              stmk_init_stmt->variant.dynamic_init = vp->initializer.dynamic;
+              /* Conservatively set follows_an_exec_statement to TRUE to force
+                 the initialization to take place immediately before the
+                 temporary is used. */
+              vp->initializer.dynamic->follows_an_exec_statement = TRUE;
+              insert_statement(stmk_init_stmt, &insert_location);
+              lower_stmk_init(stmk_init_stmt);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      } else if (csp->initialization->kind == (a_statement_kind)stmk_expr) {
+        /* Move this expression statement to the beginning of the inserted
+           block. */
+        insert_statement(csp->initialization, &insert_location);
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+    if (csp->dynamic_init != NULL) {
+      /* A condition declaration.  Generate code for the initialization, and
+         insert it at the beginning of the new block. */
+      set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
+      lower_dynamic_init(csp->dynamic_init, &ipd,
+                         (an_implied_copy_source *)NULL,
+                         (a_variable_ptr)NULL,
+                         LDIO_FULL_EXPR,
+                         /*others_follow_in_aggr=*/FALSE,
+                         &insert_location, (a_boolean *)NULL,
+                         (a_constant **)NULL);
+      if (pending_stmk_init_statements != NULL) {
+        /* Lowering of the dynamic init may have created some statements to
+           initialize temporaries (in the case where the value is a simple
+           constant, e.g., "if (char* const& s = "zzz");"). These statements
+           need to be inserted within block_stmt (where the temporary is
+           defined), but before they are used (by code that was inserted by
+           lower_dynamic_init above). */
+        insert_pending_stmk_init_statements(block_stmt);
+      }  /* if */
     }  /* if */
     /* Lower the value expression. */
     value_expr = csp->expr;

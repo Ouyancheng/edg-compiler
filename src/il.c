@@ -18457,13 +18457,23 @@ be called to start a copy.
       }  /* if */
       break;
     case enk_condition:
-      /* Copy the dynamic init and the expression. */
-      expr_copy->variant.condition->dynamic_init =
-                    i_copy_dynamic_init(expr->variant.condition->dynamic_init,
-                                        options, cblock);
-      expr_copy->variant.condition->expr =
-                                i_copy_expr_tree(expr->variant.condition->expr,
-                                                 options, cblock);
+      { a_condition_supplement_ptr  dst_csp = expr_copy->variant.condition,
+                                    src_csp = expr->variant.condition;
+        if (src_csp->initialization != NULL) {
+          /* We should never have to copy a condition declaration with a C++17
+             initialization statement. */
+          if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
+            cblock->inlining_failed = TRUE;
+            break;
+          } else {
+            unexpected_condition();
+          }  /* if */
+        }  /* if */
+        /* Copy the dynamic init and the expression. */
+        dst_csp->dynamic_init =
+                  i_copy_dynamic_init(src_csp->dynamic_init, options, cblock);
+        dst_csp->expr = i_copy_expr_tree(src_csp->expr, options, cblock);
+      }  /* if */
       break;
     case enk_object_lifetime:
       /* For an object lifetime, create a new object lifetime for the copy. */

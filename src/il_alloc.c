@@ -3387,9 +3387,10 @@ fields to default values.
 #if DEBUG
       num_condition_supplements_allocated++;
 #endif /* DEBUG */
-      csp->scope        = NULL;
-      csp->dynamic_init = NULL;
-      csp->expr         = NULL;
+      csp->scope          = NULL;
+      csp->dynamic_init   = NULL;
+      csp->expr           = NULL;
+      csp->initialization = NULL;
       break;
     case enk_object_lifetime:
       node->variant.object_lifetime.expr = NULL;

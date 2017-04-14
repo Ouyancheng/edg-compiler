@@ -3490,6 +3490,7 @@ after_entry_from_class:
         walk_ptr_not_needed(eptr->scope, a_scope_ptr, iek_scope);
         walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->initialization, a_statement_ptr, iek_statement);
 #undef eptr
       }
       break;
