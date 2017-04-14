@@ -2548,6 +2548,9 @@ option values if they were not already set by a command line option.
         }  /* if */
         nodiscard_attribute_enabled = TRUE;
       }  /* if */
+      if (microsoft_version >= 1911) {
+        selection_initializers_enabled = TRUE;
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
