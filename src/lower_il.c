@@ -9531,6 +9531,7 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
     if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
+        variable->source_corresp.name != NULL &&
         variable->source_corresp.name[0] == '_' &&  /* For speed. */
         strcmp(variable->source_corresp.name, "__link") == 0) {
       /* A user written variable with the name __link is marked as needed.

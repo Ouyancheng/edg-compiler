@@ -8303,6 +8303,7 @@ parameters.
   name = variable->source_corresp.name;
   has_magic_name = (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
+                    name != NULL &&
                     is_magic_name(name));
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Special and unnamed variables must be kept static even if
