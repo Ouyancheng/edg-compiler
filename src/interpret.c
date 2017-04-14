@@ -4713,7 +4713,7 @@ node (such nodes are not handled by do_constexpr_expression).  expr_type is
 skip_typerefs(expr->type).
 */
 {
-  a_boolean              result;
+  a_boolean              result = TRUE;
   a_storage_stack_state  saved_stack_for_full_expr;
   an_expr_node_ptr       expr_to_evaluate;
 
