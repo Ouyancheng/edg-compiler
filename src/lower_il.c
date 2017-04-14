@@ -15240,7 +15240,6 @@ cast.  See lower_expr for typical invocation.
            node by a clone of that expression (which should have already been
            lowered). */
         an_expr_node_ptr expr_copy;
-        a_type_ptr       orig_type = var->type;
         lower_expr_if_necessary(var->initializer.bound_expr);
 #if EXPENSIVE_CHECKING
         check_assertion(!node_has_side_effects(var->initializer.bound_expr,
@@ -15255,10 +15254,7 @@ cast.  See lower_expr for typical invocation.
           check_assertion(var->initializer.bound_expr->is_lvalue);
           expr_copy = rvalue_expr_for_lvalue(var->initializer.bound_expr);
         }  /* if */
-        check_assertion(identical_types_ignoring_qualifiers(orig_type,
-                                                            expr_copy->type));
         overwrite_node(expr, expr_copy);
-        expr->type = orig_type;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       } else if (var->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).
