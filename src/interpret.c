@@ -4819,10 +4819,6 @@ loop constructs they may be needed again).
 }  /* do_constexpr_condition_cleanup */
 
 
-static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
-                                        a_statement_ptr       stmt);
-
-
 static a_boolean do_constexpr_block_statement(an_interpreter_state  *ips,
                                               a_statement_ptr       block_stmt,
                                               a_scope_ptr           scope)
