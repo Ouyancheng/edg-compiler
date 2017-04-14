@@ -2229,7 +2229,7 @@ IL entry in place of whatever is pointed to by the symbol.
              instantiated if the default argument is actually used. */
           !(kind & SRK_DEFAULT_ARG_EXPR) &&
           !(gpp_mode && !clang_mode &&
-            !(kind & (SRK_ADDRESS_TAKEN | SRK_USE)))) {
+            !(kind & (SRK_ADDRESS_TAKEN | SRK_USE | SRK_MODIFICATION)))) {
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
         set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
