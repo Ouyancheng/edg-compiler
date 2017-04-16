@@ -16985,19 +16985,23 @@ for the copy/substitution.
        an overload set) was saved when this constant was created. */
     sym = con->variant.template_param.variant.unknown_function.symbol;
     check_assertion(sym != NULL);
-    if (microsoft_mode && !do_dependent_name_processing &&
-        (con->source_corresp.parent_scope == NULL ||
-         !scope_is(con->source_corresp.parent_scope, sck_namespace))) {
+    if (microsoft_mode && !do_dependent_name_processing) {
       /* In Microsoft mode, the lookup done previously might not have found
          some instances of the function declared after the template.  Do the
-         lookup again to get the full overload set.  Don't do this if the
-         previous result was a namespace member, as the new lookup will not
-         produce the right result. */
+         lookup again to get the full overload set. */
       a_symbol_locator locator;
       a_symbol_ptr     new_sym;
       make_locator_for_symbol(sym, &locator);
       locator.specific_symbol = NULL;
-      new_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+      if (con->source_corresp.parent_scope != NULL &&
+          scope_is(con->source_corresp.parent_scope, sck_namespace)) {
+        a_namespace_ptr ns_ptr;
+        ns_ptr = con->source_corresp.parent_scope->variant.assoc_namespace;
+        new_sym = namespace_qualified_id_lookup(&locator, ns_ptr,
+                                                IDL_NO_OPTIONS);
+      } else {
+        new_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+      }  /* if */
       if (new_sym != NULL) sym = new_sym;
     }  /* if */
   } else {
