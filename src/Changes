@@ -1,5 +1,23 @@
 Version 4.14
 
+4/17/17  [EDGcpfe/18230]
+Representation of folded array decay operation
+
+When folding an array decay operation on a file-scope array, the changes for
+EDGcpfe/17888 caused the resulting address constant to no longer set the
+"implicit_cast" flag.  This was disadvantageous for certain code-generating
+back end (and caused the C-generating back end to emit an extraneous cast).
+For example, in C mode:
+
+  int a[10];
+  void f(int*);
+  void g() {
+    f(a);  // Previously rendered as "f(int*)(&a))" by the C-generating
+  }        // back end.
+
+The previous behavior is now restored.
+
+
 4/14/17  [EDGcpfe/17414,EDGcpfe/17706]
 C++17: Selection statements with initializers
 

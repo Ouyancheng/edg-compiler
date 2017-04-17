@@ -10657,13 +10657,17 @@ diagnostic in *ips.
           (void)copy_constant_full(rt_con, con,
                                    CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
           con->type = type;
-          if (type->variant.pointer.is_reference) {
+          if (type->variant.pointer.is_reference ||
+              is_array_element(cap)) {
             /* The pointer-reinterpreted-as-reference case is marked as a kind
                of implicit_cast.  That ensures, e.g., that calling
                add_reference_indirection later on will not discard the constant
                and reduce it to just the variable reference (which would lose
                position information and render incorrectly in the
-               C++-generating back end). */
+               C++-generating back end).  Similarly, array decay cases are
+               marked as "implicit_cast" to avoid generating an extra case in
+               the C-generating back end (and, apparently, doing otherwise
+               complicates certain traditional back ends). */
             con->implicit_cast = TRUE;
           }  /* if */
         } else if (is_function_address(cap)) {
