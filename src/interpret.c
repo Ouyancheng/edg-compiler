@@ -1634,6 +1634,7 @@ the end of interpretation.  Move all allocated entries back onto the free list.
     vpep->next = vpep->next_allocated;
     vpep = vpep->next_allocated;
   }  /* while */
+  free_variant_path_entries = variant_path_entries;
   n_free_variant_path_entries = n_variant_path_entries;
 }  /* reclaim_variant_path_entries */
 
