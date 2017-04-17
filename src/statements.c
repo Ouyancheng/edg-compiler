@@ -1909,7 +1909,7 @@ such statements are decided after prescanning for declaration vs. expression
 ambiguities, the source sequence entry is not always recorded at the end of
 the list of source sequence entries for the current scope.  Also, the case
 of a stmk_decl entry created for a C++17 "if" or "switch" initializer needs
-extra case (since it is created after the declaration is fully scanned).
+extra care (since it is created after the declaration is fully scanned).
 */
 {
   a_boolean                      early_sses_present = FALSE;
@@ -3611,7 +3611,7 @@ additional forms are possible (shown with "if" for simplicity):
     if (<expression>; <expression>) ... 
 
 The latter three forms are a C++17 feature (enabled when the global variable
-selection_initializers_enabled is TRUE) that only applies of "if" and "switch"
+selection_initializers_enabled is TRUE) that only applies to "if" and "switch"
 statements.  For the latter two forms, the first expression has already been
 scanned into *cached_expr.
 
@@ -3699,7 +3699,7 @@ scope and an enk_condition node (the node is attached to sp).
     }  /* if */
   }  /* if */
   if (initializer_scanned) {
-    /* An C++17-style initializer was scanned (expression or declaration).
+    /* A C++17-style initializer was scanned (expression or declaration).
        The current token is a semicolon: Skip past it and determine if what
        follows is an ordinary expression or a condition declaration. */
     a_disambig_flag_set  flags = DFS_REAL_DECLARATOR_ALLOWED |
