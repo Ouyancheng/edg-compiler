@@ -17002,7 +17002,6 @@ given position.
         fp = fp->next;
       }  /* while */
       if (result) {
-        check_assertion(n != 0);
         *n_elements = n;
         *p_fields = fields;
       }  /* if */
@@ -17074,6 +17073,10 @@ representing the individual bindings.
      for each binding (initializing each one as appropriate). */
   rescan_cached_tokens(dps->variant.struct_bindings_cache);
   (void)required_token(tok_lbracket, ec_exp_lbracket);
+  if (!err && n_elements == 0) {
+    pos_error(ec_no_struct_binding_components, &pos_curr_token);
+    err = TRUE;
+  }  /* if */
   add_stop_token(tok_comma);
   do {
     a_decl_parse_state  binding_dps;
