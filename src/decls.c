@@ -17097,7 +17097,7 @@ representing the individual bindings.
   rescan_cached_tokens(dps->variant.struct_bindings_cache);
   (void)required_token(tok_lbracket, ec_exp_lbracket);
   if (!err && n_elements == 0) {
-    pos_error(ec_no_struct_binding_components, &pos_curr_token);
+    pos_ty_error(ec_invalid_struct_binding_type, pos, container_type);
     err = TRUE;
   }  /* if */
   add_stop_token(tok_comma);
