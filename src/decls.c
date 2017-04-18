@@ -17139,8 +17139,13 @@ representing the individual bindings.
         err = TRUE;
       }  /* if */
     } else {  /* Struct-like case. */
+      a_type_ptr  btype;
       fp = next_bindable_field(fp);
-      binding_dps.type = make_qualified_type(fp->type, container_tqs);
+      btype = fp->type;
+      if (is_reference_type(btype)) {
+        btype = type_pointed_to(btype);
+      }  /* if */
+      binding_dps.type = make_qualified_type(btype, container_tqs);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = TRUE;
