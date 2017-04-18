@@ -5682,7 +5682,8 @@ Extract the constant value from the operand *operand and place it in
           if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             constant->expr = NULL;
           }  /* if */
-        } else if (is_template_dependent_context()) {
+        } else if (is_prototype_instantiation_context() ||
+                   (microsoft_mode && in_ms_nonreal_class_instantiation())) {
           an_expr_node_ptr  node = make_node_from_operand(operand);
           make_template_param_expr_constant(node, constant);
         } else if (expr_error_should_be_issued()) {
