@@ -15245,14 +15245,13 @@ cast.  See lower_expr for typical invocation.
         check_assertion(!node_has_side_effects(var->initializer.bound_expr,
                                                (a_boolean *)NULL));
 #endif /* EXPENSIVE_CHECKING */
+        expr_copy = copy_expr_tree(var->initializer.bound_expr, CE_NO_OPTIONS);
         if (expr->is_lvalue == var->initializer.bound_expr->is_lvalue) {
-          /* If lvalue-ness is the same, just use a copy. */
-          expr_copy = copy_expr_tree(var->initializer.bound_expr,
-                                     CE_NO_OPTIONS);
+          /* If lvalue-ness is the same, just use the copy. */
         } else {
           /* If an rvalue is needed, create one. */
           check_assertion(var->initializer.bound_expr->is_lvalue);
-          expr_copy = rvalue_expr_for_lvalue(var->initializer.bound_expr);
+          expr_copy = rvalue_expr_for_lvalue(expr_copy);
         }  /* if */
         overwrite_node(expr, expr_copy);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
