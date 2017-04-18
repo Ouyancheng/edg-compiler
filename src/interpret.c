@@ -10665,7 +10665,7 @@ diagnostic in *ips.
                and reduce it to just the variable reference (which would lose
                position information and render incorrectly in the
                C++-generating back end).  Similarly, array decay cases are
-               marked as "implicit_cast" to avoid generating an extra case in
+               marked as "implicit_cast" to avoid generating an extra cast in
                the C-generating back end (and, apparently, doing otherwise
                complicates certain traditional back ends). */
             con->implicit_cast = TRUE;
