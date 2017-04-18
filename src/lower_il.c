@@ -18136,8 +18136,17 @@ statements don't contain an enk_condition).
            Loop through all variables in this declaration statement and create
            stmk_init statements (at the beginning of the block) for each of the
            dynamically initialized variables.  Then lower the statements (to
-           ensure that lower_dynamic_init is called). */
+           ensure that lower_dynamic_init is called).  Note that a separate
+           block is allocated into which the lowered stmk_init statements are
+           placed -- this ensures that their initialization will be completed
+           before initialization of a condition declaration (if any). */
         an_il_entity_list_entry_ptr ielep;
+        an_insert_location          init_block_insert_location;
+        a_statement_ptr             init_block_stmt;
+        init_block_stmt = alloc_statement((a_statement_kind)stmk_block);
+        insert_statement(init_block_stmt, &insert_location);
+        set_block_start_insert_location(init_block_stmt,
+                                        &init_block_insert_location);
         for (ielep = csp->initialization->variant.decl.entities;
              ielep != NULL;
              ielep = ielep->next) {
@@ -18151,7 +18160,7 @@ statements don't contain an enk_condition).
                  the initialization to take place immediately before the
                  temporary is used. */
               vp->initializer.dynamic->follows_an_exec_statement = TRUE;
-              insert_statement(stmk_init_stmt, &insert_location);
+              insert_statement(stmk_init_stmt, &init_block_insert_location);
               lower_stmk_init(stmk_init_stmt);
             }  /* if */
           }  /* if */
