@@ -16945,7 +16945,7 @@ fields are unnamed bit fields.  Otherwise, return its list of fields.
 }  /* get_direct_fields_if_nonempty */
 
 
-a_field_ptr next_bindable_field(a_field_ptr field)
+static a_field_ptr next_bindable_field(a_field_ptr field)
 /*
 Given a pointer to a field (or NULL), return a pointer to the first field at
 or after the given field that a structured binding can bind to.  If there is
