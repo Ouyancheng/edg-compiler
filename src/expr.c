@@ -1958,27 +1958,6 @@ return a pointer to the init_component.
 }  /* scan_expr_into_new_init_component */
 
 
-an_init_component_ptr cache_expression(void)
-/*
-Scan an expression with PREC_LOWEST and EOPT_NO_OPTIONS and return an
-init-component for it.
-*/
-{
-  an_expr_stack_entry  *saved_expr_stack;
-  an_expr_stack_entry  expr_stack_entry;
-  an_init_component    *icp;
-
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/TRUE,
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  icp = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
-  pop_expr_stack();
-  return icp;
-}  /* cache_expression */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -34470,13 +34449,16 @@ is considered a full-expression.
 }  /* scan_bool_constant_expression */
 
 
-static an_init_component_ptr scan_expr_as_init_component(a_boolean bundle)
+static an_init_component_ptr scan_expr_as_init_component(
+                                            a_boolean                 bundle,
+                                            a_local_expr_options_set  options)
 /*
 Scan an expression, from source and not from a cache, and return an
 init component entry describing what was scanned.  bundle is TRUE if
 the expression should be "bundled," meaning packaged with related information
 so it can be saved off to the side (e.g., in an initializer cache) for
-later restoration and further processing.
+later restoration and further processing.  The expression is scanned with the
+given options and PREC_LOWEST precedence.
 */
 {
   an_init_component_ptr  icp;
@@ -34504,7 +34486,7 @@ later restoration and further processing.
     expr_stack->lifetime = wrap_lifetime;
   }  /* if */
   /* Scan the initializer expression and put it into an init-component. */
-  icp = scan_expr_into_new_init_component(EOPT_DISALLOW_COMMA_OPERATOR);
+  icp = scan_expr_into_new_init_component(options);
   if (wrap_lifetime != NULL) {
     /* Save the lifetime created for this expression for use later
        when convert_initializer is called to convert it.  Don't save
@@ -34523,6 +34505,27 @@ later restoration and further processing.
   icp->detached_ref_entries = TRUE;
   return icp;
 }  /* scan_expr_as_init_component */
+
+
+an_init_component_ptr cache_expression(void)
+/*
+Scan an expression with PREC_LOWEST and EOPT_DISALLOW_COMMA_OPERATOR and
+return an init-component for it.
+*/
+{
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+  an_init_component    *icp;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  icp = scan_expr_as_init_component(/*bundle=*/TRUE, EOPT_NO_OPTIONS);
+  pop_expr_stack();
+  return icp;
+}  /* cache_expression */
 
 
 static an_init_component_ptr scan_expr_or_braced_init_list(
@@ -34551,7 +34554,7 @@ restoration and further processing.
     icp = parse_braced_init_list(bundle);
   } else {
     /* An expression. */
-    icp = scan_expr_as_init_component(bundle);
+    icp = scan_expr_as_init_component(bundle, EOPT_DISALLOW_COMMA_OPERATOR);
   }  /* if */
   return icp;
 }  /* scan_expr_or_braced_init_list */
@@ -35348,7 +35351,7 @@ parenthesized initializer.
   } else if (!dps->initializer_is_expr_list) {
     /* This is not a context that allows a list, so neither a pack
        expansion nor a braced-init-list is allowed, only an expression. */
-    icp = scan_expr_as_init_component(bundle);
+    icp = scan_expr_as_init_component(bundle, EOPT_DISALLOW_COMMA_OPERATOR);
   } else if (!is_variadic_template_context()) {
     /* This is not a context that allows a pack expansion, but we could
        have either an expression or a braced-init_list. */
