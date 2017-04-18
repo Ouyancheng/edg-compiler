@@ -4162,8 +4162,8 @@ position is available.
          X<T...> x(p...);
        where an empty parameter pack expansion during look-ahead turns "p..."
        into "nothing". */
-    check_assertion(is_variadic_template_context() &&
-                    !is_template_dependent_context());
+    check_assertion_or_expect_error(is_variadic_template_context() &&
+                                    !is_template_dependent_context());
     expr_icp = NULL;
   } else {
     expr_icp = scan_full_initializer_expr_as_component(
