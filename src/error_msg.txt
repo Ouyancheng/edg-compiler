@@ -2923,6 +2923,8 @@ ec_condition_does_not_declare_a_variable;;"a condition declaration must declare 
 ec_condition_decl_must_have_initializer;;"a condition declaration must include an initializer"
 ec_parenthesized_init_not_allowed;;"a parenthesized initializer is not permitted for a condition declaration"
 ec_condition_with_multiple_declarators;;"a condition declaration can only declare one variable"
+ec_struct_binding_lambda;;"structured binding cannot bind to closure type"
+ec_struct_binding_private_member;;"cannot bind to non-public %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

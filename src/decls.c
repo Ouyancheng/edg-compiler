@@ -16990,6 +16990,9 @@ given position.
       tp->kind != (a_type_kind)tk_class) {
     pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
     result = FALSE;
+  } else if (class_type_supp(tp)->is_lambda_closure_class) {
+    pos_error(ec_struct_binding_lambda, pos);
+    result = FALSE;
   } else {
     a_base_class_ptr  bcp = base_classes_of(tp);
     /* Set fields to the direct data members of tp first. */
@@ -17013,14 +17016,12 @@ given position.
       a_field_ptr    fp = next_bindable_field(fields);
       a_targ_size_t  n = 0;
       while (fp != NULL) {
-        if (!fp->is_bit_field || has_name(fp)) {
-          n += 1;
-          if (fp->is_anonymous_parent_object ||
-              field_is_property_or_event(fp)) {
-            pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
-            result = FALSE;
-            break;
-          }  /* if */
+        n += 1;
+        if (fp->is_anonymous_parent_object ||
+            field_is_property_or_event(fp)) {
+          pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+          result = FALSE;
+          break;
         }  /* if */
         fp = next_bindable_field(fp->next);
       }  /* while */
@@ -17146,6 +17147,11 @@ representing the individual bindings.
         btype = type_pointed_to(btype);
       }  /* if */
       binding_dps.type = make_qualified_type(btype, container_tqs);
+      if (fp->source_corresp.access != (an_access_specifier)as_public) {
+        pos_sy_error(ec_struct_binding_private_member, &pos_curr_token,
+                     symbol_for(fp));
+        err = TRUE;
+      }  /* if */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = TRUE;
@@ -17195,7 +17201,7 @@ representing the individual bindings.
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   if (curr_token != tok_end_of_source) expect_error();
   flush_past_token_cache_terminator();
-  if (n < n_elements) {
+  if (!err && n < n_elements) {
     pos_error(ec_missing_bindings, &dps->declarator_pos);
   }  /* if */
   if (!err) {
