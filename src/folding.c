@@ -6057,6 +6057,7 @@ and set *ovflo to TRUE if an overflow occurred.
       path->next = *p_subobject_path;
       path->kind = (an_il_entry_kind)iek_field;
       path->variant.field = field;
+      *p_subobject_path = path;
     }  /* if */
     if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
       break;

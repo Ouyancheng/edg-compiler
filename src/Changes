@@ -1,5 +1,21 @@
 Version 4.14
 
+4/19/17  [EDGcpfe/18215]
+Abort in constexpr evaluation of array element access in union
+
+In some cases, the constexpr interpreter aborted with an internal error in
+translate_il_address_offset while attempting to represent the folded result
+of accessing an array element in a union.  For example:
+
+  union U {
+    int x[3] = {1, 2, 3};
+  };
+  constexpr int& f(int& p) {return p;}
+  int r = f(U().x[0]);  // Previously triggered an internal error.
+
+This is now fixed.
+
+
 4/19/17  [EDGcpfe/17964,EDGcpfe/17999]
 C++17 compatibility: __has_unique_object_representations type traits helper
 

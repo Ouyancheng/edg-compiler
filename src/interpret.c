@@ -3680,7 +3680,11 @@ If con represents an address of a union subobject, interpretation will fail.
       case tk_array:
         { cap->flags |= CA_ARRAY_ELEMENT;
           cap->length = obj_type->variant.array.variant.number_of_elements;
-          cap->variant.base_address = cap->address;
+          if (is_variant_path(cap)) {
+            cap->variant.variant_path->base_address = cap->address;
+          } else {
+            cap->variant.base_address = cap->address;
+          }  /* if */
           obj_type = skip_typerefs(obj_type->variant.array.element_type);
           i_size = value_bytes_for_type(ips, obj_type, &result); 
           check_assertion(result);
@@ -3770,8 +3774,11 @@ If con represents an address of a union subobject, interpretation will fail.
           } else {
             /* No entries yet: Create a first entry to record an array base
                address if needed. */
-            cap->variant.variant_path = alloc_variant_path_entry();
-            last_entry = cap->variant.variant_path;
+            last_entry = alloc_variant_path_entry();
+            last_entry->field = NULL;
+            last_entry->base_address = is_array_element(cap) ?
+                                             cap->variant.base_address : NULL;
+            cap->variant.variant_path = last_entry;
             cap->flags |= CA_VARIANT_PATH;
           }  /* if */
           vpep = alloc_variant_path_entry();
