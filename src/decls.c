@@ -17213,7 +17213,14 @@ representing the individual bindings.
     /* Structured binding declarations cannot contain multiple "declarators".
        Issue an error and proceed with an error type for the common
        specifiers. */
-    pos_error(ec_exp_semicolon, &pos_curr_token);
+    if (curr_token == tok_comma) {
+      /* It looks like an (invalid) secondary declarator might follow.
+         Proceed with that assumption. */
+      pos_error(ec_exp_semicolon, &pos_curr_token);
+    } else {
+      /* A more severe syntax error. */
+      syntax_error(ec_exp_semicolon);
+    }  /* if */
     dps->specifiers_type = error_type();
     dps->auto_type_specifier_seen = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
