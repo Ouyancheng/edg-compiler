@@ -6512,7 +6512,11 @@ and record it in *dps.  Also update positions in decl_pos_block.
   decl_pos_block->decl_pos = pos_curr_token;
   dps->declarator_pos = pos_curr_token;
   if (!dps->auto_type_specifier_seen || dps->decltype_auto_specifier_seen) {
-    pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
+    if (dps->secondary_declarator) {
+      expect_error();
+    } else {
+      pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
+    }  /* if */
   }  /* if */
   if (dps->type->kind == (a_type_kind)tk_pointer &&
       !dps->type->variant.pointer.is_reference) {
