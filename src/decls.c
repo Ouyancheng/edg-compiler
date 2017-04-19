@@ -202,7 +202,6 @@ be restored).
     dps->is_explicit_override = FALSE;
     dps->is_init_capture = FALSE;
     dps->is_lambda = FALSE;
-    dps->is_struct_binding_decl = FALSE;
     dps->is_alias = FALSE;
     dps->param_with_only_enclosing_pack_refs = FALSE;
     dps->pending_prefix_enable_if_attr = FALSE;
@@ -275,6 +274,7 @@ be restored).
   dps->is_out_of_class_member_function_decl = FALSE;
   dps->position_of_this_reference_in_trailing_return_set = FALSE;
   dps->vla_field_treated_as_zero_length_array = FALSE;
+  dps->is_struct_binding_decl = FALSE;
   clear_init_state(&dps->init_state);
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
@@ -17209,6 +17209,16 @@ representing the individual bindings.
        misleading back ends). */
     container->source_corresp.name = NULL;
   }  /* if */
+  if (curr_token != tok_semicolon) {
+    /* Structured binding declarations cannot contain multiple "declarators".
+       Issue an error and proceed with an error type for the common
+       specifiers. */
+    pos_error(ec_exp_semicolon, &pos_curr_token);
+    dps->specifiers_type = error_type();
+    dps->auto_type_specifier_seen = FALSE;
+    dps->decltype_auto_specifier_seen = FALSE;
+    dps->has_deducible_return_type = FALSE;
+  }  /* if */
 }  /* decl_struct_bindings */
 
 
@@ -18243,14 +18253,14 @@ after the call.
 }  /* prep_for_declarator */
 
 
-void start_secondary_declarator(a_decl_parse_state  *ps)
+void start_secondary_declarator(a_decl_parse_state  *dps)
 /*
-*ps describes specifiers and a declarator from a declaration that contains
+*dps describes specifiers and a declarator from a declaration that contains
 multiple declarators (like "int i, *p;").  Initialize various declarator-
-related-fields of *ps prior to scanning the next declarator.
+related-fields of *dps prior to scanning the next declarator.
 */
 {
-  clear_decl_parse_state_fields(ps, /*secondary_declarator=*/TRUE);
+  clear_decl_parse_state_fields(dps, /*secondary_declarator=*/TRUE);
 }  /* start_secondary_declarator */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
