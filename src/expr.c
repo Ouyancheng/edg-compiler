@@ -29336,7 +29336,7 @@ bound expression (C.f) and record it in *binding.
   make_lvalue_variable_operand(container, &pos_curr_token, &pos_curr_token,
                                &selector, (a_ref_entry_ptr)NULL);
   make_locator_for_symbol(symbol_for(field), &field_loc);
-  do_field_selection_operation(&selector, container->type,
+  do_field_selection_operation(&selector, selector.type,
                                /*is_arrow_operator=*/FALSE,
                                /*compiler_generated=*/TRUE,
                                &field_loc,
