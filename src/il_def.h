@@ -16889,6 +16889,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_assignable",
   "__is_trivially_copy_assignable",
   "__builtin_addressof",
+  "__has_unique_object_representations",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
