@@ -17209,18 +17209,11 @@ representing the individual bindings.
        misleading back ends). */
     container->source_corresp.name = NULL;
   }  /* if */
-  if (curr_token != tok_semicolon) {
+  if (curr_token == tok_comma) {
     /* Structured binding declarations cannot contain multiple "declarators".
        Issue an error and proceed with an error type for the common
        specifiers. */
-    if (curr_token == tok_comma) {
-      /* It looks like an (invalid) secondary declarator might follow.
-         Proceed with that assumption. */
-      pos_error(ec_exp_semicolon, &pos_curr_token);
-    } else {
-      /* A more severe syntax error. */
-      syntax_error(ec_exp_semicolon);
-    }  /* if */
+    pos_error(ec_exp_semicolon, &pos_curr_token);
     dps->specifiers_type = error_type();
     dps->auto_type_specifier_seen = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
