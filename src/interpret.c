@@ -6388,12 +6388,15 @@ of the original *p_fp field in the representation of the returned *p_fp field.
 */
 {
   a_field_ptr   fp = *p_fp, aufp;
+  a_symbol_ptr  aufp_sym;
   a_byte_count  offset;
 
   aufp = symbol_for(fp)->variant.field.anonymous_parent_object
                        ->variant.field.ptr;
+  aufp_sym = symbol_for(aufp);
   get_mapped_byte_count(&persistent_map, aufp, offset);
-  if (symbol_for(aufp)->variant.field.anonymous_parent_object != NULL) {
+  if (aufp_sym != NULL &&
+      aufp_sym->variant.field.anonymous_parent_object != NULL) {
     /* aufp is not the top-most anonymous union.  Recurse to determine its
        offset, and then replace it by the top-most anonymous union. */
     offset += record_anon_union_active_field(&aufp, storage, complete_obj);
