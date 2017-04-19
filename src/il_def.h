@@ -1288,6 +1288,7 @@ typedef enum /*a_token_kind*/ {
   tok_edg_bool_type,
   tok_edg_internal_opnd,
   tok_clang_version,
+  tok_has_unique_object_representations,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1472,6 +1473,7 @@ EXTERN a_const_char
    "__edg_bool_type__",
    "__edg_opnd__",
    "clang version",
+   "__has_unique_object_representations",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -12705,6 +12707,9 @@ typedef enum a_builtin_operation_kind_tag {
 			/* Microsoft's __is_trivially_copy_assignable.  Two
 			   type operands. */
   bok_builtin_addressof,/* __builtin_addressof.  One lvalue operand. */
+  bok_has_unique_object_representations,
+			/* __has_unique_object_representations.  One type
+			   operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

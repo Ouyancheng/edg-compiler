@@ -8058,6 +8058,101 @@ with cssp are trivial.
 }  /* all_copy_constructors_trivial */
 
 
+static a_boolean type_has_unique_object_representations(a_type_ptr type)
+/*
+Return TRUE if type satisfies the std::has_unique_object_representations
+as described in the C++17 Standard. If type is a class type, it must be
+complete.
+
+Note that the code below assumes that all integer, pointer, and pointer to
+member types have no padding bits and only canonical representations and
+thus satisfy the requirements and that fixed point, floating point,
+imaginary, and complete types do not.  This function will need to be
+customized for ABIs and architectures for which these assumptions are not
+valid.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (is_immediate_class_type(type)) {
+    /* A class type has unique object representations if all of its
+       subobjects do and it has no padding bytes anywhere. */
+    a_targ_size_t    end_of_last_subobject = 0;
+    unsigned int     bit_offset_of_end = 0;
+    a_base_class_ptr bcp;
+    a_field_ptr      field;
+    /* First check all direct base subobjects to see if they have unique
+       object representations and if there is any padding between them. */
+    for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+         result && bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct) {
+        if (bcp->offset != end_of_last_subobject) {
+          /* There's padding between base class subobjects. */
+          result = FALSE;
+        } else {
+          if (!type_has_unique_object_representations(bcp->type)) {
+            result = FALSE;
+          }  /* if */
+          end_of_last_subobject += bcp->type->size;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Now check all nonstatic data members for the same. */
+    for (field = type->variant.class_struct_union.field_list;
+         result && field != NULL; field = field->next) {
+      if (field->offset != end_of_last_subobject ||
+          field->offset_bit_remainder != bit_offset_of_end) {
+        /* There's padding between nonstatic data members. */
+        result = FALSE;
+      } else {
+        a_type_ptr field_type = skip_typerefs(field->type);
+        if (!type_has_unique_object_representations(field_type)) {
+          result = FALSE;
+        }  /* if */
+        if (field->is_bit_field) {
+          bit_offset_of_end += field->bit_size;
+          end_of_last_subobject += bit_offset_of_end / targ_char_bit;
+          bit_offset_of_end %= targ_char_bit;
+        } else {
+          end_of_last_subobject += field_type->size;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Finally, check for tail padding. */
+    if (end_of_last_subobject != type->size) {
+      result = FALSE;
+    }  /* if */
+  } else {
+    /* A non-class type. */
+    switch (type->kind) {
+      /* Types with no padding and no non-canonical representations. */
+      case tk_error:
+      case tk_void:
+      case tk_integer:
+      case tk_pointer:
+      case tk_ptr_to_member:
+      case tk_template_param:
+        break;
+      /* Types with padding and/or non-canonical representations. */
+#if FIXED_POINT_ALLOWED
+      case tk_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
+      case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_imaginary:
+      case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        result = FALSE;
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* type_has_unique_object_representations */
+
+
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
@@ -8065,16 +8160,18 @@ static void fold_unary_type_trait_helper(
                                     a_source_position  *pos,
                                     a_boolean          complete_class_property)
 /*
-expr is an enk_builtin_operation node representing a boolean type predicate --
-based on ISO/IEC 19768 -- with a single type operand (e.g., "__is_union").  If
-the operand types is nondependent, store a boolean constant in *constant.  The
-boolean constant will have value "true" if the associated type predicate is
-true for the type represented by its operand.  otherwise, the constant will
-have value "false".  If the operand type is dependent, store a
-ck_template_param constant in *constant.  The constant will be of the
-tpck_expression variant and will point to the given expression.
-If maintain_expression is TRUE, the backing expression for the returned
-constant will be set as well.
+expr is an enk_builtin_operation node representing a boolean type predicate
+(as described in ISO/IEC 19768) with a single type operand (e.g.,
+"__is_union").  If the operand type is nondependent, store a boolean
+constant in *constant.  The boolean constant will have value "true" if the
+associated type predicate is true for the type represented by its operand.
+otherwise, the constant will have value "false".  If the operand type is
+dependent, store a ck_template_param constant in *constant.  The constant
+will be of the tpck_expression variant and will point to the given
+expression.  If maintain_expression is TRUE, the backing expression for the
+returned constant will be set as well.  If complete_class_property is TRUE
+and the operand type is an incomplete class type, the result will be FALSE
+and, if pos is not NULL, an error will be reported.
 */
 {
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
@@ -8105,7 +8202,9 @@ constant will be set as well.
     if (kind == (a_builtin_operation_kind)bok_is_trivial ||
         kind == (a_builtin_operation_kind)bok_is_standard_layout ||
         kind == (a_builtin_operation_kind)bok_is_literal_type ||
-        kind == (a_builtin_operation_kind)bok_is_pod) {
+        kind == (a_builtin_operation_kind)bok_is_pod ||
+        kind ==
+             (a_builtin_operation_kind)bok_has_unique_object_representations) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);
@@ -8243,6 +8342,9 @@ constant will be set as well.
           break;
         case bok_is_trivially_copy_assignable:
           result = TRUE;
+          break;
+        case bok_has_unique_object_representations:
+          result = type_has_unique_object_representations(type);
           break;
         default:
           unexpected_condition();
@@ -8488,6 +8590,9 @@ constant will be set as well.
         result = cssp->assignment_by_bitwise_copy_allowed &&
                  !cssp->has_deleted_copy_or_move_assign_operator;
         break;
+      case bok_has_unique_object_representations:
+        result = type_has_unique_object_representations(type);
+        break;
       default:
         unexpected_condition();
     }  /* if */
@@ -8630,6 +8735,7 @@ constant is set as well.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case bok_is_final:
       case bok_is_trivially_copy_assignable:
+      case bok_has_unique_object_representations:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

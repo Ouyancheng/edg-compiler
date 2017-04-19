@@ -573,7 +573,7 @@ static void enter_type_traits_helpers(void)
 Enter the names of "type trait pseudo-functions" as keywords.  They are
 patterned after the similar extensions introduced by Microsoft's Visual
 C++ 8.0.  They provide direct support for the C++ committee's "Library TR1"
-(ISO/IEC TR 19768) and for related features added to C++11 later on.
+(ISO/IEC TR 19768) and for related features added to C++11 and later revisions.
 While only supported when type_traits_helpers_enabled is TRUE (normally, in
 most C++ modes), they are recognized and diagnosed as errors in Microsoft C
 mode when microsoft_version >= 1400.  A few of the pseudo-functions do not
@@ -661,6 +661,8 @@ modes.
                 "__is_trivially_assignable");
   enter_keyword((a_token_kind)tok_underlying_type, "__underlying_type");
   enter_keyword((a_token_kind)tok_is_final, "__is_final");
+  enter_keyword((a_token_kind)tok_has_unique_object_representations,
+                "__has_unique_object_representations");
 }  /* enter_type_traits_helpers */
 
 

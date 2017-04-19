@@ -12404,6 +12404,10 @@ indication in *rcblock).
                                         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_is_final:                bok = bok_is_final; break;
+      case tok_has_unique_object_representations:
+                                        bok =
+                                         bok_has_unique_object_representations;
+                                        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -28504,6 +28508,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_cli_typeid:
     case tok_safe_cast:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_has_unique_object_representations:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -33155,6 +33160,7 @@ handle_coroutine_yield:
     case tok_is_trivially_copy_assignable:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_is_final:
+    case tok_has_unique_object_representations:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
