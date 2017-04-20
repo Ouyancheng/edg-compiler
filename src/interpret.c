@@ -4517,26 +4517,31 @@ Return TRUE is successful.  Otherwise, return FALSE and update *ips
 accordingly.
 */
 {   
-  a_boolean            result;
-  an_expr_node_ptr     src = dip->variant.constructor.args;
-  a_constexpr_address  src_addr;
-  a_byte               *lvalue = (a_byte*)&src_addr;
+  a_boolean            result = TRUE;
+  an_expr_node_ptr     array_expr = dip->variant.constructor.args;
+  a_byte               *lvalue;
+  a_constexpr_address  *src_addr;
+  a_byte_count         n_lvalue_bytes;
+  a_type_ptr           tp = skip_typerefs(array_expr->type), elem_type;
 
-  check_assertion(src->is_lvalue);
-  result = do_constexpr_expression(ips, src, lvalue, lvalue);
-  if (!result) {
-    /* Nothing more to do. */
-  } else if (is_runtime_data_address(&src_addr)) {
+  check_assertion(array_expr->is_lvalue);
+  n_lvalue_bytes = expr_result_size(ips, array_expr, tp, &result); 
+  if (!result) goto done;
+  alloc_complete_object(ips, n_lvalue_bytes, tp, lvalue);
+  src_addr = (a_constexpr_address*)lvalue;
+  if (!do_constexpr_expression(ips, array_expr, lvalue, lvalue)) {
+    do_constexpr_fail(result);
+  } else if (is_runtime_data_address(src_addr)) {
     info_with_pos(ec_constexpr_access_to_runtime_storage, pos, ips);
     do_constexpr_fail(result);
   } else {
     /* Perform the copy by creating an "implied-source" dynamic initializer
        from the given *dip entry, and interpreting it for every element of
        the array. */
-    a_type_ptr      tp = skip_typerefs(src->type), elem_type;
-    a_byte_count    k, length, elem_size;
+    a_targ_size_t   k, length;
+    a_byte_count    elem_size;
     a_dynamic_init  dip_copy = *dip;
-    dip_copy.variant.constructor.args = src->next;
+    dip_copy.variant.constructor.args = array_expr->next;
     dip_copy.variant.constructor.is_array_copy = FALSE;
     dip_copy.variant.constructor
                     .is_copy_constructor_with_implied_source = TRUE;
@@ -4547,20 +4552,20 @@ accordingly.
     if (!result) goto done;
     /* Decay src_addr from the address of the array to the address of its
        first element. */
-    src_addr.flags |= CA_ARRAY_ELEMENT;
-    src_addr.length = length;
-    if (is_variant_path(&src_addr)) {
-      src_addr.variant.variant_path->base_address = src_addr.address;
+    src_addr->flags |= CA_ARRAY_ELEMENT;
+    src_addr->length = length;
+    if (is_variant_path(src_addr)) {
+      src_addr->variant.variant_path->base_address = src_addr->address;
     } else {
-      src_addr.variant.base_address = src_addr.address;
+      src_addr->variant.base_address = src_addr->address;
     }  /* if */
     for (k = 0; k<length; ++k) {
       if (!do_constexpr_ctor(ips, &dip_copy, pos, result_storage+k*elem_size,
-                             complete_object, &src_addr)) {
+                             complete_object, src_addr)) {
         do_constexpr_fail(result);
         goto done;
       } else {
-        src_addr.address += elem_size;
+        src_addr->address += elem_size;
       }  /* if */
     }  /* for */
   }  /* if */
