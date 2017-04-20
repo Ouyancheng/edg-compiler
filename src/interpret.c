@@ -4503,6 +4503,72 @@ mapping if there was one.
 }  /* do_constexpr_unmap_variable */
 
 
+static a_boolean do_array_constructor_copy(
+                                       an_interpreter_state  *ips,
+                                       a_dynamic_init_ptr    dip,
+                                       a_source_position     *pos,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+The given dik_constructor dynamic initialization entry has its is_array_copy
+flag set to TRUE.  Perform the array copy it represents (to storage indicated
+by result_storage, part of the complete object represented by complete_object).
+Return TRUE is successful.  Otherwise, return FALSE and update *ips
+accordingly.
+*/
+{   
+  a_boolean            result;
+  an_expr_node_ptr     src = dip->variant.constructor.args;
+  a_constexpr_address  src_addr;
+  a_byte               *lvalue = (a_byte*)&src_addr;
+
+  check_assertion(src->is_lvalue);
+  result = do_constexpr_expression(ips, src, lvalue, lvalue);
+  if (!result) {
+    /* Nothing more to do. */
+  } else if (is_runtime_data_address(&src_addr)) {
+    info_with_pos(ec_constexpr_access_to_runtime_storage, pos, ips);
+    do_constexpr_fail(result);
+  } else {
+    /* Perform the copy by creating an "implied-source" dynamic initializer
+       from the given *dip entry, and interpreting it for every element of
+       the array. */
+    a_type_ptr      tp = skip_typerefs(src->type), elem_type;
+    a_byte_count    k, length, elem_size;
+    a_dynamic_init  dip_copy = *dip;
+    dip_copy.variant.constructor.args = src->next;
+    dip_copy.variant.constructor.is_array_copy = FALSE;
+    dip_copy.variant.constructor
+                    .is_copy_constructor_with_implied_source = TRUE;
+    check_assertion(tp->kind == (a_type_kind)tk_array);
+    length = tp->variant.array.variant.number_of_elements;
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    elem_size = value_bytes_for_type(ips, elem_type, &result);
+    if (!result) goto done;
+    /* Decay src_addr from the address of the array to the address of its
+       first element. */
+    src_addr.flags |= CA_ARRAY_ELEMENT;
+    src_addr.length = length;
+    if (is_variant_path(&src_addr)) {
+      src_addr.variant.variant_path->base_address = src_addr.address;
+    } else {
+      src_addr.variant.base_address = src_addr.address;
+    }  /* if */
+    for (k = 0; k<length; ++k) {
+      if (!do_constexpr_ctor(ips, &dip_copy, pos, result_storage+k*elem_size,
+                             complete_object, &src_addr)) {
+        do_constexpr_fail(result);
+        goto done;
+      } else {
+        src_addr.address += elem_size;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* do_array_constructor_copy */
+
+
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -4558,14 +4624,26 @@ Evaluate the given dynamic initialization for the given storage.
                                        result_storage, complete_object);
       break;
     case dik_constructor:
-      result = do_constexpr_ctor(ips, dip, pos, result_storage,
-                                 complete_object, /*implied_src=*/NULL);
+      if (dip->variant.constructor.is_array_copy) {
+        result = do_array_constructor_copy(ips, dip, pos, result_storage,
+                                           complete_object);
+      } else {
+        result = do_constexpr_ctor(ips, dip, pos, result_storage,
+                                   complete_object, /*implied_src=*/NULL);
+      }  /* if */
       break;
     case dik_bitwise_copy:
       { an_expr_node_ptr  source_expr = dip->variant.bitwise_copy.source;
         if (source_expr != NULL) {
+          a_type_ptr  tp = skip_typerefs(source_expr->type);
+          a_boolean   restore_lvalue = FALSE;
+          if (tp->kind == (a_type_kind)tk_array && source_expr->is_lvalue) {
+            restore_lvalue = TRUE;
+            source_expr->is_lvalue = FALSE;
+          }  /* if */
           result = do_constexpr_expression(ips, source_expr, result_storage,
                                            complete_object);
+          if (restore_lvalue) source_expr->is_lvalue = TRUE;
         } else {
           /* An implicit source: The caller should catch those cases. */
           unexpected_condition();
