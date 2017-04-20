@@ -9467,9 +9467,8 @@ local-variable-static-init entry.
          scope memory region) is gone by then. */
       break;
     case initk_binding:
-      /* Lower the bound expression.  In some cases this may already have
-         been lowered. */
-      lower_expr_if_necessary(initializer->bound_expr);
+      /* The bound_expr is not lowered here; it is only lowered when actually
+         used. */
       break;
     default:
       unexpected_condition_str("lower_initializer: bad kind");
@@ -15237,20 +15236,22 @@ cast.  See lower_expr for typical invocation.
 #endif /* MINIMAL_INLINING */
       if (var->init_kind == (an_init_kind)initk_binding) {
         /* The variable is an alias for another expression.  Replace this
-           node by a clone of that expression (which should have already been
-           lowered). */
+           node by a lowered clone of that expression.  bound_expr has not been
+           lowered; copy it (to avoid any memory region issues) and lower the
+           copy. */
         an_expr_node_ptr expr_copy;
-        lower_expr_if_necessary(var->initializer.bound_expr);
 #if EXPENSIVE_CHECKING
         check_assertion(!node_has_side_effects(var->initializer.bound_expr,
                                                (a_boolean *)NULL));
 #endif /* EXPENSIVE_CHECKING */
-        expr_copy = copy_expr_tree(var->initializer.bound_expr, CE_NO_OPTIONS);
-        if (expr->is_lvalue == var->initializer.bound_expr->is_lvalue) {
+        expr_copy = copy_expr_tree(var->initializer.bound_expr,
+                                   CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER);
+        lower_expr(expr_copy);
+        if (expr->is_lvalue == expr_copy->is_lvalue) {
           /* If lvalue-ness is the same, just use the copy. */
         } else {
           /* If an rvalue is needed, create one. */
-          check_assertion(var->initializer.bound_expr->is_lvalue);
+          check_assertion(expr_copy->is_lvalue);
           expr_copy = rvalue_expr_for_lvalue(expr_copy);
         }  /* if */
         overwrite_node(expr, expr_copy);
@@ -20065,10 +20066,9 @@ been removed from the scope variables list).
   }  /* if */
   if (variable->is_struct_binding) {
     /* The expression for a structured binding variable is allocated in the
-       function scope that it appears in.  Lower it and copy the lowered
-       expression to the file scope. */
+       function scope that it appears in.  Copy the expression to the file
+       scope. */
     a_memory_region_number region_to_switch_back_to;
-    lower_expr_if_necessary(variable->initializer.bound_expr);
     switch_to_file_scope_region(&region_to_switch_back_to);
     variable->initializer.bound_expr =
                            copy_expr_tree(variable->initializer.bound_expr,

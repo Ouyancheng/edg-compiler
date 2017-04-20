@@ -9684,7 +9684,12 @@ typedef union an_initializer {
   an_expr_node_ptr
 		bound_expr;
 			/* The expression a binding is bound to (for bindings
-			   that are not ordinary reference variables). */
+			   that are not ordinary reference variables).  */
+#if DO_IL_LOWERING
+			/* This expression is left un-lowered and is copied
+			   and lowered when used (to avoid memory region
+			   issues). */
+#endif /* DO_IL_LOWERING */
 } an_initializer;
 
 
