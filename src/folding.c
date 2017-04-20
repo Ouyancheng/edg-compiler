@@ -8062,13 +8062,13 @@ with cssp are trivial.
 static a_boolean type_has_unique_object_representations(a_type_ptr type)
 /*
 Return TRUE if type satisfies the std::has_unique_object_representations
-as described in the C++17 Standard. If type is a class type, it must be
-complete.
+trait as described in the C++17 Standard. If type is a class type, it must
+be complete.
 
 Note that the code below assumes that all integer, pointer, and pointer to
 member types have no padding bits and only canonical representations and
 thus satisfy the requirements and that fixed point, floating point,
-imaginary, and complete types do not.  This function will need to be
+imaginary, and complex types do not.  This function will need to be
 customized for ABIs and architectures for which these assumptions are not
 valid.
 */
