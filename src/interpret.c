@@ -7147,6 +7147,47 @@ interpreter context.
 }  /* acceptable_lvalue_conversion */
 
 
+static a_boolean do_constexpr_bound_expr(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      var_expr,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+The given expression is an enk_variable node for a variable with an
+initk_binding initializer.  Interpret that initializer.  If successful return
+TRUE and store the result at *result_storage (which is storage within the
+given complete object).  Otherwise, return FALSE and update *ips accordingly.
+*/
+{
+  a_boolean         result = TRUE;
+  a_variable_ptr    var = node_variable(var_expr);
+  an_expr_node_ptr  bound_expr = var->initializer.bound_expr;
+
+  if (var_expr->is_lvalue || var_expr->is_xvalue) {
+    if (!do_constexpr_expression(ips, bound_expr,
+                                 result_storage, complete_object)) {
+      do_constexpr_fail(result);
+    }  /* if */
+  } else {
+    a_type_ptr  tp = skip_typerefs(var_expr->type);
+    a_byte      *lvalue;
+    alloc_complete_object(ips, sizeof(a_constexpr_address), tp, lvalue);
+    if (do_constexpr_expression(ips, bound_expr, lvalue, lvalue)) {
+      a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+      if (result &&
+          !do_glvalue_to_prvalue(ips, var_expr, tp,
+                                 (a_constexpr_address*)lvalue,
+                                 n_bytes, result_storage, complete_object)) {
+        do_constexpr_fail(result);
+      }  /* if */
+    } else {
+      do_constexpr_fail(result);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_bound_expr */
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -10227,6 +10268,14 @@ the value representation of the integer value.
       {
         a_variable_ptr  var = node_variable(expr);
         a_byte          *var_bytes;
+        if (var->init_kind == (an_init_kind)initk_binding) {
+          /* This variable is an alias for an lvalue expression. */
+          if (!do_constexpr_bound_expr(ips, expr, result_storage,
+                                       complete_object)) {
+            result = FALSE;
+          }  /* if */
+          break;
+        }  /* if */
         get_stack_bytes(ips, var, var_bytes);
         if (!expr->is_lvalue && !expr->is_xvalue) {
           /* A variable used as an rvalue; the result is its associated
