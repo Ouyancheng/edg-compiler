@@ -29248,12 +29248,6 @@ icp.
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
-  if (dtor != NULL) {
-    /* Indicate a destructor to be called for cleanup if an exception is
-       thrown part-way through the copy. */
-    record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
-    record_partial_aggregate_cleanup_destruction(dip, /*evaluated=*/TRUE);
-  }  /* if */
   if (err) {
     /* Nothing more to do. */
   } else if (bitwise_copy) {
@@ -29269,6 +29263,12 @@ icp.
     dip->variant.constructor.args = array_arg;
     dip->variant.constructor.is_copy_constructor_with_implied_source = FALSE;
     dip->variant.constructor.is_array_copy = TRUE;
+    if (dtor != NULL) {
+      /* Indicate a destructor to be called for cleanup if an exception is
+         thrown part-way through the copy. */
+      record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
+      record_partial_aggregate_cleanup_destruction(dip, /*evaluated=*/TRUE);
+    }  /* if */
     /* To repeat the initialization for each element of an array, add
        ck_init_repeat/ck_dynamic_init. */
     n_elems = num_array_elements(atype);
@@ -29276,10 +29276,10 @@ icp.
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
     repeat_nonconstant_init(dip, atype, etype, array_dip, n_elems);
     dip = array_dip;
-    if (dtor != NULL) {
-      /* Record the end-of-lifetime destructor. */
-      record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
-    }  /* if */
+  }  /* if */
+  if (dtor != NULL && !err) {
+    /* Record the end-of-lifetime destructor. */
+    record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
   }  /* if */
   dps->init_state.init_dip = dip;
 }  /* record_init_for_array_struct_binding */
