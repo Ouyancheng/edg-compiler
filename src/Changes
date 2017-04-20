@@ -1,5 +1,21 @@
 Version 4.14
 
+4/20/17  [EDGcpfe/18249]
+GNU C++ compatibility: injected template name following "template"
+
+g++ allows the use of constructs such as "T:: template X", where X
+is an injected class of a class template.  This was accepted by the
+front end when gnu_version <= 40400 because of a related GNU compatibility
+feature.  In version 4.13 the default gnu_version was changed, so
+some code that was previously accepted was now rejected.  Now, in g++
+mode, we allow an injected class name of a class template to be used
+following the "template" keyword.
+
+  template <class T> struct A { };
+  template <class T, template<class> class U = T::template A> struct B { };
+  B< A<int> > b;
+
+
 4/19/17  [EDGcpfe/18215]
 Abort in constexpr evaluation of array element access in union
 

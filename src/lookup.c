@@ -4544,7 +4544,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 ||	              \
         (options & IDL_IS_EXPR_CONTEXT) != 0 ||			      \
         (gnu_version < 40500  &&				      \
-         (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0))) ||	      \
+         (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0) ||	      \
+        (((options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&		      \
+         is_injected_template_symbol(fund_sym)))) ||		      \
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_class ||						      \
