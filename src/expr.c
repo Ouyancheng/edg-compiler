@@ -29327,6 +29327,7 @@ bound expression (C.f) and record it in *binding.
 */
 {
   an_operand           selector, result_opnd;
+  a_symbol_ptr         field_sym = symbol_for(field);
   a_symbol_locator     field_loc;
   an_expr_stack_entry  expr_stack_entry;
 
@@ -29335,7 +29336,11 @@ bound expression (C.f) and record it in *binding.
                   /*suppress_object_lifetime=*/FALSE);
   make_lvalue_variable_operand(container, &pos_curr_token, &pos_curr_token,
                                &selector, (a_ref_entry_ptr)NULL);
-  make_locator_for_symbol(symbol_for(field), &field_loc);
+  make_locator_for_symbol(field_sym, &field_loc);
+  cast_pointer_for_field_selection(
+                       &selector, /*is_arrow_operator=*/FALSE, field_sym,
+                       field_sym, /*access_control_error_reported=*/FALSE,
+                       /*do_protected_member_check=*/TRUE, &pos_curr_token);
   do_field_selection_operation(&selector, selector.type,
                                /*is_arrow_operator=*/FALSE,
                                /*compiler_generated=*/TRUE,
