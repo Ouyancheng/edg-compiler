@@ -4,7 +4,7 @@ Version 4.14
 GNU C++ compatibility: injected template name following "template"
 
 g++ allows the use of constructs such as "T:: template X", where X
-is an injected class of a class template.  This was accepted by the
+is an injected class name of a class template.  This was accepted by the
 front end when gnu_version <= 40400 because of a related GNU compatibility
 feature.  In version 4.13 the default gnu_version was changed, so
 some code that was previously accepted was now rejected.  Now, in g++
