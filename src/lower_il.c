@@ -18176,9 +18176,10 @@ statements don't contain an enk_condition).
             }  /* if */
           }  /* if */
         }  /* for */
-      } else if (csp->initialization->kind == (a_statement_kind)stmk_expr) {
-        /* Move this expression statement to the beginning of the inserted
-           block. */
+      } else if (csp->initialization->kind == (a_statement_kind)stmk_expr ||
+                 csp->initialization->kind == (a_statement_kind)stmk_block) {
+        /* Move this expression statement (or possibly lowered expression
+           statement) to the beginning of the inserted block. */
         insert_statement(csp->initialization, &insert_location);
       } else {
         unexpected_condition();
