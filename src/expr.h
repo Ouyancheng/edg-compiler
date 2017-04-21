@@ -744,6 +744,8 @@ extern a_variable_ptr based_variable(void);
 
 extern a_boolean in_expression_context(void);
 
+extern a_boolean operand_is_instantiation_dependent(an_operand_ptr operand);
+
 extern a_boolean arg_operand_is_instantiation_dependent(
                                                an_arg_operand_ptr arg_operand);
 

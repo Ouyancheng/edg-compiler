@@ -66,7 +66,6 @@ an_init_component_ptr scan_init_component_with_potential_pack_expansion(
                                          a_boolean          parenthesized,
                                          a_boolean          *expr_not_present);
 static void process_boolean_controlling_expression(an_operand *result);
-static a_boolean operand_is_instantiation_dependent(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   a_source_position        *start_position,
                                   a_source_position        *type_position,
@@ -43140,7 +43139,7 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
-static a_boolean operand_is_instantiation_dependent(an_operand *operand)
+a_boolean operand_is_instantiation_dependent(an_operand_ptr  operand)
 /*
 Return TRUE if the given operand is instantiation-dependent, which
 includes type-dependent cases, value-dependent cases, and cases where
