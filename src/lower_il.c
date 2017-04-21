@@ -13339,180 +13339,184 @@ Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
 "," operators to valid C.  If the expression passed in is not one of those
 it is left alone.  Note that "?" and "," lvalue-returning operations aren't
 handled directly at this level; they're handled in the context of their
-parent operation.
+parent operation.  Only called for enk_operation nodes.
 */
 {
-  if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind, child_op;
-    an_expr_node_ptr      child1 = expr->variant.operation.operands;
-    /* Look at the first operand of this operation to see if it is an
-       lvalue-returning "?" or ",". */
-    if (is_operation_node(child1) &&
-        child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
-        ((child_op = child1->variant.operation.kind) ==
+  an_expr_operator_kind op, child_op;
+  an_expr_node_ptr      child1;
+
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
+  child1 = expr->variant.operation.operands;
+  /* Look at the first operand of this operation to see if it is an
+     lvalue-returning "?" or ",". */
+  if (is_operation_node(child1) &&
+      child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
+      ((child_op = child1->variant.operation.kind) ==
                                          (an_expr_operator_kind)eok_question ||
-         child_op == (an_expr_operator_kind)eok_question ||
-         child_op == (an_expr_operator_kind)eok_comma)) {
-      if (op != (an_expr_operator_kind)eok_comma) {
-        /* The first operand of expr is an lvalue-returning "?" or ",".
-           That is, expr is the node on top of a "?" or ",". */
-        an_expr_node_ptr child2 = child1->next;
-        /* "gchild" stands for "grandchild". */
-        an_expr_node_ptr gchild1 = child1->variant.operation.operands;
-        an_expr_node_ptr gchild2 = gchild1->next;
-        an_expr_node_ptr gchild3, newop1, newop2;
-        an_expr_node_ptr c2_init = NULL;
-        a_type_ptr       expr_type = expr->type;
-        a_boolean        orig_expr_result_is_not_used =
-                                                      expr->result_is_not_used;
-        a_boolean        orig_expr_is_lvalue = expr->is_lvalue;
-        if (child_op == (an_expr_operator_kind)eok_question ||
-            child_op == (an_expr_operator_kind)eok_vector_question) {
-          /* Lvalue "?" rewrite.  Change
-               ((g1 ? g2 : g3) = c2)
-                               S
-             to
-               (g1 ? (g2 = c2) : (g3 = c2))
-                   D     D           D
-             The operations marked "D" are lvalue operations iff the operation
-             marked "S" is an lvalue operation.  The operation indicated as
-             "=" can in fact be any operation (e.g., simple or complex
-             assignment, prefix ++/--, field selection, cast).  c2 isn't
-             present for unary operations. */
-          gchild3 = gchild2->next;
-          if (child2 != NULL && has_statement_expression(child2)) {
-            /* Statement expressions cannot be copied with copy_expr_tree.
-               Hence we evaluate such expressions into a temporary and copy
-               the reference to the temporary instead. */
-            c2_init = child2;
-            child2 = assign_expr_to_temp_and_make_expr_for_reuse(c2_init);
-          }  /* if */
-          /* Build (g2 = c2). */
-          newop1 = copy_node(expr);
-          newop1->variant.operation.operands = gchild2;
-          gchild2->next = child2;
-          /* Build (g3 = c2) using a copy of c2. */
-          newop2 = copy_node(expr);
-          newop2->variant.operation.operands = gchild3;
-          gchild3->next = (child2 != NULL) ?
-                                   copy_expr_tree(child2, CE_NO_OPTIONS) :
-                                   NULL;
-          /* Replace the original top node with a "?" node. */
-          gchild1->next = newop1;
-          newop1->next = newop2;
-          overwrite_node(expr, child1);
-        } else {
-          /* Lvalue "," rewrite.  Change
-               ((g1 , g2) = c2)
-                          S
-             to
-               (g1 , (g2 = c2))
-                   D     D
-             The operations marked "D" are lvalue operations iff the operation
-             marked "S" is an lvalue operation.  The operation indicated as
-             "=" can in fact be any operation (e.g., simple or complex
-             assignment, prefix ++/--, field selection).  c2 isn't present
-             for unary operations. */
-          /* Build (g2 = c2). */
-          newop1 = copy_node(expr);
-          newop1->variant.operation.operands = gchild2;
-          gchild2->next = child2;
-          newop2 = NULL;
-          /* Replace the original top node with a "," node. */
-          gchild1->next = newop1;
-          overwrite_node(expr, child1);
+       child_op == (an_expr_operator_kind)eok_question ||
+       child_op == (an_expr_operator_kind)eok_comma)) {
+    if (op != (an_expr_operator_kind)eok_comma) {
+      /* The first operand of expr is an lvalue-returning "?" or ",".
+         That is, expr is the node on top of a "?" or ",". */
+      an_expr_node_ptr child2 = child1->next;
+      /* "gchild" stands for "grandchild". */
+      an_expr_node_ptr gchild1 = child1->variant.operation.operands;
+      an_expr_node_ptr gchild2 = gchild1->next;
+      an_expr_node_ptr gchild3, newop1, newop2;
+      an_expr_node_ptr c2_init = NULL;
+      a_type_ptr       expr_type = expr->type;
+      a_boolean        orig_expr_result_is_not_used = expr->result_is_not_used;
+      a_boolean        orig_expr_is_lvalue = expr->is_lvalue;
+      if (child_op == (an_expr_operator_kind)eok_question ||
+          child_op == (an_expr_operator_kind)eok_vector_question) {
+        /* Lvalue "?" rewrite.  Change
+             ((g1 ? g2 : g3) = c2)
+                             S
+           to
+             (g1 ? (g2 = c2) : (g3 = c2))
+                 D     D           D
+           The operations marked "D" are lvalue operations iff the operation
+           marked "S" is an lvalue operation.  The operation indicated as
+           "=" can in fact be any operation (e.g., simple or complex
+           assignment, prefix ++/--, field selection, cast).  c2 isn't
+           present for unary operations. */
+        gchild3 = gchild2->next;
+        if (child2 != NULL && has_statement_expression(child2)) {
+          /* Statement expressions cannot be copied with copy_expr_tree.
+             Hence we evaluate such expressions into a temporary and copy
+             the reference to the temporary instead. */
+          c2_init = child2;
+          child2 = assign_expr_to_temp_and_make_expr_for_reuse(c2_init);
         }  /* if */
-        if (!orig_expr_is_lvalue) {
-          /* The "S" above was an rvalue.  Change the result node to an
-             rvalue. */
-          expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                         FALSE;
-          expr->is_lvalue = FALSE;
-        }  /* if */
-        /* If a temporary was introduced to hold the value of child2, insert
-           its initialization now. */
-        if (c2_init != NULL) {
-          an_insert_location  insert_loc;
-          set_expr_insert_location(expr, &insert_loc);
-          insert_expr(c2_init, &insert_loc);
-        }  /* if */
-        /* As a result of the re-writing above, newop1 and newop2 may have
-           sequences of operators that haven't been seen in tandem during
-           previous lowering of these operators.  It is possible that these
-           sequences of operators now represent an opportunity for optimization
-           that wasn't present before, or that they represent an
-           lvalue-returning operation that needs to be further rewritten.
-           Check for each of these cases. */
-        /* Additionally, make sure the address_taken flag is set properly. */
-        set_address_taken_if_necessary(newop1);
-        optimize_node_if_possible(newop1);
+        /* Build (g2 = c2). */
+        newop1 = copy_node(expr);
+        newop1->variant.operation.operands = gchild2;
+        gchild2->next = child2;
+        /* Build (g3 = c2) using a copy of c2. */
+        newop2 = copy_node(expr);
+        newop2->variant.operation.operands = gchild3;
+        gchild3->next = (child2 != NULL) ?
+                                 copy_expr_tree(child2, CE_NO_OPTIONS) :
+                                 NULL;
+        /* Replace the original top node with a "?" node. */
+        gchild1->next = newop1;
+        newop1->next = newop2;
+        overwrite_node(expr, child1);
+      } else {
+        /* Lvalue "," rewrite.  Change
+             ((g1 , g2) = c2)
+                        S
+           to
+             (g1 , (g2 = c2))
+                 D     D
+           The operations marked "D" are lvalue operations iff the operation
+           marked "S" is an lvalue operation.  The operation indicated as
+           "=" can in fact be any operation (e.g., simple or complex
+           assignment, prefix ++/--, field selection).  c2 isn't present
+           for unary operations. */
+        /* Build (g2 = c2). */
+        newop1 = copy_node(expr);
+        newop1->variant.operation.operands = gchild2;
+        gchild2->next = child2;
+        newop2 = NULL;
+        /* Replace the original top node with a "," node. */
+        gchild1->next = newop1;
+        overwrite_node(expr, child1);
+      }  /* if */
+      if (!orig_expr_is_lvalue) {
+        /* The "S" above was an rvalue.  Change the result node to an
+           rvalue. */
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        expr->is_lvalue = FALSE;
+      }  /* if */
+      /* If a temporary was introduced to hold the value of child2, insert
+         its initialization now. */
+      if (c2_init != NULL) {
+        an_insert_location  insert_loc;
+        set_expr_insert_location(expr, &insert_loc);
+        insert_expr(c2_init, &insert_loc);
+      }  /* if */
+      /* As a result of the re-writing above, newop1 and newop2 may have
+         sequences of operators that haven't been seen in tandem during
+         previous lowering of these operators.  It is possible that these
+         sequences of operators now represent an opportunity for optimization
+         that wasn't present before, or that they represent an
+         lvalue-returning operation that needs to be further rewritten.
+         Check for each of these cases. */
+      /* Additionally, make sure the address_taken flag is set properly. */
+      set_address_taken_if_necessary(newop1);
+      optimize_node_if_possible(newop1);
+      if (is_operation_node(newop1)) {
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1);
-        if (newop2 != NULL) {
-          set_address_taken_if_necessary(newop2);
-          optimize_node_if_possible(newop2);
+      }  /* if */
+      if (newop2 != NULL) {
+        set_address_taken_if_necessary(newop2);
+        optimize_node_if_possible(newop2);
+        if (is_operation_node(newop2)) {
           lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2);
         }  /* if */
-        /* Restore the original expression type.  This matters when the
-           operation above the "?" or "," is a cast. */
-        expr->type = expr_type;
-        if (orig_expr_result_is_not_used) {
-          /* Record that the expression is not used.  This does something
-             only in rare cases (e.g., a void cast above an lvalue
-             assignment). */
-          set_expr_result_not_used(expr);
-        }  /* if */
-      } else {
-        /* An lvalue-returning "?" or "," operation as the first operand of
-           a "," operation.  These can arise during lowering when a node
-           is turned into a "," operation and its first operand is an lvalue.
-           Fix this here by rewriting this discarded lvalue as an rvalue. */
-        check_assertion(child1->result_is_not_used);
-        rewrite_discarded_lvalue_as_rvalue(child1);
       }  /* if */
-    } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
-               (op != (an_expr_operator_kind)eok_question &&
-                op != (an_expr_operator_kind)eok_vector_question &&
-                op != (an_expr_operator_kind)eok_comma)) {
-      an_expr_node_ptr child2 = child1->next;
-      an_expr_node_ptr newop;
-      a_boolean        vars_can_change;
-      /* expr is an lvalue-returning operation that is not a "?" or ",".
-         Rewrite
-           x = y
-         using an rvalue-returning operator as
-           ((x = y), x)
-         The comma operator in the rewrite is lvalue-returning and will
-         be rewritten in its turn later.  If necessary, make a reusable copy
-         of x.  The same kind of rewrite is done for the prefix ++/-- case. */
-      /* Make a copy of the assignment node that is an rvalue
-         assignment.  The same process works for the prefix ++/-- case
-         because the second operand is not touched. */
-      newop = copy_node(expr);
-      /* Drop type qualifiers on the result type. */
-      newop->type = f_skip_typerefs(expr->type);
-      newop->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-      newop->is_lvalue = FALSE;
-      /* newop->result_is_not_used is cleared by copy_type, as it should be. */
-      /* For assignments, see if the source expression can have side
-         effects on the variables used in the destination expression.
-         Since the operation itself is an assignment, it's possible that
-         the assignment could change something used in the determination
-         of the address of child1, though that seems to require something
-         very strange like ((i <? j) = 2) = 3. */
-      vars_can_change = !is_invariant_expr(child1, /*vars_can_change=*/TRUE,
-                                         /*treat_as_potential_prvalue=*/FALSE);
-      if (child2 != NULL && !vars_can_change) {
-        vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
+      /* Restore the original expression type.  This matters when the
+         operation above the "?" or "," is a cast. */
+      expr->type = expr_type;
+      if (orig_expr_result_is_not_used) {
+        /* Record that the expression is not used.  This does something
+           only in rare cases (e.g., a void cast above an lvalue
+           assignment). */
+        set_expr_result_not_used(expr);
       }  /* if */
-      /* Attach a copy of the lvalue to the assignment node, as the
-         second operand of the comma operator. */
-      newop->next = make_lvalue_reusable_copy(child1, vars_can_change);
-      /* newop->next->result_is_not_used is properly FALSE, since the
-         comma expression has non-void type (it's an lvalue). */
-      /* Change the original node to an lvalue-returning comma node. */
-      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        expr->type, expr->is_lvalue, newop);
+    } else {
+      /* An lvalue-returning "?" or "," operation as the first operand of
+         a "," operation.  These can arise during lowering when a node
+         is turned into a "," operation and its first operand is an lvalue.
+         Fix this here by rewriting this discarded lvalue as an rvalue. */
+      check_assertion(child1->result_is_not_used);
+      rewrite_discarded_lvalue_as_rvalue(child1);
     }  /* if */
+  } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
+             (op != (an_expr_operator_kind)eok_question &&
+              op != (an_expr_operator_kind)eok_vector_question &&
+              op != (an_expr_operator_kind)eok_comma)) {
+    an_expr_node_ptr child2 = child1->next;
+    an_expr_node_ptr newop;
+    a_boolean        vars_can_change;
+    /* expr is an lvalue-returning operation that is not a "?" or ",".
+       Rewrite
+         x = y
+       using an rvalue-returning operator as
+         ((x = y), x)
+       The comma operator in the rewrite is lvalue-returning and will
+       be rewritten in its turn later.  If necessary, make a reusable copy
+       of x.  The same kind of rewrite is done for the prefix ++/-- case. */
+    /* Make a copy of the assignment node that is an rvalue
+       assignment.  The same process works for the prefix ++/-- case
+       because the second operand is not touched. */
+    newop = copy_node(expr);
+    /* Drop type qualifiers on the result type. */
+    newop->type = f_skip_typerefs(expr->type);
+    newop->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+    newop->is_lvalue = FALSE;
+    /* newop->result_is_not_used is cleared by copy_type, as it should be. */
+    /* For assignments, see if the source expression can have side
+       effects on the variables used in the destination expression.
+       Since the operation itself is an assignment, it's possible that
+       the assignment could change something used in the determination
+       of the address of child1, though that seems to require something
+       very strange like ((i <? j) = 2) = 3. */
+    vars_can_change = !is_invariant_expr(child1, /*vars_can_change=*/TRUE,
+                                       /*treat_as_potential_prvalue=*/FALSE);
+    if (child2 != NULL && !vars_can_change) {
+      vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
+    }  /* if */
+    /* Attach a copy of the lvalue to the assignment node, as the
+       second operand of the comma operator. */
+    newop->next = make_lvalue_reusable_copy(child1, vars_can_change);
+    /* newop->next->result_is_not_used is properly FALSE, since the
+       comma expression has non-void type (it's an lvalue). */
+    /* Change the original node to an lvalue-returning comma node. */
+    set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                      expr->type, expr->is_lvalue, newop);
   }  /* if */
 }  /* lower_operations_returning_lvalue_instead_of_usual_rvalue */
 
@@ -13637,7 +13641,9 @@ optimizations that require operands be optimized first.
      operator is processed, resulting in an lvalue-returning eok_comma
      operation, which is further rewritten as (0, &A.f) when the eok_address_of
      node is processed on the next iteration. */
-  lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
+  if (is_operation_node(expr)) {
+    lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
+  }  /* if */
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
   /* Nothing invoked at this point in the expression lowering can introduce
      lvalue-returning C++ operations (which would need lowering). */
