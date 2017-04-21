@@ -15254,6 +15254,17 @@ cast.  See lower_expr for typical invocation.
           check_assertion(expr_copy->is_lvalue);
           expr_copy = rvalue_expr_for_lvalue(expr_copy);
         }  /* if */
+        if (!il_identical_types(expr_copy->type, expr->type)) {
+          /* Assume mis-matched types are the result of differences in
+             cv-qualification and add an appropriate cast. */
+          if (expr_copy->is_lvalue) {
+            expr_copy = make_lvalue_operator_node(
+                                        (an_expr_operator_kind)eok_lvalue_cast,
+                                        expr->type, expr_copy);
+          } else {
+            expr_copy = add_cast(expr_copy, expr->type);
+          }  /* if */
+        }  /* if */
         overwrite_node(expr, expr_copy);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       } else if (var->is_vla && expr->is_lvalue) {
