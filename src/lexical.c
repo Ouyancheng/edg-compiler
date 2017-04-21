@@ -13406,7 +13406,7 @@ return_end_of_source_token:
           if (digit == '0') const_for_curr_token.is_simple_zero = TRUE;
           set_unsigned_integer_value(
                                   &const_for_curr_token.variant.integer_value,
-                                  (a_host_large_unsigned)(digit-'0'));
+                                  (a_host_large_unsigned)(int)(digit-'0'));
           curr_char_loc += 1;
         } else {
           ctoken = scan_number();
