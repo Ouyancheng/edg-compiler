@@ -8143,6 +8143,7 @@ valid.
       case tk_imaginary:
       case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case tk_nullptr:
         result = FALSE;
         break;
       default:

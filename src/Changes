@@ -38,11 +38,11 @@ C++17 compatibility: __has_unique_object_representations type traits helper
 The front end now recognizes the __has_unique_object_representations type
 traits helper, which supports the std::has_unique_object_representations
 trait (described in Committee document P0258R2).  It returns TRUE if every
-every bit of the object representation is part of the value and every bit
-pattern represents a different value.  The current implementation assumes
-that the result is true for integers, void, pointers, and pointers to
-members and false for other fundamental data types.  For architectures
-and/or ABIs where that assumption is not correct, the logic of the function
+bit of the object representation is part of the value and every bit pattern
+represents a different value.  The current implementation assumes that the
+result is true for integers, void, pointers, and pointers to members and
+false for other fundamental data types.  For architectures and/or ABIs
+where that assumption is not correct, the logic of the function
 type_has_unique_object_representations (folding.c) will need to be adjusted
 appropriately.  For example:
 
