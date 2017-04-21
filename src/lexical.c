@@ -13393,7 +13393,24 @@ return_end_of_source_token:
           goto end_of_token_scan;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        ctoken = scan_number();
+        ch = curr_char_loc[1];
+        if (!isdigit((unsigned char)ch) && !is_id_char[ch-CHAR_MIN] &&
+            ch != '.' && ch != '\'') {
+          /* A single-digit integer.  Handle that (frequent) case specially. */
+          char  digit = *curr_char_loc;
+          end_of_curr_token = curr_char_loc;
+          ctoken = tok_int_constant;
+          clear_constant(&const_for_curr_token,
+                         (a_constant_repr_kind)ck_integer);
+          const_for_curr_token.type = integer_type((an_integer_kind)ik_int);
+          if (digit == '0') const_for_curr_token.is_simple_zero = TRUE;
+          set_unsigned_integer_value(
+                                  &const_for_curr_token.variant.integer_value,
+                                  (a_host_large_unsigned)(digit-'0'));
+          curr_char_loc += 1;
+        } else {
+          ctoken = scan_number();
+        }  /* if */
         /* Adjust the length of an integer constant in a preprocessing #if
            expression. */
         if (in_pp_if_expression &&
