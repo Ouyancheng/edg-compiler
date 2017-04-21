@@ -8287,6 +8287,16 @@ entity for mangling purposes.
        "parent" for mangling purposes. */
     parent_for_lambda_in_initializer((a_type_ptr)scp, &parent_scp,
                                      &parent_kind);
+    if (parent_kind == iek_variable &&
+        ((a_variable*)parent_scp)->is_struct_binding_container) {
+      /* This lambda appears in the initialization portion of a decomposition
+         declaration.  For lambdas appearing in initializers, the variable
+         is used as the "parent" for mangling purposes, but in this case the
+         "parent" (i.e., structured binding container) is unnamed.  Use the
+         first binding instead. */
+      parent_scp = (a_source_correspondence_ptr)
+                       ((a_variable*)parent_scp)->variant.bindings->entity.ptr;
+    }  /* if */
     more_levels = entity_needs_parent_qualifier(parent_scp, parent_kind);
   } else if (scp->is_class_member) {
     /* Class member. */
