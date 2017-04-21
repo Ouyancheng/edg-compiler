@@ -2029,7 +2029,12 @@ update *insert_location.
     }  /* if */
     /* Make an assignment statement.  For lvalue copies, use a block copy. */
     if (!source_node->is_lvalue) {
-      op = (an_expr_operator_kind)eok_assign;
+      if (is_array_type(type)) {
+        /* Allow an array rvalue to be copied with eok_bassign. */
+        op = (an_expr_operator_kind)eok_bassign;
+      } else {
+        op = (an_expr_operator_kind)eok_assign;
+      }  /* if */
     } else {
       op = (an_expr_operator_kind)eok_bassign;
     }  /* if */
