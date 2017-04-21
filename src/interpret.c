@@ -4693,8 +4693,11 @@ error occurs.
   if (storage == NULL) {
     get_stack_bytes(ips, vp, storage);
   }  /* if */
-  result = do_constexpr_dynamic_init(ips, dip, pos, storage, storage);
-  mark_complete_object_initialized(storage);
+  if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
+    mark_complete_object_initialized(storage);
+  } else {
+    do_constexpr_fail(result);
+  }  /* if */
   if (vp->extends_lifetime) {
     /* Release the ordinary storage stack blocks for this expression.
        The large blocks will be released by the call to
@@ -5138,7 +5141,7 @@ Interpret the given range-based for-statement.
   }  /* if */
   for (k = 0; k<4; ++k) {
     var_storage[k] = do_constexpr_alloc_variable(ips, vp[k], &result);
-    mark_complete_object_initialized(var_storage[k]);
+    if (result) mark_complete_object_initialized(var_storage[k]);
   }  /* for */
   if (!result) goto unmap_storage;
   /* Initialize the range and its delimiters: */
