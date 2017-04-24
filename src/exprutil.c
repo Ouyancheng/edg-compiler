@@ -19688,6 +19688,33 @@ lvalue_adjust:
     /* We don't expect an lvalue-to-rvalue conversion to be done after the
        enk_object_lifetime node has been added to the top of an expression. */
     unexpected_condition();
+#if BUILTIN_FUNCTIONS_ENABLED
+  } else if (node->kind == (an_expr_node_kind)enk_builtin_choose_expr) {
+    /* Apply the conversion to the selected node. */
+    an_expr_node_ptr  selected, converted;
+    a_boolean         local_constant_case;
+    a_boolean         *allow_folding = NULL;
+    selected = node->variant.builtin_choose_expr.operands->next;
+    if (!node->variant.builtin_choose_expr.choose_first) {
+      selected = selected->next;
+    }  /* if */
+    if (constant_case != NULL) allow_folding = &local_constant_case;
+    converted = conv_glvalue_expr_to_prvalue(selected, allow_folding,
+                                             (a_constant_ptr *)NULL, err_pos);
+    if (!node->variant.builtin_choose_expr.choose_first) {
+      node->variant.builtin_choose_expr.operands->next->next = converted;
+    } else {
+      converted->next = selected->next;
+      node->variant.builtin_choose_expr.operands->next = converted;
+    }  /* if */
+    if (allow_folding != NULL && is_constant_node(converted)) {
+      /* The operand is now constant so the overall expression is constant. */
+      con_expr_value = node_constant(converted);
+    }  /* if */
+    node->is_lvalue = node->is_xvalue = FALSE;
+    node->type = converted->type;
+    processed = TRUE;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   }  /* if */
   /* At this point,
        -- If con_expr_value != NULL, the expression has a constant value.

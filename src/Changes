@@ -1,5 +1,19 @@
 Version 4.14
 
+4/24/17  [EDGcpfe/18192]
+Assertion failure on __builtin_choose_expr with parenthesized operand
+
+In GNU mode with PARENS_IN_IL set to TRUE, the front end could abort with an
+assertion failure in conv_glvalue_expr_to_prvalue if its selected operand is
+a parenthesized expression.  For example:
+
+  void g(int i) {
+    __builtin_choose_expr(0, i, (i));  // Previously aborted in some
+  }                                    // configurations.
+
+This is now fixed.
+
+
 4/24/17  [EDGcpfe/18262]
 Assertion failure in record_substitution_for_type
 
