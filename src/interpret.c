@@ -5414,8 +5414,23 @@ successfully interpreted, FALSE otherwise.
           a_type_ptr  fn_type = frame->routine->type;
           fn_type = skip_typerefs(fn_type);
           if (!is_void_type(fn_type->variant.routine.return_type)) {
-            info_with_pos(ec_constexpr_missing_return_value, &stmt->position,
-                          ips);
+            a_source_position  *pos = &stmt->position;
+            if (pos->seq == 0) {
+              a_statement_ptr  parent_stmt = stmt->parent;
+              for (;;) {
+                if (parent_stmt->kind == (a_statement_kind)stmk_block) {
+                  if (parent_stmt->variant.block.extra_info
+                                 ->final_position.seq != 0) {
+                    pos = &parent_stmt->variant.block.extra_info
+                                      ->final_position;
+                    break;
+                  }  /* if */
+                }  /* if */
+                parent_stmt = parent_stmt->parent;
+                check_assertion(parent_stmt != NULL);
+              }  /* if */
+            }  /* if */
+            info_with_pos(ec_constexpr_missing_return_value, pos, ips);
             do_constexpr_fail(result);
           }  /* if */
         }  /* if */
