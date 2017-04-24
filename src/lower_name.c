@@ -761,9 +761,9 @@ entry.
         !gnu_requires_decltype_mangling(type)) {
       /* This is a dependent decltype and typically gets its own
          substitution, but if we're emulating GNU and GNU doesn't believe
-         the decltype is dependent, then strip the decltype for substitution
+         the decltype is dependent, then strip the decltype(s) for substitution
          purposes. */
-      entity = (char *)type->variant.typeref.type;
+      entity = canonical_substitution_entity(type->variant.typeref.type);
     } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     /* Do not insert code here. */
