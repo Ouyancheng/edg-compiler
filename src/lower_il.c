@@ -15261,7 +15261,7 @@ cast.  See lower_expr for typical invocation.
           expr_copy = rvalue_expr_for_lvalue(expr_copy);
         }  /* if */
         if (!il_identical_types(expr_copy->type, expr->type)) {
-          /* Assume mis-matched types are the result of differences in
+          /* Assume mismatched types are the result of differences in
              cv-qualification and add an appropriate cast. */
           if (expr_copy->is_lvalue) {
             expr_copy = make_lvalue_operator_node(
