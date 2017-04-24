@@ -29245,6 +29245,8 @@ icp.
                                        /*check_constexpr=*/FALSE,
                                        &dps->declarator_pos);
   }  /* if */
+  /* Change the references to "use". */
+  change_some_ref_kinds(operand.ref_entries_list, SRK_REFERENCE, SRK_USE);
   pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
   if (err) {
