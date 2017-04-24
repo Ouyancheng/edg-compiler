@@ -2966,7 +2966,11 @@ appears.  Diagnostics may be emitted at the given position.
            enclosing function scope. */
         for (ssep = scope_stack_entry_for(depth_scope_stack);
              ssep != NULL; ssep = previous_scope_of(ssep)) {
-          if (ssep->kind == (a_scope_kind)sck_function) break;
+          if (scope_is(ssep, sck_function) ||
+              (scope_is(ssep, sck_template_instantiation) &&
+               ssep->assoc_routine != NULL)) {
+            break;
+          }  /* if */
         }  /* for */
       }  /* if */
       check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
