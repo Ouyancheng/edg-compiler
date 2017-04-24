@@ -4181,6 +4181,11 @@ position is available.
       is->init_con = alloc_error_constant();
       is->init_error = TRUE;
       if (is_incomplete_array_type(dps->type)) dps->type = error_type();
+    } else if (is_var_init && dps->is_struct_binding_decl &&
+               is_array_type(dps->type)) {
+      /* Something like "auto [x, y]( array );".  The array in the parentheses
+         must be copied (this is unusual for built-in arrays). */
+      record_init_for_array_struct_binding(dps, expr_icp);
     } else if (may_be_string_type(dps->type) &&
                try_string_literal_init(expr_icp, &dps->type, is,
                                        &is->init_con)) {
