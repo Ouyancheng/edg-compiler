@@ -6256,6 +6256,7 @@ that higher up.
     template_constant = &local_template_constant;
   }  /* if */
   *template_constant = FALSE;
+start_underlying_expression:
   expr = skip_parens(expr);
   check_assertion(is_glvalue_node(expr) || is_error_node(expr));
   if (constexpr_enabled && is_glvalue_node(expr) &&
@@ -6277,6 +6278,12 @@ that higher up.
     case enk_variable:
       /* An lvalue for a variable. */
       { a_variable_ptr var = node_variable(expr);
+        if (var->init_kind == (an_init_kind)initk_binding) {
+          /* A variable that represents an "alias" for the underlying
+             lvalue expression. */
+          expr = var->initializer.bound_expr;
+          goto start_underlying_expression;
+        }  /* if */
         if (variable_has_constant_address(var) ||
             ((options & CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT) &&
              var->storage_class == (a_storage_class)sc_auto)) {
