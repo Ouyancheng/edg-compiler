@@ -1,5 +1,29 @@
 Version 4.14
 
+4/24/17  [EDGcpfe/18268]
+Incorrect exception handling cleanup state
+
+In cases where lowering generates exception handling tables, in cases where
+a static aggregate requiring partial aggregate destruction is followed by
+a file scope initialization requiring destructions, the generated cleanup state
+was incorrect (potentially destroying a portion of the aggregate twice).
+For example:
+
+  struct A {
+    A();
+    ~A();
+  };
+  A aa[] = { A() };
+  struct C {
+    C();
+  };
+  C *c = new C();
+  int main() {
+    delete c;
+    return 0;
+  }
+
+
 4/24/17  [EDGcpfe/18192]
 Assertion failure on __builtin_choose_expr with parenthesized operand
 
