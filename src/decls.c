@@ -16997,6 +16997,7 @@ given position.
     a_base_class_ptr  bcp = base_classes_of(tp);
     /* Set fields to the direct data members of tp first. */
     fields = get_direct_fields_if_nonempty(tp);
+    fields = next_bindable_field(fields);
     /* Now explore the base classes for similar members and issue an error
        if we find some in multiple places. */
     for (; bcp != NULL; bcp = bcp->next) {
