@@ -1,5 +1,25 @@
 Version 4.14
 
+4/24/17  [EDGcpfe/18251]
+Spurious error on constexpr constructor definition
+
+Consider the following example in C++14 mode:
+
+  template<typename> struct N { N() {} };
+  template<typename B> struct C: B {
+    constexpr C(): B() {}
+  };
+  struct D: C<N<int>> {
+    constexpr D(): C<N<int>>() {}  // Previously an error.  Now okay.
+  };
+
+Previously, the front end issued an error because the default constructor of
+C<N<int>> is not actually "constexpr" (because its base class N<int> doesn't
+have a constexpr constructor).  Now the error is no longer issued because the
+constructor was declared "constexpr" (and because non-constexpr only after
+instantiation).
+
+
 4/21/17  [EDGcpfe/18278]
 Scanning small integer literals
 

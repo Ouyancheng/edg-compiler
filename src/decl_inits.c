@@ -6750,7 +6750,8 @@ constructor.
       if (is->init_dip != NULL &&
           is->init_dip->kind == (a_dynamic_init_kind)dik_constructor &&
           is->init_dip->variant.constructor.ptr != NULL &&
-          !is->init_dip->variant.constructor.ptr->is_constexpr) {
+          !(is->init_dip->variant.constructor.ptr->is_constexpr ||
+            is->init_dip->variant.constructor.ptr->is_declared_constexpr)) {
         invalid_init = TRUE;
       } else {
         invalid_init = FALSE;
