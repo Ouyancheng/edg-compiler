@@ -17141,13 +17141,18 @@ representing the individual bindings.
         err = TRUE;
       }  /* if */
     } else {  /* Struct-like case. */
-      a_type_ptr  btype;
+      a_type_ptr            btype;
+      a_type_qualifier_set  tqs = container_tqs;
       fp = next_bindable_field(fp);
       btype = fp->type;
       if (is_reference_type(btype)) {
         btype = type_pointed_to(btype);
       }  /* if */
-      binding_dps.type = make_qualified_type(btype, container_tqs);
+      if (fp->is_mutable) {
+        /* Mutable fields ignore a "const" qualified container type. */
+        tqs &= ~TQ_CONST;
+      }  /* if */
+      binding_dps.type = make_qualified_type(btype, tqs);
       if (fp->source_corresp.access != (an_access_specifier)as_public) {
         pos_sy_error(ec_struct_binding_private_member, &pos_curr_token,
                      symbol_for(fp));
