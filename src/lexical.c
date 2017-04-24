@@ -8835,7 +8835,7 @@ the kind of token.
 #if FIXED_POINT_ALLOWED
                  k_fixed_point,
 #endif /* FIXED_POINT_ALLOWED */
-                 k_float, k_clang_version} kind;
+                 k_float} kind;
   a_token_kind 
                 ctoken = tok_error;
   a_boolean     err = FALSE;
@@ -9128,8 +9128,20 @@ float_accum_1:
         /* Assume version numbers have only decimal digits. */
       } while (isdigit((unsigned char)*(++curr_char_loc)) ||
                *curr_char_loc == '.');
-      kind = k_clang_version;
-      goto skip_suffix;
+      end_of_curr_token = curr_char_loc - 1;
+      conv_string_literal(start_of_curr_token, end_of_curr_token + 1,
+                          SCLK_ORDINARY_STRING_LITERAL,
+                          end_of_curr_token - start_of_curr_token + 1,
+                          &err_code, &err_pos);
+      ctoken = tok_clang_version;
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "Numeric token = \"%.*s\", kind = clang_version\n",
+                         (int)(end_of_curr_token - start_of_curr_token + 1),
+                         start_of_curr_token);
+      }  /* if */
+#endif /* DEBUG */
+      goto done;
     }  /* if */
   }  /* if */
   /* Check for the presence of an exponent. */
@@ -9297,7 +9309,6 @@ fixed_point_suffix:
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
 
-skip_suffix:
   /* Here, start_of_curr_token marks the beginning, and curr_char_loc one
      past the end of the constant.  kind is set correctly.  The suffix (if any)
      has been accumulated. */
@@ -9315,7 +9326,6 @@ skip_suffix:
       case k_fixed_point: ks = "fixed-point"; break;
 #endif /* FIXED_POINT_ALLOWED */
       case k_float:       ks = "float";       break;
-      case k_clang_version: ks = "clang_version"; break;
       default:            ks = "<bad kind>";
     }  /* switch */
     fprintf(f_debug, "Numeric token = \"%.*s\", kind = %s\n",
@@ -9364,7 +9374,6 @@ skip_suffix:
                                 ) ||
        (fetch_pp_tokens && (!generate_pp_output || microsoft_mode ||
                             in_preprocessing_directive || macro_depth > 0))) &&
-      kind != k_clang_version &&
       C_dialect != C_dialect_pcc) {
     int       char_bytes;
     a_boolean part_of_pp_num;
@@ -9506,13 +9515,6 @@ skip_suffix:
         conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_float_constant;
         break;
-      case k_clang_version:
-        conv_string_literal(start_of_curr_token, end_of_curr_token + 1,
-                            SCLK_ORDINARY_STRING_LITERAL,
-                            end_of_curr_token - start_of_curr_token + 1,
-                            &err_code, &err_pos);
-        ctoken = tok_clang_version;
-        break;
       default:
         unexpected_condition_str("scan_number: bad kind");
     }  /* switch */
@@ -9569,6 +9571,7 @@ skip_suffix:
       error_at_line_pos(err_code, err_pos);
     }  /* if */
   }  /* if */
+done:
 #if DEBUG
   if (db_flag_is_set("scan_number")) {
     db_constant(&const_for_curr_token);
