@@ -9055,7 +9055,8 @@ being popped.
     if (etfp->is_routine) {
       a_routine_ptr  rp = etfp->variant.routine;
       if (rp->has_deduced_return_type &&
-          (!rp->defined || rp == curr_routine)) {
+          (!rp->defined || rp == curr_routine ||
+           is_auto_type(etfp->type->variant.routine.return_type))) {
         /* Consider:
              auto f() { auto f(); return 1; }
            The local declaration triggered the creation of a fixup entry, but

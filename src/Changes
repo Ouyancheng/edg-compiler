@@ -1,5 +1,25 @@
 Version 4.14
 
+4/25/17  [EDGcpfe/18258]
+Abort in generic_cast_constant after local deduced-return type declaration
+
+In some elaborated examples, the front end could abort with an internal error
+in generic_cast_constant after processing a local declaration of a function
+with a deduced return type.  For example (C++14 mode):
+
+  auto f() try {
+    throw 42;
+  } catch (...) {
+    auto f();
+    return [x = [](auto y){ return y; }](auto z){ return x (z); }(42);
+  }
+  int main() {
+    int x = f();  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 4/25/17  [EDGcpfe/18242]
 Abort on constexpr call in invalid template-id
 
