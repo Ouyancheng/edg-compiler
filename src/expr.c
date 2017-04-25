@@ -29173,7 +29173,7 @@ icp.
     /* Find the proper copy constructor for copying an element of an array
        of class objects. */
     a_type_ptr    tp = skip_typerefs(etype);
-    a_symbol_ptr  cctor_sym, inaccessible_match;
+    a_symbol_ptr  cctor_sym, inaccessible_match = NULL;
     a_boolean     ambiguous, uncallable;
     a_type_qualifier_set
                   tqs = get_type_qualifiers(operand.type);
@@ -43422,7 +43422,7 @@ specifier or member declaration for the subobject to be copied.
   an_expr_stack_entry_ptr saved_expr_stack;
   a_boolean               ambiguous;
   a_boolean               undecidable_because_of_error;
-  a_symbol_ptr            inaccessible_match;
+  a_symbol_ptr            inaccessible_match = NULL;
   a_boolean               bitwise_assign;
 
   /* Save the current expr_stack for later restoration, and start over, because
