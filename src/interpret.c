@@ -10715,20 +10715,18 @@ same address.  Also record the associated subobject path.
       } else {
         i_offset = (a_byte_count)(address - parent_address);
         if (i_offset != 0) {
-          a_type_ptr    elem_type;
           a_byte_count  pos, elem_size;
           a_boolean     okay = TRUE;
           if (type->kind == (a_type_kind)tk_array) {
-            elem_type = skip_typerefs(type->variant.array.element_type);
+            type = skip_typerefs(type->variant.array.element_type);
           } else {
             /* Non-array objects are treated as arrays of one element in this
                context. */
-            elem_type = type;
           }  /* if */
-          elem_size = value_bytes_for_type(ips, elem_type, &okay);
+          elem_size = value_bytes_for_type(ips, type, &okay);
           check_assertion(okay);
           pos = i_offset/elem_size;
-          t_offset += pos*elem_type->size;
+          t_offset += pos*type->size;
           i_offset = pos*elem_size;
           path_entry->kind = (an_il_entry_kind)iek_constant;
           path_entry->variant.ptr_offset = (a_targ_ptrdiff_t)pos;
