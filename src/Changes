@@ -90,7 +90,7 @@ Consider the following example in C++14 mode:
 Previously, the front end issued an error because the default constructor of
 C<N<int>> is not actually "constexpr" (because its base class N<int> doesn't
 have a constexpr constructor).  Now the error is no longer issued because the
-constructor was declared "constexpr" (and because non-constexpr only after
+constructor was declared "constexpr" (and became non-constexpr only after
 instantiation).
 
 
