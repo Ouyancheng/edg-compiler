@@ -17745,11 +17745,11 @@ if one is present.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
-        innermost_function_scope->variant.routine.ptr->is_constexpr &&
-        !state->range_based_for) {
-      check_var_in_constexpr_function(var_ptr, &locator->source_position);
-    }  /* if */
+  }  /* if */
+  if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+      innermost_function_scope->variant.routine.ptr->is_constexpr &&
+      !state->range_based_for) {
+    check_var_in_constexpr_function(var_ptr, &locator->source_position);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_src_seq_end_of_variable_if_needed(state);
