@@ -12412,12 +12412,14 @@ enum an_expr_operator_kind_tag {
 			   IL, one strange case is bool += pointer. */
   eok_psubtract_assign, /* Pointer subtract assign operator ("-="). */
   eok_bassign,		/* Block assignment.  Only used in C++ after IL
-			   lowering, for copy constructors etc.  Both the
-			   source and destination are lvalues; does a memcpy
-			   equivalent.  The result is void.  The size of the
+			   lowering, for copy constructors etc.  The
+			   destination (first operand) is an lvalue; the
+			   source (second operand) is either an lvalue or
+			   an array rvalue. The operation is equivalent to
+			   a memcpy.  The result is void.  The size of the
 			   source operand should be used as the size of the
-			   block copy; the source and destination operand types
-			   typically have the same size, but may not
+			   block copy; the source and destination operand
+			   types typically have the same size, but may not
 			   (e.g., in the case of a variably-sized array
 			   destination where the size is unknown or when
 			   partially initializing an array). */
