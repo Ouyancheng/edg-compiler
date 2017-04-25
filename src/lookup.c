@@ -1716,6 +1716,9 @@ qualified_lookup is TRUE for a namespace or file scope qualified
 lookup.  For qualified lookups qualifier_namespace points to the
 namespace in which the lookup is being done, or is NULL for a file
 scope lookup.  options specifies the options being used for the lookup.
+
+In most cases a new or updated curr_sym is returned.  However, if new_sym
+contains only invisible symbols, a NULL symbol can be returned.
 */
 {
   a_boolean	err = FALSE;
@@ -1837,18 +1840,20 @@ scope lookup.  options specifies the options being used for the lookup.
 						options);
     }  /* if */
   }  /* if */
-  check_assertion(curr_sym != NULL);
+  /* Note that for cases where merge_function_into_lookup_set is called
+     above, curr_sym can be NULL if new_sym contained only invisible
+     symbols. */
   if (err) {
     *any_errors = TRUE;
-    curr_sym->ambiguous = TRUE;
+    if (curr_sym != NULL) curr_sym->ambiguous = TRUE;
   }  /* if */
-  if (curr_sym->decl_seq == NO_DECL_SEQUENCE_NUMBER) {
+  if (curr_sym != NULL && curr_sym->decl_seq == NO_DECL_SEQUENCE_NUMBER) {
     /* Assign a declaration sequence number to the synthesized projection
        symbol if it does not yet have one. */
     set_decl_sequence_number(curr_sym);
   }  /* if */
 #if EXPENSIVE_CHECKING
-  {
+  if (curr_sym != NULL) {
     a_symbol_ptr	fund_curr_sym;
     fund_curr_sym = fundamental_symbol_of(curr_sym);
     /* fund_curr_sym can be NULL in some error cases. */
@@ -1861,17 +1866,19 @@ scope lookup.  options specifies the options being used for the lookup.
                              "add_symbol_to_lookup_set:", "NULL fund_sym");
       }  /* for */
     }  /* if */
-  }
+  }  /* if */
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("lookup_set")) {
-    db_symbol(curr_sym, "add_symbol_to_lookup_set:", 0);
-    if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      a_symbol_ptr	overload_sym;
-      overload_sym = curr_sym->variant.overloaded_function.symbols;
-      for (; overload_sym != NULL; overload_sym = overload_sym->next) {
-        db_symbol(fundamental_symbol_of(overload_sym), "", 4);
-      }  /* for */
+    if (curr_sym != NULL) {
+      db_symbol(curr_sym, "add_symbol_to_lookup_set:", 0);
+      if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        a_symbol_ptr	overload_sym;
+        overload_sym = curr_sym->variant.overloaded_function.symbols;
+        for (; overload_sym != NULL; overload_sym = overload_sym->next) {
+          db_symbol(fundamental_symbol_of(overload_sym), "", 4);
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
