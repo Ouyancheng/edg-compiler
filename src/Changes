@@ -9,7 +9,8 @@ of a subobject of an array element.  For example:
 
   struct X { int x = 1; };
   constexpr X ax[2] = {{}};
-  int *p = &ax[1].x;  // Previously triggered an unbounded loop.  Now fixed.
+  int const *p = &ax[1].x;
+                  // Previously triggered an unbounded loop.  Now fixed.
 
 This is now fixed.
 
