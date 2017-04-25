@@ -13400,12 +13400,15 @@ return_end_of_source_token:
         if (!isdigit((unsigned char)ch) && !is_id_char[ch-CHAR_MIN] &&
             ch != '.' && ch != '\'') {
           /* A single-digit integer.  Handle that (frequent) case specially. */
-          char  digit = *curr_char_loc;
+          an_integer_kind  int_kind;
+          char             digit = *curr_char_loc;
           end_of_curr_token = curr_char_loc;
           ctoken = tok_int_constant;
           clear_constant(&const_for_curr_token,
                          (a_constant_repr_kind)ck_integer);
-          const_for_curr_token.type = integer_type((an_integer_kind)ik_int);
+          int_kind = (in_pp_if_expression && (c99_mode || gnu_mode)) ?
+                                   targ_intmax_kind : (an_integer_kind)ik_int;
+          const_for_curr_token.type = integer_type(int_kind);
           if (digit == '0') const_for_curr_token.is_simple_zero = TRUE;
           set_unsigned_integer_value(
                                   &const_for_curr_token.variant.integer_value,
