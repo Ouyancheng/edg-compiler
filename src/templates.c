@@ -10521,14 +10521,6 @@ argument deduction purposes.
         */
         type_underlying = skip_typerefs(type_underlying);
         templ_type_underlying = skip_typerefs(templ_type_underlying);
-      } else if ((flags & MTT_IS_CONVERSION_TEMPLATE) != 0) {
-        /* Remove any qualifiers.  This is slightly different from the skip
-           typerefs done above in Microsoft mode in that it removes
-           qualifiers from array types.  This is only done for conversion
-           templates.  For other templates, we allow added qualifiers by
-           updating the MTT flags above. */
-        type_underlying = make_unqualified_type(type_underlying);
-        templ_type_underlying = make_unqualified_type(templ_type_underlying);
       }  /* if */
 #if DEBUG
       if (db_flag_is_set("qc")) {

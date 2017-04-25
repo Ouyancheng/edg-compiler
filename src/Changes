@@ -1,5 +1,27 @@
 Version 4.14
 
+4/25/17  [EDGcpfe/18252]
+Conversion function templates and qualification conversions
+
+When a conversion function template is called, a qualification conversion
+can be used as part of the template argument deduction process.  The
+resolution of core 349 indicated that cv-qualifiers should be dropped from
+the deduced type (so that T would be deduced as "int" and not "const int"
+in the example below).  It appears that other compilers did not implement
+this rule and that the rule may not be desirable.  The front end no longer
+drops the cv-qualifiers pending reconsideration of this issue by the
+standards committee.
+
+  struct A {
+    const int *p;
+    A() : p(0){}
+    template <typename T> operator T**() { return &p; }
+  };
+  int main() {
+    int const * const * ip = A();  // now succeeds
+  }
+
+
 4/24/17  [EDGcpfe/18268]
 Incorrect exception handling cleanup state
 
