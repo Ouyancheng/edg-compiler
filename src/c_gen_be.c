@@ -6040,7 +6040,16 @@ process_assignment:
               /* System V or ANSI -- use memcpy. */
               write_tok_str("(void)memcpy((char *)&");
               dump_expr_with_parens(operand_1);
-              write_tok_str(", (char *)&");
+              if (!operand_2->is_lvalue) {
+                /* This can only arise for a structured binding, in which
+                   case the second operand must be an array.  We can rely
+                   on the array-to-pointer decay instead of taking its
+                   address. */
+                check_assertion(is_array_type(operand_2->type));
+                write_tok_str(", (char *)");
+              } else {
+                write_tok_str(", (char *)&");
+              }  /* if */
               dump_expr_with_parens(operand_2);
 #endif /* __BSD__ */
               /* Add the length of the move. */

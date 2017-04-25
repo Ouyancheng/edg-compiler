@@ -26076,8 +26076,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_psubtract_assign: */		LVRV_OPND1_IS_GLVALUE |
 					LVRV_OPND2_IS_PRVALUE,
-  /* eok_bassign: */			LVRV_OPND1_IS_GLVALUE |
-					LVRV_OPND2_IS_GLVALUE,
+  /* eok_bassign: */			LVRV_OPND1_IS_GLVALUE,
   /* eok_land: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_lor: */			LVRV_OPND1_IS_PRVALUE |
