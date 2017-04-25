@@ -9957,8 +9957,8 @@ do_assignment:;
            exception could be thrown.  Exclude cases where init_expr_lifetime
            is non-NULL because it's possible that user code (in the form
            of a destructor) could be invoked.  Make sure that the destruction
-           is marked as for a partial static aggregate (so the destruction
-           will be ignored if a child lifetime follows). */
+           is marked as being for a partial static aggregate (so the
+           destruction will be ignored if a child lifetime follows). */
         dip->destructible_entity_descr->
                             is_destruction_for_partial_static_aggregate = TRUE;
       } else {

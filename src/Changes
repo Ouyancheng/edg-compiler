@@ -25,11 +25,11 @@ standards committee.
 4/24/17  [EDGcpfe/18268]
 Incorrect exception handling cleanup state
 
-In cases where lowering generates exception handling tables, in cases where
-a static aggregate requiring partial aggregate destruction is followed by
+In configurations where lowering generates exception handling tables, in cases
+where a static aggregate requiring partial aggregate destruction is followed by
 a file scope initialization requiring destructions, the generated cleanup state
-was incorrect (potentially destroying a portion of the aggregate twice).
-For example:
+was incorrect (potentially destroying a portion of the aggregate twice).  For
+example:
 
   struct A {
     A();
