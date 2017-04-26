@@ -1612,11 +1612,11 @@ of lambda expressions.
                                                   explicit_return_type,
                                                   /*is_catch_clause=*/FALSE,
                                                   /*is_statement_expr=*/FALSE);
-      if (rout_ptr->is_constexpr) {
-        set_routine_constexpr_info(
-              scope_ptr,
-              scope_stack[depth_innermost_function_scope].constexpr_ruled_out);
-      }  /* if */
+    }  /* if */
+    if (rout_ptr->is_constexpr) {
+      set_routine_constexpr_info(
+             scope_ptr,
+             scope_stack[depth_innermost_function_scope].constexpr_ruled_out);
     }  /* if */
   }  /* if */
   /* Restore defaults for packing class members in a struct definition to

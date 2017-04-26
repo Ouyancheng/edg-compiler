@@ -1,5 +1,21 @@
 Version 4.14
 
+4/26/17  [EDGcpfe/18286]
+Constexpr functions and function-try blocks
+
+The front end previously failed to diagnose a constexpr function defined with
+a function-try block (it only issued an error when trying to evaluate a call
+to the function in a context requiring a constant result).  For example:
+
+  constexpr int f() try { return 1; } catch (...) { return 2; }
+    // Previously, the definition above was accepted in C++11 mode.
+    // Now it is an error.
+  double z[f()];
+    // This call was (and still is) diagnosed as an error.
+
+This is now fixed.
+
+
 4/26/17  [EDGcpfe/18008,EDGcpfe/18236]
 Scoped enumerations are no longer lowered (slight IL CHANGE)
 
