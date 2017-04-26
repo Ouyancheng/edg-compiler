@@ -18504,13 +18504,13 @@ void scan_nonmember_declaration(a_decl_parse_state  *dps,
                                 a_source_range      *linkage_spec_range_ptr)
 /*
 This routine scans declarations in the following scope kinds: file scope,
-namespace scope, function scope, and block scope.  It is also used to scan
-old-style C parameter declarations (in which case dps->is_old_style_param_decl
-is TRUE and dps->param_id_list will list the parameter names in the associated
-function declarator).
+namespace scope, function scope, condition scope, and block scope.  It is also
+used to scan old-style C parameter declarations (in which case
+dps->is_old_style_param_decl is TRUE and dps->param_id_list will list the
+parameter names in the associated function declarator).
 
 *dps tracks the properties of the declaration being parsed.  The caller can
-set some of its fields to direct processing (e.g., dps->is_old_style_param_decl
+set some of its fields to guide processing (e.g., dps->is_old_style_param_decl
 should be set to TRUE and dps->param_id_list should list the parameter names in
 the associated function declarator to scan old-style parameter definitions),
 while other fields will be set so the caller can inspect the outcome of the
@@ -18658,8 +18658,8 @@ parameters are scanned by scan_a_template_parameter_declaration.
   if (dps->range_based_for && terse_range_based_for_enabled &&
       curr_token == tok_identifier &&
       is_terse_range_based_for_declaration()) {
-    /* A C++17-style "terse" range-based for declaration.  I.e., something
-       like the "x: v" in "for (x: v) { f(x); }". */
+    /* A "terse" range-based for declaration.  I.e., something like the "x: v"
+       in "for (x: v) { f(x); }". */
     if (dps->prefix_attributes != NULL) {
       pos_error(ec_attribute_not_allowed, &dps->prefix_attributes->position);
     }  /* if */

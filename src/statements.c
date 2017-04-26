@@ -3696,6 +3696,13 @@ scope and an enk_condition node (the node is attached to sp).
       decl_sp->variant.decl.entities = *sssep->p_declared_entities;
       end_potential_decl_statement();
       initializer_scanned = TRUE;
+      if (dps.specifiers_type == NULL) {
+        /* If dps.specifiers_type is NULL, the declaration we just scanned
+           was not a "simple-declaration" (i.e., a declaration consisting of
+           some optional attributes, followed by decl-specifiers, and
+           optionally followed by a declarator). */
+        pos_error(ec_invalid_init_statement, &dps.start_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (initializer_scanned) {
