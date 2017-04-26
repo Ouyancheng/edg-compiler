@@ -12556,7 +12556,7 @@ final processing like compression and truncation.
 }  /* do_type_name_mangling */
 
 
-void mangle_member_constant_name(a_constant_ptr con)
+static void mangle_member_constant_name(a_constant_ptr con)
 /*
 Mangle the name of the indicated member constant, if necessary.  con
 is either an enumerator constant, a scoped enumerator constant, a namespace
