@@ -17982,6 +17982,41 @@ Lower the dependent statements of the indicated "if" statement.
 }  /* lower_if_dependent_statements */
 
 
+static void make_init_statements_for_entity_list(
+                                      an_il_entity_list_entry_ptr ielep,
+                                      an_insert_location          *insert_loc)
+/*
+The given list contains declared entities that may contain local variable
+declarations that have initializers but no associated stmk_init statements.
+(Currently, this only occurs for C++17 initialization statements in the
+conditions of selection statements.)  Create (and lower) corresponding
+stmk_init statements.
+*/
+{
+  for (; ielep != NULL; ielep = ielep->next) {
+    if (ielep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+      a_variable_ptr vp = (a_variable_ptr)(ielep->entity.ptr);
+      if (vp->init_kind == (an_init_kind)initk_dynamic) {
+        a_statement_ptr init_stmt
+                               = alloc_statement((a_statement_kind)stmk_init);
+        init_stmt->variant.dynamic_init = vp->initializer.dynamic;
+        /* Conservatively set follows_an_exec_statement to TRUE to force
+           the initialization to take place immediately before the
+           temporary is used. */
+        vp->initializer.dynamic->follows_an_exec_statement = TRUE;
+        insert_statement(init_stmt, insert_loc);
+        lower_stmk_init(init_stmt);
+      }  /* if */
+      if (vp->is_struct_binding_container) {
+        /* Also process any binding variables, if needed. */
+        make_init_statements_for_entity_list(vp->variant.bindings,
+                                             insert_loc);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* make_lower_init_statements_for_entity_list */
+
+
 static void lower_condition(a_statement_ptr statement)
 /*
 statement is a statement that has a controlling condition (i.e., it is an
@@ -18157,31 +18192,15 @@ statements don't contain an enk_condition).
            block is allocated into which the lowered stmk_init statements are
            placed -- this ensures that their initialization will be completed
            before initialization of a condition declaration (if any). */
-        an_il_entity_list_entry_ptr ielep;
-        an_insert_location          init_block_insert_location;
-        a_statement_ptr             init_block_stmt;
+        an_insert_location  init_block_insert_location;
+        a_statement_ptr     init_block_stmt;
         init_block_stmt = alloc_statement((a_statement_kind)stmk_block);
         insert_statement(init_block_stmt, &insert_location);
         set_block_start_insert_location(init_block_stmt,
                                         &init_block_insert_location);
-        for (ielep = csp->initialization->variant.decl.entities;
-             ielep != NULL;
-             ielep = ielep->next) {
-          if (ielep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
-            a_statement_ptr stmk_init_stmt;
-            a_variable_ptr vp = (a_variable_ptr)(ielep->entity.ptr);
-            if (vp->init_kind == (an_init_kind)initk_dynamic) {
-              stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-              stmk_init_stmt->variant.dynamic_init = vp->initializer.dynamic;
-              /* Conservatively set follows_an_exec_statement to TRUE to force
-                 the initialization to take place immediately before the
-                 temporary is used. */
-              vp->initializer.dynamic->follows_an_exec_statement = TRUE;
-              insert_statement(stmk_init_stmt, &init_block_insert_location);
-              lower_stmk_init(stmk_init_stmt);
-            }  /* if */
-          }  /* if */
-        }  /* for */
+        make_init_statements_for_entity_list(
+                                   csp->initialization->variant.decl.entities,
+                                   &init_block_insert_location);
       } else if (csp->initialization->kind == (a_statement_kind)stmk_expr ||
                  csp->initialization->kind == (a_statement_kind)stmk_block) {
         /* Move this expression statement (or possibly lowered expression
@@ -20082,7 +20101,7 @@ been removed from the scope variables list).
     lower_constant_init_of_promoted_static(variable,
                                            variable->initializer.constant);
   }  /* if */
-  if (variable->is_struct_binding) {
+  if (variable->init_kind == (an_init_kind)initk_binding) {
     /* The expression for a structured binding variable is allocated in the
        function scope that it appears in.  Copy the expression to the file
        scope. */
