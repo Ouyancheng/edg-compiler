@@ -19,7 +19,7 @@ abort (in form_enum_qualifier) had occurred.  For example (with --c++11):
 4/25/17  [EDGcpfe/18258]
 Abort in generic_cast_constant after local deduced-return type declaration
 
-In some elaborated examples, the front end could abort with an internal error
+In some elaborate examples, the front end could abort with an internal error
 in generic_cast_constant after processing a local declaration of a function
 with a deduced return type.  For example (C++14 mode):
 
