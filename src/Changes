@@ -1987,11 +1987,11 @@ non-lvalue expression.  This is now fixed.  For example:
 
 
 1/11/17  [EDGcpfe/17928]
-Assertion failure in edgcdisp on certain decltype types
+Assertion failure in edgcpdisp on certain decltype types
 
 Due to memory region issues, certain decltype types that refer to entities
 local to a function had caused an assertion failure ("scope for routine is
-NULL") when using edgcdisp to display the IL.  For example (with --c++11):
+NULL") when using edgcpdisp to display the IL.  For example (with --c++11):
 
   template<typename T> void f(T x) {
     [](decltype(*x) e) { };
