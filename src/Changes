@@ -1,9 +1,9 @@
 Version 4.14
 
 4/25/17  [EDGcpfe/18236]
-Abort in edgcdisp on lowered scoped enum
+Abort in edgcpdisp on lowered scoped enum
 
-When using edgcdisp to display a lowered scoped enumerator constant, an
+When using edgcpdisp to display a lowered scoped enumerator constant, an
 abort (in form_enum_qualifier) had occurred.  For example (with --c++11):
 
   enum class E { e };
