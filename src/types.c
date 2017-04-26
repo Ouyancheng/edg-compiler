@@ -2052,6 +2052,8 @@ incomplete class type (or an array thereof) in a valid program.
       set_literal_type_flag(tp);
       result = cssp->known_to_be_a_literal_type;
     }  /* if */
+  } else if (is_error(tp)) {
+    result = TRUE;
   } else {
     result = FALSE;
   }  /* if */
