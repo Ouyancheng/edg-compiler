@@ -1,5 +1,25 @@
 Version 4.14
 
+4/26/17  [EDGcpfe/18008,EDGcpfe/18236]
+Scoped enumerations are no longer lowered (slight IL CHANGE)
+
+Now that prototype instantiations are included in the IL, it was possible to
+get an unlowered enumerator from a scoped enumeration in the IL.  That posed
+problems because lowering removes the scope associated with the enumeration,
+resulting in an IL write-read error in some configurations.  A change has been
+made to forgo lowering of scoped enumerations.  This should also provide better
+information for debuggers.  For example (with --c++11 -tused):
+
+  enum class E { e };
+  template <class T, E> void h();
+  template <class T> void g() {
+    h<T, E::e>();
+  }
+  void f() {
+    g<int>();
+  }
+
+
 4/25/17  [EDGcpfe/18258]
 Abort in generic_cast_constant after local deduced-return type declaration
 

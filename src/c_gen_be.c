@@ -2837,8 +2837,6 @@ if output_final_semi is TRUE.
 
   check_assertion_str(is_immediate_enum_type(type),
                       "dump_enum_definition: not an enum type");
-  check_assertion_str(!integer_type_is_scoped_enum(type), 
-                      "dump_enum_definition: scoped enum");
   enum_con = enum_constants(type);
   /* Empty enumerations are legal in C++ but not in C.  They are supposed
      to be output as the corresponding integral type, but higher up; they

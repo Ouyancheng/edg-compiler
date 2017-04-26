@@ -1813,9 +1813,6 @@ to default values.
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
       pte->variant.integer.is_scoped_enum = FALSE;
-#if DO_IL_LOWERING
-      pte->variant.integer.originally_a_scoped_enum = FALSE;
-#endif /* DO_IL_LOWERING */
       pte->variant.integer.has_explicit_enum_base = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.integer.packed = FALSE;
