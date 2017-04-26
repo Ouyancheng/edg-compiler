@@ -741,9 +741,6 @@ C++.
   /* Use the special routine if there is one. */
   if (octl->output_enum_qualifier != NULL) {
     octl->output_enum_qualifier(enum_type);
-  } else if (enum_type == NULL) {
-    /* When emitting lowered enum class types, the type will have been
-       reset, so don't emit any qualification. */
   } else {
     /* Default processing. */
     a_source_correspondence *scp = &enum_type->source_corresp;
