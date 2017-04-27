@@ -17060,6 +17060,7 @@ representing the individual bindings.
   if (symbol_is(dps->sym, sk_variable)) {
     /* Determine the number of elements to bind to (when known). */
     container = dps->sym->variant.variable.ptr;
+    container->is_struct_binding_container = TRUE;
     container_type = container->type;
     if (is_reference_type(container_type)) {
       container_type = type_pointed_to(container_type);
@@ -17495,10 +17496,6 @@ if one is present.
       /* Error case (described above).  Mark the symbol referenced, to
          suppress subsequent "declared and not referenced" warnings. */
       mark_symbol_to_suppress_warnings(state->sym);
-    }  /* if */
-    if (state->is_struct_binding_decl) {
-      /* Record that this is a structured binding container variable. */
-      var_ptr->is_struct_binding_container = TRUE;
     }  /* if */
   }  /* if */
   if (var_ptr != NULL) {

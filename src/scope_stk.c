@@ -8389,27 +8389,10 @@ routine should be kept.
 {
   a_boolean	result = FALSE;
 
-  if (routine != NULL) {
-    if (routine->contains_generic_lambda) {
-      /* Function containing generic lambdas need to be kept because generic
-         lambda instantiations will refer to their internals. */
-      result = TRUE;
-    } else if (routine->is_lambda_body) {
-      if (routine->is_template_function) {
-        /* Generic lambda closure instances should also be retained. */
-        result = TRUE;
-      } else {
-        a_type_ptr  closure = parent_class_of(routine);
-        a_class_type_supplement_ptr
-                    ctsp = class_type_supp(closure);
-        if (ctsp->defined_in_variable_initializer) {
-          a_variable_ptr  vp = ctsp->lambda_parent.variable;
-          if (vp->is_struct_binding_container) {
-            result = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    } /* if */
+  if (routine != NULL &&
+      (routine->contains_generic_lambda ||
+       (routine->is_lambda_body && routine->is_template_function))) {
+    result = TRUE;
   }  /* if */
   if (result) {
     /* Record that lowering has been delayed on at least one function in the
