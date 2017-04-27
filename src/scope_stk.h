@@ -1015,6 +1015,9 @@ typedef struct a_scope_stack_entry {
 			   having been specialized for name lookup purposes
 			   (i.e., dependent base classes should be included
 			   in the lookup). */
+  a_bit_field	in_discarded_statement:1;
+			/* TRUE if we are in the discarded branch of a
+			   constexpr if that is not in a template context. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
@@ -1845,6 +1848,14 @@ be recorded.
   (depth_scope_stack != NO_SCOPE_DEPTH ?			        \
    scope_stack[depth_scope_stack].record_form_of_name_reference : FALSE)
 
+/*
+TRUE if we are in the discarded branch of a constexpr if in a non-template
+context.
+*/
+#define in_constexpr_if_discarded_statement()				\
+  (depth_scope_stack != NO_SCOPE_DEPTH ?			        \
+   scope_stack[depth_scope_stack].in_discarded_statement : FALSE)
+
 
 /*
 Return a pointer to the class fixup header entry to be used for the
@@ -2206,6 +2217,13 @@ extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);
 extern
 a_template_decl_info_ptr get_specified_template_decl_info(
 					a_boolean	innermost);
+
+#define get_curr_template_decl_info()					\
+  (check_assertion(depth_innermost_instantiation_scope !=		\
+                   NO_SCOPE_DEPTH &&					\
+   scope_stack[depth_innermost_instantiation_scope].			\
+                                        template_decl_info != NULL),	\
+   scope_stack[depth_innermost_instantiation_scope].template_decl_info)
 
 a_template_arg_ptr get_curr_variadic_arg_for_param(
 			a_template_param_coordinate_ptr	coordinates,

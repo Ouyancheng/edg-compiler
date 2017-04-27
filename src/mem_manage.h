@@ -485,6 +485,8 @@ enum a_function_number_tag {
   fn_hash_void_pointer,
   fn_compare_for_pointer_pair_map,
   fn_compare_substituted_type_list_entry,
+  fn_hash_token_sequence_xref,
+  fn_compare_token_sequence_xref,
   fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */

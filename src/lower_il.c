@@ -17972,6 +17972,40 @@ Lower an stmk_return statement.
 }  /* lower_return_statement */
 
 
+static void lower_constexpr_if(a_statement_ptr statement)
+/*
+Lower the indicated C++17 "if constexpr" statement.
+*/
+{
+#if 0
+  a_constexpr_if_ptr	cip;
+  a_statement_ptr	taken_statement;
+
+  cip = statement->variant.constexpr_if;
+  check_assertion(cip->value_known);
+  if (cip->value) {
+    taken_statement = cip->then_statement;
+  } else {
+    taken_statement = cip->else_statement;
+  }  /* if */
+  /* Replace the original statement with a block statement. */
+  set_statement_kind(statement, (a_statement_kind)stmk_block);
+  /* The taken statement will be NULL if the value is FALSE and there is no
+     else.  In that case, we'll just have an empty block. */
+  if (taken_statement != NULL) {
+    statement->variant.block.statements = taken_statement;
+    taken_statement->parent = statement;
+    lower_statement(taken_statement);
+  }  /* if */
+#else
+  a_constexpr_if_ptr	cip;
+  cip = statement->variant.constexpr_if;
+  lower_statement(cip->then_statement);
+  lower_statement(cip->else_statement);
+#endif
+}  /* lower_constexpr_if */
+
+
 static void lower_if_dependent_statements(a_statement_ptr statement)
 /*
 Lower the dependent statements of the indicated "if" statement.
@@ -18045,6 +18079,8 @@ statements don't contain an enk_condition).
       /* Lower the dependent statement(s). */
       if (statement_kind == (a_statement_kind)stmk_if) {
         lower_if_dependent_statements(statement);
+      } else if (statement_kind == (a_statement_kind)stmk_constexpr_if) {
+        lower_constexpr_if(statement);
       } else if (statement_kind == (a_statement_kind)stmk_while) {
         lower_statement(statement->variant.loop_statement);
       } else {
@@ -18250,9 +18286,11 @@ statements don't contain an enk_condition).
       /* Lower the dependent statement(s) of the condition. */
       if (is_switch_stmt) {
         lower_statement(statement->variant.switch_stmt.body_statement);
-      } else {
-        check_assertion(statement_kind == (a_statement_kind)stmk_if);
+      } else if (statement_kind == (a_statement_kind)stmk_if) {
         lower_if_dependent_statements(statement);
+      } else {
+        check_assertion(statement_kind == (a_statement_kind)stmk_constexpr_if);
+        lower_constexpr_if(statement);
       }  /* if */
       /* Set the insert location to insert any required destruction code
          following the condition statement. */
@@ -18830,6 +18868,7 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_if:
       case stmk_while:
+      case stmk_constexpr_if:
         lower_condition(statement);
         break;
       case stmk_end_test_while:

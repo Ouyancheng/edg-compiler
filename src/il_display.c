@@ -4846,6 +4846,25 @@ Display a range-based-for statement.
 #endif /* COROUTINES_ALLOWED */
 }  /* disp_range_based_for_statement */
 
+
+static void disp_constexpr_if_statement(a_statement_ptr ptr)
+/*
+Display a C++17 constexpr if statement.
+*/
+{
+  a_constexpr_if_ptr cip = ptr->variant.constexpr_if;
+
+  (void)printf("stmk_constexpr_if\n");
+  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+  disp_ptr("then_statement", (char *)cip->then_statement, iek_statement);
+  disp_ptr("else_statement", (char *)cip->else_statement, iek_statement);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (cip->else_statement != NULL) {
+    disp_source_position("else_position", &cip->else_position);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_constexpr_if_statement */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void disp_for_each_statement(a_statement_ptr ptr)
@@ -5001,6 +5020,9 @@ Display the indicated statement.
                              &ptr->variant.if_stmt.else_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
+      break;
+    case stmk_constexpr_if:
+      disp_constexpr_if_statement(ptr);
       break;
     case stmk_while:
       (void)printf("stmk_while\n");
@@ -7318,6 +7340,7 @@ This routine is called during IL walking.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_for_loop:
     case iek_range_based_for_loop:
+    case iek_constexpr_if:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_for_each_loop:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

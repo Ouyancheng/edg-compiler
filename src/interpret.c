@@ -5284,9 +5284,18 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_if:
+    case stmk_constexpr_if:
       {
         a_boolean             has_cond_var;
         a_host_large_integer  bool_val;
+        a_statement_ptr       then_statement, else_statement;
+        if (stmt->kind == (a_statement_kind)stmk_if) {
+          then_statement = stmt->variant.if_stmt.then_statement;
+          else_statement = stmt->variant.if_stmt.else_statement;
+        } else {
+          then_statement = stmt->variant.constexpr_if->then_statement;
+          else_statement = stmt->variant.constexpr_if->else_statement;
+        }  /* if */
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
         has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
@@ -5307,11 +5316,9 @@ successfully interpreted, FALSE otherwise.
           get_int_val_from(expr_value, tp, bool_val, ovfl);
           if (ovfl || bool_val) {
             /* Execute the "then" statement. */
-            result = do_constexpr_statement(
-                                   ips, stmt->variant.if_stmt.then_statement);
-          } else if (stmt->variant.if_stmt.else_statement != NULL) {
-            result = do_constexpr_statement(
-                                   ips, stmt->variant.if_stmt.else_statement);
+            result = do_constexpr_statement(ips, then_statement);
+          } else if (else_statement != NULL) {
+            result = do_constexpr_statement(ips, else_statement);
           }  /* if */
         }  /* if */
         if (has_cond_var) {

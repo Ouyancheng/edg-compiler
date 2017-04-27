@@ -15749,7 +15749,6 @@ one that yields the value) of a statement expression.
 */
 {
   a_statement_kind    kind;
-  a_statement_ptr     else_stmt;
   a_boolean           suppress_trailing_space = is_stmt_expression;
   a_src_seq_end_of_construct_ptr
                       ssecp;
@@ -15814,33 +15813,46 @@ one that yields the value) of a statement expression.
       write_tok_ch(';');
       break;
     case stmk_if:
-      /* "if" statement: generate "if (expr) statement" or
-                                  "if (expr) statement else statement". */
-      else_stmt = statement->variant.if_stmt.else_statement;
+    case stmk_constexpr_if:
+      {
+        a_statement_ptr then_statement, else_statement;
+        a_const_char	*stmt_start;
+        if (kind == (a_statement_kind)stmk_if) {
+          then_statement = statement->variant.if_stmt.then_statement;
+          else_statement = statement->variant.if_stmt.else_statement;
+          stmt_start = "if (";
+        } else {
+          then_statement = statement->variant.constexpr_if->then_statement;
+          else_statement = statement->variant.constexpr_if->else_statement;
+          stmt_start = "if constexpr (";
+        }  /* if */
+        /* "if" statement: generate "if (expr) statement" or
+                                    "if (expr) statement else statement". */
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
-      /* Add braces around an "if" without an "else" to avoid the "dangling
-         else" problem.  This is necessary only if customer code modifies
-         the IL tree. */
-      if (else_stmt == NULL) {
-        write_tok_ch('{');
-      }  /* if */
+        /* Add braces around an "if" without an "else" to avoid the "dangling
+           else" problem.  This is necessary only if customer code modifies
+           the IL tree. */
+        if (else_statement == NULL) {
+          write_tok_ch('{');
+        }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
-      write_tok_str("if (");
-      gen_condition(statement);
-      write_tok_ch(')');
-      write_space();
-      /* Generate the "then" part. */
-      gen_statement(statement->variant.if_stmt.then_statement);
-      if (else_stmt != NULL) {
-        /* Generate the "else" part. */
-        write_tok_str("else ");
-        gen_statement(else_stmt);
+        write_tok_str(stmt_start);
+        gen_condition(statement);
+        write_tok_ch(')');
+        write_space();
+        /* Generate the "then" part. */
+        gen_statement(then_statement);
+        if (else_statement != NULL) {
+          /* Generate the "else" part. */
+          write_tok_str("else ");
+          gen_statement(else_statement);
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
-      } else {
-        /* Close the set of braces begun above. */
-        write_tok_ch('}');
+        } else {
+          /* Close the set of braces begun above. */
+          write_tok_ch('}');
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
-      }  /* if */
+        }  /* if */
+      }
       break;
     case stmk_while:
       /* "while" statement: generate "while (expr) statement". */

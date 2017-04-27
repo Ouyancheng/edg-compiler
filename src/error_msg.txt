@@ -2928,6 +2928,7 @@ ec_struct_binding_private_member;;"cannot bind to non-public %n"
 ec_struct_binding_array_of_incomplete_type;;"cannot bind to an array of incomplete type %t"
 ec_invalid_init_statement;;"this declaration is not valid here"
 ec_constexpr_function_with_function_try_block;;"the body of a constexpr function cannot be a function try block" 
+ec_branch_into_constexpr_if;;"transfer of control into a constexpr if block is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

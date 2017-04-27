@@ -3331,6 +3331,7 @@ default mode (e.g., exception handling).
       struct_bindings_enabled = TRUE;
       selection_initializers_enabled = TRUE;
       direct_init_fixed_base_enum_enabled = TRUE;
+      constexpr_if_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11275,6 +11276,7 @@ variables declared in cmd_line.h.
   nested_namespace_definitions_enabled = FALSE;
   enumerator_attributes_enabled = FALSE;
   variable_templates_enabled = FALSE;
+  constexpr_if_enabled = FALSE;
   alignas_enabled = FALSE;
   alignof_enabled = FALSE;
   pragma_pack_enabled = TRUE;

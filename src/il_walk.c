@@ -3491,6 +3491,19 @@ as specified in the control block.
         traverse_statement(statement->variant.if_stmt.else_statement, tblock);
       }  /* if */
       break;
+    case stmk_constexpr_if:
+      traverse_expr(statement->expr, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      if (statement->variant.constexpr_if->then_statement != NULL) {
+        traverse_statement(statement->variant.constexpr_if->then_statement,
+                           tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
+      if (statement->variant.constexpr_if->else_statement != NULL) {
+        traverse_statement(statement->variant.constexpr_if->else_statement,
+                           tblock);
+      }  /* if */
+      break;
     case stmk_while:
       traverse_expr(statement->expr, tblock);
       if (tblock->terminate) goto end_of_routine;

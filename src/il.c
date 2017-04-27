@@ -2409,6 +2409,7 @@ Dump a statement kind, for debug purposes.
     case stmk_empty:            s = "empty";             break;
     case stmk_expr:             s = "expr";              break;
     case stmk_if:               s = "if";                break;
+    case stmk_constexpr_if:     s = "constexpr if";      break;
     case stmk_while:            s = "while";             break;
     case stmk_goto:             s = "goto";              break;
     case stmk_label:            s = "label";             break;
@@ -2615,19 +2616,30 @@ the dump (this one counts as the first).
                             how_deep-1);
           break;
         case stmk_if:
-          if (how_deep > 1) {
-            if (sp->variant.if_stmt.then_statement == NULL) {
-              for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
-              fprintf(f_debug, "then <null>\n");
+        case stmk_constexpr_if:
+          {
+            a_statement_ptr then_statement, else_statement;
+            if (sp->kind == (a_statement_kind)stmk_if) {
+              then_statement = sp->variant.if_stmt.then_statement;
+              else_statement = sp->variant.if_stmt.else_statement;
             } else {
-              db_statement_list(sp->variant.if_stmt.then_statement, indent+2,
-                                "then ", how_deep-1);
+              then_statement = sp->variant.constexpr_if->then_statement;
+              else_statement = sp->variant.constexpr_if->else_statement;
             }  /* if */
-            if (sp->variant.if_stmt.else_statement != NULL) {
-              db_statement_list(sp->variant.if_stmt.else_statement, indent+2,
-                                "else ", how_deep-1);
+            if (how_deep > 1) {
+              if (then_statement == NULL) {
+                for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+                fprintf(f_debug, "then <null>\n");
+              } else {
+                db_statement_list(then_statement, indent+2,
+                                  "then ", how_deep-1);
+              }  /* if */
+              if (else_statement != NULL) {
+                db_statement_list(else_statement, indent+2,
+                                  "else ", how_deep-1);
+              }  /* if */
             }  /* if */
-          }  /* if */
+          }
           break;
         case stmk_for:
           db_statement_list(sp->variant.for_loop.statement, indent+2, "",
@@ -8772,7 +8784,7 @@ Given a function-local type, return a pointer to the innermost function that
 encloses it, or null if the type belongs to a local function prototype scope.
 */
 {
-  check_assertion(type->source_corresp.is_local_to_function);
+  check_assertion_or_expect_error(type->source_corresp.is_local_to_function);
   /* For members of local classes, go up through all the containing
      classes to get to the class declared directly in the function. */
   while (type->source_corresp.is_class_member) {
@@ -21922,6 +21934,13 @@ Copy a statement entry from "from" to "to".
       to->variant.if_stmt.then_statement->parent = to;
       if (to->variant.if_stmt.else_statement != NULL) {
         to->variant.if_stmt.else_statement->parent = to;
+      }  /* if */
+      break;
+    case stmk_constexpr_if:
+      /* Update the "then" and "else" (if present) branch parents. */
+      to->variant.constexpr_if->then_statement->parent = to;
+      if (to->variant.constexpr_if->else_statement != NULL) {
+        to->variant.constexpr_if->else_statement->parent = to;
       }  /* if */
       break;
     case stmk_while:

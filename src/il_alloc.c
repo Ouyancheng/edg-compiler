@@ -112,6 +112,7 @@ static unsigned long
                 num_attributes_allocated,
                 num_attribute_args_allocated,
                 num_attribute_groups_allocated,
+                num_constexpr_ifs_allocated,
                 num_subobject_paths_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
@@ -702,6 +703,30 @@ is allocated in the current memory region.
   entry->variant.field = NULL;
   return entry;
 }  /* alloc_subobject_path */
+
+
+a_constexpr_if_ptr alloc_constexpr_if(void)
+/*
+Allocate an entry for a subobject path and return a pointer to it.  The entry
+is allocated in the current memory region.
+*/
+{
+  a_constexpr_if_ptr  entry;
+
+  entry = alloc_cil_of_type(a_constexpr_if);
+#if DEBUG
+  ++num_constexpr_ifs_allocated;
+#endif /* DEBUG */
+  entry->then_statement = NULL;  
+  entry->else_statement = NULL;  
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  entry->else_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  entry->value_known = FALSE;
+  entry->value = FALSE;
+  return entry;
+}  /* alloc_constexpr_if */
+
 
 void set_template_param_constant_kind(a_constant                     *cp,
                                       a_template_param_constant_kind kind)
@@ -3871,6 +3896,9 @@ fields to default values.
       sp->variant.if_stmt.else_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       break;
+    case stmk_constexpr_if:
+      sp->variant.constexpr_if = alloc_constexpr_if();
+      break;
     case stmk_while:
     case stmk_end_test_while:
       sp->variant.loop_statement = NULL;
@@ -5639,6 +5667,7 @@ Display and return the amount of space used for various IL tables.
                 a_coroutine_descr);
 #endif /* COROUTINES_ALLOWED */
   db_space_used("statement", num_statements_allocated, a_statement);
+  db_space_used("constexpr if", num_constexpr_ifs_allocated, a_constexpr_if);
   db_space_used("constructor init", num_constructor_inits_allocated,
                 a_constructor_init);
   db_space_used("pragma", num_pragmas_allocated, a_pragma);
@@ -6023,6 +6052,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_attribute_args_allocated),
       pch_saved_var_array_elem(num_attribute_groups_allocated),
       pch_saved_var_array_elem(num_subobject_paths_allocated),
+      pch_saved_var_array_elem(num_constexpr_ifs_allocated),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -6221,6 +6251,7 @@ initializations that are done for each compilation.
 #endif /* ASM_SUPPORT_NEEDED */
   num_il_entity_list_entries_allocated   = 0;
   num_subobject_paths_allocated          = 0;
+  num_constexpr_ifs_allocated            = 0;
 #endif /* DEBUG */
 #if CHECKING
   local_constants_in_use                 = 0;

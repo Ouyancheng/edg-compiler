@@ -2814,6 +2814,7 @@ the scope being pushed.
   ssep->constexpr_ruled_out = FALSE;
   ssep->make_access_errors_warnings = FALSE;
   ssep->treat_as_specialization = FALSE;
+  ssep->in_discarded_statement = FALSE;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
@@ -2834,6 +2835,7 @@ the scope being pushed.
 #if GNU_EXTENSIONS_ALLOWED
     ssep->in_gnu_abi_tag_namespace = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    ssep->in_discarded_statement = FALSE;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
     ssep->implicit_typename = (ssep-1)->implicit_typename;
@@ -2845,6 +2847,7 @@ the scope being pushed.
                                   (assoc_namespace != NULL &&
                                    assoc_namespace->has_gnu_abi_tag_attribute);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    ssep->in_discarded_statement = (ssep-1)->in_discarded_statement;
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->rescan_depth_exceeded = FALSE;

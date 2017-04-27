@@ -700,6 +700,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_event_interface,  /* an_event_interface */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_subobject_path,	/* a_subobject_path */
+  iek_constexpr_if,	/* a_constexpr_if */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -869,6 +870,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_event_interface */               "event-interface",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_subobject_path */		"subobject-path",
+/* iek_constexpr_if */			"constexpr-if",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -13765,6 +13767,7 @@ enum a_statement_kind_tag {
   /* Kinds of statements. */
   stmk_expr,		/* Evaluate expression, throw away its value. */
   stmk_if,		/* if-then-else. */
+  stmk_constexpr_if,	/* C++17 constexpr if-then-else. */
   stmk_while,		/* Loop, test at top. */
   stmk_goto,		/* Goto. */
   stmk_label,		/* Code label. */
@@ -14418,6 +14421,37 @@ typedef struct a_coroutine_descr {
 
 #endif /* COROUTINES_ALLOWED */
 
+/*
+Description of a C++17 "if constexpr" statement.
+*/
+typedef struct a_constexpr_if *a_constexpr_if_ptr;
+typedef struct a_constexpr_if {
+  a_statement_ptr
+                then_statement,
+                else_statement;
+                        /* The statements to be evaluated if the expression
+			   is true or false.  In a prototype instantiation,
+			   and in a non-template function, then_statement
+			   is always non-NULL and else_statement is non-NULL
+			   if an "else" is present.  In an instantiation of a
+			   template function, the then statement will be
+			   replaces with an empty statement if the condition
+			   is false, and if the else is present, it will be
+			   replaced by an empty statement if the condition
+			   is true. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		else_position;
+                        /* The position of the "else" keyword (if any). */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_bit_field	value_known:1;
+			/* TRUE if the expression resulted in a known (i.e.,
+			   non-dependent) constant value. */
+  a_bit_field	value:1;
+			/* When value_known is TRUE, this is TRUE if the
+			   result value is TRUE. */
+} a_constexpr_if;
+
 typedef struct a_statement {
   /* Definition of an executable statement. */
   a_source_position
@@ -14479,6 +14513,7 @@ typedef struct a_statement {
                              The expression to evaluate for stmk_expr.
                              The return value (or NULL) for stmk_return.
                              The expression to test for stmk_if.
+                             The expression to test for stmk_constexpr_if.
                              The expression to test for stmk_while.
                              The expression to test for stmk_end_test_while.
                              The expression to test (or NULL) for stmk_for.
@@ -14525,6 +14560,11 @@ typedef struct a_statement {
                         /* The position of the "else" keyword (if any). */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } if_stmt;
+    /* When kind == stmk_constexpr_if: */
+    a_constexpr_if_ptr
+		constexpr_if;
+			/* Pointer to an entry describing a C++17
+			   "if constexpr" statement. */
     /* When kind == stmk_while: */
     /* When kind == stmk_end_test_while: */
     a_statement_ptr
@@ -17055,6 +17095,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_event_interface),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_subobject_path),
+  sizeof(a_constexpr_if),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

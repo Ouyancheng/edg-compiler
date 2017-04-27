@@ -39590,6 +39590,12 @@ handle_deduced_return_type:
            was called recursively in the return expression). */
         expect_error();
         required_type = error_type();
+#if 0
+      } else if (in_constexpr_if_discarded_statement()) {
+        /* FIXME */
+        /* We are in the untaken branch of a constexpr if.  This return
+           should not participate in deduction. */
+#endif
       } else {
         check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
                                                        &required_type);
@@ -39657,12 +39663,19 @@ handle_deduced_return_type:
         }  /* if */
       } else {
         /* Convert to the required type. */
-        prep_initializer_operand(&result, required_type, 
-                                 (a_boolean *)NULL,
-                                 (a_conv_descr_ptr)NULL,
-                                 /*is_copy_initialization=*/TRUE,
-                                 conv_context,
-                                 err_code);
+#if 0
+        if (!in_constexpr_if_discarded_statement()) {
+          /* FIXME */
+#else
+        if (1) {
+#endif
+          prep_initializer_operand(&result, required_type, 
+                                   (a_boolean *)NULL,
+                                   (a_conv_descr_ptr)NULL,
+                                   /*is_copy_initialization=*/TRUE,
+                                   conv_context,
+                                   err_code);
+        }  /* if */
         expression = make_node_from_operand(&result);
         if (!is_any_reference_type(required_type)) {
           check_for_return_of_address_of_local_variable(expression,

@@ -1404,6 +1404,10 @@ EXTERN a_boolean
 		variable_templates_enabled;
 			/* TRUE if C++14 variable templates are enabled. */
 
+EXTERN a_boolean
+		constexpr_if_enabled;
+			/* TRUE if C++17 "if constexpr" is enabled. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 EXTERN a_calling_convention

@@ -9263,7 +9263,7 @@ static void dump_statement(a_statement_ptr statement)
 Generate C for a statement.
 */
 {
-  a_statement_ptr  init_stmt, else_stmt;
+  a_statement_ptr  init_stmt;
   an_expr_node_ptr init_expr;
   a_statement_kind kind;
 
@@ -9301,34 +9301,45 @@ Generate C for a statement.
       }  /* if */
       break;
     case stmk_if:
-      else_stmt = statement->variant.if_stmt.else_statement;
+    case stmk_constexpr_if:
+      /* FIXME: should stmk_constexpr_if be removed? */
+      {
+        a_statement_ptr then_statement, else_statement;
+        if (kind == (a_statement_kind)stmk_if) {
+          then_statement = statement->variant.if_stmt.then_statement;
+          else_statement = statement->variant.if_stmt.else_statement;
+        } else {
+          then_statement = statement->variant.constexpr_if->then_statement;
+          else_statement = statement->variant.constexpr_if->else_statement;
+        }  /* if */
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
-      /* Add braces around an "if" without an "else" to avoid the "dangling
-         else" problem.  This is necessary only if customer code modifies
-         the IL tree. */
-      if (else_stmt == NULL) {
-        write_tok_ch('{');
-      }  /* if */
+        /* Add braces around an "if" without an "else" to avoid the "dangling
+           else" problem.  This is necessary only if customer code modifies
+           the IL tree. */
+        if (else_statement == NULL) {
+          write_tok_ch('{');
+        }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
-      write_tok_str("if ");
-      dump_boolean_controlling_expression(statement->expr);
-      /* Dump the "then" part. */
-      indent += 2;
-      dump_statement(statement->variant.if_stmt.then_statement);
-      indent -= 2;
-      if (else_stmt != NULL) {
-        /* Use the position from the "else" statement for the keyword. */
-        set_output_position(&else_stmt->position);
-	write_tok_str("else ");
-	indent += 2;
-	dump_statement(else_stmt);
-	indent -= 2;
+        write_tok_str("if ");
+         dump_boolean_controlling_expression(statement->expr);
+        /* Dump the "then" part. */
+        indent += 2;
+        dump_statement(then_statement);
+        indent -= 2;
+        if (else_statement != NULL) {
+          /* Use the position from the "else" statement for the keyword. */
+          set_output_position(&else_statement->position);
+          write_tok_str("else ");
+          indent += 2;
+          dump_statement(else_statement);
+          indent -= 2;
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
-      } else {
-        /* Close the set of braces begun above. */
-        write_tok_ch('}');
+        } else {
+          /* Close the set of braces begun above. */
+          write_tok_ch('}');
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
-      }  /* if */
+        }  /* if */
+      }
       break;
     case stmk_while:
       write_tok_str("while ");

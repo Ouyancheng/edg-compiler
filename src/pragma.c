@@ -817,6 +817,9 @@ there is additional processing to be done.
   db_enter(5, "add_pragma_to_il");
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Pragmas are never added to the IL inside a prototype instantiation. */
+  } else if (in_constexpr_if_discarded_statement()) {
+    /* Pragmas from C++17 constexpr if discarded statements are not added
+       to the IL. */
   } else {
     /* Determine the memory region in which the IL pragma entry should be
        allocated and the scope_depth of the scope entry to which it should

@@ -175,6 +175,11 @@ typedef struct a_control_flow_descr {
 			/* TRUE if this block is or is contained within
 			   a block for which transfers of control into the
 			   block are prohibited. */
+      a_bit_field
+		is_constexpr_if:1;
+			/* TRUE if this block is the top level block of
+			   the "then" or "else" of a C++17 constexpr if
+			   statement. */
     } block;
     /* When kind == cfdk_init: */
     struct {
@@ -240,7 +245,8 @@ is one that can contain other statements.
 typedef enum /*a_struct_stmt_kind*/ {
   /* Types of structured statements. */
   ssk_compound,		/* Compound statement, i.e., { ... }. */
-  ssk_if,		/* if statement. */
+  ssk_if,		/* if (...) statement. */
+  ssk_constexpr_if,	/* if constexpr (...) statement. */
   ssk_switch,		/* switch statement. */
   ssk_while,		/* while (...) {} statement. */
   ssk_do,		/* do {} while (...); statement. */
@@ -260,8 +266,19 @@ typedef struct a_struct_stmt_stack_entry {
   a_struct_stmt_kind
 		kind;	/* Kind of structured statement. */
   a_bit_field	in_else_of_if:1;
-			/* TRUE when kind == ssk_if and we are in the
-			   "else" clause. */
+			/* TRUE when kind == ssk_if or ssk_constexpr_if
+			   and we are in the "else" clause. */
+  a_bit_field	dependent_constexpr_if:1;
+			/* TRUE when kind == ssk_constexpr_if, when the
+			   condition expression is dependent (so both
+			   branches of the if need to be processed). */
+  a_bit_field	in_discarded_statement:1;
+			/* TRUE when kind == ssk_constexpr_if if we are in
+			    the discarded branch of the if. */
+  a_bit_field	scope_stack_in_discarded_statement_state:1;
+			/* For kind == ssk_constexpr_if, this is the value
+			   of the scope stack in_discarded_statement flag
+			   at the beginning of processing the constexpr if. */
   a_bit_field	for_init:1;
 			/* TRUE if the structured statement is a for loop and
 			   the statement currently being processed is a

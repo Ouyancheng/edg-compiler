@@ -2081,6 +2081,10 @@ do_set_proper_definition_needed_flag:
             walk_ptr(eptr->variant.if_stmt.else_statement, a_statement_ptr,
                      iek_statement);
             break;
+          case stmk_constexpr_if:
+            walk_ptr(eptr->variant.constexpr_if, a_constexpr_if_ptr,
+                     iek_constexpr_if);
+            break;
           case stmk_while:
           case stmk_end_test_while:
             walk_ptr(eptr->variant.loop_statement, a_statement_ptr,
@@ -3863,6 +3867,14 @@ after_entry_from_class:
           default:
             unexpected_condition();
         }  /* switch */
+#undef eptr
+      }
+      break;
+    case iek_constexpr_if:
+      {
+#define eptr ((a_constexpr_if_ptr)entry_ptr)
+        walk_ptr(eptr->then_statement, a_statement_ptr, iek_statement);
+        walk_ptr(eptr->else_statement, a_statement_ptr, iek_statement);
 #undef eptr
       }
       break;

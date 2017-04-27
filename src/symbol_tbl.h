@@ -1874,7 +1874,51 @@ typedef struct a_template_decl_info {
   a_pack_expansion_descr_ptr
 		last_pack_expansion;
 			/* Pointer to the end of the pack expansion list. */
+  a_hash_table_ptr
+		constexpr_if_hash_table;
+			/* A hash table used at instantiation time to find
+			   the cache information for constexpr if that
+			   was saved if a prototype instantiation of
+			   the function was done. */
 } a_template_decl_info;
+
+
+/*
+Entry used to map a token sequence number to a pointer to some other
+entry.  This is used to create a hash table to look up an entry that
+corresponds to a token sequence number.
+*/
+typedef struct a_token_sequence_xref *a_token_sequence_xref_ptr;
+typedef struct a_token_sequence_xref {
+  a_token_sequence_number
+		token_sequence_number;
+			/* The token sequence number value being mapped. */
+  a_void_ptr	entry;
+			/* Pointer to the entry to which the mapped entry
+			   refers. */
+} a_token_sequence_xref;
+
+/*
+Entry used to record front end information for dependent "if constexpr"
+statements to permit the discarded parts of a template cache to be
+quickly skipped.
+*/
+typedef struct a_constexpr_if_cache_info *a_constexpr_if_cache_info_ptr;
+typedef struct a_constexpr_if_cache_info {
+  a_token_cache_ptr
+		token_cache;
+			/* Pointer to the token cache containing the
+			   tokens of the function containing the
+			   constexpr if. */
+  a_cached_token_handle
+		else_handle;
+			/* The cached token handle of the first token of
+			   the "else" of the constexpr if. */
+  a_cached_token_handle
+		ending_handle;
+			/* The cached token handle of the closing brace of
+			   constexpr if. */
+} a_constexpr_if_cache_info;
 
 
 /*
@@ -5675,6 +5719,8 @@ extern void free_list_of_type_list_entries(a_type_list_entry_ptr slep);
 extern a_namespace_list_entry_ptr alloc_namespace_list_entry(void);
 extern
 void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
+extern
+void clear_constexpr_if_cache_info(a_constexpr_if_cache_info_ptr	cicip);
 
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 
@@ -6758,6 +6804,18 @@ extern void make_unnamed_virtual_function_locator(a_symbol_locator *loc);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_hash_value hash_token_sequence_xref(a_void_ptr	key);
+
+extern a_boolean compare_token_sequence_xref(a_void_ptr	entry,
+                                      a_void_ptr	key);
+
+extern a_constexpr_if_cache_info_ptr check_constexpr_if_cache_hash_table(
+					a_token_sequence_number	start_tsn);
+					
+extern void add_to_constexpr_if_cache_hash_table(
+				a_constexpr_if_cache_info_ptr	cicip,
+				a_token_sequence_number		start_tsn);
+					
 extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
 
 extern a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,

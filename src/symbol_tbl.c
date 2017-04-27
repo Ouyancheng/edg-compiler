@@ -145,6 +145,8 @@ static unsigned long
 		num_prop_or_event_accessor_header_lookups_allocated,
 		num_ms_attr_alt_name_entries_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+		num_token_sequence_xrefs_allocated,
+		num_constexpr_if_cache_info_allocated,
 		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
 
@@ -3092,6 +3094,7 @@ fields, and return a pointer to it.  Reuse a freed entry if possible.
   tdip->last_entry_added = NULL;
   tdip->pack_expansions = NULL;
   tdip->last_pack_expansion = NULL;
+  tdip->constexpr_if_hash_table = NULL;
   return tdip;
 }  /* alloc_template_decl_info */
 
@@ -3107,6 +3110,52 @@ Put the freed entry on the available list to be reused.
   tdip->enclosing_template_decl = avail_template_decl_infos;
   avail_template_decl_infos = tdip;
 }  /* free_template_decl_info */
+
+
+static a_token_sequence_xref_ptr alloc_token_sequence_xref(void)
+/*
+Allocate a new token sequence number mapping entry, initialize its
+fields, and return a pointer to it.
+*/
+{
+  a_token_sequence_xref_ptr  tsxp;
+
+  tsxp = alloc_fe_of_type(a_token_sequence_xref);
+  tsxp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tsxp->entry = NULL;
+#if DEBUG
+  num_token_sequence_xrefs_allocated++;
+#endif /* DEBUG */
+  return tsxp;
+}  /* alloc_token_sequence_xref */
+
+
+void clear_constexpr_if_cache_info(a_constexpr_if_cache_info_ptr	cicip)
+/*
+Initialize the fields of a constexpr information entry.
+*/
+{
+  cicip->token_cache = NULL;
+  cicip->else_handle = NO_CACHED_TOKEN_HANDLE;
+  cicip->ending_handle = NO_CACHED_TOKEN_HANDLE;
+}  /* clear_constexpr_if_cache_info */
+
+
+static a_constexpr_if_cache_info_ptr alloc_constexpr_if_cache_info(void)
+/*
+Allocate a new constexpr if cache information entry, initialize its
+fields, and return a pointer to it.
+*/
+{
+  a_constexpr_if_cache_info_ptr  cicip;
+
+  cicip = alloc_fe_of_type(a_constexpr_if_cache_info);
+  clear_constexpr_if_cache_info(cicip);
+#if DEBUG
+  num_constexpr_if_cache_info_allocated++;
+#endif /* DEBUG */
+  return cicip;
+}  /* alloc_constexpr_if_cache_info */
 
 
 static a_nondependent_call_info_ptr alloc_nondependent_call_info(void)
@@ -5381,6 +5430,123 @@ checked for and ignored. Finally, injected class names are also allowed.
   }  /* if */
   return err;
 }  /* member_name_conflicts_with_class_name */
+
+
+a_hash_value hash_token_sequence_xref(a_void_ptr	key)
+/*
+Produce a hash value for a token sequence number.  The key is a pointer to a
+token sequence xref entry.
+*/
+{
+  a_hash_value			value;
+  a_token_sequence_xref_ptr	tsxp;
+
+  tsxp = (a_token_sequence_xref_ptr)key;
+  /* Just use the token sequence number as the hash value. */
+  value = (a_hash_value)tsxp->token_sequence_number;
+  return value;
+}  /* hash_token_sequence_xref */
+
+
+a_boolean compare_token_sequence_xref(a_void_ptr	entry,
+                                      a_void_ptr	key)
+/*
+Compare an entry in the symbol header lookup hash table with an entry to be
+found.  "entry" and "key" are of type a_token_sequence_xref_ptr.
+Return TRUE if the key matches the entry.
+*/
+{
+  a_token_sequence_xref_ptr	entry_tsxp;
+  a_token_sequence_xref_ptr	key_tsxp;
+  a_boolean			result;
+
+  entry_tsxp = (a_token_sequence_xref_ptr)entry;
+  key_tsxp = (a_token_sequence_xref_ptr)key;
+  result = entry_tsxp->token_sequence_number ==
+                                               key_tsxp->token_sequence_number;
+  return result;
+}  /* compare_token_sequence_xref */
+
+
+void add_to_constexpr_if_cache_hash_table(
+				a_constexpr_if_cache_info_ptr	cicip,
+				a_token_sequence_number		start_tsn)
+					
+/*
+Add a copy of the entry specified by cicip to the constexpr if cache hash
+table for the current template declaration.  start_tsn is the token sequence
+number of the "if" of the "if constexpr" and is used as the key to the hash
+table.
+*/
+{
+  a_token_sequence_xref_ptr	tsxp;
+  a_token_sequence_xref_ptr	*p_tsxp;
+  a_token_sequence_xref		tsx_key;
+  a_constexpr_if_cache_info_ptr	new_cicip;
+  a_template_decl_info_ptr	tdip;
+
+  /* The hash table is stored in the a_template_decl entry for the
+     current template. */
+  tdip = get_curr_template_decl_info();
+  if (tdip->constexpr_if_hash_table == NULL) {
+    tdip->constexpr_if_hash_table =
+                alloc_hash_table(FRONT_END_REGION_NUMBER, 1,
+                                 fn_for_function(hash_token_sequence_xref),
+                                 fn_for_function(compare_token_sequence_xref));
+  }  /* if */
+  tsx_key.token_sequence_number = start_tsn;
+  p_tsxp = (a_token_sequence_xref_ptr*)hash_find(tdip->constexpr_if_hash_table,
+                                                 (a_void_ptr)&tsx_key,
+                                                 /*create=*/TRUE);
+  tsxp = *p_tsxp;
+  if (tsxp != NULL) {
+    /* An existing entry should never be found. */
+  } else {
+    tsxp = alloc_token_sequence_xref();
+    tsxp->token_sequence_number = start_tsn;
+    new_cicip = alloc_constexpr_if_cache_info();
+    *new_cicip = *cicip;
+    tsxp->entry = (void*)new_cicip;
+    *p_tsxp = tsxp;
+  }  /* if */
+}  /* add_to_constexpr_if_cache_hash_table */
+
+
+a_constexpr_if_cache_info_ptr check_constexpr_if_cache_hash_table(
+					a_token_sequence_number	start_tsn)
+					
+/*
+Look up start_tsn in a constexpr if cache hash table.  Return the entry
+found, or NULL if no entry is found.
+*/
+{
+  a_token_sequence_xref_ptr	tsxp;
+  a_token_sequence_xref_ptr	*p_tsxp;
+  a_token_sequence_xref		tsx_key;
+  a_constexpr_if_cache_info_ptr	result = NULL;
+  a_template_decl_info_ptr	tdip;
+
+  tdip = get_curr_template_decl_info();
+  if (tdip->constexpr_if_hash_table != NULL) {
+    tsx_key.token_sequence_number = start_tsn;
+    p_tsxp = (a_token_sequence_xref_ptr*)
+                             hash_find(tdip->constexpr_if_hash_table,
+                                       (a_void_ptr)&tsx_key, /*create=*/FALSE);
+    if (p_tsxp != NULL) {
+      tsxp = *p_tsxp;
+      result = (a_constexpr_if_cache_info_ptr)tsxp->entry;
+#if DEBUG
+      if (db_flag_is_set("ccicht")) {
+        fprintf(f_debug,
+                "Found constexpr_if cache tsn=%lu, else=%p, ending=%p\n",
+                (unsigned long)start_tsn, result->else_handle,
+                result->ending_handle);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_constexpr_if_cache_hash_table */
 
 
 a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key)
@@ -16291,6 +16457,12 @@ for space tracking purposes.
                 an_out_of_class_partial_spec);
   db_space_used("nondependent call info", num_nondependent_call_info_allocated,
                 a_nondependent_call_info);
+  db_space_used("token sequence xref",
+                num_token_sequence_xrefs_allocated,
+                a_token_sequence_xref);
+  db_space_used("constexpr if cache info",
+                num_constexpr_if_cache_info_allocated,
+                a_constexpr_if_cache_info);
   db_space_used("templ friend def arg", num_templ_friend_info_allocated,
                 a_templ_friend_info);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
@@ -16663,6 +16835,8 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_hash_tables_allocated),
       pch_saved_var_array_elem(num_hash_table_entries_allocated),
       pch_saved_var_array_elem(total_hash_table_size),
+      pch_saved_var_array_elem(num_token_sequence_xrefs_allocated),
+      pch_saved_var_array_elem(num_constexpr_if_cache_info_allocated),
       pch_saved_var_array_elem(num_exception_spec_error_descrs_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
@@ -16865,6 +17039,8 @@ of the front end.
   num_hash_tables_allocated                     = 0;
   num_hash_table_entries_allocated              = 0;
   total_hash_table_size                         = 0;
+  num_token_sequence_xrefs_allocated            = 0;
+  num_constexpr_if_cache_info_allocated         = 0;
   num_exception_spec_error_descrs_allocated     = 0;
   num_saved_macro_states_allocated              = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED

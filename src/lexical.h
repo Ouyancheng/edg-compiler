@@ -2172,6 +2172,12 @@ void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
                             a_token_cache_ptr	       dest_cache);
 
 extern
+a_boolean skip_to_token_handle_location(a_token_cache_ptr	cache,
+					a_cached_token_handle	token_handle);
+
+extern a_token_cache_ptr get_token_cache_being_scanned(void);
+
+extern
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
@@ -2698,6 +2704,7 @@ extern void flush_tokens_with_stop_tokens_and_warning_flag(
                                          a_token_set_array  stop_tokens,
                                          a_boolean          suppress_warning);
 extern void flush_to_closing_paren(void);
+extern void flush_statement(void);
 extern void flush_tokens(void);
 extern void flush_tokens_without_warning(void);
 extern void flush_to_end_of_arg_list(void);

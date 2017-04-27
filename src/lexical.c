@@ -2546,6 +2546,22 @@ tok_end_of_source later.
 }  /* rescan_copy_of_cache */
 
 
+a_token_cache_ptr get_token_cache_being_scanned(void)
+/*
+Get a pointer to the token cache that is currently being rescanned as
+a reusable cache.  Return NULL if there is no reusable cache being
+scanned.
+*/
+{
+  a_token_cache_ptr	cache = NULL;
+
+  if (reusable_cache_stack != NULL) {
+    cache = reusable_cache_stack->token_cache;
+  }  /* if */
+  return cache;
+}  /* get_token_cache_being_scanned */
+
+
 /*ARGSUSED*/ /* <-- "okay_if_not_found" is only used by checking code. */
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
@@ -2855,6 +2871,31 @@ tokens from the token specified by token_handle;
   reusable_cache_stack->next_cached_token = token_handle;
   (void)get_token();
 }  /* update_reusable_cache_rescan_location */
+
+
+a_boolean skip_to_token_handle_location(a_token_cache_ptr	cache,
+					a_cached_token_handle	token_handle)
+/*
+This is an interface to update_reusable_cache_rescan_location that
+verifies that the current reusable cache is the same as "cache", and if
+so, then calls update_reusable_cache_rescan_location to continue scanning
+at that location.  This is used to prevent the token_handle from being
+used if some error caused the current token cache to have an unexpected
+value.  Return TRUE if the skip was performed.
+*/
+{
+  a_token_cache_ptr	cache_being_scanned;
+  a_boolean		result = FALSE;
+
+  cache_being_scanned = get_token_cache_being_scanned();
+  if (cache_being_scanned == cache) {
+    update_reusable_cache_rescan_location(token_handle);
+    result = TRUE;
+  } else {
+    expect_error();
+  }  /* if */
+  return result;
+}  /* skip_to_token_handle_location */
 
 
 static a_token_kind get_token_from_reusable_cache_stack(void)
@@ -14686,6 +14727,24 @@ Flush tokens until we reach an unmatched right parenthesis or brace.
   incr_token_set_array_element(stop_tokens, tok_rparen);
   flush_tokens_with_stop_tokens(stop_tokens);
 }  /* flush_to_closing_paren */
+
+
+void flush_statement(void)
+/*
+Flush tokens until we reach a semicolon or an unmatched right brace.
+*/
+{
+  a_token_set_array  stop_tokens;
+
+  /* Initialize a local stop token set.  Also stop on newline and end
+     of source for error cases. */
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_end_of_source);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
+                                                 /*suppress_warning=*/TRUE);
+}  /* flush_statement */
 
 
 a_boolean required_token(a_token_kind  token,
