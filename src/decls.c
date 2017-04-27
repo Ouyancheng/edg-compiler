@@ -18382,7 +18382,7 @@ which are diagnosed elsewhere).
     /* Some error already occurred.  Additional diagnostics are unlikely to
        be helpful. */
     expect_error();
-  } else if (!dps->range_based_for &&
+  } else if ((!dps->range_based_for || dps->is_struct_binding_decl) &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->has_initializer || !dps->auto_type_allowed)) {
     /* "auto"/"decltype(auto)" was seen, but we never saw an initializer or
