@@ -5539,8 +5539,8 @@ found, or NULL if no entry is found.
       if (db_flag_is_set("ccicht")) {
         fprintf(f_debug,
                 "Found constexpr_if cache tsn=%lu, else=%p, ending=%p\n",
-                (unsigned long)start_tsn, result->else_handle,
-                result->ending_handle);
+                (unsigned long)start_tsn, (a_void_ptr)result->else_handle,
+                (a_void_ptr)result->ending_handle);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */

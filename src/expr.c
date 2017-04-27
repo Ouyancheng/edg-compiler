@@ -39666,8 +39666,6 @@ handle_deduced_return_type:
 #if 0
         if (!in_constexpr_if_discarded_statement()) {
           /* FIXME */
-#else
-        if (1) {
 #endif
           prep_initializer_operand(&result, required_type, 
                                    (a_boolean *)NULL,
@@ -39675,7 +39673,9 @@ handle_deduced_return_type:
                                    /*is_copy_initialization=*/TRUE,
                                    conv_context,
                                    err_code);
+#if 0
         }  /* if */
+#endif
         expression = make_node_from_operand(&result);
         if (!is_any_reference_type(required_type)) {
           check_for_return_of_address_of_local_variable(expression,
