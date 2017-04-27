@@ -8398,7 +8398,10 @@ routine should be kept.
       if (routine->is_template_function) {
         /* Generic lambda closure instances should also be retained. */
         result = TRUE;
+#if NEED_NAME_MANGLING
       } else {
+        /* Lambdas appearing in structured binding declarations have to wait
+           until the structured binding declaration is fully processed. */
         a_type_ptr  closure = parent_class_of(routine);
         a_class_type_supplement_ptr
                     ctsp = class_type_supp(closure);
@@ -8408,6 +8411,7 @@ routine should be kept.
             result = TRUE;
           }  /* if */
         }  /* if */
+#endif /* NEED_NAME_MANGLING */
       }  /* if */
     } /* if */
   }  /* if */
