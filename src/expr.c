@@ -29165,9 +29165,10 @@ icp.
   }  /* if */
   check_assertion(is_expression_component(icp));
   extract_operand_from_expression_component(icp, &operand, /*free_icp=*/FALSE);
-  if (is_incomplete_type(etype)) {
+  if (is_incomplete_type(etype) || is_incomplete_array_type(atype)) {
     /* An incomplete type cannot be copied. */
-    pos_ty_error(ec_struct_binding_array_of_incomplete_type, pos, etype);
+    pos_ty_error(ec_struct_binding_incomplete_type, pos, atype);
+    dps->type = error_type();
     err = TRUE;
   } else if (is_class_struct_union_type(etype)) {
     /* Find the proper copy constructor for copying an element of an array
