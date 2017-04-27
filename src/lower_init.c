@@ -9647,6 +9647,7 @@ do_assignment:;
         source_node = dip->variant.constructor.args;
         dip->variant.constructor.args = source_node->next;
         source_node->next = NULL;
+        lower_expr_full(source_node, /*assume_expr_is_non_null=*/TRUE);
       }  /* if */
       if (source_node != NULL) {
         /* Adjust the implied source (the source node is an lvalue). */
