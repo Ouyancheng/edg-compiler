@@ -29711,6 +29711,11 @@ an appropriate error code.
     /* Lambdas inside default argument expressions can't refer to local
        variables at all. */
     *diag = ec_ref_to_nested_function_var;
+  } else if (var->init_kind == (an_init_kind)initk_binding) {
+    /* For now we disallow capturing initk_binding variables since they are
+       not actually variables according to the standard (and capturing them
+       should really amount to capturing the associated container variable). */
+    *diag = ec_lambda_capture_structured_binding;
   } else {
     okay = TRUE;
   }  /* if */
