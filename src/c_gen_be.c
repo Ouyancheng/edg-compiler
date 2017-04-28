@@ -9301,17 +9301,10 @@ Generate C for a statement.
       }  /* if */
       break;
     case stmk_if:
-    case stmk_constexpr_if:
-      /* FIXME: should stmk_constexpr_if be removed? */
       {
         a_statement_ptr then_statement, else_statement;
-        if (kind == (a_statement_kind)stmk_if) {
-          then_statement = statement->variant.if_stmt.then_statement;
-          else_statement = statement->variant.if_stmt.else_statement;
-        } else {
-          then_statement = statement->variant.constexpr_if->then_statement;
-          else_statement = statement->variant.constexpr_if->else_statement;
-        }  /* if */
+        then_statement = statement->variant.if_stmt.then_statement;
+        else_statement = statement->variant.if_stmt.else_statement;
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
         /* Add braces around an "if" without an "else" to avoid the "dangling
            else" problem.  This is necessary only if customer code modifies
@@ -9338,6 +9331,24 @@ Generate C for a statement.
           /* Close the set of braces begun above. */
           write_tok_ch('}');
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
+        }  /* if */
+      }
+      break;
+    case stmk_constexpr_if:
+      /* FIXME: should stmk_constexpr_if be removed? */
+      {
+        a_statement_ptr then_statement, else_statement;
+        a_boolean	cond_value;
+        then_statement = statement->variant.constexpr_if->then_statement;
+        else_statement = statement->variant.constexpr_if->else_statement;
+        check_assertion(statement->variant.constexpr_if->value_known);
+        cond_value = statement->variant.constexpr_if->value;
+        /* Based on the condition value output either the "then" or "else"
+           statement. */
+        if (cond_value) {
+          dump_statement(then_statement);
+        } else if (else_statement != NULL) {
+          dump_statement(else_statement);
         }  /* if */
       }
       break;
