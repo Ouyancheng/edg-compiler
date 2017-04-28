@@ -3333,6 +3333,9 @@ particular situation.
     a_dynamic_init_ptr  dip;
     dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                   !is->not_potentially_evaluated);
+    /* We're representing an aggregate class object initialized with "{}",
+       i.e., "value initialization". */
+    dip->variant.constructor.value_initialization = TRUE;
     if (ctor->is_constexpr) {
       a_constant_ptr  con = local_constant();
       if (fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,

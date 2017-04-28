@@ -1,5 +1,27 @@
 Version 4.14
 
+4/28/17  [EDGcpfe/18305]
+Incorrect IL for repeated aggregate initialization in C++14 mode
+
+The changes for EDGcpfe/15900 (version 4.10.1) introduced a regression when
+an aggregate initializer for an array called for the implicit initialization
+of trailing array elements with a nontrivial default constructor: It
+default-initialized those elements when they should have been
+value-initialized.  This was particularly observable for class types
+containing a pointer-to-data-member field in the IA-64 ABI, because such
+fields must be initialized to an underlying offset of -1.  For example:
+
+  struct S {};
+  int main() {
+    using PM = char S::*;
+    struct { PM pm; int i = 42; } x[3] = {{0}};
+  }
+
+Previously, the IL produced for this example left x[1].pm and x[2].pm
+uninitialized (often, they would be zero); now it is value-initialized
+(the underlying offset is set to -1).
+
+
 4/28/17  [EDGcpfe/18306]
 Interpreted base-class cast sometimes fails to preserve null pointer
 
