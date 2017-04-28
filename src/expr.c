@@ -39597,6 +39597,7 @@ handle_deduced_return_type:
         expect_error();
         required_type = error_type();
 #if 0
+#else
       } else if (in_constexpr_if_discarded_statement()) {
         /* FIXME */
         /* We are in the untaken branch of a constexpr if.  This return
@@ -39670,6 +39671,7 @@ handle_deduced_return_type:
       } else {
         /* Convert to the required type. */
 #if 0
+#else
         if (!in_constexpr_if_discarded_statement()) {
           /* FIXME */
 #endif
@@ -39680,6 +39682,7 @@ handle_deduced_return_type:
                                    conv_context,
                                    err_code);
 #if 0
+#else
         }  /* if */
 #endif
         expression = make_node_from_operand(&result);
