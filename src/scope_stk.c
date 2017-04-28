@@ -8391,7 +8391,7 @@ routine should be kept.
 
   if (routine != NULL) {
     if (routine->contains_generic_lambda) {
-      /* Function containing generic lambdas need to be kept because generic
+      /* Functions containing generic lambdas need to be kept because generic
          lambda instantiations will refer to their internals. */
       result = TRUE;
     } else if (routine->is_lambda_body) {
