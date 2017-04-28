@@ -1693,7 +1693,13 @@ typedef struct a_constexpr_address {
 		           lvalue, the number of elements in the array.  If the
 			   CA_BIT_FIELD flag is set, twice the number of bits
 			   in the bit field designated by this lvalue, plus one
-			   if the bit field is signed.  Otherwise, zero. */
+			   if the bit field is signed.  If the flag
+			   CA_RUNTIME_DATA_ADDRESS is set, a value of 1
+			   indicates that a field selection was applied to that
+			   address and so it should be assumed to point to an
+			   object even if it is a null address (used to
+			   support classic implementations of "offsetof").
+			   Otherwise, zero. */
 #define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
@@ -7648,8 +7654,8 @@ the value representation of the integer value.
                     addr_con, bcp, btp, new_con,
                     /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
                     expr->variant.operation.compiler_generated,
-                    /*is_object_pointer=*/TRUE, &nonconstant, &expr->position,
-                    &err_code);
+                    /*is_object_pointer=*/(result_addr->length != 0),
+                    &nonconstant, &expr->position, &err_code);
                 addr_con->expr = backing_expr;
                 if (nonconstant || err_code != ec_no_error) {
                   do_constexpr_fail(result);
@@ -10211,6 +10217,11 @@ the value representation of the integer value.
                   clear_runtime_constant_address(result_storage, new_con);
                   new_con->next = ips->constants;
                   ips->constants = new_con;
+                  /* Set the "length" field of the result to one to indicate
+                     that this should be treated as an object address even if
+                     the address is null.  That is needed to accommodate
+                     traditional "offsetof" implementations. */
+                  ((a_constexpr_address*)result_storage)->length = 1;
                 }  /* if */
               } else if (result_addr.address == NULL) {
                 /* An attempt to offset a null pointer. */
@@ -10278,6 +10289,11 @@ the value representation of the integer value.
                   clear_runtime_constant_address(result_storage, new_con);
                   new_con->next = ips->constants;
                   ips->constants = new_con;
+                  /* Set the "length" field of the result to one to indicate
+                     that this should be treated as an object address even if
+                     the address is null.  That is needed to accomodate
+                     traditional "offsetof" implementations. */
+                  ((a_constexpr_address*)result_storage)->length = 1;
                 }  /* if */
               } else if (result_addr.address == NULL) {
                 /* An attempt to offset a null pointer. */
