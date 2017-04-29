@@ -10067,6 +10067,7 @@ See conversion_possible.
       } else if (direct_init_fixed_base_enum_enabled &&
                  (dest_type->variant.integer.has_explicit_enum_base ||
                   dest_type->variant.integer.is_scoped_enum) &&
+                 is_arithmetic_or_unscoped_enum(source_type) &&
                  !is_copy_initialization && singleton_braced_init) {
         /* This is the C++17-style direct list initialization of an enum
            with a fixed underlying type from a numeric value, which is
