@@ -9643,16 +9643,21 @@ do_assignment:;
       } else if (dip->variant.constructor.is_array_copy) {
         /* Nontrivial copying of an array (which occurs in the structured
            binding case).  The first argument is the source of the copy;
-           remove it from the list. */
+           remove it from the list.  The source can be an rvalue or lvalue. */
         source_node = dip->variant.constructor.args;
         dip->variant.constructor.args = source_node->next;
         source_node->next = NULL;
         lower_expr_full(source_node, /*assume_expr_is_non_null=*/TRUE);
+        if (is_array_type(source_node->type)) {
+          source_node = make_array_to_pointer_node(source_node);
+        }  /* if */
       }  /* if */
       if (source_node != NULL) {
-        /* Adjust the implied source (the source node is an lvalue). */
-        check_assertion(source_node->is_lvalue);
-        source_node = add_address_of_to_node(source_node);
+        /* Adjust the implied source (the source node is typically an
+           lvalue). */
+        if (source_node->is_lvalue) {
+          source_node = add_address_of_to_node(source_node);
+        }  /* if */
         /* Cast the expression to the right type to eliminate qualifier and
            type-as-subobject differences.  Use the pointer version of
            the parameter reference type. */
