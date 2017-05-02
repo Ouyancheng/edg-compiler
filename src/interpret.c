@@ -3243,8 +3243,8 @@ Display the indicated variant path.
 }  /* db_variant_path */
 
 
-void db_addr(a_constexpr_address  *cap,
-             int                  indent)
+static void db_addr(a_constexpr_address  *cap,
+                    int                  indent)
 /*
 Output the given interpreter address.  Indent the output with the given number
 of whitespace characters.
