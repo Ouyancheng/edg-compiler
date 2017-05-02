@@ -18016,7 +18016,7 @@ static void lower_constexpr_if(a_statement_ptr statement)
 Lower the indicated C++17 "if constexpr" statement.
 */
 {
-#if 0
+#if 1
   a_constexpr_if_ptr	cip;
   a_statement_ptr	taken_statement;
 

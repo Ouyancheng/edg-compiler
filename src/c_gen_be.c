@@ -9334,24 +9334,6 @@ Generate C for a statement.
         }  /* if */
       }
       break;
-    case stmk_constexpr_if:
-      /* FIXME: should stmk_constexpr_if be removed? */
-      {
-        a_statement_ptr then_statement, else_statement;
-        a_boolean	cond_value;
-        then_statement = statement->variant.constexpr_if->then_statement;
-        else_statement = statement->variant.constexpr_if->else_statement;
-        check_assertion(statement->variant.constexpr_if->value_known);
-        cond_value = statement->variant.constexpr_if->value;
-        /* Based on the condition value output either the "then" or "else"
-           statement. */
-        if (cond_value) {
-          dump_statement(then_statement);
-        } else if (else_statement != NULL) {
-          dump_statement(else_statement);
-        }  /* if */
-      }
-      break;
     case stmk_while:
       write_tok_str("while ");
       dump_boolean_controlling_expression(statement->expr);

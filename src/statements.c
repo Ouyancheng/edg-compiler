@@ -3652,9 +3652,9 @@ routine is called to flush the tokens of the discarded branch.
   a_struct_stmt_stack_entry_ptr	sssep;
 
   sssep = &struct_stmt_stack[depth_stmt_stack];
-  /* In a template instantiation, skip the tokens if the statement is
-     to be discarded, otherwise process it normally. */
-  if (is_real_instantiation_context() && sssep->in_discarded_statement) {
+  /* Skip the tokens if the statement is to be discarded, otherwise process
+     it normally. */
+  if (!sssep->dependent_constexpr_if && sssep->in_discarded_statement) {
     flush_statement();
     empty_statement();
   } else {
