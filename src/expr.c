@@ -40461,6 +40461,33 @@ escape at the end of the expression.)
       }  /* if */
     }  /* if */
   }  /* if */
+  if (is_indefinite_function_operand(operand) && operand->is_template_id) {
+    /* Converting a function template-id to a single specialization avoids
+       exponential time explosion for certain odd cases.  For example:
+         template <int(*PF)()> int f() { return 0; }
+         int g() { return 0; }
+         int h() {
+           return f<&f<&f<&f<&f<&f<&f<&f<&f<&f< &g>>>>>>>>>>();
+         }
+       If we don't reduce "f<...>" from the inside out, we will end up doing
+       it from the outside in, which is a process that produces a tree of
+       tentative substitutions with a total cost that is exponential in the
+       depth of that tree.  If the operand is not dependent and can't be
+       reduced to a single function, the conversion is not possible. */
+    a_symbol_ptr  single_func_sym;
+    a_boolean     dependent;
+    convert_function_template_to_single_function_full(
+                                                operand, /*will_call=*/FALSE,
+                                                &single_func_sym,
+                                                &dependent);
+    if (!dependent && single_func_sym == NULL) {
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_invalid_nontype_template_argument,
+                     &operand->position, type);
+        conv_to_error_operand(operand);
+      }  /* if */
+    }  /* if */
+  }  /* if */
 }  /* check_nontype_template_argument_type */
 
 

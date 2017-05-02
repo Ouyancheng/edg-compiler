@@ -21394,10 +21394,11 @@ call.
 }  /* call_adl_named_function */
 
 
-static void convert_function_template_to_single_function_full(
+void convert_function_template_to_single_function_full(
                                                 an_operand    *operand,
                                                 a_boolean     will_call,
-                                                a_symbol_ptr  *single_func_sym)
+                                                a_symbol_ptr  *single_func_sym,
+                                                a_boolean     *dependent)
 /*
 If operand is a reference to a function template with explicit template
 arguments that reduces to a single function, change the operand to that
@@ -21405,9 +21406,12 @@ function.  See Core Issue 115.  If will_call is TRUE, the resulting function
 will be called immediately (as opposed to, say, having its address taken).
 If single_func_sym is non-NULL, return the symbol for the single function
 in *single_func_sym, or set that to NULL if there is no single function.
+If dependent is non-NULL, set it to TRUE if the operand is dependent, FALSE
+otherwise.
 */
 {
   if (single_func_sym != NULL) *single_func_sym = NULL;
+  if (dependent != NULL) *dependent = FALSE;
   if (is_indefinite_function_operand(operand) &&
       operand->is_template_id) {
     a_symbol_ptr orig_sym = operand->symbol;
@@ -21416,6 +21420,7 @@ in *single_func_sym, or set that to NULL if there is no single function.
       conv_indefinite_function_to_unknown_dependent_function(
                                                     operand,
                                                     /*force_to_rvalue=*/FALSE);
+      if (dependent != NULL) *dependent = TRUE;
     } else {
       a_template_arg_ptr new_arg_list;
       a_symbol_ptr       base_sym;
@@ -21530,7 +21535,8 @@ will be called immediately (as opposed to, say, having its address taken).
 */
 {
   convert_function_template_to_single_function_full(operand, will_call,
-                                                    (a_symbol_ptr *)NULL);
+                                                    (a_symbol_ptr *)NULL,
+                                                    (a_boolean *)NULL);
 }  /* convert_function_template_to_single_function_if_possible */
 
 
@@ -21551,7 +21557,8 @@ selection for the specific function.
   check_assertion(operand->bound_function);
   convert_function_template_to_single_function_full(operand,
                                                     /*will_call=*/FALSE,
-                                                    &single_func_sym);
+                                                    &single_func_sym,
+                                                    (a_boolean*)NULL);
   if (single_func_sym != NULL) {
     a_symbol_ptr sym = fundamental_symbol_of(single_func_sym);
     if (sym->kind == (a_symbol_kind)sk_member_function &&

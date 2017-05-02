@@ -1,5 +1,26 @@
 Version 4.14
 
+5/2/17   [EDGcpfe/18315]
+Performance issue with deeply nested function explicit template argument lists
+
+Certain unusual cases involving nested function template explicit template
+argument lists where the template parameter is a nontype parameter with
+pointer-to-function type, and that rely on the ability to use an expression
+such as &f<x> as a function pointer when it identifies a unique function
+template instance, could require exponential compilation time and space
+use.  Now fixed.
+
+  template <int(*fp)()> int f() { return 0; }
+  int g() { return 0; }
+  int h() {
+    auto v = f<&f<&f<&f<&f<&f<&f<&f<&f<&f<&f<&g>>>>>>>>>>>();
+    return v;
+  }
+  int main() {
+    h();
+  }
+
+
 4/28/17  [EDGcpfe/18305]
 Incorrect IL for repeated aggregate initialization in C++14 mode
 

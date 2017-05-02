@@ -1801,6 +1801,12 @@ void call_adl_named_function(a_const_char            *func_name,
                              an_operand              *result,
                              an_expr_node_ptr        *call_node);
 
+extern void convert_function_template_to_single_function_full(
+                                                an_operand    *operand,
+                                                a_boolean     will_call,
+                                                a_symbol_ptr  *single_func_sym,
+                                                a_boolean     *dependent);
+
 extern void convert_function_template_to_single_function_if_possible(
                                                         an_operand *operand,
                                                         a_boolean   will_call);

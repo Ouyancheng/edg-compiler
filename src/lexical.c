@@ -15952,7 +15952,8 @@ it is used.
 }  /* scan_template_template_argument */
 
 
-static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal)
+static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal,
+                                                         a_boolean *p_err)
 /*
 Scan a template argument list associated with an unknown template
 parameter list.  This is done when scanning the template arguments
@@ -15968,6 +15969,8 @@ parameter list to use as a basis for the template arguments that are scanned.
 
 For each argument, determine whether it is a type or nontype.  This is
 done using the disambiguation routines.
+
+If p_err is non-NULL, set *p_err to TRUE if an error is detected.
 */
 {
   a_template_arg_ptr              arg_ptr;
@@ -16061,6 +16064,10 @@ done using the disambiguation routines.
           arg_ptr->variant.constant = NULL;
           arg_ptr->arg_operand =
                           scan_nontype_template_argument(initial_inst_seq_num);
+          if (p_err != NULL &&
+              is_error_type(arg_ptr->arg_operand->operand.type)) {
+            *p_err = TRUE;
+          }  /* if */
         }  /* if */
       } else {
         /* A template template argument. */
@@ -16385,7 +16392,8 @@ all arguments were explicit.
            arguments as an "unknown" argument list. */
         a_template_arg_ptr	other_args;
         (void)get_token();
-        other_args = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+        other_args = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE,
+                                                    (a_boolean*)NULL);
         last_arg->next = other_args;
         while (last_arg->next != NULL) last_arg = last_arg->next;
         param_ptr = NULL;
@@ -17166,7 +17174,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied.  This kind of scan is also done when there
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
-    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE,
+                                              &any_errors);
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -17472,7 +17481,8 @@ is the one actually associated with this reference.
        scanned. */
     scope_stack[depth_scope_stack].pending_templ_arg_lists++;
     /* Scan the template argument list. */
-    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/FALSE);
+    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/FALSE,
+                                              &any_errors);
     /* We should now be at the closing angle bracket.  Note that we don't
        scan the token after the closing angle because we update the current
        token below to represent the original identifier with the newly
@@ -17585,7 +17595,8 @@ list.
          have been supplied.  This kind of scan is also done when there
          is no template symbol, which happens if an undefined symbol is
          followed by a template argument list. */
-      arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+      arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE,
+                                                &any_errors);
     }  /* if */
     /* We should now be at the closing angle bracket.  Note that we don't
        scan the token after the closing angle because we update the current
