@@ -1,5 +1,14 @@
 Version 4.14
 
+5/2/17   [EDGcpfe/18311]
+Memory exhaustion in copy_variant_path
+
+A bug in variant path entry management in the constexpr interpreter could
+lead the front end to enter an unbounded loop allocating variant path entries
+(in copy_variant_path).  Eventually, the front end ran out of memory.  This
+is now fixed.
+
+
 5/2/17   [EDGcpfe/18315]
 Performance issue with deeply nested function explicit template argument lists
 

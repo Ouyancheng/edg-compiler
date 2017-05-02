@@ -1634,6 +1634,7 @@ the end of interpretation.  Move all allocated entries back onto the free list.
     vpep->next = vpep->next_allocated;
     vpep = vpep->next_allocated;
   }  /* while */
+  vpep->next = NULL;
   free_variant_path_entries = variant_path_entries;
   n_free_variant_path_entries = n_variant_path_entries;
 }  /* reclaim_variant_path_entries */
@@ -3226,6 +3227,48 @@ Output the given a_constexpr_address flags as human-readable text.
 }  /* db_address_flags */
 
 
+static void db_variant_path(a_variant_path_entry_ptr  path)
+/*
+Display the indicated variant path.
+*/
+{
+  int  n = 0;
+  for (; path != NULL; path = path->next) {
+    if (path->field != NULL) {
+      db_name(&path->field->source_corresp);
+    }  /* if */
+    n += 1;
+  }  /* for */
+  fprintf(f_debug, "(%d entries)", n);
+}  /* db_variant_path */
+
+
+void db_addr(a_constexpr_address  *cap,
+             int                  indent)
+/*
+Output the given interpreter address.  Indent the output with the given number
+of whitespace characters.
+*/
+{
+  (void)fprintf(f_debug, "address %p:\n", cap->address);
+  db_indent(indent+2);
+  db_address_flags(cap->flags);
+  (void)fprintf(f_debug, "\n");
+  if (is_array_element(cap)) {
+    db_indent(indent+2);
+    (void)fprintf(f_debug, "length %u:\n", cap->length);
+  }  /* if */
+  if (is_variant_path(cap)) {
+    db_indent(indent+2);
+    (void)fprintf(f_debug, "variant:");
+    db_variant_path(cap->variant.variant_path);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+  db_indent(indent+2);
+  (void)fprintf(f_debug, "alloc seq# %u:\n", cap->alloc_seq_number);
+}  /* db_addr */
+
+
 void db_object(a_byte      *addr,
                a_type_ptr  tp)
 /*
@@ -3256,18 +3299,7 @@ Output the contents of the interpreted object of type tp stored at addr.
      
       break;
     case tk_pointer:
-      { a_constexpr_address *cap = (a_constexpr_address*)addr;
-        (void)fprintf(f_debug, "address %p:\n", cap->address);
-        db_indent(indent+2);
-        db_address_flags(cap->flags);
-        (void)fprintf(f_debug, "\n");
-        if (is_array_element(cap)) {
-          db_indent(indent+2);
-          (void)fprintf(f_debug, "length %u:\n", cap->length);
-        }  /* if */
-        db_indent(indent+2);
-        (void)fprintf(f_debug, "alloc seq# %u:\n", cap->alloc_seq_number);
-      }
+      db_addr((a_constexpr_address*)addr, indent);
       break;
     case tk_array:
       { a_type_ptr    etp = skip_typerefs(tp->variant.array.element_type);
@@ -3389,6 +3421,41 @@ Return a pointer to the stack storage associated with the given pointer.
 }  /* db_stack_storage */
 
 #endif /* DEBUG */
+#if EXPENSIVE_CHECKING
+
+static void check_no_variant_path_cycle(a_variant_path_entry_ptr  path)
+/*
+Trigger an internal error if the given path contains a cycle.
+*/
+{
+  if (path != NULL) {
+    a_variant_path_entry_ptr  ahead = path->next;
+    a_variant_path_entry_ptr  it = path;
+    for (;;) {
+      if (ahead == NULL) break;
+      if (it != ahead) {
+        ahead = ahead->next;
+        if (ahead == NULL) break;
+        if (it != ahead) {
+          ahead = ahead->next;
+          it = it->next;
+          continue;
+        }  /* if */
+      }  /* if */
+      /* The "ahead" pointer has caught up with the "path" pointer.  There is
+         therefore a cycle. */
+      assertion_failed(__FILE__, __LINE__, "variant path loop", (char*)NULL);
+    }  /* for */
+    { int n = 0;
+      for (it = path; it != NULL; it = it->next) n += 1;
+      if (n>3) {
+        fprintf(f_debug, "LONG PATH: %d\n", n);
+      }  /* if */
+    }
+  }  /* if */
+}  /* check_no_variant_path_cycle */
+
+#endif /* EXPENSIVE_CHECKING */
 
 static void make_anon_union_path(a_symbol_ptr              au_sym,
                                  a_variant_path_entry_ptr  *p_last_entry,
@@ -3482,6 +3549,9 @@ be a union type if union_field is an anonymous union field.
   }  /* if */
   last_entry->field = union_field;
   last_entry->base_address = addr->address;
+#if EXPENSIVE_CHECKING
+  check_no_variant_path_cycle(addr->variant.variant_path);
+#endif /* EXPENSIVE_CHECKING */
 }  /* add_to_variant_path */
 
 
@@ -3495,6 +3565,9 @@ soon but the other must persist.  E.g., this happens after copying a variable
 {
   a_variant_path_entry_ptr  vpep, *p_vpep;
 
+#if EXPENSIVE_CHECKING
+  check_no_variant_path_cycle(addr->variant.variant_path);
+#endif /* EXPENSIVE_CHECKING */
   p_vpep = &addr->variant.variant_path;
   vpep = *p_vpep;
   do {
