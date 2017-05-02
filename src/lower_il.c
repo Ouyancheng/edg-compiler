@@ -13344,27 +13344,38 @@ parent operation.  Only called for enk_operation nodes.
 {
   an_expr_operator_kind op, child_op;
   an_expr_node_ptr      child1;
+  a_boolean             first_expr_case;
 
   check_assertion(is_operation_node(expr));
   op = expr->variant.operation.kind;
   child1 = expr->variant.operation.operands;
-  /* Look at the first operand of this operation to see if it is an
-     lvalue-returning "?" or ",". */
-  if (is_operation_node(child1) &&
-      child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
-      ((child_op = child1->variant.operation.kind) ==
-                                         (an_expr_operator_kind)eok_question ||
-       child_op == (an_expr_operator_kind)eok_question ||
-       child_op == (an_expr_operator_kind)eok_comma)) {
+  /* Look at the first operand of this operation (or the second operand of
+     an eok_bassign) to see if it is an lvalue-returning "?" or ",". */
+  if ((first_expr_case =
+       is_operation_node(child1) &&
+       (child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
+        ((child_op = child1->variant.operation.kind) ==
+                                        (an_expr_operator_kind)eok_question ||
+         child_op == (an_expr_operator_kind)eok_vector_question ||
+         child_op == (an_expr_operator_kind)eok_comma))) ||
+       (op == (an_expr_operator_kind)eok_bassign &&
+        is_operation_node(child1->next) &&
+        child1->next->
+                    variant.operation.returns_lvalue_instead_of_usual_rvalue &&
+        ((child_op = child1->next->variant.operation.kind) ==
+                                        (an_expr_operator_kind)eok_question ||
+         child_op == (an_expr_operator_kind)eok_comma))) {
     if (op != (an_expr_operator_kind)eok_comma) {
-      /* The first operand of expr is an lvalue-returning "?" or ",".
-         That is, expr is the node on top of a "?" or ",". */
+      /* The first operand of expr is an lvalue-returning "?" or "," or the
+         second operand of an eok_bassign is an lvalue-returning "?" or ",". */
       an_expr_node_ptr child2 = child1->next;
       /* "gchild" stands for "grandchild". */
-      an_expr_node_ptr gchild1 = child1->variant.operation.operands;
+      an_expr_node_ptr gchild1 = (first_expr_case ?
+                                           child1->variant.operation.operands :
+                                           child2->variant.operation.operands);
       an_expr_node_ptr gchild2 = gchild1->next;
       an_expr_node_ptr gchild3, newop1, newop2;
-      an_expr_node_ptr c2_init = NULL;
+      an_expr_node_ptr copy_init = NULL, node_to_copy;
       a_type_ptr       expr_type = expr->type;
       a_boolean        orig_expr_result_is_not_used = expr->result_is_not_used;
       a_boolean        orig_expr_is_lvalue = expr->is_lvalue;
@@ -13381,28 +13392,45 @@ parent operation.  Only called for enk_operation nodes.
            "=" can in fact be any operation (e.g., simple or complex
            assignment, prefix ++/--, field selection, cast).  c2 isn't
            present for unary operations. */
+        /* The eok_bassign case is changed from:
+             eok_bassign(c1, (g1 ? g2 : g3))
+           to
+             (g1 ? eok_bassign(c1, g2) : eok_bassign(c1, g3))
+           */
         gchild3 = gchild2->next;
-        if (child2 != NULL && has_statement_expression(child2)) {
+        node_to_copy = (first_expr_case ? child2 : child1);
+        if (node_to_copy != NULL && has_statement_expression(node_to_copy)) {
           /* Statement expressions cannot be copied with copy_expr_tree.
              Hence we evaluate such expressions into a temporary and copy
              the reference to the temporary instead. */
-          c2_init = child2;
-          child2 = assign_expr_to_temp_and_make_expr_for_reuse(c2_init);
+          copy_init = node_to_copy;
+          node_to_copy= assign_expr_to_temp_and_make_expr_for_reuse(copy_init);
         }  /* if */
-        /* Build (g2 = c2). */
         newop1 = copy_node(expr);
-        newop1->variant.operation.operands = gchild2;
-        gchild2->next = child2;
-        /* Build (g3 = c2) using a copy of c2. */
         newop2 = copy_node(expr);
-        newop2->variant.operation.operands = gchild3;
-        gchild3->next = (child2 != NULL) ?
-                                 copy_expr_tree(child2, CE_NO_OPTIONS) :
-                                 NULL;
+        if (first_expr_case) {
+          /* Build (g2 = c2). */
+          newop1->variant.operation.operands = gchild2;
+          gchild2->next = node_to_copy;
+          /* Build (g3 = c2) using a copy of c2. */
+          newop2->variant.operation.operands = gchild3;
+          gchild3->next = (node_to_copy != NULL) ?
+                                  copy_expr_tree(node_to_copy, CE_NO_OPTIONS) :
+                                  NULL;
+        } else {
+          /* Build eok_bassign(c1, g2). */
+          newop1->variant.operation.operands = node_to_copy;
+          node_to_copy->next = gchild2;
+          gchild2->next = NULL;
+          /* Build eok_bassign(c1, g3) using a copy of c1. */
+          newop2->variant.operation.operands =
+                                   copy_expr_tree(node_to_copy, CE_NO_OPTIONS);
+          newop2->variant.operation.operands->next = gchild3;
+        }  /* if */
         /* Replace the original top node with a "?" node. */
         gchild1->next = newop1;
         newop1->next = newop2;
-        overwrite_node(expr, child1);
+        overwrite_node(expr, first_expr_case ? child1 : child2);
       } else {
         /* Lvalue "," rewrite.  Change
              ((g1 , g2) = c2)
@@ -13415,14 +13443,25 @@ parent operation.  Only called for enk_operation nodes.
            "=" can in fact be any operation (e.g., simple or complex
            assignment, prefix ++/--, field selection).  c2 isn't present
            for unary operations. */
-        /* Build (g2 = c2). */
+        /* The eok_bassign case is changed from:
+             eok_bassign(c1, (g1, g2))
+           to
+             (g1, eok_bassign(c1, g2))
+           */
         newop1 = copy_node(expr);
-        newop1->variant.operation.operands = gchild2;
-        gchild2->next = child2;
         newop2 = NULL;
+        if (first_expr_case) {
+          /* Build (g2 = c2). */
+          newop1->variant.operation.operands = gchild2;
+          gchild2->next = child2;
+        } else {
+          /* Build eok_bassign(c1, g2). */
+          newop1->variant.operation.operands = child1;
+          child1->next = gchild2;
+        }  /* if */
         /* Replace the original top node with a "," node. */
         gchild1->next = newop1;
-        overwrite_node(expr, child1);
+        overwrite_node(expr, first_expr_case ? child1 : child2);
       }  /* if */
       if (!orig_expr_is_lvalue) {
         /* The "S" above was an rvalue.  Change the result node to an
@@ -13430,12 +13469,12 @@ parent operation.  Only called for enk_operation nodes.
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->is_lvalue = FALSE;
       }  /* if */
-      /* If a temporary was introduced to hold the value of child2, insert
-         its initialization now. */
-      if (c2_init != NULL) {
+      /* If a temporary was introduced to hold the value of child2/child1,
+         insert its initialization now. */
+      if (copy_init != NULL) {
         an_insert_location  insert_loc;
         set_expr_insert_location(expr, &insert_loc);
-        insert_expr(c2_init, &insert_loc);
+        insert_expr(copy_init, &insert_loc);
       }  /* if */
       /* As a result of the re-writing above, newop1 and newop2 may have
          sequences of operators that haven't been seen in tandem during
