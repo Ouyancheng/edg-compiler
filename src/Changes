@@ -626,6 +626,9 @@ involve narrowing.  For example, with --c++17:
   enum byte : unsigned char { };
   byte b{ 42 };   // Permitted by C++17
 
+This feature is also enabled in Microsoft mode when microsoft_version is
+at least 1911.
+
 
 4/2/17   [EDGcpfe/16986,EDGcpfe/17029]
 Initializers with braces in template declarations
