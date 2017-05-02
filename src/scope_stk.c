@@ -8311,10 +8311,9 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
     delay_lowering = TRUE;
 #if NEED_NAME_MANGLING
   } else if (must_wait_for_mangling_reasons(routine)) {
-    /* The routine is encompassed in an unnamed class whose discriminator has
-       not yet been determined; lowering of the routine may result in requests
-       for mangled encodings that depend on the discriminator being set, so
-       delay lowering. */
+    /* Lowering of the routine may result in requests for mangled encodings
+       that depend on things that haven't happened yet (e.g., discriminators
+       being set or structured bindings being identified) so delay lowering. */
     delay_lowering = TRUE;
 #endif /* NEED_NAME_MANGLING */
 #if GNU_EXTENSIONS_ALLOWED && COMPILE_MULTIPLE_TRANSLATION_UNITS
