@@ -13364,7 +13364,7 @@ parent operation.  Only called for enk_operation nodes.
                     variant.operation.returns_lvalue_instead_of_usual_rvalue &&
         ((child_op = child1->next->variant.operation.kind) ==
                                         (an_expr_operator_kind)eok_question ||
-         child_op == (an_expr_operator_kind)eok_comma))) {
+         child_op == (an_expr_operator_kind)eok_comma))) { /*lint !e820*/
     if (op != (an_expr_operator_kind)eok_comma) {
       /* The first operand of expr is an lvalue-returning "?" or "," or the
          second operand of an eok_bassign is an lvalue-returning "?" or ",". */
