@@ -118,6 +118,7 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_compatibility,
   optk_microsoft_extensions,
   optk_microsoft_cpp14_mode,
+  optk_microsoft_cpp17_mode,
   optk_microsoft_cpplatest_mode,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,

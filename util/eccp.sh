@@ -711,6 +711,7 @@ check_abbreviation()
 --mmap_address
 --module_init
 --ms_c++14
+--ms_c++17
 --ms_c++latest
 --ms_compatibility
 --ms_extensions
@@ -1312,6 +1313,7 @@ process_option()
 	 --no_microsoft_bugs | \
 	 --microsoft_16 | \
          --ms_c++14 | \
+         --ms_c++17 | \
          --ms_c++latest | \
          --ms_compatibility | \
          --no_ms_compatibility | \

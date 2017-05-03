@@ -515,6 +515,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_cpp14_mode, "ms_c++14",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_cpp17_mode, "ms_c++17",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_microsoft_cpplatest_mode, "ms_c++latest",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -2175,11 +2178,18 @@ option values if they were not already set by a command line option.
   } else {
     /* Microsoft C++ mode. */
     a_boolean ms_cpp14_mode = microsoft_version >= 1903;
+    a_boolean ms_cpp17_mode = FALSE;
     a_boolean ms_cpplatest_mode = FALSE;
     if (option_kind_used[(int)optk_microsoft_cpp14_mode]) {
       ms_cpp14_mode = TRUE;
       if (microsoft_version < 1903) {
         command_line_error(ec_microsoft_version_doesnt_support_cpp14_mode);
+      }  /* if */
+    }  /* if */
+    if (option_kind_used[(int)optk_microsoft_cpp17_mode]) {
+      ms_cpp14_mode = ms_cpp17_mode = TRUE;
+      if (microsoft_version < 1910) {
+        command_line_error(ec_microsoft_version_doesnt_support_cpp17_mode);
       }  /* if */
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
@@ -2543,15 +2553,23 @@ option values if they were not already set by a command line option.
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
         }  /* if */
-        if (ms_cpplatest_mode) {
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
           terse_static_assert_enabled = TRUE;
+          register_is_deprecated = TRUE;
+          using_attribute_namespaces_enabled = TRUE;
+          operator_bool_increment_allowed = FALSE;
         }  /* if */
         nodiscard_attribute_enabled = TRUE;
       }  /* if */
       if (microsoft_version >= 1911) {
-        struct_bindings_enabled = TRUE;
-        selection_initializers_enabled = TRUE;
-        direct_init_fixed_base_enum_enabled = TRUE;
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
+          /* Microsoft is now (generally) enabling C++17 features only
+             when one of /std:c++17 or /std:c++latest is specified. */
+          struct_bindings_enabled = TRUE;
+          selection_initializers_enabled = TRUE;
+          direct_init_fixed_base_enum_enabled = TRUE;
+          register_is_disallowed = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
@@ -2618,10 +2636,6 @@ option values if they were not already set by a command line option.
   if (microsoft_bugs && ms_permissive) {
     ms_treat_copy_init_as_direct_init = TRUE;
   }  /* if */
-  /* Visual Studio doesn't yet support these. */
-  register_is_deprecated = FALSE;
-  register_is_disallowed = FALSE;
-  operator_bool_increment_allowed = TRUE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9446,9 +9460,10 @@ enable_microsoft_mode:
         ms_extensions = opt_value;
         break;
       case optk_microsoft_cpp14_mode:
+      case optk_microsoft_cpp17_mode:
       case optk_microsoft_cpplatest_mode:
-        /* Enable emulation of Visual Studio's /std:c++14 and /std:c++latest
-           command-line options. */
+        /* Enable emulation of Visual Studio's /std:c++14, /std:c++17, and
+           /std:c++latest command-line options. */
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
