@@ -4975,12 +4975,15 @@ matching hdr.
 }  /* is_redeclaration_of_enhanced_for_iterator */
 
 
-static a_boolean is_redeclared_condition_decl_name(a_symbol_header_ptr  hdr,
-                                                   a_scope_depth  scope_depth)
+static a_boolean is_redeclared_condition_decl_name(
+                                             a_symbol_header_ptr  hdr,
+                                             a_scope_depth        scope_depth,
+                                             a_boolean            is_tag_sym)
 /*
 Return TRUE if scope_depth specifies a scope immediately enclosed by a
-condition scope and hdr matches the symbol header of a symbol (normally
-there's only one) declared in the condition scope.
+condition scope and hdr matches the symbol header space kind of a symbol
+declared in the condition scope.  Tag/non-tag symbols are ignored depending
+on whether is_tag_sym is FALSE.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
@@ -4993,7 +4996,8 @@ there's only one) declared in the condition scope.
     for (sym = (assoc_pointers_block_of(ssep-1))->symbols;
          sym != NULL;
          sym = sym->next_in_scope) {
-      if (sym->header == hdr) {
+      if (sym->header == hdr &&
+          is_tag_symbol_kind(sym->kind) == is_tag_sym) {
         match = TRUE;
         break;
       }  /* if */
@@ -5190,7 +5194,8 @@ symbol must be added to the inactive list.
         /* See if this is a redeclaration of a for-init or condition variable
            name. */
         if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-          if (is_redeclared_condition_decl_name(hdr_ptr, scope_depth)) {
+          if (is_redeclared_condition_decl_name(
+                   hdr_ptr, scope_depth, is_tag_symbol_kind(sym_ptr->kind))) {
             /* The name of the variable declared in a condition may not be
                redeclared in the topmost scope of if, switch, while, or for
                statement. */
