@@ -3446,12 +3446,6 @@ Trigger an internal error if the given path contains a cycle.
          therefore a cycle. */
       assertion_failed(__FILE__, __LINE__, "variant path loop", (char*)NULL);
     }  /* for */
-    { int n = 0;
-      for (it = path; it != NULL; it = it->next) n += 1;
-      if (n>3) {
-        fprintf(f_debug, "LONG PATH: %d\n", n);
-      }  /* if */
-    }
   }  /* if */
 }  /* check_no_variant_path_cycle */
 
