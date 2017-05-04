@@ -658,6 +658,10 @@ extern void debug_exit(void);
 #define EXPENSIVE_CHECKING FALSE
 #endif /* ifndef EXPENSIVE_CHECKING */
 
+#if EXPENSIVE_CHECKING && !CHECKING
+ #error -- EXPENSIVE_CHECKING requires CHECKING to be TRUE
+#endif /* EXPENSIVE_CHECKING && !CHECKING */
+
 #ifndef ABORT_ON_INIT_COMPONENT_LEAKAGE
 /* Abort if not all init-component entries are freed by the end of the
    compilation. */
