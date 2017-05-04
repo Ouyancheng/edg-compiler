@@ -3444,7 +3444,7 @@ Trigger an internal error if the given path contains a cycle.
       }  /* if */
       /* The "ahead" pointer has caught up with the "path" pointer.  There is
          therefore a cycle. */
-      assertion_failed(__FILE__, __LINE__, "variant path loop", (char*)NULL);
+      unexpected_condition_str("variant path loop");
     }  /* for */
   }  /* if */
 }  /* check_no_variant_path_cycle */
