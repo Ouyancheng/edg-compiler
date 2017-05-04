@@ -5113,8 +5113,8 @@ information on the template parameter substitutions to be done.
 }  /* rescan_expr_as_arg_list_elem */
 
 
-static an_init_component_ptr rescan_init_component_list
-                                           (an_init_component_ptr  list_icp,
+static an_init_component_ptr rescan_init_component_list(
+                                            an_init_component_ptr  list_icp,
                                             a_rescan_control_block *rcblock)
 /*
 Rescan the given init-component list, producing a list of
@@ -5128,25 +5128,43 @@ list, not an argument list, so it may include designators.
   an_init_component_ptr icp, copy_icp;
 
   for (icp = list_icp; icp != NULL; icp = next_elem(icp)) {
-    if (is_designator_component(icp)) {
-      /* A designator just gets copied.  Because the field designation is
-         in terms of a name (symbol header pointer) it doesn't need to
-         be substituted.  Likewise the array designator just has an index
-         number (or two), which isn't changed by substitution. */
-      copy_icp = alloc_init_component((an_init_component_kind)ick_designator);
-      copy_icp->variant.designator = icp->variant.designator;
-    } else {
-      /* Other kinds of entries; rescan in the usual way. */
-      copy_icp = rescan_init_component(icp, rcblock);
-    }  /* if */
-    copy_icp->pack_expansion_descr = icp->pack_expansion_descr;
-    /* Add copy_icp to the copy_list_icp list. */
-    if (copy_list_icp == NULL) {
-      copy_list_icp = copy_icp;
-    } else {
-      append_elem(end_copy_list_icp, copy_icp);
-    }  /* if */
-    end_copy_list_icp = copy_icp;
+    a_pack_expansion_descr_ptr       pedep = icp->pack_expansion_descr;
+    a_pack_expansion_stack_entry_ptr pesep;
+    a_boolean                        any_more, err;
+    any_more = begin_rescan_pack_expansion_context(
+                                                 pedep,
+                                                 rcblock->template_param_list,
+                                                 rcblock->template_arg_list,
+                                                 &pesep,
+                                                 rcblock->ctws_state, &err);
+    /* Check if an error occurred (such as mismatched parameter pack
+       lengths). */
+    if (err) rcblock->error_detected = TRUE;
+    while (any_more) {
+      if (is_designator_component(icp)) {
+        /* A designator just gets copied.  Because the field designation is
+           in terms of a name (symbol header pointer) it doesn't need to
+           be substituted.  Likewise the array designator just has an index
+           number (or two), which isn't changed by substitution. */
+        copy_icp = alloc_init_component(
+                                      (an_init_component_kind)ick_designator);
+        copy_icp->variant.designator = icp->variant.designator;
+      } else {
+        /* Other kinds of entries; rescan in the usual way. */
+        copy_icp = rescan_init_component(icp, rcblock);
+      }  /* if */
+      copy_icp->pack_expansion_descr = icp->pack_expansion_descr;
+      /* Add copy_icp to the copy_list_icp list. */
+      if (copy_list_icp == NULL) {
+        copy_list_icp = copy_icp;
+      } else {
+        append_elem(end_copy_list_icp, copy_icp);
+      }  /* if */
+      end_copy_list_icp = copy_icp;
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
   }  /* for */
   return copy_list_icp;
 }  /* rescan_init_component_list */
