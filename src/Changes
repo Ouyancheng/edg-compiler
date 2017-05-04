@@ -11,7 +11,7 @@ functions declared in GCC 7.1.0.  A number of builtin functions were added.
 Clang compatibility: Builtin functions for 4.0.0
 
 The builtin function definitions have been updated to reflect the builtin
-functions declared in clang 4.0.0.  A number of builtin functions were added
+functions declared in clang 4.0.0.  85 new builtin functions were added
 and some of the function signatures were updated (e.g., to include exception
 specifications).
 
