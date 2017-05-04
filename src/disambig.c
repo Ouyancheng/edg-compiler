@@ -804,6 +804,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_edg_size_type:
       case tok_edg_ptrdiff_type:
       case tok_edg_bool_type:
+      case tok_edg_wchar_type:
         type_specifier_seen = TRUE;
         break;
       /* Type qualifier. */

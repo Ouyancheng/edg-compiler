@@ -3873,6 +3873,22 @@ an error if a default argument expression is encountered.
                                           is_finalizer,
                                           disallow_exception_spec,
                                           is_typedef_decl, decl_pos_block);
+  } else {
+    if (curr_token == tok_edg_throw) {
+      /* In C mode, the __edg_throw__ keyword introduces an exception
+         specification that is discarded here.  This is used during the
+         processing of builtin function signatures that are used in both
+         C and C++ modes. */
+      (void)get_token();
+      if (curr_token == tok_lparen) {
+        flush_until_matching_token_full(/*limit_flush=*/FALSE);
+        if (curr_token == tok_rparen) {
+          (void)get_token();
+        }  /* if */
+      } else {
+        pos_error(ec_exp_lparen, &pos_curr_token);
+      }  /* if */
+    }  /* if */
   }  /* if */
   scan_declarator_attributes(state, new_type_ptr);
   /* Pop the function prototype scope if needed. */

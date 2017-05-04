@@ -1284,7 +1284,13 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_edg_size_type,      "__edg_size_type__");
   enter_keyword((a_token_kind)tok_edg_ptrdiff_type,   "__edg_ptrdiff_type__");
   enter_keyword((a_token_kind)tok_edg_bool_type,      "__edg_bool_type__");
+  enter_keyword((a_token_kind)tok_edg_wchar_type,     "__edg_wchar_type__");
   enter_keyword((a_token_kind)tok_edg_internal_opnd,  "__edg_opnd__");
+  /* __edg_throw__ is an alias for "throw" in C++ mode and is effectively
+     discarded (along with any arguments) in C mode.  This is used for builtin
+     function declarations that can appear in both modes. */
+  enter_keyword(C_mode() ? (a_token_kind)tok_edg_throw :
+                           (a_token_kind)tok_throw,   "__edg_throw__");
   db_exit();
 }  /* keyword_init */
 

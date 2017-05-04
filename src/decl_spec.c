@@ -10842,6 +10842,12 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         break;
+      case tok_edg_wchar_type:
+        /* An EDG-specific way to specify a wchar_t type. */
+        *type_ptr = eff_wchar_t_type();
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        break;
       case tok_edg_vector_type:
         *type_ptr = scan_edg_vector_type();
         decl_specifiers_seen |= DS_TYPE;
