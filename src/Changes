@@ -1,5 +1,40 @@
 Version 4.14
 
+5/4/17   [EDGcpfe/18232]
+Function templates referenced during deduction
+
+During template argument deduction, 
+Consider the following example:
+
+  template<int> struct S { typedef int I; };
+  class C {
+    template<int n> struct N {
+      void f() {
+        static_assert(n<0, "");  // Previously triggered an error.
+      }
+    };
+  public:
+    C() {}
+    template<typename... Ts, bool = S<N<sizeof...(Ts)>::f>::I> C(...);
+  };
+  C g() {
+    C x;
+    return x;  // Copy construction.
+  }
+
+In the final return statement, the value of x must be copied to the caller of
+g().  The front end considers not only the generated copy constructor of C,
+but also the member constructor template C::C(...).  That member template
+requires template argument deduction, which in this case deduces an empty
+argument pack for Ts, which substituted in the default argument that follows
+creates a reference to N<0>::f.  previously, that reference triggered the full
+instantiation of C::N<0>::f and therefore a error due to the failing
+static_assert in that member function, even though, in the end, the member
+constructor template referring to C::N<0>::f is not used.  This is now fixed:
+References to template functions during template argument deduction no longer
+force their instantiation.
+
+
 5/3/17   [EDGcpfe/18164]
 Microsoft compatibility: Enabling C++17 features
 

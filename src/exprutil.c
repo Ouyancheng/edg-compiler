@@ -1479,7 +1479,8 @@ expression is being evaluated.  This routine is an interface to
 mark_routine_referenced.
 */
 {
-  if (curr_expr_is_potentially_evaluated()) {
+  if (curr_expr_is_potentially_evaluated() &&
+      !expr_stack->template_deduction_context) {
     /* Routines referenced in default argument expressions are not
        instantiated until there is a use of the default argument expression. */
     mark_routine_referenced_full(routine,
