@@ -18032,8 +18032,9 @@ Lower the indicated C++17 "if constexpr" statement.
   /* The taken statement will be NULL if the value is FALSE and there is no
      else.  In that case, we'll just have an empty block. */
   if (taken_statement != NULL) {
+    check_assertion(taken_statement->kind == (a_statement_kind)stmk_block);
     statement->variant.block.statements = taken_statement;
-    taken_statement->parent = statement;
+    taken_statement->parent = statement->parent;
     lower_statement(taken_statement);
   }  /* if */
 #else
