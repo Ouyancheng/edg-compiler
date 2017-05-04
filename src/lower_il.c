@@ -18034,7 +18034,10 @@ Lower the indicated C++17 "if constexpr" statement.
   if (taken_statement != NULL) {
     check_assertion(taken_statement->kind == (a_statement_kind)stmk_block);
     statement->variant.block.statements = taken_statement;
+    /* FIXME */
+#if 0
     taken_statement->parent = statement->parent;
+#endif
     lower_statement(taken_statement);
   }  /* if */
 #else
