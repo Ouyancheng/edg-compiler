@@ -4,7 +4,7 @@ Version 4.14
 GCC compatibility: Builtin functions for 7.1.0
 
 The builtin function definitions have been updated to reflect the builtin
-functions declared in GCC 7.1.0.  A number of builtin functions were added.
+functions declared in GCC 7.1.0.  78 new builtin functions were added.
 
 
 5/4/17   [EDGcpfe/18155]
