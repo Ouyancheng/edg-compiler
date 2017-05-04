@@ -4953,11 +4953,13 @@ the symbol header of a symbol declared in the for-init scope.
 
 static a_boolean is_redeclaration_of_enhanced_for_iterator(
                                              a_symbol_header_ptr  hdr,
-                                             a_scope_depth        scope_depth)
+                                             a_scope_depth        scope_depth,
+                                             a_boolean            is_tag_sym)
 /*
 Return TRUE if scope_depth specifies the outer "body" of a range-based "for"
 loop or a Microsoft "for each" loop that declares an iterator variable
-matching hdr.
+matching hdr.  In non-strict modes, tag/non-tag symbols are ignored depending
+on whether is_tag_sym is FALSE.
 */
 {
   a_boolean  match = FALSE;
@@ -4967,7 +4969,8 @@ matching hdr.
     if (sym != NULL && symbol_is(sym, sk_variable) &&
         sym->variant.variable.ptr->is_enhanced_for_iterator &&
         sym->decl_scope ==
-                       previous_scope_of(&scope_stack[scope_depth])->number) {
+                       previous_scope_of(&scope_stack[scope_depth])->number &&
+        (is_tag_symbol_kind(sym->kind) == is_tag_sym || strict_ansi_mode)) {
       match = TRUE;
     }  /* if */
   }  /* if */
@@ -4981,9 +4984,9 @@ static a_boolean is_redeclared_condition_decl_name(
                                              a_boolean            is_tag_sym)
 /*
 Return TRUE if scope_depth specifies a scope immediately enclosed by a
-condition scope and hdr matches the symbol header space kind of a symbol
-declared in the condition scope.  Tag/non-tag symbols are ignored depending
-on whether is_tag_sym is FALSE.
+condition scope and hdr matches the symbol header kind of a symbol declared
+in the condition scope.  In non-strict modes, tag/non-tag symbols are ignored
+depending on whether is_tag_sym is FALSE.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
@@ -4997,7 +5000,8 @@ on whether is_tag_sym is FALSE.
          sym != NULL;
          sym = sym->next_in_scope) {
       if (sym->header == hdr &&
-          is_tag_symbol_kind(sym->kind) == is_tag_sym) {
+          (is_tag_symbol_kind(sym->kind) == is_tag_sym ||
+           strict_ansi_mode)) {
         match = TRUE;
         break;
       }  /* if */
@@ -5194,8 +5198,9 @@ symbol must be added to the inactive list.
         /* See if this is a redeclaration of a for-init or condition variable
            name. */
         if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          a_boolean  is_tag = is_tag_symbol_kind(sym_ptr->kind);
           if (is_redeclared_condition_decl_name(
-                   hdr_ptr, scope_depth, is_tag_symbol_kind(sym_ptr->kind))) {
+                                              hdr_ptr, scope_depth, is_tag)) {
             /* The name of the variable declared in a condition may not be
                redeclared in the topmost scope of if, switch, while, or for
                statement. */
@@ -5216,10 +5221,10 @@ symbol must be added to the inactive list.
             }  /* if */
             redecl_err = TRUE;
           } else if (is_redeclaration_of_enhanced_for_iterator(
-                                                      hdr_ptr, scope_depth)) {
+                                              hdr_ptr, scope_depth, is_tag)) {
             /* The name of the iterator variable in a range-based for statement
                cannot be declared in the outermost loop scope.  E.g.:
-                 for (int N: vec) { struct N {}; }  // Error
+                 for (int N: vec) { double N = 1.0; }  // Error
             */
             if (!suppress_error) {
               pos_st_diagnostic(microsoft_mode ?

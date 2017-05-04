@@ -52,17 +52,15 @@ deprecated use of "register" keyword (P0001R1).
 Tag names and declarations in condition scopes
 
 A name declared in a condition scope cannot also be declared in the scope that
-it immediately enclosed.  The front end was previously enforcing that rule a
-little too strictly, failing to allow tag names to coexist with non-tag names.
-For example:
+it immediately encloses.  The front end was previously enforcing that rule
+strictly in all modes (as indicated by the C++11 standard).  Now, in nonstrict
+modes, tag names can coexist with non-tag names.  For example:
 
   void g() {
     if (int N = 3) {
-      struct N {} n;  // Previously an error.  Now okay.
+      struct N {} n;  // Previously an error.  Now okay in nonstrict modes.
     }
   }
-
-This is now fixed.
 
 
 5/2/17   [EDGcpfe/18311]
