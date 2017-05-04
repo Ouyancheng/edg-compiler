@@ -1,5 +1,12 @@
 Version 4.14
 
+5/4/17   [EDGcpfe/18322]
+GCC compatibility: Builtin functions for 7.1.0
+
+The builtin function definitions have been updated to reflect the builtin
+functions declared in GCC 7.1.0.  A number of builtin functions were added.
+
+
 5/4/17   [EDGcpfe/18155]
 Clang compatibility: Builtin functions for 4.0.0
 

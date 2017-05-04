@@ -477,9 +477,7 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
 {
   a_type_ptr        result;
   a_token_cache     cache;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         saved_scanning_generated_code = scanning_generated_code;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         saved_next_token_is_top_level_decl_start =
                                             next_token_is_top_level_decl_start;
   a_boolean         saved_allow_ellipsis_only_param_in_C_mode =
@@ -499,9 +497,7 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   source_sequence_entries_disallowed = TRUE;
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   allow_ellipsis_only_param_in_C_mode = TRUE;
   check_assertion(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE);
   /* Save the lexical state. */
@@ -525,9 +521,7 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   /* Restore the flags. */
   allow_ellipsis_only_param_in_C_mode =
                                      saved_allow_ellipsis_only_param_in_C_mode;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code = saved_scanning_generated_code;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   next_token_is_top_level_decl_start =
                                       saved_next_token_is_top_level_decl_start;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
