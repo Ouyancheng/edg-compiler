@@ -12524,13 +12524,13 @@ list checking (e.g., for the presence of too few arguments).
       } else {
         /* Error: too few actual arguments.  (No default arguments.)
            Create error nodes for the missing arguments. */
-        an_expr_node_ptr  error_nodes = NULL;
+        an_expr_node_ptr  error_nodes = NULL, last_node;
         expr_pos_error(ec_too_few_arguments,
                        &arg_block->closing_paren_position);
         for (; ptp != NULL; ptp = ptp->next) {
           an_expr_node_ptr  node = error_node();
           if (error_nodes == NULL) {
-            arg_block->argument_tail = node;
+            last_node = node;
           } else {
             node->next = error_nodes;
           }  /* if */
@@ -12541,6 +12541,7 @@ list checking (e.g., for the presence of too few arguments).
         } else {
           arg_block->argument_tail->next = error_nodes;
         }  /* if */
+        arg_block->argument_tail = last_node;
       }  /* if */
       /* Suppress the end-of-printf check below. */
       arg_block->fmt_string = NULL;
