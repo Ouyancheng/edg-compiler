@@ -4314,7 +4314,6 @@ in *bound_function_selector.
   an_expr_node_ptr              orig_expr = expr;
   an_expr_node_ptr              expr_copy = NULL;
   a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
-  a_ctws_state                  ctws_state;
   a_constant_ptr                constant = local_constant();
   a_constant_ptr                alloc_con;
   an_expr_rescan_info_entry_ptr eriep;
@@ -4343,7 +4342,6 @@ in *bound_function_selector.
     rescanned_case = TRUE;
   } else {
     /* Copy the expression with substitution. */
-    init_ctws_state(&ctws_state);
     expr_copy = copy_template_param_expr(expr,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
@@ -4351,7 +4349,7 @@ in *bound_function_selector.
                                          &eriep->saved_operand.position,
                                          rcblock->options,
                                          &copy_error,
-                                         &ctws_state,
+                                         rcblock->ctws_state,
                                          constant,
                                          &alloc_con);
   }  /* if */
