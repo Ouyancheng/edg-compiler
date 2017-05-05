@@ -4508,7 +4508,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_symbol_ptr type_tag_symbol;
   a_boolean    must_be_class_or_namespace =
                               (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
-  a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+  /* g++ ignores non-types for typename lookups. */
+  a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG) != 0 ||
+                              (gpp_version_is(any_version) &&
+                               (options & IDL_TYPENAME_LOOKUP) != 0);
   a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
   a_boolean    is_field_selection_operand =
                               (options & IDL_IS_FIELD_SELECTION_OPERAND) != 0;

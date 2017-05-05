@@ -1,5 +1,21 @@
 Version 4.14
 
+5/5/17   [EDGcpfe/18326]
+GNU C++ compatibility: typename influences lookup
+
+The standard specifies that the "typename" keyword, when used for syntactic
+disambiguation, does not affect the lookup result.  However, g++ does ignore
+non-types when the typename keyword is used.  We now emulate this in g++ mode.
+
+  struct A {
+    struct B {};
+    int B;
+  };
+  struct C {
+    typename A::B ab;
+  };
+
+
 5/4/17   [EDGcpfe/18323]
 Pack expansion in brace-notation cast during function template substitution
 
