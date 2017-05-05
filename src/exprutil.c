@@ -5151,7 +5151,6 @@ list, not an argument list, so it may include designators.
         /* Other kinds of entries; rescan in the usual way. */
         copy_icp = rescan_init_component(icp, rcblock);
       }  /* if */
-      copy_icp->pack_expansion_descr = icp->pack_expansion_descr;
       /* Add copy_icp to the copy_list_icp list. */
       if (copy_list_icp == NULL) {
         copy_list_icp = copy_icp;
