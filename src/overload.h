@@ -618,18 +618,25 @@ typedef struct an_arg_check_block {
   a_routine_ptr	routine;
 			/* The routine being called, if known.  NULL otherwise,
 			   e.g., for a call through a function pointer. */
-  a_boolean	unknown_dependent_function;
+  a_param_type_ptr
+		curr_param_type;
+			/* The current parameter type entry, if there is one;
+			   NULL otherwise. */
+  a_byte_boolean
+		unknown_dependent_function;
 			/* TRUE if we don't know the routine type because
 			   we're in a prototype instantiation and the
 			   function to be called is given by a
 			   template-dependent expression. */
-  a_boolean	args_will_be_discarded;
+  a_byte_boolean
+		args_will_be_discarded;
 			/* TRUE if the arguments will be discarded, e.g.,
 			   because the function operand has an error.
 			   More precisely, we won't be calling a function
 			   with these arguments, but we may assemble them into
 			   an argument list for error recovery purposes. */
-  a_boolean	have_param_info;
+  a_byte_boolean
+		have_param_info;
 			/* TRUE if we have information on the remaining
 			   parameters.  Can be FALSE because
 			     (a) The called function has a bad type;
@@ -647,22 +654,26 @@ typedef struct an_arg_check_block {
 			     (f) We're scanning the arguments for an
 			         overloaded function call or a
 			         template-dependent call. */
-  a_param_type_ptr
-		curr_param_type;
-			/* The current parameter type entry, if there is one;
-			   NULL otherwise. */
-  a_boolean	prototyped;
+  a_byte_boolean
+		prototyped;
 			/* TRUE if the function is prototyped. */
-  a_boolean	has_ellipsis;
+  a_byte_boolean
+		has_ellipsis;
 			/* TRUE if the function has an ellipsis. */
-  a_boolean	pack_encountered;
+  a_byte_boolean
+		pack_encountered;
 			/* TRUE if in scanning parameters and arguments we
 			   have encountered either a parameter pack parameter
 			   or a pack expansion argument.  In either case, we
 			   can no longer maintain the correspondence between
 			   parameters and arguments. */
+  a_byte_boolean
+		discard_further_arguments;
+			/* TRUE if additional arguments should be discarded
+			   because of certain errors. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean	passing_cli_param_array_element;
+  a_byte_boolean
+		passing_cli_param_array_element;
 			/* TRUE if the function has a C++/CLI parameter array
 			   at the end and we are in the part of the argument
 			   list where arguments correspond to elements in the

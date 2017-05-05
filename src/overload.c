@@ -11782,6 +11782,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->prototyped = FALSE;
   arg_block->has_ellipsis = FALSE;
   arg_block->pack_encountered = FALSE;
+  arg_block->discard_further_arguments = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   arg_block->passing_cli_param_array_element = FALSE;
   arg_block->cli_param_array_element_type = NULL;
@@ -12021,7 +12022,8 @@ next parameter.
   a_source_position    *pos = init_component_pos(arg_list_elem);
 
   /* Count the arguments. */
-  arg_block->arg_ctr++;
+  arg_block->arg_ctr += 1;
+  if (arg_block->discard_further_arguments) goto done;
   /* Check for too many arguments and determine whether or not the default
      argument promotions apply to this argument. */
   do_default_promotion = TRUE;
@@ -12066,7 +12068,7 @@ next parameter.
         /* Do not insert code here. */
         {
           expr_pos_error(ec_too_many_arguments, pos);
-          arg_block->have_param_info = FALSE;
+          arg_block->discard_further_arguments = TRUE;
           goto done;
         }  /* if */
       }  /* if */
