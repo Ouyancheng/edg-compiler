@@ -12519,10 +12519,25 @@ list checking (e.g., for the presence of too few arguments).
            a pack that could end up being empty in an actual instantiation.
            An error will be issued in a real instantiation, if needed. */
       } else {
-        /* No default arguments. */
-        /* Error: too few actual arguments. */
+        /* Error: too few actual arguments.  (No default arguments.)
+           Create error nodes for the missing arguments. */
+        an_expr_node_ptr  error_nodes = NULL;
         expr_pos_error(ec_too_few_arguments,
                        &arg_block->closing_paren_position);
+        for (; ptp != NULL; ptp = ptp->next) {
+          an_expr_node_ptr  node = error_node();
+          if (error_nodes == NULL) {
+            arg_block->argument_tail = node;
+          } else {
+            node->next = error_nodes;
+          }  /* if */
+          error_nodes = node;
+        }  /* for */
+        if (arg_block->argument_head == NULL) {
+          arg_block->argument_head = error_nodes;
+        } else {
+          arg_block->argument_tail->next = error_nodes;
+        }  /* if */
       }  /* if */
       /* Suppress the end-of-printf check below. */
       arg_block->fmt_string = NULL;
