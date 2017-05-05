@@ -2188,7 +2188,7 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpp17_mode]) {
       ms_cpp14_mode = ms_cpp17_mode = TRUE;
-      if (microsoft_version < 1910) {
+      if (microsoft_version < 1911) {
         command_line_error(ec_microsoft_version_doesnt_support_cpp17_mode);
       }  /* if */
     }  /* if */
@@ -2553,22 +2553,23 @@ option values if they were not already set by a command line option.
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
         }  /* if */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpplatest_mode) {
           terse_static_assert_enabled = TRUE;
-          register_is_deprecated = TRUE;
-          using_attribute_namespaces_enabled = TRUE;
-          operator_bool_increment_allowed = FALSE;
         }  /* if */
         nodiscard_attribute_enabled = TRUE;
       }  /* if */
       if (microsoft_version >= 1911) {
+        /* Visual Studio 2017 version 15.3. */
         if (ms_cpplatest_mode || ms_cpp17_mode) {
           /* Microsoft is now (generally) enabling C++17 features only
              when one of /std:c++17 or /std:c++latest is specified. */
+          register_is_deprecated = TRUE;
+          register_is_disallowed = FALSE;
+          using_attribute_namespaces_enabled = TRUE;
+          operator_bool_increment_allowed = FALSE;
           struct_bindings_enabled = TRUE;
           selection_initializers_enabled = TRUE;
           direct_init_fixed_base_enum_enabled = TRUE;
-          register_is_disallowed = TRUE;
         }  /* if */
       }  /* if */
     } else {

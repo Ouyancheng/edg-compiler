@@ -72,13 +72,13 @@ force their instantiation.
 Microsoft compatibility: Enabling C++17 features
 
 A new command-line option, --ms_c++17, has been added to emulate the /std:c++17
-option that Microsoft Visual Studio provides.  This option is only available
-when microsoft_version >= 1910.  Additionally, when microsoft_version >= 1910
-and one of --ms_c++17 or --ms_c++latest is specified, support for these
-C++17 features is now enabled: direct-list-initialization of enums from
-numeric values (P0138R2), using attribute namespaces without repetition
-(P0028R4), removal of deprecated operator++ for bool types, and removal of
-deprecated use of "register" keyword (P0001R1).
+option that Microsoft Visual Studio 2017 version 15.3 provides.  This option is
+only available when microsoft_version >= 1911.  Additionally, when
+microsoft_version >= 1911 and one of --ms_c++17 or --ms_c++latest is specified,
+support for these C++17 features is now enabled: direct-list-initialization of
+enums from numeric values (P0138R2), using attribute namespaces without
+repetition (P0028R4), removal of deprecated operator++ for bool types, and
+deprecation of the "register" keyword.
 
 
 5/3/17   [EDGcpfe/18179]
