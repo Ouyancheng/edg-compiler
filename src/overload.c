@@ -12066,6 +12066,8 @@ next parameter.
         /* Do not insert code here. */
         {
           expr_pos_error(ec_too_many_arguments, pos);
+          arg_block->have_param_info = FALSE;
+          goto done;
         }  /* if */
       }  /* if */
       arg_block->have_param_info = FALSE;
@@ -12287,6 +12289,7 @@ next parameter.
   if (arg_is_fmt_string && operand_set) {
     obtain_format_string_from_arg(make_node_from_operand(operand), arg_block);
   }  /* if */
+done:;
 }  /* process_call_argument */
 
 
