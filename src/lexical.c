@@ -14733,16 +14733,20 @@ void flush_statement(void)
 Flush tokens until we reach a semicolon or an unmatched right brace.
 */
 {
-  a_token_set_array  stop_tokens;
-
-  /* Initialize a local stop token set.  Also stop on newline and end
-     of source for error cases. */
-  clear_token_set_array(stop_tokens);
-  incr_token_set_array_element(stop_tokens, tok_end_of_source);
-  incr_token_set_array_element(stop_tokens, tok_rbrace);
-  incr_token_set_array_element(stop_tokens, tok_semicolon);
-  flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
-                                                 /*suppress_warning=*/TRUE);
+  if (curr_token == tok_lbrace) {
+    flush_until_matching_token_full(/*limit_flush=*/FALSE);
+    (void)get_token();
+  } else {
+    a_token_set_array  stop_tokens;
+    /* Initialize a local stop token set.  Also stop on newline and end
+       of source for error cases. */
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_end_of_source);
+    incr_token_set_array_element(stop_tokens, tok_rbrace);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
+                                                   /*suppress_warning=*/TRUE);
+  }  /* if */
 }  /* flush_statement */
 
 
