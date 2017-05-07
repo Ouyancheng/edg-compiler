@@ -2879,9 +2879,10 @@ a_boolean skip_to_token_handle_location(a_token_cache_ptr	cache,
 This is an interface to update_reusable_cache_rescan_location that
 verifies that the current reusable cache is the same as "cache", and if
 so, then calls update_reusable_cache_rescan_location to continue scanning
-at that location.  This is used to prevent the token_handle from being
-used if some error caused the current token cache to have an unexpected
-value.  Return TRUE if the skip was performed.
+at that location.  The cache can be different in some cases, such as member
+functions of local classes of function templates.  This is also to prevent
+the token_handle from being used if some error caused the current token
+cache to have an unexpected value.  Return TRUE if the skip was performed.
 */
 {
   a_token_cache_ptr	cache_being_scanned;
@@ -2891,8 +2892,6 @@ value.  Return TRUE if the skip was performed.
   if (cache_being_scanned == cache) {
     update_reusable_cache_rescan_location(token_handle);
     result = TRUE;
-  } else {
-    expect_error();
   }  /* if */
   return result;
 }  /* skip_to_token_handle_location */
