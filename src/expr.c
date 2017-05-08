@@ -40473,13 +40473,6 @@ escape at the end of the expression.)
                                                 operand, /*will_call=*/FALSE,
                                                 &single_func_sym,
                                                 &dependent);
-    if (!dependent && single_func_sym == NULL) {
-      if (expr_error_should_be_issued()) {
-        pos_ty_error(ec_invalid_nontype_template_argument,
-                     &operand->position, type);
-        conv_to_error_operand(operand);
-      }  /* if */
-    }  /* if */
   }  /* if */
 }  /* check_nontype_template_argument_type */
 
