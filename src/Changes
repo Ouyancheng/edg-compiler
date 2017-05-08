@@ -1,5 +1,18 @@
 Version 4.14
 
+5/8/17   [EDGcpfe/18000]
+Microsoft/Clang compatibility: constexpr evaluation support for string builtins
+
+The following new builtins have been added in Microsoft emulation mode (when
+microsoft_version >= 1911): __builtin_char_memchr, __builtin_memchr,
+__builtin_memcmp, __builtin_strchr, __builtin_strcmp, __builtin_strlen,
+__builtin_strncmp, __builtin_wcschr, __builtin_wcscmp, __builtin_wcslen,
+__builtin_wcsncmp, __builtin_wmemchr, and __builtin_wmemcmp.
+Additionally, these builtins are now evaluated in a constant expression
+context.  In clang mode, when clang_version >= 40000,
+__has_feature(cxx_constexpr_string_builtins) is now TRUE.
+
+
 5/8/17   [EDGcpfe/17992]
 Microsoft compatibility: Conditional operator
 

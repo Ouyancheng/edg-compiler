@@ -5880,10 +5880,11 @@ static a_boolean do_constexpr_builtin_strlen(
                                         an_expr_node_ptr      call_node,
                                         a_byte                *result_storage)
 /*
-Evaluate the standard strlen function on the operand of type arg_tp stored in
-arg_bytes.  Place the result in *result_storage.  Return FALSE if this fails
-(because the entity pointed to is not a null-terminated string) and record a
-potential diagnostic for the given expression node and interpreter state.
+Evaluate the standard strlen/wcslen function on the operand of type arg_tp
+stored in arg_bytes.  Place the result in *result_storage.  Return FALSE if
+this fails (because the entity pointed to is not a null-terminated string) and
+record a potential diagnostic for the given expression node and interpreter
+state.
 */
 {
   a_boolean  result = TRUE;
@@ -5927,6 +5928,254 @@ potential diagnostic for the given expression node and interpreter state.
 }  /* do_constexpr_builtin_strlen */
 
 
+static a_boolean do_constexpr_builtin_strchr(
+                                      an_interpreter_state    *ips,
+                                      a_byte                  *arg1_bytes,
+                                      a_type_ptr              arg1_tp,
+                                      a_byte                  *arg2_bytes,
+                                      a_type_ptr              arg2_tp,
+                                      a_byte                  *arg3_bytes,
+                                      a_type_ptr              arg3_tp,
+                                      an_expr_node_ptr        call_node,
+                                      a_byte                  *result_storage)
+/*
+Evaluate the strchr/memchr/wcschr/wmemchr family of builtin functions.
+argX_bytes and argX_tp specify the operands and their types (arg3_bytes and
+arg3_tp are NULL in cases where a count argument is not specified).  Place the
+result in *result_storage.  Return FALSE if this fails (e.g., because the
+entity pointed to is not a null-terminated string) and record a potential
+diagnostic for the given expression node and interpreter state.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (arg1_tp->kind == (a_type_kind)tk_pointer) {
+    a_constexpr_address  *addr = (a_constexpr_address*)arg1_bytes;
+    a_type_ptr           tp = skip_typerefs(arg1_tp->variant.pointer.type);
+    if (addr->address == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_null_dereference,
+                    &call_node->variant.operation.operands->next->position,
+                    ips);
+    } else if (is_array_element(addr)) {
+      an_integer_value  *ptr = (an_integer_value*)addr->address;
+      an_integer_value  len, max_len, *eff_max;
+      a_byte_count  elem_size, pos, max;
+      if (tp == void_type()) {
+        /* In the memchr case, the argument is "void *"; treat as "char *". */
+        tp = integer_type(plain_char_int_kind);
+      } else {
+        check_assertion(tp->kind == (a_type_kind)tk_integer);
+      }  /* if */
+      get_array_pos(ips, addr, tp, &max, &pos, &elem_size, &result);
+      if (result) {
+        a_boolean     check_for_read_past_operand = FALSE;
+        an_error_code error_code = ec_no_error;
+        max -= pos;
+        set_integer_value(&max_len, (a_host_large_integer)max);
+        set_integer_value(&len, (a_host_large_integer)0);
+        /* Use the size of the array as a count (but see below). */
+        eff_max = &max_len;
+        if (arg3_bytes != NULL) {
+          check_assertion(arg3_tp != NULL &&
+                          f_skip_typerefs(arg3_tp)->kind ==
+                                                      (a_type_kind)tk_integer);
+          if (cmp_integer_values(&max_len, /*op_1_signed=*/FALSE,
+                                 (an_integer_value *)arg3_bytes,
+                                 /*op_2_signed=*/FALSE) >= 0) {
+            /* The user-specified count is less than the array count so use
+               that. */
+            eff_max = (an_integer_value *)arg3_bytes;
+          } else {
+            /* The user-specified count is more than the array count, so if
+               the item isn't found, we've gone past the array. */
+            check_for_read_past_operand = TRUE;
+          }  /* if */
+        }  /* if */
+        for (;cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
+                                 /*op_2_signed=*/FALSE);
+             ptr++, incr_integer_value(&len)) {
+          if (cmp_integer_values(ptr, /*op_1_signed=*/FALSE,
+                                 (an_integer_value *)arg2_bytes,
+                                 /*op_2_signed=*/FALSE) == 0) {
+            /* The item has been found. */
+            goto return_result;
+          }  /* if */
+          if (arg3_bytes == NULL) {
+            if (cmp_integer_values(ptr, /*op_1_signed=*/FALSE,
+                                   (an_integer_value *)&zero_int,
+                                   /*op_2_signed=*/FALSE) == 0) {
+              /* In the string case, we've found the end of the string, so the
+                 item was not found (but this does not result in an error). */
+              ptr = NULL;
+              goto return_result;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        /* The entire object has been exhausted without finding a match.  In
+           the string case, this is an error (as an upper bound on the string
+           size was reached), in the memchr/wmemchr cases, this simply
+           returns NULL, unless we ran off the end of the object. */
+        ptr = NULL;
+        if (arg3_bytes == NULL) {
+          error_code = ec_constexpr_string_not_null_terminated;
+        } else if (check_for_read_past_operand) {
+          error_code = ec_attempt_to_read_past_end_of_object;
+        }  /* if */
+        if (error_code) {
+          an_expr_node_ptr  arg = call_node->variant.operation.operands;
+          arg = arg->next;
+          do_constexpr_fail(result);
+          info_with_pos(error_code, &arg->position, ips);
+        }  /* if */
+return_result:
+        if (result) {
+          if (ptr == NULL) {
+            clear_address(addr, (a_byte*)NULL);
+          } else {
+            addr->address = (a_byte*)ptr;
+          }  /* if */
+          *(a_constexpr_address*)result_storage = *(a_constexpr_address*)addr;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_strchr */
+
+
+static a_boolean do_constexpr_builtin_strcmp(
+                                      an_interpreter_state    *ips,
+                                      a_boolean               is_memcmp,
+                                      a_byte                  *arg1_bytes,
+                                      a_type_ptr              arg1_tp,
+                                      a_byte                  *arg2_bytes,
+                                      a_type_ptr              arg2_tp,
+                                      a_byte                  *arg3_bytes,
+                                      a_type_ptr              arg3_tp,
+                                      an_expr_node_ptr        call_node,
+                                      a_byte                  *result_storage)
+/*
+Evaluate the strcmp/memcmp/wcscmp/wcsncmp/wmemcmp/strncmp family of builtin
+functions.  If is_memcmp is TRUE, the builtin is either memcmp or wmemcmp (and
+a NULL character doesn't terminate the comparison).  argX_bytes and argX_tp
+specify the operands and their types (arg3_bytes and arg3_tp are NULL in cases
+where a count argument is not specified).  Place the result in *result_storage.
+Return FALSE if this fails (e.g., because the entity pointed to is not a
+null-terminated string) and record a potential diagnostic for the given
+expression node and interpreter state.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (arg1_tp->kind == (a_type_kind)tk_pointer &&
+      arg2_tp->kind == (a_type_kind)tk_pointer) {
+    a_constexpr_address  *addr1 = (a_constexpr_address*)arg1_bytes;
+    a_constexpr_address  *addr2 = (a_constexpr_address*)arg2_bytes;
+    a_type_ptr           tp = skip_typerefs(arg1_tp->variant.pointer.type);
+    if (addr1->address == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_null_dereference,
+                    &call_node->variant.operation.operands->next->position,
+                    ips);
+    } else if (addr2->address == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_null_dereference,
+                  &call_node->variant.operation.operands->next->next->position,
+                  ips);
+    } else if (is_array_element(addr1) && is_array_element(addr2)) {
+      an_integer_value  *ptr1 = (an_integer_value*)addr1->address;
+      an_integer_value  *ptr2 = (an_integer_value*)addr2->address;
+      an_integer_value  len, max_len, *eff_max;
+      a_byte_count      elem_size1, pos1, max1;
+      a_byte_count      elem_size2, pos2, max2;
+      int               ret_val;
+      if (tp == void_type()) {
+        /* In the memcmp case, the arguments are "void *"; treat them as
+           "char *". */
+        tp = integer_type(plain_char_int_kind);
+      } else {
+        check_assertion(tp->kind == (a_type_kind)tk_integer);
+      }  /* if */
+      get_array_pos(ips, addr1, tp, &max1, &pos1, &elem_size1, &result);
+      get_array_pos(ips, addr2, tp, &max2, &pos2, &elem_size2, &result);
+      if (result) {
+        a_boolean     check_for_read_past_operand = FALSE;
+        max1 -= pos1;
+        max2 -= pos2;
+        /* Use the minimum of the two object sizes for the loop below. */
+        set_integer_value(&max_len,
+                          (a_host_large_integer)(max1 > max2) ? max2 : max1);
+        set_integer_value(&len, (a_host_large_integer)0);
+        eff_max = &max_len;
+        if (arg3_bytes != NULL) {
+          check_assertion(arg3_tp != NULL &&
+                          f_skip_typerefs(arg3_tp)->kind ==
+                                                      (a_type_kind)tk_integer);
+          if (cmp_integer_values(&max_len, /*op_1_signed=*/FALSE,
+                                 (an_integer_value *)arg3_bytes,
+                                 /*op_2_signed=*/FALSE) >= 0) {
+            /* The user-specified count is less than the array count so use
+               that. */
+            eff_max = (an_integer_value *)arg3_bytes;
+          } else {
+            /* The user-specified count is more than the array count, so if
+               a difference isn't found, we've gone past the array. */
+            check_for_read_past_operand = TRUE;
+          }  /* if */
+        }  /* if */
+        for (;cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
+                                 /*op_2_signed=*/FALSE);
+             ptr1++, ptr2++, incr_integer_value(&len)) {
+          ret_val = cmp_integer_values(ptr1, /*op_1_signed=*/FALSE, ptr2,
+                                       /*op_2_signed=*/FALSE);
+          if (ret_val != 0) {
+            /* The comparison is finished. */
+            goto return_result;
+          }  /* if */
+          if (!is_memcmp &&
+              (cmp_integer_values(ptr1, /*op_1_signed=*/FALSE,
+                                  (an_integer_value *)&zero_int,
+                                  /*op_2_signed=*/FALSE) == 0 ||
+               cmp_integer_values(ptr2, /*op_1_signed=*/FALSE,
+                                  (an_integer_value *)&zero_int,
+                                  /*op_2_signed=*/FALSE) == 0)) {
+            /* In the string case, one of the strings has reached the NULL
+               terminating character (but not both). */
+            ret_val = 0;
+            goto return_result;
+          }  /* if */
+        }  /* for */
+        /* No difference has been found. */
+        ret_val = 0;
+        if (check_for_read_past_operand) {
+          /* If the user-specified length is greater than the sizes of the
+             objects, this is an attempt to read past the end of the object. */
+          an_expr_node_ptr  arg = call_node->variant.operation.operands;
+          arg = arg->next;
+          if (max2 < max1) {
+            arg = arg->next;
+          }  /* if */
+          do_constexpr_fail(result);
+          info_with_pos(ec_attempt_to_read_past_end_of_object, &arg->position,
+                        ips);
+        }  /* if */
+return_result:
+        if (result) {
+          set_integer_value((an_integer_value*)result_storage,
+                            (a_host_large_integer)ret_val);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_strcmp */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -5942,8 +6191,10 @@ to FALSE and the reason for the failure is recorded in *ips.
 */
 {
   a_boolean         interpreted, err = FALSE, depends_on_fp_mode;
+  a_boolean         has_count = FALSE, is_memcmp = FALSE;
   an_expr_node_ptr  args = call_node->variant.operation.operands->next;
-  a_byte            *arg1_bytes;
+  an_expr_node_ptr  args2, args3;
+  a_byte            *arg1_bytes, *arg2_bytes, *arg3_bytes;
 
   ips->cost += 1;
   switch (callee->variant.builtin_function_kind) {
@@ -6127,6 +6378,7 @@ to FALSE and the reason for the failure is recorded in *ips.
       }
       break;
     case bfk_strlen:
+    case bfk_wcslen:
       {
         interpreted = TRUE;
         if (args == NULL || args->next != NULL) {
@@ -6139,6 +6391,111 @@ to FALSE and the reason for the failure is recorded in *ips.
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !do_constexpr_builtin_strlen(ips, arg1_bytes, tp, call_node,
                                            result_storage)) {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case bfk_memchr:
+    case bfk_wmemchr:
+    case bfk_char_memchr:
+      has_count = TRUE;
+      /*FALLTHROUGH*/
+    case bfk_strchr:
+    case bfk_wcschr:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next == NULL ||
+            (has_count ?
+                   args->next->next == NULL || args->next->next->next != NULL :
+                   args->next->next != NULL)) {
+          unexpected_condition();
+        } else {
+          /* Process the first argument. */
+          a_type_ptr    arg2_tp, arg3_tp, arg1_tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, arg1_tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, arg1_tp, arg1_bytes);
+          /* Process the second argument. */
+          args2 = args->next;
+          arg2_tp = skip_typerefs(args2->type);
+          n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          if (has_count) {
+            /* Process optional count argument. */
+            args3 = args2->next;
+            arg3_tp = skip_typerefs(args3->type);
+            n_bytes = value_bytes_for_type(ips, arg3_tp, p_result);
+            if (!*p_result) break;
+            alloc_complete_object(ips, n_bytes, arg3_tp, arg3_bytes);
+          } else {
+            arg3_bytes = NULL;
+            arg3_tp = NULL;
+          }  /* if */
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes) ||
+              (has_count &&
+               !do_constexpr_expression(ips, args3, arg3_bytes, arg3_bytes)) ||
+              !do_constexpr_builtin_strchr(ips,
+                                           arg1_bytes, arg1_tp,
+                                           arg2_bytes, arg2_tp,
+                                           arg3_bytes, arg3_tp,
+                                           call_node, result_storage)) {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case bfk_memcmp:
+    case bfk_wmemcmp:
+      is_memcmp = TRUE;
+      /*FALLTHROUGH*/
+    case bfk_strncmp:
+    case bfk_wcsncmp:
+      has_count = TRUE;
+      /*FALLTHROUGH*/
+    case bfk_strcmp:
+    case bfk_wcscmp:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next == NULL || 
+            (has_count ?
+                   args->next->next == NULL || args->next->next->next != NULL :
+                   args->next->next != NULL)) {
+          unexpected_condition();
+        } else {
+          /* Process the first argument. */
+          a_type_ptr    arg2_tp, arg3_tp, arg1_tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, arg1_tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, arg1_tp, arg1_bytes);
+          /* Process the second argument. */
+          args2 = args->next;
+          arg2_tp = skip_typerefs(args2->type);
+          n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          if (has_count) {
+            /* Process optional count argument. */
+            args3 = args2->next;
+            arg3_tp = skip_typerefs(args3->type);
+            n_bytes = value_bytes_for_type(ips, arg3_tp, p_result);
+            if (!*p_result) break;
+            alloc_complete_object(ips, n_bytes, arg3_tp, arg3_bytes);
+          } else {
+            arg3_bytes = NULL;
+            arg3_tp = NULL;
+          }  /* if */
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes) ||
+              (has_count &&
+               !do_constexpr_expression(ips, args3, arg3_bytes, arg3_bytes)) ||
+              !do_constexpr_builtin_strcmp(ips, is_memcmp,
+                                           arg1_bytes, arg1_tp,
+                                           arg2_bytes, arg2_tp,
+                                           arg3_bytes, arg3_tp,
+                                           call_node, result_storage)) {
             do_constexpr_fail(*p_result);
           }  /* if */
         }  /* if */

@@ -4140,6 +4140,12 @@ static a_boolean
 			   in C++ mode.  Used to support
 			   __has_feature(cxx_thread_local). */
 
+static a_boolean
+		cxx_constexpr_string_builtins;
+			/* TRUE if the certain string builtin functions
+			   can be used in constexpr expressions.  Used for
+			   __has_feature(cxx_constexpr_string_builtins). */
+
 
 /*
 The following array describes all the clang __has_feature/__has_extension
@@ -4252,6 +4258,10 @@ static a_feature_support feature_support_list[] = {
     NULL,		/* __cpp_constexpr must be handled specially, as a
 			   single macro name takes on different values
 			   depending on the level of constexpr support. */
+    NULL },
+  { "cxx_constexpr_string_builtins",
+    &cxx_constexpr_string_builtins,
+    NULL,
     NULL },
   { "cxx_contextual_conversions",
     &contextual_conversions,
@@ -10027,6 +10037,8 @@ command line -D options.
   c_thread_local_enabled = thread_local_storage_specifier_enabled;
   cxx_thread_local_enabled = !C_mode() &&
                                     std_thread_local_storage_specifier_enabled;
+  cxx_constexpr_string_builtins =
+                   !C_mode() && constexpr_enabled && clang_version_is(>=40000);
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus
      can be redefined as this is needed in some environments.  In Microsoft

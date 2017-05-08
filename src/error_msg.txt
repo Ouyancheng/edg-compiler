@@ -2931,6 +2931,7 @@ ec_constexpr_function_with_function_try_block;;"the body of a constexpr function
 ec_branch_into_constexpr_if;;"transfer of control into a constexpr if block is not allowed"
 ec_lambda_capture_structured_binding;;"structured binding cannot be captured"
 ec_microsoft_version_doesnt_support_cpp17_mode;;"the version of Microsoft being emulated must be at least 1911 to use \"--ms_c++17\""
+ec_attempt_to_read_past_end_of_object;;"attempt to read past the end of the object"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
