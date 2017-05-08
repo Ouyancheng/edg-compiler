@@ -274,7 +274,7 @@ typedef struct a_struct_stmt_stack_entry {
 			   branches of the if need to be processed). */
   a_bit_field	in_discarded_statement:1;
 			/* TRUE when kind == ssk_constexpr_if if we are in
-			    the discarded branch of the if. */
+			   the discarded branch of the if. */
   a_bit_field	scope_stack_in_discarded_statement_state:1;
 			/* For kind == ssk_constexpr_if, this is the value
 			   of the scope stack in_discarded_statement flag

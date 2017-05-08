@@ -9314,7 +9314,7 @@ Generate C for a statement.
         }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
         write_tok_str("if ");
-         dump_boolean_controlling_expression(statement->expr);
+        dump_boolean_controlling_expression(statement->expr);
         /* Dump the "then" part. */
         indent += 2;
         dump_statement(then_statement);

@@ -14439,7 +14439,7 @@ typedef struct a_constexpr_if {
 			   is always non-NULL and else_statement is non-NULL
 			   if an "else" is present.  In an instantiation of a
 			   template function, the then statement will be
-			   replaces with an empty statement if the condition
+			   replaced with an empty statement if the condition
 			   is false, and if the else is present, it will be
 			   replaced by an empty statement if the condition
 			   is true. */

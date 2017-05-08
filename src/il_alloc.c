@@ -707,7 +707,7 @@ is allocated in the current memory region.
 
 static a_constexpr_if_ptr alloc_constexpr_if(void)
 /*
-Allocate an entry for a subobject path and return a pointer to it.  The entry
+Allocate an entry for a constexpr if and return a pointer to it.  The entry
 is allocated in the current memory region.
 */
 {

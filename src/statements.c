@@ -3635,10 +3635,11 @@ statement implicitly defines a local scope.
 static void dependent_statement_of_if(void)
 /*
 Scan the dependent statement of an if, which could be a constexpr if.
-For the constexpr case, if the dependent statement is to considered
+For the constexpr case, if the dependent statement is to be considered
 discarded:
-  - In the non-template case, the dependent statement is scanned, but
-    certain special processing is done (elsewhere).
+  - In the non-template case, the dependent statement is currently 
+    discarded.  Eventually it will be scanned with some special processing
+    (for example, not treating some references as ODR uses.
   - In the template case, the tokens of the dependent statement are
     discarded.
 
@@ -3994,17 +3995,17 @@ static void if_statement(void)
 Scan an "if" statement (with or without else) and add it to the current
 statement sequence.  The syntax is:
 
-	if constexpr ( condition ) statement
+	if constexpr   ( condition ) statement
                     opt
-	if constexpr ( condition ) statement else statement
+	if constexpr   ( condition ) statement else statement
                     opt
 
 */
 {
-  a_statement_ptr               sp;
-  a_boolean                     is_condition_decl = FALSE;
+  a_statement_ptr		sp;
+  a_boolean			is_condition_decl = FALSE;
   a_statement_kind		kind;
-  a_struct_stmt_kind            ssk_kind;
+  a_struct_stmt_kind		ssk_kind;
   a_boolean			is_constexpr_if;
   a_constexpr_if_ptr		cip = NULL;
   a_constexpr_if_cache_info	local_cici;
@@ -4061,7 +4062,7 @@ statement sequence.  The syntax is:
     /* A constexpr if.  Attempt to fold the condition.  In the case of a
        condition declaration, we can just fold the underlying (generated)
        expression: The interpreter will load any constexpr variables as
-       needed.  Similarly, a C++17-style initialization statement need no
+       needed.  Similarly, a C++17-style initialization statement needs no
        special treatment: The interpreter will load constant-valued variables
        as needed. */
     an_expr_node_ptr               condition_expr;
