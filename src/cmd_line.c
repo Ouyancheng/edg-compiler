@@ -588,6 +588,12 @@ Initialize the option information table.
   add_option_description(optk_ms_rvalue_cast, "no_ms_rvalue_cast",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_strict_ternary, "ms_strict_ternary",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_strict_ternary, "no_ms_strict_ternary",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -2630,6 +2636,11 @@ option values if they were not already set by a command line option.
       !option_kind_used[(int)optk_ms_rvalue_cast]) {
     preserve_lvalues_with_same_type_casts = ms_permissive;
   }  /* if */
+  if (!ms_permissive && !option_kind_used[(int)optk_ms_strict_ternary]) {
+    /* In non-permissive mode, the standard behavior of the ?: operator is
+       enforced, unless overridden with --no_ms_strict_ternary. */
+    ms_strict_ternary = TRUE;
+  }  /* if */
   /* MSVC doesn't treat bit fields in any special way wrt. promotion, much
      less operations applied to bit fields. */
   bit_field_promotion_applies_to_some_operations = FALSE;
@@ -3592,7 +3603,8 @@ otherwise implicitly enabled Microsoft mode.
         option_kind_used[(int)optk_microsoft_bugs] ||
         option_kind_used[(int)optk_cppcli] ||
         option_kind_used[(int)optk_ms_permissive] ||
-        option_kind_used[(int)optk_ms_rvalue_cast]) {
+        option_kind_used[(int)optk_ms_rvalue_cast] ||
+        option_kind_used[(int)optk_ms_strict_ternary]) {
       /* Microsoft mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
@@ -9481,6 +9493,12 @@ enable_microsoft_mode:
         preserve_lvalues_with_same_type_casts = !opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_ms_strict_ternary:
+        /* Emulate Microsoft's /Zc:ternary[-] switch (which also implies
+           Microsoft mode). */
+        ms_strict_ternary = opt_value;
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -11532,6 +11550,7 @@ variables declared in cmd_line.h.
   ms_extensions = FALSE;
   ms_compat = FALSE;
   ms_permissive = FALSE;
+  ms_strict_ternary = FALSE;
   cppcli_enabled = FALSE;
   cppcx_enabled = FALSE;
   cli_or_cx_enabled = FALSE;

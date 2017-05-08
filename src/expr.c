@@ -26803,7 +26803,7 @@ that case.
     } else if (types_are_the_same) {
       /* If the types are the same, we do not look for conversions to
          or from class types. */
-      if (microsoft_mode &&
+      if (microsoft_mode && !ms_strict_ternary &&
           is_class_struct_union_type(operand_2.type)) {
         /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp on
            a class rvalue "?". */
@@ -26859,7 +26859,8 @@ that case.
                                                                 &operand_2,
                                                                 &conv_3_to_2,
                                                                 &ambig_3_to_2);
-      if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible &&
+      if (microsoft_bugs && !ms_strict_ternary &&
+          conv_2_to_3_possible && conv_3_to_2_possible &&
           !ambig_2_to_3 && !ambig_3_to_2) {
         /* The Microsoft compiler appears to often prefer the 3->2 conversion
            over the 2->3 conversion if both are possible.  However, it also
@@ -26989,7 +26990,7 @@ that case.
       /* In C++, if the second and third operands have the same type and
          they are lvalues, the result is also an lvalue. */
       result_is_a_glvalue = TRUE;
-    } else if (types_are_the_same && !microsoft_mode &&
+    } else if (types_are_the_same && (!microsoft_mode || ms_strict_ternary) &&
                !(gpp_mode && !clang_mode && gnu_version < 40900) &&
                is_an_xvalue(&operand_2) &&
                is_an_xvalue(&operand_3)) {
@@ -26999,7 +27000,8 @@ that case.
          with MSVC++ 18.00.21114. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
-    } else if ((!gpp_mode || clang_mode) && !microsoft_mode &&
+    } else if ((!gpp_mode || clang_mode) &&
+               (!microsoft_mode || ms_strict_ternary) &&
                (is_throw_operand(&operand_2) ? !is_throw_operand(&operand_3)
                                              : is_throw_operand(&operand_3))) {
       /* The resolution of Core issue 1550/1560 resulted in a conditional
@@ -27033,6 +27035,7 @@ that case.
            so that we generate code with a single copy of the non-throw
            operand at the end (outside the "?"). */
       } else if (microsoft_mode && microsoft_version < 1700 &&
+                 !ms_strict_ternary &&
                  is_an_xvalue(&operand_2) && is_an_xvalue(&operand_3)) {
         /* MSVC 10 treats xvalues as special rvalues and doesn't copy them. */
         suppress_class_rvalue_temp = TRUE;
@@ -27040,6 +27043,7 @@ that case.
         /* Do a copy on a conversion from class lvalue to rvalue. */
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
         if (microsoft_mode && !microsoft_rvalue_temp_bug &&
+            !ms_strict_ternary &&
             is_an_lvalue(&operand_2) != is_an_lvalue(&operand_3)) {
           /* MSVC does not optimize an unnecessary temporary created to convert
              an lvalue to an rvalue in cases like the following:
@@ -27113,6 +27117,7 @@ that case.
       if (is_error_type(operand_3.type)) {
         result_type = operand_3.type;
       } else if (microsoft_bugs && microsoft_version < 1400 &&
+                 !ms_strict_ternary &&
                  result_is_a_glvalue &&
                  is_an_lvalue(&operand_2) && /* Rule out function cases. */
                  !is_class_struct_union_type(result_type) &&
@@ -27178,6 +27183,7 @@ that case.
       /* result_type = operand_2.type; -- already set. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode && C_mode() && microsoft_version <= 1200 &&
+               !ms_strict_ternary &&
                !curr_expr_kind_is_const() &&
                is_void_type(operand_2.type) &&
                is_scalar_type(operand_3.type)) {
@@ -27195,6 +27201,7 @@ that case.
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_2,
                                                                   result_type);
     } else if (microsoft_mode && C_mode() && microsoft_version <= 1200 &&
+               !ms_strict_ternary &&
                !curr_expr_kind_is_const() &&
                is_void_type(operand_3.type) &&
                is_scalar_type(operand_2.type)) {
@@ -27211,7 +27218,7 @@ that case.
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if ((gcc_mode || microsoft_mode) &&
+    } else if ((gcc_mode || (microsoft_mode && !ms_strict_ternary)) &&
                (is_void_type(operand_2.type) ||
                 is_void_type(operand_3.type))) {
       /* gcc mode and Microsoft mode allow mixed void/non-void operands.
@@ -27239,7 +27246,7 @@ that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_bugs &&
+      if (microsoft_bugs && !ms_strict_ternary &&
           ((is_bool_type(operand_2.type) &&
             !(is_constant_operand(&operand_2) &&
               constant_bool_value_known_at_compile_time(
@@ -27447,10 +27454,12 @@ that case.
       } else if (is_arithmetic_or_unscoped_enum_type(operand_2.type)) {
         /* Both operands should be arithmetic or (unscoped) enum. */
         (void)check_arithmetic_or_enum_operand(&operand_3);
-        /* The Microsoft Visual C++ compiler treats "x ? long_expr : int_expr"
-           and "x ? int_expr : long_expr" as having result type int. */
-        adjust_operands_for_microsoft_int_long_bug(&operand_2, &operand_3);
-        adjust_operands_for_microsoft_int_long_bug(&operand_3, &operand_2);
+        if (microsoft_bugs && !ms_strict_ternary) {
+          /* Microsoft Visual C++ treats "x ? long_expr : int_expr" and
+           "x ? int_expr : long_expr" as having result type int. */
+          adjust_operands_for_microsoft_int_long_bug(&operand_2, &operand_3);
+          adjust_operands_for_microsoft_int_long_bug(&operand_3, &operand_2);
+        }  /* if */
         result_type = determine_arithmetic_conversions(&operand_2, &operand_3);
         /* If both operands have the same enumerated type, keep that
            information in the result.  The "?" operator is unusual in that

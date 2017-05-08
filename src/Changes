@@ -1,5 +1,24 @@
 Version 4.14
 
+5/8/17   [EDGcpfe/17992]
+Microsoft compatibility: Conditional operator
+
+In Microsoft compatibility mode, the front end emulates several nonstandard
+behaviors of Visual C++ with respect to the ternary conditional operator (?:).
+Now, those behaviors are disabled when Microsoft permissive mode is turned off
+(option --no_ms_permissive) or when the new option --ms_strict_ternary is
+specified (that option matches the option /Zc:ternary available in recent
+previews of Visual C++).  For example:
+
+  struct C {
+    C(void*);
+    operator void*();
+  } c(0);
+  void g(bool b, void *p) {
+    b ? c : p;  // Accepted in normal Microsoft mode.  Ambiguous in
+  }             // non-permissive Microsoft mode.
+
+
 5/8/17   [EDGcpfe/18288]
 Passing a scoped enum value through an ellipsis parameter
 

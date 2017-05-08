@@ -296,6 +296,7 @@ typedef enum /*an_option_kind*/ {
   optk_mscorlib_file_name,
   optk_ms_permissive,
   optk_ms_rvalue_cast,
+  optk_ms_strict_ternary,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
@@ -1479,6 +1480,14 @@ EXTERN a_boolean
 			   emulated.  Default value is specified by
 			   DEFAULT_MS_PERMISSIVE.  Can be used with C, C++,
 			   C++/CLI, and C++/CX modes. */
+
+EXTERN a_boolean
+		ms_strict_ternary;
+			/* TRUE if in Microsoft mode the ternary conditional
+			   operator (?:) should be handled according to
+			   standard rules.  TRUE if ms_permissive is TRUE and
+			   no --no_ms_strict_ternary option is specified.
+			   Otherwise FALSE. */
 
 EXTERN a_boolean
 		for_each_statement_enabled;

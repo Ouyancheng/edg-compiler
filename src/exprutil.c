@@ -14555,7 +14555,8 @@ position of the "?" and ":".
   } else {
     if (suppress_class_rvalue_temp) {
       class_rvalue_case = FALSE;
-    } else if (microsoft_mode && rvalue_references_enabled) {
+    } else if (microsoft_mode && rvalue_references_enabled &&
+               !ms_strict_ternary) {
       /* MSVC10 treats an xvalue as similar to an lvalue and doesn't
          copy it. */
       if (is_an_xvalue(operand_2) && is_an_xvalue(operand_3)) {

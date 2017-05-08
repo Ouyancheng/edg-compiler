@@ -717,6 +717,7 @@ check_abbreviation()
 --ms_extensions
 --ms_permissive
 --ms_rvalue_cast
+--ms_strict_ternary
 --mscorlib_file_name
 --multibyte_chars
 --multi_trans_unit
@@ -795,6 +796,7 @@ check_abbreviation()
 --no_ms_extensions
 --no_ms_permissive
 --no_ms_rvalue_cast
+--no_ms_strict_ternary
 --no_multibyte_chars
 --no_named_address_spaces
 --no_named_registers
@@ -1323,6 +1325,8 @@ process_option()
          --no_ms_permissive | \
          --ms_rvalue_cast | \
          --no_ms_rvalue_cast | \
+         --ms_strict_ternary | \
+         --no_ms_strict_ternary | \
 	 --cppcli | \
 	 --no_cppcli | \
 	 --c++cli | \

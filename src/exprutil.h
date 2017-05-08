@@ -2746,7 +2746,7 @@ xvalues, we disable its emulation if rvalue references have been enabled.
 */
 #define ms_rvalue_temp_in_cond_operator_bug_enabled()                        \
   (microsoft_bugs && microsoft_version < 1600 &&                             \
-   !rvalue_references_enabled)
+   !rvalue_references_enabled && !ms_strict_ternary)
 
 extern
 void template_question_operation(an_operand        *operand_1,
