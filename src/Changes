@@ -1,5 +1,28 @@
 Version 4.14
 
+5/8/17   [EDGcpfe/18342]
+Spurious error on dependent inheriting constructor
+
+Consider the following example:
+
+  template<typename T> using Type = typename T::Type;
+  struct S {
+    template<typename T> struct B {
+      using Type = T;
+    };
+    template<typename T> using BA = Type<B<T>>;
+  };
+  template<typename T> struct D: S::BA<T> {
+    using Base = S::BA<T>;
+    using Base::Base;  // Previously an error.  Now okay.
+  };
+
+Previously, the front end failed to note that D<T>::Base is the same type as
+S::BA<T>, and therefore issued a spurious error suggesting it does not refer
+to a direct base class (during the prototype instantiation of D<T>).  That is
+now fixed.
+
+
 5/8/17   [EDGcpfe/17690,EDGcpfe/17995]
 C++17 compatibility: constexpr lambdas
 

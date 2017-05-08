@@ -22914,6 +22914,7 @@ declared).
   if (!is_class_struct_union_type(parent_class)) {
     /* If the base class is a template parameter, get the associated proxy
        class. */
+    parent_class = skip_typerefs_not_dependent_decltypes(parent_class);
     parent_class = proxy_class_for_template_param(parent_class);
   }  /* if */
   for (; bcp != NULL; bcp = bcp->next) {
