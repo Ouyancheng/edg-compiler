@@ -21190,7 +21190,8 @@ operand for such a binding.
       expr = skip_parens(expr->variant.operation.operands);
     }  /* while */
     if (is_variable_node(expr) &&
-        !is_any_reference_type(node_variable(expr)->type)) {
+        !is_any_reference_type(node_variable(expr)->type) &&
+        node_variable(expr)->init_kind != (an_init_kind)initk_binding) {
       /* A non-reference variable is okay. */
       invalid = FALSE;
     } else if (is_constant_node(expr)) {
@@ -21504,7 +21505,16 @@ the conversion.
   } else if (direct_binding_possible && is_an_lvalue(source_operand)) {
     /* The initial value is an lvalue of the right type; the binding
        can be done directly. */
-    if (op_is_null_address_lvalue(source_operand)) {
+    if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) != 0 &&
+        is_invalid_nontype_arg_object(source_operand)) {
+      /* An expression that doesn't simply designate a variable is invalid. */
+      if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                           incompatible_err)) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_template_arg_cannot_point_to_subobject,
+                       &source_operand->position);
+      }  /* if */
+    } else if (op_is_null_address_lvalue(source_operand)) {
       /* Initializing a reference to NULL, which is not allowed:
            int &p = *(int *)0;
       */
@@ -21526,15 +21536,6 @@ the conversion.
         pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
                            &source_operand->position, orig_source_type,
                            dest_type);
-      }  /* if */
-    } else if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) != 0 &&
-               is_invalid_nontype_arg_object(source_operand)) {
-      /* An expression that doesn't simply designate a variable is invalid. */
-      if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                           incompatible_err)) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_template_arg_cannot_point_to_subobject,
-                       &source_operand->position);
       }  /* if */
     }  /* if */
     /* Do any base-class or cv-qualifier adjustment. */
