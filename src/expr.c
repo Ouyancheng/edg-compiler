@@ -27456,7 +27456,7 @@ that case.
         (void)check_arithmetic_or_enum_operand(&operand_3);
         if (microsoft_bugs && !ms_strict_ternary) {
           /* Microsoft Visual C++ treats "x ? long_expr : int_expr" and
-           "x ? int_expr : long_expr" as having result type int. */
+             "x ? int_expr : long_expr" as having result type int. */
           adjust_operands_for_microsoft_int_long_bug(&operand_2, &operand_3);
           adjust_operands_for_microsoft_int_long_bug(&operand_3, &operand_2);
         }  /* if */

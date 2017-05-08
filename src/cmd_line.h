@@ -1501,7 +1501,7 @@ EXTERN a_boolean
 		ms_strict_ternary;
 			/* TRUE if in Microsoft mode the ternary conditional
 			   operator (?:) should be handled according to
-			   standard rules.  TRUE if ms_permissive is TRUE and
+			   standard rules.  TRUE if ms_permissive is FALSE and
 			   no --no_ms_strict_ternary option is specified.
 			   Otherwise FALSE. */
 
