@@ -5971,6 +5971,8 @@ diagnostic for the given expression node and interpreter state.
       if (result) {
         a_boolean     check_for_read_past_operand = FALSE;
         an_error_code error_code = ec_no_error;
+        check_assertion(f_skip_typerefs(arg2_tp)->kind ==
+                                                      (a_type_kind)tk_integer);
         max -= pos;
         set_integer_value(&max_len, (a_host_large_integer)max);
         set_integer_value(&len, (a_host_large_integer)0);
