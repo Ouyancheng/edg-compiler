@@ -7859,7 +7859,7 @@ is within the given complete_object.
                                    complete_object, &var_addr)) {
               do_constexpr_fail(is_constant);
             }  /* if */
-          } else if (sub_dip->kind == dik_expression) {
+          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_expression) {
             if (!do_constexpr_expression(ips, sub_dip->variant.expression,
                                          result_storage + field_offset,
                                          complete_object)) {
