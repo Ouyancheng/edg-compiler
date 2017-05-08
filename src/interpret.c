@@ -7831,6 +7831,11 @@ is within the given complete_object.
             if (vp->is_this_parameter) {
               info_with_pos(ec_star_this_not_constant_valued, &expr->position,
                             ips);
+            } else if (symbol_for(vp) == NULL) {
+              /* This can happen with synthesized variables such as the one
+                 generated for __func__. */
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &expr->position, ips);
             } else {
               info_with_pos_sym(ec_variable_not_constant_valued,
                                 &expr->position, symbol_for(vp), ips);
@@ -11016,6 +11021,11 @@ the value representation of the integer value.
             } else {
               if (var->is_this_parameter) {
                 info_with_pos(ec_star_this_not_constant_valued,
+                              &expr->position, ips);
+              } else if (symbol_for(var) == NULL) {
+                /* This can happen with synthesized variables such as the one
+                   generated for __func__. */
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
               } else {
                 info_with_pos_sym(ec_variable_not_constant_valued,
