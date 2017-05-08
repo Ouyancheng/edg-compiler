@@ -2299,6 +2299,11 @@ EXTERN a_boolean
 			   has a fixed underlying type (a C++17
 			   feature). */
 
+EXTERN a_boolean
+		constexpr_lambdas_enabled;
+			/* TRUE if constexpr lambdas (a C++17 feature)
+			   are enabled. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

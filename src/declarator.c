@@ -2316,13 +2316,29 @@ this is a helper function.
   if (state->is_lambda) {
     /* Lambdas don't allow a cv-qualifier here, but they are "const" by
        default.  "mutable", however, is allowed here, and means the lambda is
-       non-const. */
+       non-const.  "constexpr" is also permitted to declare the call
+       operator as constexpr. */
     this_class = parent_type;
     if (curr_token == tok_mutable) {
       if (func_info->lambda != NULL) {
         func_info->lambda->is_mutable = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         func_info->lambda->mutable_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      } else {
+        /* func_info->lambda may be NULL during real instantiations of generic
+           lambdas. */
+        check_assertion(scope_is(&scope_stack_top()-1,
+                                 sck_template_instantiation));
+      }  /* if */
+      (void)get_token();
+    } else if (curr_token == tok_constexpr) {
+      if (!constexpr_lambdas_enabled) {
+        pos_error(ec_constexpr_lambdas_not_enabled, &pos_curr_token);
+      } else if (func_info->lambda != NULL) {
+        func_info->lambda->constexpr_specified = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        func_info->lambda->constexpr_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       } else {
         /* func_info->lambda may be NULL during real instantiations of generic

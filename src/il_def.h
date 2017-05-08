@@ -15902,6 +15902,9 @@ typedef struct a_lambda {
 		is_mutable:1;
 			/* TRUE if the mutable keyword was specified. */
   a_bit_field
+		constexpr_specified:1;
+			/* TRUE if the constexpr keyword was specified. */
+  a_bit_field
 		has_capture_default:1;
 			/* TRUE if an explicit capture default was
 			   specified. */
@@ -15933,6 +15936,11 @@ typedef struct a_lambda {
 			   null_source_position.  Additional source position
 			   information can be accessed via the lambda_routine
 			   pointer. */
+  a_source_position
+		constexpr_position;
+			/* If the constexpr_specified flag is TRUE, this is
+			   the position of the constexpr keyword; otherwise,
+			   null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_lambda;
 

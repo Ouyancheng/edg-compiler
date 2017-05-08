@@ -2932,6 +2932,8 @@ ec_branch_into_constexpr_if;;"transfer of control into a constexpr if block is n
 ec_lambda_capture_structured_binding;;"structured binding cannot be captured"
 ec_microsoft_version_doesnt_support_cpp17_mode;;"the version of Microsoft being emulated must be at least 1911 to use \"--ms_c++17\""
 ec_attempt_to_read_past_end_of_object;;"attempt to read past the end of the object"
+ec_init_capture_not_constexpr;;"a lambda with an init-capture cannot be used in a constant expression"
+ec_constexpr_lambdas_not_enabled;;"constexpr lambdas are not enabled in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

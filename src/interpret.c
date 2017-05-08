@@ -6602,6 +6602,7 @@ otherwise, return FALSE and update *ips accordingly.
   a_boolean         result = TRUE;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
+  a_boolean         lambda_entry_case = FALSE;
 
   /* First determine the actual callee. */
   callee_node = call_node->variant.operation.operands;
@@ -6674,6 +6675,12 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
   }
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  if (callee->special_kind ==
+                             (a_special_function_kind)sfk_lambda_entry_point) {
+    /* Use the real call operator instead of the entry point. */
+    callee = callee->variant.lambda_call_operator;
+    lambda_entry_case = TRUE;
+  }  /* if */
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
                       &callee_node->position, symbol_for(callee), ips);
@@ -6743,6 +6750,9 @@ otherwise, return FALSE and update *ips accordingly.
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
+    if (lambda_entry_case) {
+      ++n_args;
+    }  /* if */
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
     /* Count the parameters (including "this") to make sure there are enough
@@ -6752,7 +6762,7 @@ otherwise, return FALSE and update *ips accordingly.
     for (param = params; param != NULL; param = param->next) {
       n_params += 1;
     }  /* if */
-    if (n_args < n_params) {
+    if (n_args < (lambda_entry_case ? n_params - 1: n_params)) {
       info_with_pos(ec_too_few_arguments, &call_node->position, ips);
       do_constexpr_fail(result);
       goto done;
@@ -6773,28 +6783,33 @@ otherwise, return FALSE and update *ips accordingly.
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
-      if (arg->is_lvalue || arg->is_xvalue ||
-          tp->kind == (a_type_kind)tk_pointer) {
-        /* The usual case: An address is produced. */
-        if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
-          do_constexpr_fail(result);
-          goto done;
-        }  /* if */
+      if (lambda_entry_case) {
+        /* Use a null pointer for the argument, since it won't be
+           referenced. */
       } else {
-        /* The call is on a class rvalue.  E.g., "X().f();". */
-        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-        a_byte        *class_bytes;
-        if (!result) goto done;
-        alloc_complete_object(ips, n_bytes, tp, class_bytes);
-        if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
-          do_constexpr_fail(result);
-          goto done;
-        }  /* if */
-        mark_complete_object_initialized(class_bytes);
-        /* Store the address of the class in *this_bytes. */
-        clear_address(this_bytes, class_bytes);
-        ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+        if (arg->is_lvalue || arg->is_xvalue ||
+            tp->kind == (a_type_kind)tk_pointer) {
+          /* The usual case: An address is produced. */
+          if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
+            do_constexpr_fail(result);
+            goto done;
+          }  /* if */
+        } else {
+          /* The call is on a class rvalue.  E.g., "X().f();". */
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+          a_byte        *class_bytes;
+          if (!result) goto done;
+          alloc_complete_object(ips, n_bytes, tp, class_bytes);
+          if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
+            do_constexpr_fail(result);
+            goto done;
+          }  /* if */
+          mark_complete_object_initialized(class_bytes);
+          /* Store the address of the class in *this_bytes. */
+          clear_address(this_bytes, class_bytes);
+          ((a_constexpr_address *)this_bytes)->alloc_seq_number =
                                           ips->storage_stack.alloc_seq_number;
+        }  /* if */
       }  /* if */
       mark_complete_object_initialized(this_bytes);
       if (pm_target != NULL &&
@@ -6803,7 +6818,9 @@ otherwise, return FALSE and update *ips accordingly.
         do_constexpr_fail(result);
         goto done;
       }  /* if */
-      arg = arg->next;
+      if (!lambda_entry_case) {
+        arg = arg->next;
+      }  /* if */
     }  /* if */
     for (; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
@@ -7735,6 +7752,131 @@ given complete object).  Otherwise, return FALSE and update *ips accordingly.
   }  /* if */
   return result;
 }  /* do_constexpr_bound_expr */
+
+
+static a_boolean do_constexpr_lambda(an_interpreter_state *ips,
+                                     an_expr_node_ptr     expr,
+                                     a_byte               *result_storage,
+                                     a_byte               *complete_object)
+/*
+Interpret expr, which must be an enk_lambda node.  Return TRUE if no error
+occurred; otherwise, return FALSE and update *ips accordingly.  The resulting
+closure object is placed at the location indicated by result_storage, which
+is within the given complete_object.
+*/
+{
+  a_lambda_ptr         lambda;
+  a_lambda_capture_ptr cap;
+  a_dynamic_init_ptr   dip;
+  a_constant_ptr       cp;
+  a_constant_ptr       field_con;
+  a_boolean            is_constant = TRUE;
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_lambda);
+  lambda = expr->variant.lambda.ptr;
+  dip = expr->variant.lambda.initialization;
+  if (dip->kind == (a_dynamic_init_kind)dik_none) {
+    /* No initialization is required. */
+  } else {
+    check_assertion(dip->kind ==
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+    cp = dip->variant.constant;
+    /* Copy each captured variable into the corresponding field of the
+       closure object. */
+    for (cap = lambda->capture_list,
+                              field_con = cp->variant.aggregate.first_constant;
+         is_constant && cap != NULL && field_con != NULL;
+         cap = cap->next, field_con = field_con->next) {
+      if (cap->is_init_capture) {
+        /* An init-capture cannot be constexpr, so this lambda invocation
+           cannot be used in a constant expression. */
+        info_with_pos(ec_init_capture_not_constexpr, &expr->position, ips);
+        do_constexpr_fail(is_constant);
+      } else {
+        a_byte             *var_storage;
+        a_variable_ptr     vp = cap->captured.variable;
+        a_field_ptr        fp = cap->closure_field;
+        a_byte_count       field_offset;
+        a_dynamic_init_ptr sub_dip;
+        /* Determine the offset of this field within the closure object's
+           storage. */
+        get_mapped_byte_count(&persistent_map, fp, field_offset);
+        get_stack_bytes(ips, vp, var_storage);
+        /* Get the value of the captured variable. */
+        if (is_volatile_qualified_type(vp->type)) {
+          /* Capturing a volatile variable prevents the lambda from being
+             used in a constant expression. */
+          info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
+          do_constexpr_fail(is_constant);
+        } else if (var_storage != NULL) {
+          /* We already have the variable's value in interpreter
+             storage. */
+          if (!complete_object_is_initialized(var_storage)) {
+            info_with_pos(ec_object_not_initialized, &expr->position, ips);
+            do_constexpr_fail(is_constant);
+          }  /* if */
+        } else {
+          /* This is the first interpreter reference to the variable's
+             value, so copy it into the associated interpreter storage. */
+          a_constant_ptr var_con = var_constant_value(vp);
+          if (var_con != NULL) {
+            var_storage = do_constexpr_alloc_variable(ips, vp, &is_constant);
+            if (is_constant) {
+              is_constant = copy_val_from_constant(ips, var_con, var_storage,
+                                                   var_storage);
+            }  /* if */
+          } else {
+            /* The variable does not have a constant value.. Report the
+               appropriate error. */
+            if (vp->is_this_parameter) {
+              info_with_pos(ec_star_this_not_constant_valued, &expr->position,
+                            ips);
+            } else {
+              info_with_pos_sym(ec_variable_not_constant_valued,
+                                &expr->position, symbol_for(vp), ips);
+            }  /* if */
+            do_constexpr_fail(is_constant);
+          }  /* if */
+        }  /* if */
+        /* If the capture has a constant value, copy it into the closure
+           object field. */
+        if (is_constant) {
+          check_assertion(field_con->kind ==
+                                        (a_constant_repr_kind)ck_dynamic_init);
+          sub_dip = field_con->variant.dynamic_init;
+          if (sub_dip->kind == (a_constant_repr_kind)dik_bitwise_copy) {
+            check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
+            if (!constexpr_copy_object(ips, fp->type, var_storage,
+                                       result_storage + field_offset,
+                                       complete_object)) {
+              do_constexpr_fail(is_constant);
+            }  /* if */
+          } else if (sub_dip->kind == (a_constant_repr_kind)dik_constructor) {
+            a_constexpr_address var_addr;
+            clear_address(&var_addr, var_storage);
+            if (!do_constexpr_ctor(ips, sub_dip, &expr->position,
+                                   result_storage + field_offset,
+                                   complete_object, &var_addr)) {
+              do_constexpr_fail(is_constant);
+            }  /* if */
+          } else if (sub_dip->kind == dik_expression) {
+            if (!do_constexpr_expression(ips, sub_dip->variant.expression,
+                                         result_storage + field_offset,
+                                         complete_object)) {
+              do_constexpr_fail(is_constant);
+            }  /* if */
+          } else {
+            unexpected_condition();
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Make sure we either bailed out because of an error or handled all
+       the captured values. */
+    check_assertion(!is_constant || (cap == NULL && field_con == NULL));
+  }  /* if */
+  return is_constant;
+}  /* do_constexpr_lambda */
 
 
 static a_boolean do_constexpr_expression(
@@ -10959,7 +11101,7 @@ the value representation of the integer value.
       }
       break;
     case enk_temp_init:
-      { a_dynamic_init_ptr     dip = expr->variant.init.dynamic_init;
+      { a_dynamic_init_ptr     dip;
         a_byte                 *tmp_bytes;
         an_alloc_seq_number    alloc_seq_number;
         a_byte_count           prefix_size;
@@ -10969,6 +11111,7 @@ the value representation of the integer value.
           do_constexpr_fail(result);
           break;
         }  /* if */
+        dip = expr->variant.init.dynamic_init;
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
@@ -11082,6 +11225,9 @@ the value representation of the integer value.
     case enk_builtin_operation:
       result = do_constexpr_builtin_operation(ips, expr, result_storage,
                                               complete_object);
+      break;
+    case enk_lambda:
+      result = do_constexpr_lambda(ips, expr, result_storage, complete_object);
       break;
     default:
       do_constexpr_fail(result);

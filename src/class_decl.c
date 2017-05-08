@@ -2323,7 +2323,6 @@ the fields implied by the lambda's capture list).
     cssp->lambda_subject_to_trans_unit_corresp =
         prp->is_inline || (prp->is_template_function && !prp->is_specialized);
   }  /* if */
-  cssp->known_not_to_be_a_literal_type = TRUE;
   return type;
 }  /* make_closure_class */
 
@@ -31307,6 +31306,8 @@ For example:
   a_boolean            bad_scope;
   a_def_arg_expr_fixup_ptr
                        saved_curr_default_args = curr_default_args;
+  a_class_symbol_supplement_ptr
+                       cssp;
 
   /* Temporarily stash away default argument fixups to keep them separate
      from any additional fixups that might be generated for the lambda
@@ -31393,6 +31394,32 @@ For example:
   }
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
+  cssp = class_symbol_supp(symbol_for(closure_class));
+  if (constexpr_lambdas_enabled) {
+    a_boolean   has_nonliteral_member = FALSE;
+    a_field_ptr fp;
+    for (fp = closure_class->variant.class_struct_union.field_list;
+         !has_nonliteral_member && fp != NULL; fp = fp->next) {
+      has_nonliteral_member = !is_literal_type(fp->type);
+    }  /* for */
+    if (has_nonliteral_member) {
+      cssp->known_not_to_be_a_literal_type = TRUE;
+      cssp->known_to_be_a_literal_type = FALSE;
+    } else {
+      cssp->known_not_to_be_a_literal_type = FALSE;
+      cssp->known_to_be_a_literal_type = TRUE;
+    }  /* if */
+    if (lambda->constexpr_specified || !has_nonliteral_member) {
+      /* The call operator of a lambda is constexpr if it is either
+         explicitly declared to be or if it would satisfy the
+         requirements for a constexpr function. */
+      lambda->lambda_routine->is_constexpr = TRUE;
+      scope_for_routine(lambda->lambda_routine)->is_constexpr_routine = TRUE;
+    }  /* if */
+  } else {
+    cssp->known_not_to_be_a_literal_type = TRUE;
+    cssp->known_to_be_a_literal_type = FALSE;
+  }  /* if */
   pop_scope();
   if (!lambda->is_generic) {
     define_lambda_conversion_functions_if_needed(lambda);

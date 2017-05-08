@@ -2408,6 +2408,12 @@ routine.
   pop_scope();
   check_assertion(conv_op->is_inline);
   if (instantiate_extern_inline) add_to_inline_function_list(conv_op);
+  if (constexpr_lambdas_enabled) {
+    /* The conversion operator is constexpr in C++17. */
+    conv_op->is_constexpr = TRUE;
+    fn_scope->is_constexpr_routine = TRUE;
+    static_entry_pt->is_constexpr = TRUE;
+  }  /* if */
 }  /* define_lambda_conversion_function */
 
 

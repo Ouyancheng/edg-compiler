@@ -2577,6 +2577,7 @@ option values if they were not already set by a command line option.
           selection_initializers_enabled = TRUE;
           direct_init_fixed_base_enum_enabled = TRUE;
           constexpr_if_enabled = TRUE;
+          constexpr_lambdas_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3360,6 +3361,7 @@ default mode (e.g., exception handling).
       selection_initializers_enabled = TRUE;
       direct_init_fixed_base_enum_enabled = TRUE;
       constexpr_if_enabled = TRUE;
+      constexpr_lambdas_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11621,6 +11623,7 @@ variables declared in cmd_line.h.
   deduced_return_types_enabled = FALSE;
   warn_on_deduced_return_types = FALSE;
   direct_init_fixed_base_enum_enabled = FALSE;
+  constexpr_lambdas_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

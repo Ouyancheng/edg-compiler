@@ -5478,6 +5478,9 @@ Display the indicated lambda entry.
   if (ptr->is_mutable) {
     disp_boolean("is_mutable", TRUE);
   }  /* if */
+  if (ptr->constexpr_specified) {
+    disp_boolean("constexpr_specified", TRUE);
+  }  /* if */
   if (ptr->has_capture_default) {
     disp_boolean("has_capture_default", TRUE);
   }  /* if */
@@ -5494,6 +5497,7 @@ Display the indicated lambda entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("capture_end_position", &ptr->capture_end_position);
   disp_source_position("mutable_position", &ptr->mutable_position);
+  disp_source_position("constexpr_position", &ptr->constexpr_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_lambda */
 

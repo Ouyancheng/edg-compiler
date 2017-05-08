@@ -5382,6 +5382,7 @@ entry is allocated in the current memory region.
   entry->lambda_routine = NULL;
   entry->is_generic = FALSE;
   entry->is_mutable = FALSE;
+  entry->constexpr_specified = FALSE;
   entry->has_capture_default = FALSE;
   entry->default_is_by_reference = FALSE;
   entry->explicit_return_type = FALSE;
@@ -5390,6 +5391,7 @@ entry is allocated in the current memory region.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->capture_end_position = null_source_position;
   entry->mutable_position = null_source_position;
+  entry->constexpr_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return entry;
 }  /* alloc_lambda */
