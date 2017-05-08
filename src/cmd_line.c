@@ -11550,13 +11550,13 @@ variables declared in cmd_line.h.
   ms_extensions = FALSE;
   ms_compat = FALSE;
   ms_permissive = FALSE;
-  ms_strict_ternary = FALSE;
   cppcli_enabled = FALSE;
   cppcx_enabled = FALSE;
   cli_or_cx_enabled = FALSE;
   scanning_generated_code_from_metadata = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ms_strict_ternary = FALSE;
   scanning_generated_code = FALSE;
   internal_templates_enabled = FALSE;
   no_ms_nonreal_base_classes = FALSE;

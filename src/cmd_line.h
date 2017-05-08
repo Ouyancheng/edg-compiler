@@ -1482,14 +1482,6 @@ EXTERN a_boolean
 			   C++/CLI, and C++/CX modes. */
 
 EXTERN a_boolean
-		ms_strict_ternary;
-			/* TRUE if in Microsoft mode the ternary conditional
-			   operator (?:) should be handled according to
-			   standard rules.  TRUE if ms_permissive is TRUE and
-			   no --no_ms_strict_ternary option is specified.
-			   Otherwise FALSE. */
-
-EXTERN a_boolean
 		for_each_statement_enabled;
 			/* TRUE if the Microsoft "for each" statement is
 			   enabled.  Typically enabled in C++ mode when
@@ -1504,6 +1496,14 @@ EXTERN a_boolean
 			   emulated. */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+EXTERN a_boolean
+		ms_strict_ternary;
+			/* TRUE if in Microsoft mode the ternary conditional
+			   operator (?:) should be handled according to
+			   standard rules.  TRUE if ms_permissive is TRUE and
+			   no --no_ms_strict_ternary option is specified.
+			   Otherwise FALSE. */
 
 EXTERN a_boolean
 		no_ms_nonreal_base_classes;
