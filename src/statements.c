@@ -3639,7 +3639,7 @@ For the constexpr case, if the dependent statement is to be considered
 discarded:
   - In the non-template case, the dependent statement is currently 
     discarded.  Eventually it will be scanned with some special processing
-    (for example, not treating some references as ODR uses.
+    (for example, not treating some references as ODR uses).
   - In the template case, the tokens of the dependent statement are
     discarded.
 
