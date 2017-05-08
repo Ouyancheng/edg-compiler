@@ -2570,6 +2570,7 @@ option values if they were not already set by a command line option.
           struct_bindings_enabled = TRUE;
           selection_initializers_enabled = TRUE;
           direct_init_fixed_base_enum_enabled = TRUE;
+          constexpr_if_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
