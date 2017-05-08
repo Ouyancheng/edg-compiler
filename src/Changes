@@ -1,5 +1,20 @@
 Version 4.14
 
+5/8/17   [EDGcpfe/18288]
+Passing a scoped enum value through an ellipsis parameter
+
+Previously, passing a scoped enum value through an ellipsis parameter could
+cause the C-generating back end to trigger an internal error.  That is now
+fixed by having such arguments be converted to the promoted underlying integer
+type.  For example:
+
+  enum class E: short { e };
+  int f(...) { return 1; }
+  int main() {
+    return f(E::e);  // Previously triggered an internal error.  Now okay.
+  }                  // E::e is now implicitly "promoted".
+
+
 5/5/17   [EDGcpfe/18326]
 GNU C++ compatibility: typename influences lookup
 

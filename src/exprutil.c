@@ -9437,7 +9437,7 @@ at all, which happens, for example, for an unprototyped function in
 C mode.
 */
 {
-  a_type_ptr arg_type;
+  a_type_ptr  orig_arg_type, arg_type;
 
   if (microsoft_bugs && is_ellipsis &&
       !curr_expr_is_evaluated() && is_an_lvalue(argument_operand) &&
@@ -9454,23 +9454,37 @@ C mode.
        Otherwise, do the special array --> pointer decay as an extension. */
     handle_nonstandard_array_rvalue(argument_operand);
   }  /* if */
-  arg_type = argument_operand->type;
+  orig_arg_type = argument_operand->type;
+  arg_type = skip_typerefs(orig_arg_type);
   /* Do the integral promotions part of the default argument promotions
      directly on the operand because of the special case with 
      bit-fields (which can't be handled from just the type). */
-  if (is_integral_or_enum_type(arg_type)) {
-    promote_operand(argument_operand);
-  } else if (is_incomplete_type(arg_type)) {
+  if (arg_type->kind == (a_type_kind)tk_integer) {
+    if (arg_type->variant.integer.is_scoped_enum) {
+      /* Scoped enum types are not usually subject to integral promotions, but
+         if we pass them through an ellipsis parameter, we do convert them to
+         the promoted underlying type. */
+      if (is_ellipsis) {
+        a_type_ptr  promoted_type;
+        promoted_type = type_after_integral_promotion(
+                            integer_type(arg_type->variant.integer.int_kind));
+        cast_operand(promoted_type, argument_operand,
+                     /*is_implicit_cast=*/TRUE);
+      }  /* if */
+    } else {
+      promote_operand(argument_operand);
+    }  /* if */
+  } else if (arg_type->incomplete) {
     /* Catch a case like "f((void)2)" -- an argument with an incomplete
        type is not allowed. */
     if (microsoft_bugs && !curr_expr_is_evaluated() && is_ellipsis &&
-        is_class_struct_union_type(arg_type)) {
+        is_immediate_class_type(arg_type)) {
       /* MSVC++ allows a call returning an incomplete class type as an
          argument for an ellipsis in an unevaluated context. */
     } else {
       error_in_operand(incomplete_type_err_code(arg_type), argument_operand);
     }  /* if */
-  } else if (is_class_struct_union_type(arg_type)) {
+  } else if (is_immediate_class_type(arg_type)) {
     /* Class.  No promotion needed. */
     if (!C_mode()) {
       if (is_ellipsis &&
@@ -9486,13 +9500,13 @@ C mode.
          This falls under undefined behavior.  The Sun CC compiler uses the
          copy constructor in this case.  Note that if the class does
          not have a copy constructor this does the right thing anyway. */
-      prep_arg_passed_via_copy_constructor(argument_operand, arg_type,
+      prep_arg_passed_via_copy_constructor(argument_operand, orig_arg_type,
                                            (a_conv_descr *)NULL,
                                            ec_no_suitable_copy_constructor);
 #endif /* USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS */
     }  /* if */
   } else {
-    cast_operand(default_argument_promotion(arg_type),
+    cast_operand(default_argument_promotion(orig_arg_type),
                  argument_operand,
                  /*is_implicit_cast=*/TRUE);
   }  /* if */

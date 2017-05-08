@@ -4410,10 +4410,10 @@ size_already_set:;
 a_type_ptr type_after_integral_promotion(a_type_ptr type)
 /*
 Determine the type that would result from applying the integral promotions
-(3.2.1.1) to type.  Return the promoted type, which may be the same
-as the original type.  See also type_after_bit_field_integral_promotion for
-integral promotions for bit field expressions.  Note that this routine
-expects to receive an rvalue type.
+to type.  Return the promoted type, which may be the same as the original
+type.  See also type_after_bit_field_integral_promotion for integral
+promotions for bit field expressions.  Note that this routine expects to
+receive an rvalue type.
 */
 {
   a_type_ptr promoted_type = type;
