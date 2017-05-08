@@ -16930,21 +16930,6 @@ done:
 }  /* tuple_like_binding_type */
 
 
-static a_field_ptr  get_direct_fields_if_nonempty(a_type_ptr  tp)
-/*
-tp is a class or struct type.  Return NULL if it has no fields or if all its
-fields are unnamed bit fields.  Otherwise, return its list of fields.
-*/
-{
-  a_field_ptr  result = tp->variant.class_struct_union.field_list, fp = result;
-
-  while (fp != NULL && fp->is_bit_field && !has_name(fp)) {
-    fp = fp->next;
-  }  /* if */
-  return fp == NULL ? fp : result;
-}  /* get_direct_fields_if_nonempty */
-
-
 static a_field_ptr next_bindable_field(a_field_ptr field)
 /*
 Given a pointer to a field (or NULL), return a pointer to the first field at
@@ -16966,6 +16951,19 @@ pointer) and does not skip anonymous union parent objects.
   }  /* for */
   return field;
 }  /* next_bindable_field */
+
+
+static a_field_ptr get_direct_fields_if_nonempty(a_type_ptr  tp)
+/*
+tp is a class or struct type.  Return NULL if it has no fields or if all its
+fields are unnamed bit fields.  Otherwise, return its list of fields.
+*/
+{
+  a_field_ptr  result = tp->variant.class_struct_union.field_list, fp;
+
+  fp = next_bindable_field(result);
+  return fp == NULL ? fp : result;
+}  /* get_direct_fields_if_nonempty */
 
 
 static a_boolean check_simple_struct_for_binding(
