@@ -4590,14 +4590,20 @@ Return TRUE is successful.  Otherwise, return FALSE and update *ips
 accordingly.
 */
 {   
-  a_boolean            result = TRUE;
+  a_boolean            result = TRUE, clear_lvalue = FALSE;
   an_expr_node_ptr     array_expr = dip->variant.constructor.args;
   a_byte               *lvalue;
   a_constexpr_address  *src_addr;
   a_byte_count         n_lvalue_bytes;
   a_type_ptr           tp = skip_typerefs(array_expr->type), elem_type;
 
-  check_assertion(array_expr->is_lvalue);
+  if (!array_expr->is_lvalue && !array_expr->is_xvalue) {
+    /* The array to copy may be an rvalue temporary.  By setting the is_lvalue
+       flag, the temporary is still created, but do_constexpr_expression will
+       return the address of it instead. */
+    array_expr->is_lvalue = TRUE;
+    clear_lvalue = TRUE;
+  }  /* if */
   n_lvalue_bytes = expr_result_size(ips, array_expr, tp, &result); 
   if (!result) goto done;
   alloc_complete_object(ips, n_lvalue_bytes, tp, lvalue);
@@ -4643,6 +4649,9 @@ accordingly.
     }  /* for */
   }  /* if */
 done:
+  if (clear_lvalue) {
+    array_expr->is_lvalue = FALSE;
+  }  /* if */
   return result;
 }  /* do_array_constructor_copy */
 
