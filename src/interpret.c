@@ -4848,7 +4848,7 @@ static void do_constexpr_condition_dealloc(an_interpreter_state   *ips,
 /*
 expr is an enk_condition node representing the condition expression of a
 statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
-Deallocate and unmap the associated variable.  Restore the storage state
+Deallocate and unmap all associated variables.  Restore the storage state
 recorded in *vs_state.
 */
 {
@@ -4862,7 +4862,7 @@ recorded in *vs_state.
   }  /* if */
   if (init != NULL) {
     if (init->kind == (a_statement_kind)stmk_decl) {
-      /* Allocate storage for any variables. */
+      /* Unmap storage for all declared variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
         if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
@@ -4872,6 +4872,7 @@ recorded in *vs_state.
       }  /* for */
     }  /* if */
   }  /* if */
+  /* Reclaim the storage of the variables that were unmapped above. */
   restore_storage_stack(ips, *vs_state);
 }  /* do_constexpr_condition_dealloc */
 
@@ -4976,7 +4977,7 @@ loop constructs they may be needed again).
   }  /* if */
   if (init != NULL) {
     if (init->kind == (a_statement_kind)stmk_decl) {
-      /* Allocate storage for any variables. */
+      /* Clean up side structures for any declared variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
         if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {

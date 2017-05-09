@@ -13859,26 +13859,27 @@ Generate an init-statement (a for-init statement or a C++17 selection statement
 initializer).
 */
 {
-      check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
-      /* Process the declaration/initialization.  If there are several, they
-         must be put out as a comma-separated list.  A loop is necessary
-         in case a tag is declared in the specifiers list. */
-      while (ss_entry_kind(curr_source_sequence_entry) !=
-                                                iek_src_seq_end_of_construct) {
-        gen_declaration(/*for_init=*/TRUE);
-      }  /* while */
-      /* The declaration is followed by an end-of-construct entry. */
+  check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
+  /* Process the declaration/initialization.  If there are several, they must
+     be put out as a comma-separated list.  A loop is necessary in case a tag
+     is declared in the specifiers list. */
+  while (ss_entry_kind(curr_source_sequence_entry) !=
+                                               iek_src_seq_end_of_construct) {
+    gen_declaration(/*for_init=*/TRUE);
+  }  /* while */
+  /* The declaration is followed by an end-of-construct entry. */
 #if CHECKING
-      { a_src_seq_end_of_construct_ptr ssecp =
-                                  ss_entry_ptr(curr_source_sequence_entry,
-                                               a_src_seq_end_of_construct_ptr);
-        check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
-                             ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
-                            "gen_for_statement: bad end-of-construct");
-      }
+  { a_src_seq_end_of_construct_ptr
+          ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                               a_src_seq_end_of_construct_ptr);
+    check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
+                        ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
+                        "gen_for_statement: bad end-of-construct");
+  }
 #endif /* CHECKING */
-      adv_curr_source_sequence_entry();
+  adv_curr_source_sequence_entry();
 }  /* gen_init_statement */
+
 
 static void gen_condition(a_statement_ptr statement)
 /*
