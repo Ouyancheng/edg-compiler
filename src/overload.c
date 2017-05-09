@@ -21583,6 +21583,17 @@ the conversion.
                             ec_incompatible_exception_specs,
                             &source_operand->position);
       }  /* if */
+      if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) != 0 &&
+          is_invalid_nontype_arg_object(source_operand)) {
+        /* An expression that doesn't simply designate a function is
+           invalid. */
+        if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                             incompatible_err)) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_template_arg_cannot_point_to_subobject,
+                         &source_operand->position);
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else if ((direct_binding_possible ||
               (dropping_qualifiers && !is_rvalue_ref)) &&
