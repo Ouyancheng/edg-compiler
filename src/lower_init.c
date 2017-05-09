@@ -12259,6 +12259,7 @@ eff_insert_location specifies the insert location for any added statements
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
   a_variable_ptr     var = dip->variable;
   a_boolean          non_C_case = FALSE;
+  an_insert_location insert_location;
 
 #if LOWER_DESIGNATED_INITIALIZERS
   lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
@@ -12320,7 +12321,6 @@ eff_insert_location specifies the insert location for any added statements
   }  /* switch */
   if (non_C_case) {
     /* Rewrite a non-C case. */
-    an_insert_location insert_location;
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
 
