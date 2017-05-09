@@ -312,7 +312,8 @@ extern void insert_dtor_member_and_base_destructions(
 
 extern void lower_destructor_code(a_scope_ptr scope);
 
-extern void lower_stmk_init(a_statement_ptr statement);
+extern void lower_stmk_init(a_statement_ptr    statement,
+                            an_insert_location *eff_insert_location);
 
 extern void insert_pending_stmk_init_statements(a_statement_ptr  statement);
 

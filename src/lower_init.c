@@ -12248,9 +12248,12 @@ other initializations.  This routine returns TRUE if guard code was emitted.
 
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
-void lower_stmk_init(a_statement_ptr statement)
+void lower_stmk_init(a_statement_ptr    statement,
+                     an_insert_location *eff_insert_location)
 /*
-Generate code for a stmk_init (dynamic initialization) statement.
+Generate code for a stmk_init (dynamic initialization) statement.  If non-NULL,
+eff_insert_location specifies the insert location for any added statements
+(otherwise they are added after the statement itself).
 */
 {
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
@@ -12321,7 +12324,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
 
-    set_insert_location(statement, &insert_location);
+    if (eff_insert_location == NULL) {
+      set_insert_location(statement, &insert_location);
+      eff_insert_location = &insert_location;
+    }  /* if */
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
     if (var_is_return_value_variable(var)) {
       /* The variable being initialized is the return value optimization
@@ -12345,7 +12351,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
                        (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, &keep_dynamic_init,
+                       eff_insert_location, &keep_dynamic_init,
                        (a_constant **)NULL);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */

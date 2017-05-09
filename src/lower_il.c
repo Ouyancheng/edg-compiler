@@ -18082,7 +18082,7 @@ stmk_init statements.
            temporary is used. */
         vp->initializer.dynamic->follows_an_exec_statement = TRUE;
         insert_statement(init_stmt, insert_loc);
-        lower_stmk_init(init_stmt);
+        lower_stmk_init(init_stmt, insert_loc);
       }  /* if */
       if (vp->is_struct_binding_container) {
         /* Also process any binding variables, if needed. */
@@ -18940,7 +18940,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_condition(statement);
         break;
       case stmk_init:
-        lower_stmk_init(statement);
+        lower_stmk_init(statement, (an_insert_location*)NULL);
         break;
       case stmk_try_block:
         lower_try_block(statement, /*is_function_try_block=*/FALSE,
