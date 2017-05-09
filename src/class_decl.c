@@ -31410,7 +31410,8 @@ For example:
       cssp->known_not_to_be_a_literal_type = FALSE;
       cssp->known_to_be_a_literal_type = TRUE;
     }  /* if */
-    if (lambda->constexpr_specified || !has_nonliteral_member) {
+    if (lambda->lambda_routine != NULL &&
+        (lambda->constexpr_specified || !has_nonliteral_member)) {
       /* The call operator of a lambda is constexpr if it is either
          explicitly declared to be or if it would satisfy the
          requirements for a constexpr function. */
