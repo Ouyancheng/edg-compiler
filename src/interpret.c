@@ -11241,7 +11241,13 @@ the value representation of the integer value.
                                               complete_object);
       break;
     case enk_lambda:
-      result = do_constexpr_lambda(ips, expr, result_storage, complete_object);
+      if (constexpr_lambdas_enabled) {
+        result = do_constexpr_lambda(ips, expr, result_storage,
+                                     complete_object);
+      } else {
+        info_with_pos(ec_constexpr_lambdas_not_enabled, &expr->position, ips);
+        do_constexpr_fail(result);
+      }  /* if */
       break;
     default:
       do_constexpr_fail(result);
