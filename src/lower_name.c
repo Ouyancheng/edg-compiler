@@ -7145,10 +7145,21 @@ given by tap.
     /* Don't get confused on error cases. */
   } else if (temp->kind == (a_template_kind)templk_template_template_param) {
     /* The value of the argument is itself a template template parameter. */
-    mangled_encoding_for_template_parameter(
-                                     &temp->coordinates,
-                                     (a_template_arg *)NULL,
-                                     mctl);
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 414
+    if (!add_substitution_if_available((char *)temp, iek_template,
+                                       /*is_pack_expansion=*/FALSE, mctl))
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 414 */
+    /* Do not insert code here. */
+    {
+      mangled_encoding_for_template_parameter(
+                                       &temp->coordinates,
+                                       (a_template_arg *)NULL,
+                                       mctl);
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 414
+      alloc_substitution((char *)temp, iek_template,
+                         /*is_pack_expansion=*/FALSE, mctl);
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 414 */
+    }  /* if */
   } else {
     /* The value of the argument is a template. */
     a_source_correspondence *scp = &temp->source_corresp;

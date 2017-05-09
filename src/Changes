@@ -1,5 +1,26 @@
 Version 4.14
 
+5/9/17   [EDGcpfe/18265]
+IA-64 ABI: missing substitution for template template parameter
+
+In IA-64 configurations the front end had missed allocating a substitution
+for a template template parameter, resulting in mangled names that could not
+be properly demangled.  A change has been made (when ABI_COMPATIBILITY_VERSION
+>= 414) to perform this allocation.  This change affects mangled names for
+prototype instantiations.  For example (in a configuration where
+MANGLE_ALL_NAMES and BACK_END_IS_CP_GEN_BE are TRUE):
+
+  template<template<typename> class TT, typename T, typename U>
+  class ct {
+    void mf(TT<T>, TT<U>);
+  };
+
+The mangled name for ct<TT, T, U>::mf had been
+_ZN2ctIT_T0_T1_E2mfET_IS0_ES3_IS1_E and is now
+_ZN2ctIT_T0_T1_E2mfES0_IS1_ES0_IS2_E.  Mangled names for instantiations of
+this template are unchanged.
+
+
 5/8/17   [EDGcpfe/18342]
 Spurious error on dependent inheriting constructor
 
