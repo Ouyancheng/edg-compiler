@@ -9419,26 +9419,31 @@ the folding mechanism is used as a way to validate argument values.
       case bfk_fpclassify:
         /* We currently never fold calls to __builtin_fpclassify, but we do
            check that the last argument has a floating-point type. */
-        if (args == NULL || args2 == NULL || args2->next == NULL ||
-            args2->next->next == NULL || args2->next->next->next == NULL) {
-          /* The routine type of __builtin_fpclassify is
-               int (int, int, int, int, int, ...);
-             So if we have less than five arguments, an error should be
-             issued elsewhere. */
-        } else if (args2->next->next->next->next == NULL ||
-                   args2->next->next->next->next->next != NULL) {
-          /* Five arguments or more than six: Issue an error. */
-          *err_code = ec_invalid_builtin_fpclassify_args;
-        } else {
-          /* Check that the last (sixth) argument has floating-point type. */
-          an_expr_node_ptr  fparg = args2->next->next->next->next;
-          if (!is_real_floating_type(fparg->type) &&
-              !is_template_param_type(fparg->type)) {
-            if (!is_error_type(fparg->type)) {
-              *err_code = ec_bad_final_builtin_fpclassify_arg;
+        { an_expr_node_ptr   arg = args;
+          unsigned long      n = 0;
+          for (; arg != NULL; n += 1, arg = arg->next) {
+            if (is_error_type(arg->type)) break;
+          }  /* for */
+          if (arg != NULL || n < 5) {
+            /* The routine type of __builtin_fpclassify is
+                 int (int, int, int, int, int, ...);
+               So if we have less than five arguments, an error should be
+               issued elsewhere.  If we ran into an error type, no other error
+               should be emitted either. */
+          } else if (n == 5 || n > 6) {
+            /* Five arguments or more than six: Issue an error. */
+            *err_code = ec_invalid_builtin_fpclassify_args;
+          } else {
+            /* Check that the last (sixth) argument has floating-point type. */
+            an_expr_node_ptr  fparg = args2->next->next->next->next;
+            if (!is_real_floating_type(fparg->type) &&
+                !is_template_param_type(fparg->type)) {
+              if (!is_error_type(fparg->type)) {
+                *err_code = ec_bad_final_builtin_fpclassify_arg;
+              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
+        }
         break;
       case bfk_strlen:
         /* strlen of a constant string can be folded in C mode. */
