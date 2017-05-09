@@ -21205,8 +21205,15 @@ operand for such a binding.
                                       ->type)) {
           /* A nonreference variable whose "address" has been folded. */
           invalid = FALSE;
+        } else if (acp->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine) {
+          /* A routine whose address has been folded. */
+          invalid = FALSE;
         }  /* if */
       }  /* if */
+    } else if (is_routine_node(expr) && expr->is_lvalue) {
+      /* Binding a function to a reference is okay. */
+      invalid = FALSE;
     } else if (is_error_node(expr)) {
       invalid = FALSE;
     }  /* if */
