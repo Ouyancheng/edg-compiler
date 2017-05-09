@@ -7777,6 +7777,9 @@ is within the given complete_object.
   dip = expr->variant.lambda.initialization;
   if (dip->kind == (a_dynamic_init_kind)dik_none) {
     /* No initialization is required. */
+  } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+    is_constant = do_constexpr_dynamic_init(ips, dip, &expr->position,
+                                            result_storage, complete_object);
   } else {
     check_assertion(dip->kind ==
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
@@ -7787,20 +7790,24 @@ is within the given complete_object.
                               field_con = cp->variant.aggregate.first_constant;
          is_constant && cap != NULL && field_con != NULL;
          cap = cap->next, field_con = field_con->next) {
+      a_field_ptr        fp = cap->closure_field;
+      a_byte_count       field_offset;
+      get_mapped_byte_count(&persistent_map, fp, field_offset);
       if (cap->is_init_capture) {
-        /* An init-capture cannot be constexpr, so this lambda invocation
-           cannot be used in a constant expression. */
-        info_with_pos(ec_init_capture_not_constexpr, &expr->position, ips);
-        do_constexpr_fail(is_constant);
+        /* Interpret the initializer for the capture. */
+        is_constant = do_constexpr_dynamic_init(ips, cap->captured.initializer,
+                                                &expr->position,
+                                                result_storage + field_offset,
+                                                complete_object);
       } else {
         a_byte             *var_storage;
         a_variable_ptr     vp = cap->captured.variable;
-        a_field_ptr        fp = cap->closure_field;
-        a_byte_count       field_offset;
         a_dynamic_init_ptr sub_dip;
+        check_assertion(field_con->kind ==
+                                        (a_constant_repr_kind)ck_dynamic_init);
+        sub_dip = field_con->variant.dynamic_init;
         /* Determine the offset of this field within the closure object's
            storage. */
-        get_mapped_byte_count(&persistent_map, fp, field_offset);
         get_stack_bytes(ips, vp, var_storage);
         /* Get the value of the captured variable. */
         if (is_volatile_qualified_type(vp->type)) {
@@ -7846,9 +7853,6 @@ is within the given complete_object.
         /* If the capture has a constant value, copy it into the closure
            object field. */
         if (is_constant) {
-          check_assertion(field_con->kind ==
-                                        (a_constant_repr_kind)ck_dynamic_init);
-          sub_dip = field_con->variant.dynamic_init;
           if (sub_dip->kind == (a_constant_repr_kind)dik_bitwise_copy) {
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
             if (!constexpr_copy_object(ips, fp->type, var_storage,
