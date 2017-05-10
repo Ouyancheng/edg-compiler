@@ -30869,10 +30869,16 @@ lambda.
         break;
       case sck_template_declaration:
       case sck_enum:
+        /* Prior to C++17, lambdas cannot appear in template parameter
+           lists nor in scoped enumeration definitions.  Otherwise, the
+           closure class will be promoted to the containing scope. */
+        if (!constexpr_lambdas_enabled) {
+          scope_error = TRUE;
+        }  /* if */
+        break;
       default:
-        /* We currently don't accept lambdas in template parameter lists nor
-           in scoped enum definitions.  Other scopes not covered above are
-           unexpected, but it is safe to treat them as errors. */
+        /* Scopes not covered above are unexpected, but it is safe to treat
+           them as errors. */
         scope_error = TRUE;
         break;
     }  /* switch */
