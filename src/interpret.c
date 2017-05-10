@@ -6442,6 +6442,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             if (!*p_result) break;
             alloc_complete_object(ips, n_bytes, arg3_tp, arg3_bytes);
           } else {
+            args3 = NULL;
             arg3_bytes = NULL;
             arg3_tp = NULL;
           }  /* if */
