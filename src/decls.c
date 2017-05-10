@@ -17034,11 +17034,94 @@ given position.
 }  /* check_simple_struct_for_binding */
 
 
-static void decl_struct_bindings(a_decl_parse_state  *dps)
+static void declare_struct_bindings(a_decl_parse_state  *dps)
 /*
 dps represents a structured binding declaration (and the container variable,
 which has just been declared, in particular).  Declare the variables
-representing the individual bindings.
+representing the individual bindings as "auto" variables.  This must be done
+early so that cases like "auto [x] = x;" are diagnosed.
+*/
+{
+  a_variable_ptr  container;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean       saved_sses_disallowed = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  an_il_entity_list_entry_ptr
+                  *p_end_bindings;
+
+  check_assertion(symbol_is(dps->sym, sk_variable));
+  container = dps->sym->variant.variable.ptr;
+  p_end_bindings = &container->variant.bindings;
+  /* Rescan the bracketed list of binding names and declare a variable
+     for each binding (initializing each one as appropriate). */
+  rescan_cached_tokens(dps->variant.struct_bindings_cache);
+  (void)required_token(tok_lbracket, ec_exp_lbracket);
+  add_stop_token(tok_comma);
+  do {
+    a_decl_parse_state  binding_dps;
+    an_id_linkage_kind  linkage = idl_none;
+    a_symbol_ptr        ext_sym;
+    a_variable_ptr      vp;
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+      continue;
+    }  /* if */
+    /* Declare the variable representing the binding. */
+    binding_dps = *dps;
+    binding_dps.start_pos = pos_curr_token;
+    binding_dps.declarator_pos = pos_curr_token;
+    binding_dps.is_struct_binding_decl = FALSE;
+    if (binding_dps.auto_type == NULL) {
+      /* If no "auto" type was specified on the container declaration, create
+         such a type for the binding now. */
+      expect_error();
+      binding_dps.auto_type = make_auto_type(&pos_curr_token,
+                                             /*is_decltype_auto=*/FALSE);
+    }  /* if */
+    binding_dps.specifiers_type = binding_dps.auto_type;
+    binding_dps.declared_type = binding_dps.auto_type;
+    binding_dps.type = binding_dps.auto_type;
+    binding_dps.deduced_auto_type = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    decl_variable(&locator_for_curr_id, &binding_dps,
+                  SRK_DECLARATION | SRK_DEFINITION | SRK_INITIALIZATION,
+                  &linkage, &ext_sym, (a_decl_pos_block*)NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (binding_dps.sym == NULL || !symbol_is(binding_dps.sym, sk_variable)) {
+      expect_error();
+    } else {
+      /* Mark the binding variable as such and link it with its container. */
+      an_il_entity_list_entry_ptr  list_entry = alloc_il_entity_list_entry();
+      vp = binding_dps.sym->variant.variable.ptr;
+      vp->is_struct_binding = TRUE;
+      vp->declared_with_auto_type_specifier = TRUE;
+      vp->variant.container = container;
+      list_entry->entity.kind = (a_byte_il_entry_kind)iek_variable;
+      list_entry->entity.ptr = (char*)vp;
+      *p_end_bindings = list_entry;
+      p_end_bindings = &list_entry->next;
+    }  /* if */
+    /* Skip over the binding name. */
+    (void)get_token();
+  } while (loop_token(tok_comma));
+  remove_stop_token(tok_comma);
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+  if (curr_token != tok_end_of_source) expect_error();
+  flush_past_token_cache_terminator();
+}  /* declare_struct_bindings */
+
+
+static void define_struct_bindings(a_decl_parse_state  *dps)
+/*
+dps represents a structured binding declaration (and the container variable,
+which has just been declared, in particular).  Define the variables
+representing the individual bindings.  They were declared earlier by a call to
+declare_struct_bindings (as "auto" variable); now their type and initializer
+can be fully determined.
 */
 {
   a_boolean       err = FALSE, tuple_case = FALSE, array_case = FALSE;
@@ -17050,10 +17133,7 @@ representing the individual bindings.
   a_type_qualifier_set
                   container_tqs = TQ_NONE;
   an_il_entity_list_entry_ptr
-                   *p_end_bindings = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean        saved_sses_disallowed = source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                  binding_entry;
 
   if (symbol_is(dps->sym, sk_variable)) {
     /* Determine the number of elements to bind to (when known). */
@@ -17078,7 +17158,7 @@ representing the individual bindings.
                                                 &fp, &dps->declarator_pos)) {
       err = TRUE;
     }  /* if */
-    p_end_bindings = &container->variant.bindings;
+    binding_entry = container->variant.bindings;
     /* Check some contraints. */
     if (dps->dso_flags & DSO_INLINE) {
       pos_error(ec_struct_binding_inline, &dps->inline_pos);
@@ -17091,27 +17171,20 @@ representing the individual bindings.
     }  /* if */
   } else {
     err = TRUE;
+    binding_entry = NULL;
   }  /* if */
-  /* Rescan the bracketed list of binding names and declare a variable
-     for each binding (initializing each one as appropriate). */
-  rescan_cached_tokens(dps->variant.struct_bindings_cache);
-  (void)required_token(tok_lbracket, ec_exp_lbracket);
   if (!err && !dependent_case && n_elements == 0) {
     pos_ty_error(ec_invalid_struct_binding_type, &pos_curr_token,
                  container_type);
     err = TRUE;
   }  /* if */
-  add_stop_token(tok_comma);
-  do {
-    a_decl_parse_state  binding_dps;
-    an_id_linkage_kind  linkage = idl_none;
-    a_symbol_ptr        ext_sym;
-    a_variable_ptr      vp;
+  /* Loop through the binding variables, and determine the type and initializer
+     for each one. */
+  for (; binding_entry != NULL; binding_entry = binding_entry->next) {
+    a_variable_ptr      vp = (a_variable_ptr)binding_entry->entity.ptr;
+    a_type_ptr          btype;
     an_init_component   *icp = NULL;
-    if (curr_token != tok_identifier) {
-      syntax_error(ec_exp_identifier);
-      continue;
-    } else if (err || dependent_case) {
+    if (err || dependent_case) {
       /* Don't keep a count. */
     } else if (n == n_elements) {
       pos_error(ec_too_many_struct_bindings, &pos_curr_token);
@@ -17119,26 +17192,20 @@ representing the individual bindings.
     } else {
       n += 1;
     }  /* if */
-    /* Declare the variable representing the binding. */
-    init_decl_parse_state(&binding_dps);
-    binding_dps.start_pos = pos_curr_token;
-    binding_dps.declarator_pos = pos_curr_token;
-    binding_dps.storage_class = container->storage_class;
+    /* Determine the actual type of the variable representing the binding. */
     if (err) {
-      binding_dps.type = error_type();
+      btype = error_type();
     } else if (dependent_case) {
-      binding_dps.type = type_of_unknown_templ_param_nontype;
+      btype = type_of_unknown_templ_param_nontype;
     } else if (array_case) {
-      binding_dps.type = array_element_type(container_type);
+      btype = array_element_type(container_type);
     } else if (tuple_case) {
-      binding_dps.type = tuple_like_binding_type(
-                                               container, container_type, n-1,
-                                               &dps->declarator_pos, &icp);
-      if (is_error_type(binding_dps.type)) {
+      btype = tuple_like_binding_type(container, container_type, n-1,
+                                      &dps->declarator_pos, &icp);
+      if (is_error_type(btype)) {
         err = TRUE;
       }  /* if */
     } else {  /* Struct-like case. */
-      a_type_ptr            btype;
       a_type_qualifier_set  tqs = container_tqs;
       fp = next_bindable_field(fp);
       btype = fp->type;
@@ -17149,61 +17216,33 @@ representing the individual bindings.
         /* Mutable fields ignore a "const" qualified container type. */
         tqs &= ~TQ_CONST;
       }  /* if */
-      binding_dps.type = make_qualified_type(btype, tqs);
+      btype = make_qualified_type(btype, tqs);
       if (fp->source_corresp.access != (an_access_specifier)as_public) {
-        pos_sy_error(ec_struct_binding_private_member, &pos_curr_token,
-                     symbol_for(fp));
+        pos_sy_error(ec_struct_binding_private_member,
+                     &vp->source_corresp.decl_position, symbol_for(fp));
         err = TRUE;
       }  /* if */
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    decl_variable(&locator_for_curr_id, &binding_dps,
-                  SRK_DECLARATION | SRK_DEFINITION | SRK_INITIALIZATION,
-                  &linkage, &ext_sym, (a_decl_pos_block*)NULL);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed = saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Update the variable describing the binding.  That includes determining
-       its initializer. */ 
-    if (binding_dps.sym == NULL || !symbol_is(binding_dps.sym, sk_variable)) {
-      expect_error();
-      err = TRUE;
-      vp = NULL;
-    } else {
-      /* Mark the binding variable as such and link it with its container. */
-      an_il_entity_list_entry_ptr  list_entry = alloc_il_entity_list_entry();
-      vp = binding_dps.sym->variant.variable.ptr;
-      vp->is_struct_binding = TRUE;
-      vp->variant.container = container;
-      list_entry->entity.kind = (a_byte_il_entry_kind)iek_variable;
-      list_entry->entity.ptr = (char*)vp;
-      *p_end_bindings = list_entry;
-      p_end_bindings = &list_entry->next;
-    }  /* if */
+    /* Update the type of the variable describing the binding. */
+    vp->type = btype;
+    vp->declared_with_auto_type_specifier = FALSE;
     /* Record an initializer for the binding variable (if applicable). */
     if (err || dependent_case) {
       /* No initializer to record. */
     } else if (array_case) {
       record_struct_binding_expr_for_array_element(container, vp, n-1);
     } else if (tuple_case) {
-      record_struct_binding_expr_for_tuple_element(&binding_dps, icp);
-      mark_variable_value_set(binding_dps.sym);
+      record_struct_binding_expr_for_tuple_element(vp, icp);
+      mark_variable_value_set(symbol_for(vp));
     } else {  /* Struct-like case. */
       record_struct_binding_expr_for_field(container, vp, fp);
       fp = fp->next;
     }  /* if */
     if (icp != NULL) free_init_component_list(icp);
     record_symbol_reference(SRK_REFERENCE | SRK_USE, symbol_for(container),
-                            &pos_curr_token, /*update_il_entry=*/TRUE);
-    /* Skip over the binding name. */
-    (void)get_token();
-  } while (loop_token(tok_comma));
-  remove_stop_token(tok_comma);
-  (void)required_token(tok_rbracket, ec_exp_rbracket);
-  if (curr_token != tok_end_of_source) expect_error();
-  flush_past_token_cache_terminator();
+                            &vp->source_corresp.decl_position,
+                            /*update_il_entry=*/TRUE);
+  }  /* for */
   if (!err && n < n_elements) {
     pos_error(ec_missing_bindings, &dps->declarator_pos);
   }  /* if */
@@ -17222,7 +17261,7 @@ representing the individual bindings.
     dps->decltype_auto_specifier_seen = FALSE;
     dps->has_deducible_return_type = FALSE;
   }  /* if */
-}  /* decl_struct_bindings */
+}  /* define_struct_bindings */
 
 
 static void variable_declaration(a_decl_parse_state  *state,
@@ -17497,6 +17536,8 @@ if one is present.
     if (state->is_struct_binding_decl) {
       /* Record that this is a structured binding container variable. */
       var_ptr->is_struct_binding_container = TRUE;
+      /* Declare (but do not yet defined) the structured binding variables. */
+      declare_struct_bindings(state);
     }  /* if */
   }  /* if */
   if (var_ptr != NULL) {
@@ -17770,7 +17811,7 @@ if one is present.
   }  /* if */
 #endif /* MODULE_ID_NEEDED */
   if (state->is_struct_binding_decl) {
-    decl_struct_bindings(state);
+    define_struct_bindings(state);
   }  /* if */
 }  /* variable_declaration */
 

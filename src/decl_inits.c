@@ -5212,21 +5212,25 @@ returned set to TRUE.
 }  /* initializer */
 
 
-void record_struct_binding_expr_for_tuple_element(a_decl_parse_state  *dps,
-                                                  an_init_component   *icp)
+void record_struct_binding_expr_for_tuple_element(a_variable_ptr     binding,
+                                                  an_init_component  *icp)
 /*
-Process the initializer (icp) for a binding to an element of a tuple-like
-type (the binding's declaration is represented by *dps).
+Process the initializer (icp) for a given binding to an element of a tuple-like
+type.
 */
 {
-  an_init_state   *is = &dps->init_state;
-  a_variable_ptr  binding;
+  a_decl_parse_state  dps;
+  an_init_state       *is = &dps.init_state;
 
-  check_assertion(dps->sym != NULL && symbol_is(dps->sym, sk_variable));
-  binding = dps->sym->variant.variable.ptr;
+  init_decl_parse_state(&dps);
+  dps.sym = symbol_for(binding);
+  dps.start_pos = binding->source_corresp.decl_position;
+  dps.declarator_pos = binding->source_corresp.decl_position;
+  dps.declared_type = binding->type;
+  dps.type = binding->type;
   check_assertion(binding != NULL);
   is->elements_are_full_expressions = TRUE;
-  convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
+  convert_initializer(icp, binding->type, /*is_var_init=*/TRUE,
                       /*fill_in_dtor=*/TRUE, is);
   if (is->init_error && is->init_con == NULL && is->init_dip == NULL) {
     /* For error cases, record an error constant. */
@@ -5248,7 +5252,7 @@ type (the binding's declaration is represented by *dps).
        statement if needed. */
     a_local_static_variable_init_ptr  local_static_var_init = NULL;
     gen_dynamic_initialization(binding, is->init_dip, &local_static_var_init,
-                               &dps->declarator_pos,
+                               &binding->source_corresp.decl_position,
                                (a_decl_pos_block_ptr)NULL,
                                (a_statement_ptr *)NULL);
   }  /* if */
