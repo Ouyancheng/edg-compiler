@@ -17083,7 +17083,11 @@ early so that cases like "auto [x] = x;" are diagnosed.
     binding_dps.type = binding_dps.auto_type;
     binding_dps.deduced_auto_type = NULL;
     binding_dps.declared_storage_class = (a_storage_class)sc_unspecified;
-    binding_dps.storage_class = (a_storage_class)sc_static;
+    if (!is_local_scope_kind(scope_stack[decl_scope_level].kind)) {
+      /* A binding shouldn't have external name linkage. */
+      linkage = idl_internal;
+      binding_dps.storage_class = (a_storage_class)sc_static;
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
