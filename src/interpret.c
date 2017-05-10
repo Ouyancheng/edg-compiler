@@ -5904,7 +5904,12 @@ state.
     a_type_ptr           tp = skip_typerefs(arg_tp->variant.pointer.type);
     if (addr->address == NULL) {
       do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_null_dereference, &call_node->position, ips);
+      info_with_pos((is_runtime_data_address(addr) &&
+                     constant_is(addr->variant.addr_con, ck_integer)) ?
+                                        ec_constexpr_null_dereference :
+                                        ec_constexpr_access_to_runtime_storage,
+                    &call_node->variant.operation.operands->next->position,
+                    ips);
     } else if (is_array_element(addr) && tp->kind == (a_type_kind)tk_integer) {
       an_integer_value  *ptr = (an_integer_value*)addr->address;
       a_byte_count  elem_size, pos, max_len, len = 0;
@@ -5964,7 +5969,10 @@ diagnostic for the given expression node and interpreter state.
     a_type_ptr           tp = skip_typerefs(arg1_tp->variant.pointer.type);
     if (addr->address == NULL) {
       do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_null_dereference,
+      info_with_pos((is_runtime_data_address(addr) &&
+                     constant_is(addr->variant.addr_con, ck_integer)) ?
+                                        ec_constexpr_null_dereference :
+                                        ec_constexpr_access_to_runtime_storage,
                     &call_node->variant.operation.operands->next->position,
                     ips);
     } else if (is_array_element(addr)) {
@@ -6089,12 +6097,18 @@ expression node and interpreter state.
     a_type_ptr           tp = skip_typerefs(arg1_tp->variant.pointer.type);
     if (addr1->address == NULL) {
       do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_null_dereference,
+      info_with_pos((is_runtime_data_address(addr1) &&
+                     constant_is(addr1->variant.addr_con, ck_integer)) ?
+                                        ec_constexpr_null_dereference :
+                                        ec_constexpr_access_to_runtime_storage,
                     &call_node->variant.operation.operands->next->position,
                     ips);
     } else if (addr2->address == NULL) {
       do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_null_dereference,
+      info_with_pos((is_runtime_data_address(addr2) &&
+                     constant_is(addr2->variant.addr_con, ck_integer)) ?
+                                        ec_constexpr_null_dereference :
+                                        ec_constexpr_access_to_runtime_storage,
                   &call_node->variant.operation.operands->next->next->position,
                   ips);
     } else if (is_array_element(addr1) && is_array_element(addr2)) {
