@@ -17082,6 +17082,8 @@ early so that cases like "auto [x] = x;" are diagnosed.
     binding_dps.declared_type = binding_dps.auto_type;
     binding_dps.type = binding_dps.auto_type;
     binding_dps.deduced_auto_type = NULL;
+    binding_dps.declared_storage_class = (a_storage_class)sc_unspecified;
+    binding_dps.storage_class = (a_storage_class)sc_static;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -17173,11 +17175,6 @@ can be fully determined.
     err = TRUE;
     binding_entry = NULL;
   }  /* if */
-  if (!err && !dependent_case && n_elements == 0) {
-    pos_ty_error(ec_invalid_struct_binding_type, &pos_curr_token,
-                 container_type);
-    err = TRUE;
-  }  /* if */
   /* Loop through the binding variables, and determine the type and initializer
      for each one. */
   for (; binding_entry != NULL; binding_entry = binding_entry->next) {
@@ -17187,7 +17184,14 @@ can be fully determined.
     if (err || dependent_case) {
       /* Don't keep a count. */
     } else if (n == n_elements) {
-      pos_error(ec_too_many_struct_bindings, &pos_curr_token);
+      if (n == 0) {
+        pos_ty_error(ec_invalid_struct_binding_type,
+                     &vp->source_corresp.decl_position,
+                     container_type);
+      } else {
+        pos_error(ec_too_many_struct_bindings,
+                  &vp->source_corresp.decl_position);
+      }  /* if */
       err = TRUE;
     } else {
       n += 1;
