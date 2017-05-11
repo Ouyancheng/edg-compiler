@@ -3732,9 +3732,6 @@ static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
 con is an address constant being translated to *cap, a representation in
 interpreter storage of the address of the complete object of type obj_type.
 If con represents the address of a subobject, update *cap accordingly.
-
-Currently, the IL representation is insufficient to handle union members.
-If con represents an address of a union subobject, interpretation will fail.
 */
 {
   a_boolean         result = TRUE;
@@ -3876,7 +3873,7 @@ If con represents an address of a union subobject, interpretation will fail.
           check_assertion(result);
           cap->address += i_size;
           cap->flags |= CA_CANNOT_DEREFERENCE;
-        } else {
+        } else if (t_offset != 0) {
           do_constexpr_fail(result);
           info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
         }  /* if */
