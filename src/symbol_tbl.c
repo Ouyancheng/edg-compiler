@@ -9798,17 +9798,23 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
 }  /* make_literal_opname_locator */
 
 
+static unsigned long
+		sb_counter = 0;
+			/* Counter used to give a unique name to structured
+			   binding containers (the name is only used while
+			   the container is being declared; eventually, the
+			   container variable is unnamed). */
+
 void make_struct_binding_container_locator(a_symbol_locator  *locator,
                                            a_source_position *pos)
 /*
 Make a unique locator in *locator for a structured binding container variable.
 */
 {
-  static unsigned long  sb_counter = 0;
-  unsigned long         sb_num, n_digits = 0;
-  char                  *str;
-  sizeof_t              len;
-  a_symbol_header_ptr   sym_hdr = alloc_symbol_header();
+  unsigned long        sb_num, n_digits = 0;
+  char                 *str;
+  sizeof_t             len;
+  a_symbol_header_ptr  sym_hdr = alloc_symbol_header();
 
   sb_counter += 1;
   /* Count the number of decimal digits in the binding number. */
@@ -17005,6 +17011,7 @@ of the front end.
   size_t_type = NULL;
   ptr_to_const_char_type = NULL;
   dummy_undefined_symbol = NULL;
+  sb_counter = 0;
 #if DEBUG
   num_symbols_allocated                         = 0;
   num_symbol_headers_allocated                  = 0;
