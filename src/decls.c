@@ -17165,16 +17165,6 @@ can be fully determined.
       err = TRUE;
     }  /* if */
     binding_entry = container->variant.bindings;
-    /* Check some contraints. */
-    if (dps->dso_flags & DSO_INLINE) {
-      pos_error(ec_struct_binding_inline, &dps->inline_pos);
-    } else if (dps->dso_flags & DSO_CONSTEXPR) {
-      pos_error(ec_struct_binding_constexpr, &dps->constexpr_pos);
-    } else if (dps->declared_storage_class !=
-                                            (a_storage_class)sc_unspecified ||
-               (dps->dso_flags & DSO_THREAD_LOCAL) != 0) {
-      pos_error(ec_struct_binding_storage_class, &dps->storage_class_pos);
-    }  /* if */
   } else {
     err = TRUE;
     binding_entry = NULL;
