@@ -27538,8 +27538,6 @@ in il_init.)
       pch_saved_var_array_elem(module_id_kind),
 #endif /* MODULE_ID_NEEDED */
       pch_saved_var_array_elem(last_routine_scope_variable_node_found),
-      pch_saved_var_array_elem(internal_type_array),
-      pch_saved_var_array_elem(n_internal_types),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);

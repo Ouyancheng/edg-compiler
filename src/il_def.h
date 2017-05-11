@@ -14728,10 +14728,11 @@ typedef struct a_statement {
       an_il_entity_list_entry_ptr
 		entities;
 			/* A list of tagged pointers to the entities declared
-			   by this statement (this does not include
-			   structured bindings, which are listed separately
-			   by their container variable; the container variable
-			   itself has an associated stmk_decl entry). */
+			   by this statement.  In the case of a structured
+			   binding declaration, this includes the unnamed
+			   container variable but not the associated bindings
+			   (the bindings are on a separate list pointed to by
+			   the container variable entry). */
     } decl;
     /* When kind == stmk_set_vla_size: */
     a_vla_dimension_ptr

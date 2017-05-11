@@ -29078,8 +29078,8 @@ is an lvalue.
     } else {
       static a_token_cache   expr_tokens;
       static a_boolean       expr_tokens_ready = FALSE;
-      a_type_ptr             *saved_internal_type_array = internal_type_array;
-      a_host_large_unsigned  saved_n_internal_types = n_internal_types;
+      int                    saved_n_internal_opnds = n_internal_opnds;
+      an_operand_ptr         *saved_internal_opnd_array = internal_opnd_array;
       an_operand_ptr         opnds[2];
       if (!expr_tokens_ready) {
         clear_token_cache(&expr_tokens, /*reusable=*/TRUE);
@@ -29107,8 +29107,8 @@ is an lvalue.
                        container->type);
         err = TRUE;
       }  /* if */
-      internal_type_array = saved_internal_type_array;
-      n_internal_types = saved_n_internal_types;
+      internal_opnd_array = saved_internal_opnd_array;
+      n_internal_opnds = saved_n_internal_opnds;
       (void)required_token(tok_semicolon, ec_exp_semicolon);
     }  /* if */
     if (!err) {
