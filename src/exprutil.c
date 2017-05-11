@@ -22290,8 +22290,6 @@ Do one-time initialization of variables related to expression processing.
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  register_trans_unit_variable(internal_opnd_array);
-  register_trans_unit_variable(n_internal_opnds);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,

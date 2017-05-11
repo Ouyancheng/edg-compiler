@@ -27609,8 +27609,6 @@ in il_init.)
   register_trans_unit_variable(module_id_scp);
   register_trans_unit_variable(module_id_kind);
 #endif /* MODULE_ID_NEEDED */
-  register_trans_unit_variable(internal_type_array);
-  register_trans_unit_variable(n_internal_types);
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
