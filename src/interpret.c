@@ -7801,8 +7801,8 @@ is within the given complete_object.
     check_assertion(dip->kind ==
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
     cp = dip->variant.constant;
-    /* Copy each captured variable into the corresponding field of the
-       closure object. */
+    /* Initialize each field of the closure object from the corresponding
+       capture. */
     for (cap = lambda->capture_list,
                               field_con = cp->variant.aggregate.first_constant;
          is_constant && cap != NULL && field_con != NULL;
@@ -7850,7 +7850,7 @@ is within the given complete_object.
                                                    var_storage);
             }  /* if */
           } else {
-            /* The variable does not have a constant value.. Report the
+            /* The variable does not have a constant value. Report the
                appropriate error. */
             if (vp->is_this_parameter) {
               info_with_pos(ec_star_this_not_constant_valued, &expr->position,
