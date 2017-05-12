@@ -5230,6 +5230,9 @@ type.
   dps.type = binding->type;
   check_assertion(binding != NULL);
   is->elements_are_full_expressions = TRUE;
+  if (var_has_static_or_thread_storage_duration(binding)) {
+    is->static_lifetime_init = TRUE;
+  }  /* if */
   convert_initializer(icp, binding->type, /*is_var_init=*/TRUE,
                       /*fill_in_dtor=*/TRUE, is);
   if (is->init_error && is->init_con == NULL && is->init_dip == NULL) {
