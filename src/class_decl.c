@@ -2056,6 +2056,11 @@ being done.
   if (is_implicit) {
     /* For implicit captures, create the capture field now.  For explicit
        captures this was done when the capture was specified. */
+    if (vp != NULL && vp->is_this_parameter) {
+      /* Implicit captures of "this" are always by reference, i.e., they
+         capture "this" and not "*this". */
+      lcp->capture_by_reference = TRUE;
+    }  /* if */
     lcp->closure_field = make_field_for_lambda_capture(lambda, lcp);
   }  /* if */
   /* Restore the original memory region. */
