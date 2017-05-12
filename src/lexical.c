@@ -4919,6 +4919,7 @@ stack entry, for debugging purposes.
               curr_ise->file_name);
       break;
     case IFG_STATE_FAIL:
+    case IFG_STATE_INTERMED:
       fprintf(f_debug, "Pop: File %s is not guarded\n", curr_ise->file_name);
       break;
     case IFG_STATE_ACCEPT:

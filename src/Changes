@@ -1,5 +1,13 @@
 Version 4.14
 
+5/13/17  [EDGcpfe/18364]
+Internal error on mismatched #if/#endif when producing debug output
+
+An internal error could occur (in db_include_guard_info) if a file
+was missing a #endif statement and a debug level >= 4 was specified
+(e.g., -d5 on the command line).  Now fixed.
+
+
 5/13/17  [EDGcpfe/18281]
 Microsoft compatibility: [[deprecated]] attribute support
 
