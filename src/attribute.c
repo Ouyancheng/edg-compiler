@@ -216,7 +216,7 @@ static an_attr_descr known_attr_table[] = {
   { "align", "(ct)", "c+", ak_align },
   { "base_check", "", "1c+", ak_base_check },
   { "carries_dependency", "", "1c+", ak_carries_dependency },
-  { "deprecated", "?(sx)", "1c+(201402-)", ak_deprecated },
+  { "deprecated", "?(sx)", "1c+(201402-|M(1910-))", ak_deprecated },
   { "final", "", "1c+", ak_final },
   { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
