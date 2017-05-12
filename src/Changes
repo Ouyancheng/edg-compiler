@@ -1,5 +1,27 @@
 Version 4.14
 
+5/13/17  [EDGcpfe/18283]
+IL write-read error on object lifetimes
+
+In configurations where KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
+is TRUE and HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is FALSE, an IL
+write-read error could occur when lowering certain constructors that
+contain gotos or labels (or constructs that are lowered to gotos or labels).
+For example:
+
+  struct B {
+    ~B();
+  };
+  struct D : virtual B {
+    D();
+  };
+  D::D() {
+    while (true) {
+      break;
+    }
+  }
+
+
 5/13/17  [EDGcpfe/18364]
 Internal error on mismatched #if/#endif when producing debug output
 

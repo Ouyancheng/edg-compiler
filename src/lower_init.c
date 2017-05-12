@@ -4354,10 +4354,12 @@ is TRUE, the original constructor initializers are removed from from_scope.
   }  /* for */
   if (remove_originals &&
       from_scope->lifetime != NULL &&
-      is_useless_object_lifetime(from_scope->lifetime)) {
+      is_useless_object_lifetime(from_scope->lifetime) &&
+      !from_scope->lifetime->block_lifetime_with_label_or_goto) {
     /* Remove the from_scope lifetime if it's no longer needed (i.e., if we've
        removed all of the constructor inits -- and any associated destructions
-       from it). */
+       from it) and the associated block doesn't have any label or goto
+       statements that may point to it. */
     unbind_object_lifetime(from_scope->lifetime);
     from_scope->lifetime = NULL;
   }  /* if */
