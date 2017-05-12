@@ -6616,7 +6616,7 @@ otherwise, return FALSE and update *ips accordingly.
   a_boolean         result = TRUE;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
-  a_boolean         lambda_entry_case = FALSE;
+  a_boolean         lambda_entry_case;
 
   /* First determine the actual callee. */
   callee_node = call_node->variant.operation.operands;
@@ -6689,11 +6689,12 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
   }
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  if (callee->special_kind ==
-                             (a_special_function_kind)sfk_lambda_entry_point) {
+  if (special_kind_is(callee, sfk_lambda_entry_point)) {
     /* Use the real call operator instead of the entry point. */
     callee = callee->variant.lambda_call_operator;
     lambda_entry_case = TRUE;
+  } else {
+    lambda_entry_case = FALSE;
   }  /* if */
   if (!callee->is_constexpr) {
     info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
@@ -6723,7 +6724,7 @@ otherwise, return FALSE and update *ips accordingly.
     a_call_frame    frame;
     a_variable_ptr  params = callee_scope->variant.routine.parameters,
                     param, this_var;
-    a_byte_count    n_args = 0, n_params = 0;
+    a_byte_count    n_args = 0, n_params;
     a_byte_count    *arg_size;
     a_byte          *arg_ptrs, **p_arg_ptr, *arg_sizes;
     an_alloc_seq_number
@@ -6764,19 +6765,27 @@ otherwise, return FALSE and update *ips accordingly.
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
-    if (lambda_entry_case) {
-      ++n_args;
-    }  /* if */
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
     /* Count the parameters (including "this") to make sure there are enough
-       arguments for the parameters. */
-    this_var = callee_scope->variant.routine.this_param_variable;
-    if (this_var != NULL) n_params += 1;
+       arguments for the parameters.  However, if we are calling the lambda
+       call operator through the entry point returned by the closure's
+       conversion function, ignore this "this" parameter. */
+    if (lambda_entry_case) {
+      this_var = NULL;
+    } else {
+      this_var = callee_scope->variant.routine.this_param_variable;
+    }  /* if */
+    if (this_var != NULL) {
+      /* If there is a "this" parameter, count an extra parameter. */
+      n_params = 1;
+    } else {
+      n_params = 0;
+    }  /* if */
     for (param = params; param != NULL; param = param->next) {
       n_params += 1;
     }  /* if */
-    if (n_args < (lambda_entry_case ? n_params - 1: n_params)) {
+    if (n_args < n_params) {
       info_with_pos(ec_too_few_arguments, &call_node->position, ips);
       do_constexpr_fail(result);
       goto done;
@@ -6797,33 +6806,28 @@ otherwise, return FALSE and update *ips accordingly.
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
-      if (lambda_entry_case) {
-        /* Use a null pointer for the argument, since it won't be
-           referenced. */
-      } else {
-        if (arg->is_lvalue || arg->is_xvalue ||
-            tp->kind == (a_type_kind)tk_pointer) {
-          /* The usual case: An address is produced. */
-          if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
-            do_constexpr_fail(result);
-            goto done;
-          }  /* if */
-        } else {
-          /* The call is on a class rvalue.  E.g., "X().f();". */
-          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-          a_byte        *class_bytes;
-          if (!result) goto done;
-          alloc_complete_object(ips, n_bytes, tp, class_bytes);
-          if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
-            do_constexpr_fail(result);
-            goto done;
-          }  /* if */
-          mark_complete_object_initialized(class_bytes);
-          /* Store the address of the class in *this_bytes. */
-          clear_address(this_bytes, class_bytes);
-          ((a_constexpr_address *)this_bytes)->alloc_seq_number =
-                                          ips->storage_stack.alloc_seq_number;
+      if (arg->is_lvalue || arg->is_xvalue ||
+          tp->kind == (a_type_kind)tk_pointer) {
+        /* The usual case: An address is produced. */
+        if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
+          do_constexpr_fail(result);
+          goto done;
         }  /* if */
+      } else {
+        /* The call is on a class rvalue.  E.g., "X().f();". */
+        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+        a_byte        *class_bytes;
+        if (!result) goto done;
+        alloc_complete_object(ips, n_bytes, tp, class_bytes);
+        if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
+          do_constexpr_fail(result);
+          goto done;
+        }  /* if */
+        mark_complete_object_initialized(class_bytes);
+        /* Store the address of the class in *this_bytes. */
+        clear_address(this_bytes, class_bytes);
+        ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+                                          ips->storage_stack.alloc_seq_number;
       }  /* if */
       mark_complete_object_initialized(this_bytes);
       if (pm_target != NULL &&
@@ -6832,9 +6836,7 @@ otherwise, return FALSE and update *ips accordingly.
         do_constexpr_fail(result);
         goto done;
       }  /* if */
-      if (!lambda_entry_case) {
-        arg = arg->next;
-      }  /* if */
+      arg = arg->next;
     }  /* if */
     for (; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
