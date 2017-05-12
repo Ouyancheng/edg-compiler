@@ -10772,7 +10772,21 @@ if is_lvalue is TRUE.
   an_expr_node_ptr sel_expr;
 
   sel_expr = field_lvalue_selection_expr(lambda_this, closure_field);
-  if (!is_lvalue) sel_expr = rvalue_expr_for_lvalue(sel_expr);
+  if (!lambda_capture->is_init_capture &&
+      lambda_capture->captured.variable != NULL &&
+      lambda_capture->captured.variable->is_this_parameter &&
+      !lambda_capture->capture_by_reference) {
+    /* This is a capture of "*this", so the entire object and not just
+       the "this" pointer was captured.  Add an eok_address_of node on top
+       of the selection so the result is still a pointer to the object. */
+    check_assertion(!is_lvalue);
+    sel_expr = make_operator_node((an_expr_operator_kind)eok_address_of,
+                                  make_pointer_type(closure_field->type),
+                                  sel_expr);
+    sel_expr->variant.operation.compiler_generated = TRUE;
+  } else {
+    if (!is_lvalue) sel_expr = rvalue_expr_for_lvalue(sel_expr);
+  }  /* if */
   return sel_expr;
 }  /* make_selection_for_captured_variable */
 

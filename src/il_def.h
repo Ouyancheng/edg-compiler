@@ -16016,10 +16016,15 @@ typedef struct a_lambda_capture {
 			   enk_param_ref node. */
   a_bit_field
 		capture_by_reference:1;
-			/* TRUE if this entity is being captured by reference,
-			   FALSE if by value.  This flag may be set based on
-			   the capture default or if the default is explicitly
-			   overridden for this capture. */
+			/* TRUE if this entity is being captured by
+			   reference, FALSE if by value.  This flag may be
+			   set based on the capture default or if the
+			   default is explicitly overridden for this
+			   capture.  The meaning is slightly different when
+			   captured.variable is "this": TRUE indicates that
+			   the pointer value of "this" is captured, FALSE
+			   means that the object to which "this" points
+			   (i.e., "*this") is captured. */
   a_bit_field
 		is_implicit:1;
 			/* TRUE if this entity was implicitly added to the

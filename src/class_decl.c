@@ -1806,6 +1806,13 @@ capture described by lcp.  Return the field entry.
       if (vp->is_this_parameter) {
         /* "this" variables do not have associated symbols. */
         is_this = TRUE;
+        if (by_reference) {
+          /* Capture of "this". */
+          orig_field_type = field_type = vp->type;
+        } else {
+          /* Capture of "*this". */
+          orig_field_type = field_type = type_pointed_to(vp->type);
+        }  /* if */
       } else {
         a_symbol_ptr var_sym = symbol_for(vp);
         if (var_sym != NULL) {
@@ -1818,8 +1825,8 @@ capture described by lcp.  Return the field entry.
           expect_error();
           set_to_error_locator(locator);
         }  /* if */
+        orig_field_type = field_type = vp->type;
       }  /* if */
-      orig_field_type = field_type = vp->type;
     } else {
       /* No variable to capture.  Either this is a direct or indirect capture
          of an init-capture, or the capture of "this" in a context that has
@@ -30427,7 +30434,7 @@ caller has already moved past the '[', and this routine leaves the trailing
         simple-capture | init-capture
 
     simple-capture:
-        identifier | '&' identifier | 'this'
+        identifier | '&' identifier | 'this' | '*' 'this'
 
     init-capture:
         identifier initializer | '&' identifier initializer
@@ -30475,7 +30482,9 @@ caller has already moved past the '[', and this routine leaves the trailing
         a_variable_ptr             var = NULL;
         a_field_ptr                field = NULL;
         a_symbol_header_ptr        sym_hdr = NULL;
-        a_boolean                  by_ref = FALSE, is_this = FALSE;
+        a_boolean                  by_ref = FALSE;
+        a_boolean                  is_this = FALSE;
+        a_boolean                  is_star_this = FALSE;
         a_boolean                  no_impl_capture = FALSE;
         pos_capture = pos_curr_token;
         if (curr_token == tok_ampersand) {
@@ -30486,9 +30495,11 @@ caller has already moved past the '[', and this routine leaves the trailing
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         capture_end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (curr_token == tok_this) {
-          /* Capture of "this" from an enclosing class.  (This is not the
-             "this" of a closure class member.) */
+        if (curr_token == tok_this ||
+            (capture_star_this_enabled && curr_token == tok_star &&
+             next_token() == tok_this)) {
+          /* Capture of "this" or *this from an enclosing class.  (This is
+             not the "this" of a closure class member.) */
           a_symbol_ptr  closure_sym = symbol_for(lambda->closure_class);
           /* Captures are not permitted for lambdas in default argument
              expressions. */
@@ -30502,11 +30513,15 @@ caller has already moved past the '[', and this routine leaves the trailing
                the lambda not being allowed in this context. */
             expect_error();
           } else if (by_ref) {
-            /* "&this" is not allowed in a capture list. */
+            /* "&this" or "&*this" is not allowed in a capture list. */
             pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
             var = NULL;
           } else {
             is_this = TRUE;
+            if (curr_token == tok_star) {
+              is_star_this = TRUE;
+              (void)get_token();
+            }  /* this */
           }  /* if */
           (void)get_token();
           sym_hdr = NULL;
@@ -30571,7 +30586,8 @@ caller has already moved past the '[', and this routine leaves the trailing
               !diagnose_duplicate_capture(lambda, sym_hdr, &capture_pos)) {
             /* Create the lambda capture entry for this entity. */
             lcp = add_lambda_capture(lambda, var, field, /*is_implicit=*/FALSE,
-                                     by_ref, &capture_pos, &no_impl_capture);
+                                     by_ref || (is_this && !is_star_this),
+                                     &capture_pos, &no_impl_capture);
             check_assertion(lcp != NULL);
           }  /* if */
         }  /* if */

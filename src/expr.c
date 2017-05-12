@@ -31975,6 +31975,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     a_type_ptr         dest_type = lcp->closure_field->type;
     a_type_ptr         base_dest_type;
     an_operand         operand;
+    a_boolean          is_star_this = FALSE;
+    a_type_ptr         star_this_type;
     a_dynamic_init_ptr dip;
     a_constant_ptr     init_con;
     a_routine_ptr      cctor_routine = NULL;
@@ -32046,6 +32048,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
         if (var != NULL) {
           make_lvalue_variable_operand(var, capture_pos, capture_end_pos,
                                        &operand, (a_ref_entry_ptr)NULL);
+          if (var->is_this_parameter && !lcp->capture_by_reference) {
+            /* This is a capture of "*this". */
+            is_star_this = TRUE;
+            star_this_type = type_pointed_to(var->type);
+          }  /* if */
         } else {
           expect_error();
           make_error_operand(&operand);
@@ -32077,10 +32084,15 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       if (is_class_struct_union_type(base_dest_type)) {
         /* Find the proper copy constructor for copying a class object or an
            element of an array of class objects. */
-        a_type_ptr dest_class_type = skip_typerefs(base_dest_type);
+        a_type_ptr           dest_class_type = skip_typerefs(base_dest_type);
+        a_type_qualifier_set quals;
+        if (is_star_this) {
+          quals = get_type_qualifiers(star_this_type);
+        } else {
+          quals = get_type_qualifiers(operand.type);
+        }  /* if */
         cctor_routine = expr_select_copy_constructor(
-                                  dest_class_type,
-                                  get_type_qualifiers(operand.type),
+                                  dest_class_type, quals,
                                   /*source_is_rvalue=*/FALSE,
                                   capture_pos,
                                   &do_bitwise_copy,

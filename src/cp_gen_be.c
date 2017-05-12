@@ -10168,8 +10168,23 @@ removed and FALSE otherwise.
        node_operator_is(node, eok_handle_to))) {
     /* We can ignore the "(<type>)&" or "(<type>)%" sequence and just
        process the operand directly. */
-    *expr = node->variant.operation.operands;
-    removed_nodes = TRUE;
+    an_expr_node_ptr opnd = node->variant.operation.operands;
+    a_boolean        is_star_this_adjustment = FALSE;
+    if (is_operation_node(opnd) &&
+        node_operator_is(opnd, eok_points_to_field)) {
+      a_type_ptr opnd_obj_type =
+                       type_pointed_to(opnd->variant.operation.operands->type);
+      opnd_obj_type = skip_typerefs(opnd_obj_type);
+      if (is_immediate_class_type(opnd_obj_type) &&
+          class_type_supp(opnd_obj_type)->is_lambda_closure_class) {
+        /* The eok_address_of node was added to turn a reference to the
+           captured object into a referent to its "this" pointer.  Return
+           FALSE so as not to turn "this->" into "this.". */
+        is_star_this_adjustment = TRUE;
+      }  /* if */
+    }  /* if */
+    *expr = opnd;
+    removed_nodes = !is_star_this_adjustment;
   }  /* if */
   return removed_nodes;
 }  /* strip_lvalue_cast_sequence */
@@ -12378,9 +12393,16 @@ Render the list of lambda captures, including the delimiting brackets.
     comma_needed = TRUE;
   }  /* if */
   for (; lcp != NULL; lcp = lcp->next) {
+    a_boolean is_this = (!lcp->is_init_capture &&
+                         lcp->captured.variable != NULL &&
+                         lcp->captured.variable->is_this_parameter);
     if (!lcp->is_implicit) {
       if (comma_needed) write_tok_str(", ");
-      if (lcp->capture_by_reference) write_tok_str("&");
+      if (lcp->capture_by_reference && !is_this) {
+        write_tok_str("&");
+      } else if (is_this && !lcp->capture_by_reference) {
+        write_tok_str("*");
+      }  /* if */
       if (lcp->is_init_capture) {
         /* A C++14-style init-capture.  Use the field to render the name and
            initializer. */

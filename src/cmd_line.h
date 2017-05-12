@@ -2304,6 +2304,11 @@ EXTERN a_boolean
 			/* TRUE if constexpr lambdas (a C++17 feature)
 			   are enabled. */
 
+EXTERN a_boolean
+		capture_star_this_enabled;
+			/* TRUE if lambda captures of the form [=,*this]
+			   (a C++17 feature) are permitted. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
