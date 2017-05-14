@@ -5077,6 +5077,24 @@ user later during real instantiations.
   tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
   tip->referencing_namespace = parent_namespace_for_symbol(rout_sym);
+  /* If this is a friend template declared in a class template, make sure the
+     prototype instantiation was done for the original declaration, and don't
+     do one for this one that occurs in an instantiation of the class
+     template. */
+  if (!tssp->is_specific_definition &&
+      tssp->variant.function.prototype_friend_symbol != NULL) {
+    a_symbol_ptr			friend_sym;
+    a_template_symbol_supplement_ptr	friend_tssp;
+    friend_sym = tssp->variant.function.prototype_friend_symbol;
+    friend_tssp = template_supplement_for_symbol(friend_sym);
+    if (friend_sym->defined) {
+      if (!friend_tssp->variant.function.has_prototype_instantiation &&
+          prototype_instantiation_should_be_done_for_function(friend_sym)) {
+        function_prototype_instantiation(friend_sym);
+      }  /* if */
+      goto done;
+    }  /* if */
+  }  /* if */
   ssep = &scope_stack[depth_scope_stack];
   /* We don't need to push an instantiation scope if we are in the prototype
      instantiation of the enclosing class, and the thing being instantiated
@@ -5167,6 +5185,7 @@ user later during real instantiations.
        flushing until end-of-source is found. */
     flush_past_token_cache_terminator();
   }  /* if */
+done:;
   db_exit();
 }  /* function_prototype_instantiation */
 
@@ -5868,7 +5887,12 @@ cases).
       !proto_tssp->variant.function.has_prototype_instantiation &&
       prototype_instantiation_should_be_done_for_function(template_sym)) {
     /* We are deferring the prototype instantiation of functions and this
-       function has not had a prototype instantiation done yet.  Do it now. */
+       function has not had a prototype instantiation done yet.  Do it now.
+       This may be a friend template of a class template, in which case the
+       prototype instantiation is only done for the definition in the class
+       template, but we can get here because of deferral of function prototype
+       instantiations.  Additional prototype instantiations of the friend
+       template are handled in function_prototype_instantiation. */
     function_prototype_instantiation(proto_sym);
   }  /* if */
   if (tssp->pending_instantiations >= max_pending_instantiations) {

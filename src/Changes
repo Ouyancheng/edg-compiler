@@ -1,5 +1,28 @@
 Version 4.14
 
+5/14/17  [EDGcpfe/18369]
+GNU C++ compatibility: spurious error on friend template in class template
+
+When deferral of function prototype instantiations is being done in g++
+mode, spurious errors results from doing additional prototype instantiations
+of friend function templates of a class template.  Only the prototype
+instantiation in the original definition context should be done, but
+with deferral of function prototype instantiations, additional prototype
+instantiations could be done in the context of the instantiated containing
+classes.  Now fixed.
+
+  template <class T> struct A {
+    A();
+  };
+  template <typename T> struct B : A<T> {
+    template <typename U = int> constexpr friend B f1(B b) { return b; }
+    constexpr void f2() { f1(*this); }
+  };
+  void f3(B<int> d) {
+    d.f2();
+  }
+
+
 5/13/17  [EDGcpfe/18283]
 IL write-read error on object lifetimes
 
