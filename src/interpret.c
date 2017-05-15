@@ -7808,6 +7808,8 @@ is within the given complete_object.
          cap = cap->next, field_con = field_con->next) {
       a_field_ptr        fp = cap->closure_field;
       a_byte_count       field_offset;
+      /* Determine the offset of this field within the closure object's
+         storage. */
       get_mapped_byte_count(&persistent_map, fp, field_offset);
       if (cap->is_init_capture) {
         /* Interpret the initializer for the capture. */
@@ -7815,6 +7817,18 @@ is within the given complete_object.
                                                 &expr->position,
                                                 result_storage + field_offset,
                                                 complete_object);
+      } else if (cap->captured.variable == NULL) {
+        /* This must be a capture of "this" or "*this" in a field
+           initializer, which is represented by an enk_param_ref node. */
+        check_assertion(cap->is_param_ref_capture &&
+                        field_con->kind ==
+                                        (a_constant_repr_kind)ck_dynamic_init);
+        is_constant = do_constexpr_dynamic_init(
+                                               ips,
+                                               field_con->variant.dynamic_init,
+                                               &expr->position,
+                                               result_storage + field_offset,
+                                               complete_object);
       } else {
         a_byte             *var_storage;
         a_variable_ptr     vp = cap->captured.variable;
@@ -7822,8 +7836,6 @@ is within the given complete_object.
         check_assertion(field_con->kind ==
                                         (a_constant_repr_kind)ck_dynamic_init);
         sub_dip = field_con->variant.dynamic_init;
-        /* Determine the offset of this field within the closure object's
-           storage. */
         get_stack_bytes(ips, vp, var_storage);
         /* Get the value of the captured variable. */
         if (is_volatile_qualified_type(vp->type)) {
