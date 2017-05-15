@@ -15866,92 +15866,6 @@ general information about the class.
 }  /* curr_scope_is_class_template_definition */
 
 
-static a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr	sym)
-/*
-Cache the tokens that make up an in-class initializer for the static data
-member, nonstatic data member, or variable template specified by sym.
-Return a pointer to the token cache that was created.  This used for
-C++11-style field initializers, but also for C++14 variable templates,
-static data members of class templates in GNU C++ mode, and static data
-members of managed class types in some Microsoft modes.
-*/
-{
-  a_token_cache_ptr		token_cache = alloc_token_cache();
-  a_token_sequence_number	first_tsn;
-  a_token_sequence_number	last_tsn;
-  a_token_set_array		stop_tokens;
-  a_boolean			saved_in_field_initializer = FALSE;
-  a_boolean			is_field = symbol_is(sym, sk_field);
-  a_boolean			is_var_templ =
-                                          symbol_is(sym, sk_variable_template);
-
-  if (is_field) {
-    /* Set the in_field_initializer flag while caching a field initializer. */
-    saved_in_field_initializer = scope_stack_top().in_field_initializer;
-    scope_stack_top().in_field_initializer = TRUE;
-  }  /* if */
-  /* Initialize a local stop token set to cache everything up to a semicolon
-     or a comma (outside braces, etc.). */
-  clear_token_cache(token_cache, /*reusable=*/TRUE);
-  clear_token_set_array(stop_tokens);
-  incr_token_set_array_element(stop_tokens, tok_comma);
-  incr_token_set_array_element(stop_tokens, tok_semicolon);
-  incr_token_set_array_element(stop_tokens, tok_rbrace);
-  first_tsn = curr_token_sequence_number;
-  /* We'll create a cache of uncoalesced tokens by creating the cache from the
-     background cache.  (Finding the end of the cache is done by coalescing,
-     however, because we shouldn't stop on a comma in a template argument
-     list.) */
-  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-  /* Skip to the end of the initializer tokens (by passing a NULL cache, no
-     additional caching is done besides background caching). */
-  cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
-                                          stop_tokens);
-  /* The -1 is to exclude the final token from the cache that is created. */
-  last_tsn = curr_token_sequence_number - 1;
-  copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
-                         last_tsn,
-                         /*include_last_token=*/FALSE,
-                         token_cache);
-  /* Normally tokens are cached directly into a reusable cache or are
-     moved from one reusable cache to another.  In this case, however,
-     the tokens are being copied from one reusable cache to another.
-     Update the token handles to refer to the copy of the cached token. */
-  adjust_token_handles(token_cache);
-  terminate_token_cache(token_cache);
-  end_caching_fetched_tokens();
-  if (is_field) {
-    /* Restore the in_field_initializer flag. */
-    scope_stack_top().in_field_initializer = saved_in_field_initializer;
-  }  /* if */
-  if (is_prototype_instantiation_context() &&
-      (is_field || is_var_templ || gpp_mode)) {
-    /* This is an initializer in the prototype instantiation of a class
-       template or nested class of a class template.  Save the token numbers
-       associated with this default initializer so that it can be removed
-       from the cache later.  This is done for all C++11-style field
-       initializers as well as GNU C++ mode static data member initializers
-       (which are instantiated on demand). */
-    a_template_cache_segment_ptr   tcsp;
-    tcsp = alloc_template_cache_segment(
-                                  sym, (a_template_symbol_supplement_ptr)NULL);
-    tcsp->first_token_number = first_tsn;
-    /* When there is no default, the computed last token number could be
-       less that the first.  In that case, use the first token number as
-       the last. */
-    tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
-    /* Check for the case where the cache is empty. */
-    tcsp->expression_missing = token_cache->first_token == NULL;
-    if (is_field) {
-      sym->variant.field.extra_info->token_cache = token_cache;
-    } else if (!is_var_templ) {
-      get_sdm_supp(sym)->token_cache = token_cache;
-    }  /* if */
-  }  /* if */
-  return token_cache;
-}  /* cache_inclass_initializer */
-
-
 static void record_inclass_initializer_fixup(
 				a_class_def_state_ptr   class_state,
 				a_decl_parse_state	*dps)
@@ -15963,6 +15877,7 @@ in the context of the completed class later on.
 */
 {
   a_token_cache_ptr		token_cache;
+
   /* Cache the initializer. */
   token_cache = cache_inclass_initializer(dps->sym);
   if (ms_extensions && symbol_is(dps->sym, sk_field) &&
