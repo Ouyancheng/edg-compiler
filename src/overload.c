@@ -10773,8 +10773,9 @@ if is_lvalue is TRUE.
 
   sel_expr = field_lvalue_selection_expr(lambda_this, closure_field);
   if (!lambda_capture->is_init_capture &&
-      lambda_capture->captured.variable != NULL &&
-      lambda_capture->captured.variable->is_this_parameter &&
+      ((lambda_capture->captured.variable != NULL &&
+        lambda_capture->captured.variable->is_this_parameter) ||
+       lambda_capture->is_param_ref_capture) &&
       !lambda_capture->capture_by_reference) {
     /* This is a capture of "*this", so the entire object and not just
        the "this" pointer was captured.  Add an eok_address_of node on top

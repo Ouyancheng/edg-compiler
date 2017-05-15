@@ -1841,10 +1841,15 @@ capture described by lcp.  Return the field entry.
         }  /* if */
         field_type = parent_field->type;
       } else if (lcp->is_param_ref_capture) {
-        /* A capture of "this" in a context with no "this" variable. */
+        /* A capture of "this" or "*this" in a context with no "this"
+           variable. */
         a_variable_ptr  this_var;
         is_this = variable_this_exists(&this_var, &field_type);
         check_assertion(is_this && this_var == NULL);
+        if (!by_reference) {
+          /* Capture of "*this". */
+          field_type = type_pointed_to(field_type);
+        }  /* if */
       } else {
         expect_error();
         set_to_error_locator(locator);
@@ -2056,7 +2061,8 @@ being done.
   if (is_implicit) {
     /* For implicit captures, create the capture field now.  For explicit
        captures this was done when the capture was specified. */
-    if (vp != NULL && vp->is_this_parameter) {
+    if ((vp != NULL && vp->is_this_parameter) ||
+        lcp->is_param_ref_capture) {
       /* Implicit captures of "this" are always by reference, i.e., they
          capture "this" and not "*this". */
       lcp->capture_by_reference = TRUE;

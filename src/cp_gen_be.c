@@ -12394,8 +12394,9 @@ Render the list of lambda captures, including the delimiting brackets.
   }  /* if */
   for (; lcp != NULL; lcp = lcp->next) {
     a_boolean is_this = (!lcp->is_init_capture &&
-                         lcp->captured.variable != NULL &&
-                         lcp->captured.variable->is_this_parameter);
+                         ((lcp->captured.variable != NULL &&
+                           lcp->captured.variable->is_this_parameter) ||
+                          lcp->is_param_ref_capture));
     if (!lcp->is_implicit) {
       if (comma_needed) write_tok_str(", ");
       if (lcp->capture_by_reference && !is_this) {

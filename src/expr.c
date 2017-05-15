@@ -32011,14 +32011,29 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       }  /* if */
       check_assertion_or_expect_error(!is.init_error);
     } else if (lcp->is_param_ref_capture) {
-      /* A capture of "this" where "this" can only be represented by an
-         enk_param_ref node (specifically, in a field initializer). */
+      /* A capture of "this" or "*this" where "this" can only be
+         represented by an enk_param_ref node (specifically, in a field
+         initializer). */
       a_dynamic_init_ptr  this_dip;
-      a_type_ptr          this_type = lcp->closure_field->type;
+      a_type_ptr          field_type = lcp->closure_field->type;
+      a_type_ptr          this_type;
+      an_expr_node_ptr    expr;
+      if (lcp->capture_by_reference) {
+        /* Capture of "this". */
+        this_type = field_type;
+      } else {
+        /* Capture of "*this" */
+        this_type = make_pointer_type(field_type);
+      }  /* if */
       this_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-      this_dip->variant.expression =
-                            alloc_expr_node((an_expr_node_kind)enk_param_ref);
-      this_dip->variant.expression->type = this_type;
+      expr = alloc_expr_node((an_expr_node_kind)enk_param_ref);
+      expr->type = this_type;
+      if (!lcp->capture_by_reference) {
+        /* Indirect through the "this" pointer for "*this". */
+        expr = make_operator_node((an_expr_operator_kind)eok_indirect,
+                                  field_type, expr);
+      }  /* if */
+      this_dip->variant.expression = expr;
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = this_type;
       init_con->variant.dynamic_init = this_dip;
