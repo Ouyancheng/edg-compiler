@@ -1902,11 +1902,14 @@ for an array initialization in GNU C++ mode).
       check_assertion(!source_desc->capture->is_init_capture);
       /* The implied source is a local variable from a lambda capture. */
       if (is_reference_type(var->type) ||
+          (var->is_this_parameter &&
+           !source_desc->capture->capture_by_reference) ||
           (var->is_parameter &&
            var->variant.assoc_param_type != NULL &&
            var->variant.assoc_param_type->passed_via_copy_constructor)) {
-        /* Variable is a reference or a parameter passed via copy constructor,
-           add an indirection. */
+        /* Variable is a reference or a parameter passed via copy
+           constructor, or this is a capture of "*this", so add an
+           indirection. */
         set_var_indirect_init_pos_descr(var, &source_ipd);
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
       } else if (var_is_return_value_variable(var)) {
