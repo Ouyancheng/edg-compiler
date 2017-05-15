@@ -25,7 +25,7 @@ FALSE when "this" was captured.) For example, with --c++17:
 GNU C++ compatibility: spurious error on friend template in class template
 
 When deferral of function prototype instantiations is being done in g++
-mode, spurious errors results from doing additional prototype instantiations
+mode, spurious errors resulted from doing additional prototype instantiations
 of friend function templates of a class template.  Only the prototype
 instantiation in the original definition context should be done, but
 with deferral of function prototype instantiations, additional prototype
