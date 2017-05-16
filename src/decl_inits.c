@@ -5533,7 +5533,7 @@ members of managed class types in some Microsoft modes.
                                   sym, (a_template_symbol_supplement_ptr)NULL);
     tcsp->first_token_number = first_tsn;
     /* When there is no default, the computed last token number could be
-       less that the first.  In that case, use the first token number as
+       less than the first.  In that case, use the first token number as
        the last. */
     tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
     /* Check for the case where the cache is empty. */
