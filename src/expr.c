@@ -416,6 +416,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   a_boolean             still_dependent;
   a_boolean             is_full_expr = !dps->is_new_expr_type &&
                                        !dps->is_init_capture;
+  a_decl_parse_state    *saved_decl_parse_state;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
   /* Usually an initializer is a full expression and we must push an entry
@@ -435,6 +436,10 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                     expr_kind, is_full_expr,
                                     dps, (an_init_state *)NULL);
   }  /* if */
+  /* Record the parse state in the scope stack.  It may be needed to
+     set lambda parent entities and/or lambda discriminator values. */
+  saved_decl_parse_state = scope_stack_top().decl_parse_state;
+  scope_stack_top().decl_parse_state = dps;
   /* Scan the expression and save it in an initializer cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
      implies. */
@@ -589,6 +594,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       unexpected_condition();
     }  /* if */
   }  /* if */
+  scope_stack_top().decl_parse_state = saved_decl_parse_state;
   /* Pop the expression stack if needed. */
   if (is_full_expr) {
     pop_expr_stack_for_initializer(saved_expr_stack,
