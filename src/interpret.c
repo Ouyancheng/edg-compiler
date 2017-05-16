@@ -4067,6 +4067,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                     if (cp != NULL) {
                       result = extract_value_from_constant(
                                                ips, cp, var_bytes, var_bytes);
+                      if (constant_is(cp, ck_string)) {
+                        /* The var_bytes was mapped to cp, but in this case we
+                           really want it mapped to con (done below).  Back
+                           out the mapping to cp. */
+                        unmap_stack_bytes(ips, var_bytes);
+                      }  /* if */
                     }  /* if */                     
                   }  /* if */
                   if (!result) break;
@@ -4225,7 +4231,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         /* Map the interpreter storage for the string back to the constant
            entry so that that constant can, if needed, be retrieved by
            copy_interpreter_object_to_constant. */
-        map_ptr(&ips->map, value, (a_byte*)con);
+        map_stack_bytes(ips, value, (a_byte*)con);
         for (k = 0; k<n_elems; k += 1) {
           unsigned long char_val = extract_character_from_string(
                                            char_ptr, (unsigned int)char_size);
