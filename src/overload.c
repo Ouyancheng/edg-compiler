@@ -10782,7 +10782,7 @@ if is_lvalue is TRUE.
        of the selection so the result is still a pointer to the object. */
     check_assertion(!is_lvalue);
     sel_expr = make_operator_node((an_expr_operator_kind)eok_address_of,
-                                  make_pointer_type(closure_field->type),
+                                  make_pointer_type(sel_expr->type),
                                   sel_expr);
     sel_expr->variant.operation.compiler_generated = TRUE;
   } else {
