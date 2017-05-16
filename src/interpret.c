@@ -7824,7 +7824,8 @@ is within the given complete_object.
                                                 result_storage + field_offset,
                                                 complete_object);
       } else if (cap->captured.variable == NULL ||
-                 cap->capture_info.source_closure_field != NULL) {
+                 (cap->capture_info.source_closure_field != NULL &&
+                  !cap->captured.variable->is_this_parameter)) {
         /* This is a capture of "this" or "*this" in a field
            initializer or a capture of an enclosing lambda's capture. */
         check_assertion(field_con->kind ==
