@@ -7823,11 +7823,11 @@ is within the given complete_object.
                                                 &expr->position,
                                                 result_storage + field_offset,
                                                 complete_object);
-      } else if (cap->captured.variable == NULL) {
-        /* This must be a capture of "this" or "*this" in a field
-           initializer, which is represented by an enk_param_ref node. */
-        check_assertion(cap->is_param_ref_capture &&
-                        field_con->kind ==
+      } else if (cap->captured.variable == NULL ||
+                 cap->capture_info.source_closure_field != NULL) {
+        /* This is a capture of "this" or "*this" in a field
+           initializer or a capture of an enclosing lambda's capture. */
+        check_assertion(field_con->kind ==
                                         (a_constant_repr_kind)ck_dynamic_init);
         is_constant = do_constexpr_dynamic_init(
                                                ips,
