@@ -1,5 +1,20 @@
 Version 4.14
 
+5/16/17  [EDGcpfe/18378]
+Spurious diagnostic on nontype parameter in partial specialization
+
+In C++11 and newer modes, a spurious diagnostic could be issued if a
+nontype template parameter in a partial specialization resulted in
+an implicit cast in the IL.  The diagnostic was an error, except in
+g++ mode where it was a warning.  Now fixed.  In this example, the type
+of Y is T but the type of the corresponding template parameter of B
+is T::type, so an implicit cast is added.
+
+  template <typename T, T X> struct A { typedef T type; };
+  template <typename T, typename T::type> struct B {};
+  template <typename T, T X, T Y> struct B <A <T,X>, Y> {};
+ 
+
 5/15/17  [EDGcpfe/17825,EDGcpfe/17998]
 C++17 compatibility: capturing *this by value
 

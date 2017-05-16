@@ -12574,11 +12574,7 @@ which case that particular parameter must be present.
   a_boolean found = FALSE;
 
   /* For a cast, use the constant under the cast. */
-  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-      cp->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
-    cp = cp->variant.template_param.variant.constant;
-  }  /* if */
+  cp = strip_implicit_casts_if_template_param_constant(cp);
   if (cp->kind == (a_constant_repr_kind)ck_template_param) {
     /* Only a ck_template_param constant can be or contain a template
        param constant, and it must. */
