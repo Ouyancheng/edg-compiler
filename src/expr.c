@@ -32176,12 +32176,17 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
         dip->variant.expression = make_node_from_operand(&operand);
       }  /* if */
       if (dtor_routine != NULL) {
-        /* Indicate a destructor to be called for cleanup if an exception is
-           thrown part-way through the captures. */
-        record_dtor_in_dynamic_init(dtor_routine, dip,
+        if (curr_expr_kind_is_const()) {
+          /* Destructors cannot be invoked in constant-expression contexts. */
+          expect_error();
+        } else {
+          /* Indicate a destructor to be called for cleanup if an exception is
+             thrown part-way through the captures. */
+          record_dtor_in_dynamic_init(dtor_routine, dip,
                                     curr_expr_is_potentially_unevaluated());
-        record_partial_aggregate_cleanup_destruction(dip,
+          record_partial_aggregate_cleanup_destruction(dip,
                                                      curr_expr_is_evaluated());
+        }  /* if */
       }  /* if */
       if (array_case) {
         /* To repeat the initialization for each element of an array,
