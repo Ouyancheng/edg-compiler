@@ -1,5 +1,22 @@
 Version 4.14
 
+5/17/17  [EDGcpfe/18392]
+Spurious overload resolution error in Microsoft bugs mode
+
+Consider the following example:
+
+  struct S {
+    void f(double const* const&);
+    void f(double*);
+  };
+  void g(S s, double *p) {
+     s.f(p);  // Previously ambiguous in Microsoft bugs mode.  Now okay.
+  }
+
+Previously, the call "s.f(p)" was treated as ambiguous in Microsoft bugs mode.
+Now it is accepted and selects the second member function (as in other modes).
+
+
 5/16/17  [EDGcpfe/18366]
 Instability in interpreter on use of array initialized with string literal
 
