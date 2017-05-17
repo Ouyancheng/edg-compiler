@@ -4,14 +4,14 @@ Version 4.14
 Instability in interpreter on use of array initialized with string literal
 
 The constexpr interpreter in the front end maintains mappings between the
-object representations it operators on and the IL entries that represent
-those objects.  For example:
+object representations it operates on and the IL entries that represent those
+objects.  For example:
 
   constexpr char msg[] = "A Message";
   constexpr char const *ptr = msg+2;
 
-Here the storage for the string "A message" has a mapping to the constexpr
-variable msg, so that the evaluation of msg+2 can eventually produce an
+Here the storage for the string "A Message" has a mapping to the constexpr
+variable msg, so that the evaluation of msg+2 can eventually produce a
 ck_address/abk_variable entry pointing to msg.  However, previously, this
 mapping was corrupted in a way that is rarely observable.  That is now fixed.
 

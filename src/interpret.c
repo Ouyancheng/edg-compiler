@@ -4068,9 +4068,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       result = extract_value_from_constant(
                                                ips, cp, var_bytes, var_bytes);
                       if (constant_is(cp, ck_string)) {
-                        /* The var_bytes was mapped to cp, but in this case we
-                           really want it mapped to con (done below).  Back
-                           out the mapping to cp. */
+                        /* The var_bytes storage was mapped to cp, but in this
+                           case we really want it mapped to con (done below).
+                           Back out the mapping to cp. */
                         unmap_stack_bytes(ips, var_bytes);
                       }  /* if */
                     }  /* if */                     
