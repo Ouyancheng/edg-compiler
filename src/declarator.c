@@ -4378,6 +4378,14 @@ constant.
                constant.  In such a case, the backing expression will refer
                to the shared constant, and copying it into il_constant
                would create a loop in the IL. */
+          } else if (constant->expr != NULL &&
+                     is_operation_node(constant->expr) &&
+                     node_operator_is(constant->expr, eok_dot_member_call) &&
+                     constant->expr->variant.operation.operands->next->kind ==
+                                               (an_expr_node_kind)enk_lambda) {
+            /* Do not copy the backing expression from the bound constant
+               if it results from invoking a lambda expression, as the
+               lambda may have references to local variables. */
           } else {
             /* Preserve the bound expression, which will not have been
                copied if it refers to local variables, and ensure that it
