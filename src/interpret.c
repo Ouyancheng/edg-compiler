@@ -7825,9 +7825,10 @@ is within the given complete_object.
                               field_con = cp->variant.aggregate.first_constant;
          is_constant && cap != NULL && field_con != NULL;
          cap = cap->next, field_con = field_con->next) {
-      a_field_ptr   fp = cap->closure_field;
-      a_byte_count  field_offset;
-      a_byte        *dst_bytes;
+      a_field_ptr         fp = cap->closure_field;
+      a_byte_count        field_offset;
+      a_byte              *dst_bytes;
+      a_dynamic_init_ptr  sub_dip;
       /* Determine the offset of this field within the closure object's
          storage. */
       get_mapped_byte_count(&persistent_map, fp, field_offset);
@@ -7840,20 +7841,42 @@ is within the given complete_object.
       } else if (cap->captured.variable == NULL ||
                  (cap->capture_info.source_closure_field != NULL &&
                   !cap->captured.variable->is_this_parameter)) {
-        /* This is a capture of "this" or "*this" in a field
-           initializer or a capture of an enclosing lambda's capture. */
+        /* This is a capture of "this" or "*this" in a field initializer or a
+           capture of an enclosing lambda's capture. */
         check_assertion(constant_is(field_con, ck_dynamic_init));
-        is_constant = do_constexpr_dynamic_init(
-                                               ips,
-                                               field_con->variant.dynamic_init,
-                                               &expr->position, dst_bytes,
-                                               complete_object);
+        sub_dip = field_con->variant.dynamic_init;
+        if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
+            sub_dip->variant.bitwise_copy.source == NULL) {
+          /* An implicit bitwise copy from a field of the closure associated
+             with the enclosing call (which is of a lambda call operator). */
+          a_field_ptr  src_fp = cap->capture_info.source_closure_field;
+          a_byte       *this_bytes, *src_bytes;
+          check_assertion(src_fp != NULL);
+          get_mapped_byte_count(&persistent_map, src_fp, field_offset);
+          get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+          if (this_bytes == NULL) {
+            do_constexpr_fail(is_constant);
+            info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                          &expr->position, ips);
+            break;
+          }  /* if */
+          src_bytes = ((a_constexpr_address*)this_bytes)->address+field_offset;
+          if (!constexpr_copy_object(ips, src_fp->type, src_bytes, dst_bytes,
+                                     complete_object)) {
+            do_constexpr_fail(is_constant);
+          } else {
+            record_subobject_derivation(dst_bytes, NULL);
+          }  /* if */
+        } else {
+          is_constant =
+                      do_constexpr_dynamic_init(ips, sub_dip, &expr->position,
+                                                dst_bytes, complete_object);
+        }  /* if */
       } else {
         a_byte              *var_storage;
         a_variable_ptr      vp = cap->captured.variable;
         a_type_ptr          vtp = vp->type, uvtp = skip_typerefs(vtp);
         a_boolean           ref_case = FALSE;
-        a_dynamic_init_ptr  sub_dip;
         check_assertion(constant_is(field_con, ck_dynamic_init));
         sub_dip = field_con->variant.dynamic_init;
         get_stack_bytes(ips, vp, var_storage);
