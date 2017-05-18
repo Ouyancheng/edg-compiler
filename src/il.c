@@ -16901,6 +16901,7 @@ options is a set of name lookup options.
         }  /* if */
       }
       break;
+    case enk_lambda:
     case enk_error:
       *copy_error = TRUE;
       break;
