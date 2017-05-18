@@ -1891,14 +1891,15 @@ for an array initialization in GNU C++ mode).
       check_assertion(result_is_lvalue && source_node->is_lvalue);
     }  /* if */
   } else if (source_desc->capture != NULL) {
-    a_boolean   needs_indirection = FALSE;
-    a_boolean   source_node_result_is_lvalue = result_is_lvalue;
-    a_field_ptr src_field;
+    a_boolean      needs_indirection = FALSE;
+    a_boolean      source_node_result_is_lvalue = result_is_lvalue;
+    a_field_ptr    src_field;
+    a_variable_ptr var;
     check_assertion(!source_desc->runtime_throw &&
                     !source_desc->capture->is_init_capture);
     src_field = source_desc->capture->capture_info.source_closure_field; 
+    var = source_desc->capture->captured.variable;
     if (src_field == NULL) {
-      a_variable_ptr  var = source_desc->capture->captured.variable;
       check_assertion(!source_desc->capture->is_init_capture);
       /* The implied source is a local variable from a lambda capture. */
       if (is_reference_type(var->type) ||
@@ -1935,11 +1936,15 @@ for an array initialization in GNU C++ mode).
       add_init_pos_modifier(&source_ipm, &source_ipd);
       source_ipm.curr_field = src_field;
       source_ipm.type = src_field->type;
-      if (is_reference_type(source_ipm.type)) {
-        /* In the reference case, we need to add an additional indirection
-           on top of the source description, but we don't have an appropriate
-           modifier, so set a flag and add the indirection after converting
-           to an expression. */
+      if (is_reference_type(source_ipm.type) ||
+          (var != NULL && var->is_this_parameter &&
+           !source_desc->capture->capture_by_reference &&
+           is_pointer_type(src_field->type))) {
+        /* In the reference case, or for a capture of "*this" when the
+           enclosing lambda captured only "this", we need to add an
+           additional indirection on top of the source description, but we
+           don't have an appropriate modifier, so set a flag and add the
+           indirection after converting to an expression. */
         needs_indirection = TRUE;
         source_node_result_is_lvalue = FALSE;
       }  /* if */
