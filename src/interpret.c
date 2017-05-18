@@ -3269,8 +3269,8 @@ of whitespace characters.
 }  /* db_addr */
 
 
-void db_object(a_byte      *addr,
-               a_type_ptr  tp)
+static void db_object(a_byte      *addr,
+                      a_type_ptr  tp)
 /*
 Output the contents of the interpreted object of type tp stored at addr.
 */
@@ -3388,6 +3388,19 @@ Output the contents of the interpreted object of type tp stored at addr.
       break;
   }  /* switch */
 }  /* db_object */
+
+
+void db_complete_object(a_byte  *obj)
+/*
+Output the contents of the given complete object.
+*/
+{
+  a_type_ptr  tp = complete_object_type(obj);
+
+  db_type_name(tp);
+  db_object(obj, tp);
+}  /* db_complete_object */
+
 
 
 void db_call_stack(void  *ips)
@@ -7787,12 +7800,12 @@ closure object is placed at the location indicated by result_storage, which
 is within the given complete_object.
 */
 {
-  a_lambda_ptr         lambda;
-  a_lambda_capture_ptr cap;
-  a_dynamic_init_ptr   dip;
-  a_constant_ptr       cp;
-  a_constant_ptr       field_con;
-  a_boolean            is_constant = TRUE;
+  a_lambda_ptr          lambda;
+  a_lambda_capture_ptr  cap;
+  a_dynamic_init_ptr    dip;
+  a_constant_ptr        cp;
+  a_constant_ptr        field_con;
+  a_boolean             is_constant = TRUE;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda);
   lambda = expr->variant.lambda.ptr;
@@ -7812,47 +7825,52 @@ is within the given complete_object.
                               field_con = cp->variant.aggregate.first_constant;
          is_constant && cap != NULL && field_con != NULL;
          cap = cap->next, field_con = field_con->next) {
-      a_field_ptr        fp = cap->closure_field;
-      a_byte_count       field_offset;
+      a_field_ptr   fp = cap->closure_field;
+      a_byte_count  field_offset;
+      a_byte        *dst_bytes;
       /* Determine the offset of this field within the closure object's
          storage. */
       get_mapped_byte_count(&persistent_map, fp, field_offset);
+      dst_bytes = result_storage+field_offset;
       if (cap->is_init_capture) {
         /* Interpret the initializer for the capture. */
         is_constant = do_constexpr_dynamic_init(ips, cap->captured.initializer,
-                                                &expr->position,
-                                                result_storage + field_offset,
+                                                &expr->position, dst_bytes,
                                                 complete_object);
       } else if (cap->captured.variable == NULL ||
                  (cap->capture_info.source_closure_field != NULL &&
                   !cap->captured.variable->is_this_parameter)) {
         /* This is a capture of "this" or "*this" in a field
            initializer or a capture of an enclosing lambda's capture. */
-        check_assertion(field_con->kind ==
-                                        (a_constant_repr_kind)ck_dynamic_init);
+        check_assertion(constant_is(field_con, ck_dynamic_init));
         is_constant = do_constexpr_dynamic_init(
                                                ips,
                                                field_con->variant.dynamic_init,
-                                               &expr->position,
-                                               result_storage + field_offset,
+                                               &expr->position, dst_bytes,
                                                complete_object);
       } else {
-        a_byte             *var_storage;
-        a_variable_ptr     vp = cap->captured.variable;
-        a_dynamic_init_ptr sub_dip;
-        check_assertion(field_con->kind ==
-                                        (a_constant_repr_kind)ck_dynamic_init);
+        a_byte              *var_storage;
+        a_variable_ptr      vp = cap->captured.variable;
+        a_type_ptr          vtp = vp->type, uvtp = skip_typerefs(vtp);
+        a_boolean           ref_case = FALSE;
+        a_dynamic_init_ptr  sub_dip;
+        check_assertion(constant_is(field_con, ck_dynamic_init));
         sub_dip = field_con->variant.dynamic_init;
         get_stack_bytes(ips, vp, var_storage);
+        if (uvtp->kind == (a_type_kind)tk_pointer &&
+            uvtp->variant.pointer.is_reference) {
+          vtp = uvtp->variant.pointer.type;
+          uvtp = skip_typerefs(vtp);
+          ref_case = TRUE;
+        }  /* if */
         /* Get the value of the captured variable. */
-        if (is_volatile_qualified_type(vp->type)) {
+        if (is_volatile_qualified_type(vtp)) {
           /* Capturing a volatile variable prevents the lambda from being
              used in a constant expression. */
           info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
           do_constexpr_fail(is_constant);
         } else if (var_storage != NULL) {
-          /* We already have the variable's value in interpreter
-             storage. */
+          /* We already have the variable's value in interpreter storage. */
           if (!complete_object_is_initialized(var_storage)) {
             info_with_pos(ec_object_not_initialized, &expr->position, ips);
             do_constexpr_fail(is_constant);
@@ -7888,25 +7906,31 @@ is within the given complete_object.
         /* If the capture has a constant value, copy it into the closure
            object field. */
         if (is_constant) {
-          if (sub_dip->kind == (a_constant_repr_kind)dik_bitwise_copy) {
+          a_constexpr_address  var_addr;
+          if (ref_case && !cap->capture_by_reference) {
+            /* When capturing a reference variable by value, the referenced
+               object must be copied instead. */
+            var_addr = *(a_constexpr_address*)var_storage;
+            var_storage = var_addr.address;
+          } else {
+            clear_address(&var_addr, var_storage);
+          }  /* if */
+          if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy) {
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
-            if (!constexpr_copy_object(ips, fp->type, var_storage,
-                                       result_storage + field_offset,
+            if (!constexpr_copy_object(ips, fp->type, var_storage, dst_bytes,
                                        complete_object)) {
               do_constexpr_fail(is_constant);
+            } else {
+              record_subobject_derivation(dst_bytes, NULL);
             }  /* if */
-          } else if (sub_dip->kind == (a_constant_repr_kind)dik_constructor) {
-            a_constexpr_address var_addr;
-            clear_address(&var_addr, var_storage);
-            if (!do_constexpr_ctor(ips, sub_dip, &expr->position,
-                                   result_storage + field_offset,
+          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor) {
+            if (!do_constexpr_ctor(ips, sub_dip, &expr->position, dst_bytes,
                                    complete_object, &var_addr)) {
               do_constexpr_fail(is_constant);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_expression) {
             if (!do_constexpr_expression(ips, sub_dip->variant.expression,
-                                         result_storage + field_offset,
-                                         complete_object)) {
+                                         dst_bytes, complete_object)) {
               do_constexpr_fail(is_constant);
             }  /* if */
           } else {

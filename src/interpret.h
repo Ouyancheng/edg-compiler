@@ -43,8 +43,7 @@ uintptr_t db_hash_ptr(void  *ptr);
 
 a_host_large_integer db_int_val(a_byte  *val_bytes);
 
-void db_object(a_byte      *addr,
-               a_type_ptr  tp);
+void db_complete_object(a_byte  *addr);
 
 void db_call_stack(void  *ips);
 
