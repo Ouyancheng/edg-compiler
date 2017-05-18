@@ -923,6 +923,15 @@ and issue a diagnostic if that was not the case.
     } else {
       deduce_return_type_from_void_operand(rp, !rp->is_lambda_body, diag_pos);
     }  /* if */
+  } else {
+    a_type_ptr  rtp = skip_typerefs(rp->type);
+    if (!could_be_literal_type(rtp->variant.routine.return_type)) {
+      if (!rout_is_real_template_instance(rp) && rp->is_declared_constexpr) {
+        pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
+                     rtp->variant.routine.return_type);
+      }  /* if */
+      rp->is_constexpr = FALSE;
+    }  /* if */
   }  /* if */
 }  /* check_deduced_return_type */
 

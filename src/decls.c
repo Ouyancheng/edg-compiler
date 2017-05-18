@@ -2201,16 +2201,20 @@ diagnostic if it doesn't meet the constraints for such a variable (and make
 the function non-constexpr in that case).
 */
 {
+  a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
+
   /* Variables in C++14-style constexpr function declarations must have
      automatic storage duration, a literal type, and be initialized. */
   if (var_has_static_or_thread_storage_duration(vp)) {
-    pos_error(ec_nonautomatic_var_in_constexpr_function, pos);
-    innermost_function_scope->variant.routine.ptr->is_constexpr = FALSE;
+    if (rp->is_declared_constexpr) {
+      pos_error(ec_nonautomatic_var_in_constexpr_function, pos);
+    }  /* if */
+    rp->is_constexpr = FALSE;
   } else if (!is_template_dependent_context()) {
-    a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     a_type_ptr     vtp = skip_typerefs(vp->type);
     if (!is_literal_type(vtp)) {
-      if (!rp->is_template_function || rp->is_specialized) {
+      if ((!rp->is_template_function || rp->is_specialized) &&
+          rp->is_declared_constexpr) {
         pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
         vp->type = error_type();
       }  /* if */
@@ -2218,7 +2222,8 @@ the function non-constexpr in that case).
     } else if (vp->init_kind == (an_init_kind)initk_none &&
                !((gpp_mode || clang_mode) && is_immediate_class_type(vtp) &&
                  vtp->variant.class_struct_union.is_empty_class)) {
-      if (!rp->is_template_function || rp->is_specialized) {
+      if ((!rp->is_template_function || rp->is_specialized) &&
+          rp->is_declared_constexpr) {
         pos_error(ec_uninitialized_var_in_constexpr_function, pos);
       }  /* if */
       rp->is_constexpr = FALSE;

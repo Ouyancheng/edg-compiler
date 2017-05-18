@@ -15340,6 +15340,15 @@ decl_member_function_template.
                                       prev_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     lambda->lambda_routine = rp;
+    if (constexpr_lambdas_enabled) {
+      /* Assume the lambda is constexpr for now.  (Violations detected while
+         processing the lambda later on only produce errors if the lambda
+         explicitly specified "constexpr".) */
+      rp->is_constexpr = TRUE;
+      if (lambda->constexpr_specified) {
+        rp->is_declared_constexpr = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (lambda->is_generic) {
     /* A generic lambda: Pop the template declaration scope. */
@@ -31345,27 +31354,7 @@ For example:
   complete_class_definition(closure_class, decl_level, &class_state);
   cssp = class_symbol_supp(symbol_for(closure_class));
   if (constexpr_lambdas_enabled) {
-    a_boolean   has_nonliteral_member = FALSE;
-    a_field_ptr fp;
-    for (fp = closure_class->variant.class_struct_union.field_list;
-         !has_nonliteral_member && fp != NULL; fp = fp->next) {
-      has_nonliteral_member = !is_literal_type(fp->type);
-    }  /* for */
-    if (has_nonliteral_member) {
-      cssp->known_not_to_be_a_literal_type = TRUE;
-      cssp->known_to_be_a_literal_type = FALSE;
-    } else {
-      cssp->known_not_to_be_a_literal_type = FALSE;
-      cssp->known_to_be_a_literal_type = TRUE;
-    }  /* if */
-    if (lambda->lambda_routine != NULL &&
-        (lambda->constexpr_specified || !has_nonliteral_member)) {
-      /* The call operator of a lambda is constexpr if it is either
-         explicitly declared to be or if it would satisfy the
-         requirements for a constexpr function. */
-      lambda->lambda_routine->is_constexpr = TRUE;
-      scope_for_routine(lambda->lambda_routine)->is_constexpr_routine = TRUE;
-    }  /* if */
+    set_literal_type_flag(closure_class);
   } else {
     cssp->known_not_to_be_a_literal_type = TRUE;
     cssp->known_to_be_a_literal_type = FALSE;
