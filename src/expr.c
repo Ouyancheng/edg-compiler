@@ -32257,6 +32257,9 @@ Scan a C++ lambda expression, e.g., something like
     /* A lambda is not allowed in an unevaluated expression. */
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
     err = TRUE;
+  } else if (expr_stack->possible_rescan_context) {
+    expr_pos_error(ec_lambda_not_allowed, &start_pos);
+    err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
     /* A lambda in a context where we won't know until later if the
        context is evaluated (e.g., the operand of a typeid). */
