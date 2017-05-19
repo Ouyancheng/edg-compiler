@@ -6800,18 +6800,27 @@ apply that would make one better than the other, and return
         }  /* if */
       } else {
         /* Not cfront mode. */
+        a_boolean do_subsequence_test =
+                           (!(microsoft_bugs && microsoft_version < 1400) ||
+                            (!arg_match1->lvalue_to_rvalue_conversion_used &&
+                             !arg_match2->lvalue_to_rvalue_conversion_used &&
+                             (microsoft_version >= 1300 ||
+                              (is_ptr_or_ref_type(param_type1) &&
+                               is_ptr_or_ref_type(param_type2)))));
         a_boolean param1_is_ref = is_any_reference_type(param_type1);
         a_boolean param2_is_ref = is_any_reference_type(param_type2);
         /* If one conversion sequence is an identity conversion (i.e.,
            no change at all) and the other has a qualification conversion,
            the identity conversion is a subsequence of the other and is
            better.  (See N4431 13.3.3.2/3, bullet (3.2.1).) */
-        if (is_identity_conversion(param1_is_ref,
+        if (do_subsequence_test &&
+            is_identity_conversion(param1_is_ref,
                                    &arg_match1->conversion.std) &&
             is_qualification_conversion(param2_is_ref,
                                         &arg_match2->conversion.std)) {
           cmp = 1;
-        } else if (is_identity_conversion(param2_is_ref,
+        } else if (do_subsequence_test &&
+                   is_identity_conversion(param2_is_ref,
                                           &arg_match2->conversion.std) &&
                    is_qualification_conversion(param1_is_ref,
                                                &arg_match1->conversion.std)) {

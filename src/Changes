@@ -14,7 +14,8 @@ Consider the following example:
   }
 
 Previously, the call "s.f(p)" was treated as ambiguous in Microsoft bugs mode.
-Now it is accepted and selects the second member function (as in other modes).
+Now it is accepted and selects the second member function (as in other modes)
+when microsoft_version >= 1400.
 
 
 5/16/17  [EDGcpfe/18366]
