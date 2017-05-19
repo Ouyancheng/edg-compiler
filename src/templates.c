@@ -15498,6 +15498,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     if (templ_rout->is_declared_constexpr) {
       rp->is_declared_constexpr = TRUE;
       rp->is_constexpr = TRUE;
+    } else if (templ_rout->is_lambda_body && templ_rout->is_constexpr) {
+      rp->is_constexpr = TRUE;
     }  /* if */
     rp->compiler_generated = templ_rout->compiler_generated;
     rp->is_initializer_list_ctor = templ_rout->is_initializer_list_ctor;
