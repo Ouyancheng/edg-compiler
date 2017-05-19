@@ -14543,10 +14543,7 @@ position of the "?" and ":".
     make_error_operand(result);
   } else if (curr_expr_kind_is_evaluated_const() &&
              !operand_1_is_const &&
-             !(!C_mode() &&
-               is_constant_operand(operand_1) &&
-               operand_1->variant.constant.kind ==
-                                    (a_constant_repr_kind)ck_template_param)) {
+             !is_template_dependent_context()) {
     /* A constant expression where the value of the first operand is
        not known at compile time, except a template-dependent
        value.  Error. */

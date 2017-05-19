@@ -1,5 +1,19 @@
 Version 4.14
 
+5/19/17  [EDGcpfe/18416]
+Spurious error on conditional operator in template-dependent context
+
+Consider the following example:
+
+  template<bool> struct B { };
+  template<typename T> bool b = sizeof(T) < 42;
+  template<typename T, typename = B<b<T> ? true : false>> void f();
+      // Previously an error.  Now okay.
+
+Previously, this elicited an error claiming b<T> does not have a known value.
+That is now fixed.
+
+
 5/17/17  [EDGcpfe/18392]
 Spurious overload resolution error in Microsoft bugs mode
 
