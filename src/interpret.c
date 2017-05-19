@@ -7880,11 +7880,15 @@ is within the given complete_object.
         check_assertion(constant_is(field_con, ck_dynamic_init));
         sub_dip = field_con->variant.dynamic_init;
         get_stack_bytes(ips, vp, var_storage);
-        if (uvtp->kind == (a_type_kind)tk_pointer &&
-            uvtp->variant.pointer.is_reference) {
-          vtp = uvtp->variant.pointer.type;
-          uvtp = skip_typerefs(vtp);
-          ref_case = TRUE;
+        if (uvtp->kind == (a_type_kind)tk_pointer) {
+          if (uvtp->variant.pointer.is_reference ||
+              (vp->is_this_parameter && !cap->capture_by_reference)) {
+            /* For a reference variable, capture the referenced value.
+               Similarly for [*this] capture. */
+              vtp = uvtp->variant.pointer.type;
+              uvtp = skip_typerefs(vtp);
+              ref_case = TRUE;
+          }  /* if */
         }  /* if */
         /* Get the value of the captured variable. */
         if (is_volatile_qualified_type(vtp)) {
@@ -7934,6 +7938,11 @@ is within the given complete_object.
             /* When capturing a reference variable by value, the referenced
                object must be copied instead. */
             var_addr = *(a_constexpr_address*)var_storage;
+            if (!is_initialized(&var_addr)) {
+              info_with_pos(ec_object_not_initialized, &expr->position, ips);
+              do_constexpr_fail(is_constant);
+              break;
+            }  /* if */
             var_storage = var_addr.address;
           } else {
             clear_address(&var_addr, var_storage);
