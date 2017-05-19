@@ -2318,43 +2318,53 @@ this is a helper function.
        default.  "mutable", however, is allowed here, and means the lambda is
        non-const.  "constexpr" is also permitted to declare the call
        operator as constexpr. */
+    a_boolean done_with_quals;
+    a_boolean mutable_seen = FALSE;
     this_class = parent_type;
-    if (curr_token == tok_mutable) {
-      if (func_info->lambda != NULL) {
-        func_info->lambda->is_mutable = TRUE;
+    do {
+      done_with_quals = TRUE;
+      if (curr_token == tok_mutable) {
+        mutable_seen = TRUE;
+        if (func_info->lambda != NULL) {
+          func_info->lambda->is_mutable = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        func_info->lambda->mutable_position = pos_curr_token;
+          func_info->lambda->mutable_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      } else {
-        /* func_info->lambda may be NULL during real instantiations of generic
-           lambdas. */
-        check_assertion(scope_is(&scope_stack_top()-1,
-                                 sck_template_instantiation));
-      }  /* if */
-      (void)get_token();
-    } else if (curr_token == tok_constexpr) {
-      if (!constexpr_lambdas_enabled) {
-        pos_error(ec_constexpr_lambdas_not_enabled, &pos_curr_token);
-      } else if (func_info->lambda != NULL) {
-        func_info->lambda->constexpr_specified = TRUE;
+        } else {
+          /* func_info->lambda may be NULL during real instantiations of
+             generic lambdas. */
+          check_assertion(scope_is(&scope_stack_top()-1,
+                                   sck_template_instantiation));
+        }  /* if */
+        (void)get_token();
+        done_with_quals = FALSE;
+      } else if (curr_token == tok_constexpr) {
+        if (!constexpr_lambdas_enabled) {
+          pos_error(ec_constexpr_lambdas_not_enabled, &pos_curr_token);
+        } else if (func_info->lambda != NULL) {
+          func_info->lambda->constexpr_specified = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        func_info->lambda->constexpr_position = pos_curr_token;
+          func_info->lambda->constexpr_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      } else {
-        /* func_info->lambda may be NULL during real instantiations of generic
-           lambdas. */
-        check_assertion(scope_is(&scope_stack_top()-1,
-                                 sck_template_instantiation));
-      }  /* if */
-      (void)get_token();
-    } else {
-      qualifiers = TQ_CONST;
-      if (is_type_qualifier()) {
+        } else {
+          /* func_info->lambda may be NULL during real instantiations of
+             generic lambdas. */
+          check_assertion(scope_is(&scope_stack_top()-1,
+                                   sck_template_instantiation));
+        }  /* if */
+        (void)get_token();
+        done_with_quals = FALSE;
+      } else if (is_type_qualifier()) {
         /* Type qualifiers are not allowed on lambdas.  If there are, scan
            them and issue a lambda-specific diagnostic. */
         pos_error(ec_type_qualifier_on_lambda, &error_position);
-        (void)collect_type_qualifiers(decl_pos_block, (a_upc_block_size*)NULL);
+        (void)collect_type_qualifiers(decl_pos_block,
+                                      (a_upc_block_size*)NULL);
+        done_with_quals = FALSE;
       }  /* if */
+    } while (!done_with_quals);
+    if (!mutable_seen) {
+      qualifiers = TQ_CONST;
     }  /* if */
   } else if ((is_type_qualifier() or_is_near_or_far() ||
               (microsoft_mode && curr_token == tok_inline)) &&
