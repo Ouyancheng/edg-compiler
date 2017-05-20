@@ -1,5 +1,29 @@
 Version 4.14
 
+5/19/17  [EDGcpfe/18418]
+Abort rescanning variable template reference
+
+An abort could occur (in update_template_param_symbols) during template
+argument substitution of an expression involving a variable template
+instance.  Now fixed.
+
+  template <bool B> struct A { };
+  template <> struct A<true> { using t = void; };
+  template <bool B> using C = typename A<B>::t;
+  template <class T, class... Args> struct D {
+    static constexpr bool v = true;
+  };
+  template <class T, class... Args> constexpr bool D_v = D<T, Args...>::v;
+  template <class A, class B> struct E {
+      E() { }
+      template <class X, class Y, typename = C<D_v<A, X>>> E(E<X, Y>&&) { }
+  };
+  int main() {
+    typedef E<int, int> T;
+    T t(T{});
+  }
+
+
 5/19/17  [EDGcpfe/18359,EDGcpfe/18416]
 Spurious error on conditional operator in template-dependent context
 

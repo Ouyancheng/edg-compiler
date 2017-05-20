@@ -40874,13 +40874,22 @@ is TRUE if the expression is the immediate operand of an "&" operator.
     case enk_variable:
       { a_variable_ptr               var = expr->variant.variable.ptr;
         a_variable_template_info_ptr vtip = var->template_info;
+        /* For a variable template, find the instance based on the
+           substituted arguments. */
         if (var->is_nonreal && !var->is_prototype_instantiation) {
-          a_boolean           copy_error = FALSE;
-          a_template_arg_ptr  t_args = vtip->template_arg_list;
-          a_symbol_ptr        t_sym = symbol_for(vtip->assoc_template);
+          a_boolean            copy_error = FALSE;
+          a_template_arg_ptr   t_args = vtip->template_arg_list;
+          a_template_param_ptr t_params;
+          a_symbol_ptr         t_sym = symbol_for(vtip->assoc_template);
+          a_variable_ptr       proto_var;
+          a_template_symbol_supplement_ptr
+                               tssp;
+          proto_var = variable_for_symbol(t_sym);
+          tssp = t_sym->variant.template_info;
+          t_params = tssp->variant.variable.decl_cache.decl_info->parameters;
           t_args =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
-                  t_sym, t_args, (a_template_param_ptr)NULL,
+                  t_sym, t_args, t_params,
                   rcblock->template_arg_list, rcblock->template_param_list,
                   &rcblock->expr->position, rcblock->options,
                   &copy_error, rcblock->ctws_state);
