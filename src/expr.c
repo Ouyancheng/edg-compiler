@@ -40881,10 +40881,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
           a_template_arg_ptr   t_args = vtip->template_arg_list;
           a_template_param_ptr t_params;
           a_symbol_ptr         t_sym = symbol_for(vtip->assoc_template);
-          a_variable_ptr       proto_var;
           a_template_symbol_supplement_ptr
                                tssp;
-          proto_var = variable_for_symbol(t_sym);
           tssp = t_sym->variant.template_info;
           t_params = tssp->variant.variable.decl_cache.decl_info->parameters;
           t_args =
