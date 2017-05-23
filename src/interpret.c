@@ -7380,6 +7380,9 @@ the body of the (constructor) function proper.
         }  /* if */
       }  /* if */
     }  /* for */
+    if (result_storage == complete_object) {
+      mark_complete_object_initialized(complete_object);
+    }  /* if */
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
