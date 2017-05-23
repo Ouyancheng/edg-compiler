@@ -11794,7 +11794,8 @@ previously-scanned __builtin_addressof expression, and return the result in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (is_a_prvalue(&operand) || is_an_xvalue(&operand)) {
+    if (!is_template_dependent_context() &&
+        (is_a_prvalue(&operand) || is_an_xvalue(&operand))) {
       /* It appears that clang doesn't allow xvalues in this case. */
       error_in_operand(ec_expr_not_an_lvalue_or_function_designator, &operand);
     }  /* if */

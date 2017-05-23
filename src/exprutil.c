@@ -17806,7 +17806,8 @@ in the source (and *operator_position gives its position).
       }  /* if */
 #if CHECKING
     } else if (is_an_lvalue(operand) ||
-               (reference_case && is_an_xvalue(operand))) {
+               (reference_case && is_an_xvalue(operand)) ||
+               (is_builtin_addressof && is_template_dependent_context())) {
       /* Okay. */
     } else {
 #if DEBUG

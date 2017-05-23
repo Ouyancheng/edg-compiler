@@ -8705,6 +8705,14 @@ constant is set as well.
   if (has_error) {
     clear_constant(constant, (a_constant_repr_kind)ck_error);
   } else {
+    if (is_template_dependent_context()) {
+      if (expr_stack != NULL && !expr_stack->favor_constant_result) {
+        *not_a_constant = TRUE;
+      } else {
+        make_template_param_expr_constant(expr, constant);
+      }  /* if */
+      goto done;
+    }  /* if */
     switch (expr->variant.builtin_operation.kind) {
       case bok_offsetof:
         fold_offsetof(expr, constant, maintain_expression, pos,
@@ -8796,6 +8804,7 @@ constant is set as well.
         unexpected_condition();
     }  /* switch */
   }  /* if */
+done:;
 }  /* fold_builtin_operation_if_possible */
 
 #if BUILTIN_FUNCTIONS_ENABLED
