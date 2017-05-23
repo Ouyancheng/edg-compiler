@@ -9906,7 +9906,9 @@ the value representation of the integer value.
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_float) {
+                  /* Floating-point += floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
                   fp_add(tp->variant.float_kind, dst_val,
                          fp_value(opnd2_value), dst_val, &err,
@@ -9920,6 +9922,45 @@ the value representation of the integer value.
                   } else {
                     /* The assignment produces an rvalue.  Copy the value. */
                     *fp_value(result_storage) = *fp_value_at(dst);
+                  }  /* if */
+                } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_integer) {
+                  /* Integer += floating-point. */
+                  an_internal_float_value  dst_val;
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  conv_integer_value_to_float(int_value_at(dst),
+                                              is_signed,
+                                              &dst_val,
+                                              opnd2_type->variant.float_kind,
+                                              &err);
+                  fp_add(opnd2_type->variant.float_kind, &dst_val,
+                         fp_value(opnd2_value), &dst_val, &err,
+                         &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                    break;
+                  } else if (conv_float_value_to_int_value(
+                                            &dst_val,
+                                            opnd2_type->variant.float_kind,
+                                            int_value_at(dst),
+                                            is_signed, &depends_on_fp_mode)) {
+                    ovfl = FALSE;
+                    CHECK_int_range(int_value_at(dst), tp);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                        &expr->position, opnd1_type, tp, ips);
+                    break;
+                  }  /* if */
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else {
                   /* Other types. */
@@ -9986,7 +10027,9 @@ the value representation of the integer value.
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_float) {
+                  /* Floating-point -= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
                   fp_subtract(tp->variant.float_kind, dst_val,
                               fp_value(opnd2_value), dst_val, &err,
@@ -10000,6 +10043,45 @@ the value representation of the integer value.
                   } else {
                     /* The assignment produces an rvalue.  Copy the value. */
                     *fp_value(result_storage) = *fp_value_at(dst);
+                  }  /* if */
+                } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_integer) {
+                  /* Integer -= floating-point. */
+                  an_internal_float_value  dst_val;
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  conv_integer_value_to_float(int_value_at(dst),
+                                              is_signed,
+                                              &dst_val,
+                                              opnd2_type->variant.float_kind,
+                                              &err);
+                  fp_subtract(opnd2_type->variant.float_kind, &dst_val,
+                              fp_value(opnd2_value), &dst_val, &err,
+                              &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                    break;
+                  } else if (conv_float_value_to_int_value(
+                                            &dst_val,
+                                            opnd2_type->variant.float_kind,
+                                            int_value_at(dst),
+                                            is_signed, &depends_on_fp_mode)) {
+                    ovfl = FALSE;
+                    CHECK_int_range(int_value_at(dst), tp);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                        &expr->position, opnd1_type, tp, ips);
+                    break;
+                  }  /* if */
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else {
                   /* Other types. */
@@ -10066,7 +10148,9 @@ the value representation of the integer value.
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else if (expr->variant.operation.type_kind ==
-                                                    (a_type_kind)tk_float) {
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_float) {
+                  /* Floating-point *= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
                   fp_multiply(tp->variant.float_kind, dst_val,
                               fp_value(opnd2_value), dst_val, &err,
@@ -10080,6 +10164,45 @@ the value representation of the integer value.
                   } else {
                     /* The assignment produces an rvalue.  Copy the value. */
                     *fp_value(result_storage) = *fp_value_at(dst);
+                  }  /* if */
+                } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_integer) {
+                  /* Integer *= floating-point. */
+                  an_internal_float_value  dst_val;
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  conv_integer_value_to_float(int_value_at(dst),
+                                              is_signed,
+                                              &dst_val,
+                                              opnd2_type->variant.float_kind,
+                                              &err);
+                  fp_multiply(opnd2_type->variant.float_kind, &dst_val,
+                              fp_value(opnd2_value), &dst_val, &err,
+                              &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                    break;
+                  } else if (conv_float_value_to_int_value(
+                                            &dst_val,
+                                            opnd2_type->variant.float_kind,
+                                            int_value_at(dst),
+                                            is_signed, &depends_on_fp_mode)) {
+                    ovfl = FALSE;
+                    CHECK_int_range(int_value_at(dst), tp);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                        &expr->position, opnd1_type, tp, ips);
+                    break;
+                  }  /* if */
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else {
                   /* Other types. */
@@ -10146,7 +10269,9 @@ the value representation of the integer value.
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_float) {
+                  /* Floating-point /= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
                   fp_divide(tp->variant.float_kind, dst_val,
                             fp_value(opnd2_value), dst_val, &err,
@@ -10160,6 +10285,45 @@ the value representation of the integer value.
                   } else {
                     /* The assignment produces an rvalue.  Copy the value. */
                     *fp_value(result_storage) = *fp_value_at(dst);
+                  }  /* if */
+                } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_integer) {
+                  /* Integer /= floating-point. */
+                  an_internal_float_value  dst_val;
+                  int_kind = tp->variant.integer.int_kind;
+                  is_signed = int_kind_is_signed[int_kind];
+                  conv_integer_value_to_float(int_value_at(dst),
+                                              is_signed,
+                                              &dst_val,
+                                              opnd2_type->variant.float_kind,
+                                              &err);
+                  fp_divide(opnd2_type->variant.float_kind, &dst_val,
+                            fp_value(opnd2_value), &dst_val, &err,
+                            &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                    break;
+                  } else if (conv_float_value_to_int_value(
+                                            &dst_val,
+                                            opnd2_type->variant.float_kind,
+                                            int_value_at(dst),
+                                            is_signed, &depends_on_fp_mode)) {
+                    ovfl = FALSE;
+                    CHECK_int_range(int_value_at(dst), tp);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                        &expr->position, opnd1_type, tp, ips);
+                    break;
+                  }  /* if */
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 } else {
                   do_constexpr_fail(result);

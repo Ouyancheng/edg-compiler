@@ -1,5 +1,15 @@
 Version 4.14
 
+5/22/17  [EDGcpfe/18413]
+Bad interpretation of <integer> @= <floating-point>
+
+The constexpr interpreter previously did not correctly handle expression of
+the form x @= y where x is an integer expression and y is a floating-point
+expression (and @= is one of +=, -=, *= or /=).  The result of interpreting
+such a construct was near-random (it could just fail interpretation, or
+abort because of corrupted interpreter storage).  This is now fixed.
+
+
 5/22/17  [EDGcpfe/18419]
 Spurious error on __builtin_addressof in template
 
