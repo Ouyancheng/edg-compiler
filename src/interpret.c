@@ -7941,7 +7941,12 @@ is within the given complete_object.
             /* When capturing a reference variable by value, the referenced
                object must be copied instead. */
             var_addr = *(a_constexpr_address*)var_storage;
-            if (!is_initialized(&var_addr)) {
+            if (is_runtime_data_address(&var_addr)) {
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &expr->position, ips);
+              do_constexpr_fail(is_constant);
+              break;
+            } else if (!is_initialized(&var_addr)) {
               info_with_pos(ec_object_not_initialized, &expr->position, ips);
               do_constexpr_fail(is_constant);
               break;
