@@ -7868,7 +7868,7 @@ is within the given complete_object.
                                      complete_object)) {
             do_constexpr_fail(is_constant);
           } else {
-            record_subobject_derivation(dst_bytes, NULL);
+            mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
           }  /* if */
         } else {
           is_constant =
@@ -7956,7 +7956,7 @@ is within the given complete_object.
                                        complete_object)) {
               do_constexpr_fail(is_constant);
             } else {
-              record_subobject_derivation(dst_bytes, NULL);
+              mark_complete_class_object_if_needed(fp->type, dst_bytes);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor) {
             if (!do_constexpr_ctor(ips, sub_dip, &expr->position, dst_bytes,
