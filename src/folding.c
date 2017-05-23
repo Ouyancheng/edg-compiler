@@ -8706,11 +8706,7 @@ constant is set as well.
     clear_constant(constant, (a_constant_repr_kind)ck_error);
   } else {
     if (is_template_dependent_context()) {
-      if (expr_stack != NULL && !expr_stack->favor_constant_result) {
-        *not_a_constant = TRUE;
-      } else {
-        make_template_param_expr_constant(expr, constant);
-      }  /* if */
+      make_template_param_expr_constant(expr, constant);
       goto done;
     }  /* if */
     switch (expr->variant.builtin_operation.kind) {
