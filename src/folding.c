@@ -8704,11 +8704,11 @@ constant is set as well.
   }  /* for */
   if (has_error) {
     clear_constant(constant, (a_constant_repr_kind)ck_error);
+  } else if (is_template_dependent_context() && !scope_stack_top().is_rescan) {
+    /* Unsubstituted parameters may make actual folding impossible.  Produce
+       a ck_template_param/tpck_expression entry instead. */
+    make_template_param_expr_constant(expr, constant);
   } else {
-    if (is_template_dependent_context()) {
-      make_template_param_expr_constant(expr, constant);
-      goto done;
-    }  /* if */
     switch (expr->variant.builtin_operation.kind) {
       case bok_offsetof:
         fold_offsetof(expr, constant, maintain_expression, pos,
@@ -8800,7 +8800,6 @@ constant is set as well.
         unexpected_condition();
     }  /* switch */
   }  /* if */
-done:;
 }  /* fold_builtin_operation_if_possible */
 
 #if BUILTIN_FUNCTIONS_ENABLED
