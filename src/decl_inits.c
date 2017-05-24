@@ -8211,12 +8211,15 @@ initialized.  These are addressed in the course of the processing.
           if (ctor_rout->is_constexpr && !variant_init) {
             /* If this is a constexpr constructor, each variant must have
                an initializer. */
-            pos2_diagnostic(
+            if (!is_unspecialized_template_member_function(ctor_rout)) {
+              pos2_diagnostic(
                         es_error,
                         ec_constexpr_constructor_initializes_no_variant_field,
                         &error_position,
                         &field_sym->variant.field.anonymous_parent_object
                                   ->decl_position);
+            }  /* if */
+            clear_constexpr_flag = TRUE;
           }  /* if */
         }  /* if */
         if (field_sym->variant.field.extra_info->is_last_variant_member) {
