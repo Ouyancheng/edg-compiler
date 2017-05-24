@@ -11760,7 +11760,7 @@ diagnostic in *ips.
                  was loaded into interpreter storage (see
                  extract_value_from_constant). */
               cp = prev_con;
-              top_type = cp->type;
+              top_type = skip_typerefs(cp->type);
             } else if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               vp = prev_con->variant.address.variant.variable;
