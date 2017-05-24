@@ -6756,7 +6756,11 @@ and is a function designator.
 {
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
   operand->state = (an_operand_state)os_function_designator;
-  operand->type = unknown_type();
+  if (is_template_dependent_context() && !scope_stack_top().is_rescan) {
+    operand->type = type_of_unknown_templ_param_nontype;
+  } else {
+    operand->type = unknown_type();
+  }  /* if */
   operand->symbol = routine_sym;
   set_operand_position_to_pos_curr_token(operand);
   if (locator != NULL) {

@@ -1,5 +1,19 @@
 Version 4.14
 
+5/24/17  [EDGcpfe/18046]
+Spurious error on comparison of dependent function address
+
+The front end previously issued a spurious error on certain comparisons
+involving the address of a dependent function.  For example:
+
+  template <typename> void g();
+  template <typename T> bool  f() {
+    return &g<T> != nullptr;  // Previously, this triggered a spurious error.
+  }
+
+This is now fixed.
+
+
 5/22/17  [EDGcpfe/18413]
 Bad interpretation of <integer> @= <floating-point>
 
