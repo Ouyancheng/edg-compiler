@@ -6756,7 +6756,13 @@ and is a function designator.
 {
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
   operand->state = (an_operand_state)os_function_designator;
-  if (is_template_dependent_context() && !scope_stack_top().is_rescan) {
+  if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
+      locator != NULL && locator->template_arg_list != NULL &&
+      template_arg_list_is_dependent(locator->template_arg_list)) {
+    /* After substitution this template-id might represent a single candidate
+       with a known type.  Don't represent that with a tk_unknown type because
+       it could lead to spurious errors during prototype instantiation.
+       Instead, we assign a dependent unknown type to the operand. */
     operand->type = type_of_unknown_templ_param_nontype;
   } else {
     operand->type = unknown_type();
