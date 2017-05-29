@@ -1,5 +1,21 @@
 Version 4.14
 
+5/29/17  [EDGcpfe/18417]
+Incorrect matching of dependent template variables
+
+The front end did not properly compare dependent template variable
+references.  This could result in spurious errors.  In the example
+below, the definition of E::f was not considered to match the declaration
+in the class.  Now fixed.
+
+  template <bool B> struct A {};
+  template <typename T> constexpr bool var = 0;
+  struct E {
+    template <typename U> void f(U, A<var<U>>);
+  };
+  template <typename U> void E::f(U, A<var<U>>){}
+
+
 5/24/17  [EDGcpfe/18046]
 Spurious error on comparison of dependent function address
 

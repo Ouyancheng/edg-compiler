@@ -5329,62 +5329,6 @@ Return TRUE if the two array types have identical bounds.
 }  /* identical_array_type_level */
 
 
-static a_boolean equiv_nonreal_templates(a_type_ptr	type_1,
-				         a_symbol_ptr	sym_1,
-					 a_type_ptr	type_2,
-					 a_symbol_ptr	sym_2)
-/*
-Return TRUE if sym_1 and sym_2 are equivalent nonreal templates, such
-as X in "T::X<int>" and "Y::X<int>".  type_1 and type_2 are nonreal
-class types that are instances of the templates pointed to by sym_1 and sym_2.
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (is_nonreal_template_symbol(sym_1) && is_nonreal_template_symbol(sym_2)) {
-    /* They are both nonreal templates. */
-    if (sym_1->header == sym_2->header) {
-      /* They have the same names. */
-      if (identical_types(parent_class_of(type_1),
-                          parent_class_of(type_2))) {
-        /* Their parent types are the same. */
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* equiv_nonreal_templates */
-
-
-static a_boolean equiv_template_template_params(
-				a_symbol_ptr	sym_1,
-				a_symbol_ptr	sym_2,
-				a_boolean	exact_templ_match_required)
-/*
-Return TRUE if sym_1 and sym_2 are both template template parameters for
-equivalent templates, such as T in "T<int>" and "T<int>".
-exact_templ_match_required is TRUE if the values of the template template
-parameters must match exactly (i.e., point to the same template entry).
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (is_template_template_param_symbol(sym_1) &&
-      is_template_template_param_symbol(sym_2)) {
-    /* They are both template template parameters.  Compare the
-       underlying templates. */
-    an_equiv_templates_options_set	et_options = ET_NO_OPTIONS;
-    if (exact_templ_match_required) et_options |= ET_EXACT_MATCH_REQUIRED;
-    if (equiv_templates_given_supplement(sym_1->variant.template_info,
-                                         sym_2->variant.template_info,
-                                         et_options, ETP_NO_OPTIONS)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* equiv_template_template_params */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- contextual_generic_parameters is unused in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5475,52 +5419,21 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
         }  /* if */
       } else if (cssp_1->class_template != NULL &&
                  cssp_2->class_template != NULL) {
-        if (identical_templates_given_symbol(cssp_1->class_template,
-                                             cssp_2->class_template) ||
-            identical_templates_given_symbol(
-                                primary_template_of(cssp_1->class_template),
-                                primary_template_of(cssp_2->class_template)) ||
-            equiv_nonreal_templates(type_1, cssp_1->class_template,
-                                    type_2, cssp_2->class_template) ||
-            equiv_template_template_params(cssp_1->class_template,
-                                           cssp_2->class_template,
-                                           exact_templ_arg_match_required)) {
-          /* Both types are template classes, and they are based on the same
-             class template, or equivalent nonreal templates. */
-          an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
-          a_symbol_ptr                      templ_sym_1, templ_sym_2;
-          a_template_symbol_supplement_ptr  tssp_1, tssp_2;
-          templ_sym_1 = cssp_1->class_template;
-          templ_sym_2 = cssp_2->class_template;
-          templ_sym_1 = primary_template_of(templ_sym_1);
-          templ_sym_2 = primary_template_of(templ_sym_2);
-          tssp_1 = templ_sym_1->variant.template_info;
-          tssp_2 = templ_sym_2->variant.template_info;
-          /* If either template is variadic, pass the is_variadic flag. */
-          if (tssp_1->is_variadic || tssp_2->is_variadic) {
-            eta_options |= ETA_IS_VARIADIC;
-          }  /* if */
-          if (error_matches_anything) {
-            eta_options |= ETA_ERROR_MATCHES_ANYTHING;
-          }  /* if */
-          if (is_nonreal_template_symbol(cssp_1->class_template) ||
-              is_nonreal_template_symbol(cssp_2->class_template)) {
-            eta_options |= ETA_IS_NONREAL_MEMBER;
-          }  /* if */
-          if (exact_templ_arg_match_required) {
-            /* Template argument lists must match exactly, not just be
-               equivalent. */
-            eta_options |= ETA_EXACT_MATCH_REQUIRED;
-          }  /* if */
-          if (exact_decltype_exprs_required) {
-            eta_options |= ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
-          }  /* if */
-          if (equiv_template_arg_lists(
-                                 class_type_supp(type_1)->template_arg_list,
-                                 class_type_supp(type_2)->template_arg_list,
-                                 eta_options)) {
-            equiv = TRUE;
-          }  /* if */
+        /* Check whether both types are template classes, and they are based
+           on the same class template, or equivalent nonreal templates, and
+           if so, whether the template arguments are equivalent. */
+        if (equiv_templates_and_arg_lists(
+                                    cssp_1->class_template,
+                                    cssp_2->class_template,
+                                    &type_1->source_corresp,
+                                    &type_2->source_corresp,
+                                    class_type_supp(type_1)->template_arg_list,
+                                    class_type_supp(type_2)->template_arg_list,
+                                    ETA_NO_OPTIONS,
+                                    error_matches_anything,
+                                    exact_templ_arg_match_required,
+                                    exact_decltype_exprs_required)) {
+          equiv = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (type_1->source_corresp.is_class_member &&

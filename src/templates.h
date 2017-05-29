@@ -751,6 +751,18 @@ extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list2,
 				an_equiv_templ_arg_options_set	options);
 
+extern a_boolean equiv_templates_and_arg_lists(
+		a_symbol_ptr			template_sym_1,
+		a_symbol_ptr			template_sym_2,
+		a_source_correspondence_ptr	scp_1,
+		a_source_correspondence_ptr	scp_2,
+		a_template_arg_ptr		tap_1,
+		a_template_arg_ptr		tap_2,
+		an_equiv_templ_arg_options_set	eta_options,
+		a_boolean			error_matches_anything,
+		a_boolean			exact_templ_arg_match_required,
+		a_boolean			exact_decltype_exprs_required);
+
 extern a_boolean equiv_template_param_lists(
 		a_template_param_ptr			old_list,
 		a_template_param_ptr			new_list,

@@ -6552,6 +6552,58 @@ of constant comparison options.
 }  /* eta_flags_for_cc_options */
 
 
+static a_boolean equiv_template_variables(
+				a_variable_ptr			var1,
+				a_variable_ptr			var2,
+				a_compare_constants_options_set	options)
+/*
+var1 and var2 are variable template instances or template static data
+members.  If they are variable template instances, compare the template
+argument lists and return TRUE if they match.  Otherwise, return FALSE
+(including all cases where one or both are template static data members).
+*/
+{
+  a_boolean			result = FALSE;
+  a_variable_template_info_ptr	vtip1 = var1->template_info;
+  a_variable_template_info_ptr	vtip2 = var2->template_info;
+  a_template_arg_ptr		tap1 = vtip1->template_arg_list;
+  a_template_arg_ptr		tap2 = vtip2->template_arg_list;
+
+  if (tap1 == NULL || tap2 == NULL) {
+    /* At least one of the variables is not a variable template instance. */
+  } else {
+    /* Check whether both template variables are based on the same variable
+       template, and if so, whether the template arguments are equivalent. */
+    an_equiv_templ_arg_options_set	eta_options;
+    a_symbol_ptr			template_sym1;
+    a_symbol_ptr			template_sym2;
+    a_boolean				exact_templ_arg_match_required;
+    a_boolean				exact_decltype_exprs_required;
+    template_sym1 = symbol_for(vtip1->assoc_template);
+    template_sym2 = symbol_for(vtip2->assoc_template);
+    check_assertion(template_sym1 != NULL && template_sym2 != NULL);
+    eta_options = eta_flags_for_cc_options(options);
+    exact_templ_arg_match_required =
+                                 (eta_options & ETA_EXACT_MATCH_REQUIRED) != 0;
+    exact_decltype_exprs_required =
+                   (eta_options = ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0;
+    if (equiv_templates_and_arg_lists(
+                                    template_sym1,
+                                    template_sym2,
+                                    &var1->source_corresp,
+                                    &var2->source_corresp,
+                                    tap1, tap2,
+                                    eta_options,
+                                    /*error_matches_anything=*/FALSE,
+                                    exact_templ_arg_match_required,
+                                    exact_decltype_exprs_required)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* equiv_template_variables */
+
+
 a_boolean compare_expressions(an_expr_node_ptr                node1,
                               an_expr_node_ptr                node2,
                               a_compare_constants_options_set options)
@@ -6612,12 +6664,21 @@ are done.
                                options);
         break;
       case enk_variable:
-        eq = same_entities(node_variable(node1), node_variable(node2));
-        /* Don't do the type comparison because we may be comparing variables
-           from different translation units, one of which may have an
-           incomplete array type.  It's enough to know they are the same
-           variable. */
-        do_type_comparison = FALSE;
+        {
+          a_variable_ptr	var1 = node_variable(node1);
+          a_variable_ptr	var2 = node_variable(node2);
+          if (same_entities(var1, var2)) {
+            eq = TRUE;
+          } else if (var1->is_template_variable &&
+                     var2->is_template_variable) {
+            eq = equiv_template_variables(var1, var2, options);
+          }  /* if */
+          /* Don't do the type comparison because we may be comparing variables
+             from different translation units, one of which may have an
+             incomplete array type.  It's enough to know they are the same
+             variable. */
+          do_type_comparison = FALSE;
+        }
         break;
       case enk_routine:
         eq = same_entities(node_routine(node1),
