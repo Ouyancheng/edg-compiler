@@ -10005,6 +10005,7 @@ return a pointer to it.
   return pft;
 }  /* complex_type */
 
+#if LOWER_COMPLEX
 
 a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind)
 /*
@@ -10017,6 +10018,7 @@ imaginary type should be lowered.
   return imaginary_types[kind] != NULL;
 }  /* imaginary_type_used_in_primary_IL */
 
+#endif /* LOWER_COMPLEX */
 
 a_type_ptr imaginary_type(a_float_kind kind)
 /*

@@ -1025,7 +1025,9 @@ extern a_boolean complex_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr complex_type(a_float_kind kind);
 
+#if LOWER_COMPLEX
 extern a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind);
+#endif /* LOWER_COMPLEX */
 
 extern a_type_ptr imaginary_type(a_float_kind kind);
 
