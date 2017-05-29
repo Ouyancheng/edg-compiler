@@ -781,9 +781,6 @@ extern a_boolean reconcile_template_param_lists(
 			a_boolean	      allow_missing_member_constraint,
 			an_error_severity     error_severity);
 
-extern a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
-					          a_symbol_ptr	sym2);
-
 /*
 Flags used to specify options to equiv_templates and
 equiv_templates_given_supplement.
@@ -802,12 +799,6 @@ typedef int an_equiv_templates_options_set;
 extern a_boolean equiv_templates(a_template_ptr			templ1,
 				 a_template_ptr			templ2,
 				 an_equiv_templates_options_set	options);
-
-extern a_boolean equiv_templates_given_supplement(
-			a_template_symbol_supplement_ptr	tssp1,
-			a_template_symbol_supplement_ptr	tssp2,
-			an_equiv_templates_options_set		options,
-			an_equiv_templ_param_options_set	etp_options);
 
 extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
 

@@ -6453,7 +6453,7 @@ done:
 }  /* instantiate_template_variable */
 
 
-a_boolean equiv_templates_given_supplement(
+static a_boolean equiv_templates_given_supplement(
 			a_template_symbol_supplement_ptr	tssp1,
 			a_template_symbol_supplement_ptr	tssp2,
 			an_equiv_templates_options_set		options,
@@ -6553,8 +6553,8 @@ for more information.
 }  /* equiv_templates */
 
 
-a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
-			 	           a_symbol_ptr	sym2)
+static a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
+						  a_symbol_ptr	sym2)
 /*
 Return TRUE if the templates specified by symbol sym1 and sym2 are identical.
 sym1 and sym2 must be class template symbols, or may be NULL.  Note that
