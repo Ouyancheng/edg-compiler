@@ -6943,7 +6943,6 @@ Return TRUE if the templates and argument lists match.  FALSE otherwise.
                                      exact_templ_arg_match_required)) {
     /* Both types are template classes, and they are based on the same
        class template, or equivalent nonreal templates. */
-    an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
     a_template_symbol_supplement_ptr  tssp_1, tssp_2;
     template_sym_1 = primary_template_of(template_sym_1);
     template_sym_2 = primary_template_of(template_sym_2);
