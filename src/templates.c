@@ -29438,27 +29438,36 @@ previously computed value is returned.
                            /*for_return_type_deduction=*/FALSE))
 
 
-a_boolean will_be_instantiated(a_symbol_ptr	sym)
+a_boolean not_needed_or_will_be_instantiated(a_symbol_ptr	sym)
 /*
 Interface to entity_can_be_instantiated for use outside of templates.c.
 Return TRUE if sym is an entity that can be instantiated (and will be
-somewhere in the complete program eventually).
+somewhere in the complete program eventually).  Also return TRUE if
+an entity is not actually required for the entity.
 */
 {
   a_template_instance_ptr	tip;
   a_boolean			result = FALSE;
 
   tip = template_instance_for_symbol(sym);
-  if (tip != NULL &&
-      (!sym->is_class_member || 
-       !is_immediate_managed_class_type(sym_parent_class(sym)))) {
-    /* Managed class member functions and static data members are never
-       instantiated. */
-    check_assertion(in_instantiation_wrapup);
-    result = entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
+  if (tip != NULL) {
+    a_master_instance_ptr		mip;
+    mip = master_instance_of(tip);
+    if (mip->instance_required_count == 0) {
+      result = TRUE;
+    } else {
+      if (!sym->is_class_member || 
+          !is_immediate_managed_class_type(sym_parent_class(sym))) {
+        /* Managed class member functions and static data members are never
+           instantiated. */
+        check_assertion(in_instantiation_wrapup);
+        result = entity_can_be_instantiated(tip,
+                                            /*implicit_inclusion_okay=*/TRUE);
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
-}  /* will_be_instantiated */
+}  /* not_needed_or_will_be_instantiated */
 
 
 static void load_exported_template_file(an_exported_template_file_ptr	etfp)

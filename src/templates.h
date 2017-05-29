@@ -453,7 +453,7 @@ extern a_symbol_ptr primary_template_of(a_symbol_ptr sym);
 
 extern a_symbol_ptr template_for_instance(a_symbol_ptr sym);
 
-extern a_boolean will_be_instantiated(a_symbol_ptr	sym);
+extern a_boolean not_needed_or_will_be_instantiated(a_symbol_ptr	sym);
 
 extern a_boolean rout_is_inline_template_function(a_routine_ptr rout,
                                                   a_boolean     in_class);

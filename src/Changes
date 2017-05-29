@@ -1,5 +1,24 @@
 Version 4.14
 
+5/29/17  [EDGcpfe/18438]
+Spurious "declared with type with no linkage" error
+
+A spurious "function ... declared using a type with no linkage, must be
+defined" error could be issued if a template function was used in a way
+that did not actually require its instantiation.  Now fixed.
+
+  Enum { e0 };
+  template<typename T> struct A {
+    static T f()
+    static int (&g(...));
+    static const bool value = sizeof g(f);
+  };
+  template<typename T> inline int g(const T &) {
+    return A<T *>::value;
+  }
+  int i = g(e0);
+
+
 5/29/17  [EDGcpfe/18417]
 Incorrect matching of dependent template variables
 
