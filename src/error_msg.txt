@@ -2934,6 +2934,7 @@ ec_microsoft_version_doesnt_support_cpp17_mode;;"the version of Microsoft being 
 ec_attempt_to_read_past_end_of_object;;"attempt to read past the end of the object"
 ec_constexpr_lambdas_not_enabled;;"constexpr lambdas are not enabled in this mode"
 ec_lambda_not_constant_expr;;"a constant expression cannot contain a lambda expression"
+ec_template_argument_index_out_of_bounds;;"value exceeds number of template arguments"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

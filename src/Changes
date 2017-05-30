@@ -1,5 +1,20 @@
 Version 4.14
 
+5/30/17  [EDGcpfe/18310]
+Clang compatibility: __type_pack_element builtin
+
+When clang_version >= 30900, the __type_pack_element builtin is now enabled.
+This builtin takes at least two template arguments.  The first template
+argument is a non-type template parameter of type size_t that specifies which
+of the remaining template arguments to select as the returned type for the
+builtin.  For example (with --clang_version 30900):
+
+  __type_pack_element<2, int, double, bool> d = 1.0; // declares a double
+
+__has_builtin(__type_pack_element) is now TRUE when __type_pack_element is
+available.
+
+
 5/29/17  [EDGcpfe/18438]
 Spurious "declared with type with no linkage" error
 

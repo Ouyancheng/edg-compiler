@@ -4601,9 +4601,16 @@ extern void enter_projected_default_indexed_properties(
 
 extern void make_make_integer_seq_internal_template(void);
 
+extern void make_type_pack_element_internal_template(void);
+
 EXTERN a_symbol_ptr
                 symbol_for_make_integer_seq;
                         /* Symbol for "__make_integer_seq", which is a
+                           builtin alias template. */
+
+EXTERN a_symbol_ptr
+                symbol_for_type_pack_element;
+                        /* Symbol for "__type_pack_element", which is a
                            builtin alias template. */
 
 extern void reenter_block_scope_symbol(a_symbol_ptr  sym);

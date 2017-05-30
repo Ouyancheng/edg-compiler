@@ -7964,6 +7964,24 @@ Creates a builtin alias template for "__make_integer_seq" at the file scope.
       /*is_metadata=*/FALSE);
 }  /* make_make_integer_seq_internal_template */
 
+
+void make_type_pack_element_internal_template(void)
+/*
+Creates a builtin alias template for "__type_pack_element" at the file scope.
+*/
+{
+  /* Note that the target type of the alias template (i.e., "decltype(N)") is
+     arbitrary here as the template will be instantiated programatically (by
+     instantiate_type_pack_element). */
+  check_assertion(variadic_templates_enabled);
+  symbol_for_type_pack_element = make_internal_template(
+      "__type_pack_element",
+      "template<__edg_size_type__ N, typename ...T>"
+      "  __internal_alias_decl __type_pack_element = int;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+}  /* make_type_pack_element_internal_template */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void init_cli_symbol(a_cli_symbol_kind  csk);

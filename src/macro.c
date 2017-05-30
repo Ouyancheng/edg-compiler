@@ -6373,7 +6373,13 @@ end_arg_expansion:;
 #if BUILTIN_FUNCTIONS_ENABLED
       a_const_char *builtin_name = clang_feature_test_id(map, &arg_position);
       if (builtin_name != NULL &&
-          builtin_function_is_enabled(builtin_name)) {
+          (builtin_function_is_enabled(builtin_name) ||
+           (clangcpp_version_is(>=30900) &&
+            strcmp(builtin_name, "__type_pack_element") == 0))) {
+        /* Note: __type_pack_element is handled as a special case here because
+           it's not technically a builtin function (in the sense that it's
+           not in the table of builtin functions, but is implemented by
+           the front end). */
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");

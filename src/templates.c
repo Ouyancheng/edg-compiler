@@ -7232,6 +7232,7 @@ static a_boolean check_make_integer_seq(a_template_arg_ptr template_arg_list,
 The __make_integer_seq builtin alias template is being instantiated with the
 template arguments specified in template_arg_list; issue appropriate errors
 for improper arguments using the error positions specified in arg1_pos, etc.
+If argN_pos is NULL, suppress the error message.
 */
 {
   a_template_arg_ptr tap;
@@ -7428,6 +7429,151 @@ dependent, A1<A2, A3> is returned.
   }  /* if */
   return type;
 }  /* instantiate_make_integer_seq */
+
+
+static a_boolean check_type_pack_element(a_template_arg_ptr template_arg_list,
+                                         a_source_position  *arg1_pos)
+/*
+The __type_pack_element builtin alias template is being instantiated with the
+template arguments specified in template_arg_list; issue appropriate errors
+for improper arguments using the error position specified in arg1_pos.  If
+arg1_pos is NULL, suppress any error messages.
+*/
+{
+  a_template_arg_ptr tap;
+  a_boolean          is_valid = TRUE;
+  a_constant_ptr     con;
+
+  check_assertion(template_arg_list != NULL);
+  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
+  /* The argument kind was already verified in scan_template_argument_list. */
+  if (template_arg_is_dependent(tap)) {
+    /* This is template dependent.  We don't know the real type yet.  Do not
+       issue any errors. */
+  } else {
+    /* Check that the first argument is a positive integer. */
+    check_assertion(is_nontype_templ_arg(tap) && tap->arg_operand == NULL &&
+                    tap->variant.constant != NULL);
+    con = tap->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param ||
+        con->kind == (a_constant_repr_kind)ck_error) {
+      /* Can't check. */
+    } else if (!is_integral_type(con->type)) {
+      is_valid = FALSE;
+      if (arg1_pos != NULL) {
+        pos_error(ec_type_must_be_integral, arg1_pos);
+      }  /* if */
+    } else {
+      a_boolean            ovflo;
+      a_host_large_integer val;
+      check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
+      val = value_of_integer_constant(con, &ovflo);
+      if (val < 0 || ovflo) {
+        is_valid = FALSE;
+        if (arg1_pos != NULL) {
+          pos_error(ec_constant_must_be_positive, arg1_pos);
+        }  /* if */
+      } else {
+        advance_to_next_template_arg_simple(&tap);
+        if (tap == NULL) {
+          /* Only a single template argument was given thereby making any
+             count invalid. */
+          is_valid = FALSE;
+          if (arg1_pos != NULL) {
+            pos_error(ec_template_argument_index_out_of_bounds, arg1_pos);
+          }  /* if */
+        } else {
+          if (!template_arg_is_dependent(tap)) {
+            /* Verify that the count is less than the number of remaining
+               template arguments. */
+            for (; val != 0 && tap != NULL; val--) {
+              check_assertion(is_type_templ_arg(tap));
+              advance_to_next_template_arg_simple(&tap);
+            }  /* for */
+            if (tap == NULL) {
+              /* The constant value is greater than the number of remaining
+                 template arguments. */
+              is_valid = FALSE;
+              if (arg1_pos != NULL) {
+                pos_error(ec_template_argument_index_out_of_bounds, arg1_pos);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_valid;
+}  /* check_type_pack_element */
+
+
+static a_type_ptr instantiate_type_pack_element(
+                                          a_template_arg_ptr template_arg_list)
+/*
+The builtin alias template __type_pack_element is being instantiated with the
+specified template argument list.  Returns the appropriate class template
+type.  The definition of __type_pack_element is:
+
+  template<__edg_size_type__ N, typename ...T>
+    __internal_alias_decl __type_pack_element = int;
+
+Where "__internal_alias_decl" is equivalent to "using" and the target type
+of the alias is arbitrary (the code below determines the target type).
+
+Returns the type of the Nth template argument in the pack.
+*/
+{
+  a_type_ptr           result;
+  a_template_arg_ptr   tap = template_arg_list;
+  a_constant_ptr       con;
+  a_host_large_integer val;
+  a_boolean            ovflo, err = FALSE;
+
+  /* We should only get here if we have the correct number and kind of
+     template arguments. */
+  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
+  check_assertion(is_nontype_templ_arg(tap));
+  con = tap->variant.constant;
+  /* Look for various cases in which an error has already been issued. */
+  if (!is_template_param_type(con->type) && !is_integral_type(con->type)) {
+    expect_error();
+    err = TRUE;
+  } else {
+    if (template_arg_is_dependent(tap)) {
+      /* When the first argument is dependent (and hence unknown), return
+         a placeholder type. */
+      result = type_of_unknown_templ_param_nontype;
+    } else {
+      /* Determine which template argument to return. */
+      val = value_of_integer_constant(con, &ovflo);
+      if (val < 0 || ovflo) {
+        /* Count cannot be negative. */
+        expect_error();
+        err = TRUE;
+      } else {
+        /* Find the appropriate template argument and return that. */
+        check_assertion(tap != NULL);
+        advance_to_next_template_arg_simple(&tap);
+        for (; val != 0 && tap != NULL; val--) {
+          check_assertion(is_type_templ_arg(tap));
+          advance_to_next_template_arg_simple(&tap);
+        }  /* for */
+        if (tap == NULL) {
+          /* The constant value is greater than the number of remaining
+             template arguments (an error has already been issued). */
+          expect_error();
+          err = TRUE;
+        } else {
+          result = tap->variant.type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    result = error_type();
+  }  /* if */
+  return result;
+}  /* instantiate_type_pack_element */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -7626,10 +7772,10 @@ a_boolean check_internal_template_instantiation(
                                          a_source_position  *arg3_pos)
 /*
 If template_sym corresponds to an internal template (such as cli::array,
-cli::interior_ptr, cli::pin_ptr, and __make_integer_seq), return FALSE if the
-given template argument list is invalid for that template.  If the argument
-positions are non-NULL, issue error(s) at the appropriate positions (arg1_pos
-is the first argument position, etc.).
+cli::interior_ptr, cli::pin_ptr, __make_integer_seq, and __type_pack_element),
+return FALSE if the given template argument list is invalid for that template.
+If the argument positions are non-NULL, issue error(s) at the appropriate
+positions (arg1_pos is the first argument position, etc.).
 */
 {
   a_boolean  result = TRUE;
@@ -7638,6 +7784,9 @@ is the first argument position, etc.).
     /* __make_integer_seq builtin alias template. */
     result = check_make_integer_seq(template_arg_list, arg1_pos, arg2_pos,
                                     arg3_pos);
+  } else if (template_sym == symbol_for_type_pack_element) {
+    /* __type_pack_element builtin alias template. */
+    result = check_type_pack_element(template_arg_list, arg1_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
     /* Either cli::array or Platform::Array. */
@@ -8434,6 +8583,12 @@ error type is used.
        for the template. */
     type->variant.typeref.type =
                                instantiate_make_integer_seq(template_arg_list);
+  } else if (template_sym == symbol_for_type_pack_element) {
+    /* This is the builtin alias template __type_pack_element; the template
+       is instantiated programatically rather than by scanning the cache
+       for the template. */
+    type->variant.typeref.type =
+                              instantiate_type_pack_element(template_arg_list);
   } else {
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
@@ -12141,18 +12296,21 @@ to an alias template, the substituted type is returned in *new_type
       *new_type = tp;
     }  /* if */
   } else {
-    new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
-                                  (a_symbol_ptr)NULL,
-                                  /*instantiate_nonreal=*/FALSE,
-                                  /*do_not_create=*/FALSE,
-                                  /*in_substitution=*/TRUE);
-    if (internal_templates_enabled && new_sym != NULL &&
-        !check_internal_template_instantiation(
-                        template_sym, template_arg_list_for_symbol(new_sym),
-                        (a_source_position*)NULL, (a_source_position*)NULL,
-                        (a_source_position*)NULL)) {
+    if (internal_templates_enabled &&
+        !check_internal_template_instantiation(template_sym, new_list,
+                                               (a_source_position*)NULL,
+                                               (a_source_position*)NULL,
+                                               (a_source_position*)NULL)) {
+      /* Some error with the template arguments to an internal template. */
       new_sym = NULL;
       *copy_error = TRUE;
+    }  /* if */
+    if (!*copy_error) {
+      new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
+                                    (a_symbol_ptr)NULL,
+                                    /*instantiate_nonreal=*/FALSE,
+                                    /*do_not_create=*/FALSE,
+                                    /*in_substitution=*/TRUE);
     }  /* if */
   }  /* if */
   return new_sym;
@@ -12200,13 +12358,24 @@ new type may not be a typeref.
                                            source_pos, options,
                                            copy_error, ctws_state);
   if (!*copy_error &&
-      template_sym == symbol_for_make_integer_seq &&
       !template_arg_list_is_dependent(new_list)) {
-    /* This is the builtin alias template __make_integer_seq; the template
-       is instantiated programatically rather than by scanning the cache for
-       the template. */
-    result_type = instantiate_make_integer_seq(new_list);
-    new_list = NULL;
+    if (template_sym == symbol_for_make_integer_seq &&
+        check_make_integer_seq(new_list, (a_source_position*)NULL,
+                               (a_source_position*)NULL,
+                               (a_source_position*)NULL)) {
+      /* This is the builtin alias template __make_integer_seq; the template
+         is instantiated programatically rather than by scanning the cache for
+         the template. */
+      result_type = instantiate_make_integer_seq(new_list);
+      new_list = NULL;
+    } else if (template_sym == symbol_for_type_pack_element &&
+               check_type_pack_element(new_list, (a_source_position*)NULL)) {
+      /* This is the builtin alias template __type_pack_element; the template
+         is instantiated programatically rather than by scanning the cache for
+         the template. */
+      result_type = instantiate_type_pack_element(new_list);
+      new_list = NULL;
+    }  /* if */
   }  /* if */
   if (new_list != NULL) free_template_arg_list(new_list);
   return result_type;
