@@ -752,7 +752,16 @@ entry.
     /* If this class is a proxy class for a template parameter, use the
        template parameter as the entity. */
     type = class_symbol_supp(symbol_for(type))->template_param_for_proxy_class;
-    if (type != NULL) entity = (char *)type;
+    if (type != NULL) {
+#if ABI_COMPATIBILITY_VERSION >= 414
+      /* In rare cases (e.g., class portion of a pointer-to-member in GNU
+         emulation mode), the proxy class can be a typedef, so strip that if
+         applicable. */
+      entity = (char *)canonical_substitution_entity(type);
+#else /* ABI_COMPATIBILITY_VERSION < 414 */
+      entity = (char *)type;
+#endif /* ABI_COMPATIBILITY_VERSION >= 414 */
+    }  /* if */
   } else if (type->kind == (a_type_kind)tk_typeref) {
 #if ABI_COMPATIBILITY_VERSION >= 402
     if (emulate_gnu_abi_bugs &&

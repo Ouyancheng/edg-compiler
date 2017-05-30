@@ -1,5 +1,24 @@
 Version 4.14
 
+5/30/17  [EDGcpfe/18450]
+Assertion failure in record_substitution_for_type
+
+In some IA-64 ABI configurations where MANGLE_ALL_NAMES is TRUE, the mangling
+of a prototype instantiation containing a pointer-to-member type where the
+class of the pointer-to-member is a dependent typedef could cause an
+assertion failure (in record_substitution_for_type).  This only occurs in
+GNU emulation mode.  This is a regression introduced in 4.13 by the changes
+for EDGcpfe/17822.  For example (with --g++):
+
+  template <typename T> struct A {
+    typedef T O;
+    typedef void (O::*M)();
+    A(O* o, M m) {}
+  };
+
+Now fixed (when ABI_COMPATIBILITY_VERSION >= 414).
+
+
 5/30/17  [EDGcpfe/18310]
 Clang compatibility: __type_pack_element builtin
 
