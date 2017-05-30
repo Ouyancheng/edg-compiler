@@ -6851,7 +6851,7 @@ the same constant.
 
 
 static a_boolean equiv_nonreal_templates(a_source_correspondence_ptr	scp_1,
-				         a_symbol_ptr			sym_1,
+					 a_symbol_ptr			sym_1,
 					 a_source_correspondence_ptr	scp_2,
 					 a_symbol_ptr			sym_2)
 /*
@@ -6924,8 +6924,8 @@ scp_1 and scp_2 are the entities being compared by the caller and are
 used when they are members of nonreal classes to check for equivalence.
 eta_options is an option set to be included with whatever options this
 routine determines are needed when comparing the argument lists.  See
-equiv_class_types for descriptions of exact_templ_arg_match_required
-and exact_decltype_exprs_required, and error_matches_anything.
+equiv_class_types for descriptions of exact_templ_arg_match_required,
+exact_decltype_exprs_required, and error_matches_anything.
 
 Return TRUE if the templates and argument lists match.  FALSE otherwise.
 */
