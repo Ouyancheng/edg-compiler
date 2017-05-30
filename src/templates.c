@@ -29443,7 +29443,7 @@ a_boolean not_needed_or_will_be_instantiated(a_symbol_ptr	sym)
 Interface to entity_can_be_instantiated for use outside of templates.c.
 Return TRUE if sym is an entity that can be instantiated (and will be
 somewhere in the complete program eventually).  Also return TRUE if
-an entity is not actually required for the entity.
+an instantiation is not actually required for the entity.
 */
 {
   a_template_instance_ptr	tip;
