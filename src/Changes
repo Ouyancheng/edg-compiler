@@ -24,14 +24,11 @@ Clang compatibility: __type_pack_element builtin
 
 When clang_version >= 30900, the __type_pack_element builtin is now enabled.
 This builtin takes at least two template arguments.  The first template
-argument is for a non-type template parameter of type size_t that specifies
-which of the remaining template arguments to select as the returned type for
-the builtin.  The index argument is zero-based.  For example (with
---clang_version 30900):
+argument is a non-type template parameter of type size_t that specifies which
+of the remaining template arguments to select as the returned type for the
+builtin.  For example (with --clang_version 30900):
 
-  __type_pack_element<0, int, double, bool> i = 0;    // declares an int
-  __type_pack_element<1, int, double, bool> d = 1.0;  // declares a double
-  __type_pack_element<2, int, double, bool> b = true; // declares a bool
+  __type_pack_element<2, int, double, bool> d = 1.0; // declares a double
 
 __has_builtin(__type_pack_element) is now TRUE when __type_pack_element is
 available.
