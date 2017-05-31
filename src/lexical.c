@@ -11199,12 +11199,17 @@ newline should be included in the asm string.
 }  /* skip_asm_comment */
 
 
-static void build_microsoft_asm_string(void)
+static a_boolean build_microsoft_asm_string(void)
 /*
 When an __asm token is encountered in Microsoft mode, the string that
 follows is immediately scanned and stored in curr_token_asm_string.
 This value is saved and restored as needed by the token caching
 mechanism.  This routine scans and builds the asm string.
+
+When ms_extensions is used in GNU/clang mode, it is possible for __asm
+to be followed by either the Microsoft or GNU syntax.  In such cases,
+look ahead to see if this is a GNU/clang asm, and if so return FALSE
+and do no other processing.  Return TRUE for a Microsoft __asm.
 */
 {
   unsigned int		nbrace = 0;
@@ -11212,7 +11217,18 @@ mechanism.  This routine scans and builds the asm string.
   a_boolean		is_asm_block;
   a_boolean		save_token = FALSE;
   a_source_position	saved_pos_curr_token;
+  a_boolean		result = TRUE;
 
+  if (gnu_mode) {
+    /* In ms_extensions mode, a Microsoft __asm and a GNU __asm are both
+       permitted. */
+    a_const_char *ch = curr_char_loc;
+    while (*ch == ' ' || *ch == '\t') ch++;
+    if (*ch == '(') {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
   /* Set a flag that indicates we are scanning a Microsoft asm.  This
      prevents this routine from being called recursively. */
   scanning_microsoft_asm = TRUE;
@@ -11318,6 +11334,8 @@ mechanism.  This routine scans and builds the asm string.
   }  /* if */
 #endif /* DEBUG */
   scanning_microsoft_asm = FALSE;
+done:
+  return result;
 }  /* build_microsoft_asm_string */
 
 
@@ -13791,10 +13809,16 @@ id_scan:
                   ctoken = tok_identifier;
                 }  /* if */
                 if (ms_extensions) {
-                  if (ctoken == tok_microsoft_asm && !scanning_microsoft_asm) {
-                    /* Build a string representation of a Microsoft asm
-                       and attach it to the current token. */
-                    build_microsoft_asm_string();
+                  if (ctoken == tok_microsoft_asm &&
+                      !scanning_microsoft_asm) {
+                    if (build_microsoft_asm_string()) {
+                      /* If this is a Microsoft asm, build_microsoft_asm_string
+                         will have created a string representation of the
+                         Microsoft asm and attached it to the current token. */
+                    } else {
+                      /* This should be treated as a GNU __asm. */
+                      ctoken = tok_asm;
+                    }  /* if */
                   } else if (!caching_tokens &&
                              (ctoken == tok_if_exists ||
                               ctoken == tok_if_not_exists)) {

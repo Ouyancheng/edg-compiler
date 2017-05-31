@@ -1,5 +1,19 @@
 Version 4.14
 
+5/31/17  [EDGcpfe/18340]
+GNU/clang compatibility: __asm keyword with --ms_extensions
+
+In g++ and clang mode, when --ms_extensions is used, the __asm keyword
+can be used for both Microsoft and GNU purposes.  Formerly, the front
+end would always expect the Microsoft syntax.  Now fixed.
+
+  void f()
+    __asm ("f");
+  int main() {
+     __asm nop
+  }
+
+
 5/30/17  [EDGcpfe/18450]
 Assertion failure in record_substitution_for_type
 
