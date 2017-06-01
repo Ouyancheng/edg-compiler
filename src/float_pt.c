@@ -2749,7 +2749,7 @@ return FALSE.
   if (is_NaN(temp)) {
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-  if (temp < (a_host_fp_value)0 || temp == (a_host_fp_value)-0.0) {
+  if (temp < (a_host_fp_value)0) {
     result = TRUE;
   }  /* if */
   return result;
