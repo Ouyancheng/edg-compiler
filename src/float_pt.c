@@ -2733,6 +2733,7 @@ values:
   return cmp;
 }  /* fp_compare */
 
+#if BUILTIN_FUNCTIONS_ENABLED
 
 a_boolean fp_signbit(a_float_kind            kind,
                      an_internal_float_value *value)
@@ -2802,6 +2803,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
   return is_negative;
 }  /* fp_signbit */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 a_boolean fp_is_negative(a_float_kind            kind,
                          an_internal_float_value *value)

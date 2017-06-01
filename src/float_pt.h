@@ -241,8 +241,10 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
 
+#if BUILTIN_FUNCTIONS_ENABLED
 extern a_boolean fp_signbit(a_float_kind            kind,
                             an_internal_float_value *value);
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern a_boolean fp_is_negative(a_float_kind            kind,
                                 an_internal_float_value *value);
