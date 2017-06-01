@@ -2734,80 +2734,11 @@ values:
 }  /* fp_compare */
 
 
-static a_boolean sign_bit_is_set(a_float_kind            kind,
-                                 an_internal_float_value *value)
-/*
-Returns TRUE if the sign bit of the floating-point value represented by
-"value" and "kind" is set.
-*/
-{
-  an_fp_value_part	*fp_ptr;
-  an_fp_value_part	val;
-  an_fp_value_part	fp_temp[4];
-  a_boolean		is_negative = FALSE;
-
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, load this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
-  fp_ptr = &fp_temp[0];
-  if (kind == (a_float_kind)fk_float) {
-    memcpy((char*)&val, (char*)value, sizeof(val));
-    is_negative = (val & 0x80000000) != 0;
-  } else if (kind == (a_float_kind)fk_double ||
-             (kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 53)) {
-    /* A double value or a long double that is being represented by a
-       double value. */
-    /* The code below extracts the value from fp_temp.  Copy the source to
-       fp_temp. */
-    memcpy((char*)fp_temp, (char*)value, sizeof(val) * 2);
-    /* On little endian systems, the most significant part of the
-       number is fetched in the second four bytes.  Note that when the
-       long value is stored in memory, its byte order will be right for
-       either kind of system. */
-    /* Update the pointer to refer to the last 32-bit word of the value. */
-    if (host_little_endian) fp_ptr += 1;
-    val = *fp_ptr;
-    is_negative = (val & 0x80000000) != 0;
-  } else if (((kind == (a_float_kind)fk_long_double &&
-               targ_ldbl_mant_dig == 64) ||
-              (kind == (a_float_kind)fk_float80 &&
-               targ_flt80_mant_dig == 64)) &&
-             /*lint --e(506)*/sizeof(a_host_fp_value) >= sizeof(val)*3) {
-    /* 80-bit representation in a 96-bit container. */
-    /* The code below constructs the value from fp_temp.  Copy the source to
-       fp_temp. */
-    memcpy((char*)fp_temp, (char*)value, sizeof(val) * 3);
-    /* Update the pointer to refer to the last 32-bit word of the value. */
-    if (host_little_endian) fp_ptr += 2;
-    val = *fp_ptr;
-    is_negative = (val & 0x8000) != 0;
-  } else if (((kind == (a_float_kind)fk_long_double &&
-               targ_ldbl_mant_dig == 113) ||
-              (kind == (a_float_kind)fk_float128 &&
-               targ_flt128_mant_dig == 113)) &&
-             /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
-    /* 128-bit representation. */
-    /* The code below constructs the value from fp_temp.  Copy the source to
-       fp_temp. */
-    memcpy((char*)fp_temp, (char*)value, sizeof(val) * 4);
-    /* Update the pointer to refer to the last 32-bit word of the value. */
-    if (host_little_endian) fp_ptr += 3;
-    val = *fp_ptr;
-    is_negative = (val & 0x80000000) != 0;
-  } else {
-    unexpected_condition();
-  }  /* if */
-  return is_negative;
-}  /* sign_bit_is_set */
-
-
 a_boolean fp_is_negative(a_float_kind            kind,
                          an_internal_float_value *value)
 /*
 Return TRUE if "value" is negative.  If "value" is positive or a NaN,
-return FALSE.  Returns TRUE for -0.0.
+return FALSE.
 */
 {
   a_host_fp_value	temp;
@@ -2819,10 +2750,6 @@ return FALSE.  Returns TRUE for -0.0.
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   if (temp < (a_host_fp_value)0) {
-    /* Handles most cases. */
-    result = TRUE;
-  } else if (sign_bit_is_set(kind, value)) {
-    /* Handles -0.0 case. */
     result = TRUE;
   }  /* if */
   return result;

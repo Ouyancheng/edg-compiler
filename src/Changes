@@ -1,17 +1,5 @@
 Version 4.14
 
-6/1/17   [EDGcpfe/18454]
--0.0 not treated as a negative number
-
-The front end had not previously treated -0.0 as a negative number, resulting
-in differences when folding some GCC builtin functions.  For example,
-with --g++:
-
-  int main() {
-    return __builtin_signbit(-0.0);   // had returned 0, now 1
-  }
-
-
 5/31/17  [EDGcpfe/18340]
 GNU/clang compatibility: __asm keyword with --ms_extensions
 
