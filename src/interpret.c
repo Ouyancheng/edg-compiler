@@ -5801,7 +5801,7 @@ cannot be evaluated, return FALSE.
            value.  (This matches Clang but not GCC.) */
         do_constexpr_fail(result);
       } else {
-        val = fp_is_negative(fpkind, fpval);
+        val = fp_signbit(fpkind, fpval);
       }  /* if */
       break;
     default:
@@ -6339,7 +6339,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             a_float_kind  fk = tp->variant.float_kind;
-            if (fp_is_negative(fk, fp_value(arg1_bytes))) {
+            if (fp_signbit(fk, fp_value(arg1_bytes))) {
               fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
                         &err, &depends_on_fp_mode);
               check_assertion(!err);

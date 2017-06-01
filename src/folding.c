@@ -9063,8 +9063,8 @@ Otherwise, return FALSE.
              value.  (This matches Clang but not GCC.) */
           unknown_result = TRUE;
         } else {
-          result = fp_is_negative(cp->type->variant.float_kind,
-                                  &cp->variant.float_value);
+          result = fp_signbit(cp->type->variant.float_kind,
+                              &cp->variant.float_value);
         }  /* if */
         break;
       default:
@@ -9516,7 +9516,7 @@ the folding mechanism is used as a way to validate argument values.
             /* Probably no type difference between the parameter type and
                the result type, but change it just in case. */
             result->type = float_tp;
-            if (fp_is_negative(float_kind, &result->variant.float_value)) {
+            if (fp_signbit(float_kind, &result->variant.float_value)) {
               /* Negate a negative value. */
               a_constant_ptr fp_con = local_constant();
               copy_constant(con, fp_con);
