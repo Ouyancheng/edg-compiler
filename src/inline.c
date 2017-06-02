@@ -1261,7 +1261,7 @@ This is useful in cases where iterative inlining can create huge routines.
         stmt = routine_scope_being_inlined->assoc_block;
         do {
           stmt = last_statement_in_block(stmt);
-        } while (stmt->kind == (a_statement_kind)stmk_block);
+        } while (stmt != NULL && stmt->kind == (a_statement_kind)stmk_block);
         if (stmt == statement) {
           /* Yes, this return is the last in the top block, so it can be
              inlined. */
