@@ -1,5 +1,13 @@
 Version 4.14
 
+6/7/17   [EDGcpfe/18465]
+Uninitialized fields in a_recorded_diagnostic when CHECKING is FALSE
+
+Two fields of a_recorded_diagnostic, scope_of_prev_check and
+number_of_times_suppressed, were initialized only when CHECKING is TRUE,
+potentially producing undefined behavior in those configurations.  Now fixed.
+
+
 6/2/17   [EDGcpfe/18435]
 Abort in expand_statement_inline
 

@@ -3156,10 +3156,8 @@ about diagnostics issued during disambiguation.
   rdp->severity = severity;
   rdp->error_pos = *error_pos;
   rdp->next = recorded_diagnostic_table[bucket];
-#if CHECKING
   rdp->scope_of_prev_check = NO_SCOPE_NUMBER;
   rdp->number_of_times_suppressed = 0;
-#endif /* CHECKING */
   recorded_diagnostic_table[bucket] = rdp;
 }  /* record_prototype_diagnostic */
 
