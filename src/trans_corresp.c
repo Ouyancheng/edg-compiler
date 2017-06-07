@@ -5500,6 +5500,14 @@ symbol supplement.
   a_template_ptr  templ,
                   corresp_templ;
 
+  if (alias_type->variant.typeref.is_dependent &&
+      !alias_type->variant.typeref.is_prototype_instantiation) {
+    /* Do not record correspondences for dependent alias template instances
+       because we cannot do so reliably (multiple IL entries may exist for
+       what appear to be equivalent dependent instantiations). */
+    set_no_trans_unit_corresp(iek_type, alias_type);
+    goto done;
+  }  /* if */
   templ_sym = symbol_for(ttsp->assoc_template);
   tssp = template_supplement_for_symbol(templ_sym);
   templ = tssp->il_template_entry;
@@ -5532,6 +5540,7 @@ symbol supplement.
       set_type_corresp(alias_type, corresp_type);
     }  /* if */
   }  /* if */
+done:;
 }  /* record_alias_template_instantiation */
 
 

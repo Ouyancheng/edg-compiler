@@ -1,5 +1,15 @@
 Version 4.14
 
+6/7/17   [EDGcpfe/18370]
+Abort due to faulty correspondence of dependent alias template instantiations
+
+The front end no longer attempts to establish cross-translation-unit
+correspondences for dependent alias template instances (other than the
+prototype instantiation).  Our prior attempt to do so was faulty and it
+turns out that it cannot be done in general with our current IL constraints.
+This fixes internal errors in some relatively complex situations.
+
+
 6/7/17   [EDGcpfe/18465]
 Uninitialized fields in a_recorded_diagnostic when CHECKING is FALSE
 
