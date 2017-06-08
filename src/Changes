@@ -1,5 +1,26 @@
 Version 4.14
 
+6/8/17   [EDGcpfe/18461]
+Constexpr and address of static-lifetime temporary
+
+Consider:
+
+  #include <initializer_list>
+  template<typename T> struct S {
+    constexpr S(T p): p(p) {}
+    T p;
+  };
+  template<typename T> constexpr S<T> g(T p) {
+    return S<T>(p);
+  }
+  constexpr std::initializer_list<int> x{1, 2};
+  constexpr auto y = g(x.begin());  // Previously an error.  Now okay.
+
+Previously, this elicited an error because the evaluation of g(x.begin())
+produces a value that embeds the address of a temporary.  Now, the case is
+accepted because that temporary has a static lifetime.
+
+
 6/8/17   [EDGcpfe/18468]
 Abort on dependent array bound
 

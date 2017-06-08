@@ -236,6 +236,10 @@ do_constexpr_expression.
 typedef unsigned int a_byte_count;
 
 typedef unsigned int an_alloc_seq_number;
+			/* An integral type used to number allocations and
+			   track whether an allocation is still "live" (via
+			   a_live_set -- see below).  A zero value corresponds
+			   to static storage. */
 
 /*
 Macro to set the flag indicating that interpretation has failed.  In DEBUG
@@ -11861,7 +11865,8 @@ diagnostic in *ips.
               con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
-              if (!(cap->flags & CA_LIFETIME_EXTENDED) ||
+              if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
+                    cap->alloc_seq_number == 0) ||
                   depth_innermost_function_scope != NO_SCOPE_DEPTH) {
                 /* The address of a temporary results in a dangling pointer. */
                 do_constexpr_fail(result);
