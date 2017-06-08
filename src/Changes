@@ -1,5 +1,22 @@
 Version 4.14
 
+6/8/17   [EDGcpfe/18451]
+Error in handling of address of reference to variable in interpreter
+
+The constexpr interpreter previously did not correctly handle taking the
+address of a reference to a non-constexpr variable.  For example:
+
+  int x;
+  constexpr bool f() {
+    int *p = &x;
+    int &r = x;
+    return &r == &x;
+  }
+  static_assert(f(), "");  // Previously sometimes failed.
+
+Previously, the expression "&r" was not correctly handled by the interpreter,
+causing the result of "&r == &x" to be unpredictable.  That is now fixed.
+
 
 6/8/17   [EDGcpfe/18460]
 Spurious interpretation failure on cast to private base class

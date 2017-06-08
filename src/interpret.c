@@ -8144,6 +8144,11 @@ the value representation of the integer value.
             if (opnd1->is_lvalue || opnd1->is_xvalue) {
               *(a_constexpr_address *)result_storage =
                                           *(a_constexpr_address *)opnd1_value;
+              if (is_runtime_data_address(result_storage)) {
+                a_constant_ptr  rt_con =
+                    ((a_constexpr_address *)result_storage)->variant.addr_con;
+                rt_con->type = expr->type;
+              }  /* if */
             } else {
               /* Return the address of the (class) prvalue. */
               clear_address(result_storage, opnd1_value);
