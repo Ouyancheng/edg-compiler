@@ -1,5 +1,23 @@
 Version 4.14
 
+
+6/8/17   [EDGcpfe/18460]
+Spurious interpretation failure on cast to private base class
+
+The front end sometimes spuriously failed to interpret a cast to a private
+base class (reporting it as an attempt to access run-time storage).  For
+example:
+
+  struct B {};
+  struct D: private B {
+    static constexpr B* g(D *p) { return p; }
+  };
+  D d{};
+  constexpr B *pb = D::g(&d);  // Previously triggered an error.  Now okay.
+
+This is now fixed.
+
+
 6/8/17   [EDGcpfe/18461]
 Constexpr and address of static-lifetime temporary
 

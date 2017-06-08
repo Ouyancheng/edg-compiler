@@ -8341,7 +8341,7 @@ the value representation of the integer value.
                 addr_con->expr = NULL;
                 fold_base_class_cast(
                     addr_con, bcp, btp, new_con,
-                    /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
+                    /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
                     expr->variant.operation.compiler_generated,
                     /*is_object_pointer=*/(result_addr->length != 0) ||
                                           expr->variant.operation

@@ -7088,7 +7088,10 @@ appropriately and error_detected can be NULL.
                                    (an_expr_operator_kind)eok_base_class_cast,
                                    qual_curr_type, curr_node);
         copy_node_value_category(curr_node, new_node);
-        new_node->variant.operation.compiler_generated = is_implicit_cast;
+        if (is_implicit_cast) {
+          new_node->variant.operation.compiler_generated = TRUE;
+          new_node->position = *err_pos;
+        }  /* if */
         new_node->variant.operation.implicit_in_member_naming =
                                                             implicit_in_naming;
         if (!is_implicit_cast && dsp != NULL && dsp->next != NULL) {
