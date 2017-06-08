@@ -7208,8 +7208,8 @@ the body of the (constructor) function proper.
     } else {
       /* This is similar to do_constexpr_alloc_variable, except for the
          allocation sequence number value. */
-      a_type_ptr    this_type = skip_typerefs(this_var->type);
-      a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
+      a_type_ptr     this_type = skip_typerefs(this_var->type);
+      a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
       a_byte_count   with_postfix_bytes;
       a_var_postfix  *postfix;
       do_host_alignment(this_n_bytes);
@@ -12315,20 +12315,34 @@ source position of the initialization.
       } else {
         do_constexpr_fail(result);
       }  /* if */
-    } else if (!copy_interpreter_object_to_constant(
+    } else {
+      /* Map the result address (which is the "this" pointer) to a ck_address
+         constant, so that copy_interpreter_object_to_constant can turn that
+         address back into a ck_address constant entry if needed. */
+      a_constant_ptr  this_con = local_constant();
+      clear_constant(this_con, (a_constant_repr_kind)ck_address);
+      this_con->variant.address.kind = (an_address_base_kind)abk_variable;
+      if (dip->variable != NULL) {
+        this_con->variant.address.variant.variable = dip->variable;
+      }  /* if */
+      map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
+      if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
-      do_constexpr_fail(result);
-    } else {
-      if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
-           dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
-          (curr_il_region_number == file_scope_region_number) ==
+        do_constexpr_fail(result);
+      } else {
+        if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
+             dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
+            (curr_il_region_number == file_scope_region_number) ==
                                      in_file_scope(dip->variant.expression)) {
-        result_con->expr = dip->variant.expression;
+          result_con->expr = dip->variant.expression;
+        }  /* if */
+        if (dip->is_explicit_cast) {
+          result_con->explicit_cast_applied = TRUE;
+        }  /* if */
       }  /* if */
-      if (dip->is_explicit_cast) {
-        result_con->explicit_cast_applied = TRUE;
-      }  /* if */
+      unmap_stack_bytes(&ips, result_storage);
+      release_local_constant(&this_con);
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
