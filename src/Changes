@@ -21,7 +21,7 @@ produces a value that embeds the address of a temporary.  Now, the case is
 accepted because that temporary has a static lifetime.
 
 
-6/8/17   [EDGcpfe/18468]
+6/8/17   [EDGcpfe/18324,EDGcpfe/18468]
 Abort on dependent array bound
 
 The front end sometimes aborted with an internal error in num_array_elements
