@@ -27,11 +27,11 @@ Consider:
   };
   constexpr A x = A();
 
-This the copying of A() to x is elided: The constructor call "A()" is evaluated
+The copying of A() to x is elided: The constructor call "A()" is evaluated
 directly into x.  Previously, the interpreter failed to see that the "this"
-pointer value for that constructor call is therefore not the address of
+pointer value for that constructor call is therefore not the address of the
 temporary but that of the variable x.  As a result of this failure it did
-not successfully complete the interpretation of that constructor call, and
+not successfully complete the interpretation of that constructor call and
 issued a spurious error.  That is now fixed.
 
 
