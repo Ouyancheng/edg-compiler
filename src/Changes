@@ -50,7 +50,8 @@ Uninitialized fields in a_recorded_diagnostic when CHECKING is FALSE
 
 Two fields of a_recorded_diagnostic, scope_of_prev_check and
 number_of_times_suppressed, were initialized only when CHECKING is TRUE,
-potentially producing undefined behavior in those configurations.  Now fixed.
+potentially producing undefined behavior in configurations where CHECKING is
+FALSE.  Now fixed.
 
 
 6/2/17   [EDGcpfe/18435]
