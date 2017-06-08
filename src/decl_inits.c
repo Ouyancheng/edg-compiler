@@ -1610,7 +1610,12 @@ with every element initialized with the given constant.
   check_assertion(is_array_type(atp));
   result = alloc_constant((a_constant_repr_kind)ck_aggregate);
   result->type = atp;
-  count = num_array_elements(atp);
+  if (has_any_unknown_specified_bound(atp)) {
+    /* A template-dependent bound, presumably. */
+    count = 1;
+  } else {
+    count = num_array_elements(atp);
+  }  /* if */
   if (count > 1 || constant_is(cp, ck_aggregate)) {
     /* Ordinarily, we don't need to represent a "repeat one time" entry, but
        in a case of [1][1] array of aggregates, having the ck_init_repeat
