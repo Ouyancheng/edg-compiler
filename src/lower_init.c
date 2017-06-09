@@ -9797,7 +9797,8 @@ do_assignment:;
               /* Create a static temporary with the value of the constant. */
               temp = make_unnamed_local_static_variable(temp_type,
                                                    /*in_function_scope=*/TRUE);
-              (void)make_local_static_variable_init(temp, eff_context->scope,
+              (void)make_local_static_variable_init(temp,
+                                                    get_parent_scope_of(temp),
                                                     (an_init_kind)initk_static,
                                                     dip->variant.constant,
                                                     (a_dynamic_init_ptr)NULL);
