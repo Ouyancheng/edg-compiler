@@ -1028,7 +1028,7 @@ Install the keywords in the symbol table.
        case. */
     enter_keyword((a_token_kind)tok_edg_vector_type, "__edg_vector_type__");
   }  /* if */
-  if (ms_extensions || clang_mode) {
+  if (ms_extensions || clang_mode || gnu_version_is(>=70000)) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");
   }  /* if */
   if (nullability_qualifiers_enabled) {
