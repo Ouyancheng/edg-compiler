@@ -5406,10 +5406,22 @@ the point of call.  conv_context describes the context of the conversion.
           }  /* if */
 #endif /* DEBUG */
         } else if (function_template_case &&
-                   param_before_deduction->is_parameter_pack) {
+                   (param_before_deduction == NULL ||
+                    param_before_deduction->is_parameter_pack)) {
           /* The parameter was a parameter pack, but it generated no
              parameters in spite of the fact that there is an argument, so
-             there must have been an error. */
+             there must have been an error.  Alternatively, a leading variadic
+             template parameter may have an empty expansion.  For example:
+               template<class T> T* f(unsigned, long const &);
+               template<class T, class ... Ts> T* f(Ts ..., const long&);
+               char *b = f<char>(0, 'x');
+             Here, when considering the second candidate, Ts is an empty pack
+             and therefore param_before_deduction will be NULL when the second
+             call argument ('x') is considered.
+          */
+          check_assertion(param_before_deduction != NULL ||
+                          function_symbol->variant.template_info
+                                         ->has_variadic_template_params);
           goto reject_function;
         } else {
           unexpected_condition_str(
