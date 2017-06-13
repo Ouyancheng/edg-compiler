@@ -2733,6 +2733,225 @@ values:
   return cmp;
 }  /* fp_compare */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+void cx_add(a_float_kind              kind,
+            an_internal_complex_value *value_1,
+            an_internal_complex_value *value_2,
+            an_internal_complex_value *result,
+            a_boolean                 *err,
+            a_boolean                 *depends_on_fp_mode)
+/*
+Add the complex floating-point values value_1 and value_2 and put the result
+in result.  The result has kind "kind".  If there is any error, set *err to
+TRUE.  If the result depends on the floating-point mode, *depends_on_fp_mode
+is returned TRUE (*result is set anyway).
+*/
+{
+  a_boolean  r_err, i_err, r_mode_dep, i_mode_dep;
+
+  fp_add(kind, &value_1->real, &value_2->real, &result->real,
+         &r_err, &r_mode_dep);
+  fp_add(kind, &value_1->imag, &value_2->imag, &result->imag,
+         &i_err, &i_mode_dep);
+  *err = r_err || i_err;
+  *depends_on_fp_mode = r_mode_dep || i_mode_dep;
+}  /* cx_add */
+
+
+void cx_subtract(a_float_kind              kind,
+                 an_internal_complex_value *value_1,
+                 an_internal_complex_value *value_2,
+                 an_internal_complex_value *result,
+                 a_boolean                 *err,
+                 a_boolean                 *depends_on_fp_mode)
+/*
+Subtract the complex floating-point values value_1 and value_2 and put the
+result in result.  The result has kind "kind".  If there is any error, set
+*err to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
+*/
+{
+  a_boolean  r_err, i_err, r_mode_dep, i_mode_dep;
+
+  fp_subtract(kind, &value_1->real, &value_2->real, &result->real,
+              &r_err, &r_mode_dep);
+  fp_subtract(kind, &value_1->imag, &value_2->imag, &result->imag,
+              &i_err, &i_mode_dep);
+  *err = r_err || i_err;
+  *depends_on_fp_mode = r_mode_dep || i_mode_dep;
+}  /* cx_subtract */
+
+
+void cx_negate(a_float_kind              kind,
+               an_internal_complex_value *value_1,
+               an_internal_complex_value *result,
+               a_boolean                 *err,
+               a_boolean                 *depends_on_fp_mode)
+/*
+Negate the complex floating-point value value_1 and put the result in result.
+The result has kind "kind".  If there is any error, set *err to TRUE.  If the
+result depends on the floating-point mode, *depends_on_fp_mode is returned
+TRUE (*result is set anyway).
+*/
+{
+  a_boolean  r_err, i_err, r_mode_dep, i_mode_dep;
+
+  fp_negate(kind, &value_1->real, &result->real, &r_err, &r_mode_dep);
+  fp_negate(kind, &value_1->imag, &result->imag, &i_err, &i_mode_dep);
+  *err = r_err || i_err;
+  *depends_on_fp_mode = r_mode_dep || i_mode_dep;
+}  /* cx_negate */
+
+
+void cx_multiply(a_float_kind              kind,
+                 an_internal_complex_value *value_1,
+                 an_internal_complex_value *value_2,
+                 an_internal_complex_value *result,
+                 a_boolean                 *err,
+                 a_boolean                 *depends_on_fp_mode)
+/*
+Multiply the complex floating-point values value_1 and value_2 and put the
+result in result.  The result has kind "kind".  If there is any error, set
+*err to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
+*/
+{
+  a_boolean                op_err, accum_err, depends_on_mode;
+  an_internal_float_value  temp_value;
+
+#if 0
+  /* This is an oversimplified algorithm that can exhibit dynamic range
+     problems (e.g., catastrophic cancellation). */
+#endif /* 0 */
+  /* (a1 + b1*i) * (a2 + b2*i) = (a1a2 - b1b2) + (b1a2 + a1b2)i */
+  /* Compute the real part of the result. */
+  fp_multiply(kind, &value_1->real, &value_2->real, &result->real,
+              &op_err, &depends_on_mode);
+  accum_err = op_err;
+  *depends_on_fp_mode = depends_on_mode;
+  fp_multiply(kind, &value_1->imag, &value_2->imag, &temp_value,
+              &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *depends_on_fp_mode |= depends_on_mode;
+  fp_subtract(kind, &result->real, &temp_value, &result->real,
+              &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *depends_on_fp_mode |= depends_on_mode;
+  /* Compute the imaginary part of the result. */
+  fp_multiply(kind, &value_1->real, &value_2->imag, &result->imag,
+              &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *depends_on_fp_mode |= depends_on_mode;
+  fp_multiply(kind, &value_1->imag, &value_2->real, &temp_value,
+              &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *depends_on_fp_mode |= depends_on_mode;
+  fp_add(kind, &result->imag, &temp_value, &result->imag,
+         &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *err = accum_err;
+  *depends_on_fp_mode |= depends_on_mode;
+}  /* cx_multiply */
+
+
+extern void cx_divide(a_float_kind              kind,
+                      an_internal_complex_value *value_1,
+                      an_internal_complex_value *value_2,
+                      an_internal_complex_value *result,
+                      a_boolean                 *err,
+                      a_boolean                 *depends_on_fp_mode)
+/*
+Divide the complex floating-point values value_1 and value_2 and put the
+result in result.  The result has kind "kind".  If there is any error, set
+*err to TRUE.  If the result depends on the floating-point mode,
+*depends_on_fp_mode is returned TRUE (*result is set anyway).
+*/
+{
+  a_boolean                op_err, accum_err, depends_on_mode;
+  an_internal_float_value  temp_value, quad_norm;
+
+#if 0
+  /* This is an oversimplified algorithm that can exhibit dynamic range
+     problems (e.g., catastrophic cancellation). */
+#endif /* 0 */
+  /* Compute the real value quad_norm = real_2*real_2 + imag_2*imag_2. */
+  fp_multiply(kind, &value_2->real, &value_2->real,
+              &quad_norm, &op_err, &depends_on_mode);
+  accum_err = op_err;
+  *depends_on_fp_mode = depends_on_mode;
+  fp_multiply(kind, &value_2->imag, &value_2->imag,
+              &temp_value, &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *depends_on_fp_mode |= depends_on_mode;
+  fp_add(kind, &quad_norm, &temp_value, &quad_norm, &op_err, &depends_on_mode);
+  accum_err |= op_err;
+  *depends_on_fp_mode |= depends_on_mode;
+  if (!IEEE_handling_on_float_operation_exceptions &&
+      fp_is_zero_constant(kind, &quad_norm)) {
+    *err = TRUE;
+  } else {
+    /* Compute the real part of the result. */
+    fp_multiply(kind, &value_1->real, &value_2->real,
+                &result->real, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    fp_multiply(kind, &value_1->imag, &value_2->imag,
+                &temp_value, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    fp_add(kind, &result->real, &temp_value,
+           &result->real, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    fp_divide(kind, &result->real, &quad_norm,
+              &result->real, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    /* Compute the imaginary part of the result. */
+    fp_multiply(kind, &value_1->real, &value_2->imag,
+                &result->imag, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    fp_multiply(kind, &value_1->imag, &value_2->real,
+                &temp_value, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    fp_subtract(kind, &temp_value, &result->imag,
+                &result->imag, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *depends_on_fp_mode |= depends_on_mode;
+    fp_divide(kind, &result->imag, &quad_norm,
+              &result->imag, &op_err, &depends_on_mode);
+    accum_err |= op_err;
+    *err = accum_err;
+    *depends_on_fp_mode |= depends_on_mode;
+  }  /* if */
+}  /* cx_divide */
+
+
+a_boolean cx_equal(a_float_kind              kind,
+                   an_internal_complex_value *value_1,
+                   an_internal_complex_value *value_2)
+/*
+Return TRUE if the given complex floating-point values (of the given kind) are
+equal.  Return FALSE otherwise.
+*/
+{
+  int          real_cmp, imag_cmp;
+  a_boolean    result_value, real_unordered, imag_unordered;
+
+  real_cmp = fp_compare(kind, &value_1->real, &value_2->real, &real_unordered);
+  imag_cmp = fp_compare(kind, &value_1->imag, &value_2->imag, &imag_unordered);
+  /* If two values are unordered, they are unequal.  This is needed for
+     NaN != NaN. */
+  result_value = (real_cmp == 0) && (imag_cmp == 0) &&
+                 !real_unordered && !imag_unordered;
+  return result_value;
+}  /* cx_equal */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
 #if BUILTIN_FUNCTIONS_ENABLED
 
 a_boolean fp_signbit(a_float_kind            kind,

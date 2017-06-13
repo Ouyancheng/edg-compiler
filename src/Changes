@@ -1,5 +1,13 @@
 Version 4.14
 
+6/13/17  [EDGcpfe/15649,EDGcpfe/16799,EDGcpfe/17813,EDGcpfe/18071,
+          EDGcpfe/18167,EDGcpfe/18459]
+Constexpr interpretation and complex floating-point types
+
+The constexpr interpreter can now handle complex and imaginary floating-point
+types in modes that enable all the required features (e.g., GNU C++11 mode).
+
+
 6/12/17  [EDGcpfe/18471]
 Abort in determine_function_viability on empty pack expansion
 

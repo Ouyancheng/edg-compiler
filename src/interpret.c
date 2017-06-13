@@ -1904,6 +1904,22 @@ the a_constexpr_address addr.
 #define fp_value_at(addr) (fp_value(value_bytes_at(addr)))
 
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+/*
+Convenience macro to cast an opaque pointer to a pointer to a complex
+floating-point value.
+*/
+#define cx_value(ptr) ((an_internal_complex_value *)(ptr))
+
+
+/*
+Convenience macro to get a pointer to the complex floating-point value
+addressed by the a_constexpr_address addr.
+*/
+#define cx_value_at(addr) (cx_value(value_bytes_at(addr)))
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+
 
 static void trim_bit_field(a_byte     *storage,
                            unsigned   length,
@@ -2290,8 +2306,16 @@ redo:
       result = sizeof(an_integer_value);
       break;
     case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       result = sizeof(an_internal_float_value);
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      result = sizeof(an_internal_complex_value);
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_routine:
     case tk_pointer:
     case tk_nullptr:
@@ -2412,11 +2436,6 @@ redo:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:       /* All fixed-point types. */
-#endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case tk_imaginary:
-    case tk_complex:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* These types are not supported by the interpreter. */
       { a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
@@ -2428,6 +2447,7 @@ redo:
         result = MAX_CONSTEXPR_TYPE_SIZE+1;
       }
       break;
+#endif /* FIXED_POINT_ALLOWED */
     case tk_error:
       ips->input_error = TRUE;
       /*FALLTHROUGH*/
@@ -2968,8 +2988,17 @@ within the given complete object).
       *((an_integer_value*)subobj) = zero_int;
       break;
     case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       *fp_value(subobj) = zero_flt[(int)tp->variant.float_kind];
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      cx_value(subobj)->real = zero_flt[(int)tp->variant.float_kind];
+      cx_value(subobj)->imag = zero_flt[(int)tp->variant.float_kind];
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_pointer:
     case tk_nullptr:
       clear_address(subobj, (a_byte*)0);
@@ -3295,13 +3324,34 @@ Output the contents of the interpreted object of type tp stored at addr.
       break;
     case tk_float:
       (void)fprintf(f_debug, "%s\n",
-                    fp_to_string(tp->variant.float_kind,
-                                 (an_internal_float_value*)addr,
+                    fp_to_string(tp->variant.float_kind, fp_value(addr),
                                  /*pos_infinity=*/(a_boolean*)NULL,
                                  /*neg_infinity=*/(a_boolean*)NULL,
                                  /*not_a_number=*/(a_boolean*)NULL));
      
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      (void)fprintf(f_debug, "%si\n",
+                    fp_to_string(tp->variant.float_kind, fp_value(addr),
+                                 /*pos_infinity=*/(a_boolean*)NULL,
+                                 /*neg_infinity=*/(a_boolean*)NULL,
+                                 /*not_a_number=*/(a_boolean*)NULL));
+     
+      break;
+    case tk_complex:
+      (void)fprintf(f_debug, "%s + %si\n",
+                    fp_to_string(tp->variant.float_kind, &cx_value(addr)->real,
+                                 /*pos_infinity=*/(a_boolean*)NULL,
+                                 /*neg_infinity=*/(a_boolean*)NULL,
+                                 /*not_a_number=*/(a_boolean*)NULL),
+                    fp_to_string(tp->variant.float_kind, &cx_value(addr)->imag,
+                                 /*pos_infinity=*/(a_boolean*)NULL,
+                                 /*neg_infinity=*/(a_boolean*)NULL,
+                                 /*not_a_number=*/(a_boolean*)NULL));
+     
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_pointer:
       db_addr((a_constexpr_address*)addr, indent);
       break;
@@ -3990,8 +4040,16 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       }
       break;
     case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       *fp_value(value) = con->variant.float_value;
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_complex:
+      *cx_value(value) = *con->variant.complex_value;
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       if (con->variant.address.offset != 0 && con->expr != NULL) {
         /* To reconstruct the offset in interpreter storage, interpret the
@@ -4464,6 +4522,30 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* if */
           }  /* for */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+        } else if (tp->kind == (a_type_kind)tk_complex) {
+          a_constant_ptr  elem_con;
+          a_targ_size_t   k, n_elems = 2;
+          a_byte_count    elem_size = sizeof(an_internal_float_value);
+          elem_con = con->variant.aggregate.first_constant;
+          for (k = 0; k<n_elems;) {
+            if (!copy_val_from_constant(
+                                     ips, elem_con, value, complete_object)) {
+              do_constexpr_fail(result);
+              break;
+            }  /* if */
+            elem_con = elem_con->next;
+            k += 1;
+            value += elem_size;
+            if (elem_con == NULL) {
+              if (k<n_elems) {
+                /* Not all elements are covered.  Zero the remainder. */
+                memzero(value, size_t_arg((n_elems-k)*elem_size));
+              }  /* if */
+              break;
+            }  /* if */
+          }  /* for */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else {
           do_constexpr_fail(result);
         }  /* if */
@@ -7608,63 +7690,92 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
 {
   a_boolean  result = TRUE;
 
-  if (tp->kind == (a_type_kind)tk_integer) {
-    a_host_large_integer  bool_val;
-    a_boolean             ovflo;
-    get_int_val_from(value, tp, bool_val, ovflo);
-    *p_cond = ovflo || bool_val;
-  } else if (tp->kind == (a_type_kind)tk_pointer) {
-    a_constexpr_address  *cap = (a_constexpr_address*)value;
-    if (is_runtime_data_address(cap)) {
-      a_constant_ptr  addr_con = cap->variant.addr_con;
-      if (constant_is(addr_con, ck_integer)) {
-        a_boolean  is_signed = FALSE;
-        if (cmp_integer_values(&addr_con->variant.integer_value, is_signed,
-                               &zero_int, is_signed) != 0) {
+  switch (tp->kind) {
+    case tk_integer:
+      { a_host_large_integer  bool_val;
+        a_boolean             ovflo;
+        get_int_val_from(value, tp, bool_val, ovflo);
+        *p_cond = ovflo || bool_val;
+      }
+      break;
+    case tk_pointer:
+      { a_constexpr_address  *cap = (a_constexpr_address*)value;
+        if (is_runtime_data_address(cap)) {
+          a_constant_ptr  addr_con = cap->variant.addr_con;
+          if (constant_is(addr_con, ck_integer)) {
+            a_boolean  is_signed = FALSE;
+            if (cmp_integer_values(&addr_con->variant.integer_value, is_signed,
+                                   &zero_int, is_signed) != 0) {
+              *p_cond = TRUE;
+            } else {
+              *p_cond = FALSE;
+            }  /* if */
+          } else {
+            *p_cond = FALSE;
+            do_constexpr_fail(result);
+            info_with_pos(ec_constexpr_access_to_runtime_storage,
+                          &expr->position, ips);
+          }  /* if */
+        } else if (is_function_address(cap) || cap->address != NULL) {
           *p_cond = TRUE;
         } else {
           *p_cond = FALSE;
         }  /* if */
-      } else {
-        *p_cond = FALSE;
-        do_constexpr_fail(result);
-        info_with_pos(ec_constexpr_access_to_runtime_storage,
-                      &expr->position, ips);
-      }  /* if */
-    } else if (is_function_address(cap) || cap->address != NULL) {
-      *p_cond = TRUE;
-    } else {
+      }
+      break;
+    case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      { a_boolean  unord;
+        if (fp_compare(tp->variant.float_kind,
+                       fp_value(value),
+                       &zero_flt[(int)tp->variant.float_kind],
+                       &unord) == 0) {
+          *p_cond = FALSE;
+        } else {
+          *p_cond = TRUE;
+        }  /* if */
+      }
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      { a_boolean  unord;
+        if (fp_compare(tp->variant.float_kind,
+                       &cx_value(value)->real,
+                       &zero_flt[(int)tp->variant.float_kind],
+                       &unord) == 0 &&
+            fp_compare(tp->variant.float_kind,
+                       &cx_value(value)->imag,
+                       &zero_flt[(int)tp->variant.float_kind],
+                       &unord) == 0) {
+          *p_cond = FALSE;
+        } else {
+          *p_cond = TRUE;
+        }  /* if */
+      }
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_nullptr:
       *p_cond = FALSE;
-    }  /* if */
-  } else if (tp->kind == (a_type_kind)tk_float) {
-    a_boolean  unord;
-    if (fp_compare(tp->variant.float_kind,
-                   fp_value(value),
-                   &zero_flt[(int)tp->variant.float_kind],
-                   &unord) == 0) {
-      *p_cond = FALSE;
-    } else {
+      break;
+    case tk_ptr_to_member:
+      { a_constexpr_ptr_to_mem  *pm = (a_constexpr_ptr_to_mem*)value;
+        if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
+                                        : (void*)pm->variant.field) == NULL) {
+          *p_cond = FALSE;
+        } else {
+          *p_cond = TRUE;
+        }  /* if */
+      }
+      break;
+    default:
       *p_cond = TRUE;
-    }  /* if */
-  } else if (tp->kind == (a_type_kind)tk_nullptr) {
-    *p_cond = FALSE;
-  } else if (tp->kind == (a_type_kind)tk_ptr_to_member) {
-    a_constexpr_ptr_to_mem
-                       *pm = (a_constexpr_ptr_to_mem*)value;
-    if ((pm->is_ptr_to_mem_function ? (void*)pm->variant.routine
-                                    : (void*)pm->variant.field)
-                                                        == NULL) {
-      *p_cond = FALSE;
-    } else {
-      *p_cond = TRUE;
-    }  /* if */
-  } else {
-    *p_cond = TRUE;
-    do_constexpr_fail(result);
-    unexpected_condition();
-  }  /* if */
+      do_constexpr_fail(result);
+      unexpected_condition();
+  }  /* switch */
   return result;
-}
+}  /* check_boolean_condition */
  
 
 static a_boolean normalize_runtime_address_if_possible(
@@ -8190,7 +8301,7 @@ the value representation of the integer value.
                   and_integer_values(r_int,
                                      &max_integer_value_of_kind[int_kind]);
                 }  /* if */
-              } else if (tp->kind == (a_type_kind)tk_float) {
+              } else if (type_is_float_like(tp)) {
                 a_boolean  depends_of_fp_mode;
                 fp_change_kind(fp_value(opnd1_value),
                                opnd1_type->variant.float_kind,
@@ -8218,6 +8329,27 @@ the value representation of the integer value.
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_void) {
                 release_address_structures(opnd1, opnd1_type, opnd1_value);
+#if C99_IL_EXTENSIONS_SUPPORTED
+              } else if (tp->kind == (a_type_kind)tk_complex) {
+                a_boolean  depends_of_fp_mode;
+                fp_change_kind(&cx_value(opnd1_value)->real,
+                               opnd1_type->variant.float_kind,
+                               fp_value(result_storage),
+                               tp->variant.float_kind,
+                               &err, &depends_of_fp_mode);
+                if (!err) {
+                  fp_change_kind(&cx_value(opnd1_value)->imag,
+                                 opnd1_type->variant.float_kind,
+                                 fp_value(result_storage),
+                                 tp->variant.float_kind,
+                                 &err, &depends_of_fp_mode);
+                }  /* if */
+                if (err) {
+                  info_with_pos(ec_constexpr_fp_conversion_failed,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
               } else {
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
@@ -8285,6 +8417,20 @@ the value representation of the integer value.
             } else if (tp->kind == (a_type_kind)tk_void) {
               /* Conversion to void.  No result. */
               release_address_structures(opnd1, opnd1_type, opnd1_value);
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (tp->kind == (a_type_kind)tk_complex &&
+                       opnd1_type->kind == (a_type_kind)tk_float) {
+              /* Convert real floating-point to complex floating-point. */
+              cx_value(result_storage)->real = *fp_value(opnd1_value);
+              cx_value(result_storage)->imag =
+                                        zero_flt[(int)tp->variant.float_kind];
+            } else if (tp->kind == (a_type_kind)tk_complex &&
+                       opnd1_type->kind == (a_type_kind)tk_imaginary) {
+              /* Convert imaginary floating-point to complex floating-point. */
+              cx_value(result_storage)->real =
+                                        zero_flt[(int)tp->variant.float_kind];
+              cx_value(result_storage)->imag = *fp_value(opnd1_value);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
@@ -8563,15 +8709,22 @@ the value representation of the integer value.
               is_signed = int_kind_is_signed[int_kind];
               negate_integer_value((an_integer_value *)result_storage, &ovfl);
               CHECK_int_range((an_integer_value *)result_storage, tp);
-            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+            } else if (type_is_float_like(opnd1_type)) {
               err = FALSE;
               fp_negate(opnd1_type->variant.float_kind,
                         fp_value(opnd1_value), fp_value(result_storage),
                         &err, &depends_on_fp_mode);
-              if (err) {
-                /* fp_negate should never fail. */
-                unexpected_condition();
-              }  /* if */
+              /* fp_negate should never fail. */
+              check_assertion(!err);
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (tp->kind == (a_type_kind)tk_complex) {
+              err = FALSE;
+              cx_negate(opnd1_type->variant.float_kind,
+                        cx_value(opnd1_value), cx_value(result_storage),
+                        &err, &depends_on_fp_mode);
+              /* fp_negate should never fail. */
+              check_assertion(!err);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               unexpected_condition();
             }  /* if */
@@ -8584,8 +8737,12 @@ the value representation of the integer value.
               is_signed = int_kind_is_signed[int_kind];
               ovfl = FALSE;
               CHECK_int_range((an_integer_value *)result_storage, tp);
-            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+            } else if (type_is_float_like(opnd1_type)) {
               *fp_value(result_storage) = *fp_value(opnd1_value);
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (opnd1_type->kind == (a_type_kind)tk_complex) {
+              *cx_value(result_storage) = *cx_value(opnd1_value);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               *(a_constexpr_address *)result_storage =
                                           *(a_constexpr_address *)opnd1_value;
@@ -8621,6 +8778,58 @@ the value representation of the integer value.
               }  /* if */
             }
             break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case eok_xconj:
+            { err = FALSE;
+              fp_negate(opnd1_type->variant.float_kind,
+                        &cx_value(opnd1_value)->imag,
+                        &cx_value(result_storage)->imag,
+                        &err, &depends_on_fp_mode);
+              /* fp_negate should never fail. */
+              check_assertion(!err);
+            }
+            break;
+          case eok_real_part:
+            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              a_constexpr_address  *src = (a_constexpr_address*)result_storage;
+              if (is_runtime_data_address(src)) {
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (src->address == NULL) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
+              } else {
+                src->address =
+                   (a_byte*)&((an_internal_complex_value*)src->address)->real;
+                *(a_constexpr_address*)result_storage = *src;
+              }  /* if */
+            } else {
+              *fp_value(result_storage) = cx_value(opnd1_value)->real;
+            }  /* if */
+            break;
+          case eok_imag_part:
+            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              a_constexpr_address  *src = (a_constexpr_address*)result_storage;
+              if (is_runtime_data_address(src)) {
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (src->address == NULL) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_null_dereference, &expr->position,
+                              ips);
+              } else {
+                src->address =
+                   (a_byte*)&((an_internal_complex_value*)src->address)->imag;
+                *(a_constexpr_address*)result_storage = *src;
+              }  /* if */
+            } else {
+              *fp_value(result_storage) = cx_value(opnd1_value)->imag;
+            }  /* if */
+            break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case eok_post_incr:
             { a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
               if (is_runtime_data_address(cap)) {
@@ -8660,7 +8869,7 @@ the value representation of the integer value.
                     CHECK_int_range(ival, tp);
                     trim_bit_field_if_needed(cap);
                   }  /* if */
-                } else if (tp->kind == (a_type_kind)tk_float) {
+                } else if (type_is_float_like(tp)) {
                   /* A floating-point type. */
                   fp_add(tp->variant.float_kind,
                          fp_value_at(cap),
@@ -8698,6 +8907,17 @@ the value representation of the integer value.
                       ptr->flags |= CA_CANNOT_DEREFERENCE;
                     }    /* if */
                   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+                } else if (tp->kind == (a_type_kind)tk_complex) {
+                  /* A complex floating-point type. */
+                  fp_add(tp->variant.float_kind, &cx_value_at(cap)->real,
+                         &one_flt[(int)tp->variant.float_kind],
+                         &cx_value_at(cap)->real, &err, &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                 } else {
                   /* Invalid type for postfix ++. */
                   unexpected_condition();
@@ -8739,7 +8959,7 @@ the value representation of the integer value.
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                   CHECK_int_range(ival, tp);
                   trim_bit_field_if_needed(cap);
-                } else if (tp->kind == (a_type_kind)tk_float) {
+                } else if (type_is_float_like(tp)) {
                   /* A floating-point type. */
                   fp_subtract(tp->variant.float_kind,
                               fp_value_at(cap),
@@ -8778,6 +8998,18 @@ the value representation of the integer value.
                   elem_size = value_bytes_for_type(ips, elem_type, &result);
                   ptr->address -= elem_size;
                   ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+                } else if (tp->kind == (a_type_kind)tk_complex) {
+                  /* A complex floating-point type. */
+                  fp_subtract(tp->variant.float_kind, &cx_value_at(cap)->real,
+                              &one_flt[(int)tp->variant.float_kind],
+                              &cx_value_at(cap)->real,
+                              &err, &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                 } else {
                   /* Invalid type for prefix --. */
                   unexpected_condition();
@@ -8826,7 +9058,7 @@ the value representation of the integer value.
                   CHECK_int_range(ival, tp);
                   trim_bit_field_if_needed(cap);
                 }  /* if */
-              } else if (tp->kind == (a_type_kind)tk_float) {
+              } else if (type_is_float_like(tp)) {
                 /* A floating-point type. */
                 fp_add(tp->variant.float_kind,
                        fp_value_at(cap),
@@ -8863,6 +9095,17 @@ the value representation of the integer value.
                     ptr->flags |= CA_CANNOT_DEREFERENCE;
                   }  /* if */
                 }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+              } else if (tp->kind == (a_type_kind)tk_complex) {
+                fp_add(tp->variant.float_kind,
+                       fp_value_at(cap),
+                       &one_flt[(int)tp->variant.float_kind],
+                       fp_value_at(cap), &err, &depends_on_fp_mode);
+                if (err) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
               } else {
                 /* Invalid type for prefix ++. */
                 unexpected_condition();
@@ -8910,7 +9153,7 @@ the value representation of the integer value.
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                 CHECK_int_range(ival, tp);
                 trim_bit_field_if_needed(cap);
-              } else if (tp->kind == (a_type_kind)tk_float) {
+              } else if (type_is_float_like(tp)) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
                             fp_value_at(cap),
@@ -8948,6 +9191,17 @@ the value representation of the integer value.
                 elem_size = value_bytes_for_type(ips, elem_type, &result);
                 ptr->address -= elem_size;
                 ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+              } else if (tp->kind == (a_type_kind)tk_complex) {
+                fp_subtract(tp->variant.float_kind, &cx_value_at(cap)->real,
+                            &one_flt[(int)tp->variant.float_kind],
+                            &cx_value_at(cap)->real,
+                            &err, &depends_on_fp_mode);
+                if (err) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
               } else {
                 /* Invalid type for prefix --. */
                 unexpected_condition();
@@ -8969,8 +9223,8 @@ the value representation of the integer value.
                                  (an_integer_value*)opnd2_value,
                                  is_signed, &ovfl);
               CHECK_int_range((an_integer_value*)(result_storage), tp);
-            } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+            } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind)) {
               fp_add(tp->variant.float_kind,
                      fp_value(opnd1_value), fp_value(opnd2_value),
                      fp_value(result_storage), &err, &depends_on_fp_mode);
@@ -8978,6 +9232,17 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex) {
+              cx_add(tp->variant.float_kind,
+                     cx_value(opnd1_value), cx_value(opnd2_value),
+                     cx_value(result_storage), &err, &depends_on_fp_mode);
+              if (err) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+              }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               /* Other types. */
               info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -8994,8 +9259,8 @@ the value representation of the integer value.
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
               CHECK_int_range((an_integer_value*)(result_storage), tp);
-            } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+            } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind)) {
               fp_subtract(tp->variant.float_kind,
                           fp_value(opnd1_value), fp_value(opnd2_value),
                           fp_value(result_storage), &err,
@@ -9004,6 +9269,17 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex) {
+              cx_subtract(tp->variant.float_kind,
+                          cx_value(opnd1_value), cx_value(opnd2_value),
+                          cx_value(result_storage), &err, &depends_on_fp_mode);
+              if (err) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+              }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               /* Other types. */
               info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -9020,8 +9296,8 @@ the value representation of the integer value.
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
               CHECK_int_range((an_integer_value*)(result_storage), tp);
-            } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+            } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind)) {
               fp_multiply(tp->variant.float_kind,
                           fp_value(opnd1_value), fp_value(opnd2_value),
                           fp_value(result_storage), &err,
@@ -9030,6 +9306,17 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex) {
+              cx_multiply(tp->variant.float_kind,
+                          cx_value(opnd1_value), cx_value(opnd2_value),
+                          cx_value(result_storage), &err, &depends_on_fp_mode);
+              if (err) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+              }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               /* Other types. */
               info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -9049,8 +9336,8 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
               }  /* if */
-            } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float) {
+            } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind)) {
               fp_divide(tp->variant.float_kind,
                         fp_value(opnd1_value), fp_value(opnd2_value),
                         fp_value(result_storage), &err,
@@ -9059,6 +9346,17 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex) {
+              cx_divide(tp->variant.float_kind,
+                        cx_value(opnd1_value), cx_value(opnd2_value),
+                        cx_value(result_storage), &err, &depends_on_fp_mode);
+              if (err) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+              }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               /* Other types. */
               do_constexpr_fail(result);
@@ -9083,6 +9381,58 @@ the value representation of the integer value.
               unexpected_condition();
             }  /* if */
             break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case eok_jmultiply:
+            fp_multiply(tp->variant.float_kind,
+                        fp_value(opnd1_value), fp_value(opnd2_value),
+                        fp_value(result_storage), &err,
+                        &depends_on_fp_mode);
+            if (err) {
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+            } else {
+              fp_negate(opnd1_type->variant.float_kind,
+                        fp_value(result_storage), fp_value(result_storage),
+                        &err, &depends_on_fp_mode);
+              /* fp_negate should never fail. */
+              check_assertion(!err);
+            }  /* if */
+            break;
+          case eok_jdivide:
+            fp_divide(tp->variant.float_kind,
+                      fp_value(opnd1_value), fp_value(opnd2_value),
+                      fp_value(result_storage), &err,
+                      &depends_on_fp_mode);
+            if (err) {
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+            } else {
+              fp_negate(opnd1_type->variant.float_kind,
+                        fp_value(result_storage), fp_value(result_storage),
+                        &err, &depends_on_fp_mode);
+              /* fp_negate should never fail. */
+              check_assertion(!err);
+            }  /* if */
+            break;
+          case eok_fjsubtract:
+            fp_negate(opnd2_type->variant.float_kind,
+                      fp_value(opnd2_value), fp_value(opnd2_value),
+                      &err, &depends_on_fp_mode);
+            /*FALLTHROUGH*/
+          case eok_fjadd:
+            cx_value(result_storage)->real = *fp_value(opnd1_value);
+            cx_value(result_storage)->imag = *fp_value(opnd2_value);
+            break;
+          case eok_jfsubtract:
+            fp_negate(opnd2_type->variant.float_kind,
+                      fp_value(opnd2_value), fp_value(opnd2_value),
+                      &err, &depends_on_fp_mode);
+            /*FALLTHROUGH*/
+          case eok_jfadd:
+            cx_value(result_storage)->real = *fp_value(opnd2_value);
+            cx_value(result_storage)->imag = *fp_value(opnd1_value);
+            break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case eok_padd:
             /* Pointer + integer or integer + pointer. */
             { a_constexpr_address  *result_addr;
@@ -9371,7 +9721,7 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+            } else if (type_is_float_like(opnd1_type)) {
               /* Floating-point operands. */
               if (fp_compare(opnd1_type->variant.float_kind,
                              fp_value(opnd1_value),
@@ -9451,6 +9801,14 @@ the value representation of the integer value.
             } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = one_int;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (tp->kind == (a_type_kind)tk_complex) {
+              /* A complex floating-point type. */
+              *(an_integer_value *)result_storage =
+                 cx_equal(tp->variant.float_kind,
+                          cx_value(opnd1_value), cx_value(opnd2_value)) ?
+                                                           one_int : zero_int;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               unexpected_condition();
             }  /* if */
@@ -9468,7 +9826,7 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+            } else if (type_is_float_like(opnd1_type)) {
               /* Floating-point operands. */
               if (fp_compare(opnd1_type->variant.float_kind,
                              fp_value(opnd1_value),
@@ -9550,6 +9908,14 @@ the value representation of the integer value.
             } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = zero_int;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            } else if (tp->kind == (a_type_kind)tk_complex) {
+              /* A complex floating-point type. */
+              *(an_integer_value *)result_storage =
+                 cx_equal(tp->variant.float_kind,
+                          cx_value(opnd1_value), cx_value(opnd2_value)) ?
+                                                           zero_int : one_int;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               unexpected_condition();
             }  /* if */
@@ -9922,9 +10288,9 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
-                } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float &&
-                           tp->kind == (a_type_kind)tk_float) {
+                } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind) &&
+                           expr->variant.operation.type_kind == tp->kind) {
                   /* Floating-point += floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
                   fp_add(tp->variant.float_kind, dst_val,
@@ -9979,6 +10345,26 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex &&
+                           tp->kind == (a_type_kind)tk_complex) {
+                  /* Complex += complex. */
+                  an_internal_complex_value  *dst_val = cx_value_at(dst);
+                  cx_add(tp->variant.float_kind, dst_val,
+                         cx_value(opnd2_value), dst_val, &err,
+                         &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *cx_value(result_storage) = *cx_value_at(dst);
+                  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                 } else {
                   /* Other types. */
                   do_constexpr_fail(result);
@@ -10061,9 +10447,9 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *fp_value(result_storage) = *fp_value_at(dst);
                   }  /* if */
-                } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float &&
-                           tp->kind == (a_type_kind)tk_integer) {
+                } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind) &&
+                           expr->variant.operation.type_kind == tp->kind) {
                   /* Integer -= floating-point. */
                   an_internal_float_value  dst_val;
                   int_kind = tp->variant.integer.int_kind;
@@ -10100,6 +10486,26 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex &&
+                           tp->kind == (a_type_kind)tk_complex) {
+                  /* Complex -= complex. */
+                  an_internal_complex_value  *dst_val = cx_value_at(dst);
+                  cx_subtract(tp->variant.float_kind, dst_val,
+                              cx_value(opnd2_value), dst_val, &err,
+                              &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *cx_value(result_storage) = *cx_value_at(dst);
+                  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                 } else {
                   /* Other types. */
                   do_constexpr_fail(result);
@@ -10221,6 +10627,26 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex &&
+                           tp->kind == (a_type_kind)tk_complex) {
+                  /* Complex *= complex. */
+                  an_internal_complex_value  *dst_val = cx_value_at(dst);
+                  cx_multiply(tp->variant.float_kind, dst_val,
+                              cx_value(opnd2_value), dst_val, &err,
+                              &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *cx_value(result_storage) = *cx_value_at(dst);
+                  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                 } else {
                   /* Other types. */
                   do_constexpr_fail(result);
@@ -10342,6 +10768,26 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+                } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_complex &&
+                           tp->kind == (a_type_kind)tk_complex) {
+                  /* Complex /= complex. */
+                  an_internal_complex_value  *dst_val = cx_value_at(dst);
+                  cx_divide(tp->variant.float_kind, dst_val,
+                            cx_value(opnd2_value), dst_val, &err,
+                            &depends_on_fp_mode);
+                  if (err) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+                  } else if (expr->is_lvalue || expr->is_xvalue) {
+                    /* The assignment produces an lvalue-like result. */
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    /* The assignment produces an rvalue.  Copy the value. */
+                    *cx_value(result_storage) = *cx_value_at(dst);
+                  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -11679,6 +12125,16 @@ diagnostic in *ips.
       set_constant_kind(con, (a_constant_repr_kind)ck_float);
       con->variant.float_value = *fp_value(object);
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      set_constant_kind(con, (a_constant_repr_kind)ck_imaginary);
+      con->variant.float_value = *fp_value(object);
+      break;
+    case tk_complex:
+      set_constant_kind(con, (a_constant_repr_kind)ck_complex);
+      *con->variant.complex_value = *cx_value(object);
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_pointer:
       { a_constexpr_address *cap = (a_constexpr_address *)object;
         if (is_runtime_data_address(cap)) {

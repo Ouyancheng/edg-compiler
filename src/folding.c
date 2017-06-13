@@ -59,6 +59,31 @@ is by definition not an error).
 #endif /* ifndef ES_FIXED_POINT_OVERFLOW */
 #endif /* FIXED_POINT_ALLOWED */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static void get_complex_val(a_constant_ptr             con,
+                            an_internal_complex_value  *cx_val)
+/*
+con represents a complex value in ck_complex or ck_aggregate form.
+Retrieve the complex value of the constant into *cx_val.
+*/
+{
+  if (constant_is(con, ck_complex)) {
+    *cx_val = *con->variant.complex_value;
+  } else {
+    a_constant_ptr  part;
+    check_assertion(constant_is(con, ck_aggregate));
+    part = con->variant.aggregate.first_constant;
+    check_assertion(constant_is(part, ck_float));
+    cx_val->real = part->variant.float_value;
+    part = part->next;
+    check_assertion(part != NULL && constant_is(part, ck_float));
+    cx_val->imag = part->variant.float_value;
+  }  /* if */
+}  /* get_complex_val */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
 a_boolean variable_has_non_null_address(a_variable_ptr vp)
 /*
 Return TRUE if the indicated variable has a non-NULL address.  That's
@@ -593,13 +618,14 @@ depending on the floating-point mode.  If constant_context is FALSE, this
 operation is being evaluated as part of a nonconstant expression.
 */
 {
-  an_integer_value        result_value;
-  a_boolean               err, is_signed;
-  a_type_ptr              float_tp = skip_typerefs(old_constant->type);
-  a_float_kind            float_kind = float_tp->variant.float_kind;
-  an_internal_float_value *float_value;
+  an_integer_value          result_value;
+  a_boolean                 err, is_signed;
+  a_type_ptr                float_tp = skip_typerefs(old_constant->type);
+  a_float_kind              float_kind = float_tp->variant.float_kind;
+  an_internal_float_value   *float_value;
 #if C99_IL_EXTENSIONS_SUPPORTED
-  an_internal_float_value zero;
+  an_internal_float_value   zero;
+  an_internal_complex_value  cx;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -607,7 +633,8 @@ operation is being evaluated as part of a nonconstant expression.
     /* Converting from complex to integer.  The real part of the
        constant is converted to integer, and the imaginary part is
        discarded. */
-    float_value = &old_constant->variant.complex_value->real;
+    get_complex_val(old_constant, &cx);
+    float_value = &cx.real;
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting from imaginary to integer.  The result is zero. */
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
@@ -743,36 +770,38 @@ depending on the floating-point mode.
         }  /* switch */
         break;
       case tk_complex:
-        switch (new_type->kind) {
-          case tk_float:
-            /* Complex to float.  Retain the real part only. */
-            fp_change_kind(&old_constant->variant.complex_value->real,
-                           old_kind, &new_constant->variant.float_value,
-                           new_kind, &err, depends_on_fp_mode);
-            break;
-          case tk_imaginary:
-            /* Complex to imaginary.  Retain the imaginary part only. */
-            fp_change_kind(&old_constant->variant.complex_value->imag,
-                           old_kind, &new_constant->variant.float_value,
-                           new_kind, &err, depends_on_fp_mode);
-            break;
-          case tk_complex:
-            /* Complex to complex. */
-            /* This is similar to the float-float or imaginary-imaginary cases,
-               but both the real and the imaginary components must change. */
-            fp_change_kind(&old_constant->variant.complex_value->real,
-                           old_kind,
-                           &new_constant->variant.complex_value->real,
-                           new_kind, &err, depends_on_fp_mode);
-            fp_change_kind(&old_constant->variant.complex_value->imag,
-                           old_kind,
-                           &new_constant->variant.complex_value->imag,
-                           new_kind, &err, depends_on_fp_mode);
-            break;
-          default:
-            unexpected_condition_str(
+        { an_internal_complex_value  cx;
+          get_complex_val(old_constant, &cx);
+          switch (new_type->kind) {
+            case tk_float:
+              /* Complex to float.  Retain the real part only. */
+              fp_change_kind(&cx.real, old_kind,
+                             &new_constant->variant.float_value, new_kind,
+                             &err, depends_on_fp_mode);
+              break;
+            case tk_imaginary:
+              /* Complex to imaginary.  Retain the imaginary part only. */
+              fp_change_kind(&cx.imag, old_kind,
+                             &new_constant->variant.float_value, new_kind,
+                             &err, depends_on_fp_mode);
+              break;
+            case tk_complex:
+              /* Complex to complex. */
+              /* This is similar to the float-float or imaginary-imaginary
+                 cases, but both the real and the imaginary components must
+                 change. */
+              fp_change_kind(&cx.real, old_kind,
+                             &new_constant->variant.complex_value->real,
+                             new_kind, &err, depends_on_fp_mode);
+              fp_change_kind(&cx.imag, old_kind,
+                             &new_constant->variant.complex_value->imag,
+                             new_kind, &err, depends_on_fp_mode);
+              break;
+            default:
+              unexpected_condition_str(
                               "conv_float_to_float: from complex to bad type");
-        }  /* switch */
+          }  /* switch */
+        }
         break;
       default:
         unexpected_condition_str(
@@ -2696,27 +2725,19 @@ static void do_xnegate(a_constant        *constant,
 Do the negate operation on all types of complex.
 */
 {
-  a_boolean    err, accum_err = FALSE, depends_on_mode;
+  a_boolean    err;
   a_type_ptr   constant_type = skip_typerefs(constant->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
+  an_internal_complex_value
+               cx;
 
+  get_complex_val(constant, &cx);
   *err_code = ec_no_error;
   *err_severity = es_warning;
-
   set_constant_kind(result, (a_constant_repr_kind)ck_complex);
-  fp_negate(float_kind,
-            &constant->variant.complex_value->real,
-            &result->variant.complex_value->real,
-            &err, &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode = depends_on_mode;
-  fp_negate(float_kind,
-            &constant->variant.complex_value->imag,
-            &result->variant.complex_value->imag,
-            &err, &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  if (accum_err) {
+  cx_negate(float_kind, &cx, result->variant.complex_value,
+            &err, depends_on_fp_mode);
+  if (err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
@@ -2794,12 +2815,17 @@ types of complex values.
   a_type_ptr   constant_type = skip_typerefs(constant->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
   a_boolean    err;
+  an_internal_complex_value
+               cx;
+
+  get_complex_val(constant, &cx);
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  copy_constant(constant, result);
-  fp_negate(float_kind, &constant->variant.complex_value->imag,
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  result->variant.complex_value->real = cx.real;
+  fp_negate(float_kind, &cx.imag,
             &result->variant.complex_value->imag, &err, depends_on_fp_mode);
   if (err) {
     *err_code = ec_bad_complex_operation_result;
@@ -2819,13 +2845,16 @@ static void do_complex_projection(an_expr_operator_kind  op,
 Extract the real or imaginary part of a complex constant.
 */
 {
+  an_internal_complex_value  cx;
+
   check_assertion(is_complex_type(constant->type) &&
                   is_real_floating_type(result->type));
+  get_complex_val(constant, &cx);
   set_constant_kind(result, (a_constant_repr_kind)ck_float);
   if (op == (an_expr_operator_kind)eok_real_part) {
-    result->variant.float_value = constant->variant.complex_value->real;
+    result->variant.float_value = cx.real;
   } else {
-    result->variant.float_value = constant->variant.complex_value->imag;
+    result->variant.float_value = cx.imag;
   }  /* if */
 }  /* do_complex_projection */
 
@@ -4229,29 +4258,20 @@ static void do_xadd(a_constant        *constant_1,
 Do the addition operation on all types of complex.
 */
 {
-  a_boolean    err, accum_err = FALSE, depends_on_mode;
+  a_boolean    err;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
+  an_internal_complex_value
+               cx1, cx2;
 
+  get_complex_val(constant_1, &cx1);
+  get_complex_val(constant_2, &cx2);
   *err_code = ec_no_error;
   *err_severity = es_warning;
-
   set_constant_kind(result, (a_constant_repr_kind)ck_complex);
-  fp_add(float_kind,
-         &constant_1->variant.complex_value->real,
-         &constant_2->variant.complex_value->real,
-         &result->variant.complex_value->real, &err,
-         &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode = depends_on_mode;
-  fp_add(float_kind,
-         &constant_1->variant.complex_value->imag,
-         &constant_2->variant.complex_value->imag,
-         &result->variant.complex_value->imag, &err,
-         &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  if (accum_err) {
+  cx_add(float_kind, &cx1, &cx2,
+         result->variant.complex_value, &err, depends_on_fp_mode);
+  if (err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
@@ -4272,29 +4292,20 @@ static void do_xsubtract(a_constant        *constant_1,
 Do the subtraction operation on all types of complex.
 */
 {
-  a_boolean    err, accum_err = FALSE, depends_on_mode;
+  a_boolean    err;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
+  an_internal_complex_value
+               cx1, cx2;
 
+  get_complex_val(constant_1, &cx1);
+  get_complex_val(constant_2, &cx2);
   *err_code = ec_no_error;
   *err_severity = es_warning;
-
   set_constant_kind(result, (a_constant_repr_kind)ck_complex);
-  fp_subtract(float_kind,
-              &constant_1->variant.complex_value->real,
-              &constant_2->variant.complex_value->real,
-              &result->variant.complex_value->real, &err,
-              &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode = depends_on_mode;
-  fp_subtract(float_kind,
-              &constant_1->variant.complex_value->imag,
-              &constant_2->variant.complex_value->imag,
-              &result->variant.complex_value->imag, &err,
-              &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  if (accum_err) {
+  cx_subtract(float_kind, &cx1, &cx2,
+              result->variant.complex_value, &err, depends_on_fp_mode);
+  if (err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
@@ -4315,64 +4326,23 @@ static void do_xmultiply(a_constant        *constant_1,
 Do the multiplication operation on all types of complex.
 */
 {
-  a_boolean                err, accum_err = FALSE, depends_on_mode;
-  a_type_ptr               constant_type = skip_typerefs(constant_1->type);
-  a_float_kind             float_kind = constant_type->variant.float_kind;
-  an_internal_float_value  temp_value;
+  a_boolean     err;
+  a_type_ptr    constant_type = skip_typerefs(constant_1->type);
+  a_float_kind  float_kind = constant_type->variant.float_kind;
+  an_internal_complex_value
+               cx1, cx2;
 
+  get_complex_val(constant_1, &cx1);
+  get_complex_val(constant_2, &cx2);
   *err_code = ec_no_error;
   *err_severity = es_warning;
-
   set_constant_kind(result, (a_constant_repr_kind)ck_complex);
-#if 0
-  /* This is an oversimplified algorithm that can exhibit dynamic range
-     problems (e.g., catastrophic cancellation). */
-#endif /* 0 */
-  /* (a1 + b1*i) * (a2 + b2*i) = (a1a2 - b1b2) + (b1a2 + a1b2)i */
-  /* Compute real part of the result. */
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->real,
-              &constant_2->variant.complex_value->real,
-              &result->variant.complex_value->real, &err,
-              &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode = depends_on_mode;
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->imag,
-              &constant_2->variant.complex_value->imag,
-              &temp_value, &err,
-              &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  fp_subtract(float_kind, &result->variant.complex_value->real, &temp_value,
-              &result->variant.complex_value->real,
-              &err, &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  /* Compute imaginary part of the result. */
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->real,
-              &constant_2->variant.complex_value->imag,
-              &result->variant.complex_value->imag, &err,
-              &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->imag,
-              &constant_2->variant.complex_value->real,
-              &temp_value, &err, &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  fp_add(float_kind, &result->variant.complex_value->imag, &temp_value,
-         &result->variant.complex_value->imag,
-         &err, &depends_on_mode);
-  accum_err |= err;
-  *depends_on_fp_mode |= depends_on_mode;
-  if (accum_err) {
+  cx_multiply(float_kind, &cx1, &cx2,
+              result->variant.complex_value, &err, depends_on_fp_mode);
+  if (err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
-
 #if DEBUG
   db_binary_operation("x*", constant_1, constant_2, result, *err_code);
 #endif /* DEBUG */
@@ -4392,27 +4362,28 @@ Do the division operation on all types of complex.
   a_boolean                err, accum_err = FALSE, depends_on_mode;
   a_type_ptr               constant_type = skip_typerefs(constant_1->type);
   a_float_kind             float_kind = constant_type->variant.float_kind;
-  
+  an_internal_complex_value
+               cx1, cx2;
   an_internal_float_value  quad_norm, temp_value;
 
+  get_complex_val(constant_1, &cx1);
+  get_complex_val(constant_2, &cx2);
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
   set_constant_kind(result, (a_constant_repr_kind)ck_complex);
 #if 0
   /* This is an oversimplified algorithm that can exhibit dynamic range
-     problems (e.g., catastrophic cancellation). */
+     problems (e.g., catastrophic cancellation).  Also, this is nearly
+     identical to cx_divide, except is creates an ec_divide_by_zero error
+     code in some cases. */
 #endif /* 0 */
   /* Compute the real value quad_norm = real_2*real_2 + imag_2*imag_2. */
-  fp_multiply(float_kind,
-              &constant_2->variant.complex_value->real,
-              &constant_2->variant.complex_value->real,
+  fp_multiply(float_kind, &cx2.real, &cx2.real,
               &quad_norm, &err, &depends_on_mode);
   accum_err |= err;
   *depends_on_fp_mode = depends_on_mode;
-  fp_multiply(float_kind,
-              &constant_2->variant.complex_value->imag,
-              &constant_2->variant.complex_value->imag,
+  fp_multiply(float_kind, &cx2.imag, &cx2.imag,
               &temp_value, &err, &depends_on_mode);
   accum_err |= err;
   *depends_on_fp_mode |= depends_on_mode;
@@ -4426,18 +4397,12 @@ Do the division operation on all types of complex.
     *err_severity = es_error;
   } else {
     /* Compute real part of the result. */
-    fp_multiply(float_kind,
-                &constant_1->variant.complex_value->real,
-                &constant_2->variant.complex_value->real,
-                &result->variant.complex_value->real, &err,
-                &depends_on_mode);
+    fp_multiply(float_kind, &cx1.real, &cx2.real,
+                &result->variant.complex_value->real, &err, &depends_on_mode);
     accum_err |= err;
     *depends_on_fp_mode |= depends_on_mode;
-    fp_multiply(float_kind,
-                &constant_1->variant.complex_value->imag,
-                &constant_2->variant.complex_value->imag,
-                &temp_value, &err,
-                &depends_on_mode);
+    fp_multiply(float_kind, &cx1.imag, &cx2.imag,
+                &temp_value, &err, &depends_on_mode);
     accum_err |= err;
     *depends_on_fp_mode |= depends_on_mode;
     fp_add(float_kind, &result->variant.complex_value->real, &temp_value,
@@ -4451,16 +4416,11 @@ Do the division operation on all types of complex.
     accum_err |= err;
     *depends_on_fp_mode |= depends_on_mode;
     /* Compute imaginary part of the result. */
-    fp_multiply(float_kind,
-                &constant_1->variant.complex_value->real,
-                &constant_2->variant.complex_value->imag,
-                &result->variant.complex_value->imag, &err,
-                &depends_on_mode);
+    fp_multiply(float_kind, &cx1.real, &cx2.imag,
+                &result->variant.complex_value->imag, &err, &depends_on_mode);
     accum_err |= err;
     *depends_on_fp_mode |= depends_on_mode;
-    fp_multiply(float_kind,
-                &constant_1->variant.complex_value->imag,
-                &constant_2->variant.complex_value->real,
+    fp_multiply(float_kind, &cx1.imag, &cx2.real,
                 &temp_value, &err, &depends_on_mode);
     accum_err |= err;
     *depends_on_fp_mode |= depends_on_mode;
@@ -4497,36 +4457,20 @@ Unlike real values, no ordering can be tested, only equality (or lack
 thereof).
 */
 {
-  int          real_cmp, imag_cmp;
   int          result_value;
-  a_boolean    real_unordered, imag_unordered;
   a_float_kind float_kind =
-                           skip_typerefs(constant_1->type)->variant.float_kind;
+                          skip_typerefs(constant_1->type)->variant.float_kind;
+  an_internal_complex_value
+               cx1, cx2;
 
-  /* Develop a strcmp-like relation value in cmp:
-       constant_1 > constant_2   1
-       constant_1 = constant_2   0
-       constant_1 < constant_2  -1
-     "unordered" is set if the two values are unordered with respect to one
-     another.
-  */
-  real_cmp = fp_compare(float_kind,
-                        &constant_1->variant.complex_value->real,
-                        &constant_2->variant.complex_value->real,
-                        &real_unordered);
-  imag_cmp = fp_compare(float_kind,
-                        &constant_1->variant.complex_value->imag,
-                        &constant_2->variant.complex_value->imag,
-                        &imag_unordered);
-  /* Now determine the result value for this particular operator. */
-  /* If two values are unordered, they are unequal.  This is needed for
-     NaN != NaN. */
-  result_value = (real_cmp != 0) || (imag_cmp != 0) ||
-                 real_unordered || imag_unordered;
-  if (op == (an_expr_operator_kind)eok_eq) {
+  get_complex_val(constant_1, &cx1);
+  get_complex_val(constant_2, &cx2);
+
+  result_value = cx_equal(float_kind, &cx1, &cx2);
+  if (op == (an_expr_operator_kind)eok_ne) {
     result_value = !result_value;
   } else {
-    check_assertion(op == (an_expr_operator_kind)eok_ne);
+    check_assertion(op == (an_expr_operator_kind)eok_eq);
   }  /* if */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,

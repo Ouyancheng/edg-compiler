@@ -241,6 +241,46 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+extern void cx_add(a_float_kind              kind,
+                   an_internal_complex_value *value_1,
+                   an_internal_complex_value *value_2,
+                   an_internal_complex_value *result,
+                   a_boolean                 *err,
+                   a_boolean                 *depends_on_fp_mode);
+
+extern void cx_subtract(a_float_kind              kind,
+                        an_internal_complex_value *value_1,
+                        an_internal_complex_value *value_2,
+                        an_internal_complex_value *result,
+                        a_boolean                 *err,
+                        a_boolean                 *depends_on_fp_mode);
+
+extern void cx_negate(a_float_kind              kind,
+                      an_internal_complex_value *value_1,
+                      an_internal_complex_value *result,
+                      a_boolean                 *err,
+                      a_boolean                 *depends_on_fp_mode);
+
+extern void cx_multiply(a_float_kind              kind,
+                        an_internal_complex_value *value_1,
+                        an_internal_complex_value *value_2,
+                        an_internal_complex_value *result,
+                        a_boolean                 *err,
+                        a_boolean                 *depends_on_fp_mode);
+
+extern void cx_divide(a_float_kind              kind,
+                      an_internal_complex_value *value_1,
+                      an_internal_complex_value *value_2,
+                      an_internal_complex_value *result,
+                      a_boolean                 *err,
+                      a_boolean                 *depends_on_fp_mode);
+
+extern a_boolean cx_equal(a_float_kind              kind,
+                          an_internal_complex_value *value_1,
+                          an_internal_complex_value *value_2);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
 #if BUILTIN_FUNCTIONS_ENABLED
 extern a_boolean fp_signbit(a_float_kind            kind,
                             an_internal_float_value *value);
