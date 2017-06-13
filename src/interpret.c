@@ -8790,7 +8790,7 @@ the value representation of the integer value.
             }
             break;
           case eok_real_part:
-            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+            if (expr->is_lvalue || expr->is_xvalue) {
               a_constexpr_address  *src = (a_constexpr_address*)result_storage;
               if (is_runtime_data_address(src)) {
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
@@ -8805,12 +8805,14 @@ the value representation of the integer value.
                    (a_byte*)&((an_internal_complex_value*)src->address)->real;
                 *(a_constexpr_address*)result_storage = *src;
               }  /* if */
+            } else if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              *fp_value(result_storage) = cx_value_at(opnd1_value)->real;
             } else {
               *fp_value(result_storage) = cx_value(opnd1_value)->real;
             }  /* if */
             break;
           case eok_imag_part:
-            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+            if (expr->is_lvalue || expr->is_xvalue) {
               a_constexpr_address  *src = (a_constexpr_address*)result_storage;
               if (is_runtime_data_address(src)) {
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
@@ -8825,6 +8827,8 @@ the value representation of the integer value.
                    (a_byte*)&((an_internal_complex_value*)src->address)->imag;
                 *(a_constexpr_address*)result_storage = *src;
               }  /* if */
+            } else if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              *fp_value(result_storage) = cx_value_at(opnd1_value)->imag;
             } else {
               *fp_value(result_storage) = cx_value(opnd1_value)->imag;
             }  /* if */
