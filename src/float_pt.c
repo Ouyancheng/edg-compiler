@@ -2733,6 +2733,7 @@ values:
   return cmp;
 }  /* fp_compare */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 void cx_add(a_float_kind              kind,
@@ -2855,12 +2856,12 @@ result in result.  The result has kind "kind".  If there is any error, set
 }  /* cx_multiply */
 
 
-extern void cx_divide(a_float_kind              kind,
-                      an_internal_complex_value *value_1,
-                      an_internal_complex_value *value_2,
-                      an_internal_complex_value *result,
-                      a_boolean                 *err,
-                      a_boolean                 *depends_on_fp_mode)
+void cx_divide(a_float_kind              kind,
+               an_internal_complex_value *value_1,
+               an_internal_complex_value *value_2,
+               an_internal_complex_value *result,
+               a_boolean                 *err,
+               a_boolean                 *depends_on_fp_mode)
 /*
 Divide the complex floating-point values value_1 and value_2 and put the
 result in result.  The result has kind "kind".  If there is any error, set
@@ -2951,6 +2952,7 @@ equal.  Return FALSE otherwise.
 }  /* cx_equal */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
