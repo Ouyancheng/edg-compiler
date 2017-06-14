@@ -8790,8 +8790,8 @@ the value representation of the integer value.
             }
             break;
           case eok_real_part:
-            if (expr->is_lvalue || expr->is_xvalue) {
-              a_constexpr_address  *src = (a_constexpr_address*)result_storage;
+            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              a_constexpr_address  *src = (a_constexpr_address*)opnd1_value;
               if (is_runtime_data_address(src)) {
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
@@ -8800,20 +8800,25 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
+              } else if (expr->is_lvalue || expr->is_xvalue) {
+                /* Maintain the lvalue. */
+                a_constexpr_address  *dst =
+                                         (a_constexpr_address*)result_storage;
+                *dst = *src;
+                dst->address =
+                   (a_byte*)&((an_internal_complex_value*)dst->address)->real;
               } else {
-                src->address =
-                   (a_byte*)&((an_internal_complex_value*)src->address)->real;
-                *(a_constexpr_address*)result_storage = *src;
+                /* Copy the real component as an rvalue. */
+                *fp_value(result_storage) = cx_value_at(opnd1_value)->real;
               }  /* if */
-            } else if (opnd1->is_lvalue || opnd1->is_xvalue) {
-              *fp_value(result_storage) = cx_value_at(opnd1_value)->real;
             } else {
+              /* __real applied to an rvalue. */
               *fp_value(result_storage) = cx_value(opnd1_value)->real;
             }  /* if */
             break;
           case eok_imag_part:
-            if (expr->is_lvalue || expr->is_xvalue) {
-              a_constexpr_address  *src = (a_constexpr_address*)result_storage;
+            if (opnd1->is_lvalue || opnd1->is_xvalue) {
+              a_constexpr_address  *src = (a_constexpr_address*)opnd1_value;
               if (is_runtime_data_address(src)) {
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
@@ -8822,14 +8827,19 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
+              } else if (expr->is_lvalue || expr->is_xvalue) {
+                /* Maintain the lvalue. */
+                a_constexpr_address  *dst =
+                                         (a_constexpr_address*)result_storage;
+                *dst = *src;
+                dst->address =
+                   (a_byte*)&((an_internal_complex_value*)dst->address)->imag;
               } else {
-                src->address =
-                   (a_byte*)&((an_internal_complex_value*)src->address)->imag;
-                *(a_constexpr_address*)result_storage = *src;
+                /* Copy the real component as an rvalue. */
+                *fp_value(result_storage) = cx_value_at(opnd1_value)->imag;
               }  /* if */
-            } else if (opnd1->is_lvalue || opnd1->is_xvalue) {
-              *fp_value(result_storage) = cx_value_at(opnd1_value)->imag;
             } else {
+              /* __real applied to an rvalue. */
               *fp_value(result_storage) = cx_value(opnd1_value)->imag;
             }  /* if */
             break;
