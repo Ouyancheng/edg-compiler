@@ -3958,8 +3958,7 @@ is in fact valid.
     corresp_sym = symbol_for(corresp_templ);
     scp = &templ->canonical_template->source_corresp,
     corresp_scp = &corresp_templ->source_corresp;
-    match = templ->kind == corresp_templ->kind &&
-                                             verify_name_correspondence(templ);
+    match = templ->kind == corresp_templ->kind;
     if (match && is_template_symbol(templ_sym)) {
       /* templ_sym could also be an ordinary member function. */
       tssp = templ_sym->variant.template_info;

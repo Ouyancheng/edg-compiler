@@ -1,5 +1,13 @@
 Version 4.14
 
+6/15/17  [EDGcpfe/18360]
+Spurious correspondence error on conversion function template
+
+When simultaneously compiling multiple translation units containing conversion
+function templates, the front end sometimes issued a spurious correspondence
+error on matching conversion functions.  This is now fixed.
+
+
 6/15/17  [EDGcpfe/18488]
 Spurious assertion failure when BUILTIN_FUNCTIONS_ENABLED is TRUE and
 GNU_VECTOR_TYPES_ALLOWED is FALSE
@@ -7,8 +15,6 @@ GNU_VECTOR_TYPES_ALLOWED is FALSE
 In configurations where BUILTIN_FUNCTIONS_ENABLED is TRUE but
 GNU_VECTOR_TYPES_ALLOWED is FALSE, an assertion check in check_target_config
 could fire if integer types don't have certain prescribed sizes.  Now fixed.
-
-
 6/15/17  [EDGcpfe/18482]
 Spurious SFINAE failure on nested member template reference
 
