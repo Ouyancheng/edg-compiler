@@ -7036,9 +7036,16 @@ a left parenthesis in the source.
                          template argument list.  Pretend we found nothing. */
                       sym = NULL;
                     }  /* if */
-                  } else if (symbol_is_or_contains_function_template(sym)) {
+                  } else if (symbol_is_or_contains_function_template(sym) ||
+                             (symbol_is(sym, sk_constant) &&
+                              constant_is(sym->variant.constant,
+                                          ck_template_param) &&
+                              sym->variant.constant
+                                 ->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member)) {
                     /* Function templates are okay with or without an explicit
-                       template argument list. */
+                       template argument list.  (For dependent members, assume
+                       they could be a function template.) */
                     if (is_template_ref) {
                       /* Something like "p.template f<T>()". */
                       is_template_id = TRUE;
@@ -7654,7 +7661,7 @@ case).
          to be treated as overloaded. */
       rep = NULL;
       force_indefinite_function = TRUE;
-    } else  if (force_indefinite_function_in_skipped_decltype(member_sym)) {
+    } else if (force_indefinite_function_in_skipped_decltype(member_sym)) {
       /* Make all calls dependent in certain decltype contexts. */
       rep = NULL;
       force_indefinite_function = TRUE;
