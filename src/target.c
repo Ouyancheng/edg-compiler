@@ -548,7 +548,7 @@ are diagnosed.
                                                 targ_maximum_pack_alignment) {
     internal_error("check_target_config: invalid targ_maximum_pack_alignment");
   }  /* if */
-#if BUILTIN_FUNCTIONS_ENABLED
+#if BUILTIN_FUNCTIONS_ENABLED && GNU_VECTOR_TYPES_ALLOWED
   /* The GNU built-in functions that map on IA-32 vector instructions require
      that integers of specific sizes exist.  To keep things simple, we make
      the slightly stronger requirement that sizeof(short) == 2,
@@ -558,7 +558,7 @@ are diagnosed.
                          targ_sizeof_long_long == 8,
                        "check_target_config: invalid integer sizes for",
                        " GNU IA-32 vector functions");
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED && GNU_VECTOR_TYPES_ALLOWED */
 #if IA64_ABI && DO_IL_LOWERING
   { 
     /* Verify that the integer kind used for a vtable entry is signed and
