@@ -1,5 +1,15 @@
 Version 4.14
 
+6/15/17  [EDGcpfe/18320]
+GNU C++ compatibility: Conversion from lambda to function pointer
+
+The front end previously unconditionally emulated a GCC bug that causes a
+conversion function to exist for closure types associated with lambda
+expressions that include a "capture default" (i.e., "[=]" or "[&]"); see
+the entry for EDGcpfe/14585.  Now, that emulation is disabled when
+gnu_version >= 60200, since GCC 6.2.0 apparently fixed the bug.
+
+
 6/15/17  [EDGcpfe/18233]
 Spurious error on scoped enum operation
 
