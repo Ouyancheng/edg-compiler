@@ -10028,7 +10028,7 @@ operand through *p_operation_type.
   check_assertion(is_scoped_enum_type(operand_1->type) ||
                   is_scoped_enum_type(operand_2->type));
   *p_operation_type = skip_typerefs(operand_1->type);
-  if (!identical_types(operand_1->type, operand_2->type)) {
+  if (!identical_types_ignoring_qualifiers(operand_1->type, operand_2->type)) {
     if (!is_scoped_enum_type(operand_1->type)) {
       error_in_operand(ec_scoped_enum_operation_type_mismatch, operand_1);
       *p_operation_type = skip_typerefs(operand_2->type);

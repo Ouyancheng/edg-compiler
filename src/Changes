@@ -1,5 +1,23 @@
 Version 4.14
 
+6/15/17  [EDGcpfe/18233]
+Spurious error on scoped enum operation
+
+The front end sometimes emitted a spurious error for an operation on values
+of a scope enum type when different type qualifiers are involved.  For example:
+
+  enum class E { e };
+  struct S {
+    S();
+    E const g;
+  };
+  int main() {
+    return S{}.g == E::e;  // Previously elicited a spurious error.  Now okay.
+  }
+
+This is now fixed.
+
+
 6/15/17  [EDGcpfe/18360]
 Spurious correspondence error on conversion function template
 
