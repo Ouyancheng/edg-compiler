@@ -23,7 +23,8 @@ gnu_version >= 60200, since GCC 6.2.0 apparently fixed the bug.
 Spurious error on scoped enum operation
 
 The front end sometimes emitted a spurious error for an operation on values
-of a scope enum type when different type qualifiers are involved.  For example:
+of a scoped enum type when different type qualifiers are involved.  For
+example:
 
   enum class E { e };
   struct S {
