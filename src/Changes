@@ -54,7 +54,7 @@ GNU_VECTOR_TYPES_ALLOWED is FALSE, an assertion check in check_target_config
 could fire if integer types don't have certain prescribed sizes.  Now fixed.
 
 
-6/15/17  [EDGcpfe/18482]
+6/15/17  [EDGcpfe/18042,EDGcpfe/18482]
 Spurious SFINAE failure on nested member template reference
 
 In some fairly complex situations, the front end did not correctly substitute
