@@ -52,13 +52,15 @@ GNU_VECTOR_TYPES_ALLOWED is FALSE
 In configurations where BUILTIN_FUNCTIONS_ENABLED is TRUE but
 GNU_VECTOR_TYPES_ALLOWED is FALSE, an assertion check in check_target_config
 could fire if integer types don't have certain prescribed sizes.  Now fixed.
+
+
 6/15/17  [EDGcpfe/18482]
 Spurious SFINAE failure on nested member template reference
 
 In some fairly complex situations, the front end did not correctly substitute
 a reference to a member template in a function template signature, thereby
 triggering a spurious SFINAE failure (i.e., discarding a candidate template
-when should be treated as a viable candidate instead).  For example:
+that should be treated as a viable candidate instead).  For example:
 
   template<bool b> struct E;
   template<typename ... Ts> struct V { V(); };
