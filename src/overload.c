@@ -677,6 +677,17 @@ destination type (this comes up in a Microsoft-mode extension).
     is_rvalue_ref = is_rvalue_reference_type(dest_type);
     dest_underlying_type = type_pointed_to(dest_type);
     is_ref_to_const = is_const_qualified_type(dest_underlying_type);
+    if (is_ref_to_const && std_conv != NULL &&
+        is_pointer_type(dest_underlying_type)) {
+      /* Something like:
+             template <typename U> void f(U);
+             int g(int);
+             int g(void (* const &)(int));
+             int r = g(f);
+         I.e., we're not converting to a reference-to-function, but to a
+         pointer-to-function. */
+      dest_underlying_type = type_pointed_to(dest_underlying_type);
+    }  /* if */
   } else if (is_ptr_to_member_type(dest_type)) {
     dest_class = pm_class_type(dest_type);
     is_ptr_to_member = TRUE;
