@@ -1,5 +1,20 @@
 Version 4.14
 
+6/20/17  [EDGcpfe/17959,EDGcpfe/18497]
+Spurious error on constexpr defaulted constructor with trivial base constructor
+
+The front end previously issued a spurious error on the following case:
+
+  struct B {};
+  struct D: B {
+    constexpr D() = default;  // Previously an error.  Now okay.
+  };
+
+because it failed to notice that the trivial construction of the base class B
+is valid in a constant-expression context.  That is now fixed (i.e., the case
+is now accepted).
+
+
 6/20/17  [EDGcpfe/18162]
 Microsoft compatibility: Case labels
 

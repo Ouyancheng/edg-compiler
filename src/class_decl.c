@@ -19914,7 +19914,13 @@ default constructor, or an array thereof.
                                                  /*evaluated=*/TRUE,
                                                  /*check_access=*/TRUE,
                                                  &error_detected, &err);
-    result = default_ctor != NULL && default_ctor->is_constexpr;
+    if (default_ctor != NULL) {
+      result = default_ctor->is_constexpr;
+    } else {
+      a_class_symbol_supplement_ptr
+        cssp = class_symbol_supp(symbol_for(type));
+      result = has_trivial_default_constructor(cssp) && !error_detected;
+    }  /* if */
   }  /* if */
   return result;
 }  /* type_is_constexpr_default_constructible */
