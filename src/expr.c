@@ -23761,15 +23761,23 @@ previously-scanned braced initializer.
   a_conv_context_set    conv_context = CCO_CAST;
   a_boolean             error_on_narrowing = strict_ansi_mode;
   an_expr_node_ptr      expr;
+  an_init_state         is, *p_is;
+  an_operand            *result_opnd;
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   if (rescan_icp != NULL) {
     icp = rescan_icp;
+    expr_clear_init_state(&is);
+    is.no_diagnostics = TRUE;
+    p_is = &is;
+    result_opnd = NULL;
   } else {
     icp = parse_braced_init_list(/*bundle=*/FALSE);
+    p_is = NULL;
+    check_assertion(result != NULL);  /* For lint. */
+    result_opnd = result;
   }  /* if */
-  check_assertion(result != NULL);  /* For lint. */
   prep_list_initializer(icp, type_cast_to,
                         /*is_direct_init=*/TRUE,
                         error_on_narrowing,
@@ -23779,8 +23787,20 @@ previously-scanned braced initializer.
                         /*force_temp=*/
                                       is_class_struct_union_type(type_cast_to),
                         /*make_lvalue_temp=*/FALSE,
-                        result, (an_init_state *)NULL,
-                        (an_arg_match_summary *)NULL);
+                        result_opnd, p_is, (an_arg_match_summary *)NULL);
+  if (result_opnd == NULL) {
+    if (is.init_error) {
+      make_error_operand(result);
+    } else if (is.init_con != NULL) {
+      make_constant_operand(is.init_con, result);
+    } else {
+      an_expr_node_ptr  node;
+      node = alloc_temp_init_node(type_cast_to, is.init_dip,
+                                  /*make_lvalue_temp=*/FALSE,
+                                  /*is_explicit_cast=*/TRUE);
+      make_lvalue_or_rvalue_expression_operand(node, result);
+    }  /* if */
+  }  /* if */
   expr = expr_node_from_operand(result);
   if (expr != NULL) {
     /* Record source form information in the associated IL entries if

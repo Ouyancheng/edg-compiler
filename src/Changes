@@ -1,5 +1,21 @@
 Version 4.14
 
+6/20/17  [EDGcpfe/18383]
+Spurious error during brace-notation cast in SFINAE context
+
+Consider the following example:
+
+  template < typename T> int f();
+  template < typename T, typename = decltype(T{})> int f(); // (1)
+  struct S { S() = delete; S(int); };
+  int r = f<S>();  // (2)  Previously an error.  Now okay.
+
+This substitution of T = S in the declaration (1) of function template f
+should fail in a "SFINAE" sense (i.e., silently, causing that declaration
+to be discarded when resolving the call in (2)).  However, the front end
+previously failed to notice the SFINAE context, and emitted an actual error
+in all cases.  This is now fixed.
+
 
 6/19/17  [EDGcpfe/17989]
 Binding a reference to const pointer parameter of an overloaded function
