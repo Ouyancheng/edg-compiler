@@ -13,8 +13,8 @@ Consider the following example:
   int r = g(f);  // Previously an error.  Now okay.
 
 Previously, the front end failed to consider a possible match between an
-instance of f and the reference to const pointer parameter parameter in the
-second declaration of function g.  That is now fixed.
+instance of f and the reference to const pointer parameter in the second
+declaration of function g.  That is now fixed.
 
 
 6/16/17  [EDGcpfe/18436]
