@@ -42850,7 +42850,7 @@ selector type.
       scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && is_constant_operand(&operand)) {
+    if (microsoft_mode && ms_permissive && is_constant_operand(&operand)) {
       /* MSVC++ allows (void *)1 as a case label constant. */
       a_constant_ptr  case_con = &operand.variant.constant;
       if (is_floating_type(case_con->type)) {

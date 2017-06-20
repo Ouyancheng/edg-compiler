@@ -1,5 +1,12 @@
 Version 4.14
 
+6/20/17  [EDGcpfe/18162]
+Microsoft compatibility: Case labels
+
+Case labels cast to pointer types (e.g., "case (int*)0x1234:") are no longer
+accepted in Microsoft mode when permissive mode is turned off.  (See also
+the entry of 12/9/01 that describes Microsoft case label extension.)
+
 6/20/17  [EDGcpfe/18383]
 Spurious error during brace-notation cast in SFINAE context
 
