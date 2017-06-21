@@ -7370,22 +7370,23 @@ field initializer), set *variant_explicit_init to TRUE.
 
   for (; cip != NULL; cip = cip->next) {
     a_dynamic_init_ptr  dip = cip->initializer;
+    a_field_ptr         fp;
     check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
+    fp = cip->variant.field;
     if ((dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) ||
         (!first_entry && cip->source.arg_cache != NULL)) {
       /* An explicit initializer. */
       *variant_explicit_init = TRUE;
       *variant_init = TRUE;
       break;
-    } else if (cip->variant.field->has_initializer) {
+    } else if (fp->has_initializer) {
       /* No explicit mem-initializer, but the field has an associated
          in-class initializer. */
       *variant_init = TRUE;
       /* Continue in case an explicit initializer is present (which would
          supersede a field initializer). */
     }  /* if */
-    if (symbol_for(cip->variant.field)->variant.field.extra_info
-                                      ->is_last_variant_member) {
+    if (symbol_for(fp)->variant.field.extra_info->is_last_variant_member) {
       /* Any subsequent members are not part of this variant.  End the search
          here. */
       break;
@@ -8217,7 +8218,8 @@ initialized.  These are addressed in the course of the processing.
           if (ctor_rout->is_constexpr && !variant_init) {
             /* If this is a constexpr constructor, each variant must have
                an initializer. */
-            if (!is_unspecialized_template_member_function(ctor_rout)) {
+            if (ctor_rout->is_declared_constexpr &&
+                !is_unspecialized_template_member_function(ctor_rout)) {
               pos2_diagnostic(
                         es_error,
                         ec_constexpr_constructor_initializes_no_variant_field,

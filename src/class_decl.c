@@ -19994,7 +19994,8 @@ default constructor are satisfied by the given class type.  For non-union
 types, all fields must be initialized, and for union types exactly one field
 must be initialized.  The initializers must also be constants, but we do not
 enforce that for template classes to avoid forcing the premature instantiation
-of the initializers.
+of the initializers.  Volatile fields are never validly initialized in a
+constant-expression and thus cause this routine to return FALSE.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
@@ -20010,6 +20011,10 @@ of the initializers.
       a_boolean  member_initialized;
       if (fp->has_nonconstant_initializer) {
         /* A nonconstant initializer is never okay. */
+        okay = FALSE;
+        break;
+      } else if (is_volatile_qualified_type(fp->type)) {
+        /* A volatile field cannot be initialized in a constant-expression. */
         okay = FALSE;
         break;
       } else if (fp->compiler_generated) {
