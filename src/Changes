@@ -171,7 +171,7 @@ This is now fixed.
 6/9/17   [EDGcpfe/17937,EDGcpfe/18479]
 GNU compatibility: __builtin_addressof
 
-The __builtin_addressof (see the changes for EDGcpfe/16955) is now available
+__builtin_addressof (see the changes for EDGcpfe/16955) is now available
 when gnu_version >= 70000.
 
 
