@@ -19919,7 +19919,8 @@ default constructor, or an array thereof.
     } else {
       a_class_symbol_supplement_ptr
         cssp = class_symbol_supp(symbol_for(type));
-      result = has_trivial_default_constructor(cssp) && !error_detected;
+      result = has_trivial_default_constructor(cssp) && !error_detected &&
+               type->variant.class_struct_union.is_empty_class;
     }  /* if */
   }  /* if */
   return result;
