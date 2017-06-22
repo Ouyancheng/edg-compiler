@@ -1,5 +1,20 @@
 Version 4.14
 
+6/22/17  [EDGcpfe/18524]
+Spurious unbounded recursive template substitution
+
+Consider the following example:
+
+  auto f(...)->int;
+  template<class T> auto f(T x)->decltype(f(x), int{});
+  int r = f(42);
+
+Previously, this triggered an error due to excessive recursive substitution
+because the call "f(x)" found the template declaration in which is appears.
+This is now fixed (it no longer finds the template, and only considers the
+ellipsis function).
+
+
 6/20/17  [EDGcpfe/17959,EDGcpfe/18497]
 Spurious error on constexpr defaulted constructor with trivial base constructor
 

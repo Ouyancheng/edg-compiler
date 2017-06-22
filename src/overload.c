@@ -4634,9 +4634,10 @@ TRUE if the function is not visible because it is declared after the
 point of call, FALSE otherwise.
 */
 {
-  a_boolean              visible = TRUE, function_template_case;
-  a_routine_ptr          routine;
-  a_decl_sequence_number effective_decl_seq;
+  a_boolean                visible = TRUE, function_template_case;
+  a_routine_ptr            routine;
+  a_decl_sequence_number   effective_decl_seq;
+  a_scope_stack_entry_ptr  ssep;
 
   if (invisible_because_explicit != NULL) *invisible_because_explicit = FALSE;
   if (invisible_because_post_decl != NULL) *invisible_because_post_decl=FALSE;
@@ -4649,17 +4650,24 @@ point of call, FALSE otherwise.
   }  /* if */
   /* Remove projection, if any. */
   function_symbol = fundamental_symbol_of(function_symbol);
-  if (microsoft_mode && scope_stack_top().is_rescan &&
-      scope_is(&scope_stack_top(), sck_template_instantiation)) {
-    /* In Microsoft mode, SFINAE rescanning performs ordinary lookups of the
-       re-scanned expression in the instantiation context (see
-       symbol_for_template_param_unknown_entity_con_after_substitution).  That
-       can cause the rescanned function template to be found during its own
-       substitution, which in turn leads to unbounded recursion.  To avoid
-       that, we treat the template as invisible while it's being rescanned. */
-    a_symbol_ptr  templ_sym = scope_stack_top().template_sym;
-    check_assertion(templ_sym != NULL);
-    if (templ_sym == function_symbol) {
+  /* While substituting function template signatures (e.g., during rescanning
+     for SFINAE purposes), the function template being substituted should not
+     be considered a candidate.  E.g.:
+        auto f(...)->int;
+        template<class T> auto f(T x)->decltype(f(x), int{});
+     The call "f(x)" should not consider the template in which it appears.
+     Ordinarily, lexical ordering rules take care of such issues, but here
+     the call appears after the declarator, and during substitution the whole
+     template is known.  So here, we eliminate that one template from
+     consideration. */
+  ssep = &scope_stack_top();
+  if (scope_is(ssep, sck_function_access) ||
+      scope_is(ssep, sck_func_prototype)) {
+    ssep -= 1;
+  }  /* if */
+  if (scope_is(ssep, sck_template_instantiation)) {
+    a_symbol_ptr  templ_sym = ssep->template_sym;
+    if (templ_sym != NULL && templ_sym == function_symbol) {
       visible = FALSE;
       goto end_of_function;
     }  /* if */
