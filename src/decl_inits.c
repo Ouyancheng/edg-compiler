@@ -8702,8 +8702,14 @@ initialized.  These are addressed in the course of the processing.
              !has_field_init) {
     /* A constexpr constructor for a union must initialize a field
        explicitly. */
-    pos_error(ec_union_constexpr_constructor_initializes_no_field,
-              &error_position);
+    if (ctor_rout->is_declared_constexpr &&
+        !is_unspecialized_template_member_function(ctor_rout)) {
+      pos_error(ec_union_constexpr_constructor_initializes_no_field,
+                &error_position);
+    }  /* if */
+    if (!ctor_rout->is_prototype_instantiation) {
+      clear_constexpr_flag = TRUE;
+    }  /* if */
   }  /* if */
   if (clear_constexpr_flag) {
     ctor_rout->is_constexpr = FALSE;
