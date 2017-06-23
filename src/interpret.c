@@ -10443,9 +10443,9 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
-                } else if (expr->variant.operation.type_kind ==
-                                                      (a_type_kind)tk_float &&
-                           tp->kind == (a_type_kind)tk_float) {
+                } else if (type_kind_is_float_like(
+                                         expr->variant.operation.type_kind) &&
+                           expr->variant.operation.type_kind == tp->kind) {
                   /* Floating-point -= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
                   fp_subtract(tp->variant.float_kind, dst_val,
@@ -10461,9 +10461,9 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *fp_value(result_storage) = *fp_value_at(dst);
                   }  /* if */
-                } else if (type_kind_is_float_like(
-                                         expr->variant.operation.type_kind) &&
-                           expr->variant.operation.type_kind == tp->kind) {
+                } else if (expr->variant.operation.type_kind ==
+                                                      (a_type_kind)tk_float &&
+                           tp->kind == (a_type_kind)tk_integer) {
                   /* Integer -= floating-point. */
                   an_internal_float_value  dst_val;
                   int_kind = tp->variant.integer.int_kind;
