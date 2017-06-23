@@ -8320,7 +8320,8 @@ the __unaligned and __restrict qualifiers).
           same = TRUE;
         } else {
           /* For other types, the underlying types must be the same. */
-          same = types_are_compatible(dest_type, source_type);
+          same = types_are_compatible_ignoring_qualifiers(
+                                                      dest_type, source_type);
         }  /* if */
         break;
       }  /* if */
