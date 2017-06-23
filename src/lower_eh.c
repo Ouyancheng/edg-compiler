@@ -2714,9 +2714,6 @@ the cv-qualifiers and passes the type through.
   if (is_reference_type(eff_type)) {
     eff_type = type_pointed_to(eff_type);
   }  /* if */
-  while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
-    eff_type = type_pointed_to(eff_type);
-  }  /* while */
 #endif /* IA64_ABI */
 #endif /* GENERATE_EH_TABLES */
   /* Strip typerefs but watch out for rewritten pointers-to-members or

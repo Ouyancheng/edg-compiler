@@ -84,15 +84,6 @@ instance of f and the reference to const pointer parameter in the second
 declaration of function g.  That is now fixed.
 
 
-6/16/17  [EDGcpfe/18436]
-IA-64 ABI compatibility: typeinfo for pointer types
-
-In IA-64 ABI configurations where GENERATE_EH_TABLES is FALSE, the front end
-had generated typeinfo information for pointers to class types, but now
-generates only typeinfo for pointed-to class types (which matches the behavior
-of the case when GENERATE_EH_TABLES is TRUE, as well as g++ and clang).
-
-
 6/15/17  [EDGcpfe/18320]
 GNU C++ compatibility: Conversion from lambda to function pointer
 
