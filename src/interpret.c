@@ -5378,12 +5378,7 @@ Interpret the given range-based for-statement.
       if (result) {
         /* Evaluation of the test expression succeeded.  Get its value
            to see if the dependent statement should be executed. */
-        if (expr != NULL) {
-          get_int_val_from(expr_value, tp, bool_val, ovfl);
-        } else {
-          bool_val = TRUE;
-          ovfl = FALSE;
-        }  /* if */
+        get_int_val_from(expr_value, tp, bool_val, ovfl);
         if (!ovfl && bool_val) {
           /* Initialize the iterator variable: */
           if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
@@ -5412,12 +5407,9 @@ Interpret the given range-based for-statement.
                  reached the point of continuation. */
               ips->curr_call_frame->continue_active = FALSE;
             }  /* if */
-            if (incr != NULL) {
-              do_constexpr_full_expression(
+            do_constexpr_full_expression(
                                    ips, incr, incr_value, incr_value, result);
-              release_address_structures(incr, incr_type,
-                                                  incr_value);
-            }  /* if */
+            release_address_structures(incr, incr_type, incr_value);
           }  /* if */
         }  /* if */
       }   /* if */

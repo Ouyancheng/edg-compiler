@@ -1,5 +1,12 @@
 Version 4.14
 
+6/26/17  [EDGcpfe/18534]
+Unneeded null-pointer tests removed in interpreter
+
+Some unneeded null-pointer tests were removed from the interpreter (in function
+do_constexpr_range_based_for_statement) because they triggered warnings by
+certain static analysis tools.
+
 
 6/26/17  [EDGcpfe/18519]
 Internal error on complex template-dependent reference return type
