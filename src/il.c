@@ -8398,7 +8398,7 @@ con->is_named_constant_definition flag.
 {
   a_boolean is_enum = FALSE;
 
-  if (con->kind == (a_constant_repr_kind)ck_integer) {
+  if (constant_is(con, ck_integer)) {
     /* The constant has an integral representation. */
     a_type_ptr con_type = con->type;
     if (con_type->kind == (a_type_kind)tk_integer) {
@@ -8412,6 +8412,11 @@ con->is_named_constant_definition flag.
         is_enum = TRUE;
       }  /* if */
     }  /* if */
+  } else if (con->is_named_constant_definition &&
+             constant_is(con, ck_template_param) &&
+             !con->source_corresp.is_class_member) {
+    /* Some enumerator constants are ck_template_param entries. */
+    is_enum = TRUE;
   }  /* if */
   return is_enum;
 }  /* is_enum_constant */
