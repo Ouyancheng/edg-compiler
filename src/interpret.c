@@ -8061,7 +8061,8 @@ is within the given complete_object.
                             &expr->position, ips);
               do_constexpr_fail(is_constant);
               break;
-            } else if (!is_initialized(&var_addr)) {
+            } else if (!is_function_address(&var_addr) &&
+                       !is_initialized(&var_addr)) {
               info_with_pos(ec_object_not_initialized, &expr->position, ips);
               do_constexpr_fail(is_constant);
               break;
