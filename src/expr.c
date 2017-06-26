@@ -39739,16 +39739,23 @@ handle_deduced_return_type:
         }  /* if */
       } else {
         /* Convert to the required type. */
-        prep_initializer_operand(&result, required_type, 
-                                 (a_boolean *)NULL,
-                                 (a_conv_descr_ptr)NULL,
-                                 /*is_copy_initialization=*/TRUE,
-                                 conv_context,
-                                 err_code);
-        expression = make_node_from_operand(&result);
-        if (!is_any_reference_type(required_type)) {
-          check_for_return_of_address_of_local_variable(expression,
-                                                        &result.position);
+        if (is_template_dependent_context() &&
+            (is_template_dependent_type(result.type) ||
+             is_template_dependent_type(required_type))) {
+          prep_generic_operand(&result);
+          expression = make_node_from_operand(&result);
+        } else {
+          prep_initializer_operand(&result, required_type, 
+                                   (a_boolean *)NULL,
+                                   (a_conv_descr_ptr)NULL,
+                                   /*is_copy_initialization=*/TRUE,
+                                   conv_context,
+                                   err_code);
+          expression = make_node_from_operand(&result);
+          if (!is_any_reference_type(required_type)) {
+            check_for_return_of_address_of_local_variable(expression,
+                                                          &result.position);
+          }  /* if */
         }  /* if */
       }  /* if */
       expression = wrap_up_full_expression(expression);

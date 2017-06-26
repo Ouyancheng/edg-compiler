@@ -1,5 +1,21 @@
 Version 4.14
 
+
+6/26/17  [EDGcpfe/18519]
+Internal error on complex template-dependent reference return type
+
+In function templates involving a somewhat complicated template-dependent
+return type known to be a reference type the front end sometimes aborted with
+an internal error in convert_operand_into_temp.  For example:
+
+  template<typename T>
+  auto f(T const &p) -> decltype(p)&& {
+    return (decltype(p)&&)p;  // Previously aborted with an internal error.
+  }                           // Now okay.
+
+This is now fixed.
+
+
 6/26/17  [EDGcpfe/18489]
 Internal error on namespace with typedef and multiple using-declarations
 
