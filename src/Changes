@@ -1,5 +1,18 @@
 Version 4.14
 
+6/26/17  [EDGcpfe/18489]
+Internal error on namespace with typedef and multiple using-declarations
+
+An internal error could occur (in lookup_in_namespace) if a namespace
+contained a typedef to a struct and also multiple using-declarations
+that refer to struct to which the typedef refers.  Now fixed.
+
+  namespace A { struct S {}; }
+  namespace B { typedef A::S S; }
+  namespace B { using A::S; }
+  namespace B { using A::S; }
+  B::S x;
+
 6/22/17  [EDGcpfe/18518]
 Spurious qualification conversion error on pointer-to-member array
 

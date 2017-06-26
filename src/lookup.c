@@ -5611,7 +5611,9 @@ inline namespaces.
       if (!must_be_tag) {
         /* A normal lookup. */
         if (is_tag_symbol(fund_sym)) {
-          check_assertion_or_expect_error(tag_symbol == NULL);
+          check_assertion_or_expect_error(tag_symbol == NULL ||
+                                          fundamental_symbol_of(tag_symbol) ==
+                                                                     fund_sym);
           tag_symbol = sym;
         } else {
           if (is_namespace_symbol(sym) &&
