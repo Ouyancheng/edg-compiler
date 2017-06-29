@@ -1,5 +1,18 @@
 Version 4.14
 
+6/29/17  [EDGcpfe/18514]
+Abort on decltype of non-class type in qualified name
+
+An abort could occur (in class_qualified_id_lookup) if a decltype was
+used in a qualified name and the resulting type was not a class type
+(in the example below it is a reference to class type).  Now fixed.
+
+  struct A { int i; };
+  void f(const A& a) {
+    a.decltype(a)::i ;
+  }
+
+
 6/26/17  [EDGcpfe/18534]
 Unneeded null-pointer tests removed in interpreter
 

@@ -19480,7 +19480,9 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type_is_class = is_class_struct_union_type(qualifier_type);
           qualifier_is_enum = is_enum_type(qualifier_type);
-          if (!can_be_vacuous_dtor_or_finalizer &&
+          if ((!can_be_vacuous_dtor_or_finalizer ||
+               (field_sel_type == NULL ||
+                is_class_struct_union_type(field_sel_type)))  &&
               (qualifier_sym == NULL ||
                !is_valid_qualifier_symbol(qualifier_sym))) {
             invalid_qualifier_sym = TRUE;
