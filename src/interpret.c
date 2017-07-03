@@ -1784,10 +1784,21 @@ addressed (with non-array objects treated as arrays of one element).
   a_constant_ptr  cp;
 
   if (!constant_is(con_addr, ck_address)) {
-    /* Presumably a null pointer (an integer with a pointer type). */
     check_assertion(constant_is(con_addr, ck_integer));
-    length = 0;
-    pos = 0;
+    if (cmp_integer_values(&con_addr->variant.integer_value,
+                           /*op_1_signed=*/FALSE,
+                           (an_integer_value *)&zero_int,
+                           /*op_2_signed=*/FALSE) == 0) {
+      /* A null pointer value. */
+      length = 0;
+      pos = 0;
+    } else {
+      /* A run-time address formed by casting an arbitrary non-zero integer
+         to a pointer type (e.g., "(char*)0x1234").  Any length and position
+         is a-priori possible. */
+      length = MAX_ARRAY_LENGTH;
+      pos = 0;
+    }  /* if */
   } else if (elem_size == 0) {
     /* In some modes (e.g., GNU C), types can have size zero.  Any length and
        position is a-priori possible. */
@@ -8095,6 +8106,63 @@ is within the given complete_object.
 }  /* do_constexpr_lambda */
 
 
+static a_boolean offset_runtime_address(an_interpreter_state  *ips,
+                                        a_source_position     *diag_pos,
+                                        a_constant_ptr        addr_con,
+                                        a_host_large_integer  count,
+                                        a_byte_count          elem_size,
+                                        a_boolean             subtract)
+/*
+Offset the given address constant by count*elem_size (if subtract is FALSE) or
+-count*elem_size (if subtract is TRUE).  That address constant is usually a
+ck_address entry, but it also can be a ck_integer entry (e.g., resulting from
+a construct like "(char*)0x1234").  In case of overflow, record a diagnostic
+for the given position and return FALSE.  Otherwise, return TRUE.
+*/
+{
+  an_integer_value  delta, tmp;
+  a_boolean         ovflo;
+
+  set_integer_value(&delta, count);
+  set_unsigned_integer_value(&tmp, (a_host_large_unsigned)elem_size);
+  multiply_integer_values(&delta, &tmp, /*is_signed=*/TRUE, &ovflo);
+  if (ovflo) {
+    /* Nothing more to do. */
+  } else if (constant_is(addr_con, ck_address)) {
+    set_integer_value(&tmp,
+                      (a_host_large_integer)addr_con->variant.address.offset);
+    if (subtract) {
+      subtract_integer_values(&tmp, &delta, /*is_signed=*/TRUE, &ovflo);
+    } else {
+      add_integer_values(&tmp, &delta, /*is_signed=*/TRUE, &ovflo);
+    }  /* if */
+    if (!ovflo) {
+      addr_con->variant.address.offset =
+                      value_of_integer_value(&tmp, /*is_signed=*/TRUE, &ovflo);
+    }  /* if */
+  } else {
+    an_integer_value  *addr_val = &addr_con->variant.integer_value;
+    a_boolean         addr_is_signed;
+    check_assertion(constant_is(addr_con, ck_integer));
+    addr_is_signed = int_constant_is_signed(addr_con);
+    if (subtract) {
+      subtract_mixed_signed_integer_values(addr_val, addr_is_signed,
+                                           &delta, /*op_2_signed=*/TRUE,
+                                           &ovflo);
+    } else {
+      add_mixed_signed_integer_values(addr_val, addr_is_signed,
+                                      &delta, /*op_2_signed=*/TRUE,
+                                      &ovflo);
+    }  /* if */
+  }  /* if */
+  if (ovflo) {
+    info_with_pos_type(ec_constexpr_integer_overflow, diag_pos, addr_con->type,
+                       ips);
+  }  /* if */
+  return !ovflo;
+}  /* offset_runtime_address */
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -9498,8 +9566,12 @@ the value representation of the integer value.
                   }  /* if */
                 } else {
                   if (is_runtime_data_address(result_addr)) {
-                    result_addr->variant.addr_con->variant.address.offset +=
-                      host_int_val * elem_size;
+                    if (!offset_runtime_address(
+                               ips, &expr->position,
+                               result_addr->variant.addr_con,
+                               host_int_val, elem_size, /*subtract=*/FALSE)) {
+                      do_constexpr_fail(result);
+                    }  /* if */
                   } else {
                     result_addr->address += host_int_val * elem_size;
                   }  /* if */
@@ -9570,8 +9642,12 @@ the value representation of the integer value.
                   }  /* if */
                 } else {
                   if (is_runtime_data_address(result_addr)) {
-                    result_addr->variant.addr_con->variant.address.offset -=
-                      host_int_val * elem_size;
+                    if (!offset_runtime_address(
+                               ips, &expr->position,
+                               result_addr->variant.addr_con,
+                               host_int_val, elem_size, /*subtract=*/TRUE)) {
+                      do_constexpr_fail(result);
+                    }  /* if */
                   } else {
                     result_addr->address -= host_int_val * elem_size;
                   }  /* if */
@@ -11246,8 +11322,12 @@ the value representation of the integer value.
                       }  /* if */
                     } else {
                       if (is_runtime_data_address(ptr_val)) {
-                        ptr_val->variant.addr_con->variant.address.offset +=
-                          host_int_val * elem_size;
+                        if (!offset_runtime_address(
+                               ips, &expr->position,
+                               ptr_val->variant.addr_con,
+                               host_int_val, elem_size, /*subtract=*/FALSE)) {
+                          do_constexpr_fail(result);
+                        }  /* if */
                       } else {
                         ptr_val->address += host_int_val * elem_size;
                       }  /* if */
@@ -11321,8 +11401,12 @@ the value representation of the integer value.
                     }  /* if */
                   } else {
                     if (is_runtime_data_address(ptr_val)) {
-                      ptr_val->variant.addr_con->variant.address.offset -=
-                        host_int_val * elem_size;
+                      if (!offset_runtime_address(
+                               ips, &expr->position,
+                               ptr_val->variant.addr_con,
+                               host_int_val, elem_size, /*subtract=*/TRUE)) {
+                        do_constexpr_fail(result);
+                      }  /* if */
                     } else {
                       ptr_val->address -= host_int_val * elem_size;
                     }  /* if */
@@ -11442,7 +11526,8 @@ the value representation of the integer value.
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
                   SET_result_val_from_operand_address(&result_addr);
-                } else if (!is_array_element(&result_addr)) {
+                } else if (!is_array_element(&result_addr) &&
+                           !is_runtime_data_address(&result_addr)) {
                   if (host_int_val ==
                                 (cannot_dereference(&result_addr) ? -1 : 1)) {
                     /* A non-array element is treated as an array of one
@@ -11472,8 +11557,12 @@ the value representation of the integer value.
                                        (unsigned long)len, ips);
                   } else {
                     if (is_runtime_data_address(&result_addr)) {
-                      result_addr.variant.addr_con->variant.address.offset +=
-                        host_int_val * elem_size;
+                      if (!offset_runtime_address(
+                               ips, &expr->position,
+                               result_addr.variant.addr_con,
+                               host_int_val, elem_size, /*subtract=*/FALSE)) {
+                        do_constexpr_fail(result);
+                      }  /* if */
                     } else {
                       result_addr.address += host_int_val * elem_size;
                     }  /* if */

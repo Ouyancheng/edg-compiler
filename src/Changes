@@ -1,5 +1,17 @@
 Version 4.14
 
+7/3/17   [EDGcpfe/18535]
+Incorrect folding of subscript applied to integer cast to pointer type
+
+Consider:
+
+  int *p = &((int*)0x1000)[1];  // Previously incorrectly folded.
+
+The front end previously accidentally discarded the offset implied by the
+subscript operation.  This regression introduced in version 4.13 of the front
+end is now fixed.
+
+
 6/29/17  [EDGcpfe/18514]
 Abort on decltype of non-class type in qualified name
 
