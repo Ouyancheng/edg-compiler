@@ -8108,7 +8108,7 @@ is within the given complete_object.
 
 static a_boolean offset_runtime_address(an_interpreter_state  *ips,
                                         a_source_position     *diag_pos,
-                                        a_constant_ptr        addr_con,
+                                        a_constexpr_address   *cap,
                                         a_host_large_integer  count,
                                         a_byte_count          elem_size,
                                         a_boolean             subtract)
@@ -8122,7 +8122,10 @@ for the given position and return FALSE.  Otherwise, return TRUE.
 {
   an_integer_value  delta, tmp;
   a_boolean         ovflo;
+  a_constant_ptr    addr_con = cap->variant.addr_con;
 
+  addr_con = make_interpreter_copy_of_constant(ips, addr_con);
+  cap->variant.addr_con = addr_con;
   set_integer_value(&delta, count);
   set_unsigned_integer_value(&tmp, (a_host_large_unsigned)elem_size);
   multiply_integer_values(&delta, &tmp, /*is_signed=*/TRUE, &ovflo);
@@ -9567,8 +9570,7 @@ the value representation of the integer value.
                 } else {
                   if (is_runtime_data_address(result_addr)) {
                     if (!offset_runtime_address(
-                               ips, &expr->position,
-                               result_addr->variant.addr_con,
+                               ips, &expr->position, result_addr,
                                host_int_val, elem_size, /*subtract=*/FALSE)) {
                       do_constexpr_fail(result);
                     }  /* if */
@@ -9643,8 +9645,7 @@ the value representation of the integer value.
                 } else {
                   if (is_runtime_data_address(result_addr)) {
                     if (!offset_runtime_address(
-                               ips, &expr->position,
-                               result_addr->variant.addr_con,
+                               ips, &expr->position, result_addr,
                                host_int_val, elem_size, /*subtract=*/TRUE)) {
                       do_constexpr_fail(result);
                     }  /* if */
@@ -11323,8 +11324,7 @@ the value representation of the integer value.
                     } else {
                       if (is_runtime_data_address(ptr_val)) {
                         if (!offset_runtime_address(
-                               ips, &expr->position,
-                               ptr_val->variant.addr_con,
+                               ips, &expr->position, ptr_val,
                                host_int_val, elem_size, /*subtract=*/FALSE)) {
                           do_constexpr_fail(result);
                         }  /* if */
@@ -11402,8 +11402,7 @@ the value representation of the integer value.
                   } else {
                     if (is_runtime_data_address(ptr_val)) {
                       if (!offset_runtime_address(
-                               ips, &expr->position,
-                               ptr_val->variant.addr_con,
+                               ips, &expr->position, ptr_val,
                                host_int_val, elem_size, /*subtract=*/TRUE)) {
                         do_constexpr_fail(result);
                       }  /* if */
@@ -11558,8 +11557,7 @@ the value representation of the integer value.
                   } else {
                     if (is_runtime_data_address(&result_addr)) {
                       if (!offset_runtime_address(
-                               ips, &expr->position,
-                               result_addr.variant.addr_con,
+                               ips, &expr->position, &result_addr,
                                host_int_val, elem_size, /*subtract=*/FALSE)) {
                         do_constexpr_fail(result);
                       }  /* if */
