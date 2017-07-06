@@ -3494,6 +3494,11 @@ fields to default values.
       node->variant.await_info.resume_ready_suspend = NULL;
       break;
 #endif /* COROUTINES_ALLOWED */
+    case enk_fold:
+      node->variant.fold.operands = NULL;
+      node->variant.fold.operator_token = (a_token_kind)tok_error;
+      node->variant.fold.left_associative = FALSE;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

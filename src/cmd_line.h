@@ -1340,6 +1340,11 @@ EXTERN a_boolean
 			   packs) are accepted. */
 
 EXTERN a_boolean
+		fold_expressions_enabled;
+			/* TRUE if C++17 fold expressions (a variadic template
+			   construct) are accepted. */
+
+EXTERN a_boolean
 		gnu_bases_operators_enabled;
 			/* TRUE if the g++ __bases and __direct_bases operators
 			   are accepted. */

@@ -12042,6 +12042,10 @@ enum an_expr_node_kind_tag {
   enk_yield,		/* A "co_yield" expression. */
   enk_await,		/* A "co_await" expression. */
 #endif /* COROUTINES_ALLOWED */
+  enk_fold,		/* The generic representation of a C++17 fold
+			   expression.  (Concrete instantiations are
+			   represented using a chain of enk_operation
+			   nodes.) */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -13755,6 +13759,19 @@ typedef struct an_expr_node {
 			   operation. */
     } await_info;
 #endif /* COROUTINES_ALLOWED */
+    /* When kind == enk_fold: */
+    struct {
+      an_expr_node_ptr
+		operands;
+			/* One or two operands, depending on whether this
+			   represents a unary or binary fold. */
+      a_token_kind
+                operator_token;
+                        /* The operator token in the fold. */
+      a_bit_field
+		left_associative:1;
+			/* TRUE if this is a "left (associative) fold". */
+    } fold;
   } variant;
   an_expr_rescan_info_entry_ptr
 		rescan_info;

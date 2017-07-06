@@ -1859,8 +1859,11 @@ do_set_proper_definition_needed_flag:
             walk_list(eptr->variant.await_info.resume_ready_suspend,
                       an_expr_node_ptr, iek_expr_node);
             break;
-
 #endif /* COROUTINES_ALLOWED */
+          case enk_fold:
+            walk_list(eptr->variant.fold.operands, an_expr_node_ptr,
+                      iek_expr_node);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

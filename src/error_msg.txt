@@ -2935,6 +2935,10 @@ ec_attempt_to_read_past_end_of_object;;"attempt to read past the end of the obje
 ec_constexpr_lambdas_not_enabled;;"constexpr lambdas are not enabled in this mode"
 ec_lambda_not_constant_expr;;"a constant expression cannot contain a lambda expression"
 ec_template_argument_index_out_of_bounds;;"value exceeds number of template arguments"
+ec_fold_expression_operator_mismatch;;"second operator in binary fold expression does not match first"
+ec_invalid_fold_expression_operator;;"invalid fold expression operator"
+ec_two_packs_in_fold_expression;;"a binary fold expression cannot apply to two parameter packs"
+ec_invalid_empty_fold_expression;;"empty expansion not valid fold expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

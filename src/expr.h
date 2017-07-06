@@ -72,6 +72,9 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_LOGICAL_NOT_OPERAND 0x200
 			/* This expression is an operand for a logical "not"
 			   operator. */
+#define EOPT_FOLD_EXPR_CONTEXT 0x400
+			/* This is a parenthesized expression that could
+			   possibly be a C++17 fold expression. */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;

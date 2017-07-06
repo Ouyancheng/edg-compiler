@@ -3364,6 +3364,7 @@ default mode (e.g., exception handling).
       constexpr_if_enabled = TRUE;
       constexpr_lambdas_enabled = TRUE;
       capture_star_this_enabled = TRUE;
+      fold_expressions_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11627,6 +11628,7 @@ variables declared in cmd_line.h.
   direct_init_fixed_base_enum_enabled = FALSE;
   constexpr_lambdas_enabled = FALSE;
   capture_star_this_enabled = FALSE;
+  fold_expressions_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

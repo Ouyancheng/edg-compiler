@@ -2317,6 +2317,9 @@ extern a_type_ptr get_type_for_bases_operator(
 				a_boolean		direct_bases);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern
+void record_pack_expansion_ellipsis_position(a_source_position  *ellipsis_pos);
+
 extern void record_pack_expansion_ellipsis(void);
 
 extern a_boolean in_deprecated_definition(void);

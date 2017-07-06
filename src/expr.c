@@ -981,13 +981,28 @@ current expression (used to decide how a comma should be treated).
       done = TRUE;
   }  /* switch */
 
-  /* See if the new operator precedence is such that the operator is not
-     part of the current expression.  This is the case if the
-     new operator has lower precedence than prec_level, or if the
-     precedences are equal and the operator is left-associative.  End
-     the expression if one of these conditions is met. */
-  if (done || new_prec < prec_level ||
-      (new_prec == prec_level && new_assoc == LEFT_ASSOC)) done = TRUE;
+  if (done) {
+    /* Nothing more to do. */
+  } else if ((local_options & EOPT_FOLD_EXPR_CONTEXT) != 0 &&
+             new_prec < PREC_CAST && next_token() == tok_ellipsis) {
+    /* The next operator cannot be part of a cast-expression, and it is
+       followed by an ellipsis.  This must be the beginning of a C++17
+       fold expression:
+            ( <cast-expression> OP ...  <other tokens> )
+       (EOPT_FOLD_EXPR_CONTEXT was passed in when leading '(' was encountered.)
+    */
+    done = TRUE;
+  } else {
+    /* See if the new operator precedence is such that the operator is not
+       part of the current expression.  This is the case if the
+       new operator has lower precedence than prec_level, or if the
+       precedences are equal and the operator is left-associative.  End
+       the expression if one of these conditions is met. */
+    if (new_prec < prec_level ||
+        (new_prec == prec_level && new_assoc == LEFT_ASSOC)) {
+      done = TRUE;
+    }  /* if */
+  }  /* if */
   return done;
 }  /* token_ends_expr */
 
@@ -23455,6 +23470,13 @@ indication in *rcblock).  rescan_icp is not freed.
 }  /* scan_compound_literal */
 
 
+static void scan_fold_expression(
+                    an_operand                       *result,
+                    an_operand                       *bound_function_selector,
+                    a_boolean                        empty_pack,
+                    a_pack_expansion_stack_entry_ptr left_pesep,
+                    a_source_position                *start_pos);
+
 static void scan_cast_or_expr(
                              an_operand               *result,
                              an_operand               *bound_function_selector,
@@ -23592,30 +23614,56 @@ Also scans GNU statement expressions:
       set_operand_position(result, &start_position, &end_position,
                            &start_position);
     } else {
-      /* This is an expression in parentheses. */
-      a_boolean                is_expression = FALSE, is_constant = FALSE;
-      a_boolean                need_expr = FALSE;
-      a_boolean                need_expr_for_constant = FALSE;
-      an_expr_node_ptr         expr = NULL;
-      a_boolean                parens_in_il = PARENS_IN_IL;
+      /* This is an expression in parentheses, or, possibly (e.g., in C++17),
+         a fold-expression. */
+      a_boolean         is_expression = FALSE, is_constant = FALSE;
+      a_boolean         expr_present = TRUE;
+      a_boolean         need_expr = FALSE, need_expr_for_constant = FALSE;
+      an_expr_node_ptr  expr = NULL;
+      a_boolean         parens_in_il = PARENS_IN_IL;
       /* Only certain options get passed down. */
-      a_local_expr_options_set options =
-                                      (local_options &
+      a_local_expr_options_set
+                        options = (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
                                                  EOPT_OPERAND_OF_ADDRESS_OF |
                                                  EOPT_LOGICAL_NOT_OPERAND |
                                                  EOPT_DELEGATE_INITIALIZER)) |
-                                       EOPT_ALLOW_BOUND_FUNCTION |
-                                       EOPT_PRESERVE_PROPERTY_REF;
-      /* Ordinarily, parentheses do affect whether an expression is the
-         immediate operand of a "&" (because the syntax for a pointer-to-member
-         requires that there be no parentheses).  However, in cfront mode
-         &(X::Y), where X::Y is a data member, can be a pointer-to-member,
-         so pass down that option. */
-      if (any_cfront_mode()) {
-        options |= (local_options & EOPT_PTR_TO_MEMBER_CONTEXT);
+                                  EOPT_ALLOW_BOUND_FUNCTION |
+                                  EOPT_PRESERVE_PROPERTY_REF;
+      a_pack_expansion_stack_entry_ptr
+                               pesep;
+      if (fold_expressions_enabled && curr_token != tok_ellipsis) {
+        options |= EOPT_FOLD_EXPR_CONTEXT;
+        expr_present = begin_potential_pack_expansion_context(&pesep);
       }  /* if */
-      scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
+      if (fold_expressions_enabled &&
+          (curr_token == tok_ellipsis || !expr_present)) {
+        /* "( ..." in an expression context always introduces a unary fold
+           expression.  Don't attempt to scan an expression from just the
+           ellipsis.  Similarly, during a real instantiation, a pack
+           expansion may be empty and therefore no expression is present
+           to scan. */
+      } else {
+        /* Ordinarily, parentheses do affect whether an expression is the
+           immediate operand of a "&" (because the syntax for a pointer-to-
+           member requires that there be no parentheses).  However, in cfront
+           mode &(X::Y), where X::Y is a data member, can be a pointer-to-
+           member, so pass down that option. */
+        if (any_cfront_mode()) {
+          options |= (local_options & EOPT_PTR_TO_MEMBER_CONTEXT);
+        }  /* if */
+        scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
+      }  /* if */
+      if (fold_expressions_enabled) {
+        if (curr_token != tok_rparen &&
+            (curr_token == tok_ellipsis || next_token() == tok_ellipsis)) {
+          scan_fold_expression(result, bound_function_selector, !expr_present,
+                               pesep, &start_position);
+          parens_in_il = FALSE;
+        } else {
+          abandon_potential_pack_expansion_context(pesep);
+        }  /* if */
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -44394,6 +44442,515 @@ attribute.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static an_arg_list_elem_ptr reverse_init_component_list(
+                                                   an_arg_list_elem_ptr  list)
+/*
+Reverse the given list of initializer components, and return a pointer to the
+new start of the list.  list can be NULL.
+*/
+{
+  an_arg_list_elem_ptr  new_list = NULL, next;
+
+  while (list) {
+    next = list->next;
+    list->next = new_list;
+    new_list = list;
+    list = next;
+  }
+  return new_list;
+}  /* reverse_init_component_list */
+
+
+static a_boolean is_valid_fold_operator(a_token_kind  op_token)
+/*
+Return TRUE if the given token is a valid fold expression operator.
+*/
+{
+  a_boolean  valid;
+
+  switch (op_token) {
+    case tok_period_star:
+    case tok_arrow_star:
+    case tok_star:
+    case tok_divide:
+    case tok_remainder:
+    case tok_plus:
+    case tok_minus:
+    case tok_shift_left:
+    case tok_shift_right:
+    case tok_lt:
+    case tok_gt:
+    case tok_le:
+    case tok_ge:
+    case tok_eq:
+    case tok_ne:
+    case tok_ampersand:
+    case tok_or:
+    case tok_excl_or:
+    case tok_and_and:
+    case tok_or_or:
+    case tok_comma:
+    case tok_assign:
+    case tok_plus_assign:
+    case tok_minus_assign:
+    case tok_times_assign:
+    case tok_divide_assign:
+    case tok_remainder_assign:
+    case tok_shift_left_assign:
+    case tok_shift_right_assign:
+    case tok_and_assign:
+    case tok_excl_or_assign:
+    case tok_or_assign:
+      valid = TRUE;
+      break;
+    default:
+      valid = FALSE;
+  }  /* switch */
+  return valid;
+}  /* is_valid_fold_operator */
+
+
+static void apply_one_fold_operator(a_token_kind       op_token,
+                                    an_operand_ptr     opnd1,
+                                    a_source_position  *diag_pos,
+                                    an_operand_ptr     bound_function_selector,
+                                    an_operand_ptr     result)
+/*
+Apply a binary operator represented by op_token to opnd1 (the "left operand")
+and a second operand that has been cached by the caller (to be picked up by
+the next call to scan_expr_full).  Place the result in *result, and use
+diag_pos as the default position for diagnostics.  In some rare cases (with
+pointer-to-member operators), the result may be a bound function: If so, the
+selector is returned through bound_function_selector.
+
+This is used to implement the expansion of fold expressions
+*/
+{
+  /* We rely on the normal expression scanning routines to ensure that
+     expression processing is consistent.  Since those routines expect the
+     operator token to be next, insert the corresponding token in the token
+     stream.  (We could instead add a flag to be tested in the expression
+     scanning routines, but fold-expressions are expected to be much less
+     common than ordinary binary operators.  We therefore move the complete
+     cost of fold-expressions outside the normal scanning routines.) */
+  insert_string_into_token_stream(token_names[op_token],
+                                  /*insert_after=*/FALSE,
+                                  /*p_expand_macros=*/FALSE,
+                                  *diag_pos);
+  switch (op_token) {
+    case tok_period_star:
+    case tok_arrow_star:
+      scan_ptr_to_member_operator(opnd1, (a_rescan_control_block *)NULL,
+                                  /*call_rescan_case=*/FALSE,
+                                  result,
+                                  bound_function_selector);
+      break;
+    case tok_star:
+    case tok_divide:
+    case tok_remainder:
+      scan_mult_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_plus:
+    case tok_minus:
+      scan_add_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_shift_left:
+    case tok_shift_right:
+      scan_shift_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_lt:
+    case tok_gt:
+    case tok_le:
+    case tok_ge:
+      scan_rel_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_eq:
+    case tok_ne:
+      scan_eq_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_ampersand:
+    case tok_or:
+    case tok_excl_or:
+      scan_bit_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_and_and:
+    case tok_or_or:
+      scan_logical_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      break;
+    case tok_comma:
+      scan_comma_operator(opnd1, (a_rescan_control_block *)NULL, result);
+	break;
+    case tok_assign:
+      { a_boolean  op2_was_braced_init_list;
+        scan_simple_assignment_operator(opnd1, (a_rescan_control_block *)NULL,
+                                        &op2_was_braced_init_list, result);
+        check_assertion(!op2_was_braced_init_list);
+      }
+      break;
+    case tok_plus_assign:
+    case tok_minus_assign:
+    case tok_times_assign:
+    case tok_divide_assign:
+    case tok_remainder_assign:
+    case tok_shift_left_assign:
+    case tok_shift_right_assign:
+    case tok_and_assign:
+    case tok_excl_or_assign:
+    case tok_or_assign:
+      { a_boolean  op2_was_braced_init_list;
+        scan_compound_assignment_operator(
+                                        opnd1, (a_rescan_control_block *)NULL,
+                                        &op2_was_braced_init_list, result);
+        check_assertion(!op2_was_braced_init_list);
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* apply_one_fold_operator */
+
+
+static void perform_left_fold(a_token_kind          op_token,
+                              an_arg_list_elem_ptr  opnd_list,
+                              a_source_position     *diag_pos,
+                              an_operand_ptr        bound_function_selector,
+                              an_operand_ptr        result)
+/*
+Let OP denote the operator indicated by op_token and x1, x2, x3, ... denote the
+operands recorded in opnd_list.  Record in *result the expression:
+
+	(((x1 OP x2) OP x3) OP ...)
+
+Use diag_pos for diagnostic positions by default.  In some rare cases (with
+pointer-to-member operators), the result may be a bound function: If so, the
+selector is returned through bound_function_selector.
+*/
+{
+  an_arg_list_elem_ptr  alep = opnd_list;
+
+  opnd_list = opnd_list->next;
+  alep->next = NULL;
+  extract_operand_from_expression_component(alep, result, /*free_icp =*/TRUE);
+  if (opnd_list != NULL) {
+    an_operand            opnd1;
+    an_initializer_cache  cache;
+    an_initializer_cache  *saved_cache_ptr = expr_stack->initializer_cache;
+    expr_stack->initializer_cache = &cache;
+    do {
+      copy_operand(result, &opnd1);
+      /* Move the next element to initializer cache, so it will be found as
+         the second operand of the binary operator that it about to be
+         applied. */
+      cache.first_init = opnd_list;
+      cache.last_init = opnd_list;
+      opnd_list = opnd_list->next;
+      cache.last_init->next = NULL;
+      apply_one_fold_operator(op_token, &opnd1, diag_pos,
+                              bound_function_selector, result);
+    } while (opnd_list != NULL);
+    expr_stack->initializer_cache = saved_cache_ptr;
+  }  /* if */
+}  /* perform_left_fold */
+
+
+static void perform_right_fold(a_token_kind          op_token,
+                               an_arg_list_elem_ptr  opnd_list,
+                               a_source_position     *diag_pos,
+                               an_operand_ptr        bound_function_selector,
+                               an_operand_ptr        result)
+/*
+Let OP denote the operator indicated by op_token and x1, ..., x[n-1], x[n]
+denote the operands recorded in opnd_list.  Record in *result the expression:
+
+	(... OP (x[n-2] OP (x[n-1] OP x[n])))
+
+Use diag_pos for diagnostic positions by default.  In some rare cases (with
+pointer-to-member operators), the result may be a bound function: If so, the
+selector is returned through bound_function_selector.
+*/
+{
+  an_arg_list_elem_ptr  alep;
+
+  /* Reverse the list of operands so we can get to the "last" elements. */
+  opnd_list = reverse_init_component_list(opnd_list);
+  alep = opnd_list;
+  opnd_list = opnd_list->next;
+  alep->next = NULL;
+  extract_operand_from_expression_component(alep, result, /*free_icp =*/TRUE);
+  if (opnd_list != NULL) {
+    /* Repeat the operator over the list.  Since the list was reversed above,
+       we have to also reverse the operands when calling
+       apply_one_fold_operator below. */
+    an_operand            opnd1;
+    an_initializer_cache  cache;
+    an_initializer_cache  *saved_cache_ptr = expr_stack->initializer_cache;
+    expr_stack->initializer_cache = &cache;
+    do {
+      /* Move result to initializer cache, so it will be found as the second
+         operand of the binary operator that it about to be applied. */
+      clear_initializer_cache(&cache);
+      alep = alloc_arg_list_elem_for_operand(result);
+      add_init_component_to_initializer_cache(alep, /*to_front=*/TRUE, &cache);
+      /* Extract the next element of the list as the first operand of the
+         binary operator to apply. */
+      alep = opnd_list;
+      opnd_list = opnd_list->next;
+      alep->next = NULL;
+      extract_operand_from_expression_component(alep, &opnd1,
+                                                /*free_icp =*/TRUE);
+      apply_one_fold_operator(op_token, &opnd1, diag_pos,
+                              bound_function_selector, result);
+    } while (opnd_list != NULL);
+    expr_stack->initializer_cache = saved_cache_ptr;
+  }  /* if */
+}  /* perform_right_fold */
+
+
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* start_pos and end_pos are not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void assemble_fold_expression_operand(
+                               an_operand            *result,
+                               an_operand            *bound_function_selector,
+                               a_source_position     *start_pos,
+                               a_source_position     *ellipsis_pos,
+                               a_source_position     *op_pos,
+                               a_source_position     *end_pos,
+                               an_arg_list_elem_ptr  opnd_list,
+                               a_token_kind          op_token,
+                               a_boolean             unary,
+                               a_boolean             left_associative,
+                               a_boolean             generic)
+/*
+The operands of a fold expression have been scanned: This function produces IL
+for the result and returns it as an operand in *result.  In some unusual cases,
+the result is a bound function and the associated selector is return through
+*bound_function_selector.  When the packs are not expanded because we are in a
+template-dependent context generic is TRUE and the result operand points to an
+enk_fold node that represents the source form of the fold expression.
+Otherwise, the representation being returned is that of the expanded expression
+and it includes no IL specific to the fold expression.
+
+*start_pos and *end_pos describe the positions of the delimiting parentheses
+(except if the left parenthesis was trapped; in that case, the caller will
+eventually fix up the recorded position).  *ellipsis_pos is the position of
+the ellipsis and *op_pos the position of the operator being expanded (if there
+are two operators in the syntax, the one closest to the pack).
+
+opnd_list points to all the operands listed from left to right.  For unary
+fold expressions (unary is TRUE), that list may be empty (i.e., opnd_list can
+be NULL).  The operation to be folded is represented by op_token, and
+left_associative is TRUE if the expansion should be evaluated as
+"((x0 OP x1) OP x2) OP x3" rather than "x0 OP (x1 OP (x2 OP x3))".
+*/
+{
+  if (generic) {
+    /* Create an enk_fold node. */
+    an_arg_list_elem_ptr  alep = opnd_list;
+    an_expr_node_ptr      fold_node;
+    fold_node = alloc_expr_node((an_expr_node_kind)enk_fold);
+    fold_node->type = type_of_unknown_templ_param_nontype;
+    fold_node->position = *op_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    fold_node->expr_range.start = *start_pos;
+    fold_node->expr_range.end = *end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    fold_node->variant.fold.operator_token = op_token;
+    fold_node->variant.fold.left_associative = left_associative;
+    fold_node->variant.fold.operands =
+                       make_node_from_operand(operand_of_arg_list_elem(alep));
+    alep = next_elem(alep);
+    if (alep != NULL) {
+      fold_node->variant.fold.operands->next =
+                       make_node_from_operand(operand_of_arg_list_elem(alep));
+      check_assertion(next_elem(alep) == NULL);
+    }  /* if */
+    make_expression_operand(fold_node, result);
+    free_init_component_list(opnd_list);
+  } else {
+    /* Create an expression tree that represent the evaluation of the fold. */
+    if (opnd_list == NULL) {
+      /* Possibly valid with empty expansions of unary fold expressions. */
+      if (!unary) {
+        /* This could only conceivably be true if an error occurred in one of
+           the operands (e.g., they were both packs). */
+        expect_error();
+        make_error_operand(result);
+      } else {
+        a_constant_ptr  con = local_constant();
+        make_zero_of_proper_type(bool_type(), con);
+        if (op_token == (a_token_kind)tok_comma) {
+          /* An empty expansion over the comma operator yields a void value. */
+          make_constant_operand(con, result);
+          cast_operand_to_void(result, void_type());
+        } else if (op_token == (a_token_kind)tok_or_or) {
+          /* An empty expansion over the || operator yields a false value. */
+          make_constant_operand(con, result);
+        } else if (op_token == (a_token_kind)tok_and_and) {
+          /* An empty expansion over the || operator yields a true value. */
+          set_integer_value(&con->variant.integer_value,
+                            (a_host_large_integer)1);
+          make_constant_operand(con, result);
+        } else {
+          pos_error(ec_invalid_empty_fold_expression, op_pos);
+          make_error_operand(result);
+        }  /* if */
+        release_local_constant(&con);
+      }  /* if */
+    } else if (left_associative) {
+      perform_left_fold(op_token, opnd_list, op_pos, bound_function_selector,
+                        result);
+    } else {
+      perform_right_fold(op_token, opnd_list, op_pos, bound_function_selector,
+                         result);
+    }  /* if */
+  }  /* if */
+}  /* assemble_fold_expression_operand */
+
+
+static void scan_fold_expression(
+                    an_operand                       *result,
+                    an_operand                       *bound_function_selector,
+                    a_boolean                        empty_pack,
+                    a_pack_expansion_stack_entry_ptr left_pesep,
+                    a_source_position                *start_pos)
+/*
+Complete the scan of one of the following forms:
+
+  ( ... OP <cast-expr> )
+  ( <cast-expr> OP ... )
+  ( <cast-expr> OP ... OP <cast-expr> )
+
+In the first case, tok_ellipsis is the current token empty pack is FALSE.
+If the leading <cast-expr> in the other cases corresponds to an empty pack,
+empty_pack is TRUE.  Otherwise, the first OP (a binary operator) is the
+current token and *result holds the initial cast expression.  *start_pos
+is the starting position of the fold expression.
+
+left_pesep points to a pack expansion stack entry that was obtained by
+calling begin_potential_pack_expansion_context right after the left
+parenthesis.
+
+In a prototype instantiation, return in *result an enk_fold expression that
+represents the fold expression.  In real instantiations, return in *result an
+expression tree (possibly folded to a constant) that represents the expanded
+form of the fold expression; in some rare cases, the result may be a bound
+function operand: The selector is then return in *bound_function_selector.
+*/
+{
+  a_boolean          unary, left_associative = FALSE, generic = FALSE;
+  a_token_kind       op_token;
+  an_initializer_cache
+                     opnd_list;
+  a_source_position  ellipsis_pos, op_pos;
+
+  clear_initializer_cache(&opnd_list);
+  if (curr_token == tok_ellipsis) {
+    unary = TRUE;
+    left_associative = TRUE;
+    ellipsis_pos = pos_curr_token;
+    (void)get_token();
+    op_token = curr_token;
+    op_pos = pos_curr_token;
+    if (!is_valid_fold_operator(op_token)) {
+      pos_error(ec_invalid_fold_expression_operator, &op_pos);
+      op_token = (a_token_kind)tok_comma;
+    }  /* if */
+    (void)get_token();
+  } else {
+    a_boolean     any_more = !empty_pack, first_time = TRUE;
+    a_pack_expansion_descr_ptr
+                  pedp;
+    /* Skip over the operator and the ellipsis. */
+    op_token = curr_token;
+    op_pos = pos_curr_token;
+    (void)get_token();
+    check_assertion(curr_token == tok_ellipsis);
+    ellipsis_pos = pos_curr_token;
+    if (any_packs_referenced()) {
+      /* The left operand is a pack: Associate the ellipsis position with
+         it. */
+      record_pack_expansion_ellipsis_position(&ellipsis_pos);
+    } else {
+      left_associative = TRUE;
+    }  /* if */
+    (void)get_token();
+    /* If the leading operand has an expansion, collect the expanded list of
+       operands. */
+    while (any_more) {
+      if (!first_time) {
+        scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
+        check_assertion_or_expect_error(curr_token == op_token);
+        (void)get_token();
+        record_pack_expansion_ellipsis();
+      } else {
+        first_time = FALSE;
+      }  /* if */
+      add_operand_to_initializer_cache(result, /*to_front=*/FALSE,
+                                       /*bundle=*/FALSE, &opnd_list);
+      pedp = end_potential_pack_expansion_context(left_pesep,
+                                                  /*is_declarator=*/TRUE);
+      if (pedp != NULL) {
+        /* We're scanning a pack in its generic form (i.e., without expansion
+           going on). */
+        generic = TRUE;
+      }  /* if */
+      any_more = advance_to_next_pack_element(left_pesep);
+    }  /* while */
+    if (curr_token == tok_rparen) {
+      unary = TRUE;
+    } else {
+      unary = FALSE;
+      if (left_associative) {
+        /* Use this operator token as the one being expanded. */
+        op_pos = pos_curr_token;
+      }  /* if */
+      if (curr_token != op_token) {
+        pos_error(ec_fold_expression_operator_mismatch, &pos_curr_token);
+      } else {
+        (void)get_token();
+      }  /* if */
+      if (!is_valid_fold_operator(op_token)) {
+        pos_error(ec_invalid_fold_expression_operator, &op_pos);
+        op_token = (a_token_kind)tok_comma;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!unary || left_associative) {
+    a_pack_expansion_stack_entry_ptr right_pesep;
+    a_boolean                        any_more;
+    any_more = begin_potential_pack_expansion_context(&right_pesep);
+    record_pack_expansion_ellipsis_position(&ellipsis_pos);
+    if (!unary && !left_associative && right_pesep != NULL) {
+      /* Prevent an error from being issued if this is not a pack, since we
+         already saw a pack in the first operand. */
+      suppress_expansion_with_no_packs_diagnostic(right_pesep);
+    }  /* if */
+    while (any_more) {
+      a_pack_expansion_descr_ptr  pedp;
+      scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
+      if (!left_associative && !unary && any_packs_referenced()) {
+        pos_error(ec_two_packs_in_fold_expression, &ellipsis_pos);
+      }  /* if */
+      add_operand_to_initializer_cache(result, /*to_front=*/FALSE,
+                                       /*bundle=*/FALSE, &opnd_list);
+      pedp = end_potential_pack_expansion_context(right_pesep,
+                                                  /*is_declarator=*/TRUE);
+      if (pedp != NULL) {
+        /* We're scanning a pack in its generic form (i.e., without expansion
+           going on). */
+        generic = TRUE;
+      }  /* if */
+      any_more = advance_to_next_pack_element(right_pesep);
+    }  /* while */
+  }  /* if */
+  assemble_fold_expression_operand(result, bound_function_selector,
+                                   start_pos, &ellipsis_pos, &op_pos,
+                                   end_position_or_null(&end_pos_curr_token),
+                                   opnd_list.first_init, op_token, unary,
+                                   left_associative, generic);
+}  /* scan_fold_expression */
+                               
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -4628,6 +4628,14 @@ cleanup_state_common:
                iek_expr_node);
       break;
 #endif /* COROUTINES_ALLOWED */
+    case enk_fold:
+      disp_name("fold.operator_token");
+      (void)printf("%s\n", token_names[ptr->variant.fold.operator_token]);
+      disp_boolean("fold.left_associative",
+                   (a_boolean)ptr->variant.fold.left_associative);
+      disp_ptr("fold.operands", (char *)ptr->variant.fold.operands,
+               iek_expr_node);
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

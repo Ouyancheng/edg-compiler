@@ -12359,6 +12359,36 @@ class list is returned.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+
+void record_pack_expansion_ellipsis_position(a_source_position  *ellipsis_pos)
+/*
+Called during the processing of a variadic template to record that an ellipsis
+indicating a pack expansion was encountered, and at what position it appeared.
+This marks an expansion of the pack on the top of the pack expansion stack.
+Usually, this is called when the current token is the ellipsis, via
+record_pack_expansion_ellipsis.  With C++17 fold expressions, however, one
+ellipsis describes the expansion of a potential pack before and after the
+ellipsis, and calling this routine directly is more appropriate.
+*/
+{
+  if (is_prototype_instantiation_context()) {
+    if (pack_expansion_stack == NULL) {
+      pos_error(ec_expansion_contains_no_packs, ellipsis_pos);
+    } else {
+      /* The instantiation_descr will be non-NULL for nondependent pack
+         expansions in prototype instantiation contexts. */
+      if (!pack_expansion_stack->is_suppression &&
+          pack_expansion_stack->instantiation_descr == NULL) {
+        a_pack_expansion_descr_ptr	pedp;
+        pedp = pack_expansion_stack->expansion_descr;
+        pedp->ellipsis_seen = TRUE;
+        pedp->ellipsis_position = *ellipsis_pos;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* record_pack_expansion_ellipsis_position */
+
+
 void record_pack_expansion_ellipsis(void)
 /*
 Called during the processing of a variadic template when the "..."
@@ -12372,21 +12402,7 @@ end_potential_pack_expansion_context).
 */
 {
   check_assertion(curr_token == tok_ellipsis);
-  if (is_prototype_instantiation_context()) {
-    if (pack_expansion_stack == NULL) {
-      pos_error(ec_expansion_contains_no_packs, &pos_curr_token);
-    } else {
-      /* The instantiation_descr will be non-NULL for nondependent pack
-         expansions in prototype instantiation contexts. */
-      if (!pack_expansion_stack->is_suppression &&
-          pack_expansion_stack->instantiation_descr == NULL) {
-        a_pack_expansion_descr_ptr	pedp;
-        pedp = pack_expansion_stack->expansion_descr;
-        pedp->ellipsis_seen = TRUE;
-        pedp->ellipsis_position = pos_curr_token;
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  record_pack_expansion_ellipsis_position(&pos_curr_token);
   /* Bypass the "...". */
   (void)get_token();
 }  /* record_pack_expansion_ellipsis */

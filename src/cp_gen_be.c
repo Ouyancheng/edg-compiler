@@ -12640,6 +12640,33 @@ Render the given GNU statement expression.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void gen_fold_expression(an_expr_node_ptr  expr)
+/*
+Generate a C++17 fold expression (only appears in templates).
+*/
+{
+  an_expr_node_ptr  opnd = expr->variant.fold.operands;
+
+  check_assertion(opnd != NULL);
+  write_tok_str("(");
+  if (opnd->next == NULL && expr->variant.fold.left_associative) {
+    /* Don't render a "left" operand. */
+  } else {
+    gen_expression(opnd);
+    write_tok_str(" ");
+    write_tok_str(token_names[expr->variant.fold.operator_token]);
+    opnd = opnd->next;
+  }  /* if */
+  write_tok_str(" ... ");
+  if (opnd != NULL) {
+    write_tok_str(token_names[expr->variant.fold.operator_token]);
+    write_tok_str(" ");
+    gen_expression(opnd);
+  }  /* if */
+  write_tok_str(")");
+}  /* gen_fold_expression */
+
+
 static a_boolean handle_lvalue_constant_node(an_expr_node_ptr expr,
                                              a_boolean        need_parens)
 /*
@@ -13820,6 +13847,9 @@ sizeof_cases:
       gen_expression(expr->variant.await_info.operand);
       break;
 #endif /* COROUTINES_ALLOWED */
+    case enk_fold:
+      gen_fold_expression(expr);
+      break;
 
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
