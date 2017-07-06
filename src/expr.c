@@ -44713,7 +44713,6 @@ static void assemble_fold_expression_operand(
                                an_operand            *result,
                                an_operand            *bound_function_selector,
                                a_source_position     *start_pos,
-                               a_source_position     *ellipsis_pos,
                                a_source_position     *op_pos,
                                a_source_position     *end_pos,
                                an_arg_list_elem_ptr  opnd_list,
@@ -44733,9 +44732,9 @@ and it includes no IL specific to the fold expression.
 
 *start_pos and *end_pos describe the positions of the delimiting parentheses
 (except if the left parenthesis was trapped; in that case, the caller will
-eventually fix up the recorded position).  *ellipsis_pos is the position of
-the ellipsis and *op_pos the position of the operator being expanded (if there
-are two operators in the syntax, the one closest to the pack).
+eventually fix up the recorded position).  *op_pos is the position of the
+operator being expanded (if there are two operators in the syntax, the one
+closest to the pack).
 
 opnd_list points to all the operands listed from left to right.  For unary
 fold expressions (unary is TRUE), that list may be empty (i.e., opnd_list can
@@ -44945,7 +44944,7 @@ function operand: The selector is then return in *bound_function_selector.
     }  /* while */
   }  /* if */
   assemble_fold_expression_operand(result, bound_function_selector,
-                                   start_pos, &ellipsis_pos, &op_pos,
+                                   start_pos, &op_pos,
                                    end_position_or_null(&end_pos_curr_token),
                                    opnd_list.first_init, op_token, unary,
                                    left_associative, generic);
