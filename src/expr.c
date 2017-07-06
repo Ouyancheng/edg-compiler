@@ -41510,6 +41510,8 @@ set accordingly.
     } else {
       rescannable = FALSE;
     }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_fold) {
+    operator_token = tok_ellipsis;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -41538,6 +41540,12 @@ redoes semantic analysis.
   (void)operator_token_for_expr_rescan(expr, &unary, &postfix, &rescannable);
   return rescannable;
 }  /* expr_is_rescannable */
+
+
+static void rescan_fold_expression(
+                             a_rescan_control_block  *rcblock,
+                             an_operand              *result,
+                             an_operand              *bound_function_selector);
 
 
 void rescan_expr_with_substitution_internal(
@@ -41918,6 +41926,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_compound_assignment_operator((an_operand *)NULL, rcblock,
                                           &op2_was_braced_init_list,
                                           result);
+        break;
+      case tok_ellipsis:
+        rescan_fold_expression(rcblock, result, bound_function_selector);
         break;
       default:
         unexpected_condition();
@@ -44764,6 +44775,11 @@ left_associative is TRUE if the expansion should be evaluated as
                        make_node_from_operand(operand_of_arg_list_elem(alep));
       check_assertion(next_elem(alep) == NULL);
     }  /* if */
+    if (unary || !left_associative) {
+      fold_node->variant.fold.operands->is_pack_expansion = TRUE;
+    } else {
+      fold_node->variant.fold.operands->next->is_pack_expansion = TRUE;
+    }  /* if */
     make_expression_operand(fold_node, result);
     free_init_component_list(opnd_list);
   } else {
@@ -44893,6 +44909,7 @@ function operand: The selector is then return in *bound_function_selector.
         /* We're scanning a pack in its generic form (i.e., without expansion
            going on). */
         generic = TRUE;
+        mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
       }  /* if */
       any_more = advance_to_next_pack_element(left_pesep);
     }  /* while */
@@ -44939,6 +44956,7 @@ function operand: The selector is then return in *bound_function_selector.
         /* We're scanning a pack in its generic form (i.e., without expansion
            going on). */
         generic = TRUE;
+        mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
       }  /* if */
       any_more = advance_to_next_pack_element(right_pesep);
     }  /* while */
@@ -44950,6 +44968,35 @@ function operand: The selector is then return in *bound_function_selector.
                                    left_associative, generic);
 }  /* scan_fold_expression */
                                
+
+static void rescan_fold_expression(
+                             a_rescan_control_block  *rcblock,
+                             an_operand              *result,
+                             an_operand              *bound_function_selector)
+/*
+rcblock->expr points to an enk_fold node that must be re-evaluated with
+template parameter substitutions.  Perform that re-evaluation and place the
+result in *result (in rare cases, the result is a bound function; in those
+cases the selector is returned via bound_function_selector).
+*/
+{
+  an_expr_node_ptr      expr = rcblock->expr;
+  an_expr_node_ptr      generic_opnds = expr->variant.fold.operands;
+  a_boolean             unary = generic_opnds->next == NULL;
+  a_boolean             left_associative = expr->variant.fold.left_associative;
+  a_token_kind          op_token = expr->variant.fold.operator_token;
+  a_source_position     *op_pos = &expr->position;
+  an_operand            *opnd = &expr->rescan_info->saved_operand;
+  an_arg_list_elem_ptr  opnd_list;
+
+  opnd_list = rescan_expr_list(generic_opnds, rcblock);
+  assemble_fold_expression_operand(result, bound_function_selector,
+                                   &opnd->position, op_pos,
+                                   end_position_or_null(&opnd->end_position),
+                                   opnd_list, op_token, unary,
+                                   left_associative, /*generic=*/FALSE);
+}  /* rescan_fold_expression */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

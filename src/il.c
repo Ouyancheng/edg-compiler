@@ -2066,6 +2066,30 @@ sizeof_cases:
       db_expr_node(node->variant.await_info.operand, level + 2);
       break;
 #endif /* COROUTINES_ALLOWED */
+    case enk_fold:
+      fprintf(f_debug, "fold-expression, %s, ",
+              node->variant.fold.left_associative ? "left-assoc, "
+                                                  : "right-assoc, ");
+      operand = node->variant.fold.operands;
+      if (operand == NULL) {
+        fputs("MISSING OPERANDS", f_debug);
+      } else if (operand->next == NULL) {
+        fputs("unary", f_debug);
+      } else {
+        fputs("binary", f_debug);
+        operand = operand->next;
+        if (operand->next != NULL) {
+          fputs("EXTRANEOUS OPNDS", f_debug);
+        }  /* if */
+      }  /* if */
+      fputs("\n", f_debug);
+      for (a = 0; a < level; a++) fputs(" ", f_debug);
+      fprintf(f_debug, "%s\n", token_names[node->variant.fold.operator_token]);
+      operand = node->variant.fold.operands;
+      for (; operand != NULL; operand = operand->next) {
+        db_expr_node(operand, level + 2);
+      }  /* for */
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
