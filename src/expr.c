@@ -44876,6 +44876,8 @@ function operand: The selector is then return in *bound_function_selector.
     a_boolean     any_more = !empty_pack, first_time = TRUE;
     a_pack_expansion_descr_ptr
                   pedp;
+    a_token_sequence_number
+                  op_tsn = curr_token_sequence_number;
     /* Skip over the operator and the ellipsis. */
     op_token = curr_token;
     op_pos = pos_curr_token;
@@ -44886,7 +44888,7 @@ function operand: The selector is then return in *bound_function_selector.
       /* The left operand is a pack: Associate the ellipsis position with
          it. */
       record_pack_expansion_ellipsis_position(&ellipsis_pos);
-    } else {
+    } else if (!empty_pack) {
       left_associative = TRUE;
     }  /* if */
     (void)get_token();
@@ -44910,6 +44912,7 @@ function operand: The selector is then return in *bound_function_selector.
            going on). */
         generic = TRUE;
         mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
+        pedp->last_token = op_tsn;
       }  /* if */
       any_more = advance_to_next_pack_element(left_pesep);
     }  /* while */
