@@ -3395,9 +3395,9 @@ as specified in the control block.
                          tblock);
       break;
 #endif /* COROUTINES_ALLOWED */
+    case enk_fold:
       traverse_expr_list(expr->variant.fold.operands, tblock);
       break;
-    case enk_fold:
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
