@@ -135,6 +135,10 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_CALL "cl"
 #define MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT "ix"
 #define MANGLING_STRING_FOR_OPERATOR_QUESTION "qu"
+#define MANGLING_STRING_FOR_LEFT_UNARY_FOLD "fl"
+#define MANGLING_STRING_FOR_LEFT_BINARY_FOLD "fL"
+#define MANGLING_STRING_FOR_RIGHT_UNARY_FOLD "fr"
+#define MANGLING_STRING_FOR_RIGHT_BINARY_FOLD "fR"
 #if COROUTINES_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_AWAIT "aw"
 #endif /* COROUTINES_ALLOWED */
@@ -282,6 +286,10 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_CALL "cl"
 #define MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT "vc"
 #define MANGLING_STRING_FOR_OPERATOR_QUESTION "qs"
+#define MANGLING_STRING_FOR_LEFT_UNARY_FOLD "fl"
+#define MANGLING_STRING_FOR_LEFT_BINARY_FOLD "fL"
+#define MANGLING_STRING_FOR_RIGHT_UNARY_FOLD "fr"
+#define MANGLING_STRING_FOR_RIGHT_BINARY_FOLD "fR"
 #if COROUTINES_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_AWAIT "aw"
 #endif /* COROUTINES_ALLOWED */
@@ -6583,6 +6591,43 @@ is TRUE.
 #endif /* IA64_ABI */
       break;
 #endif /* COROUTINES_ALLOWED */
+    case enk_fold:
+      /* Mangling for fold-expressions. */
+      { a_boolean       unary, left_assoc;
+        an_opname_kind  opname;
+        a_const_char    *opcode;
+        unary = expr->variant.fold.operands->next == NULL;
+        left_assoc = expr->variant.fold.left_associative;
+#if !IA64_ABI
+        /* Put out the initial "O". */
+        add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+        /* Add a code corresponding to the kind of folding... */
+        add_str_to_mangled_name(
+          unary ? (left_assoc ? MANGLING_STRING_FOR_LEFT_UNARY_FOLD
+                              : MANGLING_STRING_FOR_RIGHT_UNARY_FOLD)
+                : (left_assoc ? MANGLING_STRING_FOR_LEFT_BINARY_FOLD
+                              : MANGLING_STRING_FOR_RIGHT_BINARY_FOLD),
+          mctl);
+        /* ... followed by a code for the binary operator that is folded. */
+        opname = opname_kind_for_token[(int)expr->variant.fold.operator_token];
+        opcode = mangled_operator_name(opname, 2);
+        add_str_to_mangled_name(opcode, mctl);
+#if !IA64_ABI
+        add_to_mangled_name(unary ? '1' : '2', mctl);
+#endif /* !IA64_ABI */
+        mangled_encoding_for_expression(expr->variant.fold.operands,
+                                        in_dependent_expr, mctl);
+        if (!unary) {
+          mangled_encoding_for_expression(expr->variant.fold.operands->next,
+                                          in_dependent_expr, mctl);
+        }  /* if */
+#if !IA64_ABI
+        /* Put out the closing "O". */
+        add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+      }
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
