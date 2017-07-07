@@ -20684,6 +20684,7 @@ doing nothing should be suppressed.
 #endif /* COROUTINES_ALLOWED */
     case enk_braced_init_list:
     case enk_param_ref:
+    case enk_fold:
     default:
       /* Others cause no side effects at this level.  The subtree might
          still cause side effects. */
