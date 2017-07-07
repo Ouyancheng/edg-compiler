@@ -23617,7 +23617,7 @@ Also scans GNU statement expressions:
       /* This is an expression in parentheses, or, possibly (e.g., in C++17),
          a fold-expression. */
       a_boolean         is_expression = FALSE, is_constant = FALSE;
-      a_boolean         expr_present = TRUE;
+      a_boolean         expr_present = TRUE, left_unary_fold_expr = FALSE;
       a_boolean         need_expr = FALSE, need_expr_for_constant = FALSE;
       an_expr_node_ptr  expr = NULL;
       a_boolean         parens_in_il = PARENS_IN_IL;
@@ -23631,13 +23631,16 @@ Also scans GNU statement expressions:
                                   EOPT_ALLOW_BOUND_FUNCTION |
                                   EOPT_PRESERVE_PROPERTY_REF;
       a_pack_expansion_stack_entry_ptr
-                               pesep;
-      if (fold_expressions_enabled && curr_token != tok_ellipsis) {
-        options |= EOPT_FOLD_EXPR_CONTEXT;
-        expr_present = begin_potential_pack_expansion_context(&pesep);
+                               pesep = NULL;
+      if (fold_expressions_enabled) {
+        if (curr_token == tok_ellipsis) {
+          left_unary_fold_expr = TRUE;
+        } else {
+          options |= EOPT_FOLD_EXPR_CONTEXT;
+          expr_present = begin_potential_pack_expansion_context(&pesep);
+        }  /* if */
       }  /* if */
-      if (fold_expressions_enabled &&
-          (curr_token == tok_ellipsis || !expr_present)) {
+      if (left_unary_fold_expr || !expr_present) {
         /* "( ..." in an expression context always introduces a unary fold
            expression.  Don't attempt to scan an expression from just the
            ellipsis.  Similarly, during a real instantiation, a pack
@@ -23656,13 +23659,15 @@ Also scans GNU statement expressions:
       }  /* if */
       if (fold_expressions_enabled) {
         if (curr_token != tok_rparen &&
-            (curr_token == tok_ellipsis || next_token() == tok_ellipsis)) {
+            (left_unary_fold_expr || next_token() == tok_ellipsis)) {
           scan_fold_expression(result, bound_function_selector, !expr_present,
                                pesep, &start_position);
           parens_in_il = FALSE;
         } else {
           abandon_potential_pack_expansion_context(pesep);
         }  /* if */
+      } else {
+        abandon_potential_pack_expansion_context(pesep);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
