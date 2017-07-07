@@ -329,7 +329,6 @@ have already been remapped.
 */
 {
   a_scope_ptr      scope;
-  a_scope_ptr      next_scope;
   an_il_walk_state saved_state;
 
   db_enter(4, "walk_routine_scope_il");
@@ -354,9 +353,12 @@ have already been remapped.
                   !walking_secondary_trans_unit);
 
   /* Process the scope and its subtree. */
-  for (; scope != NULL; scope = next_scope) {
-    next_scope = scope->next;
+  for (; scope != NULL; scope = scope->next) {
     walk_entry_and_subtree((char *)scope, iek_scope);
+    if (remap_function != NULL) {
+      scope->next = (a_scope_ptr)remap_function((char *)scope->next,
+                                                iek_scope);
+    }  /* if */
   }  /* for */
 
   /* Restore the state of global variables. */

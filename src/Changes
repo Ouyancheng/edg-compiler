@@ -1,5 +1,20 @@
 Version 4.14
 
+7/7/17   [EDGcpfe/18528]
+Incorrect behavior when lambdas are used with ALTERNATE_IL_FILE_FORMAT=0
+
+Various kinds of incorrect behavior (e.g., aborts, internal errors) could
+occur when lambdas were used with the non-alternate IL file format.  This
+problem was introduced in version 4.11 with the changes for EDGcpfe/16292.
+Now fixed.
+
+  int main() {
+    auto lambda = [](int x, int y) { return x + y; };
+    auto res = lambda(1, 2);
+    if (res != 3) return 1; 
+  }
+
+
 7/3/17   [EDGcpfe/18535]
 Incorrect folding of subscript applied to integer cast to pointer type
 
