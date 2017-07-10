@@ -6716,6 +6716,14 @@ The syntax is:
                               # initializer list
                ::= tl <type> <expression>* E
                               # typed initializer list
+               ::= fl <binary operator-name> <expression>
+                              # ( ... op pack )
+               ::= fr <binary operator-name> <expression>
+                              # ( pack op ... )
+               ::= fL <binary operator-name> <expression>
+                              # ( expr op ... op pack )
+               ::= fR <binary operator-name> <expression>
+                              # ( pack op ... op expr )
                ::= <expr-primary>
 
 Also, these non-standard expressions (EDG-specific) are demangled:
@@ -6740,9 +6748,54 @@ Also, these non-standard expressions (EDG-specific) are demangled:
   } else if (*ptr == 'T') {
     /* A template parameter. */
     ptr = demangle_template_param(ptr, dctl);
-  } else if (*ptr == 'f' && (ptr[1] == 'p' || ptr[1] == 'L')) {
-    /* A reference to a function parameter. */
-    ptr = demangle_parameter_reference(ptr, dctl);
+  } else if (*ptr == 'f') {
+    if (ptr[1] == 'p' ||
+        (ptr[1] == 'L' && isdigit((unsigned char)ptr[2]))) {
+      /* A reference to a function parameter. */
+      ptr = demangle_parameter_reference(ptr, dctl);
+    } else {
+      /* A "fold expression". */
+      a_boolean    unary, left;
+      a_const_char *op_str, *close_str;
+      int          num_operands, length;
+      switch (ptr[1]) {
+        case 'l': unary = TRUE;  left = TRUE;  break;
+        case 'L': unary = FALSE; left = TRUE;  break;
+        case 'r': unary = TRUE;  left = FALSE; break;
+        case 'R': unary = FALSE; left = FALSE; break;
+        default:
+          bad_mangled_name(dctl);
+          break;
+      }  /* switch */
+      ptr += 2;
+      op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
+                                 dctl);
+      if (op_str == NULL ||
+          !(unary ? num_operands == 1 : num_operands == 2)) {
+        bad_mangled_name(dctl);
+      } else {
+        ptr += length;
+        write_id_ch('(', dctl);
+        if (unary) {
+          if (left) {
+            write_id_str("...", dctl);
+            write_id_str(op_str, dctl);
+            ptr = demangle_expression(ptr, dctl);
+          } else {
+            ptr = demangle_expression(ptr, dctl);
+            write_id_str(op_str, dctl);
+            write_id_str("...", dctl);
+          }  /* if */
+        } else {
+          ptr = demangle_expression(ptr, dctl);
+          write_id_str(op_str, dctl);
+          write_id_str("...", dctl);
+          write_id_str(op_str, dctl);
+          ptr = demangle_expression(ptr, dctl);
+        }  /* if */
+        write_id_ch(')', dctl);
+      }  /* if */
+    }  /* if */
   } else if (*ptr == 'c' && ptr[1] == 'l') {
     /* Call expression: "cl <expression>+ E" */
     ptr += 2;
