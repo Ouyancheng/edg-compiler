@@ -1304,9 +1304,54 @@ position following what was demangled.
   if (operator_str == NULL) {
     bad_mangled_name(dctl);
   } else {
-    p += op_length;
     /* Put parentheses around the operation if necessary. */
     if (need_parens) write_id_ch('(', dctl);
+    if (*operator_str == 'f' && strcmp(operator_str, "fold-ex") == 0) {
+      /* A fold expression; handle it here (since it's significantly
+         different than a standard operation). */
+      a_boolean    unary, left;
+      p++;
+      switch (get_char(p, dctl)) {
+        case 'l': unary = TRUE;  left = TRUE;  break;
+        case 'L': unary = FALSE; left = TRUE;  break;
+        case 'r': unary = TRUE;  left = FALSE; break;
+        case 'R': unary = FALSE; left = FALSE; break;
+        default:
+          bad_mangled_name(dctl);
+          break;
+      }  /* switch */
+      p++;
+      operator_str = demangle_operator(p, &op_length, &takes_type,
+                                       &is_new_style_cast, &is_postfix,
+                                       &need_adl_parens, &is_initializer_list,
+                                       &ud_suffix_follows, dctl);
+      if (operator_str == NULL) {
+        bad_mangled_name(dctl);
+      } else {
+        p += op_length;
+        write_id_ch('(', dctl);
+        if (unary) {
+          if (left) {
+            write_id_str("...", dctl);
+            write_id_str(operator_str, dctl);
+            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+          } else {
+            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+            write_id_str(operator_str, dctl);
+            write_id_str("...", dctl);
+          }  /* if */
+        } else {
+          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+          write_id_str(operator_str, dctl);
+          write_id_str("...", dctl);
+          write_id_str(operator_str, dctl);
+          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+        }  /* if */
+        write_id_ch(')', dctl);
+      }  /* if */
+      goto skip_operand_loop;
+    }  /* if */
+    p += op_length;
     if (is_initializer_list) {
       /* An initializer list (with an optional type). */
       if (takes_type) {
@@ -1980,6 +2025,14 @@ If the first few characters are not an operator encoding, return NULL.
     *ud_suffix_follows = TRUE;
   } else if (start_of_id_is("aw", ptr, dctl)) {
     s = "co_await";
+  } else if (start_of_id_is("fr", ptr, dctl) ||
+             start_of_id_is("fl", ptr, dctl) ||
+             start_of_id_is("fR", ptr, dctl) ||
+             start_of_id_is("fL", ptr, dctl)) {
+    /* A fold expression.  The actual length is not easily known and must be
+       determined by the caller.  The returned value is simply a flag (and
+       not an actual operation string). */
+    s = "fold-ex";
   } else {
     s = NULL;
   }  /* if */

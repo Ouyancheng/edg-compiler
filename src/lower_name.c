@@ -6613,9 +6613,6 @@ is TRUE.
         opname = opname_kind_for_token[(int)expr->variant.fold.operator_token];
         opcode = mangled_operator_name(opname, 2);
         add_str_to_mangled_name(opcode, mctl);
-#if !IA64_ABI
-        add_to_mangled_name(unary ? '1' : '2', mctl);
-#endif /* !IA64_ABI */
         mangled_encoding_for_expression(expr->variant.fold.operands,
                                         in_dependent_expr, mctl);
         if (!unary) {
