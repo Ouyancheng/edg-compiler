@@ -1,5 +1,12 @@
 Version 4.14
 
+7/11/17  [EDGcpfe/18568,EDGcpfe/18570]
+Incorporate changes for builtins from GCC 6.4.0
+
+The front end has been updated to incorporate changes in builtin signatures
+for the recently-released GCC 6.4.0 release.
+
+
 7/11/17  [EDGcpfe/18569]
 Type of fourth argument to __vec_delete library call
 
