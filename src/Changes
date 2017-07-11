@@ -1,5 +1,14 @@
 Version 4.14
 
+7/11/17  [EDGcpfe/18569]
+Type of fourth argument to __vec_delete library call
+
+As a result of the changes for EDGcpfe/17482 (in 4.13), the type of the fourth
+argument to the __vec_delete library call had an incorrect type which has now
+been fixed.  Only affects configurations where IA64_ABI is FALSE and
+DO_IL_LOWERING is TRUE.
+
+
 7/11/17  [EDGcpfe/18565]
 Incorrect partial ordering involving variadic template parameters
 

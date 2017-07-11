@@ -3684,7 +3684,7 @@ A pointer to the expression created is returned.
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
-    dtor_addr_node = add_cast_if_necessary(dtor_addr_node, make_delete_type());
+    dtor_addr_node = add_cast_if_necessary(dtor_addr_node, make_dtor_type());
     size_elem_node->next = dtor_addr_node;
     dtor_addr_node->next = free_storage_node;
     free_storage_node->next = node_for_integer_constant(0L,
