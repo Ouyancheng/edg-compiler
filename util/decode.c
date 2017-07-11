@@ -6823,8 +6823,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
       ptr += 2;
       op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
                                  dctl);
-      if (op_str == NULL ||
-          !(unary ? num_operands == 1 : num_operands == 2)) {
+      if (op_str == NULL) {
         bad_mangled_name(dctl);
       } else {
         ptr += length;
