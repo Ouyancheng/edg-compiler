@@ -214,12 +214,12 @@ extern "C" {
 EXTERN_C void __destroy_exception_object(void);
 
 #if ABI_CHANGES_FOR_RTTI
-a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
+char		MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
 			/* This is used to get the address of the
 			   unique ID for the void type for pointer to
 			   void* conversions. */
 #ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
-a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR;
+char		MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR;
 			/* This is used to get the address of the
 			   unique ID for the std::nullptr_t type for 
 			   std::nullptr_t to pointer conversions. */

@@ -1,5 +1,13 @@
 Version 4.14
 
+7/11/17  [EDGcpfe/18572]
+Inconsistent type used for "id" field of type_info in Cfront ABI
+
+The front end uses a "char" type for the "id" field of the type_info structure
+and the runtime library had used "unsigned char" for the same field and has now
+been changed to use "char".
+
+
 3/24/17  [EDGcpfe/18147]
 Destructions for static and thread_local objects before main is called
 

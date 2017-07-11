@@ -39,7 +39,7 @@ typedef void (*a_function_ptr)();
                            pointer to a destructor or an operator delete
 			   function. */
 
-typedef a_byte a_unique_id;
+typedef char a_unique_id;
 			/* The thing pointed to by the unique ID in a
 			   type_info record. */
 
