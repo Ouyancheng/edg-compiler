@@ -3135,6 +3135,8 @@ should be preferred over templ_sym2.
   a_template_symbol_supplement_ptr	tssp1;
   a_symbol_ptr				prototype_sym2;
   a_template_symbol_supplement_ptr	tssp2;
+  a_template_arg_ptr			tap_for_match1 = NULL;
+  a_template_arg_ptr			tap_for_match2 = NULL;
  
   /* Use the argument deduction routines to determine whether the template
      parameters used in template2 can be deduced from the values used in
@@ -3154,7 +3156,7 @@ should be preferred over templ_sym2.
     prototype_sym1 = symbol_for(proto_var);
   }  /* if */
   match1 = matches_partial_specialization(template_sym2, prototype_sym1,
-                                          (a_template_arg_ptr*)NULL);
+                                          &tap_for_match1);
   /* Attempt the deduction in the other direction. */
   tssp2 = template_sym2->variant.template_info;
   if (symbol_is(template_sym2, sk_class_template)) {
@@ -3165,7 +3167,7 @@ should be preferred over templ_sym2.
     prototype_sym2 = symbol_for(proto_var);
   }  /* if */
   match2 = matches_partial_specialization(template_sym1, prototype_sym2,
-                                           (a_template_arg_ptr*)NULL);
+                                          &tap_for_match2);
   if (match1 && !match2) {
     result = 1;
   } else if (match2 && !match1) {
@@ -3176,11 +3178,8 @@ should be preferred over templ_sym2.
        variadic parameters. */
     if (tssp1->has_variadic_template_params &&
         tssp2->has_variadic_template_params) {
-      a_template_arg_ptr	tap1;
-      a_template_arg_ptr	tap2;
-      tap1 = template_arg_list_for_symbol(prototype_sym1);
-      tap2 = template_arg_list_for_symbol(prototype_sym2);
-      result = compare_variadic_template_arg_lists(tap1, tap2);
+      result = compare_variadic_template_arg_lists(tap_for_match1,
+                                                   tap_for_match2);
     } else if (tssp2->has_variadic_template_params) {
       result = 1;
     } else if (tssp1->has_variadic_template_params) {

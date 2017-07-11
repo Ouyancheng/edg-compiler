@@ -1,5 +1,27 @@
 Version 4.14
 
+7/11/17  [EDGcpfe/18565]
+Incorrect partial ordering involving variadic template parameters
+
+In some cases a spurious ambiguity could result in partial ordering
+in cases where a template that deduces more non-variadic template
+parameters should be preferred over one that deduces fewer non-variadic
+template parameters.  Now fixed.
+
+  template <class T1> struct A;
+  template <template <class...> class TT, class... Ts>
+  struct A<TT<Ts...>> {
+    static constexpr bool value = false;
+  };
+  template <template <class...> class TT, class T, class... Ts>
+  struct A<TT<T, Ts...>> {
+    static constexpr bool value = true;
+  };
+  template <class ...> struct B { };
+  // Previously ambiguous
+  static_assert(A<B<int>>::value == true,  "");
+
+
 7/7/17   [EDGcpfe/17691,EDGcpfe/18560]
 C++17: Fold Expressions
 
