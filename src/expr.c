@@ -23619,6 +23619,7 @@ Also scans GNU statement expressions:
       a_boolean         is_expression = FALSE, is_constant = FALSE;
       a_boolean         expr_present = TRUE, left_unary_fold_expr = FALSE;
       a_boolean         need_expr = FALSE, need_expr_for_constant = FALSE;
+      a_boolean         is_fold_expression = FALSE;
       an_expr_node_ptr  expr = NULL;
       a_boolean         parens_in_il = PARENS_IN_IL;
       /* Only certain options get passed down. */
@@ -23663,6 +23664,7 @@ Also scans GNU statement expressions:
           scan_fold_expression(result, bound_function_selector, !expr_present,
                                pesep, &start_position);
           parens_in_il = FALSE;
+          is_fold_expression = TRUE;
         } else {
           abandon_potential_pack_expansion_context(pesep);
         }  /* if */
@@ -23737,14 +23739,16 @@ Also scans GNU statement expressions:
       /* Something like "(i)" is not an id-expression; clear the flag that
          was recorded for the "i" subexpression in such cases. */
       result->is_id_expression = FALSE;
-      result->is_parenthesized = TRUE;
-      /* Record the fact that the expression is parenthesized in the node
-         (if there is any). */
-      if (is_expression) {
-        result->variant.expression->is_parenthesized = TRUE;
-      } else if (is_constant && result->variant.constant.expr != NULL) {
-        /* If the constant has a backing expression, set the flag there. */
-        result->variant.constant.expr->is_parenthesized = TRUE;
+      if (!is_fold_expression) {
+        result->is_parenthesized = TRUE;
+        /* Record the fact that the expression is parenthesized in the node
+           (if there is any). */
+        if (is_expression) {
+          result->variant.expression->is_parenthesized = TRUE;
+        } else if (is_constant && result->variant.constant.expr != NULL) {
+          /* If the constant has a backing expression, set the flag there. */
+          result->variant.constant.expr->is_parenthesized = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -44912,7 +44916,7 @@ function operand: The selector is then return in *bound_function_selector.
                                        /*bundle=*/FALSE, &opnd_list);
       pedp = end_potential_pack_expansion_context(left_pesep,
                                                   /*is_declarator=*/TRUE);
-      if (pedp != NULL) {
+      if (pedp != NULL && !scope_stack_top().alias_in_template_decl) {
         /* We're scanning a pack in its generic form (i.e., without expansion
            going on). */
         generic = TRUE;
@@ -44960,7 +44964,7 @@ function operand: The selector is then return in *bound_function_selector.
                                        /*bundle=*/FALSE, &opnd_list);
       pedp = end_potential_pack_expansion_context(right_pesep,
                                                   /*is_declarator=*/TRUE);
-      if (pedp != NULL) {
+      if (pedp != NULL && !scope_stack_top().alias_in_template_decl) {
         /* We're scanning a pack in its generic form (i.e., without expansion
            going on). */
         generic = TRUE;
