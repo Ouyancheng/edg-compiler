@@ -3693,7 +3693,7 @@ A pointer to the expression created is returned.
                                          &vec_delete_routine, void_type(),
                                          void_star_type(),
                                          make_element_count_type(),
-                                         size_t_type, make_delete_type(),
+                                         size_t_type, make_dtor_type(),
                                          integer_type((an_integer_kind)ik_int),
                                          integer_type((an_integer_kind)ik_int),
                                          NULL, arg_expr_list);
