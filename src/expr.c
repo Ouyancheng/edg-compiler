@@ -44651,6 +44651,7 @@ selector is returned through bound_function_selector.
   opnd_list = opnd_list->next;
   alep->next = NULL;
   extract_operand_from_expression_component(alep, result, /*free_icp =*/TRUE);
+  (void)copy_ref_entry_list(result->ref_entries_list);
   if (opnd_list != NULL) {
     an_operand            opnd1;
     an_initializer_cache  cache;
@@ -44663,6 +44664,8 @@ selector is returned through bound_function_selector.
          applied. */
       cache.first_init = opnd_list;
       cache.last_init = opnd_list;
+      (void)copy_ref_entry_list(
+                       operand_of_arg_list_elem(opnd_list)->ref_entries_list);
       opnd_list = opnd_list->next;
       cache.last_init->next = NULL;
       apply_one_fold_operator(op_token, &opnd1, diag_pos,
@@ -44697,6 +44700,7 @@ selector is returned through bound_function_selector.
   opnd_list = opnd_list->next;
   alep->next = NULL;
   extract_operand_from_expression_component(alep, result, /*free_icp =*/TRUE);
+  (void)copy_ref_entry_list(result->ref_entries_list);
   if (opnd_list != NULL) {
     /* Repeat the operator over the list.  Since the list was reversed above,
        we have to also reverse the operands when calling
@@ -44711,6 +44715,8 @@ selector is returned through bound_function_selector.
       clear_initializer_cache(&cache);
       alep = alloc_arg_list_elem_for_operand(result);
       add_init_component_to_initializer_cache(alep, /*to_front=*/TRUE, &cache);
+      (void)copy_ref_entry_list(
+                            operand_of_arg_list_elem(alep)->ref_entries_list);
       /* Extract the next element of the list as the first operand of the
          binary operator to apply. */
       alep = opnd_list;

@@ -3134,20 +3134,33 @@ Display an expression operand for debugging purposes.
 }  /* db_operand */
 
 
+void db_ref_entries(a_ref_entry_ptr  rep)
+/*
+Output a summary of the indicated list.
+*/
+{
+  for (; rep != NULL; rep = rep->next_operand_ref) {
+    db_symbol_name(rep->symbol);
+    fprintf(f_debug, ":");
+    db_symbol_ref_kind(rep->kind);
+    if (rep->already_recorded) {
+      fprintf(f_debug, " RECORDED");
+    }  /* if */
+    if (rep->freed) {
+      fprintf(f_debug, " FREED");
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_ref_entries */
+
+
 void db_operand_ref_entries(an_operand  *operand)
 /*
 Display a summary of the reference chain associated with an operand in the
 debug output.
 */
 {
-  a_ref_entry_ptr  rep = operand->ref_entries_list;
-
-  for (; rep != NULL; rep = rep->next_operand_ref) {
-    db_symbol_name(rep->symbol);
-    fprintf(f_debug, ":");
-    db_symbol_ref_kind(rep->kind);
-    fprintf(f_debug, "\n");
-  }  /* for */
+  db_ref_entries(operand->ref_entries_list);
 }  /* db_operand_ref_entries */
 
 #endif /* DEBUG */
