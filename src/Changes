@@ -19,10 +19,10 @@ DO_IL_LOWERING is TRUE.
 7/11/17  [EDGcpfe/18565]
 Incorrect partial ordering involving variadic template parameters
 
-In some cases a spurious ambiguity could result in partial ordering
-in cases where a template that deduces more non-variadic template
-parameters should be preferred over one that deduces fewer non-variadic
-template parameters.  Now fixed.
+In some cases, the front end incorrectly reported an ambiguity when partial
+ordering should prefer a template that deduces more non-variadic template
+parameters over one that deduces fewer non-variadic template parameters.
+Now fixed.
 
   template <class T1> struct A;
   template <template <class...> class TT, class... Ts>
