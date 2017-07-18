@@ -3146,9 +3146,11 @@ Output a summary of the indicated list.
     if (rep->already_recorded) {
       fprintf(f_debug, " RECORDED");
     }  /* if */
+#if CHECKING
     if (rep->freed) {
       fprintf(f_debug, " FREED");
     }  /* if */
+#endif /* CHECKING */
     fprintf(f_debug, "\n");
   }  /* for */
 }  /* db_ref_entries */
