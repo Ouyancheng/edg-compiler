@@ -18019,6 +18019,7 @@ static void lower_constexpr_if(a_statement_ptr statement)
 Lower the indicated C++17 "if constexpr" statement.
 */
 {
+#if 0
   a_constexpr_if_ptr	cip;
   a_statement_ptr	taken_statement;
 
@@ -18029,7 +18030,6 @@ Lower the indicated C++17 "if constexpr" statement.
   } else {
     taken_statement = cip->else_statement;
   }  /* if */
-#if 0
   /* Replace the original statement with a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   /* The taken statement will be NULL if the value is FALSE and there is no
@@ -18040,6 +18040,9 @@ Lower the indicated C++17 "if constexpr" statement.
     lower_statement(taken_statement);
   }  /* if */
 #else
+  a_constexpr_if_ptr	cip;
+
+  cip = statement->variant.constexpr_if;
   lower_statement(cip->then_statement);
   lower_statement(cip->else_statement);
 #endif
