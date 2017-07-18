@@ -1918,6 +1918,8 @@ extern void make_string_constant_operand(a_constant *constant,
 #if DEBUG
 extern void db_operand(an_operand *operand);
 
+extern void db_ref_entries(a_ref_entry_ptr rep);
+
 extern void db_operand_ref_entries(an_operand *operand);
 #endif /* DEBUG */
 

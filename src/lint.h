@@ -101,6 +101,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_statements)*/
 /*lint -esym(759,db_operand_ref_entries)*/
 /*lint -esym(765,db_operand_ref_entries)*/
+/*lint -esym(714,db_ref_entries)*/
+/*lint -esym(759,db_ref_entries)*/
+/*lint -esym(765,db_ref_entries)*/
 /*lint -esym(714,free_template_decl_info)*/
 /*lint -esym(759,f_db_sym_has_traced_name)*/
 /*lint -esym(759,free_template_decl_info)*/
