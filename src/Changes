@@ -1,16 +1,5 @@
 Version 4.14
 
-7/17/17  [EDGcpfe/18578]
-GNU C++ compatibility: internal error on throw of __I__
-
-An internal error could occur (in ptr_remap_function) on a throw(__I__)
-when using the non-alternate file format.  Now fixed.
-
-  int main() {
-    throw(__I__);
-  }
-
-
 7/11/17  [EDGcpfe/18568,EDGcpfe/18570]
 Incorporate changes for builtins from GCC 6.4.0
 

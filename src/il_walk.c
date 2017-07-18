@@ -272,6 +272,8 @@ That is what the remap function does.
 #if ONE_INSTANTIATION_PER_OBJECT
   walk_string_ptr(il_header.instantiation_dir_name, iek_other_text, 0);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  walk_list(il_header.nontag_types_used_in_exception_or_rtti,
+            a_type_ptr, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   walk_list(il_header.cli_metadata_files, a_cli_metadata_file_ptr,
             iek_cli_metadata_file);
