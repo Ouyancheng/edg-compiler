@@ -29395,8 +29395,9 @@ template entities.
       vp = variable_for_symbol(tip->instance_sym);
       specialized = vp->is_specialized;
       specialization_defined = tip->instance_sym->defined;
-      template_def = tip->template_sym->defined ||
-                     exported_definition_is_available(tip);
+      template_def = !vp->is_inline &&
+                     (tip->template_sym->defined ||
+                      exported_definition_is_available(tip));
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
