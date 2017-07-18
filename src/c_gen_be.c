@@ -8415,7 +8415,8 @@ parameters.
                                         ) {
         /* A variable in a COMDAT.  Must be a definition. */
         check_assertion_str(variable->storage_class ==
-                                               (a_storage_class)sc_unspecified,
+                                             (a_storage_class)sc_unspecified ||
+                            variable->is_inline,
                             "dump_variable_decl: var without defn in comdat");
         if (gcc_or_clang_is_generated_code_target) {
           /* GCC does not support COMDAT, but it does support weak, which
