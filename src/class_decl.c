@@ -27355,11 +27355,13 @@ that is provided if this is a member template declaration.
                !(inline_variables_allowed &&
                  dps->storage_class == (a_storage_class)sc_static)) {
       /* The "inline" keyword is allowed on static data members when inline
-         variables are enabled. */
-      pos_error(ec_inline_and_nonfunction, &dps->start_pos);
-      remove_stop_token(tok_comma);
-      discard_curr_construct_pragmas();
-      break;
+         variables are enabled.  For an attempt to declare an inline
+         nonstatic data member, report an error and continue to process the
+         member declaration as if "inline" had not been specified; this
+         suppresses the diagnostic that would otherwise be reported on an
+         initializer for the member. */
+      pos_error(ec_inline_nonstatic_data_mem, &dps->start_pos);
+      scan_nonstatic_data_member(&locator, class_state, &decl_info);
     } else if (decl_info.is_destructor
 #if MICROSOFT_EXTENSIONS_ALLOWED
                || decl_info.is_finalizer

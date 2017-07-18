@@ -2939,6 +2939,7 @@ ec_fold_expression_operator_mismatch;;"second operator in binary fold expression
 ec_invalid_fold_expression_operator;;"invalid fold expression operator"
 ec_two_packs_in_fold_expression;;"a binary fold expression cannot apply to two parameter packs"
 ec_invalid_empty_fold_expression;;"empty expansion not valid fold expression"
+ec_inline_nonstatic_data_mem;;"a nonstatic data member cannot be declared as inline"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
