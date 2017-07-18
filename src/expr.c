@@ -989,7 +989,8 @@ current expression (used to decide how a comma should be treated).
        followed by an ellipsis.  This must be the beginning of a C++17
        fold expression:
             ( <cast-expression> OP ...  <other tokens> )
-       (EOPT_FOLD_EXPR_CONTEXT was passed in when leading '(' was encountered.)
+       (EOPT_FOLD_EXPR_CONTEXT was passed in when the leading '(' was
+       encountered.)
     */
     done = TRUE;
   } else {
@@ -44659,8 +44660,8 @@ selector is returned through bound_function_selector.
     expr_stack->initializer_cache = &cache;
     do {
       copy_operand(result, &opnd1);
-      /* Move the next element to initializer cache, so it will be found as
-         the second operand of the binary operator that it about to be
+      /* Move the next element to the initializer cache, so it will be found
+         as the second operand of the binary operator that it about to be
          applied. */
       cache.first_init = opnd_list;
       cache.last_init = opnd_list;
@@ -44710,8 +44711,8 @@ selector is returned through bound_function_selector.
     an_initializer_cache  *saved_cache_ptr = expr_stack->initializer_cache;
     expr_stack->initializer_cache = &cache;
     do {
-      /* Move result to initializer cache, so it will be found as the second
-         operand of the binary operator that it about to be applied. */
+      /* Move result to the initializer cache, so it will be found as the
+         second operand of the binary operator that is about to be applied. */
       clear_initializer_cache(&cache);
       alep = alloc_arg_list_elem_for_operand(result);
       add_init_component_to_initializer_cache(alep, /*to_front=*/TRUE, &cache);
@@ -44817,7 +44818,7 @@ left_associative is TRUE if the expansion should be evaluated as
           /* An empty expansion over the || operator yields a false value. */
           make_constant_operand(con, result);
         } else if (op_token == (a_token_kind)tok_and_and) {
-          /* An empty expansion over the || operator yields a true value. */
+          /* An empty expansion over the && operator yields a true value. */
           set_integer_value(&con->variant.integer_value,
                             (a_host_large_integer)1);
           make_constant_operand(con, result);
@@ -44851,7 +44852,7 @@ Complete the scan of one of the following forms:
   ( <cast-expr> OP ... )
   ( <cast-expr> OP ... OP <cast-expr> )
 
-In the first case, tok_ellipsis is the current token empty pack is FALSE.
+In the first case, tok_ellipsis is the current token and empty_pack is FALSE.
 If the leading <cast-expr> in the other cases corresponds to an empty pack,
 empty_pack is TRUE.  Otherwise, the first OP (a binary operator) is the
 current token and *result holds the initial cast expression.  *start_pos
