@@ -17240,7 +17240,7 @@ this one is such a continuation.
   adv_curr_source_sequence_entry();
   /* Usually, initializers appear on a definition, but for static data
      members, they may appear on the declaration. */
-  if (var->initializer_in_class) {
+  if (var->initializer_in_class && !var->is_inline) {
     consider_initialization = !is_definition;
   } else {
     consider_initialization = is_definition;
@@ -17438,6 +17438,9 @@ this one is such a continuation.
       /* Put out the "constexpr" keyword.  For ordinary variables (i.e., not
          static data members) it should only appear on the definition. */
       write_tok_str("constexpr ");
+    }  /* if */
+    if (var->is_inline) {
+      write_tok_str("inline ");
     }  /* if */
     if (var->is_thread_local) {
       if (C_mode()) {

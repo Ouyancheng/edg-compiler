@@ -8884,15 +8884,6 @@ which is processed after any other specifiers have also been consumed.
                      ec_bad_param_storage_class, &pos_first_token);
       *err = !ms_extensions;
     }  /* if */
-  } else if (!C_mode() && (*decl_specifiers_seen & DS_INLINE) &&
-             first_token != tok_static &&
-             (!extern_inline_allowed || first_token != tok_extern)) {
-    /* In C++, "inline static" is allowed; if extern_inline_allowed
-       is TRUE, so is "inline extern"; otherwise, we issue an error.
-       (In C99 mode "inline" can appear with both "static" and
-       "extern".) */
-    pos_error(ec_bad_storage_class_with_inline, &pos_first_token);
-    *err = TRUE;
   } else if (first_token == tok_mutable) {
     if (!is_member_decl || (*decl_specifiers_seen & DS_FRIEND)) {
       pos_error(ec_mutable_not_allowed, &pos_first_token);
@@ -11604,6 +11595,19 @@ no_get_token:
   }  /* for */
 #undef record_qualifiers_pos
 exit_loop:
+  if (!C_mode() &&
+      ((decl_specifiers_seen & (DS_INLINE | DS_STORAGE_CLASS)) == 
+                               (DS_INLINE | DS_STORAGE_CLASS)) &&
+      state->declared_storage_class != (a_storage_class)sc_static &&
+      (!extern_inline_allowed ||
+       state->declared_storage_class != (a_storage_class)sc_extern)) {
+    /* A storage class specifier and "inline" was specified.  In C++, "inline
+       static" is allowed; if extern_inline_allowed is TRUE, so is "inline
+       extern"; otherwise, we issue an error.  (In C99 mode "inline" can appear
+       with both "static" and "extern".) */
+    pos_error(ec_bad_storage_class_with_inline, &state->storage_class_pos);
+    err = TRUE;
+  }  /* if */
   if (state->auto_type_specifier_seen &&
       auto_storage_class_specifier_enabled && auto_type_specifier_enabled) {
     /* The "auto" token was seen among the specifiers, but we could not decide

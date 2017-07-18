@@ -1,5 +1,21 @@
 Version 4.14
 
+7/18/17  [EDGcpfe/17704,EDGcpfe/17954]
+C++17: Inline variables
+
+As described in C++ Committee document P0386R2, the front end now supports
+inline variables and static data members.  Like inline functions, inline
+variables can be defined in multiple translation units without creating
+linker errors, but have a unique identity (address and value) in the
+resulting program.  Such variables are identified in the IL via the
+is_inline field of a_variable.  For example, with --c++17:
+
+  inline const int i = 15;
+  struct S {
+    inline static int j = 25;
+  };
+
+
 7/11/17  [EDGcpfe/18568,EDGcpfe/18570]
 Incorporate changes for builtins from GCC 6.4.0
 

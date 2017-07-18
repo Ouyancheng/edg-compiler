@@ -23710,9 +23710,12 @@ template symbol supplement for this template should be returned to the caller.
       internal_error("template_declaration: bad instance for static mem");
     } /* if */
 #endif /* CHECKING */
+    // FIXME: allowed?
+    // FIXME: fix comment.
     /* Make sure the declaration did not use features only valid for
        functions (e.g., "inline"). */
-    check_nonfunction_declaration_errors(&decl_state->decl_parse, locator);
+    check_nonfunction_declaration_errors(&decl_state->decl_parse, locator,
+                                         /*is_variable_decl=*/TRUE);
     tssp = template_supplement_for_symbol(sym);
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
     if ((is_ptr_or_ref_type(type) &&

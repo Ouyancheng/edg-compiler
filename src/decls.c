@@ -3468,6 +3468,7 @@ information in the specified id-linkage block.
       idlbp->linkage = idl_internal;
     } else if (!C_mode() && is_object &&
                is_const_qualified_type(idlbp->type) &&
+               (dps->dso_flags & DSO_INLINE) == 0 &&
                decl_scope_level == depth_innermost_namespace_scope &&
                idlbp->storage_class == (a_storage_class)sc_unspecified &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3477,11 +3478,12 @@ information in the specified id-linkage block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                !(idlbp->extern_C_name_linkage_specified &&
                  idlbp->direct_linkage_specifier)) {
-      /* In C++ all const qualified objects at file or namespace scope with
-         no explicit storage class are internally linked (unless previously
-         declared to be extern -- see below).  An exception are variables
-         declared with the __declspec(dllexport) attribute in some Microsoft
-         modes: They are treated as having external linkage. */
+      /* In C++ all non-inline const qualified objects at file or namespace
+         scope with no explicit storage class are internally linked (unless
+         previously declared to be extern -- see below).  An exception are
+         variables declared with the __declspec(dllexport) attribute in
+         some Microsoft modes: They are treated as having external
+         linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
     } else {
@@ -10740,10 +10742,19 @@ the symbol through dps->sym and its linkage (which is always "none") through
     if (!sym->ambiguous) sym = fundamental_symbol_of(sym);
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    dps->is_definition = TRUE;
     dps->sym = sym;
     var = sym->variant.static_data_member.variable;
-    if (sym->defined) {
+    if (inline_variables_allowed && var->is_constexpr) {
+      /* In C++17, a constexpr static data member outside of a class definition
+         is considered a redundant declaration -- not a definition.  Such
+         usage is deprecated. */
+      dps->is_definition = FALSE;
+      srk_flags = SRK_DECLARATION;
+    } else {
+      dps->is_definition = TRUE;
+      srk_flags = SRK_DECLARATION | SRK_DEFINITION;
+    }  /* if */
+    if (dps->is_definition && sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
     } else if (!namespace_is_enclosed_by_scope(sym, &scope_stack_top())) {
@@ -10792,7 +10803,6 @@ the symbol through dps->sym and its linkage (which is always "none") through
         var->is_specialized = TRUE;
         var->specialized_with_old_syntax = TRUE;
       }  /* if */
-      srk_flags = SRK_DECLARATION | SRK_DEFINITION;
       /* Even without an explicit initializer this is an initializing
          declaration it is the static data member is nontrivially
          constructible -- i.e., if it is a class object (or array of class)
@@ -16482,16 +16492,23 @@ done:
 
 
 void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
-                                          a_symbol_locator    *locator)
+                                          a_symbol_locator    *locator,
+                                          a_boolean           is_variable_decl)
 /*
 Check for function declaration features incorrectly used in variable or
-typedef declarations.  state and locator describe the declaration.
+typedef declarations.  state and locator describe the declaration;
+is_variable_decl is TRUE if a variable declaration is being processed.
 */
 {
-  /* The "inline" specifier should only appear on function declarations. */
+  /* The "inline" specifier should only appear on function declarations,
+     except in C++17 where it can also appear on some variable declarations. */
   if (state->dso_flags & DSO_INLINE) {
-    pos_diagnostic(gcc_mode ? es_warning : es_error, ec_inline_and_nonfunction,
-                   &state->inline_pos);
+    if (is_variable_decl && inline_variables_allowed) {
+      /* Allowed in some locations. */
+    } else {
+      pos_diagnostic(gcc_mode ? es_warning : es_error,
+                     ec_inline_and_nonfunction, &state->inline_pos);
+    }  /* if */
   }  /* if */
   if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
     check_missing_type_specifiers_in_decl(state, (a_func_info_block*)NULL,
@@ -17269,6 +17286,25 @@ can be fully determined.
 }  /* define_struct_bindings */
 
 
+void mark_inline_variable(a_variable_ptr var,
+                          a_boolean      is_definition)
+/*
+The variable has been determined to be an inline variable.  Issue an error
+if is_definition is FALSE and the variable has already been defined as
+non-inline; otherwise, mark it as inline.
+*/
+{
+  a_symbol_ptr sym = symbol_for(var);
+
+  if (!is_definition && !var->is_inline && sym->defined) {
+    pos2_sy_diagnostic(es_error, ec_first_inline_after_definition,
+                       &error_position, &sym->decl_position, sym);
+  } else {
+    var->is_inline = TRUE;
+  }  /* if */
+}  /* mark_inline_variable */
+
+
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
                                  a_decl_pos_block    *decl_pos_block)
@@ -17313,7 +17349,8 @@ if one is present.
     set_to_named_error_locator(*locator);
   }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-  check_nonfunction_declaration_errors(state, locator);
+  check_nonfunction_declaration_errors(state, locator,
+                                       /*is_variable_decl=*/TRUE);
   if (locator->specific_symbol != NULL &&
       locator->specific_symbol->is_class_member) {
     is_static_data_member = TRUE;
@@ -17550,6 +17587,11 @@ if one is present.
       var_ptr->declared_with_decltype_auto = TRUE;
     } else if (state->auto_type_specifier_seen) {
       var_ptr->declared_with_auto_type_specifier = TRUE;
+    }  /* if */
+    if (inline_variables_allowed &&
+        (state->dso_flags & DSO_INLINE) != 0) {
+      /* An inline variable. */
+      mark_inline_variable(var_ptr, is_variable_def);
     }  /* if */
   }  /* if */
   if (is_variable_def || is_tentative_def) {
@@ -17843,7 +17885,8 @@ decl_pos_block.
       set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
-  check_nonfunction_declaration_errors(state, locator);
+  check_nonfunction_declaration_errors(state, locator,
+                                       /*is_variable_decl=*/FALSE);
   decl_typedef(locator, state, (a_type_ptr)NULL, decl_pos_block);
   record_entity_in_decl_stmt_if_needed(state->sym);
 #if GNU_EXTENSIONS_ALLOWED
@@ -18149,10 +18192,11 @@ based on the current mode and the given declaration parsing state.
     /* A "vacuous declaration" of a class, struct, or union is allowed, but
        only has an effect when not at file scope. */
     dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
-    /* In C++, "inline" is normally allowed only on function declarations in
-       nonlocal scopes.  In C99 and GNU C modes, it is allowed on all function
-       declarations.  We also accept the inline specifier on block-extern
-       function declarations in Microsoft bugs mode. */
+    /* In C++, "inline" is normally allowed only on function (and, in C++17,
+       variable) declarations in nonlocal scopes.  In C99 and GNU C modes, it
+       is allowed on all function declarations.  We also accept the inline
+       specifier on block-extern function declarations in Microsoft bugs mode.
+       */
     if (state->function_definition_allowed) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       dsi_flags |= DSI_INLINE_ALLOWED;

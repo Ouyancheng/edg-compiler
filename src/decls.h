@@ -1606,8 +1606,10 @@ extern a_boolean deleted_or_defaulted_def_next(a_boolean  *defaulted);
 
 extern a_boolean decltype_auto_tokens_next(void);
 
-extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
-                                                 a_symbol_locator    *locator);
+extern void check_nonfunction_declaration_errors(
+                                         a_decl_parse_state  *state,
+                                         a_symbol_locator    *locator,
+                                         a_boolean           is_variable_decl);
 
 /*
 Utility macro to avoid a function call in the common case where an entity
@@ -1627,6 +1629,9 @@ extern void f_record_strongest_alignment_attr(
                                         a_boolean               is_defined,
                                         a_boolean               is_definition);
  
+extern void mark_inline_variable(a_variable_ptr var,
+                                 a_boolean      is_definition);
+
 extern void decls_one_time_init(void);
 
 extern void decls_trans_unit_init(void);

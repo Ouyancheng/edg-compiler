@@ -5975,9 +5975,18 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
       storage_class = var_ptr->storage_class;
-      if (storage_class == (a_storage_class)sc_unspecified &&
-          (!is_member_of_unnamed_namespace(&var_ptr->source_corresp) ||
-           var_ptr->source_corresp.name_linkage ==
+      if (scope_kind == (a_scope_kind)sck_file &&
+          var_ptr->source_corresp.referenced &&
+          (storage_class == (a_storage_class)sc_unspecified ||
+           storage_class == (a_storage_class)sc_extern) &&
+          var_ptr->is_inline && !sym->defined) {
+        /* An extern inline variable used but not defined in this
+           translation unit. */
+        pos_sy_error(ec_extern_inline_never_defined, &sym->decl_position,
+                     sym);
+      } else if (storage_class == (a_storage_class)sc_unspecified &&
+                 (!is_member_of_unnamed_namespace(&var_ptr->source_corresp) ||
+                  var_ptr->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external)) {
         /* Note that if this test succeeds (i.e., the variable has
            storage class sc_unspecified), we do not do the test for

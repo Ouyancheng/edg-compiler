@@ -16198,6 +16198,9 @@ template declaration and is NULL otherwise.
        usually be set to extern (except sometimes in cfront mode). */
     var = make_variable(member_type, (a_storage_class)sc_static,
                         NO_SCOPE_DEPTH);
+    if (decl_info->decl_state.dso_flags & DSO_INLINE) {
+      var->is_inline = TRUE;
+    }  /* if */
     add_to_variables_list(var, effective_decl_level);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16384,15 +16387,17 @@ template declaration and is NULL otherwise.
       record_inclass_initializer_fixup(class_state, decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
       srk_flags |= SRK_DEFINITION;
-    } else if (is_valid_static_member_constant_type(
+    } else if (var->is_inline ||
+               is_valid_static_member_constant_type(
                                       member_type, var, constant_member,
                                       decl_info->is_member_template,
                                       class_state->is_nonreal_instantiation)) {
-      /* The type is valid for an in-class initializer. */
+      /* An in-class initializer is valid. */
       decl_info->decl_pos_block.var_init_range.start = init_pos;
-      if (var->is_constexpr && curr_token != tok_lparen) {
-        /* If this is a constexpr member, more initialization forms are
-           possible: Use the general initializer processing function. */
+      if ((var->is_constexpr || var->is_inline) && curr_token != tok_lparen) {
+        /* If this is a constexpr or inline member, more initialization
+           forms are possible: Use the general initializer processing
+           function. */
         a_boolean  incomplete_type_error_reported = FALSE;
         a_boolean  is_parenthesized_initializer = FALSE;
         a_boolean  saved_auto_type_specifier_seen =
@@ -16418,7 +16423,9 @@ template declaration and is NULL otherwise.
                                                   curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
-      check_constant_valued_variable(decl_state);
+      if (!var->is_inline) {
+        check_constant_valued_variable(decl_state);
+      }  /* if */
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
       member_type = check_for_invalid_member_constant(decl_state, member_type,
@@ -16462,9 +16469,23 @@ template declaration and is NULL otherwise.
     var->init_kind = (an_init_kind)initk_static;
     var->initializer.constant = alloc_error_constant();
   }  /* if */
+  if (inline_variables_allowed) {
+    if ((decl_state->dso_flags & DSO_INLINE) != 0 ||
+        var->is_constexpr) {
+      /* The static data member is either explicitly or implicitly marked
+         as inline. */
+      mark_inline_variable(var, /*is_definition=*/TRUE);
+    }  /* if */
+    if (var->is_inline) {
+      /* Inline static data members are considered definitions. */
+      srk_flags |= SRK_DEFINITION;
+    }  /* if */
+  }  /* if */
   /* Record the symbol declaration.  Usually it is a pure declaration (and the
      definition must appear outside the class definition), but in C++/CLI an
-     in-class initializer makes the declaration a definition too. */
+     in-class initializer makes the declaration a definition too.  Also,
+     in C++17, an inline (either explicit or implicit) static data member
+     is considered a definition. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             decl_state->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -27320,16 +27341,22 @@ that is provided if this is a member template declaration.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
+    } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL)) {
       if (dso_flags & DSO_FRIEND) {
         pos_error(ec_bad_friend_decl, &dps->start_pos);
       }  /* if */
       if (dso_flags & DSO_VIRTUAL) {
         pos_error(ec_virtual_not_allowed, &dps->start_pos);
       }  /* if */
-      if (dso_flags & DSO_INLINE) {
-        pos_error(ec_inline_and_nonfunction, &dps->start_pos);
-      }  /* if */
+      remove_stop_token(tok_comma);
+      discard_curr_construct_pragmas();
+      break;
+    } else if (dso_flags & DSO_INLINE &&
+               !(inline_variables_allowed &&
+                 dps->storage_class == (a_storage_class)sc_static)) {
+      /* The "inline" keyword is allowed on static data members when inline
+         variables are enabled. */
+      pos_error(ec_inline_and_nonfunction, &dps->start_pos);
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;

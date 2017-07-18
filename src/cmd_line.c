@@ -3365,6 +3365,7 @@ default mode (e.g., exception handling).
       constexpr_lambdas_enabled = TRUE;
       capture_star_this_enabled = TRUE;
       fold_expressions_enabled = TRUE;
+      inline_variables_allowed = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11168,6 +11169,7 @@ variables declared in cmd_line.h.
   typename_enabled = DEFAULT_TYPENAME_ENABLED;
   implicit_typename_enabled = DEFAULT_IMPLICIT_TYPENAME_ENABLED;
   extern_inline_allowed = DEFAULT_EXTERN_INLINE_ALLOWED;
+  inline_variables_allowed = FALSE;
   floating_point_template_parameters_allowed =
                             DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED;
   vla_enabled = DEFAULT_VLA_ENABLED;

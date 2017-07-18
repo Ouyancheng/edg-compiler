@@ -10149,6 +10149,10 @@ typedef struct a_variable {
 			/* TRUE if this is a static data member declared with
 			   the "constexpr" specifier, or if this is another
 			   kind of variable defined with that specifier. */
+  a_bit_field	is_inline:1;
+			/* TRUE if this is an inline variable (C++17).  This
+			   may be explicitly set or implicitly set (because
+			   a static data member is constexpr). */
   a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current variable
 			   was created to represent a block extern declaration

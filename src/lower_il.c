@@ -5466,15 +5466,16 @@ other class or for the class itself.
 }  /* is_primary_base_class */
 
 
-void put_variable_into_comdat_group(a_variable_ptr  variable)
+void put_variable_into_comdat_group(a_variable_ptr  var)
 /*
-Put the variable into a COMDAT group with the same name as the
+Put the specified variable into a COMDAT group with the same name as the
 variable's mangled name.
 */
 {
-  check_assertion(variable->source_corresp.name_has_been_mangled &&
-                  variable->storage_class == (a_storage_class)sc_unspecified);
-  variable->comdat_group = variable->source_corresp.name;
+  check_assertion((var->source_corresp.name_has_been_mangled &&
+                   var->storage_class == (a_storage_class)sc_unspecified) ||
+                   var->is_inline);
+  var->comdat_group = var->source_corresp.name;
 } /* put_variable_into_comdat_group */
 
 
@@ -9602,9 +9603,11 @@ Do IL lowering of the indicated variable and everything under it.
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
 #if IA64_ABI
-    if (variable->is_template_variable &&
-        variable->storage_class == (a_storage_class)sc_unspecified) {
-      /* Ensure that a variable template is put into its own COMDAT group. */
+    if ((variable->is_template_variable &&
+         variable->storage_class == (a_storage_class)sc_unspecified) ||
+        variable->is_inline) {
+      /* Ensure that variable templates and inline variables are put into
+         their own COMDAT groups. */
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */

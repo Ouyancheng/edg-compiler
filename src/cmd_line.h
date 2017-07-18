@@ -632,6 +632,11 @@ EXTERN a_boolean
 			   in the ARM).  Significant only in C++ mode. */
 
 EXTERN a_boolean
+		inline_variables_allowed;
+			/* TRUE if inline variables (a C++17 feature) are
+			   allowed. */
+
+EXTERN a_boolean
 		floating_point_template_parameters_allowed;
 			/* TRUE if template parameters of floating-point type
 			   are allowed (which is nonstandard). */
