@@ -44661,7 +44661,7 @@ selector is returned through bound_function_selector.
     do {
       copy_operand(result, &opnd1);
       /* Move the next element to the initializer cache, so it will be found
-         as the second operand of the binary operator that it about to be
+         as the second operand of the binary operator that is about to be
          applied. */
       cache.first_init = opnd_list;
       cache.last_init = opnd_list;
