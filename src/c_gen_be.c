@@ -9300,6 +9300,21 @@ Generate C for a statement.
         write_tok_ch(';');
       }  /* if */
       break;
+    case stmk_constexpr_if:
+      {
+        a_constexpr_if_ptr cip = statement->variant.constexpr_if;
+        a_statement_ptr    then_statement, else_statement;
+        then_statement = statement->variant.constexpr_if->then_statement;
+        else_statement = statement->variant.constexpr_if->else_statement;
+        if (cip->value) {
+          dump_statement(then_statement);
+        } else {
+          if (else_statement != NULL) {
+            dump_statement(else_statement);
+          }  /* if */
+        }  /* if */
+      }
+      break;
     case stmk_if:
       {
         a_statement_ptr then_statement, else_statement;

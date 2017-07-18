@@ -1759,12 +1759,9 @@ is pushed regardless of any of the other factors.
        the 1+1 must be evaluated. */
     expr_stack->evaluated = TRUE;
     expr_stack->potentially_evaluated = TRUE;
-  } else if (curr_expr_kind_is(ek_sizeof) ||
-             in_constexpr_if_discarded_statement()) {
+  } else if (curr_expr_kind_is(ek_sizeof)) {
     /* An expression inside sizeof is not evaluated.  This is also used
-       for a number of other non-evaluated cases.  Any expressions that
-       occur in the discarded branch of a constexpr if are also not
-       evaluated. */
+       for a number of other non-evaluated cases. */
     expr_stack->evaluated = FALSE;
     expr_stack->potentially_evaluated = FALSE;
     expr_stack->potentially_unevaluated = TRUE;
