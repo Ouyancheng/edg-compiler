@@ -822,8 +822,9 @@ out when the expression terminates.
         goto outer_loop;
       }  /* if */
     }  /* for */
-    check_assertion_str(!is_an_lvalue(operand),
-                        "detach_ref_entries_from_curr_expr: not found");
+    check_assertion_or_expect_error_str(
+                              !is_an_lvalue(operand),
+                              "detach_ref_entries_from_curr_expr: not found");
     operand->ref_entries_list = NULL;
 outer_loop:;
   }  /* for */

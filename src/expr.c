@@ -44652,7 +44652,7 @@ selector is returned through bound_function_selector.
   opnd_list = opnd_list->next;
   alep->next = NULL;
   extract_operand_from_expression_component(alep, result, /*free_icp =*/TRUE);
-  (void)copy_ref_entry_list(result->ref_entries_list);
+  curr_expr_ref_entries = result->ref_entries_list;
   if (opnd_list != NULL) {
     an_operand            opnd1;
     an_initializer_cache  cache;
@@ -44701,7 +44701,7 @@ selector is returned through bound_function_selector.
   opnd_list = opnd_list->next;
   alep->next = NULL;
   extract_operand_from_expression_component(alep, result, /*free_icp =*/TRUE);
-  (void)copy_ref_entry_list(result->ref_entries_list);
+  curr_expr_ref_entries = result->ref_entries_list;
   if (opnd_list != NULL) {
     /* Repeat the operator over the list.  Since the list was reversed above,
        we have to also reverse the operands when calling
