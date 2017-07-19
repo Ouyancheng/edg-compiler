@@ -9605,9 +9605,11 @@ Do IL lowering of the indicated variable and everything under it.
 #if IA64_ABI
     if ((variable->is_template_variable &&
          variable->storage_class == (a_storage_class)sc_unspecified) ||
-        variable->is_inline) {
-      /* Ensure that variable templates and inline variables are put into
-         their own COMDAT groups. */
+        (variable->is_inline &&
+         variable->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_internal)) {
+      /* Ensure that variable templates and externally-linked inline
+         variables are put into their own COMDAT groups. */
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */
