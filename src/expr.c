@@ -44671,6 +44671,9 @@ selector is returned through bound_function_selector.
       cache.last_init->next = NULL;
       apply_one_fold_operator(op_token, &opnd1, diag_pos,
                               bound_function_selector, result);
+      /* Once a fold operator has been applied, discard the reference entries
+         list since otherwise we'll end up freeing that list more than once. */
+      result->ref_entries_list = NULL;
     } while (opnd_list != NULL);
     expr_stack->initializer_cache = saved_cache_ptr;
   }  /* if */
@@ -44727,6 +44730,9 @@ selector is returned through bound_function_selector.
                                                 /*free_icp =*/TRUE);
       apply_one_fold_operator(op_token, &opnd1, diag_pos,
                               bound_function_selector, result);
+      /* Once a fold operator has been applied, discard the reference entries
+         list since otherwise we'll end up freeing that list more than once. */
+      result->ref_entries_list = NULL;
     } while (opnd_list != NULL);
     expr_stack->initializer_cache = saved_cache_ptr;
   }  /* if */

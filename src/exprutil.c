@@ -475,11 +475,12 @@ If there are any entries on the list of reference entries for the current
 expression, record and free them now.
 */
 {
-  a_ref_entry_ptr rep;
+  a_ref_entry_ptr rep, list = curr_expr_ref_entries;
 
-  while (curr_expr_ref_entries != NULL) {
-    rep = curr_expr_ref_entries;
-    curr_expr_ref_entries = rep->next;
+  curr_expr_ref_entries = NULL;
+  while (list != NULL) {
+    rep = list;
+    list = rep->next;
     record_and_free_ref_entry(rep);
   }  /* while */
 }  /* flush_ref_entries_list */
