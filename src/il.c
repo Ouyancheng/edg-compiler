@@ -18750,6 +18750,15 @@ be called to start a copy.
       }  /* if */
       /*FALLTHROUGH*/
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case enk_fold:
+      expr_copy->variant.fold.operands =
+                        i_copy_list_of_expr_trees(expr->variant.fold.operands,
+                                                  options, cblock);
+      expr_copy->variant.fold.operator_token =
+                                            expr->variant.fold.operator_token;
+      expr_copy->variant.fold.left_associative =
+                                          expr->variant.fold.left_associative;
+      break;
     default:
       unexpected_condition_str("i_copy_expr_tree: bad expr kind");
   }  /* switch */
