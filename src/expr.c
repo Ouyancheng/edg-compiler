@@ -44919,7 +44919,11 @@ function operand: The selector is then return in *bound_function_selector.
         scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
         check_assertion_or_expect_error(curr_token == op_token);
         (void)get_token();
-        record_pack_expansion_ellipsis();
+        if (curr_token == tok_ellipsis) {
+          record_pack_expansion_ellipsis();
+        } else {
+          expect_error();
+        }  /* if */
       } else {
         first_time = FALSE;
       }  /* if */
