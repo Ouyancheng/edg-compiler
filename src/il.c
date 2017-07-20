@@ -6874,6 +6874,20 @@ are done.
         }
         break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+      case enk_fold:
+        { an_expr_node_ptr  op1 = node1->variant.fold.operands,
+                            op2 = node2->variant.fold.operands;
+          eq = node1->variant.fold.left_associative ==
+                                       node2->variant.fold.left_associative &&
+               node1->variant.fold.operator_token ==
+                                         node2->variant.fold.operator_token &&
+               compare_expressions(op1, op2, options) &&
+               (op1->next == NULL ?
+                    op2->next == NULL :
+                    (op2->next != NULL &&
+                     compare_expressions(op1->next, op2->next, options)));
+        }
+        break;
       case enk_error:
         /* Nonequivalence is assumed. */
         break;
