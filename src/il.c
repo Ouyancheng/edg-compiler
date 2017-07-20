@@ -10009,6 +10009,7 @@ return a pointer to it.
 }  /* float_type */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
+#if DO_IL_LOWERING
 
 a_boolean complex_type_used_in_primary_IL(a_float_kind kind)
 /*
@@ -10021,6 +10022,7 @@ should be lowered.
   return complex_types[kind] != NULL;
 }  /* complex_type_used_in_primary_IL */
 
+#endif /* DO_IL_LOWERING */
 
 a_type_ptr complex_type(a_float_kind kind)
 /*
