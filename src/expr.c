@@ -44631,8 +44631,8 @@ This is used to implement the expansion of fold expressions
       (void)get_token();
       /* Consume the cached operand. */
       check_assertion(cached_initializer_present());
-      fetch_operand_from_initializer_cache(result,
-                                           expr_stack->initializer_cache);
+      (void)fetch_operand_from_initializer_cache(
+                                       result, expr_stack->initializer_cache);
       make_error_operand(result);
   }  /* switch */
 }  /* apply_one_fold_operator */
