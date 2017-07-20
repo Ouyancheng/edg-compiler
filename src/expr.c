@@ -44784,7 +44784,7 @@ left_associative is TRUE if the expansion should be evaluated as
   if (generic) {
     /* Create an enk_fold node. */
     an_arg_list_elem_ptr  alep = opnd_list;
-    an_expr_node_ptr      fold_node;
+    an_expr_node_ptr      fold_node, opnd_nodes;
     fold_node = alloc_expr_node((an_expr_node_kind)enk_fold);
     fold_node->type = type_of_unknown_templ_param_nontype;
     fold_node->position = *op_pos;
@@ -44794,18 +44794,34 @@ left_associative is TRUE if the expansion should be evaluated as
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     fold_node->variant.fold.operator_token = op_token;
     fold_node->variant.fold.left_associative = left_associative;
-    fold_node->variant.fold.operands =
-                       make_node_from_operand(operand_of_arg_list_elem(alep));
+    opnd_nodes = make_node_from_operand(operand_of_arg_list_elem(alep));
+    fold_node->variant.fold.operands = opnd_nodes;
     alep = next_elem(alep);
     if (alep != NULL) {
-      fold_node->variant.fold.operands->next =
+      opnd_nodes->next =
                        make_node_from_operand(operand_of_arg_list_elem(alep));
       check_assertion(next_elem(alep) == NULL);
     }  /* if */
     if (unary || !left_associative) {
-      fold_node->variant.fold.operands->is_pack_expansion = TRUE;
+      if (opnd_nodes->rescan_info != NULL &&
+          opnd_nodes->rescan_info
+                    ->saved_operand.pack_expansion_descr == NULL) {
+        /* A rescannable node, but we didn't record a pack-expansion
+           description entry. */
+        expect_error();
+      } else {
+        opnd_nodes->is_pack_expansion = TRUE;
+      }  /* if */
     } else {
-      fold_node->variant.fold.operands->next->is_pack_expansion = TRUE;
+      if (opnd_nodes->next->rescan_info != NULL &&
+          opnd_nodes->next->rescan_info
+                          ->saved_operand.pack_expansion_descr == NULL) {
+        /* A rescannable node, but we didn't record a pack-expansion
+           description entry. */
+        expect_error();
+      } else {
+        opnd_nodes->next->is_pack_expansion = TRUE;
+      }  /* if */
     }  /* if */
     make_expression_operand(fold_node, result);
     free_init_component_list(opnd_list);
