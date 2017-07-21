@@ -9088,7 +9088,8 @@ declaration that has internal linkage because of the explicit presence of a
                          (a_name_linkage_kind)vp->source_corresp.name_linkage;
       if (C_dialect == C_dialect_cplusplus) {
         if (name_linkage == (a_name_linkage_kind)nlk_none ||
-            (name_linkage == (a_name_linkage_kind)nlk_internal &&
+            ((name_linkage == (a_name_linkage_kind)nlk_internal ||
+              vp->is_inline) &&
              decl_scope_level <= depth_innermost_namespace_scope) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
             ((vp->decl_modifiers & DM_DLLEXPORT) != 0 &&
