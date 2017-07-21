@@ -23669,8 +23669,6 @@ Also scans GNU statement expressions:
         } else {
           abandon_potential_pack_expansion_context(pesep);
         }  /* if */
-      } else {
-        abandon_potential_pack_expansion_context(pesep);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;

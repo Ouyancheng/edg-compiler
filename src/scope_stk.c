@@ -12148,8 +12148,6 @@ pack expansion stack must be popped.
     /* The pack expansion descriptor passed in should be on top of the
        stack. */
     check_assertion(pesep == pack_expansion_stack);
-    /* There should not have been any packs referenced. */
-    check_assertion(pesep->expansion_descr->packs_referenced == NULL);
     pop_pack_expansion_stack();
   }  /* if */
 }  /* abandon_potential_pack_expansion_context */
