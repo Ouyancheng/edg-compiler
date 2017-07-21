@@ -2856,7 +2856,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
   c99_bool_is_keyword = TRUE;
   allow_decl_after_stmt = TRUE;
   if (c11_mode) {
-    static_assert_enabled = !clang_mode;
+    static_assert_enabled = TRUE;
     allow_c11_anonymous_unions = TRUE;
     alignas_enabled = TRUE;
     alignof_enabled = TRUE;

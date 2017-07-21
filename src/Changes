@@ -1,5 +1,11 @@
 Version 4.14
 
+7/21/17  [EDGcpfe/18589]
+Clang compatibility: _Static_assert enabled in C11 mode
+
+_Static_assert is now enabled in clang C11 emulation mode.
+
+
 7/18/17  [EDGcpfe/17704,EDGcpfe/17954]
 C++17: Inline variables
 
