@@ -1021,7 +1021,9 @@ extern a_fixed_point_type_descr make_fixed_point_type_descr(
 extern a_type_ptr float_type(a_float_kind kind);
 
 #if C99_IL_EXTENSIONS_SUPPORTED
+#if DO_IL_LOWERING
 extern a_boolean complex_type_used_in_primary_IL(a_float_kind kind);
+#endif /* DO_IL_LOWERING */
 
 extern a_type_ptr complex_type(a_float_kind kind);
 
