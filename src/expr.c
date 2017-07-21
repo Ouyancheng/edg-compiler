@@ -44902,7 +44902,7 @@ function operand: The selector is then return in *bound_function_selector.
   a_source_position  ellipsis_pos, op_pos;
 
   clear_initializer_cache(&opnd_list);
-  if (curr_token == tok_ellipsis) {
+  if (curr_token == tok_ellipsis && left_pesep == NULL) {
     unary = TRUE;
     left_associative = TRUE;
     ellipsis_pos = pos_curr_token;
