@@ -6594,7 +6594,6 @@ is TRUE.
     case enk_fold:
       /* Mangling for fold-expressions. */
       { a_boolean       unary, left_assoc;
-        an_opname_kind  opname;
         a_const_char    *opcode;
         unary = expr->variant.fold.operands->next == NULL;
         left_assoc = expr->variant.fold.left_associative;
@@ -6610,8 +6609,17 @@ is TRUE.
                               : MANGLING_STRING_FOR_RIGHT_BINARY_FOLD),
           mctl);
         /* ... followed by a code for the binary operator that is folded. */
-        opname = opname_kind_for_token[(int)expr->variant.fold.operator_token];
-        opcode = mangled_operator_name(opname, 2);
+        if (expr->variant.fold.operator_token ==
+                                              (a_token_kind)tok_period_star) {
+          /* For most operators, we can retrieve the encoding via their
+             "opname kind".  However, ".*" isn't overloadable and therefore
+             has no associated "opname kind". */
+          opcode = MANGLING_STRING_FOR_OPERATOR_DOT_STAR;
+        } else {
+          an_opname_kind  opname =
+                opname_kind_for_token[(int)expr->variant.fold.operator_token];
+          opcode = mangled_operator_name(opname, 2);
+        }  /* if */
         add_str_to_mangled_name(opcode, mctl);
         mangled_encoding_for_expression(expr->variant.fold.operands,
                                         in_dependent_expr, mctl);
