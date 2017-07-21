@@ -44895,6 +44895,7 @@ function operand: The selector is then return in *bound_function_selector.
 */
 {
   a_boolean          unary, left_associative = FALSE, generic = FALSE;
+  a_boolean          pack_seen = empty_pack, err = FALSE;
   a_token_kind       op_token;
   an_initializer_cache
                      opnd_list;
@@ -44910,6 +44911,7 @@ function operand: The selector is then return in *bound_function_selector.
     op_pos = pos_curr_token;
     if (!is_valid_fold_operator(op_token)) {
       pos_error(ec_invalid_fold_expression_operator, &op_pos);
+      err = TRUE;
       op_token = (a_token_kind)tok_comma;
     }  /* if */
     (void)get_token();
@@ -44929,6 +44931,7 @@ function operand: The selector is then return in *bound_function_selector.
       /* The left operand is a pack: Associate the ellipsis position with
          it. */
       record_pack_expansion_ellipsis_position(&ellipsis_pos);
+      pack_seen = TRUE;
     } else if (!empty_pack) {
       left_associative = TRUE;
     }  /* if */
@@ -44971,11 +44974,13 @@ function operand: The selector is then return in *bound_function_selector.
       }  /* if */
       if (curr_token != op_token) {
         pos_error(ec_fold_expression_operator_mismatch, &pos_curr_token);
+        err = TRUE;
       } else {
         (void)get_token();
       }  /* if */
       if (!is_valid_fold_operator(op_token)) {
         pos_error(ec_invalid_fold_expression_operator, &op_pos);
+        err = TRUE;
         op_token = (a_token_kind)tok_comma;
       }  /* if */
     }  /* if */
@@ -44990,30 +44995,43 @@ function operand: The selector is then return in *bound_function_selector.
          already saw a pack in the first operand. */
       suppress_expansion_with_no_packs_diagnostic(right_pesep);
     }  /* if */
-    while (any_more) {
-      a_pack_expansion_descr_ptr  pedp;
-      scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
-      if (!left_associative && !unary && any_packs_referenced()) {
-        pos_error(ec_two_packs_in_fold_expression, &ellipsis_pos);
-      }  /* if */
-      add_operand_to_initializer_cache(result, /*to_front=*/FALSE,
-                                       /*bundle=*/FALSE, &opnd_list);
-      pedp = end_potential_pack_expansion_context(right_pesep,
-                                                  /*is_declarator=*/TRUE);
-      if (pedp != NULL && !scope_stack_top().alias_in_template_decl) {
-        /* We're scanning a pack in its generic form (i.e., without expansion
-           going on). */
-        generic = TRUE;
-        mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
-      }  /* if */
-      any_more = advance_to_next_pack_element(right_pesep);
-    }  /* while */
+    if (any_more) {
+      do {
+        a_pack_expansion_descr_ptr  pedp;
+        scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
+        if (any_packs_referenced()) {
+          pack_seen = TRUE;
+        }  /* if */
+        if (!left_associative && !unary && any_packs_referenced()) {
+          pos_error(ec_two_packs_in_fold_expression, &ellipsis_pos);
+          err = TRUE;
+        }  /* if */
+        add_operand_to_initializer_cache(result, /*to_front=*/FALSE,
+                                         /*bundle=*/FALSE, &opnd_list);
+        pedp = end_potential_pack_expansion_context(right_pesep,
+                                                    /*is_declarator=*/TRUE);
+        if (pedp != NULL && !scope_stack_top().alias_in_template_decl) {
+          /* We're scanning a pack in its generic form (i.e., without expansion
+             going on). */
+          generic = TRUE;
+          mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
+        }  /* if */
+        any_more = advance_to_next_pack_element(right_pesep);
+      } while (any_more);
+    } else {
+      /* An empty pack expansion means we saw a pack. */
+      pack_seen = TRUE;
+    }  /* if */
   }  /* if */
   assemble_fold_expression_operand(result, bound_function_selector,
                                    start_pos, &op_pos,
                                    end_position_or_null(&end_pos_curr_token),
                                    opnd_list.first_init, op_token, unary,
                                    left_associative, generic);
+  if (!pack_seen && !err) {
+    pos_error(ec_no_pack_in_fold_expression, &ellipsis_pos);
+    make_error_operand(result);
+  }  /*  */
 }  /* scan_fold_expression */
                                
 
