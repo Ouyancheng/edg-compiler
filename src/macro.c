@@ -4129,6 +4129,12 @@ static a_boolean
 			   __has_feature(c_static_assert). */
 
 static a_boolean
+		cxx_static_assert_enabled;
+			/* TRUE if static_assert is enabled in C++ mode.
+			   Used to support
+			   __has_feature(cxx_static_assert). */
+
+static a_boolean
 		c_thread_local_enabled;
 			/* TRUE if the _Thread_local specifier is enabled
 			   in C mode.  Used to support
@@ -4387,7 +4393,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_rvalue_references",
     "200610" },
   { "cxx_static_assert",
-    &static_assert_enabled,
+    &cxx_static_assert_enabled,
     NULL,		/* __cpp_static_assert must be handled specially, as
 			   the single macro name takes on different values. */
     NULL },
@@ -10040,6 +10046,7 @@ command line -D options.
   c_alignof_enabled = C_mode() && alignof_enabled;
   c_generic_enabled = c11_mode;
   c_static_assert_enabled = C_mode() && static_assert_enabled;
+  cxx_static_assert_enabled = !C_mode() && static_assert_enabled;
   c_thread_local_enabled = thread_local_storage_specifier_enabled;
   cxx_thread_local_enabled = !C_mode() &&
                                     std_thread_local_storage_specifier_enabled;
