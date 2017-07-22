@@ -1,5 +1,14 @@
 Version 4.14
 
+7/22/17  [EDGcpfe/18591]
+Type of second argument to __cxa_vec_cctor library call
+
+As a result of the changes for EDGcpfe/17482 (in 4.13), the second argument to
+the __cxa_vec_cctor library call had an incorrect type which has now been
+fixed.  Only affects configurations where IA64_ABI is FALSE and DO_IL_LOWERING
+is TRUE.
+
+
 7/21/17  [EDGcpfe/18589]
 Clang compatibility: _Static_assert enabled in C11 mode
 

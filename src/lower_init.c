@@ -3889,7 +3889,7 @@ to the expression created is returned.
   */
   dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
   arg_expr_list = entity_node;
-  source_node = add_cast(source_node, make_copy_ctor_type());
+  source_node = add_cast(source_node, void_star_type());
   entity_node->next = source_node;
   source_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
