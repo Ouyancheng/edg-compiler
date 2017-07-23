@@ -155,6 +155,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,source_corresp_for_template_param)*/
 /*lint -esym(755,ignore_variable_in_back_end)*/
 /*lint -esym(755,__builtin_offsetof)*/
+/*lint -esym(759,variable_name_mangling_needed)*/
+/*lint -esym(765,variable_name_mangling_needed)*/
 #if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !RECORD_MACRO_INVOCATIONS */
