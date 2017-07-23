@@ -753,7 +753,7 @@ and before the back end (if any) is executed.
   if (!C_mode()) {
     /* For each translation unit, generate any instantiations that are
        needed, and determine which inline functions require definitions. */
-    template_and_inline_function_wrapup();
+    template_and_inline_entity_wrapup();
   }  /* if */
 #if CHECKING && DEBUG
   check_all_init_component_entries_freed();

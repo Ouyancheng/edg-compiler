@@ -106,6 +106,8 @@ extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
 
 extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);
 
+extern a_variable_list_entry_ptr alloc_list_entry_for_variable(void);
+
 extern a_based_type_list_member_ptr alloc_based_type_list_member(
                                                a_based_type_kind  kind,
                                                a_type_ptr         base_type);

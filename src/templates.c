@@ -188,6 +188,7 @@ template information file.
 #define any_instantiations_required()					\
   (master_instantiations_list != NULL ||				\
    inline_function_list != NULL ||					\
+   inline_variable_list != NULL ||					\
    exported_templates_list != NULL)
 
 
@@ -360,8 +361,14 @@ static a_boolean
 
 static a_routine_list_entry_ptr
 		inline_function_list;
-			/* When instantiating extern inline functions,
+			/* When instantiating extern inline entities,
 			   this points to a list of inline functions
+			   defined in this translation unit. */
+
+static a_variable_list_entry_ptr
+		inline_variable_list;
+			/* When instantiating extern inline entities
+			   this points to a list of inline variables
 			   defined in this translation unit. */
 
 static a_boolean
@@ -5726,7 +5733,7 @@ in one-instantiation-per-object mode.
   /* Note that this information is relevant only in the primary
      translation unit IL, and therefore it is not maintained in
      secondary translation units. */
-  /* When extern inline functions are "instantiated", they also get
+  /* When extern inline entities are "instantiated", they also get
      a needed bit number. */
   if (one_instantiation_per_object &&
       is_primary_translation_unit &&
@@ -29525,11 +29532,15 @@ test whether we can instantiate a function body to determine its return type;
 this overrides an "extern template" directive.
 */
 {
-  a_boolean		result = TRUE;
-  a_boolean		template_def = FALSE;
-  a_boolean		specialized = FALSE;
-  a_master_instance_ptr	mip;
+  a_boolean				result = TRUE;
+  a_boolean				template_def = FALSE;
+  a_boolean				specialized = FALSE;
+  a_master_instance_ptr			mip;
+  a_symbol_ptr				template_sym;
+  a_template_symbol_supplement_ptr	tssp;
 
+  template_sym = tip->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
   mip = master_instance_of(tip);
   /* For error checking purposes, find out if a specialization declaration
      exists and whether a body exists for the template definition. */
@@ -29542,7 +29553,7 @@ this overrides an "extern template" directive.
       result = FALSE;
     } else {
       specialized = vp->is_specialized;
-      template_def = tip->template_sym->defined;
+      template_def = !vp->is_inline && tip->template_sym->defined;
       if (!template_def && !specialized && export_template_allowed) {
         /* When exported templates are being used, look for an exported
            definition of this template */
@@ -29562,12 +29573,8 @@ this overrides an "extern template" directive.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
   } else {
-    a_symbol_ptr		      template_sym;
-    a_template_symbol_supplement_ptr  tssp;
     a_routine_ptr		      rp;
     rp = tip->instance_sym->variant.routine.ptr;
-    template_sym = tip->template_sym;
-    tssp = template_supplement_for_symbol(template_sym);
     specialized = rp->is_specialized;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
     if (!template_def && !specialized && export_template_allowed) {
@@ -30040,7 +30047,7 @@ to it.
 }  /* alloc_instance_lookup_entry */
 
 
-static an_instance_lookup_entry_ptr find_instance(char		*name,
+static an_instance_lookup_entry_ptr find_instance(a_const_char	*name,
 				                  a_boolean	add)
 /*
 Find an entry in the instance lookup table with the specified name.  If "add"
@@ -31518,6 +31525,14 @@ Does nothing if called in C mode.
         }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       }  /* if */
+    } else if (symbol_is(sym, sk_variable) ||
+               symbol_is(sym, sk_static_data_member)) {
+      if (value || (options & SIR_CLEAR_VALUE) != 0) {
+        /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
+           option was specified. */
+        a_variable_ptr	variable = variable_for_symbol(sym);
+        variable->inline_instance_required = value;
+      }  /* if */
     }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
   }  /* if */
@@ -32392,15 +32407,15 @@ specific definition that made it unnecessary.
 }  /* trans_unit_instantiation_setup */
 
 /* Forward declaration. */
-static void inline_function_wrapup(void);
+static void inline_entity_wrapup(void);
 
 
-static void template_and_inline_function_wrapup_for_trans_unit(
+static void template_and_inline_entity_wrapup_for_trans_unit(
                                                            a_boolean do_inline)
 /*
 For the current translation unit, generate any instantiations needed by that
 translation unit; generate any virtual destructors that may be required;
-and determine which extern inline functions require definitions in this
+and determine which extern inline entities require definitions in this
 translation unit.  do_inline is TRUE if inline function wrapup
 should be done, FALSE if it should be suppressed.
 */
@@ -32417,11 +32432,11 @@ should be done, FALSE if it should be suppressed.
      until the end of the translation unit. */
   process_deferred_friend_fixup_list();
   if (do_inline) {
-    /* Determine which extern inline functions should have bodies emitted
+    /* Determine which extern inline entities should have bodies emitted
        as part of this translation unit. */
-    inline_function_wrapup();
+    inline_entity_wrapup();
   }  /* if */
-}  /* template_and_inline_function_wrapup_for_trans_unit */
+}  /* template_and_inline_entity_wrapup_for_trans_unit */
 
 
 void template_and_inline_function_processing_for_pch(void)
@@ -32441,18 +32456,18 @@ function bodies now.
        inline functions are generated. */
     do {
       additional_instantiation_wrapup_required = FALSE;
-      template_and_inline_function_wrapup_for_trans_unit(/*do_inline=*/FALSE);
+      template_and_inline_entity_wrapup_for_trans_unit(/*do_inline=*/FALSE);
     } while (additional_instantiation_wrapup_required);
   }  /* if */
   in_instantiation_wrapup = FALSE;
 }  /* template_and_inline_function_processing_for_pch */
 
 
-void template_and_inline_function_wrapup(void)
+void template_and_inline_entity_wrapup(void)
 /*
 For each translation unit, generate any instantiations needed by that
 translation unit; generate any virtual destructors that may be required;
-and determine which extern inline functions require definitions in this
+and determine which extern inline entities require definitions in this
 translation unit.
 */
 {
@@ -32493,7 +32508,7 @@ translation unit.
       push_translation_unit_stack(tup);
       /* Do the actual processing of instantiations, virtual destructors,
          and inline functions. */
-      template_and_inline_function_wrapup_for_trans_unit(/*do_inline=*/TRUE);
+      template_and_inline_entity_wrapup_for_trans_unit(/*do_inline=*/TRUE);
 #if CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION
       after_instantiation_wrapup = TRUE;
 #endif /* CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION */
@@ -32504,7 +32519,7 @@ translation unit.
   /* Do processing that is required after instantiation wrapup has been
      performed for all translation units. */
   finalize_instantiation_wrapup();
-}  /* template_and_inline_function_wrapup */
+}  /* template_and_inline_entity_wrapup */
 
 
 #if INSTANTIATE_EXTERN_INLINE 
@@ -32528,6 +32543,44 @@ file.
   }  /* if */
   return result;
 }  /* inline_function_in_request_file */
+
+
+static char* get_mangled_inline_variable_name(a_variable_ptr	var)
+/*
+If var is a variable that should have a mangled name, get the mangled
+name.  Otherwise, simply return the variable name.
+*/
+{
+  char	*result;
+
+  if (variable_name_mangling_needed(var)) {
+    result = (char*)get_mangled_variable_name(var);
+  } else {
+    result = (char*)var->source_corresp.name;
+    check_assertion(result != NULL);
+  }  /* if */
+  return result;
+}  /* get_mangled_inline_variable_name */
+
+
+static a_boolean inline_variable_in_request_file(a_variable_ptr	var)
+/*
+Return TRUE if var is named in the template instantiation request
+file.
+*/
+{
+  a_const_char			*name;
+  an_instance_lookup_entry_ptr	ilp;
+  a_boolean			result = FALSE;
+
+  name = get_mangled_inline_variable_name(var);
+  ilp = find_instance(name, /*add=*/FALSE);
+  if (ilp != NULL && ilp->in_request_file) {
+    /* The variable was named in the instantiation request file. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* inline_variable_in_request_file */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -32669,24 +32722,121 @@ the body should be emitted by the back end.
 #endif /* IA64_ABI && DO_IL_LOWERING */
 }  /* set_body_needed_flag_for_inline_function */
 
+
+static a_boolean inline_variable_should_be_emitted(
+					a_variable_ptr	var)
+/*
+Return TRUE if the variable specified by "var" should have its body
+emitted in this translation unit.
+*/
+{
+  a_boolean	result = FALSE;
+  a_boolean	can_be_defined = FALSE;
+
+  check_assertion(!C_mode());
+  if (var->storage_class != (a_storage_class)sc_extern ||
+      var->initializer_in_class) {
+    /* The variable is defined. */
+    can_be_defined = TRUE;
+  }  /* if */
+  if (!can_be_defined) {
+    /* The variable does not have a definition. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (ms_extensions &&
+             (var->decl_modifiers & DM_DLLEXPORT) != 0) {
+       /* Inline variables that are exported from a DLL must be emitted. */
+    result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if IA64_ABI
+  } else if (!var->suppress_inline_definition) {
+    /* With the IA-64 ABI, inline variables should be emitted unless
+       suppressed (e.g., by an "extern template"). */
+    result = TRUE;
+#endif /* IA64_ABI */
+  } else if (instantiation_mode == tim_used ||
+             instantiation_mode == tim_all) {
+    /* In -tused and -tall modes, emit the variable if it was referenced. */
+    result = var->inline_instance_required;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  } else if (inline_variable_in_request_file(var)) {
+    result = TRUE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  } else if (var->is_template_variable) {
+    /* C++ inline template variables should be emitted if they are explicitly
+       instantiated. */
+    a_symbol_ptr		rout_sym;
+    a_template_instance_ptr	tip;
+    rout_sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+    check_assertion(rout_sym != NULL);
+    tip = rout_sym->variant.variable.instance_ptr;
+    if (tip->explicit_instantiation) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (db_trace("instantiation", var, iek_variable)) {
+    fprintf(f_debug, "inline_variable_should_be_emitted:\n");
+    db_entity_info((char*)var, iek_variable);
+    fprintf(f_debug, "should_be_emitted=%d\n", result);
+    fprintf(f_debug, "can_be_defined=%d\n", can_be_defined);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    fprintf(f_debug, "in_request_file=%d\n",
+            inline_variable_in_request_file(var));
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  }  /* if */
+#endif /* DEBUG */
+  return result;
+}  /* inline_variable_should_be_emitted */
+
+
+static void set_definition_needed_flag_for_inline_variable(a_variable_ptr var)
+/*
+Update the inline variable specified by var to indicate whether or not
+the body should be emitted by the back end.
+*/
+{
+  a_boolean	emit_variable;
+
+  check_assertion(!C_mode());
+  emit_variable = inline_variable_should_be_emitted(var);
+  var->suppress_inline_definition = !emit_variable;
+  if (emit_variable) {
+    var->source_corresp.referenced = TRUE;
+    /* FIXME: Should this be set elsewhere? */
+    var->storage_class = (a_storage_class)sc_unspecified;
+#if MAINTAIN_NEEDED_FLAGS
+    mark_as_needed((char*)var, (an_il_entry_kind)iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
+}  /* set_definition_needed_flag_for_inline_variable */
+
 #endif /* INSTANTIATE_EXTERN_INLINE */
 
-static void inline_function_wrapup(void)
+static void inline_entity_wrapup(void)
 /*
-Determine which extern inline functions should have bodies emitted in the
-current translation unit.  This routine is used when extern inline functions
+Determine which extern inline entities should have bodies emitted in the
+current translation unit.  This routine is used when extern inline entities
 are instantiated using a mechanism like the template instantiation mechanism.
 */
 {
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
+    a_variable_list_entry_ptr	vlep;
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       if (rlep->routine->storage_class != (a_storage_class)sc_static ||
           any_exported_templates()) {
         /* In the presence of exported templates, static inlines will be
            made external, but are still static at this point. */
         set_body_needed_flag_for_inline_function(rlep->routine);
+      }  /* if */
+    }  /* for */
+    for (vlep = inline_variable_list; vlep != NULL; vlep = vlep->next) {
+      a_variable_ptr	vp = vlep->variable;
+      if ((vp->is_inline &&
+           vp->storage_class != (a_storage_class)sc_static) ||
+          any_exported_templates()) {
+        set_definition_needed_flag_for_inline_variable(vp);
       }  /* if */
     }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -32698,7 +32848,7 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
-}  /* inline_function_wrapup */
+}  /* inline_entity_wrapup */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 #if INSTANTIATE_EXTERN_INLINE
@@ -32837,7 +32987,7 @@ static void create_instantiation_flags_for_inline_function(
 /*
 Create instantiation flags for the inline function specified by rout_ptr.
 This is used when the template instantiation mechanism is used to provide
-a body (if needed) for extern inline functions.
+a body (if needed) for extern inline entities.
 */
 {
   if (instantiation_flags_needed()) {
@@ -32951,6 +33101,70 @@ a body (if needed) for extern inline functions.
   }  /* if */
 }  /* create_instantiation_flags_for_inline_function */
 
+
+static void create_instantiation_flags_for_inline_variable(
+							a_variable_ptr	var)
+/*
+Create instantiation flags for the inline variable specified by var.
+This is used when the template instantiation mechanism is used to provide
+a definition (if needed) for extern inline entities.
+*/
+{
+  if (instantiation_flags_needed()) {
+    /* Generate the instantiation flags used by the prelinker.  These flags
+       are placed in either the template information file or in the IL as
+       variables.  If the flags are placed in the IL, this is only done if
+       IL lowering is being done. */
+    a_boolean	instance_required = FALSE;
+    a_boolean	do_not_instantiate = FALSE;
+    a_boolean	can_be_instantiated = TRUE;
+    /* The instance required flag is set when we know that the object
+       file for this compilation will contain a reference to the
+       variable.  In general, this is difficult to know with certainty.
+       So, usually we do not set the instance required flag, and if there
+       is a reference to the variable name unresolved at link time the
+       prelinker will assign it someplace. */
+    if (!var->suppress_inline_definition) {
+      instance_required = var->inline_instance_required;
+    }  /* if */
+    if (instance_required || can_be_instantiated) {
+      if (instantiation_flags_in_template_info_file &&
+          generate_template_files()) {
+        /* The flags are to be placed in the template information file. */
+        char	*name;
+        name = get_mangled_inline_variable_name(var);
+        write_instantiation_flags_to_template_info_file(
+             name, instance_required, do_not_instantiate, can_be_instantiated,
+             (a_symbol_ptr)NULL);
+#if DO_IL_LOWERING
+      } else {
+        /* The flags are to be placed in the IL as special variables. */
+        if (il_lowering_needed()) {
+          a_source_correspondence	*scp;
+          scp = &var->source_corresp;
+          create_instantiation_flag_variables(scp,
+                                              (an_il_entry_kind)iek_routine,
+                                              instance_required,
+                                              do_not_instantiate,
+                                              can_be_instantiated);
+        }  /* if */
+#endif /* DO_IL_LOWERING */
+      }  /* if */
+    }  /* if */
+#if DEBUG
+    if (db_trace("instantiation", var, iek_routine)) {
+      fprintf(f_debug, "create_inst_flags_for_inline_variable:\n");
+      db_entity_info((char*)var, iek_variable);
+      fprintf(f_debug, "\n");
+      fprintf(f_debug, " instance_required=%d\n", instance_required);
+      fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
+      fprintf(f_debug, " inline_instance_required=%d\n",
+              (a_boolean)var->inline_instance_required);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+}  /* create_instantiation_flags_for_inline_variable */
+
 #if ONE_INSTANTIATION_PER_OBJECT
 
 static void write_instantiation_file_name_for_inline_function(
@@ -32988,20 +33202,52 @@ write an instantiation file name entry to the template information file.
   }  /* if */
 }  /* write_instantiation_file_name_for_inline_function */
 
+
+static void write_instantiation_file_name_for_inline_variable(
+						a_variable_ptr	var)
+/*
+If we are using one instantiation per object mode, determine whether the
+variable specified by var should be defined in its own file.  If so,
+write an instantiation file name entry to the template information file.
+*/
+{
+  /* In one instantiation per object mode, check whether an instantiation
+     for this entity was generated in a separate file.  This is determined
+     by checking whether an instantiation needed bit number was assigned
+     to the entity.  If a file was generated, write the name of the
+     generated file to the template information file. */
+  if (one_instantiation_per_object && generate_template_files()) {
+    a_boolean		instantiation_file_generated;
+    instantiation_file_generated = var->instantiation_needed_bit_number != 0;
+    /* Don't generate an instantiation file if the inline definition is to be
+       suppressed. */
+    instantiation_file_generated = instantiation_file_generated &&
+                                              !var->suppress_inline_definition;
+    if (instantiation_file_generated) {
+      char	*name;
+      name = get_mangled_inline_variable_name(var);
+      write_instantiation_file_name_to_template_info_file(name);
+    }  /* if */
+  }  /* if */
+}  /* write_instantiation_file_name_for_inline_variable */
+
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 
 void update_inline_function_flags(void)
 /*
-Create the automatic instantiation flags for inline functions defined in
-this translation unit.  This routine is used when extern inline functions
-are instantiated using a mechanism like the template instantiation mechanism.
+Create the automatic instantiation flags for inline functions and variables
+defined in this translation unit.  This routine is used when extern inline
+entities are instantiated using a mechanism like the template instantiation
+mechanism.
 */
 {
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
+    a_variable_list_entry_ptr	vlep;
 
+    /* Process the routines on the inline_function_list. */
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       if (rlep->routine->storage_class != (a_storage_class)sc_static) {
         /* In the presence of exported templates, static inlines are made
@@ -33012,6 +33258,22 @@ are instantiated using a mechanism like the template instantiation mechanism.
            name of the instantiation object file to the template information
            file. */
         write_instantiation_file_name_for_inline_function(rlep->routine);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+      }  /* if */
+    }  /* for */
+
+    /* Process the variables on the inline_variable_list. */
+    for (vlep = inline_variable_list; vlep != NULL; vlep = vlep->next) {
+      a_variable_ptr	vp = vlep->variable;
+      if (vp->storage_class != (a_storage_class)sc_static) {
+        /* In the presence of exported templates, static inlines are made
+           external so will no longer have a sc_static storage class. */
+        create_instantiation_flags_for_inline_variable(vp);
+#if ONE_INSTANTIATION_PER_OBJECT
+        /* If we are using one instantiation per object mode, write the
+           name of the instantiation object file to the template information
+           file. */
+        write_instantiation_file_name_for_inline_variable(vp);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       }  /* if */
     }  /* for */
@@ -33199,15 +33461,23 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       if (tip->pos_of_first_reference.seq == 0) {
         tip->pos_of_first_reference = *pos;
       }  /* if */
-      if (!symbol_is(sym, sk_static_data_member) &&
-          !symbol_is(sym, sk_variable) && !is_pragma &&
-          is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
-        /* Clear the suppress_inline_body flag in case it was previously
-           set by an "extern template".  This is used to implement the
-           C++11 form of "extern template" where the sole out-of-line copy
-           should be emitted where the inline function is explicitly
-           instantiated.  This also matches the behavior of the GNU
-           and Microsoft compilers. */
+      /* Clear the suppress_inline_body or suppress_inline_definition flag
+         in case it was previously set by an "extern template".  This is used
+         to implement "extern template" where the sole out-of-line copy should
+         be emitted where the inline function or variable is explicitly
+         instantiated.  This also matches the behavior of the GNU and
+         Microsoft compilers. */
+      if (is_pragma) {
+        /* The special inline processing below is not done for the pragma
+           form of directive. */
+      } else if (symbol_is(sym, sk_variable) ||
+                 symbol_is(sym, sk_static_data_member)) {
+        a_variable_ptr	var = variable_for_symbol(sym);
+        if (var->is_inline) {
+          var->suppress_inline_definition = FALSE;
+        }  /* if */
+      } else if (is_inline &&
+                 !treat_as_static_inline(sym->variant.routine.ptr)) {
         sym->variant.routine.ptr->suppress_inline_body = FALSE;
         sym->variant.routine.ptr->need_out_of_line_copy = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
@@ -33249,13 +33519,21 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
           rp->specialized_with_old_syntax = TRUE;
         }  /* if */
       }  /* if */
-      if (!symbol_is(sym, sk_static_data_member) &&
-          !symbol_is(sym, sk_variable) && !is_pragma &&
-          is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
-        /* Set the suppress_inline_body flag for an "extern template".
-           This is used to implement the C++11 form of "extern template"
-           where the sole out-of-line copy should be emitted where the
-           inline function is explicitly instantiated. */
+      /* Set the suppress_inline_body or suppress_inline_definition flag for
+         an "extern template".  This is used to implement "extern template"
+         where the sole out-of-line copy should be emitted where the inline
+         function or variable is explicitly instantiated. */
+      if (is_pragma) {
+        /* The special inline processing below is not done for the pragma
+           form of directive. */
+      } else if (symbol_is(sym, sk_variable) ||
+                 symbol_is(sym, sk_static_data_member)) {
+        a_variable_ptr	var = variable_for_symbol(sym);
+        if (var->is_inline) {
+          var->suppress_inline_definition = TRUE;
+        }  /* if */
+      } else if (is_inline &&
+                 !treat_as_static_inline(sym->variant.routine.ptr)) {
         sym->variant.routine.ptr->suppress_inline_body = TRUE;
         sym->variant.routine.ptr->need_out_of_line_copy = FALSE;
       }  /* if */
@@ -34341,6 +34619,31 @@ The routine must not already be on that list.
 }  /* add_to_inline_function_list */
 
 
+void add_to_inline_variable_list(a_variable_ptr	var)
+/*
+var points to an inline variable, generally one that is about to
+be defined.  Add the routine to an "instantiation list" of inline variables
+The variable must not already be on that list.
+*/
+{
+  a_variable_list_entry_ptr	vlep;
+
+  check_assertion(instantiate_extern_inline && var->is_inline &&
+                  !var->on_inline_variable_list);
+  vlep = alloc_list_entry_for_variable();
+  vlep->variable = var;
+  vlep->next = inline_variable_list;
+  inline_variable_list = vlep;
+  var->on_inline_variable_list = TRUE;
+  if (in_instantiation_wrapup) {
+    /* Set a flag if this entry was added during instantiation wrapup.
+       The addition of inline functions could cause additional instantiations
+       to be done. */
+    additional_instantiation_wrapup_processing_needed();
+  }  /* if */
+}  /* add_to_inline_variable_list */
+
+
 a_boolean is_nontemplate_routine_from_exported_trans_unit(
 							a_routine_ptr rout_ptr)
 /*
@@ -34349,7 +34652,7 @@ to define exported templates and is not a routine that should be
 retained.
 
 When instantiating inline functions using the template instantiation
-mechanism, extern inline functions are treated as template functions
+mechanism, extern inline entities are treated as template functions
 by this routine.  When exported templates are present, static inlines
 are treated as extern inlines.
 */
@@ -35117,6 +35420,7 @@ One-time initialization for templates.c static variables.
 
       pch_saved_var_array_elem(can_instantiate_list),
       pch_saved_var_array_elem(inline_function_list),
+      pch_saved_var_array_elem(inline_variable_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
       pch_saved_var_array_elem(avail_variadic_param_infos),
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -35148,6 +35452,7 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(exported_templates_list);
   register_trans_unit_variable(exported_templates_tail);
   register_trans_unit_variable(inline_function_list);
+  register_trans_unit_variable(inline_variable_list);
   register_trans_unit_variable(can_instantiate_list);
 #if CHECKING
   register_trans_unit_variable(any_friend_state_changed);
@@ -35167,6 +35472,7 @@ given translation unit.
   exported_templates_list = NULL;
   exported_templates_tail = NULL;
   inline_function_list = NULL;
+  inline_variable_list = NULL;
   can_instantiate_list = NULL;
 #if CHECKING
   any_friend_state_changed = FALSE;

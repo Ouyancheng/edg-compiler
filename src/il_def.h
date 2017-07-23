@@ -7287,6 +7287,16 @@ typedef struct a_routine_list_entry {
 } a_routine_list_entry;
 
 
+typedef struct a_variable_list_entry *a_variable_list_entry_ptr;
+typedef struct a_variable_list_entry {
+  /* An entry used to represent a member of an arbitrary set of variables. */
+  a_variable_list_entry_ptr
+                next;	/* Next in a linked list of variable list entries. */
+  a_variable_ptr variable;
+			/* Pointer to the variable entry. */
+} a_variable_list_entry;
+
+
 enum an_anonymous_union_kind_tag {
   auk_none,		/* Not an anonymous union. */
   auk_variable,		/* Anonymous union is associated with a variable. */
@@ -10153,6 +10163,24 @@ typedef struct a_variable {
 			/* TRUE if this is an inline variable (C++17).  This
 			   may be explicitly set or implicitly set (because
 			   a static data member is constexpr). */
+  a_bit_field	on_inline_variable_list:1;
+			/* TRUE if this variable has been added to the inline
+			   variable list. */
+  a_bit_field	suppress_inline_definition:1;
+			/* This flag is TRUE when is_inline is TRUE, and when
+			   it is also the case that this inline variable's
+			   definition should not be emitted by the back end
+			   because INSTANTIATE_EXTERN_INLINE is TRUE (i.e.,
+			   when inline variables are instantiated using a
+			   mechanism similar to the template instantiation
+			   mechanism). */
+#if INSTANTIATE_EXTERN_INLINE
+  a_bit_field	inline_instance_required:1;
+			/* TRUE for an inline variable if the variable was
+			   referenced in a way that requires a definition of
+			   the inline variable somewhere in the complete
+			   program. */
+#endif /* INSTANTIATE_EXTERN_INLINE */
   a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current variable
 			   was created to represent a block extern declaration

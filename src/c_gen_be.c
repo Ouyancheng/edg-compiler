@@ -8278,6 +8278,13 @@ parameters.
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable, &init_kind);
+  if (variable->suppress_inline_definition) {
+    /* When INSTANTIATE_EXTERN_INLINE is enabled, the value of the variable
+       (if constant) can be used, but the variable definition should not
+       be emitted when suppress_inline_definition is TRUE. */
+    storage_class = (a_storage_class)sc_extern;
+    dump_initializers = FALSE;
+  }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (needed_flag_bit_number != 0 &&
       !variable->source_corresp.is_local_to_function

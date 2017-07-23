@@ -625,7 +625,6 @@ static void mangled_template_arguments(
                                     a_boolean                old_form,
                                     a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl);
-static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
 static a_boolean function_name_mangling_needed(
                                        a_routine_ptr routine,
                                        a_boolean     *suppress_param_encoding);
@@ -12752,7 +12751,7 @@ encoding if suppress_parent_encoding is TRUE.
 }  /* mangle_function_name */
 
 
-static a_boolean variable_name_mangling_needed(a_variable_ptr variable)
+a_boolean variable_name_mangling_needed(a_variable_ptr variable)
 /*
 Return TRUE if the name of the indicated variable needs to be mangled.
 Also determines any implicit abi_tags for the variable when mangling is needed.

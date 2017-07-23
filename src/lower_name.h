@@ -78,6 +78,8 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern a_const_char *get_mangled_variable_name(a_variable_ptr variable);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
+extern a_boolean variable_name_mangling_needed(a_variable_ptr variable);
+
 extern void do_scope_other_name_mangling(a_scope_ptr scope);
 
 extern void externalize_mangled_name(a_source_correspondence  *scp,

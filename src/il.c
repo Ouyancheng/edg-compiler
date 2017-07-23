@@ -5084,20 +5084,27 @@ void set_variable_address_taken(a_variable_ptr variable)
 Set the address_taken flag on the indicated variable.
 */
 {
-  variable->address_taken = TRUE;
-  /* For a parameter, set param_value_has_been_changed. */
-  if (variable->is_parameter || variable->is_handler_param) {
-    variable->param_value_has_been_changed = TRUE;
-  }  /* if */
-#if DO_IL_LOWERING
-  if (il_lowering_underway) {
-    /* If the storage class is "register", change it to "auto", because
-       C doesn't allow taking the address of a register variable (C++ does). */
-    if (variable->storage_class == (a_storage_class)sc_register) {
-      variable->storage_class = (a_storage_class)sc_auto;
+  if (!variable->address_taken) {
+    a_symbol_ptr var_sym;
+    variable->address_taken = TRUE;
+    var_sym = symbol_for(variable);
+    if (var_sym != NULL) {
+      set_instance_required(var_sym, TRUE, SIR_DEFER_INLINE);
     }  /* if */
-  }  /* if */
+    /* For a parameter, set param_value_has_been_changed. */
+    if (variable->is_parameter || variable->is_handler_param) {
+      variable->param_value_has_been_changed = TRUE;
+    }  /* if */
+#if DO_IL_LOWERING
+    if (il_lowering_underway) {
+      /* If the storage class is "register", change it to "auto", because C
+         doesn't allow taking the address of a register variable (C++ does). */
+      if (variable->storage_class == (a_storage_class)sc_register) {
+        variable->storage_class = (a_storage_class)sc_auto;
+      }  /* if */
+    }  /* if */
 #endif /* DO_IL_LOWERING */
+  }  /* if */
 }  /* set_variable_address_taken */
 
 
@@ -13126,6 +13133,7 @@ function).
       /* Don't kick off instantiations while in a prototype instantiation. */
       !is_template_dependent_context()) {
     if (sym->kind == (a_symbol_kind)sk_static_data_member ||
+        sym->kind == (a_symbol_kind)sk_variable ||
         sym->kind == (a_symbol_kind)sk_member_function ||
         sym->kind == (a_symbol_kind)sk_routine) {
       set_instance_required(sym, TRUE, SIR_NONE);

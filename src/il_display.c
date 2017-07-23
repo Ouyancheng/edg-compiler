@@ -2946,6 +2946,9 @@ Display the indicated variable.
   if (ptr->is_inline) {
     disp_boolean("is_inline", TRUE);
   }  /* if */
+  if (ptr->suppress_inline_definition) {
+    disp_boolean("suppress_inline_definition", TRUE);
+  }  /* if */
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
   }  /* if */

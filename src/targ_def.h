@@ -4272,28 +4272,28 @@ ABI versions 3.10 and higher.
 #endif /* !IA64_ABI */
 
 /*
-Flag that is TRUE if the definition of extern inline functions
-should be controlled by the template instantiation mechanism.
+Flag that is TRUE if the definition of extern inline functions and
+variables should be controlled by the template instantiation mechanism.
 
 When this flag is set, only one out-of-line copy of an extern inline
-function is generated.  In the Cfront-like ABI, this is more standard 
-conforming as it ensures that the address of an inline function 
-remains constant across translation units.  The disadvantage is that 
-it requires that the template instantiation mechanism be employed 
-for inline functions.  In the IA-64 ABI, instantiating extern inline
+function or variable is generated.  For C++17 inline variables, a
+single definition is always required, so this feature is needed if COMDAT
+support is not available.  For inline functions there is more flexibility.
+In the Cfront-like ABI, this facility is more standard conforming as
+it ensures that the address of an inline function  remains constant
+across translation units.  In the IA-64 ABI, instantiating extern inline
 functions does not provide any advantage over lowering them, because
-lowering them places them in a COMDAT section and therefore
-guarantees that there is only one copy of the function at runtime.
+lowering them places them in a COMDAT section and therefore guarantees
+that there is only one copy of the function at runtime.
 
-INSTANTIATE_EXTERN_INLINE and LOWER_EXTERN_INLINE are mutually
-exclusive.
+INSTANTIATE_EXTERN_INLINE and LOWER_EXTERN_INLINE are mutually exclusive.
 */
 #ifndef INSTANTIATE_EXTERN_INLINE
 #define INSTANTIATE_EXTERN_INLINE FALSE
 #endif /* ifndef INSTANTIATE_EXTERN_INLINE */
 
 #if INSTANTIATE_EXTERN_INLINE && !AUTOMATIC_TEMPLATE_INSTANTIATION
- #error -- extern inline functions cannot be instantiated if automatic \
+ #error -- extern inline entities cannot be instantiated if automatic \
            template instantiation is disabled
 #endif /* INSTANTIATE_EXTERN_INLINE && !AUTOMATIC_TEMPLATE_INSTANTIATION */
 

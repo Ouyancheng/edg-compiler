@@ -41,6 +41,7 @@ static unsigned long
 		num_class_type_supplements_allocated,
 		num_class_list_entries_allocated,
 		num_routine_list_entries_allocated,
+		num_variable_list_entries_allocated,
 		num_overriding_virtual_functions_allocated,
 		num_derivation_steps_allocated,
 		num_base_class_derivations_allocated,
@@ -1593,6 +1594,25 @@ to it.
 }  /* alloc_list_entry_for_routine */
 
 
+a_variable_list_entry_ptr alloc_list_entry_for_variable(void)
+/*
+Allocate a variable-list-entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_variable_list_entry_ptr vlep;
+
+  vlep = alloc_il_of_type(a_variable_list_entry);
+#if DEBUG
+  num_variable_list_entries_allocated++;
+#endif /* DEBUG */
+  vlep->next  = NULL;
+  vlep->variable = NULL;
+
+  return vlep;
+}  /* alloc_list_entry_for_variable */
+
+
 a_based_type_list_member_ptr alloc_based_type_list_member(
                                                a_based_type_kind  kind,
                                                a_type_ptr         base_type)
@@ -2521,6 +2541,11 @@ Clear the fields of the given variable to default values.
   vp->is_member_constant          = FALSE;
   vp->is_constexpr                = FALSE;
   vp->is_inline                   = FALSE;
+  vp->on_inline_variable_list     = FALSE;
+  vp->suppress_inline_definition  = FALSE;
+#if INSTANTIATE_EXTERN_INLINE
+  vp->inline_instance_required    = FALSE;
+#endif /* INSTANTIATE_EXTERN_INLINE */
   vp->superseded_external         = FALSE;
   vp->has_variably_modified_type  = FALSE;
   vp->is_vla                      = FALSE;
@@ -5572,6 +5597,8 @@ Display and return the amount of space used for various IL tables.
                 a_class_list_entry);
   db_space_used("routine list entry", num_routine_list_entries_allocated,
                 a_routine_list_entry);
+  db_space_used("variable list entry", num_variable_list_entries_allocated,
+                a_variable_list_entry);
   db_space_used("overriding virtual func",
                 num_overriding_virtual_functions_allocated,
                 an_overriding_virtual_function);
@@ -5992,6 +6019,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_param_types_allocated),
       pch_saved_var_array_elem(num_pragmas_allocated),
       pch_saved_var_array_elem(num_routine_list_entries_allocated),
+      pch_saved_var_array_elem(num_variable_list_entries_allocated),
       pch_saved_var_array_elem(num_routine_type_supplements_allocated),
       pch_saved_var_array_elem(num_routines_allocated),
       pch_saved_var_array_elem(num_object_lifetimes_allocated),
@@ -6140,6 +6168,7 @@ initializations that are done for each compilation.
   num_class_type_supplements_allocated   = 0;
   num_class_list_entries_allocated       = 0;
   num_routine_list_entries_allocated     = 0;
+  num_variable_list_entries_allocated    = 0;
   num_overriding_virtual_functions_allocated
                                          = 0;
   num_derivation_steps_allocated         = 0;

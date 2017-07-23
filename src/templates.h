@@ -890,7 +890,7 @@ extern void additional_instantiation_wrapup_processing_needed(void);
 
 extern void template_and_inline_function_processing_for_pch(void);
 
-extern void template_and_inline_function_wrapup(void);
+extern void template_and_inline_entity_wrapup(void);
 
 extern void remove_unneeded_instantiations(void);
 
@@ -899,6 +899,8 @@ extern void record_cache_checksum(
 	       a_token_cache			*p_template_body_cache);
 
 extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);
+
+extern void add_to_inline_variable_list(a_variable_ptr	var);
 
 extern
 a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym);
