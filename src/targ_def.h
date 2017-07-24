@@ -4280,7 +4280,7 @@ function or variable is generated.  For C++17 inline variables, a
 single definition is always required, so this feature is needed if COMDAT
 support is not available.  For inline functions there is more flexibility.
 In the Cfront-like ABI, this facility is more standard conforming as
-it ensures that the address of an inline function  remains constant
+it ensures that the address of an inline function remains constant
 across translation units.  In the IA-64 ABI, instantiating extern inline
 functions does not provide any advantage over lowering them, because
 lowering them places them in a COMDAT section and therefore guarantees

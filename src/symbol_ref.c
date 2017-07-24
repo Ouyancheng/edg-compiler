@@ -2387,7 +2387,7 @@ check_label_decl_seq:
         vp->used = TRUE;
         if (vp->is_inline) {
           /* This is called for inline variables to make sure that we know
-             an definition of the inline instance may be needed. */
+             a definition of the inline instance may be needed. */
           set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
         }  /* if */
       }  /* if */
