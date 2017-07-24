@@ -8092,6 +8092,11 @@ is within the given complete_object.
                                          dst_bytes, complete_object)) {
               do_constexpr_fail(is_constant);
             }  /* if */
+          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_none) {
+            /* This can happen in error cases. */
+            expect_error();
+            ips->input_error = TRUE;
+            do_constexpr_fail(is_constant);
           } else {
             unexpected_condition();
           }  /* if */
