@@ -45001,10 +45001,10 @@ function operand: The selector is then return in *bound_function_selector.
         scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
         if (any_packs_referenced()) {
           pack_seen = TRUE;
-        }  /* if */
-        if (!left_associative && !unary && any_packs_referenced()) {
-          pos_error(ec_two_packs_in_fold_expression, &ellipsis_pos);
-          err = TRUE;
+          if (!left_associative && !unary) {
+            pos_error(ec_two_packs_in_fold_expression, &ellipsis_pos);
+            err = TRUE;
+          }  /* if */
         }  /* if */
         add_operand_to_initializer_cache(result, /*to_front=*/FALSE,
                                          /*bundle=*/FALSE, &opnd_list);
