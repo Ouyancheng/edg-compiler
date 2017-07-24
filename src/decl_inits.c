@@ -6868,7 +6868,8 @@ constructor.
       /* A constexpr constructor requires constant initialization.  In the
          template case, the "constexpr" property is silently dropped.  In other
          cases, an error is issued. */
-      if (is_unspecialized_template_member_function(ctor)) {
+      if (is_unspecialized_template_member_function(ctor) ||
+          ctor->is_defaulted) {
         if (!ctor->is_prototype_instantiation) {
           ctor->is_constexpr = FALSE;
         }  /* if */
@@ -8219,7 +8220,8 @@ initialized.  These are addressed in the course of the processing.
             /* If this is a constexpr constructor, each variant must have
                an initializer. */
             if (ctor_rout->is_declared_constexpr &&
-                !is_unspecialized_template_member_function(ctor_rout)) {
+                !is_unspecialized_template_member_function(ctor_rout) &&
+                !ctor_rout->is_defaulted) {
               pos2_diagnostic(
                         es_error,
                         ec_constexpr_constructor_initializes_no_variant_field,
@@ -8388,7 +8390,8 @@ initialized.  These are addressed in the course of the processing.
             } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
                  cannot be used for constexpr construction. */
-              if (!is_unspecialized_template_member_function(ctor_rout)) {
+              if (!is_unspecialized_template_member_function(ctor_rout) &&
+                  !ctor_rout->is_defaulted) {
                 pos_sy_error(
                           ec_nonconstant_field_initializer_in_mem_initializer,
                           &err_pos, field_sym);
@@ -8580,7 +8583,8 @@ initialized.  These are addressed in the course of the processing.
                and for template instances failing this test isn't an error,
                but it makes the function effectively non-constexpr. */
             if (ctor_rout->is_declared_constexpr &&
-                !is_unspecialized_template_member_function(ctor_rout)) {
+                !is_unspecialized_template_member_function(ctor_rout) &&
+                !ctor_rout->is_defaulted) {
               if (!bad_call_for_constexpr_ctor_reported) {
                 pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
                              symbol_for(rp));
@@ -8657,7 +8661,8 @@ initialized.  These are addressed in the course of the processing.
          is issued. */
       an_error_code  errcode = ec_missing_initializer_on_fields;
       if (ctor_rout->is_constexpr) {
-        if (!is_unspecialized_template_member_function(ctor_rout)) {
+        if (!is_unspecialized_template_member_function(ctor_rout) &&
+            !ctor_rout->is_defaulted) {
           /* Use a slightly different wording for constexpr constructors. */
           errcode = ec_missing_initializer_on_fields_with_constexpr_ctor;
         } else {
@@ -8703,7 +8708,8 @@ initialized.  These are addressed in the course of the processing.
     /* A constexpr constructor for a union must initialize a field
        explicitly. */
     if (ctor_rout->is_declared_constexpr &&
-        !is_unspecialized_template_member_function(ctor_rout)) {
+        !is_unspecialized_template_member_function(ctor_rout) &&
+        !ctor_rout->is_defaulted) {
       pos_error(ec_union_constexpr_constructor_initializes_no_field,
                 &error_position);
     }  /* if */
