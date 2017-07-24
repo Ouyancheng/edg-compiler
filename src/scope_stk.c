@@ -8430,6 +8430,11 @@ routine should be kept.
         }  /* if */
 #endif /* NEED_NAME_MANGLING */
       }  /* if */
+    } else if (routine->source_corresp.is_class_member &&
+               parent_class_of(routine)->incomplete) {
+      /* Lowering the member function requires prelowering its parent class,
+         and that cannot be done if the parent class is incomplete. */
+      result = TRUE;
     } /* if */
   }  /* if */
   if (result) {
