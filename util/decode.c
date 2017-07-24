@@ -1304,54 +1304,9 @@ position following what was demangled.
   if (operator_str == NULL) {
     bad_mangled_name(dctl);
   } else {
+    p += op_length;
     /* Put parentheses around the operation if necessary. */
     if (need_parens) write_id_ch('(', dctl);
-    if (*operator_str == 'f' && strcmp(operator_str, "fold-ex") == 0) {
-      /* A fold expression; handle it here (since it's significantly
-         different than a standard operation). */
-      a_boolean    unary, left;
-      p++;
-      switch (get_char(p, dctl)) {
-        case 'l': unary = TRUE;  left = TRUE;  break;
-        case 'L': unary = FALSE; left = TRUE;  break;
-        case 'r': unary = TRUE;  left = FALSE; break;
-        case 'R': unary = FALSE; left = FALSE; break;
-        default:
-          bad_mangled_name(dctl);
-          break;
-      }  /* switch */
-      p++;
-      operator_str = demangle_operator(p, &op_length, &takes_type,
-                                       &is_new_style_cast, &is_postfix,
-                                       &need_adl_parens, &is_initializer_list,
-                                       &ud_suffix_follows, dctl);
-      if (operator_str == NULL) {
-        bad_mangled_name(dctl);
-      } else {
-        p += op_length;
-        write_id_ch('(', dctl);
-        if (unary) {
-          if (left) {
-            write_id_str("...", dctl);
-            write_id_str(operator_str, dctl);
-            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-          } else {
-            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-            write_id_str(operator_str, dctl);
-            write_id_str("...", dctl);
-          }  /* if */
-        } else {
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-          write_id_str(operator_str, dctl);
-          write_id_str("...", dctl);
-          write_id_str(operator_str, dctl);
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-        }  /* if */
-        write_id_ch(')', dctl);
-      }  /* if */
-      goto skip_operand_loop;
-    }  /* if */
-    p += op_length;
     if (is_initializer_list) {
       /* An initializer list (with an optional type). */
       if (takes_type) {
@@ -2025,14 +1980,6 @@ If the first few characters are not an operator encoding, return NULL.
     *ud_suffix_follows = TRUE;
   } else if (start_of_id_is("aw", ptr, dctl)) {
     s = "co_await";
-  } else if (start_of_id_is("fr", ptr, dctl) ||
-             start_of_id_is("fl", ptr, dctl) ||
-             start_of_id_is("fR", ptr, dctl) ||
-             start_of_id_is("fL", ptr, dctl)) {
-    /* A fold expression.  The actual length is not easily known and must be
-       determined by the caller.  The returned value is simply a flag (and
-       not an actual operation string). */
-    s = "fold-ex";
   } else {
     s = NULL;
   }  /* if */
@@ -6769,14 +6716,6 @@ The syntax is:
                               # initializer list
                ::= tl <type> <expression>* E
                               # typed initializer list
-               ::= fl <binary operator-name> <expression>
-                              # ( ... op pack )
-               ::= fr <binary operator-name> <expression>
-                              # ( pack op ... )
-               ::= fL <binary operator-name> <expression>
-                              # ( expr op ... op pack )
-               ::= fR <binary operator-name> <expression>
-                              # ( pack op ... op expr )
                ::= <expr-primary>
 
 Also, these non-standard expressions (EDG-specific) are demangled:
@@ -6801,53 +6740,9 @@ Also, these non-standard expressions (EDG-specific) are demangled:
   } else if (*ptr == 'T') {
     /* A template parameter. */
     ptr = demangle_template_param(ptr, dctl);
-  } else if (*ptr == 'f') {
-    if (ptr[1] == 'p' ||
-        (ptr[1] == 'L' && isdigit((unsigned char)ptr[2]))) {
-      /* A reference to a function parameter. */
-      ptr = demangle_parameter_reference(ptr, dctl);
-    } else {
-      /* A "fold expression". */
-      a_boolean    unary, left;
-      a_const_char *op_str, *close_str;
-      int          num_operands, length;
-      switch (ptr[1]) {
-        case 'l': unary = TRUE;  left = TRUE;  break;
-        case 'L': unary = FALSE; left = TRUE;  break;
-        case 'r': unary = TRUE;  left = FALSE; break;
-        case 'R': unary = FALSE; left = FALSE; break;
-        default:
-          bad_mangled_name(dctl);
-          break;
-      }  /* switch */
-      ptr += 2;
-      op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
-                                 dctl);
-      if (op_str == NULL) {
-        bad_mangled_name(dctl);
-      } else {
-        ptr += length;
-        write_id_ch('(', dctl);
-        if (unary) {
-          if (left) {
-            write_id_str("...", dctl);
-            write_id_str(op_str, dctl);
-            ptr = demangle_expression(ptr, dctl);
-          } else {
-            ptr = demangle_expression(ptr, dctl);
-            write_id_str(op_str, dctl);
-            write_id_str("...", dctl);
-          }  /* if */
-        } else {
-          ptr = demangle_expression(ptr, dctl);
-          write_id_str(op_str, dctl);
-          write_id_str("...", dctl);
-          write_id_str(op_str, dctl);
-          ptr = demangle_expression(ptr, dctl);
-        }  /* if */
-        write_id_ch(')', dctl);
-      }  /* if */
-    }  /* if */
+  } else if (*ptr == 'f' && (ptr[1] == 'p' || ptr[1] == 'L')) {
+    /* A reference to a function parameter. */
+    ptr = demangle_parameter_reference(ptr, dctl);
   } else if (*ptr == 'c' && ptr[1] == 'l') {
     /* Call expression: "cl <expression>+ E" */
     ptr += 2;
