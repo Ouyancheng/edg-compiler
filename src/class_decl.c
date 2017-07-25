@@ -2110,7 +2110,23 @@ be done because the intermediate lambda does not allow implicit captures.
   } else {
     /* For explicit captures (i.e., in the capture list), we're already in the
        scope of the capture. */
+    a_scope_stack_entry_ptr  ssep;
     depth = depth_scope_stack;
+    ssep = &scope_stack[depth];
+    if (scope_is(ssep, sck_func_prototype) && ssep->decl_parse_state != NULL &&
+        ssep->decl_parse_state->is_lambda) {
+      /* If the lambda appears in the prototype scope of another lambda, start
+         the search from outside the class scope of that other lambda.
+         Currently, this can only occur in error situations. */
+      expect_error();
+      if (scope_is(ssep-1, sck_template_instantiation)) {
+        /* Generic lambdas have a template instantiation scope surrounding the
+           function scope of the call operator. */
+        depth -= 3;
+      } else {
+        depth -= 2;
+      }  /* if */
+    }  /* if */
   }  /* if */
   lcp = r_add_lambda_capture(lambda, vp, fp, depth, is_implicit, by_reference,
                              pos, no_impl_capture);
