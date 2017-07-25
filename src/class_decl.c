@@ -16394,7 +16394,7 @@ template declaration and is NULL otherwise.
                                       class_state->is_nonreal_instantiation)) {
       /* An in-class initializer is valid. */
       decl_info->decl_pos_block.var_init_range.start = init_pos;
-      if ((var->is_constexpr || var->is_inline) && curr_token != tok_lparen) {
+      if (var->is_constexpr || var->is_inline) {
         /* If this is a constexpr or inline member, more initialization
            forms are possible: Use the general initializer processing
            function. */
