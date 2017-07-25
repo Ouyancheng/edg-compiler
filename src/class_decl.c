@@ -15349,6 +15349,20 @@ decl_member_function_template.
         rp->is_declared_constexpr = TRUE;
       }  /* if */
     }  /* if */
+#if NEED_NAME_MANGLING
+    /* Record the parent routine for lambdas defined in any default
+       arguments. */
+    { a_param_type_ptr  ptp = function_type_params(rp->type);
+      for (; ptp != NULL; ptp = ptp->next) {
+        an_il_entity_list_entry_ptr  ep = ptp->entities_defined_in_default_arg;
+        if (ep != NULL) {
+          set_parent_entity_for_closure_types(
+                               ep, dps->sym,
+                               ptp->default_arg_appeared_in_class_definition);
+        }  /* if */
+      }  /* for */
+    }
+#endif /* NEED_NAME_MANGLING */
   }  /* if */
   if (lambda->is_generic) {
     /* A generic lambda: Pop the template declaration scope. */
@@ -29608,12 +29622,11 @@ classes.
     scope_stack_top().class_def_state = &class_state;
     class_is_in_valid_scope = !is_invalid_scope_for_class();
     if (!class_is_in_valid_scope && is_template_dependent_context()) {
-      /* We've got a class in an invalid context (e.g., a lambda in a function
-         prototype scope), and template parameters will be visible in the
-         body of the class, so mark the class as nonreal.  This tells
-         overload resolution that there might be member functions that have
-         template parameters in their signatures and therefore for which
-         overload resolution should be suppressed. */
+      /* We've got a class in an invalid context, and template parameters will
+         be visible in the body of the class, so mark the class as nonreal.
+         This tells overload resolution that there might be member functions
+         that have template parameters in their signatures and therefore
+         overload resolution should not be attempted on them. */
       expect_error();
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     }  /* if */
