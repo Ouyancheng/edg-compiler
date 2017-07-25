@@ -16489,6 +16489,12 @@ template declaration and is NULL otherwise.
     if (var->is_inline) {
       /* Inline static data members are considered definitions. */
       srk_flags |= SRK_DEFINITION;
+      complete_type_is_needed(var->type);
+      if (is_incomplete_type(var->type)) {
+        /* As a definition, an inline static data member must have a
+           complete type. */
+        pos_error(incomplete_type_err_code(var->type), start_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Record the symbol declaration.  Usually it is a pure declaration (and the
