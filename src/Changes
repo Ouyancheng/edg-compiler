@@ -15,6 +15,29 @@ Previously, this triggered an internal error in prelower_class_type
 declarator.
 
 
+7/24/17  [EDGcpfe/18536]
+Defaulted constructors and constexpr
+
+The front end no longer issues an error for defaulted constexpr constructors
+that could not possibly be evaluated in a constant-expression context.
+For example:
+
+  struct F { F(int) {} };
+  template <int i> struct S {
+    constexpr S(): f(0) {}
+    F f;
+  };
+  struct X {
+    constexpr X() = default;
+    S<0> s;
+ } x;
+
+Previously, an error was issued while generating the default constructor of X
+because the initialization of member s requires a call to a non-constexpr
+constructor.  Now, this example is accepted, but calls to the default
+constructor of X are never evaluated at compile time.
+
+
 7/22/17  [EDGcpfe/18591]
 Type of second argument to __cxa_vec_cctor library call
 
