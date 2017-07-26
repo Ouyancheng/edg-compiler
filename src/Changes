@@ -1,5 +1,17 @@
 Version 4.14
 
+7/26/17  [EDGcpfe/18603]
+Missing diagnostic on invalid variable template default template arguments
+
+The front end failed to diagnose a variable template declaration that
+contained a default template argument that was followed by a parameter
+without a default argument.  This could result in an internal error
+in IL lowering (in lower_type).  Now fixed.
+
+  template < class T = int , class U > int A = 1;
+  A<> a;
+
+
 7/25/17  [EDGcpfe/18389]
 Abort in lowering on lambda in default argument of another lambda
 

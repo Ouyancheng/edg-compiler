@@ -23812,6 +23812,14 @@ template symbol supplement for this template should be returned to the caller.
     make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
                              /*include_last_token=*/FALSE);
   } /* if */
+  if (is_variable_template && tssp != NULL) {
+    /* Make sure that the default arguments for the template parameters
+       are valid (i.e., that they are at the end of the parameter list). */
+    check_template_param_default_args_and_packs(
+                       decl_state->decl_info->parameters,
+                       /*is_class_template=*/FALSE,
+                       decl_state->is_partial_specialization);
+  }  /* if */
   if (tssp != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Prevent the generation of a source sequence entry for the a_template
