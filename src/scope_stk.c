@@ -926,11 +926,12 @@ parent for name mangling purposes.
     /* If the routine was declared using a typedef type, there are no default
        arguments and hence no closure types to process. */
   } else {
-    a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
+    a_param_type_ptr  ptp = function_type_params(rtp);
     for (; ptp != NULL; ptp = ptp->next) {
-      if (ptp->entities_defined_in_default_arg != NULL) {
+      an_il_entity_list_entry_ptr  ep = ptp->entities_defined_in_default_arg;
+      if (ep != NULL) {
         set_parent_entity_for_closure_types(
-                              ptp->entities_defined_in_default_arg, rout_sym,
+                              ep, rout_sym,
                               ptp->default_arg_appeared_in_class_definition);
       }  /* if */
     }  /* for */

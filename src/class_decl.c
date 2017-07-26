@@ -15368,16 +15368,8 @@ decl_member_function_template.
 #if NEED_NAME_MANGLING
     /* Record the parent routine for lambdas defined in any default
        arguments. */
-    { a_param_type_ptr  ptp = function_type_params(rp->type);
-      for (; ptp != NULL; ptp = ptp->next) {
-        an_il_entity_list_entry_ptr  ep = ptp->entities_defined_in_default_arg;
-        if (ep != NULL) {
-          set_parent_entity_for_closure_types(
-                               ep, dps->sym,
-                               ptp->default_arg_appeared_in_class_definition);
-        }  /* if */
-      }  /* for */
-    }
+    set_parent_routine_for_closure_types_in_default_args(rp->type,
+                                                         symbol_for(rp));
 #endif /* NEED_NAME_MANGLING */
   }  /* if */
   if (lambda->is_generic) {
