@@ -16322,7 +16322,8 @@ template declaration and is NULL otherwise.
        is promoted to sc_unspecified if a definition is seen.  In cfront mode,
        the storage is sc_static (already set), which is changed to sc_extern
        or sc_unspecified during a final fixup pass. */
-    var->storage_class = (a_storage_class)sc_extern;
+    var->storage_class = (a_storage_class)(var->is_inline ? sc_unspecified
+                                                          : sc_extern);
     /* Check whether any types without linkage are used in the declaration. */
     check_constituent_types_have_linkage(var_sym, &locator->source_position,
                                          /*is_declaration=*/TRUE);
