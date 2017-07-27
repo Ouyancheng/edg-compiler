@@ -9603,20 +9603,16 @@ Do IL lowering of the indicated variable and everything under it.
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
 #if IA64_ABI
-    if (variable->is_template_variable &&
-        variable->storage_class == (a_storage_class)sc_unspecified) {
-      /* Ensure that variable templates are put into their own COMDAT
-         groups. */
+    if ((variable->is_template_variable &&
+         variable->storage_class == (a_storage_class)sc_unspecified) ||
+        (variable->is_inline &&
+         variable->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_internal)) {
+      /* Ensure that variable templates and externally-linked inline
+         variables are put into their own COMDAT groups. */
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */
-    if (variable->is_inline &&
-        variable->source_corresp.name_linkage !=
-                                           (a_name_linkage_kind)nlk_internal) {
-      /* Ensure that externally-linked inline variables are put into their
-         own COMDAT groups. */
-      put_variable_into_comdat_group(variable);
-    }  /* if */
   }  /* if */
 }  /* lower_variable */
 
