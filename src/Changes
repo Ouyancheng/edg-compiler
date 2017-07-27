@@ -24,7 +24,7 @@ expression (with linkage).  This is now fixed.
 
 
 7/24/17  [EDGcpfe/18596]
-Abort of variadic member function called within class definition
+Abort on variadic member function called within class definition
 
 Consider:
 
@@ -34,7 +34,7 @@ Consider:
   };
 
 Previously, this triggered an internal error in prelower_class_type
-(lower_il.c).  Now, an error is issued on the call of f() is the array
+(lower_il.c).  Now, an error is issued on the call of f() in the array
 declarator.
 
 
