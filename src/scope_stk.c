@@ -10321,6 +10321,7 @@ to it.
   pesep->is_lookahead = FALSE;
   pesep->enclosing_packs_reset = FALSE;
   pesep->preserve_deduced_packs = FALSE;
+  pesep->contains_pack_reference = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -12162,7 +12163,9 @@ pack expansion stack must be popped.
 a_boolean any_packs_referenced(void)
 /*
 Return TRUE if the current pack expansion context contains any pack
-references and we are in a template definition context.
+references (including those from an enclosing pack context) and we are in
+a template definition context.  See any_packs_referenced_in_curr_context
+for more information.
 */
 {
   a_boolean	result = FALSE;
@@ -12179,6 +12182,32 @@ references and we are in a template definition context.
   }  /* if */
   return result;
 }  /* any_packs_referenced */
+
+
+a_boolean any_packs_referenced_in_curr_context(void)
+/*
+Return TRUE if the current pack expansion context contains any pack
+references and we are in a template definition context.  This differs
+from any_packs_referenced in that this will only be TRUE if the
+context on the top of the pack expansion stack contains a pack reference
+while any_packs_referenced will be TRUE if the reference was in an
+enclosing context.
+*/
+{
+  a_boolean	result = FALSE;
+
+  /* In a prototype instantiation context expansion_descr->packs_referenced
+     will be NULL but contains_pack_reference could be TRUE.  In a real
+     instantiation expansion_descr->packs_referenced might be TRUE but
+     contains_pack_reference will be FALSE. */
+  if (pack_expansion_stack != NULL &&
+      !pack_expansion_stack->is_suppression) {
+    a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
+    result = pesep->expansion_descr->packs_referenced != NULL ||
+             pesep->contains_pack_reference;
+  }  /* if */
+  return result;
+}  /* any_packs_referenced_in_curr_context */
 
 
 static void record_potential_pack_reference_full(
@@ -12305,6 +12334,16 @@ form.
           fprintf(f_debug, " at tsn %lu\n", (long)curr_token_sequence_number);
         }  /* if */
 #endif /* DEBUG */
+      }  /* if */
+      /* We don't associate pack references with contexts yet, but record
+         the fact that the current set of contexts did contain a pack
+         reference. */
+      if (pack_expansion_stack != NULL) {
+        a_pack_expansion_stack_entry_ptr	pesep;
+        for (pesep = pack_expansion_stack;
+             pesep != NULL; pesep = pesep->next) {
+          pesep->contains_pack_reference = TRUE;
+        }  /* for */
       }  /* if */
     }  /* if */
   }  /* if */

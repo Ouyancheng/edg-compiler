@@ -44927,7 +44927,7 @@ function operand: The selector is then return in *bound_function_selector.
     (void)get_token();
     check_assertion(curr_token == tok_ellipsis);
     ellipsis_pos = pos_curr_token;
-    if (any_packs_referenced()) {
+    if (any_packs_referenced_in_curr_context()) {
       /* The left operand is a pack: Associate the ellipsis position with
          it. */
       record_pack_expansion_ellipsis_position(&ellipsis_pos);
@@ -44999,7 +44999,7 @@ function operand: The selector is then return in *bound_function_selector.
       do {
         a_pack_expansion_descr_ptr  pedp;
         scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
-        if (any_packs_referenced()) {
+        if (any_packs_referenced_in_curr_context()) {
           pack_seen = TRUE;
           if (!left_associative && !unary) {
             pos_error(ec_two_packs_in_fold_expression, &ellipsis_pos);

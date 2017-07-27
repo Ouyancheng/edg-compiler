@@ -566,6 +566,11 @@ typedef struct a_pack_expansion_stack_entry {
 		preserve_deduced_packs;
 			/* TRUE if is_rescan is TRUE and deduced parameter
 			   packs should be retained in the substituted type. */
+  a_byte_boolean
+		contains_pack_reference;
+			/* TRUE during prototype instantiations if any
+			   pack references were recorded while this entry
+			   was at the top of the pack expansion stack. */
 } a_pack_expansion_stack_entry;
 
 
@@ -2232,6 +2237,8 @@ a_template_arg_ptr get_curr_variadic_arg_for_param(
 			a_boolean			create_if_not_found);
 
 extern a_boolean any_packs_referenced(void);
+
+extern a_boolean any_packs_referenced_in_curr_context(void);
 
 extern a_boolean begin_rescan_pack_expansion_context(
 		a_pack_expansion_descr_ptr		pedp,
