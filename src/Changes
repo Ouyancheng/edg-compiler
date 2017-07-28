@@ -1022,11 +1022,11 @@ list "<0>" in function template g, and the call "g<0>()" was diagnosed as an
 error as a result of that failure.  This is now fixed.
 
 
-5/4/17   [EDGcpfe/18322,EDGcpfe/18487]
+5/4/17   [EDGcpfe/18322,EDGcpfe/18487,EDGcpfe/18608]
 GCC compatibility: Builtin functions for 7.1.0
 
 The builtin function definitions have been updated to reflect the builtin
-functions declared in GCC 7.1.0.  103 new builtin functions were added.
+functions declared in GCC 7.1.0.  109 new builtin functions were added.
 
 
 5/4/17   [EDGcpfe/18155]
