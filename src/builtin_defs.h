@@ -15,7 +15,6 @@ builtin_defs.h -- Declarations related to builtin declarations
 
 /* Do not add builtins here.  See sys_predef.h to add user-defined builtins. */
 /*lint -e641 */ /* Suppress lint messages about converting enums to int. */
-/*lint +e641 */ /* Re-enable lint messages about converting enums to int. */
 /*------------------Beginning of automatically generated code---------------*/
 
 /* An enumeration used to map a builtin to a particular type signature.
