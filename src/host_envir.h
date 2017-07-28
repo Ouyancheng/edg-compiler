@@ -927,12 +927,24 @@ of tim_all mode.
 /*
 The maximum depth of constexpr function and constructor call nesting.
 If we reach the maximum, the next call is considered non-foldable,
-which probably makes the overall expression non-constant.
-The C++11 standard requires at least 512.
-Initial value for the global variable max_depth_constexpr_call.
+which probably makes the overall expression non-constant.  The C++
+standard requires at least 512.  Initial value for the global variable
+max_depth_constexpr_call.  The maximum value that can be used depends
+on the size of data structures (e.g., 64-bit configurations will use
+more space than 32-bit) and the compiler optimization level.  Use of
+a value that is too large can result in stack overflow, so if the default
+is increased, it should be done with care.
+
+By default, DEBUG builds have a lower maximum under the assumption that
+such builds will be not use optimization and consequently may not be
+able to handle a large call depth.
 */
 #ifndef DEFAULT_MAX_DEPTH_CONSTEXPR_CALL
-#define DEFAULT_MAX_DEPTH_CONSTEXPR_CALL 1000
+#if DEBUG
+#define DEFAULT_MAX_DEPTH_CONSTEXPR_CALL 256
+#else /* !DEBUG */
+#define DEFAULT_MAX_DEPTH_CONSTEXPR_CALL 512
+#endif /* DEBUG */
 #endif /* ifndef DEFAULT_MAX_DEPTH_CONSTEXPR_CALL */
 
 /*

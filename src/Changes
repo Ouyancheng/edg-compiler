@@ -1,5 +1,15 @@
 Version 4.14
 
+7/28/17  [EDGcpfe/18620]
+Default value of DEFAULT_MAX_DEPTH_CONSTEXPR_CALL
+
+The default value of DEFAULT_MAX_DEPTH_CONSTEXPR_CALL has been reduced for
+DEBUG builds to reduce the possibility of stack overflows (because optimized
+builds use much less stack space than unoptimized ones).  The non-DEBUG
+default has also been reduced from 1000 to the standard-suggested value
+of 512 to avoid stack overflow issues on some systems.
+
+
 7/26/17  [EDGcpfe/18603]
 Missing diagnostic on invalid variable template default template arguments
 
