@@ -1,5 +1,12 @@
 Version 4.14
 
+7/28/17  [EDGcpfe/18563]
+Demangling of Microsoft calling convention in function types
+
+Added demangling support for an EDG-specific mangling of Microsoft calling
+conventions in mangled function type names (for both Cfront and IA-64 ABIs).
+
+
 7/7/17   [EDGcpfe/17691,EDGcpfe/18560,EDGcpfe/18561]
 Demangling for fold expressions
 

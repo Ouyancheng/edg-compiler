@@ -531,6 +531,30 @@ entire module id.
   return ptr+num;
 }  /* demangle_module_id */
 
+
+static a_const_char *calling_convention(a_const_char code,
+                                        a_decode_control_block_ptr dctl)
+/*
+Non-ABI-specific routine to return a printable string that represents the
+calling convention specified by "code".
+*/
+{
+  a_const_char *result = NULL;
+
+  switch (code) {
+    case 'c': result = " __cdecl";      break;
+    case 'f': result = " __fastcall";   break;
+    case 's': result = " __stdcall";    break;
+    case 't': result = " __thiscall";   break;
+    case 'v': result = " __vectorcall"; break;
+    case 'r': result = " __clrcall";    break;
+    default:
+      bad_mangled_name(dctl);
+      break;
+  }  /* switch */
+  return result;
+}  /* calling_convention */
+
 #if !IA64_ABI
 
 static a_const_char *get_length(a_const_char               *p,
@@ -2952,6 +2976,26 @@ following the optional ref-qualifier.
 }  /* demangle_ref_qualifiers */
 
 
+static a_const_char *demangle_calling_convention(
+                                        a_const_char               *p,
+                                        a_const_char               **call_conv,
+                                        a_decode_control_block_ptr dctl)
+/*
+See if a Microsoft calling convention is included in the mangled function type;
+if so, set *call_conv to a string suitable for output (set to NULL otherwise).
+Returns a pointer to the character position following the optional calling
+convention.
+*/
+{
+  *call_conv = NULL;
+  if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'C')) {
+    *call_conv = calling_convention(get_char(p+3, dctl), dctl);
+    p += 3;
+  }  /* if */
+  return p;
+}  /* demangle_calling_convention */
+
+
 static a_const_char *demangle_type_specifier(a_const_char               *ptr,
                                              a_decode_control_block_ptr dctl)
 /*
@@ -3308,6 +3352,7 @@ not empty, because it contains a name or a derived type).
     /* Output the type qualifiers on the pointer, if any. */
     (void)demangle_type_qualifiers(qualp, need_trailing_space, dctl);
   } else if (kind == 'F') {
+    a_const_char *call_conv;
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
@@ -3319,6 +3364,8 @@ not empty, because it contains a name or a derived type).
       p += 2;
     }  /* if */
     p = skip_extern_C_indication(p, dctl);
+    /* An optional Microsoft calling convention is next (skipped here). */
+    p = demangle_calling_convention(p, &call_conv, dctl);
     /* Skip over the parameter types without outputting anything. */
     dctl->suppress_id_output++;
     p = demangle_function_parameters(p, dctl);
@@ -3417,7 +3464,7 @@ use of parentheses around parts of the declarator.)
     dctl->suppress_id_output--;
     demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
-    a_const_char *ref_qual;
+    a_const_char *ref_qual, *call_conv;
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
@@ -3429,6 +3476,11 @@ use of parentheses around parts of the declarator.)
        an underscore.  Emit the ref-qualifier at the end of the type. */
     p = demangle_ref_qualifiers(p, &ref_qual, dctl);
     p = skip_extern_C_indication(p, dctl);
+    /* An optional Microsoft calling convention is next. */
+    p = demangle_calling_convention(p, &call_conv, dctl);
+    if (call_conv != NULL) {
+      write_id_str(call_conv, dctl);
+    }  /* if */
     /* Put out the parameter types. */
     p = demangle_function_parameters(p, dctl);
     /* Put out any cv-qualifiers (member functions). */
@@ -5254,6 +5306,26 @@ just ignore it.
 }  /* skip_extern_C_indication */
 
 
+static a_const_char *demangle_calling_convention(
+                                        a_const_char               *p,
+                                        a_const_char               **call_conv,
+                                        a_decode_control_block_ptr dctl)
+/*
+See if a Microsoft calling convention is included in the mangled function type;
+if so, set *call_conv to a string suitable for output (set to NULL otherwise).
+Returns a pointer to the character position following the optional calling
+convention.
+*/
+{
+  *call_conv = NULL;
+  if (*p == '_' && p[1] == 'C') {
+    *call_conv = calling_convention(p[2], dctl);
+    p += 3;
+  }  /* if */
+  return p;
+}  /* demangle_calling_convention */
+
+
 static a_const_char *demangle_type_first_part(
                                a_const_char               *ptr,
                                a_cv_qualifier_set         cv_quals,
@@ -5378,9 +5450,12 @@ to be on top of the type.  If parse_template_args is TRUE then any
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'F') {
     a_ref_qualifier dummy;
+    a_const_char    *call_conv;
     /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
     p = skip_extern_C_indication(p+1);
+    /* An optional Microsoft calling convention is next (skipped here). */
+    p = demangle_calling_convention(p, &call_conv, dctl);
     /* Output the return type. */
     p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/TRUE, 
@@ -5523,14 +5598,20 @@ to be on top of the type.
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'F') {
-    a_const_char *returnt;
+    a_const_char *returnt, *call_conv;
     a_ref_qualifier ref_qual;
     /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
+    p = skip_extern_C_indication(p+1);
+    /* An optional Microsoft calling convention is next. */
+    p = demangle_calling_convention(p, &call_conv, dctl);
+    if (call_conv != NULL) {
+      write_id_str(call_conv, dctl);
+    }  /* if */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch(')', dctl);
-    p = skip_extern_C_indication(p+1);
+    /* Output the return type. */
     /* Put out the parameter types (the return type is skipped and not
        output). */
     returnt = p;
