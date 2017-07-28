@@ -16487,6 +16487,10 @@ template declaration and is NULL otherwise.
               &pos_curr_token);
     var->init_kind = (an_init_kind)initk_static;
     var->initializer.constant = alloc_error_constant();
+  } else if (var->is_inline && is_any_reference_type(var->type)) {
+    /* An inline static data member is a definition and thus a reference
+       must be initialized. */
+    sym_error(ec_missing_initializer_on_reference, sym);
   }  /* if */
   if (inline_variables_allowed) {
     if ((decl_state->dso_flags & DSO_INLINE) != 0 ||
