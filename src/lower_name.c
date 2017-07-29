@@ -2150,12 +2150,11 @@ Add an EDG-specific mangling for the calling convention of a function type.
 */
 {
 #if ABI_COMPATIBILITY_VERSION >= 414
-  char code;
+  char code = '\0';
 
   check_assertion(type->kind == (a_type_kind)tk_routine);
   switch (type->variant.routine.extra_info->calling_convention) {
     case cc_default:
-      code = '\0';
       break;
     case cc_cdecl:
       code = MANGLING_CODE_FOR_CDECL_CALL_CONV;
