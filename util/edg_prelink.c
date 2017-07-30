@@ -1191,6 +1191,13 @@ Return a pointer to a temporary buffer containing a decoded name.
   if (mangled_names_in_output) {
     /* Return the original name. */
     result = encoded_name;
+#if IA64_ABI
+  } else if (encoded_name[0] != '_' || encoded_name[1] != 'Z') {
+    /* The IA-64 version of decode_identifier cannot be called for
+       non-mangled names (as can occur with global scope inline
+       variables).  Use the original name. */
+    result = encoded_name;
+#endif /* IA64_ABI */
   } else {
     decode_identifier(encoded_name, decode_buffer, NAME_DECODE_BUFFER_SIZE,
                       &error, &buffer_overflow, &required_buffer_size);

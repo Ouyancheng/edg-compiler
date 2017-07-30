@@ -1,5 +1,13 @@
 Version 4.14
 
+7/30/17  [EDGcpfe/17704,EDGcpfe/17954,EDGcpfe/18622]
+Prelinker support for inline variables
+
+A minor change was made to the prelinker to avoid attempting to demangle
+unmangled inline variable names, which can occur for global scope inline
+variables.
+
+
 7/28/17  [EDGcpfe/18563]
 Demangling of Microsoft calling convention in function types
 
