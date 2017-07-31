@@ -2857,13 +2857,11 @@ Display the indicated variable.
     disp_ptr("aliased_variable", (char*)ptr->aliased_variable, iek_variable);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if DO_IL_LOWERING && IA64_ABI
+#if DO_IL_LOWERING
   if (ptr->comdat_group != NULL) {
     disp_string_ptr("comdat_group", ptr->comdat_group, 
                     iek_other_text, (sizeof_t)0);
   }  /* if */
-#endif /* DO_IL_LOWERING && IA64_ABI */
-#if DO_IL_LOWERING
   if (ptr->vla_element_count_variable != NULL) {
     disp_ptr("vla_element_count_variable",
              (char*)ptr->vla_element_count_variable, iek_variable);

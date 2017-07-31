@@ -2508,10 +2508,8 @@ Clear the fields of the given variable to default values.
 #if GNU_EXTENSIONS_ALLOWED
   vp->aliased_variable            = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if DO_IL_LOWERING && IA64_ABI
-  vp->comdat_group                = NULL;
-#endif /* DO_IL_LOWERING && IA64_ABI */
 #if DO_IL_LOWERING
+  vp->comdat_group                = NULL;
   vp->vla_element_count_variable  = NULL;
 #endif /* DO_IL_LOWERING */
   vp->referenced_non_locally      = FALSE;

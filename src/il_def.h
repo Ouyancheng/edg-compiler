@@ -10390,15 +10390,13 @@ typedef struct a_variable {
 			   is an alias.  (Used for attributes "alias" and
 			   "weakref".) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if DO_IL_LOWERING && IA64_ABI
+#if DO_IL_LOWERING
   a_const_char	*comdat_group;
 			/* The COMDAT group into which this variable
 			   should be placed, or NULL if this entity
 			   should not be placed into a COMDAT group.
 			   Non-NULL only for variable definitions, never for
 			   (e.g.) external references. */
-#endif /* DO_IL_LOWERING && IA64_ABI */
-#if DO_IL_LOWERING
   a_variable_ptr
 		vla_element_count_variable;
 			/* A variable holding the count of a VLA's elements

@@ -5466,19 +5466,6 @@ other class or for the class itself.
 }  /* is_primary_base_class */
 
 
-void put_variable_into_comdat_group(a_variable_ptr  var)
-/*
-Put the specified variable into a COMDAT group with the same name as the
-variable's mangled name.
-*/
-{
-  check_assertion((var->source_corresp.name_has_been_mangled &&
-                   var->storage_class == (a_storage_class)sc_unspecified) ||
-                   var->is_inline);
-  var->comdat_group = var->source_corresp.name;
-} /* put_variable_into_comdat_group */
-
-
 static a_virtual_table_index vptr_index(a_type_ptr       class_type,
                                         a_base_class_ptr bcp,
                                         a_boolean        is_complete)
@@ -5503,6 +5490,19 @@ construction virtual function table.
 }  /* vptr_index */
 
 #endif /* IA64_ABI */
+
+void put_variable_into_comdat_group(a_variable_ptr  var)
+/*
+Put the specified variable into a COMDAT group with the same name as the
+variable's mangled name.
+*/
+{
+  check_assertion((var->source_corresp.name_has_been_mangled &&
+                   var->storage_class == (a_storage_class)sc_unspecified) ||
+                   var->is_inline);
+  var->comdat_group = var->source_corresp.name;
+} /* put_variable_into_comdat_group */
+
 
 static void make_construction_vtbl(
                        a_type_ptr                      class_type,
@@ -9603,18 +9603,20 @@ Do IL lowering of the indicated variable and everything under it.
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
 #if IA64_ABI
-    if ((variable->is_template_variable &&
-         variable->storage_class == (a_storage_class)sc_unspecified) ||
-        (variable->is_inline && !instantiate_extern_inline &&
-         variable->source_corresp.name_linkage !=
-                                          (a_name_linkage_kind)nlk_internal)) {
-      /* Ensure that variable templates and externally-linked inline
-         variables (unless using the prelinker, i.e., the
-         instantiate_extern_inline case) are put into their own COMDAT
+    if (variable->is_template_variable &&
+        variable->storage_class == (a_storage_class)sc_unspecified) {
+      /* Ensure that variable templates are put into their own COMDAT
          groups. */
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */
+    if (variable->is_inline &&
+        variable->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_internal) {
+      /* Ensure that externally-lined inline variables are put into their
+         own COMDAT groups. */
+      put_variable_into_comdat_group(variable);
+    }  /* if */
   }  /* if */
 }  /* lower_variable */
 
@@ -20051,10 +20053,7 @@ been removed from the scope variables list).
           }  /* if */
           if (keep_in_function_scope ||
               (variable->storage_class == (a_storage_class)sc_unspecified
-#if IA64_ABI
-               && variable->comdat_group == NULL
-#endif /* IA64_ABI */
-                                                )) {
+               && variable->comdat_group == NULL)) {
             /* A constant initialization that can't be done in the file scope
                or a static variable of an extern inline function initialized
                to a constant.  Rewrite the initialization as executable code
@@ -20077,10 +20076,7 @@ been removed from the scope variables list).
     }  /* switch */
   } else if (variable->init_kind == (an_init_kind)initk_static &&
              variable->storage_class == (a_storage_class)sc_unspecified
-#if IA64_ABI
-             && variable->comdat_group == NULL
-#endif /* IA64_ABI */
-                                              ) {
+             && variable->comdat_group == NULL) {
     /* A static variable of an extern inline function initialized
        to a constant.  Rewrite the initialization as executable code
        because we want the variable to be a tentative definition

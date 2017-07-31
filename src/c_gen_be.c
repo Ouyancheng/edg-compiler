@@ -8268,9 +8268,7 @@ parameters.
   a_storage_class
                  storage_class = variable->storage_class;
   a_boolean      forced_referenced;
-#if IA64_ABI
   a_boolean      force_zeroing_of_comdat_variable = FALSE;
-#endif /* IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_boolean      part_of_current_output_file = TRUE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -8414,7 +8412,6 @@ parameters.
            (and it's not a named register storage class). */
         dump_storage_class(storage_class);
       }  /* if */
-#if IA64_ABI
       if (variable->comdat_group != NULL
 #if ONE_INSTANTIATION_PER_OBJECT
           && part_of_current_output_file
@@ -8447,7 +8444,6 @@ parameters.
           force_zeroing_of_comdat_variable = TRUE;
         }  /* if */
       } /* if */
-#endif /* IA64_ABI */
 #if SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C
       if (sun_is_generated_code_target) {
         /* Sun-specific "link scope specifiers" (__global, __symbol, or
@@ -8537,9 +8533,7 @@ parameters.
          for template static data members that are arrays, or otherwise
          the template prelinker could loop. */
       if ((dump_initializers && init_con != NULL) ||
-#if IA64_ABI
            force_zeroing_of_comdat_variable ||
-#endif /* IA64_ABI */
           (init_kind == (an_init_kind)initk_zero &&
            (!var_has_static_or_thread_storage_duration(variable) ||
             !is_array_type(variable->type) ||

@@ -1231,12 +1231,10 @@ debug builds) don't recognize that these variables are mutually-exclusive.
         }  /* if */
         walk_ptr(eptr->aliased_variable, a_variable_ptr, iek_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if DO_IL_LOWERING && IA64_ABI
+#if DO_IL_LOWERING
         /* This has to be iek_id_name because the name is copied from
            a variable name originally. */
         walk_string_ptr(eptr->comdat_group, iek_id_name, 0);
-#endif /* DO_IL_LOWERING && IA64_ABI */
-#if DO_IL_LOWERING
         remap_ptr(eptr->vla_element_count_variable, a_variable_ptr,
                   iek_variable);
 #endif /* DO_IL_LOWERING */

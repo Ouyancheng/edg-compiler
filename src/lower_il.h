@@ -968,14 +968,14 @@ extern an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
 extern an_expr_node_ptr make_vbptr_field_lvalue_from_var(a_variable_ptr   var,
                                                          a_base_class_ptr bcp);
 #else /* IA64_ABI */
-extern void put_variable_into_comdat_group(a_variable_ptr variable);
-
 extern void put_routine_into_comdat_group(a_routine_ptr routine);
 
 extern a_virtual_table_index num_negative_vtable_entries(
                                                    a_type_ptr       class_type,
                                                    a_base_class_ptr bcp);
 #endif /* !IA64_ABI */
+
+extern void put_variable_into_comdat_group(a_variable_ptr variable);
 
 extern an_expr_node_ptr make_vptr_field_lvalue(an_expr_node_ptr node);
 

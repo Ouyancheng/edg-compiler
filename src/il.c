@@ -25361,9 +25361,9 @@ includes removing any initialization.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
-#if IA64_ABI && DO_IL_LOWERING
+#if DO_IL_LOWERING
     variable->comdat_group = NULL;
-#endif /* IA64_ABI && DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
   }  /* if */
   if (!variable->is_specialized) {
     switch_canonical_for_deleted_definition(&variable->source_corresp);
