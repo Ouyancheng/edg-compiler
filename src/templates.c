@@ -32734,7 +32734,7 @@ the body should be emitted by the back end.
 static a_boolean inline_variable_should_be_emitted(
 					a_variable_ptr	var)
 /*
-Return TRUE if the variable specified by "var" should have its body
+Return TRUE if the variable specified by "var" should have its definition
 emitted in this translation unit.
 */
 {
