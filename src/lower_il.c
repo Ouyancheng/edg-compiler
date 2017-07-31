@@ -5491,19 +5491,6 @@ construction virtual function table.
 
 #endif /* IA64_ABI */
 
-void put_variable_into_comdat_group(a_variable_ptr  var)
-/*
-Put the specified variable into a COMDAT group with the same name as the
-variable's mangled name.
-*/
-{
-  check_assertion((var->source_corresp.name_has_been_mangled &&
-                   var->storage_class == (a_storage_class)sc_unspecified) ||
-                   var->is_inline);
-  var->comdat_group = var->source_corresp.name;
-} /* put_variable_into_comdat_group */
-
-
 static void make_construction_vtbl(
                        a_type_ptr                      class_type,
                        a_base_class_ptr                ctor_bcp,
@@ -9475,6 +9462,19 @@ local-variable-static-init entry.
       unexpected_condition_str("lower_initializer: bad kind");
   }  /* switch */
 }  /* lower_initializer */
+
+
+void put_variable_into_comdat_group(a_variable_ptr  var)
+/*
+Put the specified variable into a COMDAT group with the same name as the
+variable's mangled name.
+*/
+{
+  check_assertion((var->source_corresp.name_has_been_mangled &&
+                   var->storage_class == (a_storage_class)sc_unspecified) ||
+                   var->is_inline);
+  var->comdat_group = var->source_corresp.name;
+} /* put_variable_into_comdat_group */
 
 
 static void lower_variable(a_variable_ptr variable)
