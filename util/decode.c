@@ -542,12 +542,12 @@ calling convention specified by "code".
   a_const_char *result = NULL;
 
   switch (code) {
-    case 'c': result = " __cdecl";      break;
-    case 'f': result = " __fastcall";   break;
-    case 's': result = " __stdcall";    break;
-    case 't': result = " __thiscall";   break;
-    case 'v': result = " __vectorcall"; break;
-    case 'r': result = " __clrcall";    break;
+    case 'c': result = " __cdecl ";      break;
+    case 'f': result = " __fastcall ";   break;
+    case 's': result = " __stdcall ";    break;
+    case 't': result = " __thiscall ";   break;
+    case 'v': result = " __vectorcall "; break;
+    case 'r': result = " __clrcall ";    break;
     default:
       bad_mangled_name(dctl);
       break;
@@ -2989,7 +2989,7 @@ convention.
 {
   *call_conv = NULL;
   if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'C')) {
-    *call_conv = calling_convention(get_char(p+3, dctl), dctl);
+    *call_conv = calling_convention(get_char(p+2, dctl), dctl);
     p += 3;
   }  /* if */
   return p;
