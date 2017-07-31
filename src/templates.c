@@ -34643,7 +34643,7 @@ must not already be on that list.
   var->on_inline_variable_list = TRUE;
   if (in_instantiation_wrapup) {
     /* Set a flag if this entry was added during instantiation wrapup.
-       The addition of inline functions could cause additional instantiations
+       The addition of inline variables could cause additional instantiations
        to be done. */
     additional_instantiation_wrapup_processing_needed();
   }  /* if */
