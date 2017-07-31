@@ -32820,7 +32820,7 @@ the body should be emitted by the back end.
 
 static void inline_entity_wrapup(void)
 /*
-Determine which extern inline entities should have bodies emitted in the
+Determine which extern inline entities should have definitions emitted in the
 current translation unit.  This routine is used when extern inline entities
 are instantiated using a mechanism like the template instantiation mechanism.
 */
