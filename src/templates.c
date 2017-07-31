@@ -32993,7 +32993,7 @@ static void create_instantiation_flags_for_inline_function(
 /*
 Create instantiation flags for the inline function specified by rout_ptr.
 This is used when the template instantiation mechanism is used to provide
-a body (if needed) for extern inline entities.
+a definition (if needed) for extern inline entities.
 */
 {
   if (instantiation_flags_needed()) {
