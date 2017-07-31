@@ -32810,8 +32810,6 @@ the body should be emitted by the back end.
   var->suppress_inline_definition = !emit_variable;
   if (emit_variable) {
     var->source_corresp.referenced = TRUE;
-    /* FIXME: Should this be set elsewhere? */
-    var->storage_class = (a_storage_class)sc_unspecified;
 #if MAINTAIN_NEEDED_FLAGS
     mark_as_needed((char*)var, (an_il_entry_kind)iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
