@@ -34628,7 +34628,7 @@ The routine must not already be on that list.
 void add_to_inline_variable_list(a_variable_ptr	var)
 /*
 var points to an inline variable, generally one that is about to be defined.
-Add the routine to an "instantiation list" of inline variables.  The variable
+Add the variable to an "instantiation list" of inline variables.  The variable
 must not already be on that list.
 */
 {
