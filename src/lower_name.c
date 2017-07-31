@@ -348,21 +348,6 @@ differs (see the IA-64 ABI spec for details).
 
 #endif /* IA64_ABI */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-/* EDG-specific manglings for Microsoft calling conventions. */
-#if IA64_ABI
-#define MANGLING_STRING_FOR_CALL_CONV_PREFIX "_C"
-#else /* !IA64_ABI */
-#define MANGLING_STRING_FOR_CALL_CONV_PREFIX "_C"
-#endif /* IA64_ABI */
-#define MANGLING_CODE_FOR_CDECL_CALL_CONV 'c'
-#define MANGLING_CODE_FOR_FASTCALL_CALL_CONV 'f'
-#define MANGLING_CODE_FOR_STDCALL_CALL_CONV 's'
-#define MANGLING_CODE_FOR_THISCALL_CALL_CONV 't'
-#define MANGLING_CODE_FOR_VECTORCALL_CALL_CONV 'v'
-#define MANGLING_CODE_FOR_CLRCALL_CALL_CONV 'r'
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-
 /*
 Utility that returns TRUE if the variable is a structured binding container
 that requires a mangled name.
@@ -2140,53 +2125,6 @@ type.
   }  /* if */
 }  /* mangled_encoding_for_ref_qualifier */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-
-static void mangled_encoding_for_calling_convention(
-                                                a_type_ptr               type,
-                                                a_mangling_control_block *mctl)
-/*
-Add an EDG-specific mangling for the calling convention of a function type.
-*/
-{
-#if ABI_COMPATIBILITY_VERSION >= 414
-  char code = '\0';
-
-  check_assertion(type->kind == (a_type_kind)tk_routine);
-  switch (type->variant.routine.extra_info->calling_convention) {
-    case cc_default:
-      break;
-    case cc_cdecl:
-      code = MANGLING_CODE_FOR_CDECL_CALL_CONV;
-      break;
-    case cc_fastcall:
-      code = MANGLING_CODE_FOR_FASTCALL_CALL_CONV;
-      break;
-    case cc_stdcall:
-      code = MANGLING_CODE_FOR_STDCALL_CALL_CONV;
-      break;
-    case cc_thiscall:
-      code = MANGLING_CODE_FOR_THISCALL_CALL_CONV;
-      break;
-    case cc_vectorcall:
-      code = MANGLING_CODE_FOR_VECTORCALL_CALL_CONV;
-      break;
-    case cc_clrcall:
-      code = MANGLING_CODE_FOR_CLRCALL_CALL_CONV;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  if (code != '\0') {
-    /* Add an ABI-specific prefix to indicate a calling convention is
-       present. */
-    add_str_to_mangled_name(MANGLING_STRING_FOR_CALL_CONV_PREFIX, mctl);
-    add_to_mangled_name(code, mctl);
-  }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 414 */
-}  /* mangled_encoding_for_calling_convention */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- do_markers is unused in that case. */
@@ -2232,10 +2170,6 @@ must not have been lowered (lowering can modify the parameters or return type).
          function. */
       add_to_mangled_name(MANGLING_CODE_FOR_EXTERN_C, mctl);
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-    /* Add a vendor-specific mangling for a calling convention (if any). */
-    mangled_encoding_for_calling_convention(type, mctl);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   }  /* if */
 #if IA64_ABI
   if (do_return_type) {
