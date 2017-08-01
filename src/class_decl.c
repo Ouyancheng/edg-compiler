@@ -16299,6 +16299,10 @@ template declaration and is NULL otherwise.
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     complete_type_is_needed(member_type);
     var->is_constexpr = TRUE;
+    if (inline_variables_allowed) {
+      /* constexpr static data members are implicitly inline. */
+      var->is_inline = TRUE;
+    }  /* if */
   }  /* if */
   if (decl_state->decltype_auto_specifier_seen) {
     var->declared_with_decltype_auto = TRUE;
