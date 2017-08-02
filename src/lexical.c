@@ -1075,6 +1075,8 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
 				IDL_USE_PROTOTYPE_NOT_NONREAL,
   /* ilm_template_tag */	IDL_MUST_BE_TAG | IDL_TREAT_AS_TEMPLATE_ID |
 				IDL_USE_PROTOTYPE_NOT_NONREAL,
+  /* ilm_template_template_arg */
+				IDL_TREAT_AS_TEMPLATE_ID,
   /* ilm_last */		IDL_NO_OPTIONS
 };
 
@@ -15883,6 +15885,7 @@ it is used.
   a_boolean				any_errors = FALSE;
   a_template_symbol_supplement_ptr	tssp;
   an_identifier_options_set		options;
+  an_identifier_lookup_mode		ilm = ilm_normal;
 
 
   options = GID_TEMPLATE_ARGS_OPTIONAL;
@@ -15891,12 +15894,12 @@ it is used.
        template.  Normally the "template" keyword there is only used to
        disambiguate a "<" following an identifier. */
     options |= GID_CLASS_TEMPLATE_REQUIRED;
+    ilm = ilm_template_template_arg;
   }  /* if */
   /* Microsoft allows a stray "typename" in this location. */
   if (microsoft_mode && curr_token == tok_typename) (void)get_token();
   if (is_generalized_identifier_start(options)) {
-    sym = coalesce_and_lookup_generalized_identifier(options, ilm_normal,
-                                                     &err);
+    sym = coalesce_and_lookup_generalized_identifier(options, ilm, &err);
     /* C++11 allows an injected class name to be used as a template template
        argument (core issue 1004).  This is also allowed in g++ mode. If the
        symbol found is an injected template symbol, replace it with the

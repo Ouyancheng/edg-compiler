@@ -1,5 +1,24 @@
 Version 4.14
 
+8/2/17   [EDGcpfe/18098]
+Microsoft compatibility: missing "template" keyword in template template arg.
+
+The Microsoft compiler allows a dependent name used as a template template
+argument to omit the "template" keyword.  We now emulate this behavior
+in Microsoft mode.
+
+  template <template <class> class T> struct A {
+    static const int value = 1;
+  };
+  template <class T, class U> struct D {};
+  template <class T> struct B {
+    template <class U> using type = D<T,U>;
+  };
+  template <class T> struct C {
+    static const int i = A<B<T>:: /*template */ type>::value;
+  };
+
+
 8/2/17   [EDGcpfe/18394]
 Microsoft compatibility: redeclaration of class template via using-declaration
 

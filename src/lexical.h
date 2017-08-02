@@ -239,6 +239,8 @@ typedef enum /* an_identifier_lookup_mode */ {
 			   nonreal members as templates. */
   ilm_template_tag,	/* Uses find tag names and find members of the
 			   prototype instantiation, not nonreal members. */
+  ilm_template_template_arg,
+			/* Uses IDL_TREAT_AS_TEMPLATE_ID. */
   ilm_last
 } an_identifier_lookup_mode;
 
