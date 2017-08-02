@@ -18908,9 +18908,10 @@ definition.  Return TRUE if an error was detected.
          enclosing namespace. */
     } else if (decl_state->is_template_friend) {
       /* A scope mismatch is okay in a friend declaration. */
-    } else if (gpp_mode && is_class_template_symbol(sym)) {
-      /* g++ allows a template to be redeclared in another scope (e.g., via a
-         using-declaration). */
+    } else if ((gpp_mode || (microsoft_mode && ms_permissive)) &&
+               is_class_template_symbol(sym)) {
+      /* g++ and Microsoft allow a template to be redeclared in another
+         scope (e.g., via a using-declaration). */
     } else if (sym->is_error) {
       /* Some other error occurred. */
     } else if ((ms_extensions || gpp_mode) &&

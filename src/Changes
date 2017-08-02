@@ -1,5 +1,19 @@
 Version 4.14
 
+8/2/17   [EDGcpfe/18394]
+Microsoft compatibility: redeclaration of class template via using-declaration
+
+In Microsoft (permissive) mode, a class template made visible via a
+using-declaration can now be redeclared or defined in the scope containing
+the using-declaration.
+
+  namespace N {
+   template <class T> struct A {};
+  }
+  using N::A;
+  template <class T> struct A;
+
+
 7/28/17  [EDGcpfe/18620]
 Default value of DEFAULT_MAX_DEPTH_CONSTEXPR_CALL
 
