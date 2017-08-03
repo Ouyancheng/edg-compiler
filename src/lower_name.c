@@ -46,6 +46,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_ATOMIC "U7_Atomic"
 #define MANGLING_CODE_FOR_ELLIPSIS 'z'
 #define MANGLING_CODE_FOR_EXTERN_C 'Y'
+#define MANGLING_STRING_FOR_NOEXCEPT "Do"
+#define MANGLING_STRING_FOR_NOEXCEPT_EXPR "DO"
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
 #define MANGLING_STRING_FOR_CHAR16_T "Ds"
@@ -201,6 +203,8 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_ATOMIC "DA"
 #define MANGLING_CODE_FOR_ELLIPSIS 'e'
 #define MANGLING_CODE_FOR_EXTERN_C 'K'
+#define MANGLING_STRING_FOR_NOEXCEPT "Do"
+#define MANGLING_STRING_FOR_NOEXCEPT_EXPR "DO"
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
 #define MANGLING_STRING_FOR_CHAR16_T "g"
@@ -2246,6 +2250,46 @@ function type and FALSE otherwise).
     }  /* if */
   }  /* if */
 }  /* mangled_encoding_for_function_qualifiers */
+
+
+static void mangled_encoding_for_exception_specification(
+                                      a_type_ptr               type,
+                                      a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the exception specification (if any)
+on the function or member function type "type".
+*/
+{
+  an_exception_specification_ptr  esp = type->variant.routine.extra_info
+                                            ->exception_specification;
+
+  if (esp == NULL) {
+    /* Nothing to mangle. */
+  } else if (esp->is_noexcept &&
+             esp->variant.noexcept_arg != NULL &&
+             constant_is(esp->variant.noexcept_arg, ck_template_param)) {
+    check_assertion(!esp->arg_cached && !esp->indeterminate);
+    add_str_to_mangled_name(MANGLING_STRING_FOR_NOEXCEPT_EXPR, mctl);
+#if !IA64_ABI
+      /* Constant argument.  The encoding for the constant begins with
+         an "X". */
+      add_to_mangled_name('X', mctl);
+#endif /* !IA64_ABI */
+      mangled_encoding_for_constant(esp->variant.noexcept_arg,
+                                    /*old_form=*/FALSE,
+                                    /*in_dependent_expr=*/FALSE,
+                                    /*suppress_address_of=*/FALSE,
+                                    mctl);
+#if IA64_ABI
+      add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+  } else if (esp->throw_any) {
+  } else if (is_nothrow_spec(esp)) {
+    add_str_to_mangled_name(MANGLING_STRING_FOR_NOEXCEPT, mctl);
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* mangled_encoding_for_exception_specification */
 
 #if !IA64_ABI
 
@@ -9749,6 +9793,11 @@ top_of_loop:
         mangled_encoding_for_function_qualifiers(type,
                                                  /*is_class_member=*/FALSE,
                                                  mctl);
+        if (exc_spec_in_func_type) {
+          /* In some modes (as per the C++17 standard), the exception
+             specification must be encoded. */
+          mangled_encoding_for_exception_specification(type, mctl);
+        }  /* if */
         /* Function.  Put out "F" and the argument types. */
         mangled_encoding_for_function_type(type,
                                            /*do_return_type=*/TRUE,

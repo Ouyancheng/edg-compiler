@@ -320,6 +320,7 @@ typedef enum /*an_option_kind*/ {
   optk_cpp17_mode,
   optk_utf8_char_literals,
   optk_stricter_template_checking,
+  optk_exc_spec_in_func_type,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -518,6 +519,15 @@ EXTERN a_boolean
 			   (i.e., operator delete and operator delete[]) have
 			   implicit noexcept specifications if no explicit
 			   exception specification is provided. */
+
+EXTERN a_boolean
+		exc_spec_in_func_type;
+			/* TRUE if function types should formally include
+			   exception specifications.  The IL representation
+			   of function types always includes exception
+			   specifications, but C++17 included them
+			   semantically.  This flag is TRUE if the C++17
+			   semantics should be implemented. */
 
 EXTERN a_boolean
 		ref_qualifiers_enabled;

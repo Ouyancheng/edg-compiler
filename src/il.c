@@ -1188,6 +1188,31 @@ including the associated block size.
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+static void db_exception_spec(an_exception_specification_ptr  esp)
+/*
+Dump the given exception specification (which may be NULL), for debug purposes.
+*/
+{
+  if (esp == NULL || esp->throw_any) {
+    if (exceptions_enabled) fputs("throws any", f_debug);
+  } else if (esp->is_noexcept) {
+    fputs("noexcept", f_debug);
+  } else if (esp->variant.exception_specification_type_list == NULL) {
+    fputs("throws none", f_debug);
+  } else {
+    an_exception_specification_type_ptr  estp;
+    estp = esp->variant.exception_specification_type_list;
+    fputs("throws (", f_debug);
+    db_abbreviated_type(estp->type);
+    for (estp = estp->next; estp != NULL; estp = estp->next) {
+      fputs(", ", f_debug);
+      db_abbreviated_type(estp->type);
+    }  /* for */
+    fputs(")", f_debug);
+  }  /* if */
+}  /* db_exception_spec */
+
+
 void db_type(a_type *tp)
 /*
 Dump the contents of the indicated type entry, for debug purposes.
@@ -1543,6 +1568,11 @@ Dump the contents of the indicated type entry, for debug purposes.
         db_qualifiers(rtsp->qualifiers | rtsp->this_qualifiers);
         fputs("returning ", f_debug);
         db_abbreviated_type(tp->variant.routine.return_type);
+        if (exc_spec_in_func_type) {
+          fputs(" ", f_debug);
+          db_exception_spec(tp->variant.routine.extra_info
+                              ->exception_specification);
+        }  /* if */
         break;
       case tk_typeref:
         if (typeref_is_qualified(tp)) {

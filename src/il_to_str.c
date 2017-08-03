@@ -2579,6 +2579,42 @@ end_of_routine:;
 }  /* form_type_first_part */
 
 
+void form_exception_specification(a_type_ptr                            type,
+                                  an_il_to_str_output_control_block_ptr octl)
+/*
+Output the exception specification (as can appear after a function declarator),
+if any, recorded in the given routine type in the way described by octl.
+*/
+{
+  an_exception_specification_ptr  esp;
+
+  esp = type->variant.routine.extra_info->exception_specification;
+  if (esp == NULL || esp->throw_any) {
+    /* Nothing to output. */
+  } else if (esp->is_noexcept) {
+    octl->output_str(" noexcept", octl);
+    if (esp->arg_cached) {
+      octl->output_str("(<expr>)", octl);
+    } else if (esp->variant.noexcept_arg != NULL) {
+      octl->output_str("(", octl);
+      form_constant(esp->variant.noexcept_arg, /*need_parens=*/FALSE, octl);
+      octl->output_str(")", octl);
+    }  /* if */
+  } else {
+    an_exception_specification_type_ptr  estp;
+    estp = esp->variant.exception_specification_type_list;
+    octl->output_str(" throw(", octl);
+    for (; estp != NULL; estp = estp->next) {
+      form_type(estp->type, octl);
+      if (estp->next != NULL) {
+        octl->output_str(", ", octl);
+      }  /* if */
+    }  /* for */
+    octl->output_str(")", octl);
+  }  /* if */
+}  /* form_exception_specification */
+
+
 void form_function_declarator(a_type_ptr                            type,
                               an_il_to_str_output_control_block_ptr octl)
 /*
@@ -2697,6 +2733,9 @@ in the way described by octl.
         !octl->c_generating_back_end) {
       octl->output_str("->", octl);
       form_type(type->variant.routine.return_type, octl);
+    }  /* if */
+    if (!octl->gen_compilable_code && exc_spec_in_func_type) {
+      form_exception_specification(type, octl);
     }  /* if */
   }  /* if */
 }  /* form_function_declarator */

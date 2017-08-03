@@ -10486,6 +10486,91 @@ of types after all of the function arguments have been processed.
   return match;
 }  /* matches_template_array_bound */
 
+#if /*FIXME*/0
+
+a_boolean matches_noexcept_operand(a_type_ptr           type,
+                                   a_constant_ptr       t_type,
+                                   a_template_arg_ptr   *templ_arg_list,
+                                   a_template_param_ptr templ_param_list)
+/*
+A nontype template parameter is potentially being deduced from a noexcept
+specifier.  For example:
+
+	template<bool B> void f(int (*)() noexcept(B));
+
+This is currently nonstandard, but accepted by GCC and Clang, and the omission
+in the standard is perhaps accidental.
+
+See also matches_template_array_bound for related issues
+*/
+{
+  a_boolean  match = FALSE;
+  an_exception_specification_ptr
+             esp, t_esp;
+
+  esp = type->variant.routine.extra_info->exception_specification;
+  t_esp = t_type->variant.routine.extra_info->exception_specification;
+  if (t_esp == NULL || !t_esp->is_noexcept ||
+      t_esp->variant.noexcept_arg == NULL) {
+    /* Assume a match, although we cannot always tell at this point. */
+    match = TRUE;
+  } else {
+    a_constant_ptr  t_cp = t_esp->variant.noexcept_arg;
+    if (!is_deducible_constant_param(&t_cp, /*remove_impl_cast=*/TRUE)) {
+      /* A nondeduced context.  Assume a match for now. */
+      match = TRUE;
+    } else {
+      a_template_arg_ptr  tap;
+      a_template_param_coordinate_ptr
+                        coordinates;
+      coordinates = &t_cp->variant.template_param.variant.coordinates;
+      tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
+                                         coordinates, /*is_rescan=*/FALSE);
+      /* Now we have the nth template argument, which should correspond to
+         the nth template parameter, whose constant is t_cp. */
+      if (tap->variant.constant == NULL) {
+        /* No value has yet been deduced. */
+        if (is_integral_type(templ_constant->type)) {
+          /* If the type of the parameter is an integral type, use it as the
+             type of the constant. */
+          a_constant_ptr  constant;
+          a_type_ptr      constant_type = t_cp->type;
+          constant = fs_constant((a_constant_repr_kind)ck_integer);
+          set_unsigned_integer_constant(
+                     constant, (a_host_large_unsigned)elements,
+                     skip_typerefs(constant_type)->variant.integer.int_kind);
+          tap->variant.constant = constant;
+          tap->is_array_bound_of_unknown_type = FALSE;
+          match = TRUE;
+        } else if (!tap->is_array_bound_of_unknown_type) {
+          /* No value has been deduced yet, and the parameter type is not
+             integral (probably a template parameter type).  Use this as
+             the value and consider it a match. */
+          tap->variant.integer_value = elements;
+          match = TRUE;
+          tap->is_array_bound_of_unknown_type = TRUE;
+        } else {
+          /* A previous array bound has been seen.  Make sure the values
+             match. */
+          match = tap->variant.integer_value == cp;
+        }  /* if */
+      } else {
+        /* A constant value has already been deduced for this argument. */
+        a_constant_ptr  prev_cp = tap->variant.constant;
+        check_assertion(prev_cp != NULL);
+        if (is_integral_type(prev_cp->type)) {
+          /* A noexcept operand can only match an integral value.  We have
+             a match if the operands are both true or both false. */
+          match = cmpulit_integer_constant(prev_cp,
+                                           (a_host_large_unsigned)cp) == 0;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* matches_noexcept_operand */
+
+#endif
 
 static a_boolean is_deducible_template_arg_list(
 				a_template_arg_ptr	templ_tap)
@@ -11375,10 +11460,14 @@ points to the template parameter list.
                                     new_flags) &&
               (type->variant.routine.extra_info->has_ellipsis ==
                   templ_type->variant.routine.extra_info->has_ellipsis)) {
-            a_pack_expansion_stack_entry_ptr	pesep = NULL;
+            a_routine_type_supplement_ptr
+                    rtsp = type->variant.routine.extra_info,
+                    trtsp = templ_type->variant.routine.extra_info;
+            a_pack_expansion_stack_entry_ptr
+                    pesep = NULL;
             /* Return type and ellipsis are okay.  Check the param types. */
-            ptp = type->variant.routine.extra_info->param_type_list;
-            tptp = templ_type->variant.routine.extra_info->param_type_list;
+            ptp = rtsp->param_type_list;
+            tptp = trtsp->param_type_list;
             for (;;) {
               if (ptp == NULL || tptp == NULL) {
                 /* One or both of the param type lists is exhausted.  It's a
@@ -11457,8 +11546,8 @@ points to the template parameter list.
                  this classes, if present, match. */
               a_type_ptr	this_class;
               a_type_ptr	templ_this_class;
-              tp =  type->variant.routine.extra_info->this_class;
-              ttp =  templ_type->variant.routine.extra_info->this_class;
+              tp =  rtsp->this_class;
+              ttp =  trtsp->this_class;
               this_class = tp;
               templ_this_class = ttp;
               if (tp == NULL || ttp == NULL) {
@@ -11466,8 +11555,7 @@ points to the template parameter list.
                    this class.  This is okay if they are both NULL. 
                    It is also okay if the type has no this class type,
                    and the unknown this class type flag was passed in. */
-                if (type->variant.routine.extra_info->qualifiers !=
-                    templ_type->variant.routine.extra_info->qualifiers) {
+                if (rtsp->qualifiers != trtsp->qualifiers) {
                   /* The qualifiers don't match.  Don't check further. */
                   match = FALSE;
                 } else if (tp == ttp) {
@@ -11489,7 +11577,7 @@ points to the template parameter list.
                    types match.  Construct an implicit this type so that
                    the qualifiers will be processed too. */
                 if (microsoft_mode && microsoft_version < 1700 &&
-                    type->variant.routine.extra_info->qualifiers == TQ_NONE) {
+                    rtsp->qualifiers == TQ_NONE) {
                   /* The Microsoft compiler does not compare the qualifiers
                      if the type has no qualifiers.  This quirk was fixed
                      in more recent versions. */
@@ -11502,8 +11590,7 @@ points to the template parameter list.
                      a requirement that the types match at this point.
                      So if the template type is not dependent, consider this
                      a match at this point if the qualifiers match. */
-                  match = type->variant.routine.extra_info->qualifiers ==
-                          templ_type->variant.routine.extra_info->qualifiers;
+                  match = rtsp->qualifiers == trtsp->qualifiers;
                 } else {
                   match = matches_template_type(tp, ttp, templ_arg_list,
                                                 templ_param_list,
@@ -11524,6 +11611,16 @@ points to the template parameter list.
                           ((flags & MTT_REVERSE_BASE_DERIVED_THIS_TEST) != 0 &&
                            find_base_class_of(templ_this_class,
                                               this_class) != NULL);
+                }  /* if */
+              }  /* if */
+              if (match && exc_spec_in_func_type) {
+                /* Check the exception specification. */
+                if (type_has_less_restrictive_exception_spec(type,
+                                                             templ_type)
+                    /* FIXME ||
+                    !matches_noexcept_operand(type, templ_type, templ_arg_list,
+                                              templ_param_list) */) {
+                  match = FALSE;
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -12813,6 +12910,92 @@ the appropriate error checks.  Return the (possibly) substituted type.
 }  /* copy_return_type_with_substitution */
 
 
+static a_boolean is_instantiation_dependent_exc_spec(
+                                          an_exception_specification_ptr  esp)
+/*
+Return TRUE if the given exception specification (non-NULL) is
+instantiation-dependent.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(!esp->arg_cached);
+  if (esp->is_noexcept) {
+    a_constant_ptr  cp = esp->variant.noexcept_arg;
+    if (cp != NULL && constant_is(cp, ck_template_param)) {
+      result = TRUE;
+    }  /* if */
+  } else {
+    an_exception_specification_type_ptr  estp;
+    estp = esp->variant.exception_specification_type_list;
+    for (; estp != NULL; estp = estp->next) {
+      if (is_instantiation_dependent_type_or_cli_generic_param(estp->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_instantiation_dependent_exc_spec */
+
+
+static
+an_exception_specification_ptr copy_exception_specification_with_substitution(
+                        an_exception_specification_ptr  esp,
+                        a_template_arg_ptr              templ_arg_list,
+                        a_template_param_ptr            templ_param_list,
+                        a_source_position               *source_pos,
+                        a_ctws_options_set              options,
+                        a_boolean                       *copy_error,
+                        a_ctws_state_ptr                ctws_state)
+/*
+Copy the given exception specification substituting template parameters as
+needed.  This can only be called in modes with exc_spec_in_func_type == TRUE,
+which excludes dynamic exception specifications.
+*/
+{
+  an_exception_specification_ptr  new_esp;
+
+  new_esp = alloc_exception_specification();
+  check_assertion(!esp->arg_cached);
+  if (esp->indeterminate) {
+    new_esp->indeterminate = TRUE;
+  }  /* if */
+  if (esp->throw_any) {
+    new_esp->throw_any = TRUE;
+  }  /* if */
+  if (esp->compiler_generated) {
+    new_esp->compiler_generated = TRUE;
+  }  /* if */
+  if (esp->is_noexcept) {
+    a_constant_ptr  cp = esp->variant.noexcept_arg;
+    new_esp->is_noexcept = TRUE;
+    if (cp != NULL) {
+      /* Note that we keep the original constant even if it is dependent.
+         This is needed for correct mangling. */
+      new_esp->variant.noexcept_arg = cp;
+      if (constant_is(cp, ck_template_param)) {
+        cp = copy_template_param_con_with_substitution(
+                       cp, templ_arg_list, templ_param_list, (a_type_ptr)NULL,
+                       source_pos, options, copy_error, ctws_state);
+        if (!constant_is(cp, ck_template_param) && !is_false_constant(cp)) {
+          /* The instantiation produced a true value. */
+          new_esp->throw_any = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* This could be "throw()" or "throw(...)", but not a dynamic exception
+       specification. */
+    check_assertion(esp->variant.exception_specification_type_list == NULL);
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  new_esp->source_range = esp->source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return new_esp;
+}  /* copy_exception_specification_with_substitution */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -12856,7 +13039,7 @@ a pointer over a reference type or creating an array of references.
   a_variadic_param_info_ptr	saved_vpip_tail;
   a_type_ptr			orig_type = type;
   a_type_ptr			adjusted_orig_type = NULL;
-  a_routine_type_supplement_ptr	rtsp;
+  a_routine_type_supplement_ptr	rtsp, new_rtsp;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -13202,9 +13385,7 @@ a pointer over a reference type or creating an array of references.
           goto make_new_type;
         }  /* if */
         /* Now examine each of the parameters. */
-        for (ptp = type->variant.routine.extra_info->param_type_list;
-             ptp != NULL;
-             ptp = ptp->next) {
+        for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
           a_type_ptr ptype;
           if (ptp->pack_expansion_descr != NULL) {
             /* A function parameter pack.  A new type is needed.
@@ -13238,6 +13419,12 @@ a pointer over a reference type or creating an array of references.
              list. */
           goto make_new_type;
         }  /* if */
+        if (exc_spec_in_func_type) {
+          an_exception_specification_ptr  esp = rtsp->exception_specification;
+          if (esp != NULL && is_instantiation_dependent_exc_spec(esp)) {
+            goto make_new_type;
+          }  /* if */
+        }  /* if */
 #if EXPENSIVE_CHECKING
         /* The return type is not substituted when doing partial ordering. */
         if (!is_partial_order_check && !rtsp->trailing_return_type) {
@@ -13270,19 +13457,17 @@ make_new_type:
            has already been done for the return type and possibly for some of
            the parameter types. */
         new_type = alloc_type((a_type_kind)tk_routine);
+        new_rtsp = new_type->variant.routine.extra_info;
         /* Clone the routine type supplement, except for the pointers. */
-        *(new_type->variant.routine.extra_info) =
-                                         *(type->variant.routine.extra_info);
-        new_type->variant.routine.extra_info->assoc_routine = NULL;
-        new_type->variant.routine.extra_info->this_class = new_this_class;
-        new_type->variant.routine.extra_info->prototype_scope = NULL;
-        new_type->variant.routine.extra_info->param_type_list = NULL;
+        *new_rtsp = *rtsp;
+        new_rtsp->assoc_routine = NULL;
+        new_rtsp->this_class = new_this_class;
+        new_rtsp->prototype_scope = NULL;
+        new_rtsp->param_type_list = NULL;
         /* Make copies of the entries on type's param types list, making the
            appropriate substitutions for template parameter type entries. */
         prev_ptp = NULL;
-        for (ptp = type->variant.routine.extra_info->param_type_list;
-             ptp != NULL;
-             ptp = ptp->next) {
+        for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
           a_pack_expansion_stack_entry_ptr	pesep;
           a_boolean				any_more;
           uint32_t				elements = 0;
@@ -13391,7 +13576,7 @@ make_new_type:
             }  /* if */
             /* Add the new param type entry to the param types list. */
             if (prev_ptp == NULL) {
-              new_type->variant.routine.extra_info->param_type_list = new_ptp;
+              new_rtsp->param_type_list = new_ptp;
             } else {
               prev_ptp->next = new_ptp;
             }  /* if */
@@ -13407,7 +13592,7 @@ make_new_type:
             *new_ptp = *ptp;
             /* Add the new param type entry to the param types list. */
             if (prev_ptp == NULL) {
-              new_type->variant.routine.extra_info->param_type_list = new_ptp;
+              new_rtsp->param_type_list = new_ptp;
             } else {
               prev_ptp->next = new_ptp;
             }  /* if */
@@ -13444,6 +13629,14 @@ make_new_type:
                                         ctws_state);
         }  /* if */
         new_type->variant.routine.return_type = new_return_type;
+        if (rtsp->exception_specification != NULL && exc_spec_in_func_type) {
+          new_rtsp->exception_specification =
+                               copy_exception_specification_with_substitution(
+                                             rtsp->exception_specification,
+                                             templ_arg_list, templ_param_list,
+                                             source_pos, options, copy_error,
+                                             ctws_state);
+        }  /* if */
         set_routine_calling_method_flag(new_type, &null_source_position);
         set_clrcall_convention_if_needed(new_type);
         /* Decrement the number of routine types whose substitution is in

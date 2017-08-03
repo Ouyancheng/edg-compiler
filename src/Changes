@@ -1,5 +1,37 @@
 Version 4.14
 
+8/3/17   [EDGcpfe/17685]
+C++17: Exception specifications as part of function types
+
+C++17 makes exception specifications part of the function type.  The front end
+now implements that behavior in strict C++17 more or when the new command-line
+option --exc_spec_in_func_type is specified (the strict C++17 behavior can
+also be overridden with --no_exc_spec_in_func_type).  For example:
+
+  void g1() noexcept;
+  void g2();
+  template<typename T> int f(T*, T*);
+  int x = f(g1, g2);    // Okay in C++14.  Now an error in strict C++17 mode.
+
+Here, the function type deduced for T is different for both parameters because
+exception specifications are now part of the type.
+
+C++17 also removes dynamic exception specifications.  In strict modes that
+make exception specifications part of the type, such dynamic exception
+specifications now elicit an error.  In nonstrict modes that make exception
+specifications part of the type, a warning is issued and the exception
+specification is ignored.  For example:
+
+  void e() throw(int);  // Now an error in strict C++17 mode.
+
+Making exception specifications part of function types affects the ABI.
+For example, the mangled name of
+
+  void h(void (*) noexcept);
+
+has to reflect the "noexcept".
+
+
 8/2/17   [EDGcpfe/18098]
 Microsoft compatibility: missing "template" keyword in template template arg.
 

@@ -1511,6 +1511,14 @@ Initialize the option information table.
                          "stricter_template_checking",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_exc_spec_in_func_type,
+                         "exc_spec_in_func_type",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_exc_spec_in_func_type,
+                         "no_exc_spec_in_func_type",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3366,6 +3374,10 @@ default mode (e.g., exception handling).
       capture_star_this_enabled = TRUE;
       fold_expressions_enabled = TRUE;
       inline_variables_allowed = TRUE;
+      if (strict_ansi_mode &&
+          !option_kind_used[(int)optk_exc_spec_in_func_type]) {
+        exc_spec_in_func_type = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -10244,6 +10256,9 @@ enable_microsoft_mode:
       case optk_stricter_template_checking:
         stricter_template_checking = TRUE;
         break;
+      case optk_exc_spec_in_func_type:
+        exc_spec_in_func_type = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -11140,6 +11155,7 @@ variables declared in cmd_line.h.
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;
+  exc_spec_in_func_type = FALSE;
   delegating_constructors_enabled = FALSE;
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;

@@ -6260,6 +6260,12 @@ check_typerefs:
                  together. */
               identical = (list1 == NULL && list2 == NULL);
             }  /* if */
+            if (identical && exc_spec_in_func_type &&
+                (type_has_less_restrictive_exception_spec(type_1, type_2) ||
+                 type_has_less_restrictive_exception_spec(type_2, type_1))) {
+              /* The exception specifications are different. */
+              identical = FALSE;
+            }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
             if (identical && (ms_extensions || gnu_mode) &&
                 !ignore_ms_calling_convention) {
@@ -6268,21 +6274,21 @@ check_typerefs:
               identical = calling_conventions_are_compatible(type_1, type_2);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-          }  /* if */
-          if (identical &&
-              (flags & ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED) != 0 &&
-              rtsp1->does_not_return != rtsp2->does_not_return) {
-            /* Routines differ in setting of do_not_return flag. */
-            identical = FALSE;
-          }  /* if */
+            if (identical &&
+                (flags & ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED) != 0 &&
+                rtsp1->does_not_return != rtsp2->does_not_return) {
+              /* Routines differ in setting of do_not_return flag. */
+              identical = FALSE;
+            }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-          if (gnu_mode && identical &&
-              type_1->alignment != type_2->alignment) {
-            /* The types have different alignment attributes, so the types are
-               different. */
-            identical = FALSE;
-          }  /* if */
+            if (gnu_mode && identical &&
+                type_1->alignment != type_2->alignment) {
+              /* The types have different alignment attributes, so the types
+                 are different. */
+              identical = FALSE;
+            }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+          }  /* if */
         }
         break;
       case tk_ptr_to_member:
@@ -6771,6 +6777,8 @@ This routine should generally not be called directly; it's meant to be called
 by the macros types_are_compatible, types_are_strictly_compatible, and
 types_are_compatible_ignoring_qualifiers, which do an initial test for exact
 pointer equality.
+If flags include the TCF_IMPLICIT_CONVERSION flag, type_1 is the source type
+and type_2 the destination type.
 */
 {
   a_boolean                     compat = FALSE;
@@ -7119,6 +7127,15 @@ check_typerefs:
                          allow_base_derived_this_match &&
                          find_base_class_of(rtsp1->this_class,
                                             rtsp2->this_class))))))) &&
+                /* If needed, check the exception specifications.  For
+                   implicit conversion checks, type_1 cannot be less
+                   restrictive than type_2, but the opposite is okay.  In
+                   all other cases, the specifications have to match. */
+                (!exc_spec_in_func_type ||
+                 (!type_has_less_restrictive_exception_spec(type_1, type_2) &&
+                   (is_impl_conv ||
+                    !type_has_less_restrictive_exception_spec(type_2,
+                                                              type_1)))) &&
                 (!check_enable_if_attr ||
                  !(rtsp1->has_enable_if_attribute ||
                    rtsp2->has_enable_if_attribute) ||
@@ -7759,9 +7776,10 @@ value of the expression they are equivalent.
         }  /* if */
       } else if (is_ptr_to_member(dest_type) &&
                  is_ptr_to_member(source_type)) {
-        if (f_types_are_compatible(pm_class_type(dest_type),
-                                   pm_class_type(source_type),
-                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+        if (f_types_are_compatible(pm_class_type(source_type),
+                                   pm_class_type(dest_type),
+                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                   TCF_IMPLICIT_CONVERSION)) {
           /* Continue at the next level for pointers to members. */
           dest_type = pm_member_type(dest_type);
           source_type = pm_member_type(source_type);
@@ -7788,7 +7806,8 @@ value of the expression they are equivalent.
         }  /* if */
       } else {
         /* For other types, the underlying types must be the same. */
-        same = types_are_compatible(dest_type, source_type);
+        same = types_are_compatible_for_impl_conversion(
+                                                      source_type, dest_type);
         break;
       }  /* if */
     }  /* if */
@@ -8320,8 +8339,12 @@ the __unaligned and __restrict qualifiers).
           same = TRUE;
         } else {
           /* For other types, the underlying types must be the same. */
-          same = types_are_compatible_ignoring_qualifiers(
-                                                      dest_type, source_type);
+          same = source_type == dest_type ||
+                 f_types_are_compatible(
+                                     source_type, dest_type,
+                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                     TCF_IMPLICIT_CONVERSION |
+                                     TCF_IGNORE_TYPE_QUALIFIERS);
         }  /* if */
         break;
       }  /* if */
@@ -8655,6 +8678,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            allowed by the source type must be allowed by the destination
            type; but that's not the case here, so return a flag. */
         std_conv->exception_spec_incompatibility = TRUE;
+        if (exc_spec_in_func_type) {
+          okay = FALSE;
+        }  /* if */
       }  /* if */
     } else if (is_error(unqual_dest_type_pointed_to) ||
                is_error(unqual_source_type_pointed_to)) {
@@ -12290,6 +12316,14 @@ the old list.  Only callable in C++ mode.  See ARM 13.
       /* Two member functions with the same name and parameter types must
          either both have ref-qualifiers or both lack ref-qualifiers. */
       *err_code = ec_same_param_types_with_and_without_ref_qualifiers;
+    } else if (exc_spec_in_func_type &&
+               (type_has_less_restrictive_exception_spec(old_type, new_type) ||
+                type_has_less_restrictive_exception_spec(new_type,
+                                                         old_type))) {
+      /* E.g.:
+              void f(); void f() noexcept();
+         in strict C++17 mode. */
+      *err_code = ec_same_param_types_with_different_exception_specifications;
     } else {
       /* The parameter types are compatible, so the only incompatibility
          remaining must have to do with the return types. */
@@ -12568,6 +12602,17 @@ based on the specified template parameter constant.
           }  /* if */
         }  /* if */
       }  /* for */
+    }  /* if */
+  } else if (type_ptr->kind == (a_type_kind)tk_routine &&
+             exc_spec_in_func_type) {
+    /* Check for something like "void f() noexcept(B)" where B is the template
+       parameter constant we are looking for. */
+    an_exception_specification_ptr  esp = type_ptr->variant.routine.extra_info
+                                                  ->exception_specification;
+    if (esp != NULL && esp->is_noexcept && !esp->arg_cached &&
+        esp->variant.noexcept_arg != NULL) {
+      found = constant_contains_template_param_constant(
+                                                   esp->variant.noexcept_arg);
     }  /* if */
   }  /* if */
   if (found) *force_end_of_traversal = TRUE;

@@ -1669,12 +1669,6 @@ actually declares a function, member function, or function template).
     feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
                                           ec_exceptions_in_embedded_cplusplus);
-    if (cpp11_mode && !is_noexcept) {
-      /* Dynamic exception specifications are deprecated in C++11.  Issue a
-         remark. */
-      pos_remark(ec_dynamic_exception_specifications_deprecated,
-                 &pos_curr_token);
-    }  /* if */
   } else if (!exception_spec_allowed) {
     /* This is a declaration on which an exception specification is not
        allowed. */
@@ -1822,14 +1816,36 @@ actually declares a function, member function, or function template).
       break;
     }  /* if */
   } while (loop_token(tok_comma));
+  if (esp != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_extensions && microsoft_version >= 1300 && esp != NULL) {
-    /* Some versions of Microsoft C++ treat any non-empty exception
-       specification as "throw (...)". */
-    esp->variant.exception_specification_type_list = NULL;
-    esp->throw_any = TRUE;
-  }  /* if */
+    if (ms_extensions && microsoft_version >= 1300 && esp != NULL) {
+      /* Some versions of Microsoft C++ treat any non-empty exception
+         specification as "throw (...)". */
+      esp->variant.exception_specification_type_list = NULL;
+      esp->throw_any = TRUE;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (esp->variant.exception_specification_type_list != NULL) {
+      /* A dynamic exception specification other than "throw()" or
+         Microsoft's "throw(...)".  C++11 deprecated them and C++17
+         removed them altogether because they do not interact well with
+         exception specifications becoming part of a function type. */
+      a_source_position  *pos = &func_info->throw_position;
+      if (exc_spec_in_func_type) {
+        static a_boolean  warning_issued = FALSE;
+        if (strict_ansi_mode) {
+          pos_error(ec_dynamic_exc_spec_not_permitted, pos);
+        } else if (!warning_issued) {
+          pos_warning(ec_dynamic_exc_spec_ignored, pos);
+          warning_issued = TRUE;
+        }  /* if */
+        esp = NULL;
+      } else if (!ignoring_exception_spec) {
+        pos_diagnostic(cpp14_mode ? es_warning : es_remark,
+                       ec_dynamic_exception_specifications_deprecated, pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
 finish_list:;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (esp != NULL) {
@@ -7373,41 +7389,50 @@ function_lparen:
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Pass in a flag to indicate whether exception specifications are
-         allowed.  They are allowed on a declaration of a function, a pointer
-         or reference to function, or a pointer to member function.  The
+         allowed.  C++17 made a change that allows them on all function
+         declarators (enabled when exc_spec_in_func_type is TRUE).  Otherwise,
+         they are allowed on a declaration of a function, a pointer or
+         reference to function, or a pointer to member function.  The
          declaration must be a top-level declaration, a parameter declaration,
          or a return type; it cannot be a typedef declaration.  That turns out
          to correspond to places where real declarators are allowed.  GNU and
          Microsoft compilers also allow exception specifications in other
          places (e.g., types in casts) and we also allow it as an extension
          in other nonstrict modes. */
-      disallow_exception_spec = TRUE;
-      if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
-          ((input_flags & DI_REAL_DECLARATOR_ALLOWED) || !strict_ansi_mode)) {
-        if (derived_type == NULL ||
-            type_is_derived_from_function_declarator(derived_type)) {
-          /* Top level function declaration, or return type of function
-             type. */
-          disallow_exception_spec = FALSE;
-        } else if (is_any_ptr_or_ref_type(derived_type)) {
-          /* If derived_type is a pointer or reference type that currently
-             points to NULL, this can be assumed to be a top-level pointer
-             or reference declaration, and an exception specification is
-             permitted:
-               void (*pf)() throw();    // Okay
-               void (**ppf)() throw();  // Error
-             (Handle and tracking-reference types cannot refer to function
-             types, but there is no need to produce an additional diagnostic
-             for the exception specification.) */
-          disallow_exception_spec = (type_pointed_to(derived_type) != NULL);
-        } else if (is_ptr_to_member_type(derived_type)) {
-          /* Similarly if derived_type is a pointer-to-member type whose
-             member pointer is NULL:
-               void (A::*pmf)() throw ();  // Okay
-               void (A::**ppmf)() throw(); // Error
-               void (* A::*pm)() throw();  // Error
-          */
-          disallow_exception_spec = (pm_member_type(derived_type) != NULL);
+      if (C_mode()) {
+        disallow_exception_spec = TRUE;
+      } else if (exc_spec_in_func_type) {
+        disallow_exception_spec = FALSE;
+      } else {
+        disallow_exception_spec = TRUE;
+        if (!(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
+            ((input_flags & DI_REAL_DECLARATOR_ALLOWED) ||
+             !strict_ansi_mode)) {
+          if (derived_type == NULL ||
+              type_is_derived_from_function_declarator(derived_type)) {
+            /* Top level function declaration, or return type of function
+               type. */
+            disallow_exception_spec = FALSE;
+          } else if (is_any_ptr_or_ref_type(derived_type)) {
+            /* If derived_type is a pointer or reference type that currently
+               points to NULL, this can be assumed to be a top-level pointer
+               or reference declaration, and an exception specification is
+               permitted:
+                 void (*pf)() throw();    // Okay
+                 void (**ppf)() throw();  // Error
+               (Handle and tracking-reference types cannot refer to function
+               types, but there is no need to produce an additional diagnostic
+               for the exception specification.) */
+            disallow_exception_spec = (type_pointed_to(derived_type) != NULL);
+          } else if (is_ptr_to_member_type(derived_type)) {
+            /* Similarly if derived_type is a pointer-to-member type whose
+               member pointer is NULL:
+                 void (A::*pmf)() throw ();  // Okay
+                 void (A::**ppmf)() throw(); // Error
+                 void (* A::*pm)() throw();  // Error
+            */
+            disallow_exception_spec = (pm_member_type(derived_type) != NULL);
+          }  /* if */
         }  /* if */
       }  /* if */
       function_declarator(state, input_flags, &new_type_ptr, local_func_info,

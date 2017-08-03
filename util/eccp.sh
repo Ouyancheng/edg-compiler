@@ -661,6 +661,7 @@ check_abbreviation()
 --enum_overloading
 --error_limit
 --error_output
+--exc_spec_in_func_type
 --exceptions
 --explicit
 --export
@@ -767,6 +768,7 @@ check_abbreviation()
 --no_distinct_template_signatures
 --no_embedded_c
 --no_enum_overloading
+--no_exc_spec_in_func_type
 --no_exceptions
 --no_explicit
 --no_export
@@ -1521,6 +1523,8 @@ process_option()
          --no_func_prototype_tags | \
          --implicit_noexcept | \
          --no_implicit_noexcept | \
+         --exc_spec_in_func_type | \
+         --no_exc_spec_in_func_type | \
          --unrestricted_unions | \
          --no_unrestricted_unions | \
          --delegating_constructors | \

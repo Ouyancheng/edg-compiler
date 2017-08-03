@@ -6237,7 +6237,11 @@ typedef struct an_exception_specification {
 		noexcept_arg;
 			/* Representation of the constant-expression specified
 			   as an argument for the "noexcept" specification, or
-			   NULL if no argument was specified. */
+			   NULL if no argument was specified.  For template
+			   instantiations this is the constant as specified
+			   in the template declaration; it can be a
+			   ck_template_param entry even though the routine
+			   type is nondependent. */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

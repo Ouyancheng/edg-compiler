@@ -13705,7 +13705,11 @@ not_direct_binding_case:
     } else if (dest_type != NULL && builtin_types_allowed == BTK_NONE) {
       /* We're looking for a specific type. */
       a_boolean types_match_ignoring_qualifiers =
-              types_are_compatible_ignoring_qualifiers(dest_type, return_type);
+                            f_types_are_compatible(
+                                     return_type, dest_type,
+                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                     TCF_IMPLICIT_CONVERSION |
+                                     TCF_IGNORE_TYPE_QUALIFIERS);
       if (is_immediate_class_type(unqual_return_type)) {
         /* The conversion function returns a class type. */
         bcp = NULL;
@@ -13799,7 +13803,11 @@ not_direct_binding_case:
           }  /* if */
           if (!result_is_a_reference) {
             types_match_ignoring_qualifiers =
-              types_are_compatible_ignoring_qualifiers(dest_type, return_type);
+                            f_types_are_compatible(
+                                     return_type, dest_type,
+                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                     TCF_IMPLICIT_CONVERSION |
+                                     TCF_IGNORE_TYPE_QUALIFIERS);
           }  /* if */
         }  /* if */
         if (types_match_ignoring_qualifiers) {
@@ -20891,8 +20899,10 @@ direct binding is "possible" and not whether it is "valid".
   unqual_dest_type = skip_typerefs(base_dest_type);
   /* See if the types are correct without conversion. */
   type_is_correct_or_derived = FALSE;
-  if (types_are_compatible_ignoring_qualifiers(unqual_dest_type,
-                                               unqual_source_type)) {
+  if (f_types_are_compatible(unqual_source_type, unqual_dest_type,
+                             TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                             TCF_IMPLICIT_CONVERSION |
+                             TCF_IGNORE_TYPE_QUALIFIERS)) {
     /* The type is correct, ignoring (first-level) qualifiers.
        Note that this handles qualified array cases. */
     type_is_correct_or_derived = TRUE;
