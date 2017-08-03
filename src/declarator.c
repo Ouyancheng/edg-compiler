@@ -1840,7 +1840,7 @@ actually declares a function, member function, or function template).
           warning_issued = TRUE;
         }  /* if */
         esp = NULL;
-      } else if (!ignoring_exception_spec) {
+      } else if (cpp11_mode && !ignoring_exception_spec) {
         pos_diagnostic(cpp14_mode ? es_warning : es_remark,
                        ec_dynamic_exception_specifications_deprecated, pos);
       }  /* if */
