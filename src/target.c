@@ -899,6 +899,7 @@ header has been read and the target has been determined).
 #if BACK_END_IS_C_GEN_BE
   use_empty_struct_in_generated_c = USE_EMPTY_STRUCT_IN_GENERATED_C;
 #endif /* BACK_END_IS_C_GEN_BE */
+  exc_spec_in_func_type = FALSE;
 }  /* target_early_init */
 
 

@@ -2579,6 +2579,7 @@ end_of_routine:;
 }  /* form_type_first_part */
 
 
+static
 void form_exception_specification(a_type_ptr                            type,
                                   an_il_to_str_output_control_block_ptr octl)
 /*

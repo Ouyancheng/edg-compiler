@@ -801,6 +801,15 @@ EXTERN a_boolean
 			   functions. */
 
 EXTERN a_boolean
+		exc_spec_in_func_type;
+			/* TRUE if function types should formally include
+			   exception specifications.  The IL representation
+			   of function types always includes exception
+			   specifications, but C++17 included them
+			   semantically.  This flag is TRUE if the C++17
+			   semantics should be implemented. */
+
+EXTERN a_boolean
 		assume_references_cannot_be_null;
 			/* If TRUE, C++ references are assumed never to have
 			   NULL addresses in them.  That's as required by the

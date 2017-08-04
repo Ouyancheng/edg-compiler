@@ -521,15 +521,6 @@ EXTERN a_boolean
 			   exception specification is provided. */
 
 EXTERN a_boolean
-		exc_spec_in_func_type;
-			/* TRUE if function types should formally include
-			   exception specifications.  The IL representation
-			   of function types always includes exception
-			   specifications, but C++17 included them
-			   semantically.  This flag is TRUE if the C++17
-			   semantics should be implemented. */
-
-EXTERN a_boolean
 		ref_qualifiers_enabled;
 			/* TRUE if ref-qualifiers are supported for nonstatic
 			   member function types. */
