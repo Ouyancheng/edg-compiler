@@ -1798,9 +1798,10 @@ member declaration (allowed in some Microsoft modes only).
     sym_error(ec_bad_scope_for_definition, sym);
     sym = NULL;
   } else {
+    a_symbol_ptr  orig_sym = sym, other_match;
+    /* Update the implicit exception specification if needed. */
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
-    a_symbol_ptr  orig_sym = sym, other_match;
     sym = member_function_redecl_sym(orig_sym, dps, (a_template_param_ptr)NULL,
                                      &other_match);
     if (sym == NULL && any_cfront_mode()) {
@@ -1833,7 +1834,7 @@ member declaration (allowed in some Microsoft modes only).
          If the type matches an instance of a member function template,
          then this is probably an attempt to define a function using
          the old specialization syntax.  Issue an error to that effect. */
-      if (has_matching_template_instance(orig_sym, type_ptr,
+      if (has_matching_template_instance(orig_sym, dps->type,
                                          locator->template_arg_list)) {
         pos_sy_error(ec_old_specialization_not_allowed,
                      &locator->source_position, orig_sym);
@@ -2465,6 +2466,7 @@ This function is also called in the case of a nondefining out-of-class
 member declaration (allowed in Microsoft mode only).
 */
 {
+  a_symbol_ptr                   sym = locator->specific_symbol;
   a_symbol_ptr                   ext_sym;
   a_routine_ptr                  routine_ptr;
   a_param_id_ptr                 param_id;
@@ -2492,10 +2494,27 @@ member declaration (allowed in Microsoft mode only).
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
   prototyped = extra_info->prototyped;
-  if (locator->specific_symbol != NULL &&
-      locator->specific_symbol->is_class_member) {
+  if (sym != NULL && sym->is_class_member) {
     /* This is the definition of a member function. */
     check_assertion(prototyped);
+    if (func_info->is_defaulted &&
+        exceptions_enabled && implicit_noexcept_enabled &&
+        extra_info->exception_specification == NULL) {
+      /* In the case of a destructor or an operator delete, use the implicit
+         exception specification.  See also
+         update_routine_type_exception_specification_if_needed. */
+      if (locator->is_destructor_name) {
+        if (symbol_is(sym, sk_member_function)) {
+          a_type_ptr  rtp = routine_symbol_type(sym);
+          extra_info->exception_specification =
+                                skip_typerefs(rtp)->variant.routine.extra_info
+                                                  ->exception_specification;
+        }  /* if */
+      } else if (locator->is_operator_name &&
+                 is_delete_operator(locator->variant.opname)) {
+        add_noexcept_specification(extra_info);
+      }  /* if */
+    }  /* if */
     define_member_function(locator, dps, func_info, &linkage, &old_type,
                            &ext_sym, decl_pos_block);
   } else {
