@@ -15139,6 +15139,25 @@ declared and before the partial instantiation of the function was done.
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
                                   /*is_partial_order_check=*/FALSE);
+  if (exc_spec_in_func_type && substituted_type != NULL &&
+      substituted_type->kind == (a_type_kind)tk_routine &&
+      rout->type->kind == (a_type_kind)tk_routine) {
+    /* In some cases, the exception specification in the substituted type is
+       fully determined, but the one in the parsed type is still in cached
+       state.  When that happens, just proceed with the substituted exception
+       specification. */
+    an_exception_specification_ptr  esp, substituted_esp;
+    substituted_esp = substituted_type->variant.routine.extra_info
+                                      ->exception_specification;
+    if (substituted_esp != NULL && !substituted_esp->arg_cached) {
+      esp = rout->type->variant.routine.extra_info->exception_specification;
+      check_assertion(esp != NULL);
+      if (esp->arg_cached) {
+        rout->type->variant.routine.extra_info->exception_specification =
+                                                              substituted_esp;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (substituted_type == NULL ||
       incompatible_substituted_and_rescanned_types_after_fixup(
                                                     substituted_type, type)) {
