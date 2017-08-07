@@ -11951,12 +11951,18 @@ effect and returns NULL.
     }  /* if */ 
     if (pesep->instantiation_descr == NULL) {
       /* Save the end of the token range for the pack. */
-     pedp->last_token = curr_token_sequence_number;
-     /* Get the pack references for this context from the scope stack.  This
-        is only done if the we have seen an ellipsis or if we know there
-        is no enclosing expansion. */
+      pedp->last_token = curr_token_sequence_number;
+      /* Get the pack references for this context from the scope stack.  This
+         is only done if the we have seen an ellipsis or if we know there
+         is no enclosing expansion. */
       if (pedp->ellipsis_seen || pesep->next == NULL) {
         extract_pack_references_for_context(pedp);
+      } else if (pesep->next != NULL) {
+        /* Propagate the contains_pack_reference flag to the enclosing
+           context. */
+        if (pesep->contains_pack_reference) {
+          pesep->next->contains_pack_reference = TRUE;
+        }  /* if */
       }  /* if */
       if (pedp->packs_referenced != NULL) {
         if (pedp->ellipsis_seen) {
@@ -12155,6 +12161,10 @@ pack expansion stack must be popped.
     /* The pack expansion descriptor passed in should be on top of the
        stack. */
     check_assertion(pesep == pack_expansion_stack);
+    /* Propagate the contains_pack_reference flag to the enclosing context. */
+    if (pesep->next != NULL && pesep->contains_pack_reference) {
+      pesep->next->contains_pack_reference = TRUE;
+    }  /* if */
     pop_pack_expansion_stack();
   }  /* if */
 }  /* abandon_potential_pack_expansion_context */
@@ -12336,14 +12346,9 @@ form.
 #endif /* DEBUG */
       }  /* if */
       /* We don't associate pack references with contexts yet, but record
-         the fact that the current set of contexts did contain a pack
-         reference. */
+         the fact that the current context did contain a pack reference. */
       if (pack_expansion_stack != NULL) {
-        a_pack_expansion_stack_entry_ptr	pesep;
-        for (pesep = pack_expansion_stack;
-             pesep != NULL; pesep = pesep->next) {
-          pesep->contains_pack_reference = TRUE;
-        }  /* for */
+        pack_expansion_stack->contains_pack_reference = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
