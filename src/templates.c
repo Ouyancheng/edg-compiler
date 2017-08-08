@@ -12956,8 +12956,11 @@ which excludes dynamic exception specifications.
 {
   an_exception_specification_ptr  new_esp;
 
+  if (esp->arg_cached) {
+    new_esp = esp;
+    goto done;
+  }  /* if */
   new_esp = alloc_exception_specification();
-  check_assertion(!esp->arg_cached);
   if (esp->indeterminate) {
     new_esp->indeterminate = TRUE;
   }  /* if */
@@ -12992,6 +12995,7 @@ which excludes dynamic exception specifications.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   new_esp->source_range = esp->source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+done:
   return new_esp;
 }  /* copy_exception_specification_with_substitution */
 
