@@ -4,7 +4,7 @@ Version 4.14
 C++17: Exception specifications as part of function types
 
 C++17 makes exception specifications part of the function type.  The front end
-now implements that behavior in strict C++17 more or when the new command-line
+now implements that behavior in strict C++17 mode or when the new command-line
 option --exc_spec_in_func_type is specified (the strict C++17 behavior can
 also be overridden with --no_exc_spec_in_func_type).  For example:
 
