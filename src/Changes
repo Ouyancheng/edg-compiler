@@ -1,5 +1,31 @@
 Version 4.14
 
+8/8/17   [EDGcpfe/18237]
+Duplicate mangled name for local string literals
+
+Consider:
+
+  struct S {
+    const char *str;
+    constexpr S() : str("aaa") {}
+    void f(char const*);
+  };
+  extern inline void g() {
+    S().f("bbb");
+  }
+  int main() { g(); }
+
+With the IA-64 ABI, lowering creates global variables for the local string
+literals "aaa" and "bbb", and uses a sequence number unique within the
+enclosing function to distinguish them from potential other string literals
+in that enclosing function.  In this case, there is only one string literal
+in each function and thus the sequence numbers of both literals is 1.
+However, because the S() constructor is constexpr, the "aaa" literal was
+previously referred to from function g(), which resulted in its associated
+variable being mangled identically to the variable associated with "bbb".
+That in turn led to linker errors.  That problem is now fixed.
+
+
 8/8/17   [EDGcpfe/18616]
 Incorrect diagnostic position with FULLY_RESOLVED_MACRO_POSITIONS
 

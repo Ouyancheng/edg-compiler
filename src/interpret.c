@@ -12322,8 +12322,13 @@ diagnostic in *ips.
               /* Presumably this is a constant created for an abk_constant
                  address by the code below or it is a ck_string entry that
                  was loaded into interpreter storage (see
-                 extract_value_from_constant). */
-              cp = prev_con;
+                 extract_value_from_constant).  In the latter case make a
+                 copy of the string constant to avoid memory region issues. */
+              if (constant_is(prev_con, ck_string)) {
+                cp = alloc_unshared_constant(prev_con);
+              } else {
+                cp = prev_con;
+              }  /* if */
               top_type = skip_typerefs(cp->type);
             } else if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {

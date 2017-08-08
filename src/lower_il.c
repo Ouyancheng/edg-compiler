@@ -4970,7 +4970,8 @@ IL prefix is accessed).
 #endif /* LOWER_STRING_LITERALS_TO_NON_CONST */
             lower_os_constant(addressed_con);
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-            if (addressed_con->kind == (a_constant_repr_kind)ck_string) {
+            if (addressed_con->kind == (a_constant_repr_kind)ck_string &&
+                !constant->is_result_of_constexpr_call) {
               /* Address of a string literal. */
               if (addressed_con->variant.string.sequence_number != 0) {
                 /* This string must be the same across multiple translation
