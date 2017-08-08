@@ -12330,7 +12330,9 @@ diagnostic in *ips.
                    actual string literal. */
                 cp = alloc_unshared_constant(prev_con);
                 cp->is_result_of_constexpr_call = TRUE;
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
                 cp->variant.string.sequence_number = 0;
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
               } else {
                 cp = prev_con;
               }  /* if */
