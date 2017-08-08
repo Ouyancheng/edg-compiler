@@ -12324,8 +12324,13 @@ diagnostic in *ips.
                  was loaded into interpreter storage (see
                  extract_value_from_constant).  In the latter case make a
                  copy of the string constant to avoid memory region issues. */
-              if (constant_is(prev_con, ck_string)) {
+              if (constant_is(prev_con, ck_string) && ips->call_seen) {
+                /* Copy the string entry, but mark it as being the result of
+                   a constant-expression evaluation, to distinguish it from an
+                   actual string literal. */
                 cp = alloc_unshared_constant(prev_con);
+                cp->is_result_of_constexpr_call = TRUE;
+                cp->variant.string.sequence_number = 0;
               } else {
                 cp = prev_con;
               }  /* if */
