@@ -1,5 +1,17 @@
 Version 4.14
 
+8/8/17   [EDGcpfe/18616]
+Incorrect diagnostic position with FULLY_RESOLVED_MACRO_POSITIONS
+
+In versions with FULLY_RESOLVED_MACRO_POSITIONS set to TRUE, some diagnostics
+could incorrectly refer to the position of a macro definition instead of the
+use.  If the macro definition was supplied on the command line, this would
+result in a diagnostic being issued with no associated position.  Now fixed.
+
+  #define U8 char
+  typedef unsigned char U8;  // diagnostic pointed to line 1
+
+
 8/3/17   [EDGcpfe/17685]
 C++17: Exception specifications as part of function types
 

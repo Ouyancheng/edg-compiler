@@ -3773,20 +3773,29 @@ newly created entry.
     sifpp->line_number = line_number;
     sifpp->at_end_of_source = at_end_of_source;
     dp->position = *position;
-#if FULLY_RESOLVED_MACRO_POSITIONS
-    /* Use the original position for the message header. */
-    dp->diag_header_pos.seq = position->orig_seq;
-    dp->diag_header_pos.column = position->orig_column;
-    /* Convert the sequence number into a compilation unit and line number. */
-    conv_seq_to_file_and_line(position->orig_seq, &file_name, &full_name,
-                              &line_number, &at_end_of_source);
-    sifpp = &dp->diag_header_source_info;
-    sifpp->file_name = file_name;
-    sifpp->line_number = line_number;
-    sifpp->at_end_of_source = at_end_of_source;
-#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
     dp->diag_header_pos = *position;
     dp->diag_header_source_info = *sifpp;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    if (position->orig_seq != 0 &&
+        (macro_positions_in_diagnostics ||
+         position->orig_seq >= position->seq)) {
+      /* Use the original position of the text for the first part of the
+          message (i.e., if the text is in a macro expansion, the position will
+          indicate the macro definition or macro argument from which the text
+          was copied).  We use the normal position if the original position is
+          in a command-line or predefined macro (orig_seq == 0), and if
+          macro_positions_in_diagnostics is FALSE, we only use the original
+          position if it is in a macro argument (a reference to a macro
+          definition will necessarily have orig_seq < seq). */
+      dp->diag_header_pos.seq = position->orig_seq;
+      dp->diag_header_pos.column = position->orig_column;
+      conv_seq_to_file_and_line(position->orig_seq, &file_name, &full_name,
+                                &line_number, &at_end_of_source);
+      sifpp = &dp->diag_header_source_info;
+      sifpp->file_name = file_name;
+      sifpp->line_number = line_number;
+      sifpp->at_end_of_source = at_end_of_source;
+    }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else {
     check_assertion(primary_diagnostic != NULL);
