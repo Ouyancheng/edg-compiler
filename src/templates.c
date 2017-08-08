@@ -13425,7 +13425,8 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
         if (exc_spec_in_func_type) {
           an_exception_specification_ptr  esp = rtsp->exception_specification;
-          if (esp != NULL && is_instantiation_dependent_exc_spec(esp)) {
+          if (esp != NULL && !esp->arg_cached &&
+              is_instantiation_dependent_exc_spec(esp)) {
             goto make_new_type;
           }  /* if */
         }  /* if */

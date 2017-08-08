@@ -1978,7 +1978,7 @@ Check that the throw specification on the current declaration, if any, is
 consistent with that of the previous declaration.
 */
 {
-  a_boolean                       any_difference_seen;
+  a_boolean                       any_difference_seen = FALSE;
   an_exception_specification_ptr  new_esp, old_esp;
   an_error_code                   error_code;
   a_routine_ptr                   rp = NULL;
@@ -2099,6 +2099,7 @@ consistent with that of the previous declaration.
                         new_esp->variant.noexcept_arg)) {
         pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
                             error_code, throw_pos, "", prev_decl);
+        any_difference_seen = TRUE;
       }  /* if */
     } else if (old_esp == NULL || old_esp->throw_any) {
       /* Previous specification asserted that any exception may be thrown
@@ -2110,6 +2111,7 @@ consistent with that of the previous declaration.
            system header in GNU C++ modes). */
         pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
                             error_code, throw_pos, "", prev_decl);
+        any_difference_seen = TRUE;
       }  /* if */
     } else if (new_esp == NULL ||
                (new_esp->throw_any && !new_esp->is_noexcept)) {
@@ -2134,6 +2136,7 @@ consistent with that of the previous declaration.
                           ec_omitted_exception_specification :
                           ec_omitted_exception_specification_on_specialization,
                         throw_pos, prev_decl);
+      any_difference_seen = TRUE;
     } else if (is_nothrow_spec(old_esp)) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with another nonthrowing specification on the
@@ -2143,6 +2146,7 @@ consistent with that of the previous declaration.
         dp = pos_stsy_start_error(error_code, throw_pos, ":", prev_decl);
         add_diag_info(dp, ec_previous_exception_specification_was_empty);
         end_diagnostic(dp);
+        any_difference_seen = TRUE;
       }  /* if */
     } else {
       /* Both specifications list the types that will be thrown or the new one
@@ -2161,6 +2165,11 @@ consistent with that of the previous declaration.
                               ec_included_in_previous_exception_specification,
                               error_code, prev_decl, any_difference_seen);
       if (any_difference_seen) end_diagnostic(dp);
+    }  /* if */
+    if (any_difference_seen) {
+      /* Unify the exception specification to avoid problems downstream. */
+      skip_typerefs(new_rout_type)->variant.routine.extra_info
+                                  ->exception_specification = old_esp;
     }  /* if */
   }  /* if */
 done:
@@ -16790,7 +16799,9 @@ that the type of the initializer is consistent with the type of the variable.
                                     var_type, init_type,
                                     TCF_REDECLARATION |
                                     TCF_IGNORE_TYPE_QUALIFIERS |
-                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING));
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
+                      is_or_contains_error_type(var_type) ||
+                      is_or_contains_error_type(init_type));
 
     }  /* if */
   }  /* if */
