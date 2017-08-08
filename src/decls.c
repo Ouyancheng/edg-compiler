@@ -2168,8 +2168,8 @@ consistent with that of the previous declaration.
     }  /* if */
     if (any_difference_seen) {
       /* Unify the exception specification to avoid problems downstream. */
-      skip_typerefs(new_rout_type)->variant.routine.extra_info
-                                  ->exception_specification = old_esp;
+      skip_typerefs(prev_type)->variant.routine.extra_info
+                              ->exception_specification = new_esp;
     }  /* if */
   }  /* if */
 done:

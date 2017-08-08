@@ -11694,22 +11694,31 @@ that member function can throw any exception, return TRUE.
   an_exception_specification_ptr       old_esp, new_esp;
   an_exception_specification_type_ptr  old_estp, estp;
   a_type_ptr                           rtp;
-  a_routine_type_supplement_ptr        rtsp;
+  a_routine_type_supplement_ptr        old_rtsp, rtsp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   instantiate_exception_spec_if_needed(sym);
   rtp = sym->variant.routine.ptr->type;
-  is_noexcept = is_nothrow_type(rtp);
-  /* The call to is_nothrow_type ensures that any indeterminate exception
-     specification for a generated default constructor is now determined. */
+  old_rtsp = rtp->variant.routine.extra_info;
   /* Fetch the exception specification associated with the member function
      indicated by sym. */
-  old_esp = rtp->variant.routine.extra_info->exception_specification;
+  old_esp = old_rtsp->exception_specification;
+  if (old_esp != NULL && old_esp->indeterminate) {
+    /* A special member whose exception specification isn't determined yet.
+       Force that determination now so that we can merge the specifications. */
+    resolve_indeterminate_exception_specification(old_rtsp->assoc_routine);
+    old_esp = old_rtsp->exception_specification;
+  }  /* if */
   if (old_esp == NULL || old_esp->throw_any) {
     /* The function can throw any exception. */
     throw_any = TRUE;
   } else {
     throw_any = FALSE;
+    if (exc_spec_in_func_type) {
+      /* Dynamic exception specifications are discarded.  So, don't attempt
+         to merge them. */
+      goto done;
+    }  /* if */
     rtsp = new_rout_type->variant.routine.extra_info;
     new_esp = rtsp->exception_specification;
     if (new_esp == NULL) {
@@ -11722,6 +11731,7 @@ that member function can throw any exception, return TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       rtsp->exception_specification = new_esp;
     }  /* if */
+    is_noexcept = is_nothrow_type(rtp);
     if (!is_noexcept) {
       /* Now traverse the types specified for the exception specification of
          the function indicated by sym.  Make a copy of any that does not
@@ -11754,6 +11764,7 @@ that member function can throw any exception, return TRUE.
       }  /* for */
     }  /* if */
   }  /* if */
+done:
   return throw_any;
 }  /* merge_exception_specifications */
 
