@@ -1,5 +1,26 @@
 Version 4.14
 
+8/9/17   [EDGcpfe/17378]
+Ordering of initialization in lowered range-based-for loops
+
+The ordering of initialization of temporary variables created during the
+lowering of range-based-for loops could result in an initialization for
+a variable in a nested scope.  Now fixed.  For example (with --c++11):
+
+  struct A {
+    virtual void vf();
+    A& begin();
+    A& end();
+    int operator!=(A);
+    int operator*();
+    void operator++();
+    void f();
+  };
+  void A::f() {
+    for (auto i:*this);
+  }
+
+
 8/9/17   [EDGcpfe/18562]
 Unbounded loop in subobject_conflict on Microsoft property field
 

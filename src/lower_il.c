@@ -18580,7 +18580,8 @@ Notes:
   an_expr_node_ptr   ne_call_expr, incr_call_expr;
   a_for_loop_ptr     flip;
 
-  check_assertion(statement->expr == NULL);
+  check_assertion(statement->expr == NULL &&
+                  pending_stmk_init_statements == NULL);
   /* Push the outermost scope (which contains the range variable and its
      initialization). */
   push_context(&range_based_for_context, range_based_for_scope,
@@ -18601,6 +18602,9 @@ Notes:
      associated with them, so they must be explicitly lowered here. */
   /* Lower variables in the outermost scope. */
   lower_variable_with_initializer(rbflp->range, &outer_insert_location);
+  /* If lowering of expressions in the outer scope created any stmk_init
+     statements, make sure they are inserted in the proper block. */
+  insert_pending_stmk_init_statements(outer_block);
   /* Push a context for the "begin" and "end" variables. */
   push_context(&begin_end_context, rbflp->begin_end_scope,
                (an_object_lifetime_ptr)NULL);
@@ -18624,6 +18628,9 @@ Notes:
   check_assertion(ne_call_expr != NULL && incr_call_expr != NULL);
   lower_boolean_controlling_expr(ne_call_expr, /*is_full_expr=*/TRUE);
   lower_full_expr(incr_call_expr, (a_statement_ptr)NULL);
+  /* If lowering of expressions in the middle scope created any stmk_init
+     statements, make sure they are inserted in the proper block. */
+  insert_pending_stmk_init_statements(middle_block);
   /* Now push the iterator scope (which contains the iterator and the
      dependent statement). */
   push_context(&iterator_context, iterator_scope,
