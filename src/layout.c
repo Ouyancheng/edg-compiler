@@ -1756,6 +1756,13 @@ is FALSE, field subobjects are ignored while searching for a conflict.
              field = field->next) {
           /* Skip compiler generated fields. */
           if (field->compiler_generated) continue;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode && field_is_nontrivial_property_or_event(field)) {
+            /* Nontrivial properties and events do not participate in object
+               layout. */
+            continue;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* If the field type is an array get the (ultimate) element type. */
           num_field_array_elts = 1;
           if (is_array_type(field->type)) {

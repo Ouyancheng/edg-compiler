@@ -1,5 +1,14 @@
 Version 4.14
 
+8/9/17   [EDGcpfe/18562]
+Unbounded loop in subobject_conflict on Microsoft property field
+
+In Microsoft C++ mode, the front end could previously get stuck in an unbounded
+loop in subobject_conflict (layout.c) for certain class types containing
+nontrivial properties or events (which are represented in the IL as fields, but
+are not directly mapped in object layout).  This is now fixed.
+
+
 8/8/17   [EDGcpfe/18237]
 Duplicate mangled name for local string literals
 
