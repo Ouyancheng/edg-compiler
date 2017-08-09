@@ -1508,6 +1508,12 @@ template-dependent context or a member of a class).
     a_memory_region_number  region_to_switch_back_to;
     a_source_position       constant_pos;
     a_constant_ptr          noexcept_con = local_constant();
+    a_boolean               saved_in_template_deduction_context;
+    if (exc_spec_in_func_type) {
+      saved_in_template_deduction_context =
+                              scope_stack_top().in_template_deduction_context;
+      scope_stack_top().in_template_deduction_context = TRUE;
+    }  /* if */
     constant_pos = pos_curr_token;
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Scan the argument for the noexcept-specifier, which must be a
@@ -1525,6 +1531,10 @@ template-dependent context or a member of a class).
       release_local_constant(&noexcept_con);
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
+    if (exc_spec_in_func_type) {
+      scope_stack_top().in_template_deduction_context =
+                                          saved_in_template_deduction_context;
+    }  /* if */
   }  /* if */
 }  /* scan_noexcept_arg */
 
