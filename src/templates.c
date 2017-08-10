@@ -24108,6 +24108,10 @@ template symbol supplement for this template should be returned to the caller.
     wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  if (dps->dso_flags & DSO_FRIEND) {
+    pos_error(ec_bad_friend_decl, &locator->source_position);
+    err = TRUE;
+  }  /* if */
   if (err) {
     /* If an error occurred earlier, return a NULL symbol. */
     sym = NULL;

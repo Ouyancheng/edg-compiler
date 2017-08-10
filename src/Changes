@@ -1,5 +1,19 @@
 Version 4.14
 
+8/9/17   [EDGcpfe/18658]
+Friend variable templates
+
+The front end previously aborted on the following case:
+
+  struct S {
+    void f();
+    template <class U> friend int f;
+  };
+
+and silently accepted the case if the member function declaration is omitted.
+This is now fixed.
+
+
 8/9/17   [EDGcpfe/18657]
 Abort on malformed anonymous union containing an exception specification
 
