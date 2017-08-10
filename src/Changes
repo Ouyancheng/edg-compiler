@@ -4,8 +4,12 @@ Version 4.14
 Ordering of initialization in lowered range-based-for loops
 
 The ordering of initialization of temporary variables created during the
-lowering of range-based-for loops could result in an initialization for
-a variable in a nested scope.  Now fixed.  For example (with --c++11):
+lowering of range-based-for loops could result in incorrect initialization of a
+temporary variable.  A lowered range-based-for loop is decomposed into multiple
+scopes and in the example below the initialization of one of these temporary
+variables had been inadvertently placed in a scope outside of the scope in
+which the variable was declared, resulting in invalid generated C code in the
+C-generating configuration.  Now fixed.  For example (with --c++11):
 
   struct A {
     virtual void vf();
