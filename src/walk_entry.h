@@ -1061,7 +1061,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
 #endif /* DO_IL_LOWERING */
         switch (eptr->kind) {
           case tk_unknown:
-            unexpected_condition_str("unknown type in IL walk");
+            expect_error_str("unknown type in IL walk");
             break;
           case tk_error:
           case tk_void:
