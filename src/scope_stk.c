@@ -11953,8 +11953,8 @@ effect and returns NULL.
       /* Save the end of the token range for the pack. */
       pedp->last_token = curr_token_sequence_number;
       /* Get the pack references for this context from the scope stack.  This
-         is only done if the we have seen an ellipsis or if we know there
-         is no enclosing expansion. */
+         is only done if we have seen an ellipsis or if we know there is no
+         enclosing expansion. */
       if (pedp->ellipsis_seen || pesep->next == NULL) {
         extract_pack_references_for_context(pedp);
       } else if (pesep->next != NULL) {
