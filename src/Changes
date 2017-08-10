@@ -25,7 +25,7 @@ C-generating configuration.  Now fixed.  For example (with --c++11):
   }
 
 
-8/9/17   [EDGcpfe/18562]
+8/9/17   [EDGcpfe/18086,EDGcpfe/18562]
 Unbounded loop in subobject_conflict on Microsoft property field
 
 In Microsoft C++ mode, the front end could previously get stuck in an unbounded
