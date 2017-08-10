@@ -2586,7 +2586,17 @@ option values if they were not already set by a command line option.
           direct_init_fixed_base_enum_enabled = TRUE;
           constexpr_if_enabled = TRUE;
           constexpr_lambdas_enabled = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1912) {
+        /* Visual Studio 2017 version 15.5. */
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
           capture_star_this_enabled = TRUE;
+          inline_variables_allowed = TRUE;
+          fold_expressions_enabled = TRUE;
+          if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
+            exc_spec_in_func_type = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
