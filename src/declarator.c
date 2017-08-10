@@ -1508,7 +1508,7 @@ template-dependent context or a member of a class).
     a_memory_region_number  region_to_switch_back_to;
     a_source_position       constant_pos;
     a_constant_ptr          noexcept_con = local_constant();
-    a_boolean               saved_in_template_deduction_context;
+    a_boolean               saved_in_template_deduction_context = FALSE;
     if (exc_spec_in_func_type) {
       saved_in_template_deduction_context =
                               scope_stack_top().in_template_deduction_context;
