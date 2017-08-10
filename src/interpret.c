@@ -3314,7 +3314,8 @@ of whitespace characters.
 
 
 static void db_object(a_byte      *addr,
-                      a_type_ptr  tp)
+                      a_type_ptr  tp,
+                      a_byte      *complete_object)
 /*
 Output the contents of the interpreted object of type tp stored at addr.
 */
@@ -3339,7 +3340,6 @@ Output the contents of the interpreted object of type tp stored at addr.
                                  /*pos_infinity=*/(a_boolean*)NULL,
                                  /*neg_infinity=*/(a_boolean*)NULL,
                                  /*not_a_number=*/(a_boolean*)NULL));
-     
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
@@ -3348,7 +3348,6 @@ Output the contents of the interpreted object of type tp stored at addr.
                                  /*pos_infinity=*/(a_boolean*)NULL,
                                  /*neg_infinity=*/(a_boolean*)NULL,
                                  /*not_a_number=*/(a_boolean*)NULL));
-     
       break;
     case tk_complex:
       (void)fprintf(f_debug, "%s + %si\n",
@@ -3360,7 +3359,6 @@ Output the contents of the interpreted object of type tp stored at addr.
                                  /*pos_infinity=*/(a_boolean*)NULL,
                                  /*neg_infinity=*/(a_boolean*)NULL,
                                  /*not_a_number=*/(a_boolean*)NULL));
-     
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_pointer:
@@ -3378,7 +3376,7 @@ Output the contents of the interpreted object of type tp stored at addr.
         indent += 2;
         for (offset = 0; offset < n_bytes; offset += e_bytes) {
           (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
-          db_object(addr+offset, etp);
+          db_object(addr+offset, etp, complete_object);
         }  /* for */
         indent -= 2;
         db_indent(indent);
@@ -3406,7 +3404,7 @@ Output the contents of the interpreted object of type tp stored at addr.
           db_name(&fp->source_corresp);
           get_mapped_byte_count(&persistent_map, fp, offset);
           (void)fprintf(f_debug, " (offset %u)= \n", offset);
-          db_object(addr+offset, fp->type);
+          db_object(addr+offset, fp->type, complete_object);
         }  /* for */
         /* Output the base class values. */
         for (; bcp != NULL; bcp = bcp->next) {
@@ -3416,7 +3414,7 @@ Output the contents of the interpreted object of type tp stored at addr.
             db_type_name(bcp->type);
             get_mapped_byte_count(&persistent_map, bcp, offset);
             (void)fprintf(f_debug, " (offset %u)= \n", offset);
-            db_object(addr+offset, bcp->type);
+            db_object(addr+offset, bcp->type, complete_object);
           }  /* if */
         }  /* for */
         indent -= 2;
@@ -3439,7 +3437,7 @@ Output the contents of the interpreted object of type tp stored at addr.
                         db_name_str(&fp->source_corresp, iek_none));
           get_mapped_byte_count(&persistent_map, fp, offset);
           (void)fprintf(f_debug, " (offset %u)= \n", offset);
-          db_object(addr+offset, fp->type);
+          db_object(addr+offset, fp->type, complete_object);
         }  /* if */
         indent -= 2;
         db_indent(indent);
@@ -3452,6 +3450,11 @@ Output the contents of the interpreted object of type tp stored at addr.
       (void)fprintf(f_debug, "\n");
       break;
   }  /* switch */
+  if (complete_object != NULL &&
+      !subobject_is_initialized(addr, complete_object)) {
+    db_indent(indent);
+    (void)fprintf(f_debug, "[NOINIT]\n");
+  }  /* if */
 }  /* db_object */
 
 
@@ -3463,7 +3466,7 @@ Output the contents of the given complete object.
   a_type_ptr  tp = complete_object_type(obj);
 
   db_type_name(tp);
-  db_object(obj, tp);
+  db_object(obj, tp, obj);
 }  /* db_complete_object */
 
 
@@ -11933,7 +11936,7 @@ the value representation of the integer value.
       break;
     case enk_temp_init:
       { a_dynamic_init_ptr     dip;
-        a_byte                 *tmp_bytes;
+        a_byte                 *tmp_bytes, *tmp_complete_obj;
         an_alloc_seq_number    alloc_seq_number;
         a_byte_count           prefix_size;
         if (C_mode()) {
@@ -11995,19 +11998,23 @@ the value representation of the integer value.
           if (!temp_lifetime) {
             cap->flags |= CA_LIFETIME_EXTENDED;
 	  }  /* if */
+          tmp_complete_obj = tmp_bytes;
         } else {
           /* The consumer of the temporary expects an rvalue.  So we can
              evaluate the initialization directly into result_storage. */
           tmp_bytes = result_storage;
+          tmp_complete_obj = complete_object;
         }  /* if */
         if (dip->kind == (a_dynamic_init_kind)dik_zero &&
             dip->destructor == NULL) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_bytes);
         } else if (!do_constexpr_dynamic_init(
-                           ips, dip, &expr->position, tmp_bytes, tmp_bytes)) {
+                    ips, dip, &expr->position, tmp_bytes, tmp_complete_obj)) {
           do_constexpr_fail(result);
         }  /* if */
-        mark_complete_object_initialized(tmp_bytes);
+        if (expr->is_lvalue || expr->is_xvalue) {
+          mark_complete_object_initialized(tmp_bytes);
+        }  /* if */
       }
       break;
     case enk_object_lifetime:
