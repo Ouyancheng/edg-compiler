@@ -1,5 +1,22 @@
 Version 4.14
 
+8/9/17   [EDGcpfe/18657]
+Abort on malformed anonymous union containing an exception specification
+
+In some cases, a malformed anonymous union containing an invalid member
+declaration with an exception specification could lead to an abort in
+rescan_reusable_cache.  For example:
+
+  template<typename> struct X {
+    union {
+      void f() noexcept(false);
+    };
+  };
+  X<short> v;
+
+That is now fixed.
+
+
 8/9/17   [EDGcpfe/18652]
 Temporaries and constexpr subobjects
 

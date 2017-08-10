@@ -2788,8 +2788,12 @@ and for member functions of template classes.
               a_token_cache  *cache = esp->variant.token_cache;
               esp->arg_cached = FALSE;
               esp->variant.token_cache = NULL;
-              delayed_scan_of_exception_spec(rp, cache);
-              free_token_cache(cache);
+              if (cache != NULL) {
+                delayed_scan_of_exception_spec(rp, cache);
+                free_token_cache(cache);
+              } else {
+                expect_error();
+              }  /* if */
             }  /* if */
           }  /* if */
           /* Pop the reactivated function prototype scope off the stack. */
