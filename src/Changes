@@ -3,7 +3,7 @@ Version 4.14
 8/9/17   [EDGcpfe/18658]
 Friend variable templates
 
-The front end previously aborted on the following case:
+In C++14 mode, the front end previously aborted on the following case:
 
   struct S {
     void f();
