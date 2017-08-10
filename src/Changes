@@ -131,7 +131,7 @@ using-declaration can now be redeclared or defined in the scope containing
 the using-declaration.
 
   namespace N {
-   template <class T> struct A {};
+    template <class T> struct A {};
   }
   using N::A;
   template <class T> struct A;
