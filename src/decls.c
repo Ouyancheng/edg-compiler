@@ -1997,11 +1997,8 @@ consistent with that of the previous declaration.
       prev_type = rp->type;
       break;
     case sk_function_template:
-      {
-        a_symbol_ptr proto_sym = prototype_template_of(prev_decl);
-        rp = proto_sym->variant.template_info->variant.function.routine;
-        prev_type = rp->type;
-      }
+      rp = prev_decl->variant.template_info->variant.function.routine;
+      prev_type = rp->type;
       break;
     case sk_variable:
       prev_type = prev_decl->variant.variable.ptr->type;
