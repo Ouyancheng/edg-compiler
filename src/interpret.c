@@ -12014,6 +12014,8 @@ the value representation of the integer value.
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
           mark_complete_object_initialized(tmp_bytes);
+        } else {
+          mark_subobject_initialized(tmp_bytes, tmp_complete_obj);
         }  /* if */
       }
       break;
