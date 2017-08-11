@@ -16796,8 +16796,9 @@ that the type of the initializer is consistent with the type of the variable.
         var_type = array_element_type(var_type);
       }  /* if */
       check_assertion(f_types_are_compatible(
-                                    var_type, init_type,
+                                    init_type, var_type,
                                     TCF_REDECLARATION |
+                                    TCF_IMPLICIT_CONVERSION |
                                     TCF_IGNORE_TYPE_QUALIFIERS |
                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
                       is_or_contains_error_type(var_type) ||
