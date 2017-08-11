@@ -1,5 +1,19 @@
 Version 4.14
 
+8/11/17  [EDGcpfe/18662]
+Failure to diagnose deducible return type leads to potential aborts
+
+The front end previously failed to diagnose deducible return types in contexts
+that do not permit them.  This could potentially lead to aborts in the front
+end.  For example:
+
+  #include <typeinfo>
+  std::type_info const &x = typeid(auto());  // Invalid use of "auto".
+
+Previously, the front end did not diagnose the invalid use of "auto" in this
+example, and aborted during lowering in get_typeinfo_var.  This is now fixed.
+
+
 8/9/17   [EDGcpfe/18659]
 Abort in IL traversal after decltype(auto) deduction failure
 

@@ -2168,7 +2168,8 @@ a trailing return type.
     }  /* if */
     /* Check whether a trailing return type is missing. */
     if (is_function_declarator && !state->has_trailing_return_type) {
-      if (deduced_return_types_enabled && !state->is_param_decl) {
+      if (deduced_return_types_enabled && !state->is_param_decl &&
+          !state->is_type_name) {
         /* Something like "auto g() { return 0; }", which is permitted in
            C++14. */
         state->has_deducible_return_type = TRUE;
