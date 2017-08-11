@@ -7959,9 +7959,19 @@ is within the given complete_object.
       dst_bytes = result_storage+field_offset;
       if (cap->is_init_capture) {
         /* Interpret the initializer for the capture. */
-        is_constant = do_constexpr_dynamic_init(ips, cap->captured.initializer,
-                                                &expr->position, dst_bytes,
-                                                complete_object);
+        sub_dip = cap->captured.initializer;
+        if (sub_dip->kind == (a_dynamic_init_kind)dik_zero ||
+            sub_dip->kind == (a_dynamic_init_kind)dik_none) {
+          /* Just zero the storage (for the dik_zero case) and record the
+             derivation structure (which is needed even for the dik_none
+             case). */
+          a_type_ptr  tp = skip_typerefs(fp->type);
+          init_subobject_to_zero(ips, dst_bytes, tp, complete_object);
+        } else {
+          is_constant = do_constexpr_dynamic_init(ips, sub_dip,
+                                                  &expr->position, dst_bytes,
+                                                  complete_object);
+        }  /* if */
       } else if (cap->captured.variable == NULL ||
                  (cap->capture_info.source_closure_field != NULL &&
                   !cap->captured.variable->is_this_parameter)) {

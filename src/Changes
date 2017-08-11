@@ -1,5 +1,20 @@
 Version 4.14
 
+8/11/17  [EDGcpfe/18661]
+Incorrect evaluation of init-capture in constexpr lambda
+
+In some cases where an init-capture was represented as a zero initialization,
+the constexpr interpreter failed to actually perform that initialization,
+causing unpredictable results.  For example:
+
+  struct S { int x ; };
+  auto x = [y = S()]() { return [&]{ return y; }(); }();
+
+Previously, the init-capture "y = S()" in the outer lambda expression left the
+underlying closure member uninitialized and x ended up with an unpredictable
+value.  That is now fixed.
+
+
 8/11/17  [EDGcpfe/18662]
 Failure to diagnose deducible return type leads to potential aborts
 
