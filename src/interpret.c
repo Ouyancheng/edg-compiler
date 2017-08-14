@@ -4891,7 +4891,10 @@ error occurs.
   if (storage == NULL) {
     get_stack_bytes(ips, vp, storage);
   }  /* if */
-  if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
+  if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+    a_type_ptr  tp = skip_typerefs(vp->type);
+    init_subobject_to_zero(ips, storage, tp, storage);
+  } else if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
     mark_complete_object_initialized(storage);
   } else {
     do_constexpr_fail(result);
