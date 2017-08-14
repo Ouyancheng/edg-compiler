@@ -8633,7 +8633,18 @@ the value representation of the integer value.
                 *(a_constexpr_address*)result_storage = *src;
               } else {
                 a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
-                if (bcp != NULL && bcp->derived_class == tp) {
+                a_type_ptr  derived_class;
+                if (bcp != NULL) {
+                  derived_class = bcp->derived_class;
+                } else {
+                  if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                    derived_class =
+                              skip_typerefs(opnd1_type->variant.pointer.type);
+                  } else {
+                    derived_class = opnd1_type;
+                  }  /* if */
+                }  /* if */
+                if (bcp != NULL && bcp->derived_class == derived_class) {
                   a_byte_count  offset;
                   get_mapped_byte_count(&persistent_map, bcp, offset);
                   src->address -= offset;
