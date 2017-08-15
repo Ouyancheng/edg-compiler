@@ -4872,7 +4872,9 @@ static a_boolean do_constexpr_init_variable(an_interpreter_state   *ips,
                                             a_source_position      *pos)
 /*
 Evaluate the (dynamic) initializer of the given variable.  Return FALSE if an
-error occurs.
+error occurs and use pos as the default position for recorded diagnostics.
+If storage is non-NULL, is points to the storage occupied by the variable;
+otherwise, this routine will look up that storage in ips->map.
 */
 {
   a_boolean              result = TRUE;
@@ -5819,9 +5821,9 @@ done_with_switch:
       }
       break;
     case stmk_init:
-      { a_dynamic_init_ptr     dip = stmt->variant.dynamic_init;
-        a_variable_ptr         vp = dip->variable;
-        a_byte                 *var_storage;
+      { a_dynamic_init_ptr  dip = stmt->variant.dynamic_init;
+        a_variable_ptr      vp = dip->variable;
+        a_byte              *var_storage;
         /* Allocate and bind storage for the variable. */
         var_storage = do_constexpr_alloc_variable(ips, vp, &result);
         if (!result) break;

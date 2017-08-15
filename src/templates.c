@@ -5615,13 +5615,23 @@ specification, copy it with substitutions to rp.
     *esp = *proto_esp;
     if (proto_esp->is_noexcept) {
       a_ctws_state  ctws_state;
-      a_boolean     err = FALSE;
+      a_boolean     err = FALSE, was_err;
+      was_err = constant_is(esp->variant.noexcept_arg, ck_error);
       init_ctws_state(&ctws_state);
       substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
                           (a_template_param_ptr)NULL,
                           (a_template_arg_ptr)NULL,
                           &ctws_state, &rp->source_corresp.decl_position,
                           &err);
+      if (!err) {
+        if (!constant_is(esp->variant.noexcept_arg, ck_template_param)) {
+          esp->throw_any = is_false_constant(esp->variant.noexcept_arg);
+        }  /* if */
+      } else if (!was_err) {
+        pos_error(ec_invalid_noexcept_specifier_operand,
+                  &rp->source_corresp.decl_position);
+        set_error_constant(esp->variant.noexcept_arg);
+      }  /* if */
     } else {
       check_assertion(proto_esp->variant.exception_specification_type_list
                                                                      == NULL);
