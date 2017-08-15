@@ -15979,7 +15979,8 @@ If it indicates a destructor, add it to the current object lifetime.
        or generate the cleanup code. */
     if (curr_expr_kind_is_const()) {
 #if CHECKING
-      if (dip->destructor != NULL || is_dynamic_init_for_vla(dip)) {
+      if ((dip->destructor != NULL || is_dynamic_init_for_vla(dip)) &&
+          expr_stack->evaluated) {
         expect_error();
       }  /* if */
 #endif /* CHECKING */
