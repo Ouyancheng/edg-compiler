@@ -20250,8 +20250,8 @@ issue an error if it is not actually constexpr.
          constexpr default constructor.  In Microsoft mode, the generated
          default constructor of a dllimport class is not "constexpr" either.
          Don't attempt to check this for nonreal classes because it is not
-         always meaningful and the downstream code cannot not always handle
-         such classes. */
+         always meaningful and the downstream code cannot always handle such
+         classes. */
       if (!class_type->variant.class_struct_union.is_nonreal_class &&
           fields_initialized_for_constexpr_constructor(class_type) &&
           bases_initialized_for_constexpr_constructor(class_type)
