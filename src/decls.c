@@ -6831,6 +6831,13 @@ for use in generating cross-reference output describing this declaration.
                            microsoft_for_init_hiding(locator,
                                                      effective_decl_level,
                                                      &in_microsoft_for_init);
+    if (locator->is_class_member) {
+      /* This can happen in extreme error cases. */
+      expect_error();
+      locator->is_class_member = FALSE;
+      locator->is_qualified_name = FALSE;
+      locator->parent.class_type = NULL;
+    }  /* if */
     /* There is no (compatible) symbol, so create one now.  The symbol is
        not entered yet because it needs to be set to refer to the
        variable for the checking of hiding. */
