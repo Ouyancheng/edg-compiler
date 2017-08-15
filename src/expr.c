@@ -32334,12 +32334,16 @@ Scan a C++ lambda expression, e.g., something like
 
   start_pos = pos_curr_token;
   if (curr_expr_kind_is_traditional_const()) {
-    /* A lambda is not allowed in a constant expression. */
+    /* A lambda is not allowed in a traditional_constant expression. */
     expr_pos_error(ec_bad_constant_lambda, &start_pos);
     err = TRUE;
   } else if (!curr_expr_is_potentially_evaluated()) {
     /* A lambda is not allowed in an unevaluated expression. */
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
+    err = TRUE;
+  } else if (scope_stack_top().exception_specification) {
+    /* Exception specifications cannot appear in noexcept specifiers. */
+    expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
     err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
     /* A lambda in a context where we won't know until later if the

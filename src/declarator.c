@@ -1580,8 +1580,9 @@ Parse the operand now.
   if (esp->is_noexcept) {
     scan_noexcept_arg(esp, /*may_cache=*/FALSE);
   } else {
-    /* Delayed instantiation of dynamic exception specifications is not yet
-       implemented.  (So we should never get here.) */
+    /* Delayed instantiation of dynamic exception specifications (which are no
+       longer part of the language as of C++17) is not implemented.  (So we
+       should never get here.) */
     unexpected_condition();
   }  /* if */
   perform_deferred_access_checks_for_function(rp);
