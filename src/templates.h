@@ -444,6 +444,10 @@ a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
 extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
 
+extern void get_substitution_pairs_for_template_class(
+                                           a_type_ptr            class_type,
+                                           a_template_param_ptr  *p_t_params,
+                                           a_template_arg_ptr    *p_t_args);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_src_seq_secondary_decl_ptr
                             secondary_src_seq_for_template(a_template_ptr  tp);

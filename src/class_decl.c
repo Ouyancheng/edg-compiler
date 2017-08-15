@@ -10160,6 +10160,7 @@ When templates_only is TRUE, only function templates members are considered.
   a_boolean                      new_may_be_implicitly_const;
   a_boolean                      restore_this_param;
   a_type_qualifier_set           new_quals;
+  an_exception_specification_ptr orig_esp, new_esp;
 
   if (other_match != NULL) *other_match = NULL;
   /* Get the symbol list if this is an overloaded function. */
@@ -10303,8 +10304,16 @@ When templates_only is TRUE, only function templates members are considered.
       orig_rts->this_class = NULL;
       restore_this_param = TRUE;
     }  /* if */
+    /* Similarly, temporarily stash away exception specifications (this only
+       matters when exception specifications are part of the function type). */
+    orig_esp = orig_rts->exception_specification;
+    orig_rts->exception_specification = NULL;
+    new_esp = new_rts->exception_specification;
+    new_rts->exception_specification = NULL;
     match = routine_types_are_redecl_compatible(orig_type, new_type,
                                                 tcf_flags);
+    orig_rts->exception_specification = orig_esp;
+    new_rts->exception_specification = new_esp;
     if (restore_this_param) {
       /* Restore the implicit "this" parameter types in orig_type and
          new_type. */

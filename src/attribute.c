@@ -3638,35 +3638,6 @@ copy that is returned.
 }  /* copy_of_attributes_list */
 
 
-static void get_substitution_pairs_for_template_class(
-                                           a_type_ptr            class_type,
-                                           a_template_param_ptr  *p_t_params,
-                                           a_template_arg_ptr    *p_t_args)
-/*
-The given class type must have its is_template_class flag set to TRUE.  If it
-is an instance of a class template, set *p_t_params and *p_t_args to the list
-of template parameters and template arguments that determine that instance.
-Otherwise, set *p_t_params and *p_t_args to NULL.
-*/
-{
-  a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
-
-  check_assertion(class_type->variant.class_struct_union.is_template_class);
-  if (cssp->class_template != NULL) {
-    a_symbol_ptr  proto_sym = cssp->corresp_prototype_sym;
-    *p_t_args = templ_arg_list_for_class(class_type);
-    check_assertion(*p_t_args != NULL && proto_sym != NULL);
-    *p_t_params = proto_sym->variant.class_struct_union.extra_info
-                           ->template_info
-                           ->cache.decl_info
-                           ->parameters;
-  } else {
-    *p_t_args = NULL;
-    *p_t_params = NULL;
-  }  /* if */
-}  /* get_substitution_pairs_for_template_class */
-
-
 static void substitute_attribute_arg_constant(
                                            an_attribute_arg_ptr  aap,
                                            a_template_param_ptr  t_params,
@@ -3688,28 +3659,9 @@ type argument is a parameter pack).  *p_error is set to TRUE if a substitution
 error occurs.
 */
 {
-  check_assertion(aap->variant.constant->kind ==
-                                      (a_constant_repr_kind)ck_template_param);
-  if (parent_class != NULL &&
-      parent_class->variant.class_struct_union.is_template_class &&
-      !parent_class->variant.class_struct_union.is_specialized) {
-    /* If the parent class is itself a template instance (but not an explicit
-       specialization), first recursively substitute any parameters that it is
-       associated with. */
-    a_template_arg_ptr    parent_t_args = NULL;
-    a_template_param_ptr  parent_t_params;
-    get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
-                                              &parent_t_args);
-    substitute_attribute_arg_constant(aap, parent_t_params, parent_t_args,
-                                      parent_class_or_null(parent_class),
-                                      ctws_state, p_error);
-  }  /* if */
-  if (!*p_error && t_args != NULL) {
-    aap->variant.constant = copy_template_param_con_with_substitution(
-                                   aap->variant.constant, t_args, t_params,
-                                   (a_type_ptr)NULL, &aap->position,
-                                   CTWS_NO_OPTIONS, p_error, ctws_state);
-  }  /* if */
+  check_assertion(constant_is(aap->variant.constant, ck_template_param));
+  substitute_constant(&aap->variant.constant, parent_class, t_params, t_args,
+                      ctws_state, &aap->position, p_error);
 }  /* substitute_attribute_arg_constant */
 
 

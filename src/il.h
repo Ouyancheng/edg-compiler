@@ -1970,6 +1970,14 @@ extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_boolean                *copy_error,
                                  a_ctws_state_ptr         ctws_state);
 
+extern void substitute_constant(a_constant_ptr           *p_constant,
+                                a_type_ptr               parent_class,
+                                struct a_template_param  *t_params,
+                                a_template_arg_ptr       t_args,
+                                a_ctws_state             *ctws_state,
+                                a_source_position        *source_pos,
+                                a_boolean                *p_error);
+
 extern void increment_template_dependent_enum_constant(a_constant_ptr  con);
 
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);

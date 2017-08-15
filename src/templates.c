@@ -1348,6 +1348,35 @@ it is the partial specialization template argument list.
 }  /* templ_arg_list_for_class */
 
 
+void get_substitution_pairs_for_template_class(
+                                           a_type_ptr            class_type,
+                                           a_template_param_ptr  *p_t_params,
+                                           a_template_arg_ptr    *p_t_args)
+/*
+The given class type must have its is_template_class flag set to TRUE.  If it
+is an instance of a class template, set *p_t_params and *p_t_args to the list
+of template parameters and template arguments that determine that instance.
+Otherwise, set *p_t_params and *p_t_args to NULL.
+*/
+{
+  a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
+
+  check_assertion(class_type->variant.class_struct_union.is_template_class);
+  if (cssp->class_template != NULL) {
+    a_symbol_ptr  proto_sym = cssp->corresp_prototype_sym;
+    *p_t_args = templ_arg_list_for_class(class_type);
+    check_assertion(*p_t_args != NULL && proto_sym != NULL);
+    *p_t_params = proto_sym->variant.class_struct_union.extra_info
+                           ->template_info
+                           ->cache.decl_info
+                           ->parameters;
+  } else {
+    *p_t_args = NULL;
+    *p_t_params = NULL;
+  }  /* if */
+}  /* get_substitution_pairs_for_template_class */
+
+
 static void update_befriending_classes_for_class
                            (a_template_symbol_supplement_ptr tssp,
 			    a_type_ptr                       class_type)
@@ -5560,6 +5589,48 @@ template was defined in a friend declaration.
 }  /* check_for_definition_in_friend_declaration */
 
 
+static void copy_exc_spec_from_prototype_template(a_routine_ptr  proto_rp,
+                                                  a_routine_ptr  rp)
+/*
+proto_rp and rp are both prototype instantiations, but proto_rp is an instance
+of a prototype template whereas rp is an instance of a member template of a
+real class template instance.  If the prototype template includes an exception
+specification, copy it with substitutions to rp.
+*/
+{
+  a_type_ptr  proto_rtp = skip_typerefs(proto_rp->type),
+              rtp = skip_typerefs(rp->type);
+  a_routine_type_supplement_ptr
+              proto_rtsp = proto_rtp->variant.routine.extra_info,
+              rtsp = rtp->variant.routine.extra_info;
+  an_exception_specification_ptr
+              proto_esp = proto_rtsp->exception_specification,
+              esp = rtsp->exception_specification;
+
+  if (proto_esp != NULL) {
+    check_assertion(!proto_esp->arg_cached && !proto_esp->indeterminate);
+    if (esp == NULL) {
+      esp = alloc_exception_specification();
+    }  /* if */
+    *esp = *proto_esp;
+    if (proto_esp->is_noexcept) {
+      a_ctws_state  ctws_state;
+      a_boolean     err = FALSE;
+      init_ctws_state(&ctws_state);
+      substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
+                          (a_template_param_ptr)NULL,
+                          (a_template_arg_ptr)NULL,
+                          &ctws_state, &rp->source_corresp.decl_position,
+                          &err);
+    } else {
+      check_assertion(proto_esp->variant.exception_specification_type_list
+                                                                     == NULL);
+    }  /* if */
+    rtsp->exception_specification = esp;
+  }  /* if */
+}  /* copy_exc_spec_from_prototype_template */
+
+
 static
 void find_function_template_member(a_tmpl_decl_state_ptr	decl_state,
 				   a_symbol_ptr			ft_symbol)
@@ -5715,6 +5786,9 @@ supplement already associated with ft_symbol.
       rp->is_deleted = orig_rp->is_deleted;
       /* A member template cannot be "defaulted". */
       check_assertion(!orig_rp->is_defaulted);
+      if (exc_spec_in_func_type) {
+        copy_exc_spec_from_prototype_template(orig_rp, rp);
+      }  /* if */
     }
   }  /* if */
 error_exit:

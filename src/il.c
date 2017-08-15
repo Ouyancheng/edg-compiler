@@ -1197,6 +1197,13 @@ Dump the given exception specification (which may be NULL), for debug purposes.
     if (exceptions_enabled) fputs("throws any", f_debug);
   } else if (esp->is_noexcept) {
     fputs("noexcept", f_debug);
+    if (esp->indeterminate) {
+      fputs(" <indeterminate>", f_debug);
+    } else if (esp->arg_cached) {
+      fputs(" <cached>", f_debug);
+    } else {
+      db_constant(esp->variant.noexcept_arg);
+    }  /* if */
   } else if (esp->variant.exception_specification_type_list == NULL) {
     fputs("throws none", f_debug);
   } else {
@@ -18077,6 +18084,46 @@ lookup options.
   release_local_constant(&constant);
   return con_copy;
 }  /* copy_template_param_con_with_substitution */
+
+
+void substitute_constant(a_constant_ptr        *p_constant,
+                         a_type_ptr            parent_class,
+                         a_template_param_ptr  t_params,
+                         a_template_arg_ptr    t_args,
+                         a_ctws_state          *ctws_state,
+                         a_source_position     *source_pos,
+                         a_boolean             *p_error)
+/*
+Replace *p_constant by an entry in which the given template parameters have
+been replaced by the give template arguments (if any).  Furthermore, if
+parent_class (which may be NULL) is an instantiated template class of the form 
+X<A1, A2, ...>, (recursively) perform the substitutions implied by the template
+arguments A1, A2, ... first.  ctws_state points to state information for the
+substitution.  *source_pos is the position associated with the substitution.
+*p_error is set to TRUE if a substitution error occurs.
+*/
+{
+  if (parent_class != NULL &&
+      parent_class->variant.class_struct_union.is_template_class &&
+      !parent_class->variant.class_struct_union.is_specialized) {
+    /* If the parent class is itself a template instance (but not an explicit
+       specialization), first recursively substitute any parameters that it is
+       associated with. */
+    a_template_arg_ptr    parent_t_args = NULL;
+    a_template_param_ptr  parent_t_params;
+    get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
+                                              &parent_t_args);
+    substitute_constant(p_constant, parent_class_or_null(parent_class),
+                        parent_t_params, parent_t_args, ctws_state,
+                        source_pos, p_error);
+  }  /* if */
+  if (!*p_error && t_args != NULL) {
+    *p_constant = copy_template_param_con_with_substitution(
+                                        *p_constant, t_args, t_params,
+                                        (a_type_ptr)NULL, source_pos,
+                                        CTWS_NO_OPTIONS, p_error, ctws_state);
+  }  /* if */
+}  /* substitute_constant */
 
 
 void increment_template_dependent_enum_constant(a_constant_ptr  con)
