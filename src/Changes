@@ -1,5 +1,19 @@
 Version 4.14
 
+8/16/17  [EDGcpfe/18646]
+Parameter pack reference incorrectly dropped from IL
+
+Consider:
+
+  template<bool> struct X;
+  template<bool... Bs> using Y = X<((void)Bs, true)...>;
+
+Previously, the front end folded the comma expression "(void)Bs, true" to just
+"true", dropping the "(void)Bs" from the IL altogether.  That caused the C++-
+generating back end to produce incorrect code, since the pack expansion no
+longer referred to any packs.  This is now fixed.
+
+
 8/14/17  [EDGcpfe/18664]
 Constexpr interpreter: Value-initialization of empty derived class
 
