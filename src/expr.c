@@ -32342,7 +32342,7 @@ Scan a C++ lambda expression, e.g., something like
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
     err = TRUE;
   } else if (scope_stack_top().exception_specification) {
-    /* Exception specifications cannot appear in noexcept specifiers. */
+    /* A lambda is not allowed in a noexcept specifier. */
     expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
     err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
