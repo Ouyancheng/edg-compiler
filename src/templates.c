@@ -18529,14 +18529,19 @@ generated.
        namespace containing the template. */
     check_specialization_scope(template_sym, error_pos);
     /* Check for any existing instantiations.  A specialization must be
-       declared before it is used. */
+       declared before it is used.  The instantiation required count is
+       used instead of the referenced flag so that only uses that would
+       cause an instantiation are considered. */
     if (template_sym->kind == (a_symbol_kind)sk_function_template) {
       a_template_instance_ptr	tip;
       for (tip = tssp->variant.function.instantiations; tip != NULL;
            tip = tip->next) {
-        if (tip->instance_sym->referenced) {
-          pos_sy2_error(ec_specialization_of_referenced_template,
-                        error_pos, template_sym, tip->instance_sym);
+        a_master_instance_ptr	mip;
+        mip = master_instance_of(tip);
+        if (mip->instance_required_count > 0) {
+          pos_sy2_diagnostic(es_discretionary_error,
+                             ec_specialization_of_referenced_template,
+                             error_pos, template_sym, tip->instance_sym);
         }  /* if */
       }  /* for */
     } else {
@@ -18555,8 +18560,9 @@ generated.
         if (!is_nonreal_instance_class_symbol(sym) &&
             !is_incomplete_type(type_symbol_type(sym)) &&
             !is_template_instance_specific_def_symbol(sym)) {
-          pos_sy2_error(ec_specialization_of_referenced_template,
-                        error_pos, template_sym, sym);
+          pos_sy2_diagnostic(es_discretionary_error,
+                             ec_specialization_of_referenced_template,
+                             error_pos, template_sym, sym);
         }  /* if */
       }  /* for */
     }  /* if */

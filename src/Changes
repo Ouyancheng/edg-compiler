@@ -1,5 +1,23 @@
 Version 4.14
 
+8/17/17  [EDGcpfe/18678]
+Spurious error on specialization of member template
+
+The front end could issue a spurious "specialization ... must precede the
+first use" error on an explicit specialization of a member template if an
+instance of the member template was used in an unevaluated context prior
+to the specialization.  An error should only be issued if the use would
+result in the instantiation of the instance.  Now fixed.  In addition,
+the diagnostic issued for such errors has been changed to a discretionary
+error.
+
+  template <class T> struct A {
+    template <class U> static int f(U){ return 0; }
+  };
+  decltype(A<int>::f(1)) x;
+  template <> template <class U> int A<int>::f(U){ return 0; }
+
+
 8/16/17  [EDGcpfe/18646]
 Parameter pack reference incorrectly dropped from IL
 
