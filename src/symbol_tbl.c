@@ -5511,6 +5511,7 @@ table.
   tsxp = *p_tsxp;
   if (tsxp != NULL) {
     /* An existing entry should never be found. */
+    unexpected_condition();
   } else {
     tsxp = alloc_token_sequence_xref();
     tsxp->token_sequence_number = start_tsn;
@@ -5534,10 +5535,15 @@ found, or NULL if no entry is found.
   a_token_sequence_xref_ptr	*p_tsxp;
   a_token_sequence_xref		tsx_key;
   a_constexpr_if_cache_info_ptr	result = NULL;
-  a_template_decl_info_ptr	tdip;
+  a_template_decl_info_ptr	tdip = NULL;
 
-  tdip = get_curr_template_decl_info();
-  if (tdip->constexpr_if_hash_table != NULL) {
+  if (!inside_local_class) {
+    /* The mechanism to find saved constexpr if information can't be used
+       for members of local classes because of interactions with a potential
+       enclosing cache (when enclosed in a template). */
+    tdip = get_curr_template_decl_info();
+  }  /* if */
+  if (tdip != NULL && tdip->constexpr_if_hash_table != NULL) {
     tsx_key.token_sequence_number = start_tsn;
     p_tsxp = (a_token_sequence_xref_ptr*)
                              hash_find(tdip->constexpr_if_hash_table,

@@ -4109,6 +4109,9 @@ statement sequence.  The syntax is:
            prototype instantiation.  Save information about the token cache
            currently being scanned. */
         cicip_to_use = check_constexpr_if_cache_hash_table(start_tsn);
+        check_assertion(cicip_to_use == NULL ||
+                        cicip_to_use->ending_handle->token_sequence_number >
+                                                   curr_token_sequence_number);
       }  /* if */
       cip->value_known = value_known;
       cip->value = expr_is_true;
