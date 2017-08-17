@@ -16896,7 +16896,7 @@ the delete routine is ambiguous (an error will have been issued).
   a_routine_ptr delete_routine = NULL;
   a_type_ptr    class_type;
   a_symbol_ptr  delete_sym, overload_delete_sym;
-  a_boolean     is_sized_delete;
+  a_boolean     is_sized_ver;
 
   *ambiguous = FALSE;
   /* Select the delete routine that corresponds to the new routine selected. */
@@ -16930,8 +16930,8 @@ the delete routine is ambiguous (an error will have been issued).
     if (placement_new &&
         /* Is two-operand delete: */
         is_default_operator_delete(delete_routine, base_new_type,
-                                   &is_sized_delete, &is_aligned_delete) &&
-        is_sized_delete &&
+                                   &is_sized_ver, &is_aligned_delete) &&
+        is_sized_ver &&
         /* Is not a "usual deallocation function" (because the routine is a
            member of a class that has another delete as its default delete): */
         !(delete_routine->source_corresp.is_class_member &&
@@ -19917,7 +19917,7 @@ in *rcblock).
   a_dynamic_init_ptr dip;
   a_new_delete_supplement_ptr
                      rescan_ndsp, ndsp;
-  a_boolean          handle_type_case = FALSE, is_sized_delete;
+  a_boolean          handle_type_case = FALSE, is_sized_ver;
   a_boolean          is_aligned_delete = FALSE;
 
   db_enter(4, "scan_delete_operator");
@@ -20167,9 +20167,9 @@ in *rcblock).
               !delete_routine->is_inline) {
             if (sized_deallocation_enabled &&
                 is_default_operator_delete(delete_routine, base_delete_type,
-                                           &is_sized_delete,
+                                           &is_sized_ver,
                                            &is_aligned_delete) &&
-                (is_sized_delete || is_aligned_delete)) {
+                (is_sized_ver || is_aligned_delete)) {
               /* If a sized or aligned deallocation routine has been found,
                  use that. */
             } else {

@@ -1372,6 +1372,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,push_new_top_level_declaration)*/
 /*lint -esym(759,put_variable_into_comdat_group)*/
 /*lint -esym(765,put_variable_into_comdat_group)*/
+/*lint -esym(759,is_sized_delete)*/
+/*lint -esym(765,is_sized_delete)*/
 /*lint -esym(769,a_builtin_user_function_kind_tag::bufk_first)*/
 /*lint -esym(769,a_builtin_user_function_kind_tag::bufk_last)*/
 /*lint -esym(552,targ_ssize_t_int_kind)*/

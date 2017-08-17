@@ -9940,13 +9940,13 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 
 a_boolean is_default_operator_delete(a_routine_ptr routine,
                                      a_type_ptr    delete_type,
-                                     a_boolean     *is_sized_delete,
+                                     a_boolean     *is_sized_ver,
                                      a_boolean     *is_aligned_delete)
 /*
 Return TRUE if the indicated routine (an operator delete function) is a
 default operator delete function (including the variant with parameters of
 type std::size_t and/or std::align_val_t) when deleting an object of type
-delete_type.  *is_sized_delete is set to TRUE if the routine has a second
+delete_type.  *is_sized_ver is set to TRUE if the routine has a second
 parameter of type size_t and is set to FALSE otherwise. *is_aligned_delete
 is set to TRUE if the routine is one of the variants that has a parameter
 of type std::align_val_t and to FALSE otherwise.  Note that this routine
@@ -9963,7 +9963,7 @@ the two-parameter version from being a "usual deallocation function" (see
   a_param_type_ptr               ptp;
   a_boolean                      overaligned_type;
 
-  *is_sized_delete = FALSE;
+  *is_sized_ver = FALSE;
   *is_aligned_delete = FALSE;
   overaligned_type = (overaligned_allocation_enabled &&
                       delete_type->alignment > targ_default_new_alignment);
@@ -10001,13 +10001,13 @@ the two-parameter version from being a "usual deallocation function" (see
           /* operator_delete(void *, std::size_t, std::align_val_t) for an
              overaligned type is a default operator delete. */
           is_default = TRUE;
-          *is_sized_delete = TRUE;
+          *is_sized_ver = TRUE;
           *is_aligned_delete = TRUE;
         } else if (ptp->next == NULL) {
           /* operator delete(void *, std::size_t) is a default operator
              delete. */
           is_default = TRUE;
-          *is_sized_delete = TRUE;
+          *is_sized_ver = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -10034,7 +10034,7 @@ expression -- which is a pointer).  If there is an ambiguity return
   a_boolean      ambiguous_alternate = FALSE, is_class_member;
   a_symbol_ptr   fund_sym, default_sym = NULL, alternate_default_sym = NULL;
   a_routine_ptr  rp;
-  a_boolean      is_sized_delete, use_alternate = FALSE;
+  a_boolean      is_sized_ver, use_alternate = FALSE;
   a_symbol_ptr   syms[2][2] = { { NULL, NULL }, { NULL, NULL } };
   a_boolean      ambig[2][2] = { { FALSE, FALSE }, { FALSE, FALSE } };
 
@@ -10059,14 +10059,14 @@ expression -- which is a pointer).  If there is an ambiguity return
       a_boolean is_aligned_delete;
       /* See if this is a default operator delete. */
       rp = fund_sym->variant.routine.ptr;
-      if (is_default_operator_delete(rp, delete_type, &is_sized_delete,
+      if (is_default_operator_delete(rp, delete_type, &is_sized_ver,
                                      &is_aligned_delete)) {
         /* Check for ambiguity and record the symbol. */
-        if (syms[is_sized_delete][is_aligned_delete] != NULL) {
+        if (syms[is_sized_ver][is_aligned_delete] != NULL) {
           /* Already saw a symbol for this version, so it is ambiguous. */
-          ambig[is_sized_delete][is_aligned_delete] = TRUE;
+          ambig[is_sized_ver][is_aligned_delete] = TRUE;
         } else {
-          syms[is_sized_delete][is_aligned_delete] = sym;
+          syms[is_sized_ver][is_aligned_delete] = sym;
         }  /* if */
       }  /* if */
     }  /* if */

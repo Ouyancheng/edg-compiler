@@ -5260,7 +5260,7 @@ extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
 
 extern a_boolean is_default_operator_delete(a_routine_ptr routine,
                                             a_type_ptr    delete_type,
-                                            a_boolean     *is_sized_delete,
+                                            a_boolean     *is_sized_ver,
                                             a_boolean     *is_aligned_delete);
 
 extern a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,

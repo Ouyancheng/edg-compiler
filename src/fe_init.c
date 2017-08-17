@@ -323,7 +323,7 @@ std.
   a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
 
   /* Create the align_val_t type: a scoped enumeration based on size_t. */
-  type = alloc_type(tk_enum);
+  type = alloc_type((a_type_kind)tk_enum);
   type->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
   type->size = size_t_type->size;
