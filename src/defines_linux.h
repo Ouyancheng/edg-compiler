@@ -246,7 +246,7 @@ the --target option is used).
 #define TARG_DBL_MANT_DIG_linux_i686 53
 #define TARG_DBL_MAX_EXP_linux_i686 1024
 #define TARG_DBL_MIN_EXP_linux_i686 (-1021)
-#define TARG_DEFAULT_NEW_ALIGNMENT_i686 16
+#define TARG_DEFAULT_NEW_ALIGNMENT_linux_i686 16
 #define TARG_DELTA_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_DOUBLE_FIELD_ALIGNMENT_linux_i686 4
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES_linux_i686 1
@@ -567,7 +567,7 @@ the --target option is used).
 #define TARG_DBL_MANT_DIG_linux_i686 53
 #define TARG_DBL_MAX_EXP_linux_i686 1024
 #define TARG_DBL_MIN_EXP_linux_i686 (-1021)
-#define TARG_DEFAULT_NEW_ALIGNMENT_i686 16
+#define TARG_DEFAULT_NEW_ALIGNMENT_linux_i686 16
 #define TARG_DELTA_INT_KIND_linux_i686 ((an_integer_kind)ik_short)
 #define TARG_DOUBLE_FIELD_ALIGNMENT_linux_i686 4
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES_linux_i686 1
