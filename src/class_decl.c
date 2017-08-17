@@ -27740,13 +27740,16 @@ instance record associated with this instantiation.
 }  /* rescan_member_template_declaration */
 
 
-a_boolean is_two_argument_delete(a_routine_ptr delete_routine)
+a_boolean is_sized_delete(a_routine_ptr delete_routine,
+                          a_boolean     *is_aligned_delete)
 /*
-Return TRUE if the indicated delete routine is of the two-argument form
-(i.e., the one with two arguments, the second of which has type size_t).
+Return TRUE if the indicated delete routine has a second argument of type
+std::size_t.  Set *is_aligned_delete to TRUE if it has an alignment
+argument, i.e., of type std::align_val_t, following or in place of the size
+argument and FALSE otherwise..
 */
 {
-  a_boolean                     is_two_arg = FALSE;
+  a_boolean                     has_size = FALSE;
   a_routine_type_supplement_ptr delete_routine_rtsp =
                                         f_skip_typerefs(delete_routine->type)->
                                                     variant.routine.extra_info;
@@ -27754,15 +27757,25 @@ Return TRUE if the indicated delete routine is of the two-argument form
   a_type_ptr                    param_type;
 
   check_assertion(param1 != NULL);
+  *is_aligned_delete = FALSE;
   if (param1->next != NULL) {
     param_type = skip_typerefs(param1->next->type);
-    if (is_integral_type(param_type) &&
-        param_type->variant.integer.int_kind == targ_size_t_int_kind) {
-      is_two_arg = TRUE;
+    if (identical_types(param_type, type_of_align_val_t)) {
+      /* Aligned but not sized. */
+      *is_aligned_delete = TRUE;
+    } else if (is_integral_type(param_type) &&
+               param_type->variant.integer.int_kind == targ_size_t_int_kind) {
+      has_size = TRUE;
+      if (param1->next->next != NULL &&
+          identical_types(f_skip_typerefs(param1->next->next->type),
+                          type_of_align_val_t)) {
+        /* Sized and aligned. */
+        *is_aligned_delete = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-  return is_two_arg;
-}  /* is_two_argument_delete */
+  return has_size;
+}  /* is_sized_delete */
 
 
 static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
@@ -27829,10 +27842,11 @@ in the class designated by tag_sym.
         a_routine_ptr delete_routine;
         a_symbol_ptr  fund_operator_delete =
                                         fundamental_symbol_of(default_del_sym);
+        a_boolean     is_aligned_delete;
         check_assertion(fund_operator_delete->kind ==
                                             (a_symbol_kind)sk_member_function);
         delete_routine = fund_operator_delete->variant.routine.ptr;
-        if (is_two_argument_delete(delete_routine)) {
+        if (is_sized_delete(delete_routine, &is_aligned_delete)) {
           cssp->has_two_argument_operator_array_delete = TRUE;
         }  /* if */
       }  /* if */

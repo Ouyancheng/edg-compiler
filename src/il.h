@@ -162,6 +162,9 @@ EXTERN a_type_ptr
 			/* The user-visible type_info types.  The element
 			   with index tik_user has the same value as
 			   type_of_type_info. */
+EXTERN a_type_ptr
+		type_of_align_val_t;
+			/* Points to the definition of std::align_val_t. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_type_ptr

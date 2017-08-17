@@ -2913,6 +2913,16 @@ targ_maximum_intrinsic_alignment.
 #endif /* !defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT) */
 
 /*
+The alignment beyond which, in C++17 mode, new and delete expressions will
+use the versions of operator new and operator delete that have an alignment
+parameter.  This is the default value used to initialize global variable
+targ_default_new_alignment.
+*/
+#ifndef TARG_DEFAULT_NEW_ALIGNMENT
+#define TARG_DEFAULT_NEW_ALIGNMENT TARG_MAXIMUM_INTRINSIC_ALIGNMENT
+#endif /* !defined(TARG_DEFAULT_NEW_ALIGNMENT) */
+
+/*
 The maximum size a class object may have.  If TARG_MAX_CLASS_OBJECT_SIZE
 is nonzero, then it is the value to which targ_max_class_object_size is set.
 If it is zero, then targ_max_class_object_size is set to targ_size_t_max.

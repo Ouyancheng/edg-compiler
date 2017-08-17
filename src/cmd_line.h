@@ -638,6 +638,13 @@ EXTERN a_boolean
 			   allowed. */
 
 EXTERN a_boolean
+		overaligned_allocation_enabled;
+			/* TRUE if variables of types with stringent
+			   alignment requirements are to be allocated using
+			   a different operator new than those of types
+			   with fundamental alignment (a C++17 feature). */
+
+EXTERN a_boolean
 		floating_point_template_parameters_allowed;
 			/* TRUE if template parameters of floating-point type
 			   are allowed (which is nonstandard). */

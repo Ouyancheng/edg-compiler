@@ -5259,7 +5259,9 @@ extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
                                                   a_boolean    *ambiguous);
 
 extern a_boolean is_default_operator_delete(a_routine_ptr routine,
-                                            a_boolean     *is_sized_delete);
+                                            a_type_ptr    delete_type,
+                                            a_boolean     *is_sized_delete,
+                                            a_boolean     *is_aligned_delete);
 
 extern a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
                                                      a_type_ptr   delete_type,
@@ -5278,8 +5280,9 @@ extern a_symbol_ptr make_predeclared_function_symbol(
                                               a_type_ptr        rout_type);
 
 extern void make_global_operator_new_or_delete_symbol(
-                                                an_opname_kind  opname,
-                                                a_boolean       sized_version);
+                                              an_opname_kind  opname,
+                                              a_boolean       sized_version,
+                                              a_boolean       aligned_version);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

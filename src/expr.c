@@ -16922,14 +16922,15 @@ the delete routine is ambiguous (an error will have been issued).
     /* There is an appropriate operator delete. */
     a_symbol_ptr fund_delete_sym = fundamental_symbol_of(delete_sym);
     a_boolean    delete_ambiguous;
-
+    a_boolean    is_aligned_delete;
     check_assertion(fund_delete_sym->kind == (a_symbol_kind)sk_routine ||
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
     delete_routine = fund_delete_sym->variant.routine.ptr;
     if (placement_new &&
         /* Is two-operand delete: */
-        is_default_operator_delete(delete_routine, &is_sized_delete) &&
+        is_default_operator_delete(delete_routine, base_new_type,
+                                   &is_sized_delete, &is_aligned_delete) &&
         is_sized_delete &&
         /* Is not a "usual deallocation function" (because the routine is a
            member of a class that has another delete as its default delete): */
@@ -17926,6 +17927,7 @@ expression, and return the result in *result (or an error indication in
                     cssp = NULL;
   an_expr_node_ptr  new_array_dimension, sizeof_node;
   an_operand        sizeof_operand;
+  an_operand        alignment_operand;
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol = NULL, function_symbol, ctor_sym;
   a_symbol_ptr      proj_function_symbol;
@@ -17938,6 +17940,8 @@ expression, and return the result in *result (or an error indication in
   a_constant_ptr    sizeof_constant = local_constant();
   an_arg_list_elem_ptr
                     arg_list = NULL, sizeof_alep;
+  an_arg_list_elem_ptr
+                    alignment_alep = NULL;
   an_expr_node_ptr  dummy;
   a_boolean         placement_new = FALSE, array_new = FALSE;
   a_targ_size_t     effective_num_of_elements;
@@ -18609,6 +18613,27 @@ expression, and return the result in *result (or an error indication in
                            targ_size_t_int_kind);
       make_constant_operand(sizeof_constant, &sizeof_operand);
     }  /* if */
+    if (overaligned_allocation_enabled &&
+        unqual_new_type->alignment > targ_default_new_alignment) {
+      /* Create an alignment argument and add it to the placement arguments
+         (if any).  It will be removed and overload resolution retried if
+         there is no match for the argument list containing the
+         alignment. */
+      a_constant_ptr alignment_con = local_constant();
+      a_boolean      did_not_fold;
+      set_integer_constant(alignment_con,
+                           (a_host_large_integer)unqual_new_type->alignment,
+                           targ_size_t_int_kind);
+      type_change_constant(alignment_con, type_of_align_val_t,
+                           /*is_implicit_cast=*/TRUE,
+                           /*maintain_expression=*/FALSE, &did_not_fold,
+                           &type_position);
+      make_constant_operand(alignment_con, &alignment_operand);
+      alignment_alep = alloc_arg_list_elem_for_operand(&alignment_operand);
+      append_elem(alignment_alep, arg_list);
+      arg_list = alignment_alep;
+      release_local_constant(&alignment_con);
+    }  /* if */
     /* Add the sizeof operand to the front of the list of expressions
        (if any) from the "placement" option.  This gives the full set
        of arguments for the "new" function call. */
@@ -18710,9 +18735,20 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!unknown_dependent_new) {
+      a_boolean saved_supp_diags = expr_stack->suppress_diagnostics;
+      a_boolean saved_defer_access_ck = scope_stack_top().defer_access_checks;
       /* Select the proper "new" function if there are several.  Note that
          this call does not adjust the argument types or build the function
          call, since we may yet fold the call into a constructor call. */
+      if (alignment_alep != NULL) {
+        /* There is an alignment argument.  Suppress diagnostics and
+           detect access violations in case there is no matching operator
+           new and we need to repeat overload resolution without the
+           alignment argument.  A failure in overload resolution at this
+           stage is not an error. */
+        expr_stack->suppress_diagnostics = TRUE;
+        scope_stack_top().defer_access_checks = FALSE;
+      }  /* if */
       proj_function_symbol = select_overloaded_function(
                                         operator_new_symbol,
                                         /*is_template_id=*/FALSE,
@@ -18737,6 +18773,39 @@ expression, and return the result in *result (or an error indication in
                                         (a_boolean *)NULL,
                                         (a_symbol_ptr *)NULL,
                                         &arg_match_list);
+      /* Restore diagnostics and access checking to their previous
+         state.. */
+      expr_stack->suppress_diagnostics = saved_supp_diags;
+      scope_stack_top().defer_access_checks = saved_defer_access_ck;
+      if (proj_function_symbol == NULL && alignment_alep != NULL) {
+        /* Try overload resolution again without the alignment argument. */
+        arg_list->next = alignment_alep->next;
+        alignment_alep = NULL;
+        proj_function_symbol = select_overloaded_function(
+                                        operator_new_symbol,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/FALSE,
+                                        (an_operand *)NULL,
+                                        arg_list,
+                                        (an_arg_list_elem *)NULL,
+                                        /*effects_direct_initialization=*/TRUE,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_pure_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        force_dependent,
+                                        ec_no_matching_new_function,
+                                        ec_ambiguous_overloaded_function,
+                                        ec_undefined_identifier,
+                                        &new_position,
+                                        (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
+                                        (a_boolean *)NULL,
+                                        &unknown_dependent_new,
+                                        (a_boolean *)NULL,
+                                        (a_symbol_ptr *)NULL,
+                                        &arg_match_list);
+      }  /* if */
       if (proj_function_symbol != NULL) {
         function_symbol = fundamental_symbol_of(proj_function_symbol);
       } else {
@@ -19632,6 +19701,7 @@ handle_empty_parens_new_initializer:
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
     ndsp->placement_new = placement_new;
+    ndsp->aligned_version = alignment_alep != NULL;
     ndsp->global_new_or_delete = use_global_new;
     ndsp->has_new_initializer = has_new_initializer;
     ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
@@ -19848,6 +19918,7 @@ in *rcblock).
   a_new_delete_supplement_ptr
                      rescan_ndsp, ndsp;
   a_boolean          handle_type_case = FALSE, is_sized_delete;
+  a_boolean          is_aligned_delete = FALSE;
 
   db_enter(4, "scan_delete_operator");
 
@@ -20095,9 +20166,12 @@ in *rcblock).
                  inline. */
               !delete_routine->is_inline) {
             if (sized_deallocation_enabled &&
-                is_default_operator_delete(delete_routine, &is_sized_delete) &&
-                is_sized_delete) {
-              /* If a sized deallocation routine has been found, use that. */
+                is_default_operator_delete(delete_routine, base_delete_type,
+                                           &is_sized_delete,
+                                           &is_aligned_delete) &&
+                (is_sized_delete || is_aligned_delete)) {
+              /* If a sized or aligned deallocation routine has been found,
+                 use that. */
             } else {
               /* Use the default delete routine. */
               delete_routine = NULL;
@@ -20149,6 +20223,7 @@ in *rcblock).
         delete_routine->called = TRUE;
       }  /* if */
       ndsp->routine = delete_routine;
+      ndsp->aligned_version = is_aligned_delete;
     }  /* if */    
     record_operator_position_in_expr_rescan_info(delete_node, &start_position,
                                                  NO_TOKEN_SEQUENCE_NUMBER,

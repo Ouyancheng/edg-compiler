@@ -220,7 +220,8 @@ extern a_boolean microsoft_routine_def_is_unmovable(a_boolean
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
+extern a_boolean is_sized_delete(a_routine_ptr delete_routine,
+                                 a_boolean     *is_aligned_delete);
 
 extern void abstract_class_diagnostic(an_error_severity  severity,
                                       an_error_code      error_code,

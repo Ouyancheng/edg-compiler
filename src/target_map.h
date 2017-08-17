@@ -147,6 +147,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_DBL_MANT_DIG, targ_dbl_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_DBL_MAX_EXP, targ_dbl_max_exp, _TC)
   TARGET_MAP_MACRO(TARG_DBL_MIN_EXP, targ_dbl_min_exp, _TC)
+  TARGET_MAP_MACRO(TARG_DEFAULT_NEW_ALIGNMENT, targ_default_new_alignment, _TC)
 #if DO_IL_LOWERING
   TARGET_MAP_MACRO(TARG_DELTA_INT_KIND, targ_delta_int_kind, _TC)
 #endif /* DO_IL_LOWERING */

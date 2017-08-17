@@ -9933,26 +9933,34 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 
 
 a_boolean is_default_operator_delete(a_routine_ptr routine,
-                                     a_boolean     *is_sized_delete)
+                                     a_type_ptr    delete_type,
+                                     a_boolean     *is_sized_delete,
+                                     a_boolean     *is_aligned_delete)
 /*
-Return TRUE if the indicated routine (an operator delete function) is
-a default operator delete function (including the variant with
-a second parameter of type size_t).  *is_sized_delete is set to TRUE
-if the routine is of the two-parameter variety (i.e., has a
-second parameter of type size_t) and is set to FALSE otherwise.
-Note that this routine does not report whether the routine is a "usual
-deallocation function" -- only that it is a candidate to be one.  In
-particular, this routine will return TRUE for a two-parameter class
-member operator delete, but the presence of a one-parameter class
-member operator delete would disqualify the two-parameter version from
-being a "usual deallocation function" (see [basic.stc.dynamic.deallocation]).
+Return TRUE if the indicated routine (an operator delete function) is a
+default operator delete function (including the variant with parameters of
+type std::size_t and/or std::align_val_t) when deleting an object of type
+delete_type.  *is_sized_delete is set to TRUE if the routine has a second
+parameter of type size_t and is set to FALSE otherwise. *is_aligned_delete
+is set to TRUE if the routine is one of the variants that has a parameter
+of type std::align_val_t and to FALSE otherwise.  Note that this routine
+does not report whether the routine is a "usual deallocation function" --
+only that it is a candidate to be one.  In particular, this routine will
+return TRUE for a two-parameter class member operator delete, but the
+presence of a one-parameter class member operator delete would disqualify
+the two-parameter version from being a "usual deallocation function" (see
+[basic.stc.dynamic.deallocation]).
 */
 {
   a_boolean                      is_default = FALSE;
   a_routine_type_supplement_ptr  rtsp;
   a_param_type_ptr               ptp;
+  a_boolean                      overaligned_type;
 
   *is_sized_delete = FALSE;
+  *is_aligned_delete = FALSE;
+  overaligned_type = (overaligned_allocation_enabled &&
+                      delete_type->alignment > targ_default_new_alignment);
   rtsp = skip_typerefs(routine->type)->variant.routine.extra_info;
   if (rtsp->has_ellipsis) {
     /* An operator delete declared with ellipsis can't be a default operator
@@ -9960,22 +9968,38 @@ being a "usual deallocation function" (see [basic.stc.dynamic.deallocation]).
   } else {
     ptp = rtsp->param_type_list;
     check_assertion(ptp != NULL);
-    if (ptp->next == NULL) {
-      /* operator delete(void *), a default operator delete. */
+    if (ptp->next != NULL && overaligned_type &&
+        identical_types(ptp->next->type, type_of_align_val_t) &&
+        ptp->next->next == NULL) {
+      /* operator delete(void *, std::align_val_t) for an overaligned
+         type is a default operator delete. */
+      is_default = TRUE;
+      *is_aligned_delete = TRUE;
+    } else if (ptp->next == NULL) {
+      /* operator delete(void *) is a default operator delete. */
       is_default = TRUE;
     } else if (routine->source_corresp.is_class_member ||
                (sized_deallocation_enabled &&
                 !is_class_or_namespace_member(routine))) {
+      a_type_ptr param_type;
       /* Look for a class member operator delete with a second parameter of
          type size_t, or, in C++14 mode, a global operator delete with a
          second parameter of type size_t. */
       ptp = ptp->next;
-      if (ptp->next == NULL) {
-        /* The function has two parameters. */
-        a_type_ptr param_type = skip_typerefs(ptp->type);
-        if (is_integral_type(param_type) &&
-            param_type->variant.integer.int_kind == targ_size_t_int_kind) {
-          /* operator delete(void *, size_t), a default operator delete. */
+      param_type = skip_typerefs(ptp->type);
+      if (is_integral_type(param_type) &&
+          param_type->variant.integer.int_kind == targ_size_t_int_kind) {
+        if (ptp->next != NULL && overaligned_type &&
+            identical_types(ptp->next->type, type_of_align_val_t) &&
+            ptp->next->next == NULL) {
+          /* operator_delete(void *, std::size_t, std::align_val_t) for an
+             overaligned type is a default operator delete. */
+          is_default = TRUE;
+          *is_sized_delete = TRUE;
+          *is_aligned_delete = TRUE;
+        } else if (ptp->next == NULL) {
+          /* operator delete(void *, std::size_t) is a default operator
+             delete. */
           is_default = TRUE;
           *is_sized_delete = TRUE;
         }  /* if */
@@ -9991,11 +10015,11 @@ a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
                                               a_boolean    *ambiguous)
 /*
 Given the symbol for an operator delete() (which may be overloaded and/or
-be a projection symbol), find the default version (which may be the
-single-argument or two-argument version) and return a pointer to its symbol
-(which may be a projection symbol), or NULL if it is not found or there is an
-ambiguity.  delete_type is the type of the object being deleted (not the
-delete expression -- which is a pointer).  If there is an ambiguity return
+be a projection symbol), find the default version (which may be the sized
+and/or aligned version) and return a pointer to its symbol (which may be a
+projection symbol), or NULL if it is not found or there is an ambiguity.
+delete_type is the type of the object being deleted (not the delete
+expression -- which is a pointer).  If there is an ambiguity return
 *ambiguous set to TRUE.
 */
 {
@@ -10005,6 +10029,8 @@ delete expression -- which is a pointer).  If there is an ambiguity return
   a_symbol_ptr   fund_sym, default_sym = NULL, alternate_default_sym = NULL;
   a_routine_ptr  rp;
   a_boolean      is_sized_delete, use_alternate = FALSE;
+  a_symbol_ptr   syms[2][2] = { { NULL, NULL }, { NULL, NULL } };
+  a_boolean      ambig[2][2] = { { FALSE, FALSE }, { FALSE, FALSE } };
 
   *ambiguous = FALSE;
   is_class_member = sym->is_class_member;
@@ -10024,47 +10050,47 @@ delete expression -- which is a pointer).  If there is an ambiguity return
     }  /* if */
     /* Ignore function templates. */
     if (is_function_symbol(fund_sym)) {
+      a_boolean is_aligned_delete;
       /* See if this is a default operator delete. */
       rp = fund_sym->variant.routine.ptr;
-      if (is_default_operator_delete(rp, &is_sized_delete)) {
-        /* This is a default operator delete.  See whether it is the single-
-           parameter version or the two-parameter version. */
-        if (!is_sized_delete) {
-          /* "operator delete(void *)" is always the default version. */
-          if (default_sym == NULL) {
-            default_sym = sym;
-            /* Keep looping in case there's an ambiguity. */
-          } else {
-            /* Ambiguities can be introduced into the overload set by using-
-               declarations. */
-            *ambiguous = TRUE;
-            break;
-          }  /* if */
+      if (is_default_operator_delete(rp, delete_type, &is_sized_delete,
+                                     &is_aligned_delete)) {
+        /* Check for ambiguity and record the symbol. */
+        if (syms[is_sized_delete][is_aligned_delete] != NULL) {
+          /* Already saw a symbol for this version, so it is ambiguous. */
+          ambig[is_sized_delete][is_aligned_delete] = TRUE;
         } else {
-          /* "operator delete(void *, size_t)" is the default version
-              unless "operator delete(void *)" also appears in the overload
-              set (WP 3.7.3.2).  Keep looking. */
-          if (alternate_default_sym == NULL) {
-            alternate_default_sym = sym;
-          } else {
-            /* Ambiguities can be introduced into the overload set by using-
-               declarations. */
-            ambiguous_alternate = TRUE;
-          }  /* if */
+          syms[is_sized_delete][is_aligned_delete] = sym;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
+  if (syms[0][1] != NULL || syms[1][1] != NULL) {
+    /* An aligned delete was seen; ignore any non-aligned delete
+       functions.  (Note that is_default_operator_delete will only have
+       returned TRUE for an aligned version if delete_type has
+       new-extended alignment.) */
+    default_sym = syms[0][1];
+    *ambiguous = ambig[0][1];
+    alternate_default_sym = syms[1][1];
+    ambiguous_alternate = ambig[1][1];
+  } else {
+    /* No aligned delete was seen; use the non-aligned delete functions. */
+    default_sym = syms[0][0];
+    *ambiguous = ambig[0][0];
+    alternate_default_sym = syms[1][0];
+    ambiguous_alternate = ambig[1][0];
+  }  /* if */
   if (*ambiguous) {
     default_sym = NULL;
   } else if (alternate_default_sym != NULL && default_sym != NULL &&
              sized_deallocation_enabled && !is_class_member &&
              !is_incomplete_type(delete_type)) {
-    /* If a two-parameter usual deallocation function is found as well as
-       a single-parameter usual deallocation function, use the two-parameter
-       version (but do this only for the global versions -- when both
-       default versions are present in a class the two-parameter version
-       is not considered a "usual deallocation function"). */
+    /* If a sized usual deallocation function is found as well as an
+       unsized usual deallocation function, use the sized version (but do
+       this only for the global versions -- when both default versions are
+       present in a class the sized version is not considered a "usual
+       deallocation function"). */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     check_assertion(alternate_default_sym->kind == (a_symbol_kind)sk_routine &&
                     alternate_default_sym->variant.routine.ptr->special_kind ==
@@ -10357,19 +10383,22 @@ associated function type and must be a tk_routine entry (i.e., not a typeref).
 
 
 void make_global_operator_new_or_delete_symbol(an_opname_kind  opname,
-                                               a_boolean       sized_version)
+                                               a_boolean       sized_version,
+                                               a_boolean       aligned_version)
 /*
 Create a symbol and routine entry for ::operator new, ::operator new[],
-::operator delete, or ::operator delete[].  When sized_version is TRUE
-(for operator delete only), a second argument, of type size_t, is added.
-These are entered into the symbol table as part of initialization, so the
-locator has a default value (as used with keywords).  The routine entry is
-marked as compiler generated; if a user declaration appears later, the
-compiler-generated flag should be cleared.
+::operator delete, or ::operator delete[].  When sized_version is TRUE (for
+operator delete only), a second argument, of type size_t, is added.  When
+aligned_version is TRUE, a version that takes a std::align_val_t argument
+is added.  These are entered into the symbol table as part of
+initialization, so the locator has a default value (as used with keywords).
+The routine entry is marked as compiler generated; if a user declaration
+appears later, the compiler-generated flag should be cleared.
 */
 {
   a_symbol_locator               locator;
   a_type_ptr                     return_type, param1_type, param2_type = NULL;
+  a_type_ptr                     param3_type = NULL;
   a_symbol_ptr                   sym;
   a_routine_type_supplement_ptr  rtsp;
 
@@ -10385,6 +10414,9 @@ compiler-generated flag should be cleared.
     return_type = make_pointer_type(void_type());
     /* Type of the one parameter for operator new is size_t. */
     param1_type = integer_type(targ_size_t_int_kind);
+    if (aligned_version) {
+      param2_type = type_of_align_val_t;
+    }  /* if */
   } else {
     /* Return type of operator delete is void. */
     return_type = void_type();
@@ -10394,6 +10426,11 @@ compiler-generated flag should be cleared.
       /* Global sized deallocation routines take a second parameter of type
          size_t. */
       param2_type = integer_type(targ_size_t_int_kind);
+      if (aligned_version) {
+        param3_type = type_of_align_val_t;
+      }  /* if */
+    } else if (aligned_version) {
+      param2_type = type_of_align_val_t;
     }  /* if */
   }  /* if */
   /* In Microsoft mode, array versions of the operators are never directly
@@ -10406,13 +10443,14 @@ compiler-generated flag should be cleared.
   sym = make_predeclared_function_symbol(
                  &locator,
                  make_routine_type(return_type, param1_type, param2_type,
-                                   (a_type_ptr)NULL, (a_type_ptr)NULL));
+                                   param3_type, (a_type_ptr)NULL));
   if (microsoft_mode) {
     if (microsoft_version >= 1400 && !sized_version) {
       /* More recent Microsoft compilers treat the implicit declaration of
          array new and array delete as synonyms for the corresponding non-
-         array versions.  A user declaration of these functions does declare
-         a distinct routine, however.  Sized versions don't get an alias. */
+         array versions.  A user declaration of these functions does
+         declare a distinct routine, however.  Sized and aligned versions
+         don't get an alias. */
       a_symbol_ptr  av_sym;
       if (opname == (an_opname_kind)onk_new) {
         make_opname_locator((an_opname_kind)onk_array_new, &locator,

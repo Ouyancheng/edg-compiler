@@ -2597,6 +2597,7 @@ option values if they were not already set by a command line option.
           if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
             exc_spec_in_func_type = TRUE;
           }  /* if */
+          overaligned_allocation_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3388,6 +3389,7 @@ default mode (e.g., exception handling).
           !option_kind_used[(int)optk_exc_spec_in_func_type]) {
         exc_spec_in_func_type = TRUE;
       }  /* if */
+      overaligned_allocation_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -7968,6 +7970,11 @@ file.
 #else /* !defined(TARG_DBL_MIN_EXP) */
   comment_undefined_macro_name(TARG_DBL_MIN_EXP);
 #endif /* defined(TARG_DBL_MIN_EXP) */
+#if defined(TARG_DEFAULT_NEW_ALIGNMENT)
+  define_numeric_valued_macro(TARG_DEFAULT_NEW_ALIGNMENT)
+#else /* !defined(TARG_DEFAULT_NEW_ALIGNMENT) */
+  comment_undefined_macro_name(TARG_DEFAULT_NEW_ALIGNMENT)
+#endif /* defined(TARG_DEFAULT_NEW_ALIGNMENT) */
 #if defined(TARG_DELTA_INT_KIND)
   define_string_valued_macro(TARG_DELTA_INT_KIND);
 #else /* !defined(TARG_DELTA_INT_KIND) */
@@ -11196,6 +11203,7 @@ variables declared in cmd_line.h.
   implicit_typename_enabled = DEFAULT_IMPLICIT_TYPENAME_ENABLED;
   extern_inline_allowed = DEFAULT_EXTERN_INLINE_ALLOWED;
   inline_variables_allowed = FALSE;
+  overaligned_allocation_enabled = FALSE;
   floating_point_template_parameters_allowed =
                             DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED;
   vla_enabled = DEFAULT_VLA_ENABLED;

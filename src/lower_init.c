@@ -3325,6 +3325,7 @@ IA-64 ABI; see comments below.
 #endif /* !IA64_ABI */
   } else {
     a_boolean is_two_arg_delete;
+    a_boolean is_aligned_delete;
     /* A special new or delete routine must be used.  The call looks like
          __array_new(num_elems, size_elem, ctor_routine,
                      dtor_routine, new_routine, delete_routine, is_two_arg)
@@ -3343,8 +3344,9 @@ IA-64 ABI; see comments below.
        The latter is for the two-argument delete case. */
     check_assertion(entity_node == NULL);
     dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
+    /* FIXME: handle aligned delete case. */
     is_two_arg_delete = (delete_routine != NULL &&
-                         is_two_argument_delete(delete_routine));
+                         is_sized_delete(delete_routine, &is_aligned_delete));
 #if !IA64_ABI
     is_two_arg_node = node_for_integer_constant((long)is_two_arg_delete,
                                                 (an_integer_kind)ik_int);
@@ -3698,6 +3700,7 @@ A pointer to the expression created is returned.
                                          integer_type((an_integer_kind)ik_int),
                                          NULL, arg_expr_list);
   } else {
+    a_boolean is_aligned_delete;
     /* There's a special delete routine, so use the call
        __array_delete(entity_node, num_elems, size_elem, dtor_addr_node,
                       delete_routine, is_two_arg)
@@ -3705,8 +3708,10 @@ A pointer to the expression created is returned.
        routine, 0 otherwise.
     */
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
+    /* FIXME: handle aligned delete. */
     is_two_arg_node = node_for_integer_constant(
-                              is_two_argument_delete(delete_routine) ? 1L : 0L,
+                              is_sized_delete(delete_routine,
+                                              &is_aligned_delete) ? 1L : 0L,
                               (an_integer_kind)ik_int);
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
@@ -3768,9 +3773,11 @@ A pointer to the expression created is returned.
                                                     NULL, NULL, arg_expr_list);
     }  /* if */
   } else {
+    a_boolean is_aligned_delete;
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     check_assertion(num_elem_node == NULL && free_storage);
-    if (is_two_argument_delete(delete_routine)) {
+    /* FIXME: handle aligned delete. */
+    if (is_sized_delete(delete_routine, &is_aligned_delete)) {
       /* The call looks like
            __cxa_vec_delete3(entity_node, size_elem, padding, dtor_addr_node,
                              delete_routine)
@@ -11162,6 +11169,7 @@ as well as any additional code needed to process the deletion.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
+  a_boolean          is_aligned_delete;
 
   check_assertion(is_expr_insert_location(insert_location));
   if (dyn_init_to_free_storage != NULL) {
@@ -11202,7 +11210,9 @@ as well as any additional code needed to process the deletion.
         /* Put a pointer to the allocated storage on the front of the argument
            list for the delete routine.  Add any placement delete args if
            necessary. */
-        if (is_two_argument_delete(dyn_init_to_free_storage->destructor) &&
+        /* FIXME: handle aligned delete. */
+        if (is_sized_delete(dyn_init_to_free_storage->destructor,
+                            &is_aligned_delete) &&
             delete_args == NULL) {
           /* If a sized deallocation function is used, copy the size argument
              that was used for the new operation. */
@@ -11305,6 +11315,10 @@ treat it as a placement new.  See core issue 127.
   if (!ndsp->placement_new && ndsp->routine != NULL) {
     a_param_type_ptr params =
                           unlowered_param_type_list_for_routine(ndsp->routine);
+    if (ndsp->aligned_version && params != NULL) {
+      /* Skip over the alignment parameter. */
+      params = params->next;
+    }  /* if */
     if (params != NULL && params->next != NULL) {
       check_assertion_str(params->next->has_default_arg,
                           "placement_new not set but more than one arg");
@@ -11574,18 +11588,36 @@ delete routine.
 */
 {
   an_expr_node_ptr second_arg_node;
+  an_expr_node_ptr third_arg_node;
+  a_boolean        is_aligned_delete;
 
+  delete_type = skip_typerefs(delete_type);
   /* Cast the argument to "void *", which is what the delete routine
      expects. */
   arg_node = add_cast_if_necessary(arg_node, void_star_type());
-  /* If the delete routine is one with two arguments, pass the size
-     of the entity as the second argument. */
-  if (is_two_argument_delete(delete_routine)) {
-    /* Two-argument form.  Add a second argument of type size_t that
-       indicates the (static) size of the object. */
+  /* If the delete routine is sized, pass the size of the entity as the
+     second argument. */
+  if (is_sized_delete(delete_routine, &is_aligned_delete)) {
+    /* Sized form.  Add a second argument of type size_t that indicates the
+       (static) size of the object. */
     second_arg_node = node_for_host_large_integer(
-                    (a_host_large_integer)(f_skip_typerefs(delete_type)->size),
-                    targ_size_t_int_kind);
+                                       (a_host_large_integer)delete_type->size,
+                                       targ_size_t_int_kind);
+    arg_node->next = second_arg_node;
+    if (is_aligned_delete) {
+      /* Aligned form.  Add a third argument of type size_t that indicates
+         the alignment of the argument. */
+      third_arg_node = node_for_host_large_integer(
+                                  (a_host_large_integer)delete_type->alignment,
+                                  targ_size_t_int_kind);
+      second_arg_node->next = third_arg_node;
+    }  /* if */
+  } else if (is_aligned_delete) {
+    /* Aligned form.  Add a second argument of type size_t that indicates
+       the alignment of the argument. */
+    second_arg_node = node_for_host_large_integer(
+                                  (a_host_large_integer)delete_type->alignment,
+                                  targ_size_t_int_kind);
     arg_node->next = second_arg_node;
   }  /* if */
   return arg_node;

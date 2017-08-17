@@ -12855,6 +12855,8 @@ typedef struct a_new_delete_supplement {
 			/* TRUE for new, FALSE for delete. */
   a_bit_field	placement_new:1;
 			/* TRUE for a "placement" new. */
+  a_bit_field	aligned_version:1;
+			/* TRUE if an alignment argument is present. */
   a_bit_field	array_delete:1;
 			/* TRUE if this is an array delete. */
   a_bit_field	global_new_or_delete:1;
@@ -12882,8 +12884,8 @@ typedef struct a_new_delete_supplement {
 			   deallocation (delete).  Can be NULL for a
 			   template-dependent "new" in a prototype
 			   instantiation and for delete of a C++/CLI
-			   handle.  Non-NULL when a global sized deallocation
-			   routine is to be used. */
+			   handle.  Non-NULL when a global sized or any
+			   aligned deallocation routine is to be used. */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
 			/* NULL if the new or delete is for an array whose
 			   elements are a class type with a constructor or

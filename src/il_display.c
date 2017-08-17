@@ -4046,6 +4046,7 @@ Display the indicated new/delete supplement to an expression node.
 {
   disp_boolean("is_new", (a_boolean)ndsp->is_new);
   disp_boolean("placement_new", (a_boolean)ndsp->placement_new);
+  disp_boolean("aligned_version", (a_boolean)ndsp->aligned_version);
   disp_boolean("array_delete", (a_boolean)ndsp->array_delete);
   disp_boolean("global_new_or_delete", (a_boolean)ndsp->global_new_or_delete);
   disp_boolean("has_new_initializer", (a_boolean)ndsp->has_new_initializer);

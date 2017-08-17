@@ -309,6 +309,47 @@ Do required initialization for host-dependent things.
 }  /* host_init */
 
 
+static a_type_ptr make_and_enter_align_val_type(void)
+/*
+Create a symbol and type for std::align_val_t and enter it into namespace
+std.
+*/
+{
+  a_type_ptr       type;
+  a_symbol_locator loc;
+  a_symbol_ptr     sym;
+  a_const_char     *name = "align_val_t";
+  a_namespace_ptr  std_namespace;
+  a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
+
+  /* Create the align_val_t type: a scoped enumeration based on size_t. */
+  type = alloc_type(tk_enum);
+  type->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+  type->size = size_t_type->size;
+  type->variant.integer.int_kind = targ_size_t_int_kind;
+  type->variant.integer.enum_type = TRUE;
+  type->variant.integer.is_scoped_enum = TRUE;
+  type->variant.integer.has_explicit_enum_base = TRUE;
+  type->variant.integer.extra_info->base_type = size_t_type;
+  /* Create a symbol for align_val_t. */
+  clear_locator(&loc, &null_source_position);
+  (void) find_symbol(name, (sizeof_t)strlen(name), &loc);
+  sym = alloc_symbol(sk_enum_tag, loc.symbol_header, &null_source_position);
+  set_source_corresp(&type->source_corresp, sym);
+  sym->variant.enumeration.type = type;
+  /* Add the type to namespace std. */
+  std_namespace = symbol_for_namespace_std->variant.namespace_info.ptr;
+  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                             std_namespace);
+  enter_predeclared_class(type, depth_scope_stack, &null_source_position);
+  pop_namespace_scope();
+  /* Make sure it cannot be used until actually declared. */
+  sym->defined = FALSE;
+  return type;
+}  /* make_and_enter_align_val_type */
+
+
 static void predeclare_entities(void)
 /*
 Several modes "pre-declare" various entities.  For example, in C++ mode,
@@ -405,30 +446,68 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    if (overaligned_allocation_enabled) {
+      /* Create the symbol and type for std::align_val_t. */
+      type_of_align_val_t = make_and_enter_align_val_type();
+    }  /* if */
     /* Add symbols for ::operator new and ::operator delete to the symbol
        table.  This is delayed till now (rather than done with other symbol
        table initialization) because routine entries are also created. */
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new,
-                                              /*sized_version=*/FALSE);
+                                              /*sized_version=*/FALSE,
+                                              /*aligned_version=*/FALSE);
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete,
-                                              /*sized_version=*/FALSE);
+                                              /*sized_version=*/FALSE,
+                                              /*aligned_version=*/FALSE);
     if (sized_deallocation_enabled) {
       make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete,
-                                                /*sized_version=*/TRUE);
+                                                /*sized_version=*/TRUE,
+                                                /*aligned_version=*/FALSE);
+      if (overaligned_allocation_enabled) {
+        /* Add the aligned versions of both allocation and deallocation
+           functions (which are only enabled when sized deallocation
+           support is enabled). */
+        make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new,
+                                                  /*sized_version=*/FALSE,
+                                                  /*aligned_version=*/TRUE);
+        make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete,
+                                                  /*sized_version=*/TRUE,
+                                                  /*aligned_version=*/TRUE);
+        make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete,
+                                                  /*sized_version=*/FALSE,
+                                                  /*aligned_version=*/TRUE);
+      }  /* if */
     }  /* if */
     if (!ms_extensions && array_new_and_delete_enabled) {
       /* Add symbols for the array versions, too.  (Although this is not done
          explicitly in Microsoft mode, the symbols are sometimes created
          implicitly when the corresponding non-array versions are created.) */
       make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new,
-                                                /*sized_version=*/FALSE);
+                                                /*sized_version=*/FALSE,
+                                                /*aligned_version=*/FALSE);
       make_global_operator_new_or_delete_symbol(
                                              (an_opname_kind)onk_array_delete,
-                                             /*sized_version=*/FALSE);
+                                             /*sized_version=*/FALSE,
+                                             /*aligned_version=*/FALSE);
       if (sized_deallocation_enabled) {
         make_global_operator_new_or_delete_symbol(
                                              (an_opname_kind)onk_array_delete,
-                                             /*sized_version=*/TRUE);
+                                             /*sized_version=*/TRUE,
+                                             /*aligned_version=*/FALSE);
+        if (overaligned_allocation_enabled) {
+          make_global_operator_new_or_delete_symbol(
+                                                 (an_opname_kind)onk_array_new,
+                                                 /*sized_version=*/FALSE,
+                                                 /*aligned_version=*/TRUE);
+          make_global_operator_new_or_delete_symbol(
+                                              (an_opname_kind)onk_array_delete,
+                                              /*sized_version=*/TRUE,
+                                              /*aligned_version=*/TRUE);
+          make_global_operator_new_or_delete_symbol(
+                                              (an_opname_kind)onk_array_delete,
+                                              /*sized_version=*/FALSE,
+                                              /*aligned_version=*/TRUE);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

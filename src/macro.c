@@ -10433,6 +10433,13 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 #endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
+  if (overaligned_allocation_enabled) {
+    char val[64];
+    (void)sprintf(val, "%lu", (unsigned long)targ_default_new_alignment);
+    (void)enter_predef_macro(val, "__STDCPP_DEFAULT_NEW_ALIGNMENT__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   if (constexpr_enabled) {
     /* Define a fixed macro (not configurable since it is used by the
        EDG-provided <initializer_list> header) indicating whether support for

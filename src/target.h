@@ -794,6 +794,16 @@ EXTERN a_targ_alignment
 			   take advantage of.  Initialized to the default
 			   value but reconfigurable. */
 
+EXTERN a_targ_alignment
+		targ_default_new_alignment;
+			/* In C++17 mode, the alignment beyond which new
+			   and delete expressions will use the versions of
+			   allocation and deallocation functions with an
+			   alignment parameter; also, the value of the
+			   __STDCPP_DEFAULT_NEW_ALIGNMENT__ predefined
+			   macro.  Initialized to the default value but
+			   reconfigurable. */
+
 EXTERN a_boolean
 		distinct_template_signatures;
 			/* If TRUE, template functions are given mangled names
@@ -1310,6 +1320,7 @@ EXTERN an_integer_kind
 #undef TARG_LONG_FIELD_ALIGNMENT
 #undef TARG_LONG_LONG_FIELD_ALIGNMENT
 #undef TARG_MAXIMUM_INTRINSIC_ALIGNMENT
+#undef TARG_DEFAULT_NEW_ALIGNMENT
 #undef TARG_MAXIMUM_PACK_ALIGNMENT
 #undef TARG_SHORT_FIELD_ALIGNMENT
 #undef TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE

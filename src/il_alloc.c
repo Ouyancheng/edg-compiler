@@ -3378,6 +3378,7 @@ fields to default values.
 #endif /* DEBUG */
       ndsp->is_new                          = TRUE;
       ndsp->placement_new                   = FALSE;
+      ndsp->aligned_version                 = FALSE;
       ndsp->array_delete                    = FALSE;
       ndsp->global_new_or_delete            = FALSE;
       ndsp->has_new_initializer             = FALSE;
