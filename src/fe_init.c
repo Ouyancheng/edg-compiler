@@ -335,7 +335,8 @@ std.
   /* Create a symbol for align_val_t. */
   clear_locator(&loc, &null_source_position);
   (void) find_symbol(name, (sizeof_t)strlen(name), &loc);
-  sym = alloc_symbol(sk_enum_tag, loc.symbol_header, &null_source_position);
+  sym = alloc_symbol((a_symbol_kind)sk_enum_tag, loc.symbol_header,
+                     &null_source_position);
   set_source_corresp(&type->source_corresp, sym);
   sym->variant.enumeration.type = type;
   /* Add the type to namespace std. */
