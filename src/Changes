@@ -1,5 +1,25 @@
 Version 4.14
 
+8/17/17  [EDGcpfe/17696]
+C++17: overaligned storage allocation
+
+In C++17 mode, the front end now supports extended-alignment storage
+allocation as described in Committee document P0035R4.  In particular, the
+type std::align_val_t is predeclared (but not visible to user code until
+explicitly declared), along with overloads for the standard allocation and
+deallocation functions, to support allocation and freeing of objects with
+more stringent alignment requirements than fundamental alignments, and the
+predefined macro __STDCPP_DEFAULT_NEW_ALIGNMENT__ is also defined to the
+value of the configuration macro TARG_DEFAULT_NEW_ALIGNMENT.  Allocation
+and deallocation requests for types whose alignment is greater than this
+value will result in calls to the appropriate function with a parameter of
+type std::align_val_t.  For example, with --c++17 (and configured with
+TARG_DEFAULT_NEW_ALIGNMENT set to 16):
+
+  struct alignas(64) S { int j; };
+  S *p = new S;  // Calls operator new(std::sizeof, std::align_val_t)
+
+
 8/17/17  [EDGcpfe/18678]
 Spurious error on specialization of member template
 
