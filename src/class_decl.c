@@ -27765,12 +27765,13 @@ argument and FALSE otherwise..
       *is_aligned_delete = TRUE;
     } else if (is_integral_type(param_type) &&
                param_type->variant.integer.int_kind == targ_size_t_int_kind) {
-      a_type_ptr param3_type = skip_typerefs(param1->next->next->type);
       has_size = TRUE;
-      if (param1->next->next != NULL &&
-          identical_types(param3_type, type_of_align_val_t)) {
-        /* Sized and aligned. */
-        *is_aligned_delete = TRUE;
+      if (param1->next->next != NULL) {
+        a_type_ptr param3_type = skip_typerefs(param1->next->next->type);
+        if (identical_types(param3_type, type_of_align_val_t)) {
+          /* Sized and aligned. */
+          *is_aligned_delete = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
