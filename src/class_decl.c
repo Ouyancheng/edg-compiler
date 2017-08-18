@@ -27760,7 +27760,8 @@ argument and FALSE otherwise..
   *is_aligned_delete = FALSE;
   if (param1->next != NULL) {
     param_type = skip_typerefs(param1->next->type);
-    if (identical_types(param_type, type_of_align_val_t)) {
+    if (type_of_align_val_t != NULL &&
+        identical_types(param_type, type_of_align_val_t)) {
       /* Aligned but not sized. */
       *is_aligned_delete = TRUE;
     } else if (is_integral_type(param_type) &&
@@ -27768,7 +27769,8 @@ argument and FALSE otherwise..
       has_size = TRUE;
       if (param1->next->next != NULL) {
         a_type_ptr param3_type = skip_typerefs(param1->next->next->type);
-        if (identical_types(param3_type, type_of_align_val_t)) {
+        if (type_of_align_val_t != NULL &&
+            identical_types(param3_type, type_of_align_val_t)) {
           /* Sized and aligned. */
           *is_aligned_delete = TRUE;
         }  /* if */
