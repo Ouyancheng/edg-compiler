@@ -10071,21 +10071,24 @@ expression -- which is a pointer).  If there is an ambiguity return
       }  /* if */
     }  /* if */
   }  /* for */
-  if (syms[0][1] != NULL || syms[1][1] != NULL) {
-    /* An aligned delete was seen; ignore any non-aligned delete
-       functions.  (Note that is_default_operator_delete will only have
-       returned TRUE for an aligned version if delete_type has
-       new-extended alignment.) */
-    default_sym = syms[0][1];
-    *ambiguous = ambig[0][1];
-    alternate_default_sym = syms[1][1];
-    ambiguous_alternate = ambig[1][1];
-  } else {
-    /* No aligned delete was seen; use the non-aligned delete functions. */
-    default_sym = syms[0][0];
-    *ambiguous = ambig[0][0];
-    alternate_default_sym = syms[1][0];
-    ambiguous_alternate = ambig[1][0];
+  if (!*ambiguous) {
+    if (syms[0][1] != NULL || syms[1][1] != NULL) {
+      /* An aligned delete was seen; ignore any non-aligned delete
+         functions.  (Note that is_default_operator_delete will only have
+         returned TRUE for an aligned version if delete_type has
+         new-extended alignment.) */
+      default_sym = syms[0][1];
+      *ambiguous = ambig[0][1];
+      alternate_default_sym = syms[1][1];
+      ambiguous_alternate = ambig[1][1];
+    } else {
+      /* No aligned delete was seen; use the non-aligned delete
+         functions. */
+      default_sym = syms[0][0];
+      *ambiguous = ambig[0][0];
+      alternate_default_sym = syms[1][0];
+      ambiguous_alternate = ambig[1][0];
+    }  /* if */
   }  /* if */
   if (*ambiguous) {
     default_sym = NULL;
