@@ -10454,7 +10454,7 @@ appears later, the compiler-generated flag should be cleared.
                  make_routine_type(return_type, param1_type, param2_type,
                                    param3_type, (a_type_ptr)NULL));
   if (microsoft_mode) {
-    if (microsoft_version >= 1400 && !sized_version) {
+    if (microsoft_version >= 1400 && !sized_version && !aligned_version) {
       /* More recent Microsoft compilers treat the implicit declaration of
          array new and array delete as synonyms for the corresponding non-
          array versions.  A user declaration of these functions does
