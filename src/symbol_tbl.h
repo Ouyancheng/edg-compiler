@@ -3421,7 +3421,10 @@ typedef struct a_symbol {
 			   projection symbols to names found in base classes
 			   that are ignored during normal lookup (when doing
 			   dependent name processing).  It is also used to
-			   disable keywords using pragma directives. */
+			   disable keywords using pragma directives and for
+			   types that are predeclared but not usable until an
+			   explicit declaration is seen, such as
+			   std::align_val_t. */
   a_bit_field	ignore_in_decl_scope:1;
 			/* This flag can be set for alias template symbols.
 			   If it is set, ignore this symbol if it is the

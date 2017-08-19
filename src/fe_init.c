@@ -346,7 +346,7 @@ std.
   enter_predeclared_class(type, depth_scope_stack, &null_source_position);
   pop_namespace_scope();
   /* Make sure it cannot be used until actually declared. */
-  sym->defined = FALSE;
+  sym->is_invisible = TRUE;
   return type;
 }  /* make_and_enter_align_val_type */
 

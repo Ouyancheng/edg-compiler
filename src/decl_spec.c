@@ -6371,6 +6371,13 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
           explicit_base = NULL;
           explicit_base_kind = (an_integer_kind)ik_none;
         }  /* if */
+        if (enum_type == type_of_align_val_t) {
+          /* This is the explicit definition of the predeclared
+             std::align_val_t.  It was initially marked as invisible so
+             that it could not be used in a program before a declaration
+             was seen.  Mark it as visible now. */
+          tag_sym->is_invisible = FALSE;
+        }  /* if */
       }  /* if */
     } else if ((tag_sym->is_template_param ||
                 (tag_sym->is_nonreal_member &&
