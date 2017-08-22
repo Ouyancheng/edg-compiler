@@ -1,5 +1,12 @@
 Version 4.14
 
+8/22/17  [EDGcpfe/18667]
+C++-generating back end: invalid pragma output
+
+In some cases, the C++-generating back end would emit two pragma directives
+without a newline between them.  Now fixed.
+
+
 8/17/17  [EDGcpfe/17696]
 C++17: overaligned storage allocation
 

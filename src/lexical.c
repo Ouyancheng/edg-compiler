@@ -21949,7 +21949,12 @@ encountered, whatever their other characteristics, are included.
 
   db_enter(5, "add_pragmas_to_string");
   for (ppp = pragmas; ppp != NULL; ppp = ppp->next) {
-    if (ppp->pragma_position.seq <= curr_seq) {
+    is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
+    if (!is_pseudo_pragma && !ppp->is_microsoft_pragma_operator) {
+      /* Make sure a #pragma starts on new line. */
+      seq_incr = 1;
+      column_incr = 0;
+    } else if (ppp->pragma_position.seq <= curr_seq) {
       /* We're on the same line as the previous token processed, so just add
          a space (in most cases) to separate the tokens.  (Note: the line for
          the current token may be less than curr_seq when a macro expansion
@@ -21969,7 +21974,6 @@ encountered, whatever their other characteristics, are included.
     if (seq_incr > 0 || column_incr > 0) {
       add_whitespace_to_string(seq_incr, column_incr);
     }  /* if */
-    is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
     if (is_pseudo_pragma) {
       /* Add comment delimiter to the template string. */
       put_str_to_temp_text_buffer("/*");
