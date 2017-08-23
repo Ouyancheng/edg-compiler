@@ -273,7 +273,7 @@ specification is ignored.  For example:
 Making exception specifications part of function types affects the ABI.
 For example, the mangled name of
 
-  void h(void (*) noexcept);
+  void h(void (*)() noexcept);
 
 has to reflect the "noexcept".
 
