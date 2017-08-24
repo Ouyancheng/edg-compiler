@@ -1,5 +1,15 @@
 Version 4.14
 
+8/24/17  [EDGcpfe/17696]
+C++17: overaligned storage allocation
+
+The library has been modified to add the allocation and deallocation
+routines described in Committee document P0035R4 supporting overaligned
+data types.  These routines are only defined when the macro
+__STDCPP_DEFAULT_NEW_ALIGNMENT__ is defined, indicating a C++17
+compilation.
+
+
 7/11/17  [EDGcpfe/18572]
 Inconsistent type used for "id" field of type_info in Cfront ABI
 

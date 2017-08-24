@@ -446,6 +446,25 @@ typedef int an_element_count_param;
 #endif /* ifdef __EDG_ELEM_COUNT_PARAM_TYPE */
 #endif /* ifndef __EDG_IA64_ABI */
 
+/*
+Define the routines used for overaligned storage allocation and
+deallocation.  The allocation routine sets *_res to point to the allocated
+storage and returns _res if the allocation succeeded or NULL if the
+allocation failed.
+*/
+#ifdef _WIN32
+#define __EDG_ALIGNED_MALLOC(_res, _align, _size) \
+  (((_res) = _aligned_malloc((_size), (_align))), (_res))
+#define __EDG_ALIGNED_FREE(_ptr) _aligned_free(_ptr)
+#else /* !defined(_WIN32) */
+/* Use the POSIX function, which is declared in stdlib.h but protected by
+   an ifdef _GNU_SOURCE on Linux, at least. */
+#define _GNU_SOURCE
+#define __EDG_ALIGNED_MALLOC(_res, _align, _size) \
+  posix_memalign(&(_res), (_align), (_size)) ? NULL : (_res)
+#define __EDG_ALIGNED_FREE(_ptr) free(_ptr)
+#endif /* ifdef _WIN32 */
+
 #endif /* CONFIG_H */
 
 
