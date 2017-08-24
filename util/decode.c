@@ -5649,14 +5649,6 @@ to be on top of the type.
       write_id_str(" noexcept(", dctl);
       (void)demangle_expression(save_exception_expr, dctl);
       write_id_ch(')', dctl);
-    } else if (save_exception_type != NULL) {
-      a_const_char *p_ = save_exception_type;
-      write_id_str(" throw(", dctl);
-      while (*p_ != 'E' && *p_ != '\0') {
-        p_ = demangle_type(p_, dctl);
-        if (*p_ != 'E' && *p_ != '\0') write_id_ch(',', dctl);
-      }  /* while */
-      write_id_ch(')', dctl);
     }  /* if */
   } else if (kind == 'A') {
     /* Array type,
