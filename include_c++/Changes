@@ -1,3 +1,16 @@
+Version 4.14
+
+8/24/17  [EDGcpfe/17696]
+C++17: overaligned storage allocation
+
+The new.stdh file has been modified to define std::align_val_t and to
+declare the additional overloaded operators to support allocation and
+freeing of overaligned data types, as described in Committee document
+P0035R4.  These declarations are only enabled when
+__STDCPP_DEFAULT_NEW_ALIGNMENT__ is defined, indicating a C++17
+compilation.
+
+-------------------------------------------------------------------------------
 Version 4.13, February 22, 2017
 
 No changes.

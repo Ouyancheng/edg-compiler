@@ -66,6 +66,12 @@ namespace std {
   // syntax: new (nothrow) T;
   const nothrow_t nothrow = {};
 
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
+  // Declaration of the parameter type for the overaligned allocation
+  // and deallocation functions.
+  enum class align_val_t : size_t {};
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+ 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
 
@@ -94,6 +100,16 @@ void operator delete(void*, const __EDG_STD_NAMESPACE::nothrow_t&)
 /* Placement new. */
 void *operator new(size_t, void*) __DOES_NOT_THROW;
 
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
+/* Overaligned versions of the operators. */
+void *operator new(size_t, __EDG_STD_NAMESPACE::align_val_t) __NEW_THROWS;
+void *operator new(size_t, __EDG_STD_NAMESPACE::align_val_t,
+                   const __EDG_STD_NAMESPACE::nothrow_t&) __DOES_NOT_THROW;
+void operator delete(void*, __EDG_STD_NAMESPACE::align_val_t);
+void operator delete(void*, __EDG_STD_NAMESPACE::align_val_t,
+                     const __EDG_STD_NAMESPACE::nothrow_t&) __DOES_NOT_THROW;
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+
 /* Placement delete. */
 #ifdef __PLACEMENT_DELETE
 void operator delete(void*, void*) __DOES_NOT_THROW;
@@ -102,6 +118,13 @@ void operator delete(void*, void*) __DOES_NOT_THROW;
 #ifdef __cpp_sized_deallocation
 /* Sized deallocation version of delete. */
 void operator delete(void*, size_t) __DOES_NOT_THROW;
+
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
+/* Overaligned version of sized deallocation version of delete. */
+void operator delete(void*, size_t,
+                     __EDG_STD_NAMESPACE::align_val_t) __DOES_NOT_THROW;
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+
 #endif /* __cpp_sized_deallocation */
 
 #ifdef __ARRAY_OPERATORS
@@ -123,6 +146,13 @@ void operator delete[](void*, void*) __DOES_NOT_THROW;
 #ifdef __cpp_sized_deallocation
 /* Sized deallocation version of array delete. */
 void operator delete[](void*, size_t) __DOES_NOT_THROW;
+
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
+/* Overaligned version of sized array delete. */
+void operator delete[](void*, size_t,
+                       __EDG_STD_NAMESPACE::align_val_t) __DOES_NOT_THROW;
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+
 #endif /* __cpp_sized_deallocation */
 
 /* Nothrow version of array new. */
@@ -132,6 +162,17 @@ void *operator new[](size_t,
 /* Nothrow version of array delete. */
 void operator delete[](void*,
                        const __EDG_STD_NAMESPACE::nothrow_t&) __DOES_NOT_THROW;
+
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
+/* Overaligned versions of array operators. */
+void *operator new[](size_t, __EDG_STD_NAMESPACE::align_val_t);
+void operator delete[](void*, __EDG_STD_NAMESPACE::align_val_t);
+void *operator new[](size_t, __EDG_STD_NAMESPACE::align_val_t,
+                     const __EDG_STD_NAMESPACE::nothrow_t&) __DOES_NOT_THROW;
+void operator delete[](void*, __EDG_STD_NAMESPACE::align_val_t,
+                       const __EDG_STD_NAMESPACE::nothrow_t&) __DOES_NOT_THROW;
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+
 #endif /* __ARRAY_OPERATORS */
 
 #undef __NEW_THROWS
