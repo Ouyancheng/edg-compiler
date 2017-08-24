@@ -1,5 +1,12 @@
 Version 4.14
 
+8/24/17  [EDGcpfe/17685,EDGcpfe/18636]
+Demangling for exception specifications in function types
+
+Demangling support for exception specifications in function types has been
+added for both IA-64 and Cfront ABIs.
+
+
 7/30/17  [EDGcpfe/17704,EDGcpfe/17954,EDGcpfe/18622]
 Prelinker support for inline variables
 

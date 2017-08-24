@@ -2130,40 +2130,100 @@ type.
 }  /* mangled_encoding_for_ref_qualifier */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- do_markers is unused in that case. */
-#endif /* !IA64_ABI */
-static void mangled_encoding_for_function_type(
-                                       a_type_ptr               type,
-                                       a_boolean                do_return_type,
-                                       a_boolean                do_markers,
-                                       a_mangling_control_block *mctl)
+static void mangled_encoding_for_exception_specification(
+                                      a_type_ptr               type,
+                                      a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the function type "type".
-The return type of the function is encoded if do_return_type is TRUE.  If
-do_markers is TRUE, markers indicating the start and end of the function type,
-as well as whether or not the type is extern "C", are emitted.  The type
-must not have been lowered (lowering can modify the parameters or return type).
+Add to the mangled name the encoding for the exception specification (if any)
+on the function or member function type "type".
 */
 {
+  an_exception_specification_ptr  esp = type->variant.routine.extra_info
+                                            ->exception_specification;
+
+  if (esp == NULL) {
+    /* Nothing to mangle. */
+  } else if (esp->is_noexcept &&
+             esp->variant.noexcept_arg != NULL &&
+             constant_is(esp->variant.noexcept_arg, ck_template_param)) {
+    check_assertion(!esp->arg_cached && !esp->indeterminate);
+    add_str_to_mangled_name(MANGLING_STRING_FOR_NOEXCEPT_EXPR, mctl);
+      mangled_encoding_for_constant(esp->variant.noexcept_arg,
+                                    /*old_form=*/FALSE,
+                                    /*in_dependent_expr=*/FALSE,
+                                    /*suppress_address_of=*/FALSE,
+                                    mctl);
+#if IA64_ABI
+      add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+  } else if (esp->throw_any) {
+  } else if (is_nothrow_spec(esp)) {
+    add_str_to_mangled_name(MANGLING_STRING_FOR_NOEXCEPT, mctl);
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* mangled_encoding_for_exception_specification */
+
+
+static void mangled_encoding_for_function_type(
+                               a_type_ptr               type,
+                               a_boolean                do_return_type,
+                               a_boolean                mangling_function_name,
+                               a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the function type "type".  The return
+type of the function is encoded if do_return_type is TRUE.  If
+mangling_function_name is TRUE, this routine is being called to mangle a
+function with the specified type.  In that case, in the IA-64 ABI, this routine
+basically emits the <bare-function-type> and not the <function-type>.  In the
+Cfront ABI, the function type markers, as well as whether or not the type is
+extern "C", are emitted in either case.  The exception specification, however,
+is not emitted when mangling_function_name is TRUE (to provide some backwards
+compatibility with previous versions).  The type must not have been lowered
+(lowering can modify the parameters or return type).
+*/
+{
+  a_boolean do_markers;
+
   check_assertion(type->kind == (a_type_kind)tk_routine);
 #if DO_IL_LOWERING
   check_assertion(il_lowering_flag_of(type) == FALSE);
 #endif /* DO_IL_LOWERING */
-#if !IA64_ABI
-  /* We always emit markers in the Cfront-like ABI. */
-  check_assertion(do_markers);
-#endif /* !IA64_ABI */
+#if IA64_ABI
+  /* In the IA-64 ABI, "markers" are only emitted for true function types, not
+     when mangling a function name. */
+  do_markers = !mangling_function_name;
+#else /* !IA64_ABI */
+  /* In the Cfront ABI, "markers" are always emitted (i.e., for both function
+     types and names), but see below for exception specifications. */
+  do_markers = TRUE;
+#endif /* IA64_ABI */
   /* The encoding for a function type is "F" followed by the encoding
      for the parameter types.  mangled_function_name takes care of putting
      out additional information preceding the "F" if the function is a
      member function. */
   if (do_markers) {
+#if IA64_ABI
+    if (exc_spec_in_func_type) {
+      /* In some modes (as per the C++17 standard), the exception
+         specification must be encoded.  In the IA-64 ABI, the exception
+         specification is emitted before the "F". */
+      mangled_encoding_for_exception_specification(type, mctl);
+    }  /* if */
+#endif /* IA64_ABI */
     /* Start with the "F" indicating a function type. */
     add_to_mangled_name('F', mctl);
 #if !IA64_ABI
     /* Add mangled encoding for a ref-qualifier, if any. */
     mangled_encoding_for_ref_qualifier(type, mctl);
+    if (exc_spec_in_func_type && !mangling_function_name) {
+      /* In some modes (as per the C++17 standard), the exception
+         specification must be encoded.  In the Cfront ABI, the exception
+         specification is emitted after the "F" (and ref-qualifier).  Note
+         that the exception specification is not added to mangled function
+         names (for backward compatibility reasons). */
+      mangled_encoding_for_exception_specification(type, mctl);
+    }  /* if */
 #endif /* !IA64_ABI */
     if (c_and_cpp_function_types_are_distinct &&
         type->variant.routine.extra_info->routine_name_linkage ==
@@ -2250,46 +2310,6 @@ function type and FALSE otherwise).
     }  /* if */
   }  /* if */
 }  /* mangled_encoding_for_function_qualifiers */
-
-
-static void mangled_encoding_for_exception_specification(
-                                      a_type_ptr               type,
-                                      a_mangling_control_block *mctl)
-/*
-Add to the mangled name the encoding for the exception specification (if any)
-on the function or member function type "type".
-*/
-{
-  an_exception_specification_ptr  esp = type->variant.routine.extra_info
-                                            ->exception_specification;
-
-  if (esp == NULL) {
-    /* Nothing to mangle. */
-  } else if (esp->is_noexcept &&
-             esp->variant.noexcept_arg != NULL &&
-             constant_is(esp->variant.noexcept_arg, ck_template_param)) {
-    check_assertion(!esp->arg_cached && !esp->indeterminate);
-    add_str_to_mangled_name(MANGLING_STRING_FOR_NOEXCEPT_EXPR, mctl);
-#if !IA64_ABI
-      /* Constant argument.  The encoding for the constant begins with
-         an "X". */
-      add_to_mangled_name('X', mctl);
-#endif /* !IA64_ABI */
-      mangled_encoding_for_constant(esp->variant.noexcept_arg,
-                                    /*old_form=*/FALSE,
-                                    /*in_dependent_expr=*/FALSE,
-                                    /*suppress_address_of=*/FALSE,
-                                    mctl);
-#if IA64_ABI
-      add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
-  } else if (esp->throw_any) {
-  } else if (is_nothrow_spec(esp)) {
-    add_str_to_mangled_name(MANGLING_STRING_FOR_NOEXCEPT, mctl);
-  } else {
-    unexpected_condition();
-  }  /* if */
-}  /* mangled_encoding_for_exception_specification */
 
 #if !IA64_ABI
 
@@ -6925,7 +6945,7 @@ returned and mctl->lacking_module_id is set to TRUE.
       add_to_mangled_name('_', &local_mctl);
       mangled_encoding_for_function_type(call_operator_type,
                                          /*do_return_type=*/FALSE,
-                                         /*do_markers=*/TRUE,
+                                         /*mangling_function_name=*/FALSE,
                                          &local_mctl);
       add_local_name_suffix((unsigned long)0, enclosing_routine, &local_mctl);
     } else {
@@ -6947,7 +6967,7 @@ returned and mctl->lacking_module_id is set to TRUE.
       add_to_mangled_name('_', &local_mctl);
       mangled_encoding_for_function_type(call_operator_type,
                                          /*do_return_type=*/FALSE,
-                                         /*do_markers=*/TRUE,
+                                         /*mangling_function_name=*/FALSE,
                                          &local_mctl);
     }  /* if */
   } else {
@@ -7703,7 +7723,7 @@ Generate an encoding for the specified unnamed (class or enum) type.
     add_str_to_mangled_name("Ul", mctl);
     mangled_encoding_for_function_type(call_operator_type,
                                        /*do_return_type=*/FALSE,
-                                       /*do_markers=*/FALSE,
+                                       /*mangling_function_name=*/TRUE,
                                        mctl);
     add_str_to_mangled_name("E", mctl);
     add_discriminator(symbol_supplement_for_class(type)->discriminator,
@@ -9793,15 +9813,10 @@ top_of_loop:
         mangled_encoding_for_function_qualifiers(type,
                                                  /*is_class_member=*/FALSE,
                                                  mctl);
-        if (exc_spec_in_func_type) {
-          /* In some modes (as per the C++17 standard), the exception
-             specification must be encoded. */
-          mangled_encoding_for_exception_specification(type, mctl);
-        }  /* if */
         /* Function.  Put out "F" and the argument types. */
         mangled_encoding_for_function_type(type,
                                            /*do_return_type=*/TRUE,
-                                           /*do_markers=*/TRUE,
+                                           /*mangling_function_name=*/FALSE,
                                            mctl);
         goto have_whole_mangled_name;
       case tk_class:
@@ -11812,11 +11827,7 @@ mangle_template:
     save_mangle_auto_placeholder = mctl->mangle_auto_placeholder;
     mctl->mangle_auto_placeholder = routine->has_deduced_return_type;
     mangled_encoding_for_function_type(routine_type, do_return_type,
-#if !IA64_ABI
-                                       /*do_markers=*/TRUE,
-#else /* IA64_ABI */
-                                       /*do_markers=*/FALSE, 
-#endif /* IA64_ABI */
+                                       /*mangling_function_name=*/TRUE,
                                        mctl);
     mctl->mangle_auto_placeholder = save_mangle_auto_placeholder;
   }  /* if */

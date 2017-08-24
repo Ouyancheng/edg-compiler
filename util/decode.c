@@ -3318,6 +3318,18 @@ not empty, because it contains a name or a derived type).
         (get_char(p+1, dctl) == 'R' || get_char(p+1, dctl) == 'E')) {
       p += 2;
     }  /* if */
+    /* An optional exception specification.  Skip it on this pass. */
+    if (get_char(p, dctl) == 'D' &&
+        (get_char(p+1, dctl) == 'o' || get_char(p+1, dctl) == 'O')) {
+      if (get_char(p+1, dctl) == 'O') {
+        dctl->suppress_id_output++;
+        p = demangle_constant(p+2, /*suppress_address_of=*/FALSE,
+                              /*need_parens=*/FALSE, dctl);
+        dctl->suppress_id_output--;
+      } else {
+        p += 2;
+      }  /* if */
+    }  /* if */
     p = skip_extern_C_indication(p, dctl);
     /* Skip over the parameter types without outputting anything. */
     dctl->suppress_id_output++;
@@ -3417,7 +3429,8 @@ use of parentheses around parts of the declarator.)
     dctl->suppress_id_output--;
     demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
-    a_const_char *ref_qual;
+    a_const_char *ref_qual, *save_noexcept_constant = NULL;
+    a_boolean    is_noexcept = FALSE;
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
@@ -3428,6 +3441,21 @@ use of parentheses around parts of the declarator.)
     /* An optional ref-qualifier is indicated if the 'F' is followed by
        an underscore.  Emit the ref-qualifier at the end of the type. */
     p = demangle_ref_qualifiers(p, &ref_qual, dctl);
+    /* An optional exception specification. */
+    if (get_char(p, dctl) == 'D' &&
+        (get_char(p+1, dctl) == 'o' || get_char(p+1, dctl) == 'O')) {
+      if (get_char(p+1, dctl) == 'O') {
+        dctl->suppress_id_output++;
+        save_noexcept_constant = p+2;
+        p = demangle_constant(save_noexcept_constant,
+                              /*suppress_address_of=*/FALSE,
+                              /*need_parens=*/FALSE, dctl);
+        dctl->suppress_id_output--;
+      } else {
+        is_noexcept = TRUE;
+        p += 2;
+      }  /* if */
+    }  /* if */
     p = skip_extern_C_indication(p, dctl);
     /* Put out the parameter types. */
     p = demangle_function_parameters(p, dctl);
@@ -3446,6 +3474,15 @@ use of parentheses around parts of the declarator.)
       demangle_type_second_part(p+1, /*under_lhs_declarator=*/FALSE, dctl);
     }  /* if */
     if (ref_qual != NULL) write_id_str(ref_qual, dctl);
+    if (is_noexcept) {
+      write_id_str(" noexcept", dctl);
+    } else if (save_noexcept_constant != NULL) {
+      write_id_str(" noexcept(", dctl);
+      (void)demangle_constant(save_noexcept_constant,
+                              /*suppress_address_of=*/FALSE,
+                              /*need_parens=*/FALSE, dctl);
+      write_id_ch(')', dctl);
+    }  /* if */
   } else if (kind == 'A') {
     /* Array type, e.g., "A10_i" is array[10] of int. */
     /* This is a right-side declarator, so if it's under a left-side declarator
@@ -5376,10 +5413,31 @@ to be on top of the type.  If parse_template_args is TRUE then any
     write_id_str("::*", dctl);
     /* Output the cv-qualifiers on the pointer, if any. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
-  } else if (kind == 'F') {
+  } else if (kind == 'F' ||
+             (kind == 'D' &&
+              (p[1] == 'o' || p[1] == 'O'))) {
     a_ref_qualifier dummy;
-    /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
-       where "Y" indicates extern "C" (and is ignored here). */
+    /* Function type, <exc-spec> F [Y] <bare-function-type> [<ref-qualifier>] E
+       where "Y" indicates extern "C" (and is ignored here).  An <exc-spec>
+       looks like: [Do | DO <expression> E | Dw <type>* E ].  The front end
+       doesn't implement the "Dw" mangling, so the demangling is omitted. */
+    if (kind == 'D') {
+      /* An exception specification is present (skip it here). */
+      switch (p[1]) {
+        case 'o':
+          p += 2;
+          break;
+        case 'O':
+          dctl->suppress_id_output++;
+          p = demangle_expression(p+2, dctl);
+          dctl->suppress_id_output--;
+          p = advance_past('E', p, dctl);
+          break;
+        default:
+          bad_mangled_name(dctl);
+          break;
+      }  /* switch */
+    }  /* if */
     p = skip_extern_C_indication(p+1);
     /* Output the return type. */
     p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
@@ -5522,11 +5580,37 @@ to be on top of the type.
     dctl->suppress_id_output--;
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
-  } else if (kind == 'F') {
-    a_const_char *returnt;
+  } else if (kind == 'F' ||
+             (kind == 'D' &&
+              (p[1] == 'o' || p[1] == 'O' || p[1] == 'w'))) {
+    a_const_char *returnt, *exception_spec = NULL;
+    a_const_char *save_exception_expr = NULL;
     a_ref_qualifier ref_qual;
-    /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
-       where "Y" indicates extern "C" (and is ignored here). */
+    /* Function type, <exc-spec> F [Y] <bare-function-type> [<ref-qualifier>] E
+       where "Y" indicates extern "C" (and is ignored here).  An <exc-spec>
+       looks like: [Do | DO <expression> E | Dw <type>* E ].  The front end
+       doesn't implement the "Dw" mangling, so the demangling is omitted. */
+    if (kind == 'D') {
+      /* An exception specification is present. */
+      switch (p[1]) {
+        case 'o':
+          exception_spec = " noexcept";
+          p += 2;
+          break;
+        case 'O':
+          /* Emit the expression later (save a pointer to it), but skip it
+             now. */
+          save_exception_expr = p + 2;
+          dctl->suppress_id_output++;
+          p = demangle_expression(save_exception_expr, dctl);
+          dctl->suppress_id_output--;
+          p = advance_past('E', p, dctl);
+          break;
+        default:
+          bad_mangled_name(dctl);
+          break;
+      }  /* switch */
+    }  /* if */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch(')', dctl);
@@ -5559,6 +5643,21 @@ to be on top of the type.
     /* Output the return type. */
     demangle_type_second_part(returnt, CVQ_NONE,
                               /*under_lhs_declarator=*/FALSE, dctl);
+    if (exception_spec != NULL) {
+      write_id_str(exception_spec, dctl);
+    } else if (save_exception_expr != NULL) {
+      write_id_str(" noexcept(", dctl);
+      (void)demangle_expression(save_exception_expr, dctl);
+      write_id_ch(')', dctl);
+    } else if (save_exception_type != NULL) {
+      a_const_char *p_ = save_exception_type;
+      write_id_str(" throw(", dctl);
+      while (*p_ != 'E' && *p_ != '\0') {
+        p_ = demangle_type(p_, dctl);
+        if (*p_ != 'E' && *p_ != '\0') write_id_ch(',', dctl);
+      }  /* while */
+      write_id_ch(')', dctl);
+    }  /* if */
   } else if (kind == 'A') {
     /* Array type,
          A <positive dimension number> _ <element type>
