@@ -1,5 +1,14 @@
 Version 4.14
 
+8/24/17  [EDGcpfe/18687]
+Abort in determine_correspondence on proxy class
+
+When simultaneously compiling multiple translation units the front end
+sometimes aborted in determine_correspondence when handling a member of a
+proxy class (i.e., a class representing a template parameter).  This is now
+fixed.
+
+
 8/24/17  [EDGcpfe/18697]
 Internal error in lowering after SFINAE case with throw expression
 

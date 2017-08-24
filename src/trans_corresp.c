@@ -6606,6 +6606,7 @@ way, determine to which other IL entry this might correspond.
         while (parent != root &&
                trans_unit_corresp_of_unknown_entry(parent) == NULL) {
           set_no_trans_unit_corresp(iek_type, parent);
+          if (!parent->source_corresp.is_class_member) break;
           parent = parent_class_of(parent);
         }  /* while */
       }  /* if */
