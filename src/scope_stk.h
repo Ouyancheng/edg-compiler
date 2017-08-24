@@ -990,6 +990,9 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_decltype_context:1;
 			/* TRUE when scanning the expression in a decltype
 			   operator. */
+  a_bit_field	in_noexcept_spec:1;
+			/* TRUE when scanning the expression in a noexcept
+			   specifier. */
   a_bit_field	function_partial_instantiation:1;
 			/* TRUE for template instantiation scopes when the
 			   tokens of a function template are being rescanned

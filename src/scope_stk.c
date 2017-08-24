@@ -2853,6 +2853,7 @@ the scope being pushed.
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->rescan_depth_exceeded = FALSE;
   ssep->in_decltype_context = FALSE;
+  ssep->in_noexcept_spec = FALSE;
   ssep->pragma_pack_is_local     = FALSE;
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
   ssep->discard_when_popped      = FALSE;

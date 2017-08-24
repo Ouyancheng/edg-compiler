@@ -1509,6 +1509,9 @@ template-dependent context or a member of a class).
     a_source_position       constant_pos;
     a_constant_ptr          noexcept_con = local_constant();
     a_boolean               saved_in_template_deduction_context = FALSE;
+    a_boolean               saved_in_noexcept_spec;
+    saved_in_noexcept_spec = scope_stack_top().in_noexcept_spec;
+    scope_stack_top().in_noexcept_spec = TRUE;
     if (exc_spec_in_func_type) {
       saved_in_template_deduction_context =
                               scope_stack_top().in_template_deduction_context;
@@ -1535,6 +1538,7 @@ template-dependent context or a member of a class).
       scope_stack_top().in_template_deduction_context =
                                           saved_in_template_deduction_context;
     }  /* if */
+    scope_stack_top().in_noexcept_spec = saved_in_noexcept_spec;
   }  /* if */
 }  /* scan_noexcept_arg */
 

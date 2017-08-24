@@ -30560,7 +30560,8 @@ caller has already moved past the '[', and this routine leaves the trailing
              expressions. */
           if (class_symbol_supp(closure_sym)
                          ->lambda_immediately_inside_default_arg_expression ||
-              !variable_this_exists(&var, (a_type_ptr *)NULL)) {
+              !variable_this_exists(&var, (a_type_ptr *)NULL) ||
+              scope_stack_top().in_noexcept_spec) {
             /* We should be in a nonstatic member function. */
             pos_error(ec_this_used_incorrectly, &error_position);
           } else if (var == NULL && !scope_stack_top().in_field_initializer) {
