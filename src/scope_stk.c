@@ -4777,7 +4777,8 @@ the lambda.  NULL otherwise.
        at least a template instantiation scope).  Adjust the after
        definition depth in such cases. */
     after_definition_depth = depth_scope_stack;
-    check_assertion((options & PS_CLASS_DEFINITION_CONTEXT) != 0);
+    check_assertion_or_expect_error(
+                                (options & PS_CLASS_DEFINITION_CONTEXT) != 0);
   }  /* if */
   /* after_definition_depth will only be the same as definition_depth if
      it was adjusted in the code above. */
