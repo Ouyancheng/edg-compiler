@@ -1,5 +1,24 @@
 Version 4.14
 
+8/24/17  [EDGcpfe/18697]
+Internal error in lowering after SFINAE case with throw expression
+
+A SFINAE failure in a throw expression could result in an error type leaking
+into the IL, which in turn could lead to an abort during IL lowering.  For
+example:
+
+  template<typename T> auto f(T y)->decltype(throw 1<<y);
+  template<typename T> auto f(T y)->decltype(1<<(int)y);
+  int r = f(12.34);  // Previously caused an abort in lowering.
+
+In this example, the first candidate is discarded because of an error in the
+throw expression (a built-in shift operator cannot have a floating-point
+operand).  However, the SFINAE process creates an error type, and in the
+context of a throw expression, that error type previously ended up in the IL
+tree.  IL lowering then triggered an internal error when attempting to lower
+that error type.  This is now fixed.
+
+
 8/22/17  [EDGcpfe/18667]
 C++-generating back end: invalid pragma output
 
