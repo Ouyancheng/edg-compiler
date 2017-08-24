@@ -28744,7 +28744,9 @@ in *rcblock).
     check_assertion(rcblock->operator_token == tok_throw);
     make_throw_rescan_operands(rcblock, &start_position, &operand,
                                &expr_present);
-    if (is_error_operand(&operand)) err = TRUE;
+    if (expr_stack != NULL && expr_stack->any_suppressed_error) {
+      err = TRUE;
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
