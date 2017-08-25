@@ -4873,7 +4873,7 @@ static a_boolean do_constexpr_init_variable(an_interpreter_state   *ips,
 /*
 Evaluate the (dynamic) initializer of the given variable.  Return FALSE if an
 error occurs and use pos as the default position for recorded diagnostics.
-If storage is non-NULL, is points to the storage occupied by the variable;
+If storage is non-NULL, it points to the storage occupied by the variable;
 otherwise, this routine will look up that storage in ips->map.
 */
 {

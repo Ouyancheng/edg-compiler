@@ -6776,9 +6776,8 @@ with the TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS flag.
 This routine should generally not be called directly; it's meant to be called
 by the macros types_are_compatible, types_are_strictly_compatible, and
 types_are_compatible_ignoring_qualifiers, which do an initial test for exact
-pointer equality.
-If flags include the TCF_IMPLICIT_CONVERSION flag, type_1 is the source type
-and type_2 the destination type.
+pointer equality.  If flags include the TCF_IMPLICIT_CONVERSION flag, type_1
+is the source type and type_2 the destination type.
 */
 {
   a_boolean                     compat = FALSE;

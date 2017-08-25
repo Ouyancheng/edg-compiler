@@ -13035,7 +13035,8 @@ an_exception_specification_ptr copy_exception_specification_with_substitution(
 /*
 Copy the given exception specification substituting template parameters as
 needed.  This can only be called in modes with exc_spec_in_func_type == TRUE,
-which excludes dynamic exception specifications.
+which excludes dynamic exception specifications.  For the meaning of the other
+parameters, see copy_type_with_substitution.
 */
 {
   an_exception_specification_ptr  new_esp;

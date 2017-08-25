@@ -18095,7 +18095,7 @@ void substitute_constant(a_constant_ptr        *p_constant,
                          a_boolean             *p_error)
 /*
 Replace *p_constant by an entry in which the given template parameters have
-been replaced by the give template arguments (if any).  Furthermore, if
+been replaced by the given template arguments (if any).  Furthermore, if
 parent_class (which may be NULL) is an instantiated template class of the form 
 X<A1, A2, ...>, (recursively) perform the substitutions implied by the template
 arguments A1, A2, ... first.  ctws_state points to state information for the
