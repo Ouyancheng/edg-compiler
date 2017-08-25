@@ -916,7 +916,12 @@ Bit flags for calls of f_types_are_compatible et al.
 			   a tk_typeref entry indicating a deduced type for
 			   such a placeholder. */
 #define TCF_CHECK_ENABLE_IF_ATTRIBUTES 0x40000
-#define TCF_LAST TCF_CHECK_ENABLE_IF_ATTRIBUTES
+			/* TRUE if the Clang enable_if attributes should be
+			   compared. */
+#define TCF_USE_CPP_QUALIFIER_RULES 0x80000
+			/* TRUE if even in C mode the C++ rules for
+			   TCF_IGNORE_TYPE_QUALIFIERS should be applied. */
+#define TCF_LAST TCF_USE_CPP_QUALIFIER_RULES
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,TCF_LAST)*/
 #define TCF_NO_FLAGS 0x0

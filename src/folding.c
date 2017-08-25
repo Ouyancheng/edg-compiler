@@ -8599,7 +8599,16 @@ constant will be set as well.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_boolean  result = types_are_compatible_ignoring_qualifiers(type1, type2);
+    a_type_compat_flags_set  flags = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                     TCF_IGNORE_TYPE_QUALIFIERS;
+    a_boolean                result;
+    if (gcc_mode && gnu_version >= 40000) {
+      /* Starting with GCC 4.0, "int[3]" and "int const[3]" are considered
+         compatible in GNU C mode also (in C++ mode, this already falls out
+         of the C++ type qualifier rules). */
+      flags |= TCF_USE_CPP_QUALIFIER_RULES;
+    }  /* if */
+    result = f_types_are_compatible(type1, type2, flags);
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);

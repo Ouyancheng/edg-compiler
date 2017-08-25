@@ -7021,7 +7021,8 @@ check_typerefs:
             /* In C++ mode, if ignoring first-level qualifiers, we should
                ignore qualifiers on the element type, since such a qualifier
                counts as a first-level qualifier. */
-            if (ignore_type_qualifiers && !C_mode()) {
+            if (ignore_type_qualifiers && 
+                (!C_mode() || (flags & TCF_USE_CPP_QUALIFIER_RULES))) {
               sub_flags |= TCF_IGNORE_TYPE_QUALIFIERS;
             }  /* if */
             /* Check that the element types are compatible. */
