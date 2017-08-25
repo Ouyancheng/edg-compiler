@@ -82,6 +82,126 @@ static unsigned long
 
 
 /*
+An entry representing a function template substitution that is under way.
+A stack of such entries is maintained while performing overload resolution.
+*/
+typedef struct a_substitution_stack_entry *a_substitution_stack_entry_ptr;
+typedef struct a_substitution_stack_entry {
+  a_substitution_stack_entry_ptr
+		prev;
+			/* The previous substitution in the stack or NULL if
+			   this entry is the first on the stack. */
+  a_symbol_ptr
+		sym;
+			/* The function template being substituted. */
+  a_template_arg_ptr
+		templ_args;
+			/* The template arguments used for the substitution. */
+  a_hash_value
+		substitution_hash;
+			/* A hash value for the substitution. */
+  a_bit_field
+		substitution_hash_computed:1;
+			/* TRUE if substitution_hash has been computed. */
+} a_substitution_stack_entry;
+
+
+static a_substitution_stack_entry_ptr
+		substitution_stack;
+			/* A stack of entries representing substitutions that
+			   are under way. */
+
+static a_substitution_stack_entry_ptr
+		avail_substitution_stack_entries;
+			/* A list of viability check entries available for
+			   reuse. */
+
+static void push_substitution(a_symbol_ptr        sym,
+                              a_template_arg_ptr  templ_args)
+/*
+Push an entry on the substitution stack for the given function template symbol
+substituted with the given arguments.
+*/
+{
+  a_substitution_stack_entry_ptr ssep;
+
+  /* Allocate a name context. */
+  if (avail_substitution_stack_entries != NULL) {
+    /* Reuse a freed entry. */
+    ssep = avail_substitution_stack_entries;
+    avail_substitution_stack_entries = ssep->prev;
+  } else {
+    /* Allocate a new entry. */
+    ssep = (a_substitution_stack_entry_ptr)
+                            alloc_general(sizeof(a_substitution_stack_entry));
+  }  /* if */
+  ssep->sym = sym;
+  ssep->templ_args = templ_args;
+  ssep->substitution_hash = 0;
+  ssep->substitution_hash_computed = FALSE;
+  ssep->prev = substitution_stack;
+  substitution_stack = ssep;
+}  /* push_substitution */
+
+
+static void pop_substitution(void)
+/*
+Pop the top entry on the viability stack.
+*/
+{
+  a_substitution_stack_entry_ptr ssep = substitution_stack;
+
+  substitution_stack = ssep->prev;
+  ssep->prev = avail_substitution_stack_entries;
+  avail_substitution_stack_entries = ssep;
+}  /* pop_substitution */
+
+
+static a_boolean in_substitution_loop(void)
+/*
+Return TRUE if the current state of the substitution stack indicates that we
+have entered a substitution loop.  I.e., the last entry pushed onto the stack
+has a corresponding earlier entry.
+*/
+{
+  a_boolean                       result = FALSE, hash_value_computed;
+  a_substitution_stack_entry_ptr  ssep = substitution_stack;
+  a_symbol_ptr                    sym = ssep->sym;
+  a_template_arg_ptr              templ_args = ssep->templ_args;
+  a_hash_value                    hash_value;
+
+  if (templ_args == NULL) goto done;
+  check_assertion(sym != NULL);
+  hash_value_computed = ssep->substitution_hash_computed;
+  if (hash_value_computed) hash_value = ssep->substitution_hash;
+  ssep->substitution_hash = hash_substitution(sym, templ_args);
+  for (ssep = ssep->prev; ssep != NULL; ssep = ssep->prev) {
+    if (ssep->sym == sym && ssep->templ_args != NULL) {
+      /* Compute the substitution hashes if needed. */
+      if (!hash_value_computed) {
+        hash_value = hash_substitution(sym, templ_args);
+        substitution_stack->substitution_hash = hash_value;
+        substitution_stack->substitution_hash_computed = TRUE;
+        hash_value_computed = TRUE;
+      }  /* if */
+      if (!ssep->substitution_hash_computed) {
+        ssep->substitution_hash = hash_substitution(ssep->sym,
+                                                    ssep->templ_args);
+        ssep->substitution_hash_computed = TRUE;
+      }  /* if */
+      if (ssep->substitution_hash == hash_value &&
+          equiv_template_arg_lists(ssep->templ_args, templ_args,
+                                   ETA_EXACT_MATCH_REQUIRED)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:
+  return result;
+}  /* in_substitution_loop */
+
+/*
 Return TRUE if the indicated symbol is invisible because it was
 declared in a friend declaration and not confirmed with an explicit
 declaration, when friend injection is turned off.
@@ -4548,6 +4668,14 @@ template arguments, or NULL if deduction failed.
     }  /* if */
   }  /* if */
 #endif /* CHECKING */
+  push_substitution(template_sym, *template_arg_list);
+  if (in_substitution_loop()) {
+    /* A substitution identical to this one is already under way.  Treat this
+       as a deduction error. */
+    updated_routine_type = NULL;
+    pop_substitution();
+    goto done;
+  }  /* if */
   /* Make sure that the types of nontype template parameters that depend
      on other template parameters agree with the types of the deduced
      values.  Also check for the case where not all template parameters
@@ -4558,6 +4686,7 @@ template arguments, or NULL if deduction failed.
                                            template_sym,
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE);
+  pop_substitution();
   if (updated_routine_type != NULL) {
     a_routine_ptr routine = template_sym->variant.template_info->
                                                       variant.function.routine;
@@ -4637,7 +4766,6 @@ point of call, FALSE otherwise.
   a_boolean                visible = TRUE, function_template_case;
   a_routine_ptr            routine;
   a_decl_sequence_number   effective_decl_seq;
-  a_scope_stack_entry_ptr  ssep;
 
   if (invisible_because_explicit != NULL) *invisible_because_explicit = FALSE;
   if (invisible_because_post_decl != NULL) *invisible_because_post_decl=FALSE;
@@ -4650,28 +4778,6 @@ point of call, FALSE otherwise.
   }  /* if */
   /* Remove projection, if any. */
   function_symbol = fundamental_symbol_of(function_symbol);
-  /* While substituting function template signatures (e.g., during rescanning
-     for SFINAE purposes), the function template being substituted should not
-     be considered a candidate.  E.g.:
-        auto f(...)->int;
-        template<class T> auto f(T x)->decltype(f(x), int{});
-     The call "f(x)" should not consider the template in which it appears.
-     Ordinarily, lexical ordering rules take care of such issues, but here
-     the call appears after the declarator, and during substitution the whole
-     template is known.  So here, we eliminate that one template from
-     consideration. */
-  ssep = &scope_stack_top();
-  if (scope_is(ssep, sck_function_access) ||
-      scope_is(ssep, sck_func_prototype)) {
-    ssep -= 1;
-  }  /* if */
-  if (scope_is(ssep, sck_template_instantiation)) {
-    a_symbol_ptr  templ_sym = ssep->template_sym;
-    if (templ_sym != NULL && templ_sym == function_symbol) {
-      visible = FALSE;
-      goto end_of_function;
-    }  /* if */
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Note that here we must test the fundamental symbol. */
   if (microsoft_mode && microsoft_version >= 1310 &&
@@ -8490,16 +8596,20 @@ create_final_list:
            its function type are getting separated. */
         instantiate_template_default_arguments(candidates);
       }  /* if */
-      candidates->function_symbol = sym =
-                         find_template_function(sym,
-                                                &candidates->template_arg_list,
-                            (a_boolean)candidates->expl_template_arg_list_used,
+      /* Push an entry on the viability checking stack because
+         find_template_function may cause a rescan of the template, and we
+         must discard attempts at recursive calls as nonviable. */
+      push_substitution(sym, candidates->template_arg_list);
+      sym = find_template_function(sym, &candidates->template_arg_list,
+                           (a_boolean)candidates->expl_template_arg_list_used,
                                                 source_pos);
+      pop_substitution();
+      candidates->function_symbol = sym;
       candidates->is_function_template = FALSE;
       if (candidates->is_user_conversion) {
         candidates->conversion.routine = sym->variant.routine.ptr;
         candidates->conversion.routine_symbol = sym;
-      } /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -25957,6 +26067,7 @@ These are initializations that must be redone for each compilation.
   num_candidate_functions_allocated = 0;
   overload_level = 0;
 #endif /* DEBUG */
+  substitution_stack = NULL;
 }  /* overload_init */
 
 

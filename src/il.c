@@ -6120,9 +6120,14 @@ Return a hash value for the indicated template argument list.
       case tak_nontype:
         /* The argument position is factored in so that <1,2,3> hashes
            differently than <3,2,1>. */
-        if (tap->variant.constant != NULL) {
-          hash_value = hash_value +
-              ((1 + hash_constant(tap->variant.constant)) << ((pos * 3) % 32));
+        if (tap->is_array_bound_of_unknown_type) {
+          hash_value += (1 + (a_hash_value)tap->variant.integer_value)
+                                                          << ((pos * 3) % 32);
+        } else {
+          a_constant_ptr  cp = tap->variant.constant;
+          if (cp != NULL) {
+            hash_value += (1 + hash_constant(cp)) << ((pos * 3) % 32);
+          }  /* if */
         }  /* if */
         break;
       case tak_template:

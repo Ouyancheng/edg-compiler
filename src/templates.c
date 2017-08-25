@@ -7271,10 +7271,13 @@ TQ_NULLABLE).
       tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type,
                                                            local_only);
     } else if (is_nontype_templ_arg(tap)) {
-      check_assertion(tap->arg_operand == NULL);
-      tap->variant.constant->type =
-                 strip_local_and_nonreal_typedefs(tap->variant.constant->type,
-                                                  local_only);
+      if (!tap->is_array_bound_of_unknown_type) {
+        a_constant_ptr  cp = tap->variant.constant;
+        check_assertion(tap->arg_operand == NULL);
+        if (cp != NULL) {
+          cp->type = strip_local_and_nonreal_typedefs(cp->type, local_only);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* strip_types_from_template_arg_list */
@@ -8005,6 +8008,22 @@ an_instantiation_key entry pointer.  Return TRUE if the key matches the entry.
                                     eta_options | ETA_EXACT_MATCH_REQUIRED);
   return result;
 }  /* compare_substituted_type_list_entry */
+
+
+a_hash_value hash_substitution(a_symbol_ptr        template_sym,
+                               a_template_arg_ptr  templ_args)
+/*
+Return a hash value for the given (function template, template argument list)
+pair.
+*/
+{
+  an_instantiation_key	key;
+
+  strip_types_from_template_arg_list(templ_args, /*local_only=*/TRUE);
+  key.template_sym = template_sym;
+  key.template_arg_list = templ_args;
+  return hash_instantiation((void*)&key);
+}  /* hash_substitution */
 
 
 static a_symbol_ptr *find_instantiation(
@@ -9829,19 +9848,23 @@ another template parameter.
        arguments. */
     for (tpp = templ_param_list, tap = partial_arg_list;
          tpp != NULL && tap != NULL;
-         tpp = tpp->is_pack ? tpp : tpp->next, tap = tap->next) {
+         tpp = tpp->is_pack ? tpp : tpp->next,
+           tap = tap == NULL ? NULL : tap->next) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
-      if (is_start_of_pack_expansion_templ_arg(tap)) {
-        /* Skip this entry. */
-      } else if (templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
+      /* Skip any pack expansion placeholders. */
+      while (tap != NULL && is_start_of_pack_expansion_templ_arg(tap)) {
+        tap = tap->next;
+      }  /* while */
+      if (tap != NULL &&
+          templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
     }  /* for */
     if (!arg_kind_mismatch && tap != NULL && tpp == NULL) {
-       /* There were more arguments specified than there are parameters.
-          This can't be a match. */
-       arg_kind_mismatch = TRUE;
+      /* There were more arguments specified than there are parameters.
+         This can't be a match. */
+      arg_kind_mismatch = TRUE;
     }  /* if */
   }  /* if */
   if (!arg_kind_mismatch) {
@@ -9893,6 +9916,8 @@ another template parameter.
       } else {
         arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
         tap = alloc_template_arg(arg_kind);
+        check_assertion(specified_tap == NULL ||
+                        specified_tap->kind == arg_kind);
       }  /* if */
       if (specified_tap != NULL &&
           !is_start_of_pack_expansion_templ_arg(specified_tap)) {
