@@ -31,6 +31,8 @@ defines.h -- Defines configuration parameters for a given version of the
 #ifdef __sun
 /* The Solaris version uses a version of gcc that has IA-64 support. */
 #define SYSTEM_RUNTIME_HAS_IA64_SUPPORT TRUE
+/* The following is needed to get the declaration for memalign. */
+#define __EXTENSIONS__
 #endif /* ifdef __sun */
 
 /******************************************************************************
