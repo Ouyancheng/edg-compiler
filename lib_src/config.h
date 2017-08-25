@@ -457,12 +457,18 @@ allocation failed.
   (((_res) = _aligned_malloc((_size), (_align))), (_res))
 #define __EDG_ALIGNED_FREE(_ptr) _aligned_free(_ptr)
 #else /* !defined(_WIN32) */
+#ifdef __sun
+#define __EDG_ALIGNED_MALLOC(_res, _align, _size) \
+  (((_res) = memalign((_align), (_size))), (_res))
+#define __EDG_ALIGNED_FREE(_ptr) free(_ptr)
+#else /* !defined(__sun) */
 /* Use the POSIX function, which is declared in stdlib.h but protected by
    an ifdef _GNU_SOURCE on Linux, at least. */
 #define _GNU_SOURCE
 #define __EDG_ALIGNED_MALLOC(_res, _align, _size) \
   posix_memalign(&(_res), (_align), (_size)) ? NULL : (_res)
 #define __EDG_ALIGNED_FREE(_ptr) free(_ptr)
+#endif /* ifdef __sun */
 #endif /* ifdef _WIN32 */
 
 #endif /* CONFIG_H */
