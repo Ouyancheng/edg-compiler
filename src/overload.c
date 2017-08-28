@@ -168,7 +168,7 @@ has a corresponding earlier entry.
   a_substitution_stack_entry_ptr  ssep = substitution_stack;
   a_symbol_ptr                    sym = ssep->sym;
   a_template_arg_ptr              templ_args = ssep->templ_args;
-  a_hash_value                    hash_value;
+  a_hash_value                    hash_value = 0;
 
   if (templ_args == NULL) goto done;
   check_assertion(sym != NULL);
