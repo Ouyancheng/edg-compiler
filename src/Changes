@@ -19,13 +19,6 @@ For example:
     // Now accepted in recent GNU C modes.
 
 
-8/24/17  [EDGcpfe/18674]
-Linkage of unnamed namespace members
-
-In non-Microsoft C++11 mode, variables, functions, static data members, and
-member functions declared in unnamed namespaces now have internal linkage.
-
-
 8/24/17  [EDGcpfe/18687]
 Abort in determine_correspondence on proxy class
 

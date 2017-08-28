@@ -13953,23 +13953,15 @@ issued at the given position.
     rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     rtn->storage_class = (a_storage_class)sc_static;
   } else {
-    a_namespace_ptr  nsp = namespace_enclosing_class(class_type);
     /* Except for special cases, class member functions have C++ linkage
        whatever the default name linkage may be.  That is, member functions
        of a class have C++ name linkage even if the class definition is
        wrapped in (for example) an extern "C" declaration. */
     rtn->source_corresp.name_linkage =
                                (a_name_linkage_kind)nlk_cplusplus_external;
-    if (cpp11_mode && !microsoft_mode &&
-        nsp != NULL && nsp->internal_linkage) {
-      /* In C++11, member functions of classes declared in unnamed namespace
-         scope have internal linkage. */
-      rtn->storage_class = (a_storage_class)sc_static;
-    } else {
-      /* The storage class will be changed to sc_unspecified if a definition
-         is seen. */
-      rtn->storage_class = (a_storage_class)sc_extern;
-    }  /* if */
+    /* The storage class will be changed to sc_unspecified if a definition is
+       seen. */
+    rtn->storage_class = (a_storage_class)sc_extern;
     /* Check whether any types without linkage are used in the declaration. */
     check_constituent_types_have_linkage(sym, diag_pos,
                                          /*is_declaration=*/TRUE);
@@ -16357,17 +16349,9 @@ template declaration and is NULL otherwise.
     /* Ordinarily a static data member gets sc_extern storage class, which
        is promoted to sc_unspecified if a definition is seen.  In cfront mode,
        the storage is sc_static (already set), which is changed to sc_extern
-       or sc_unspecified during a final fixup pass.  In C++11 mode, members of
-       unnamed namespaces have internal linkage. */
-    if (cpp11_mode && !microsoft_mode &&
-        scope_stack[depth_innermost_namespace_scope]
-                                                  .within_unnamed_namespace) {
-      var->storage_class = (a_storage_class)sc_static;
-    } else if (var->is_inline) {
-      var->storage_class = (a_storage_class)sc_unspecified;
-    } else {
-      var->storage_class = (a_storage_class)sc_extern;
-    }  /* if */
+       or sc_unspecified during a final fixup pass. */
+    var->storage_class = (a_storage_class)(var->is_inline ? sc_unspecified
+                                                          : sc_extern);
     /* Check whether any types without linkage are used in the declaration. */
     check_constituent_types_have_linkage(var_sym, &locator->source_position,
                                          /*is_declaration=*/TRUE);

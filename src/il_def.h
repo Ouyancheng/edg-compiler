@@ -3246,9 +3246,6 @@ typedef struct a_namespace {
   a_bit_field	is_inline:1;
 			/* TRUE if the namespace was declared as an inline
 			   namespace. */
-  a_bit_field	internal_linkage:1;
-			/* TRUE if the namespace is unnamed or declared within
-			   an unnamed namespace (directly or indirectly). */
   a_bit_field	named_in_strong_using:1;
 			/* TRUE if the namespace was named in a g++ strong
 			   using directive. */

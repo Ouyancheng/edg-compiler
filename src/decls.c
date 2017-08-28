@@ -3495,11 +3495,6 @@ information in the specified id-linkage block.
          linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
-    } else if (cpp11_mode && !microsoft_mode &&
-               idlbp->within_unnamed_namespace) {
-      /* In C++11 (and later) unnamed namespace scopes cause their members to
-         have internal linkage. */
-      idlbp->linkage = idl_internal;
     } else {
       idlbp->linkage = idl_external;
     }  /* if */
@@ -14548,9 +14543,8 @@ NULL otherwise).
           (sym_is_namespace_member(ns_sym) &&
            symbol_supplement_for_namespace(sym_parent_namespace(ns_sym))
                                               ->within_unnamed_namespace)) {
-        ns_sym->variant.namespace_info.extra_info
-                                            ->within_unnamed_namespace = TRUE;
-        nsp->internal_linkage = TRUE;
+        ns_sym->variant.namespace_info.extra_info->
+                                           within_unnamed_namespace = TRUE;
       }  /* if */
       add_to_namespaces_list(nsp);
       if (!is_enclosing_namespace_specifier) {

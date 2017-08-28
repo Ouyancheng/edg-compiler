@@ -9587,27 +9587,12 @@ instance symbol.
   a_variable_template_info_ptr		vtip;
   a_symbol_ptr				new_sym;
   a_template_instance_ptr		tip;
-  a_storage_class			storage_class;
-  a_namespace_ptr			enclosing_nsp;
 
   check_assertion(symbol_is(template_sym, sk_variable_template));
   tssp = template_sym->variant.template_info;
-  /* Create the symbol for the variable. */
+  /* Create the symbol for the prototype instantiation. */
   new_sym = make_template_variable_symbol(template_sym);
-  if (new_sym->is_class_member) {
-    enclosing_nsp = namespace_enclosing_class(sym_parent_class(new_sym));
-  } else {
-    enclosing_nsp = sym_parent_namespace_or_null(new_sym);
-  }  /* if */
-  if (cpp11_mode && !microsoft_mode &&
-      enclosing_nsp != NULL && enclosing_nsp->internal_linkage) {
-    /* Starting with C++11, members of unnamed namespaces have internal
-       linkage. */
-    storage_class = (a_storage_class)sc_static;
-  } else {
-    storage_class = (a_storage_class)sc_extern;
-  }  /* if */
-  var = alloc_variable(storage_class);
+  var = alloc_variable((a_storage_class)sc_extern);
   var->is_template_variable = TRUE;
   var->template_info = alloc_variable_template_info();
   var->source_corresp.name_linkage =
