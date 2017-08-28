@@ -4648,15 +4648,6 @@ run-time in GNU and Microsoft modes.
 #endif /* ifndef ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS */
 
 /*
-When the following switch is TRUE, modes that make exception specifications
-part of the function type can be enabled.  This is a requirement for C++17, but
-it affects the ABI (it affects name mangling as well as RTTI representation).
-*/
-#ifndef EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
-#define EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE TRUE
-#endif /* ifndef EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
-
-/*
 When this switch is TRUE, exception handling features will be completely
 lowered to C form, in a portable way.  All exception-handling statements and
 expressions are completely lowered, code is generated to maintain an
@@ -5014,6 +5005,15 @@ at run-time.
 #endif /* defined TARG_DELTA_INT_KIND */
 #endif /* IA64_ABI */
 #endif /* ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND */
+
+/*
+When the following switch is TRUE, modes that make exception specifications
+part of the function type can be enabled.  This is a requirement for C++17, but
+it affects the ABI (it affects name mangling as well as RTTI representation).
+*/
+#ifndef EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
+#define EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE TRUE
+#endif /* ifndef EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
 
 /*
 Determine whether RTTI can be enabled.  It cannot be if we are doing IL
