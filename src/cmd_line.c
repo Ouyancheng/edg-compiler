@@ -1511,6 +1511,7 @@ Initialize the option information table.
                          "stricter_template_checking",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
   add_option_description(optk_exc_spec_in_func_type,
                          "exc_spec_in_func_type",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1519,6 +1520,7 @@ Initialize the option information table.
                          "no_exc_spec_in_func_type",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
 }  /* initialize_option_descriptions */
 
 
@@ -2594,9 +2596,11 @@ option values if they were not already set by a command line option.
           capture_star_this_enabled = TRUE;
           inline_variables_allowed = TRUE;
           fold_expressions_enabled = TRUE;
+#if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
           if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
             exc_spec_in_func_type = TRUE;
           }  /* if */
+#endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
           overaligned_allocation_enabled = TRUE;
         }  /* if */
       }  /* if */
@@ -3385,10 +3389,11 @@ default mode (e.g., exception handling).
       capture_star_this_enabled = TRUE;
       fold_expressions_enabled = TRUE;
       inline_variables_allowed = TRUE;
-      if (strict_ansi_mode &&
-          !option_kind_used[(int)optk_exc_spec_in_func_type]) {
+#if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
+      if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
         exc_spec_in_func_type = TRUE;
       }  /* if */
+#endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
       overaligned_allocation_enabled = TRUE;
     }  /* if */
   }  /* if */

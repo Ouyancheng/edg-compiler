@@ -297,14 +297,14 @@ result in a diagnostic being issued with no associated position.  Now fixed.
 C++17: Exception specifications as part of function types
 
 C++17 makes exception specifications part of the function type.  The front end
-now implements that behavior in strict C++17 mode or when the new command-line
-option --exc_spec_in_func_type is specified (the strict C++17 behavior can
-also be overridden with --no_exc_spec_in_func_type).  For example:
+now implements that behavior in C++17 mode or when the new command-line option
+--exc_spec_in_func_type is specified (the C++17 behavior can also be overridden
+with --no_exc_spec_in_func_type).  For example:
 
   void g1() noexcept;
   void g2();
   template<typename T> int f(T*, T*);
-  int x = f(g1, g2);    // Okay in C++14.  Now an error in strict C++17 mode.
+  int x = f(g1, g2);    // Okay in C++14.  Now an error in C++17 mode.
 
 Here, the function type deduced for T is different for both parameters because
 exception specifications are now part of the type.
@@ -322,7 +322,10 @@ For example, the mangled name of
 
   void h(void (*)() noexcept);
 
-has to reflect the "noexcept".
+has to reflect the "noexcept".  The configuration macro
+EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE can be set to FALSE to disable this
+feature in all modes, thereby maintaining ABI stability at the expense of
+standards conformance.
 
 
 8/2/17   [EDGcpfe/18098]
