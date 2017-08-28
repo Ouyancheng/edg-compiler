@@ -4712,6 +4712,10 @@ before this routine is called.
   if (clang_mode) {
     /* All versions of clang appear to accept attributes on enumerators. */
     enumerator_attributes_enabled = TRUE;
+    if (cpp11_mode) {
+      /* Clang enables terse static assert (with a warning) in C++11 mode. */
+      terse_static_assert_enabled = TRUE;
+    }  /* if */
     if (clang_version >= 30000) {
       inline_namespaces_enabled = TRUE;
       if (clang_version >= 30100) {
