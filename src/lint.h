@@ -633,6 +633,7 @@ extern int fileno(FILE *);
           ec_embedded_c_option_incompatible_with_individual_feature_options)*/
 #endif /* !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && ...) */
 #if DO_IL_LOWERING
+/*lint -esym(750,PFS_TRANSACTION_SAFE)*/
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 /*lint -esym(759,add_to_end_of_pending_stmk_init_statements_list)*/
 /*lint -esym(765,add_to_end_of_pending_stmk_init_statements_list)*/
