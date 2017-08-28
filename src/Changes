@@ -293,7 +293,7 @@ result in a diagnostic being issued with no associated position.  Now fixed.
   typedef unsigned char U8;  // diagnostic pointed to line 1
 
 
-8/3/17   [EDGcpfe/17685]
+8/3/17   [EDGcpfe/17685,EDGcpfe/18637]
 C++17: Exception specifications as part of function types
 
 C++17 makes exception specifications part of the function type.  The front end

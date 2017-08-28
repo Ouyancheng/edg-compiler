@@ -1319,6 +1319,11 @@ typedef a_host_large_unsigned a_pbase_flags_set;
 #define PFS_INCOMPLETE_CLASS	0x10
 			/* TRUE (in a pointer-to-member type) if the class
 			   containing the member is incomplete. */
+#define PFS_TRANSACTION_SAFE   0x20
+                        /* Currently unused. */
+#define PFS_NOEXCEPT           0x40
+                        /* TRUE (in a function-type) if the function-type is
+                           a noexcept function. */
 
 /*
 Bit set values for the flags word in a __vmi_class_type_info
@@ -1800,6 +1805,34 @@ typeinfo variable in a COMDAT group.
           }  else if (is_ptr_to_member_type(type) &&
                       is_incomplete_type_for_purposes_of_rtti(type)) {
             flags_value |= PFS_INCOMPLETE_CLASS;
+          }  /* if */
+          if (exc_spec_in_func_type &&
+              is_function_type(pointed_to_type)) {
+            an_exception_specification_ptr  esp;
+            esp = pointed_to_type->
+                           variant.routine.extra_info->exception_specification;
+            if (is_nothrow_spec(esp)) {
+              /* Exception specifications are part of the type system and the
+                 pointed-to function has a noexcept exception specification.
+                 The IA-64 ABI represents this in the pointer typeinfo (not
+                 the function typeinfo), so add a flag here and make sure the
+                 pointed-to function type does not include the exception
+                 specification. */
+              /* Create a copy of the type (without the exception
+                 specification) and re-set certain fields to ensure that
+                 a new typeinfo_var will be created for that type. */
+              a_type_ptr copied_type = alloc_type(pointed_to_type->kind);
+              pointed_to_type->
+                    variant.routine.extra_info->exception_specification = NULL;
+              copy_type(pointed_to_type, copied_type);
+              pointed_to_type->
+                     variant.routine.extra_info->exception_specification = esp;
+              check_assertion(!visited_yet(type));
+              il_lowering_flag_of(copied_type) = FALSE;
+              copied_type->typeinfo_var = NULL;
+              pointed_to_type = copied_type;
+              flags_value |= PFS_NOEXCEPT;
+            }  /* if */
           }  /* if */
           flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
           set_unsigned_integer_constant(flags_con,
