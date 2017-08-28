@@ -6543,6 +6543,11 @@ file.
 #else /* !defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) */
   comment_undefined_macro_name(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES);
 #endif /* defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) */
+#if defined(EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE);
+#else /* !defined(EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE);
+#endif /* defined(EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE) */
 #if defined(EXIT_ON_INTERNAL_ERROR)
   define_numeric_valued_macro(EXIT_ON_INTERNAL_ERROR);
 #else /* !defined(EXIT_ON_INTERNAL_ERROR) */
