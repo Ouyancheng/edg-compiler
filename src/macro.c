@@ -10282,7 +10282,8 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
       if (static_assert_enabled) {
-        (void)enter_predef_macro(terse_static_assert_enabled ? "201411" :
+        (void)enter_predef_macro(terse_static_assert_enabled && !clang_mode ?
+                                                               "201411" :
                                                                "200410",
                                  "__cpp_static_assert",
                                  /*cannot_be_redefined=*/TRUE,
