@@ -26,17 +26,15 @@ C++ operator new();
 
 #include "basics.h"
 #include "runtime.h"
-#include <stdlib.h>
 
 /* Note that operator new is not in the std namespace. */
 
 
-static void *new_impl(size_t size, size_t align) NEW_THROWS
+extern void *operator new(size_t size) NEW_THROWS
 /*
-Allocate the specified memory size from free store, using malloc if align
-is 0 and __EDG_ALIGNED_MALLOC otherwise  If the allocation fails, call
-*_new_handler() if defined (non-NULL pointer), and try the allocation again.
-The new_handler is permitted to
+Allocate the specified memory size from free store.  If the allocation fails,
+call *_new_handler() if defined (non-NULL pointer), and try the allocation
+again.  The new_handler is permitted to
 	- cause more memory to be available,
 	- throw an exception, or
 	- call exit or abort.
@@ -50,8 +48,7 @@ calls of operator new.
   void *ptr;
 
   if (size == 0) size = 1;
-  while ((ptr = (void *)((align == 0) ? malloc(size) :
-                         __EDG_ALIGNED_MALLOC(ptr, align, size))) == NULL) {
+  while ((ptr = (void *)malloc(size)) == NULL) {
     /* The allocation failed -- call the current new handler routine.  Use
        the routine pointed to by _new_handler.  If this value is NULL, use
        the default new handler. */
@@ -71,27 +68,8 @@ calls of operator new.
 #endif /* EXCEPTION_HANDLING */
   }  /* while */
   return ptr;
-}  /* new_impl */
-
-
-extern void *operator new(size_t size) NEW_THROWS
-/*
-Allocate the specified memory size from free store.
-*/
-{
-  return new_impl(size, 0);
 }  /* operator new */
 
-#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
-extern void *operator new(size_t size, STD_NAMESPACE::align_val_t align)
-/*
-Allocate the specified memory size with the specified alignment from free
-store.
-*/
-{
-  return new_impl(size, (size_t)align);
-}  /* operator new */
-#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -20,23 +20,31 @@ Any use of this software is at the user's own risk.
 */
 /*
 
-C++ operator delete();
+Placement version of C++ operator new[]();
 
 */
+
 
 #include "basics.h"
 #include "runtime.h"
 
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
 
-void operator delete(void				*ptr,
-                     const STD_NAMESPACE::nothrow_t&)
+void *operator new[](size_t			     size,
+                     STD_NAMESPACE::align_val_t      align,
+                     const STD_NAMESPACE::nothrow_t& nothrow_arg)
 THROW_NOTHING()
 /*
-Nothrow version of operator delete.
+Nothrow version of aligned array operator new.  Just call the normal
+nothrow aligned operator new.
 */
 {
-  operator delete(ptr);
-}  /* operator delete */ 
+  return operator new(size, align, nothrow_arg);
+}  /* operator new[] */
+
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
 
 /******************************************************************************

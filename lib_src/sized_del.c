@@ -37,18 +37,6 @@ Free the memory pointed to by ptr.  size specifies the size of the object.
   operator delete(ptr);
 }  /* operator delete */
 
-#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
-void operator delete(void *ptr, size_t size,
-                     STD_NAMESPACE::align_val_t align) THROW_NOTHING()
-/*
-Free the memory pointed to by ptr.  size specifies the size of the object,
-and align specifies its alignment.
-*/
-{
-  operator delete(ptr, align);
-}  /* operator delete */
-#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
-
 #endif /* __cpp_sized_deallocation */
 
 /******************************************************************************

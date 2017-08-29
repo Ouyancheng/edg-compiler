@@ -27,17 +27,20 @@ C++ operator delete();
 #include "basics.h"
 #include "runtime.h"
 
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
 
 void operator delete(void				*ptr,
+                     STD_NAMESPACE::align_val_t         align,
                      const STD_NAMESPACE::nothrow_t&)
 THROW_NOTHING()
 /*
-Nothrow version of operator delete.
+Nothrow version of aligned operator delete.
 */
 {
-  operator delete(ptr);
+  operator delete(ptr, align);
 }  /* operator delete */ 
 
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
 
 /******************************************************************************
 *                                                             \  ___  /       *

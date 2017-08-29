@@ -20,24 +20,28 @@ Any use of this software is at the user's own risk.
 */
 /*
 
-C++ operator delete();
+C++ operator delete(void *, size_t);
 
 */
 
 #include "basics.h"
 #include "runtime.h"
 
+#ifdef __cpp_sized_deallocation
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
 
-void operator delete(void				*ptr,
-                     const STD_NAMESPACE::nothrow_t&)
-THROW_NOTHING()
+void operator delete(void *ptr, size_t size,
+                     STD_NAMESPACE::align_val_t align) THROW_NOTHING()
 /*
-Nothrow version of operator delete.
+Free the memory pointed to by ptr.  size specifies the size of the object,
+and align specifies its alignment.
 */
 {
-  operator delete(ptr);
-}  /* operator delete */ 
+  operator delete(ptr, align);
+}  /* operator delete */
 
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+#endif /* __cpp_sized_deallocation */
 
 /******************************************************************************
 *                                                             \  ___  /       *

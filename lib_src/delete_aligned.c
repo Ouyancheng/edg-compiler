@@ -27,17 +27,19 @@ C++ operator delete();
 #include "basics.h"
 #include "runtime.h"
 
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
 
-void operator delete(void				*ptr,
-                     const STD_NAMESPACE::nothrow_t&)
-THROW_NOTHING()
+void operator delete(void *ptr, STD_NAMESPACE::align_val_t) THROW_NOTHING()
 /*
-Nothrow version of operator delete.
+Free the overaligned memory pointed to by ptr.
 */
 {
-  operator delete(ptr);
+  if (ptr != NULL) {
+    __EDG_ALIGNED_FREE(ptr);
+  }  /* if */
 }  /* operator delete */ 
 
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
 
 /******************************************************************************
 *                                                             \  ___  /       *

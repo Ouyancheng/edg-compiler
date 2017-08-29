@@ -38,18 +38,6 @@ Default array operator delete.  Just call the normal operator delete.
   operator delete(ptr);
 }  /* operator delete[] */
 
-#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
-void operator delete[](void *ptr,
-                       STD_NAMESPACE::align_val_t align) THROW_NOTHING()
-/*
-Default aligned array operator delete.  Just call the normal aligned
-operator delete.
-*/
-{
-  operator delete(ptr, align);
-}  /* operator delete[] */
-#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
-
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
 /******************************************************************************

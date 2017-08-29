@@ -24,20 +24,27 @@ C++ operator delete();
 
 */
 
+
 #include "basics.h"
 #include "runtime.h"
 
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__
 
-void operator delete(void				*ptr,
-                     const STD_NAMESPACE::nothrow_t&)
+void operator delete[](void				*ptr,
+                       STD_NAMESPACE::align_val_t       align,
+                       const STD_NAMESPACE::nothrow_t&	nothrow_arg)
 THROW_NOTHING()
 /*
-Nothrow version of operator delete.
+Nothrow version of aligned array operator delete.  Just call the normal
+nothrow aligned operator delete.
 */
 {
-  operator delete(ptr);
-}  /* operator delete */ 
+  operator delete(ptr, align, nothrow_arg);
+}  /* operator delete[] */
 
+#endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
 /******************************************************************************
 *                                                             \  ___  /       *
