@@ -466,7 +466,7 @@ allocation failed.
    an ifdef _GNU_SOURCE on Linux, at least. */
 #define _GNU_SOURCE
 #define __EDG_ALIGNED_MALLOC(_res, _align, _size) \
-  posix_memalign(&(_res), (_align), (_size)) ? NULL : (_res)
+  (posix_memalign(&(_res), (_align), (_size)) ? NULL : (_res))
 #define __EDG_ALIGNED_FREE(_ptr) free(_ptr)
 #endif /* ifdef __sun */
 #endif /* ifdef _WIN32 */
