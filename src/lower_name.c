@@ -10961,6 +10961,8 @@ ttt_scp_for_implicit_abi_tags.
 }  /* ttt_add_implicit_abi_tags_for_type */
 
 
+static void calculate_implicit_abi_tags_for_routine(a_routine_ptr routine);
+
 static void mark_entry(a_source_correspondence      *scp,
                        an_il_entry_kind             kind,
                        a_walk_parents_control_block *wpcb);
@@ -11035,9 +11037,12 @@ any related entities that would appear in the mangled name of the entity.
            function.  Any implicit abi_tags that apply to the function should
            not appear in the entity's mangled name.  If the function has
            implicit abi_tags, add the function to a list so its abi_tags can be
-           checked later.  Note that the abi_tags for the function must have
-           been previously calculated. */
-        check_assertion(rp->implicit_abi_tags_added);
+           checked later.  Note that the abi_tags for the function have
+           been previously calculated in most cases, but calculate them
+           now if they haven't been. */
+        if (!rp->implicit_abi_tags_added) {
+          calculate_implicit_abi_tags_for_routine(rp);
+        }  /* if */
         if (scp->attributes != NULL &&
             scp->attributes->is_implicit_abi_tag_attribute) {
           a_routine_list_entry_ptr rlep = alloc_rlep_entry();

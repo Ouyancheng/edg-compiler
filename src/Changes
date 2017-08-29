@@ -1,5 +1,24 @@
 Version 4.14
 
+8/29/17  [EDGcpfe/18458]
+Assertion failure in mark_entry
+
+In some Cfront configurations (e.g., where INSTANTIATE_EXTERN_INLINE is
+FALSE), mangling certain entities that have the GNU "abi_tag" attribute
+had caused an assertion failure in mark_entry.  The failure seems limited
+to cases where multiple translation units are being compiled.  For example,
+with --gnu_version=40900, if an empty translation unit and the following
+one are given, the assertion had triggered and is now fixed:
+
+  namespace {
+    struct A {
+      __attribute((__abi_tag__(""))) float f() {
+        typedef struct {} x;
+      }
+    };
+  } 
+
+
 8/28/17  [EDGcpfe/18597]
 Clang compatibility: enable terse static_assert in C++11 mode
 
