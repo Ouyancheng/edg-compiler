@@ -11434,9 +11434,9 @@ The subtree of the node has not yet been lowered.
     args = var_rvalue_expr(num_bytes_temp);
     args->next = ndsp->arg;
     delete_args = NULL;
-    if (ndsp->placement_new && dip != NULL &&
+    if ((ndsp->placement_new || ndsp->aligned_version) && dip != NULL &&
         ndsp->freeing_of_storage_on_exception != NULL) {
-      /* This is a placement new for which there is a corresponding placement
+      /* This is a placement or aligned new for which there is a corresponding
          delete.  Make a copy of the argument list for the new call, to
          be used in the delete call.  Note that this is done after IL lowering,
          so the argument expressions are evaluated only once.  But that
