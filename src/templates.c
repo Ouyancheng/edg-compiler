@@ -11006,9 +11006,7 @@ argument deduction purposes.
     }  /* if */
     if (match) {
       /* A qualification conversion is possible.  Check whether the underlying
-         types match.  Note that because qualifiers on function types have
-         no effect, the check for a qualification conversion as part of
-         deduction is not done for function types. */
+         types match. */
       match = FALSE;
 #if DEBUG
       if (db_flag_is_set("qc")) {
@@ -11036,11 +11034,17 @@ argument deduction purposes.
         fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
-      if (!is_function_type(type_underlying) &&
-          matches_template_type(type_underlying, templ_type_underlying,
-                                templ_arg_list, templ_param_list, flags)) {
-        /* They match.  The qualification conversion is possible. */
-        match = TRUE;
+      /* Note that because qualifiers on function types have no effect, the
+         check for a qualification conversion as part of deduction is not done
+         for function types. */
+      if (!is_function_type(type_underlying) ||
+          (exc_spec_in_func_type &&
+           (flags & MTT_IS_CONVERSION_TEMPLATE) != 0)) {
+        if (matches_template_type(type_underlying, templ_type_underlying,
+                                  templ_arg_list, templ_param_list, flags)) {
+          /* They match.  The qualification conversion is possible. */
+          match = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11726,11 +11730,12 @@ points to the template parameter list.
               }  /* if */
               if (match && exc_spec_in_func_type) {
                 /* Check the exception specification. */
-                if (type_has_less_restrictive_exception_spec(type,
-                                                             templ_type)
-                    /* FIXME ||
-                    !matches_noexcept_operand(type, templ_type, templ_arg_list,
-                                              templ_param_list) */) {
+                if (((flags & MTT_IS_CONVERSION_TEMPLATE) == 0 &&
+                     type_has_less_restrictive_exception_spec(
+                                                         type, templ_type)) ||
+                    ((flags & MTT_ALLOW_INEXACT_DEDUCTION) == 0 &&
+                     type_has_less_restrictive_exception_spec(
+                                                         templ_type, type))) {
                   match = FALSE;
                 }  /* if */
               }  /* if */
