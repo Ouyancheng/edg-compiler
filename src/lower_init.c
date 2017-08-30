@@ -10701,9 +10701,10 @@ arrays with class elements.
   args = size_arg_for_new(ndsp, &num_elem_node, &pre_call_insert_location);
   args->next = ndsp->arg;
   /* Build the node for the address of the array (entity_node). */
-  if (!ndsp->placement_new) {
-    /* This is a normal (not placement) new, the usual case.  The __vec_new
-       routine should do the allocation of the array. */
+  if (!ndsp->placement_new && !ndsp->aligned_version) {
+    /* This is a normal single-argument (not placement and not the aligned
+       version) new, the usual case.  The __vec_new routine should do the
+       allocation of the array. */
     /* Note that new_routine might be non-NULL here, if the allocation
        requires a non-default "operator new[]" i.e., a class-specific one.
        __array_new will be called, and is given a pointer to the allocation
@@ -10712,7 +10713,7 @@ arrays with class elements.
     check_assertion(ndsp->arg == NULL);
     entity_node = NULL;  /* Allocate in __vec_new. */
   } else {
-    /* This is a placement new, so the allocation must be done before
+    /* There are arguments to new, so the allocation must be done before
        calling the __vec_new routine.  This happens for something like
          A *p = new (x, y, z) A[3];
        The "new" call is assigned to a temporary, and entity_node uses
