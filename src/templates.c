@@ -9720,8 +9720,10 @@ use of the argument list in case it has been freed.
                       var->template_info->template_arg_list);
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
-      instantiate_template_variable(tip, /*is_new=*/TRUE, is_use);
-      set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
+      a_boolean	definition_needed = is_use;
+      if (in_constexpr_if_discarded_statement()) definition_needed = FALSE;
+      instantiate_template_variable(tip, /*is_new=*/TRUE, definition_needed);
+      set_instance_required(sym, definition_needed, SIR_NONE);
     } else {
       /* Create a nonreal variable. */
       make_nonreal_variable_instance(var);

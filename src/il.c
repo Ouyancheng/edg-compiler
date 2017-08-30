@@ -21972,6 +21972,9 @@ routine as actually referenced.
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Do not instantiate things referenced from prototype instantiations. */
     instantiate = FALSE;
+  } else if (in_constexpr_if_discarded_statement()) {
+    /* Do not instantiate things in the discarded branch of a constexpr if. */
+    instantiate = FALSE;
   } else if (instantiate &&
              translation_unit_needed_only_for_exported_templates) {
     /* In a secondary translation unit that is being used only for
