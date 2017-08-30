@@ -13091,9 +13091,6 @@ parameters, see copy_type_with_substitution.
     a_constant_ptr  cp = esp->variant.noexcept_arg;
     new_esp->is_noexcept = TRUE;
     if (cp != NULL) {
-      /* Note that we keep the original constant even if it is dependent.
-         This is needed for correct mangling. */
-      new_esp->variant.noexcept_arg = cp;
       if (constant_is(cp, ck_template_param)) {
         cp = copy_template_param_con_with_substitution(
                        cp, templ_arg_list, templ_param_list, (a_type_ptr)NULL,
@@ -13103,6 +13100,7 @@ parameters, see copy_type_with_substitution.
           new_esp->throw_any = FALSE;
         }  /* if */
       }  /* if */
+      new_esp->variant.noexcept_arg = cp;
     }  /* if */
   } else {
     /* This could be "throw()" or "throw(...)", but not a dynamic exception
