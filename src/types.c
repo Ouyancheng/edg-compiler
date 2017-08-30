@@ -9526,18 +9526,19 @@ types of the operands of an operation).
   check_assertion(dest_type->kind == (a_type_kind)tk_routine &&
                   source_type->kind == (a_type_kind)tk_routine);
   rt_flags = TCF_IGNORE_THIS_CLASS_TYPE |
+             TCF_IMPLICIT_CONVERSION |
              TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
   if (this_param_types_correspond(dest_type, source_type,
                                   !allow_qualifier_or_eh_mismatch,
                                   allow_qualifier_or_eh_mismatch)) {
-    if (f_types_are_compatible(dest_type, source_type, rt_flags)) {
+    if (f_types_are_compatible(source_type, dest_type, rt_flags)) {
       correspond = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled && source_is_function &&
                !allow_qualifier_or_eh_mismatch &&
                dest_type->variant.routine.extra_info
                     ->calling_convention == (a_calling_convention)cc_clrcall &&
-               f_types_are_compatible(dest_type, source_type,
+               f_types_are_compatible(source_type, dest_type,
                                       (rt_flags |
                                        TCF_IGNORE_CALLING_CONVENTIONS))) {
       /* In C++/CLI, a pointer-to-member for a specific function can
