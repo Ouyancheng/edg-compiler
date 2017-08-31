@@ -1,5 +1,40 @@
 Version 4.14
 
+8/31/17  [EDGcpfe/18626]
+C++-generating back end: reordering of #pragma pack directives
+
+In some previous versions of the front end, #pragma pack was treated as an
+immediate pragma, processed as soon as it was encountered in the source.
+The result of this setting was that the source sequence entries for a
+#pragma pack directive could appear out of order with respect to the
+end-of-construct entry for a preceding class.  The C++-generating back end
+compensated for this problem by deferring putting out #pragma pack
+directives until the next declaration, or the end of the source file, was
+encountered.  As a result, #pragma pack directives could be emitted out of
+order with respect to other non-declaration elements such as other pragmas.
+The #pragma pack directive was changed some time ago to be a "next token"
+pragma, eliminating the need for this special handling in the
+C++-generating back end, and the code has now been updated to preserve the
+source order of these pragmas.  For example, with
+INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL set to TRUE and with --microsoft, the
+code generated for the following example is the same as the input
+(previously the #pragma pack directives were all moved to the end of the
+file):
+
+  #pragma warning(push)
+  #pragma warning(disable : 4159 4127)
+  #pragma pack(push, 4)
+  #pragma pack(push, ATL_PACKING)
+  #pragma warning (push)
+  #pragma warning (disable: 4127) 
+  #pragma warning (pop)
+  #pragma warning (push)
+  #pragma warning (disable: 4127) 
+  #pragma warning (pop)
+  #pragma pack(pop)
+  #pragma warning(pop)
+
+
 8/29/17  [EDGcpfe/18458]
 Assertion failure in mark_entry
 

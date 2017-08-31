@@ -173,11 +173,6 @@ static a_source_sequence_entry_ptr
 			   scope memory region is being visited, and this
 			   points to the entry in the function scope memory
 			   region that sent us off to the sublist. */
-static a_source_sequence_entry_ptr
-		pending_pragma_pack;
-			/* If non-NULL, a source sequence entry for a
-			   #pragma pack directive that was skipped and must
-			   be generated before the next declaration. */
 
 /*
 Return TRUE if the indicated source sequence entry points to a source sequence
@@ -449,7 +444,6 @@ static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
 static void gen_pragma_end(a_pragma_ptr pp);
-static void gen_pending_pragma_pack(void);
 static void gen_template_header(a_template_decl_ptr tdp,
                                 a_type_ptr          parent_class,
                                 a_boolean           is_cppcli_generic);
@@ -7115,9 +7109,6 @@ Return TRUE if any were processed.
   for (;;) {
     /* Skip macros and pragmas. */
     (void)process_preprocessing_directives();
-    if (pending_pragma_pack != NULL && !any_found) {
-      gen_pending_pragma_pack();
-    }  /* if */
     if (curr_source_sequence_entry == NULL ||
         ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
     any_found = TRUE;
@@ -7675,43 +7666,6 @@ scp is NULL).
 }  /* gen_declaration_using_type */
 
 
-static void gen_pending_pragma_pack(void)
-/*
-Generate any #pragma pack directives that were skipped by
-process_preprocessing_directives.  Because pack is an immediate pragma, it
-appears in the source sequence list before the end-of-construct entry for
-the entity that precedes it.  The processing of #pragma pack in gen_pragma
-is simply to record its source sequence entry in pending_pragma_pack, and
-any such directives are then generated before the next declaration or at
-the end of the translation unit.
-*/
-{
-  a_source_sequence_entry_ptr ssep;
-  a_boolean                   saved_suppress_line_breaking =
-                                                   octl.suppress_line_breaking;
-
-  octl.suppress_line_breaking = TRUE;
-  for (ssep = pending_pragma_pack;
-       ssep != NULL && ssep != curr_source_sequence_entry;
-       ssep = ssep->next) {
-    if (ss_entry_kind(ssep) == iek_pragma) {
-      a_pragma_ptr pp = ss_entry_ptr(ssep, a_pragma_ptr);
-      if (pp->kind == (a_pragma_kind)pk_pack) {
-        check_assertion_str(pp->pragma_text != NULL,
-                            "gen_pending_pragma_pack: NULL pragma_text");
-        set_output_position(&pp->position);
-        gen_pragma_start(pp);
-        write_str(pp->pragma_text);
-        gen_pragma_end(pp);
-        curr_pack_alignment = pp->variant.alignment;
-      }  /* if */
-    }  /* if */        
-  }  /* while */
-  octl.suppress_line_breaking = saved_suppress_line_breaking;
-  pending_pragma_pack = NULL;
-}  /* gen_pending_pragma_pack */
-
-
 static a_boolean process_preprocessing_directives(void)
 /*
 Process any preprocessing directives in the source sequence list, specifically
@@ -7737,10 +7691,6 @@ pragmas and macros.  Return TRUE if anything was processed.
       break;
     }  /* if */
   }  /* while */
-  if (curr_source_sequence_entry == NULL && pending_pragma_pack != NULL) {
-    /* The translation unit ended with a #pragma pack. */
-    gen_pending_pragma_pack();
-  }  /* if */
   return anything_processed;
 }  /* process_preprocessing_directives */
 
@@ -14326,90 +14276,77 @@ is the one associated with the pragma.
   a_pragma_ptr pp = ss_entry_ptr(curr_source_sequence_entry, a_pragma_ptr);
   a_boolean    saved_suppress_line_breaking = octl.suppress_line_breaking;
 
-  if (pp->kind == (a_pragma_kind)pk_pack) {
-    /* Because pack is an immediate pragma, it appears in the source
-       sequence list before the end-of-construct entry of the declaration
-       that precedes it.  We therefore defer generating #pragma pack directives
-       until the next call to gen_declaration(). */
-    if (pending_pragma_pack == NULL) {
-      /* This is the first (there might be several, so don't overwrite the
-         first). */
-      pending_pragma_pack = curr_source_sequence_entry;
-    }  /* if */
-    adv_curr_source_sequence_entry();
-  } else {
-    /* Advance past the source sequence entry for the pragma. */
-    adv_curr_source_sequence_entry();
-    /* Ignore this entry if told to do so. */
-    if (!pp->ignore_in_back_end) {
-      octl.suppress_line_breaking = TRUE;
-      set_output_position(&pp->position);
-      if (pp->kind == (a_pragma_kind)pk_stdc) {
-        gen_stdc_pragma(pp);
+  /* Advance past the source sequence entry for the pragma. */
+  adv_curr_source_sequence_entry();
+  /* Ignore this entry if told to do so. */
+  if (!pp->ignore_in_back_end) {
+    octl.suppress_line_breaking = TRUE;
+    set_output_position(&pp->position);
+    if (pp->kind == (a_pragma_kind)pk_stdc) {
+      gen_stdc_pragma(pp);
 #if UPC_EXTENSIONS_ALLOWED
-      /* Check for #pragma upc. */
-      } else if (pp->kind == (a_pragma_kind)pk_upc) {
-        gen_upc_pragma(pp);
+    /* Check for #pragma upc. */
+    } else if (pp->kind == (a_pragma_kind)pk_upc) {
+      gen_upc_pragma(pp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-      /* Check for #ident (#pragma ident is handled by the normal #pragma
-         processing code). */
-      } else if (pp->kind == (a_pragma_kind)pk_ident_directive) {
-        begin_pp_directive("");
-        write_str("#ident ");
-        /* Don't escape tab characters. */
-        octl.gen_raw_tab_in_literals = TRUE;
-        gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
-        octl.gen_raw_tab_in_literals = FALSE;
-        end_pp_directive();
+    /* Check for #ident (#pragma ident is handled by the normal #pragma
+       processing code). */
+    } else if (pp->kind == (a_pragma_kind)pk_ident_directive) {
+      begin_pp_directive("");
+      write_str("#ident ");
+      /* Don't escape tab characters. */
+      octl.gen_raw_tab_in_literals = TRUE;
+      gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
+      octl.gen_raw_tab_in_literals = FALSE;
+      end_pp_directive();
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (pp->kind == (a_pragma_kind)pk_comment) {
+    } else if (pp->kind == (a_pragma_kind)pk_comment) {
+      gen_pragma_start(pp);
+      write_str("comment(");
+      write_str(microsoft_pragma_comment_ids[(int)pp->variant.comment.kind]);
+      if (pp->variant.comment.str != NULL) {
+        write_str(", ");
+        gen_constant(pp->variant.comment.str, /*need_parens=*/FALSE);
+      }  /* if */
+      write_str(")");
+      gen_pragma_end(pp);
+    } else if (pp->kind == (a_pragma_kind)pk_conform) {
+      /* Render "#pragma conform(forScope, ...)" except the "show" variant
+         since that variant only triggers a warning that was already issued
+         by the front end. */
+      if (!pp->variant.conform.show) {
         gen_pragma_start(pp);
-        write_str("comment(");
-        write_str(microsoft_pragma_comment_ids[(int)pp->variant.comment.kind]);
-        if (pp->variant.comment.str != NULL) {
+        check_assertion(pp->variant.conform.kind ==
+                             (a_microsoft_pragma_conform_kind)mpck_forScope);
+        write_str("conform(forScope");
+        if (pp->variant.conform.push) {
+          write_str(", push");
+        } else if (pp->variant.conform.pop) {
+          write_str(", pop");
+        }  /* if */
+        if (pp->variant.conform.identifier != NULL) {
           write_str(", ");
-          gen_constant(pp->variant.comment.str, /*need_parens=*/FALSE);
+          write_str(pp->variant.conform.identifier);
+        }  /* if */
+        if (pp->variant.conform.on) {
+          write_str(", on");
+        } else if (pp->variant.conform.off) {
+          write_str(", off");
         }  /* if */
         write_str(")");
         gen_pragma_end(pp);
-      } else if (pp->kind == (a_pragma_kind)pk_conform) {
-        /* Render "#pragma conform(forScope, ...)" except the "show" variant
-           since that variant only triggers a warning that was already issued
-           by the front end. */
-        if (!pp->variant.conform.show) {
-          gen_pragma_start(pp);
-          check_assertion(pp->variant.conform.kind ==
-                               (a_microsoft_pragma_conform_kind)mpck_forScope);
-          write_str("conform(forScope");
-          if (pp->variant.conform.push) {
-            write_str(", push");
-          } else if (pp->variant.conform.pop) {
-            write_str(", pop");
-          }  /* if */
-          if (pp->variant.conform.identifier != NULL) {
-            write_str(", ");
-            write_str(pp->variant.conform.identifier);
-          }  /* if */
-          if (pp->variant.conform.on) {
-            write_str(", on");
-          } else if (pp->variant.conform.off) {
-            write_str(", off");
-          }  /* if */
-          write_str(")");
-          gen_pragma_end(pp);
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else {
-        check_assertion_str(pp->pragma_text != NULL,
-                            "gen_pragma: NULL pragma_text");
-        gen_pragma_start(pp);
-        write_str(pp->pragma_text);
-        gen_pragma_end(pp);
       }  /* if */
-      octl.suppress_line_breaking = saved_suppress_line_breaking;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      check_assertion_str(pp->pragma_text != NULL,
+                          "gen_pragma: NULL pragma_text");
+      gen_pragma_start(pp);
+      write_str(pp->pragma_text);
+      gen_pragma_end(pp);
     }  /* if */
+    octl.suppress_line_breaking = saved_suppress_line_breaking;
   }  /* if */
 }  /* gen_pragma */
 
@@ -19207,7 +19144,6 @@ Initialize for the C++/C-generating back end.
   }  /* if */
   in_template_argument_list = FALSE;
   in_parameter_pack_declaration = FALSE;
-  pending_pragma_pack = NULL;
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
 }  /* init_cp_gen_be */
