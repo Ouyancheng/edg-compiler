@@ -18790,9 +18790,6 @@ parameter declarations).
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
   /* Handle any preprocessing directives preceding the declaration. */
   (void)process_preprocessing_directives();
-  if (pending_pragma_pack != NULL) {
-    gen_pending_pragma_pack();
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop for comma lists.  This loop also skips entries representing non-
      autonomous type declarations (the rendering of those types is triggered
