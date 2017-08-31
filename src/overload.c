@@ -113,7 +113,7 @@ static a_substitution_stack_entry_ptr
 
 static a_substitution_stack_entry_ptr
 		avail_substitution_stack_entries;
-			/* A list of viability check entries available for
+			/* A list of substitution stack entries available for
 			   reuse. */
 
 static void push_substitution(a_symbol_ptr        sym,
@@ -125,7 +125,7 @@ substituted with the given arguments.
 {
   a_substitution_stack_entry_ptr ssep;
 
-  /* Allocate a name context. */
+  /* Allocate a substitution stack entry. */
   if (avail_substitution_stack_entries != NULL) {
     /* Reuse a freed entry. */
     ssep = avail_substitution_stack_entries;
@@ -146,7 +146,7 @@ substituted with the given arguments.
 
 static void pop_substitution(void)
 /*
-Pop the top entry on the viability stack.
+Pop the top entry on the substitution stack.
 */
 {
   a_substitution_stack_entry_ptr ssep = substitution_stack;
@@ -8596,9 +8596,9 @@ create_final_list:
            its function type are getting separated. */
         instantiate_template_default_arguments(candidates);
       }  /* if */
-      /* Push an entry on the viability checking stack because
-         find_template_function may cause a rescan of the template, and we
-         must discard attempts at recursive calls as nonviable. */
+      /* Push an entry on the substitution stack because find_template_function
+         may cause a rescan of the template, and we must discard attempts at
+         recursive calls as nonviable. */
       push_substitution(sym, candidates->template_arg_list);
       sym = find_template_function(sym, &candidates->template_arg_list,
                            (a_boolean)candidates->expl_template_arg_list_used,
