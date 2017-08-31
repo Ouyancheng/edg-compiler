@@ -1319,11 +1319,11 @@ typedef a_host_large_unsigned a_pbase_flags_set;
 #define PFS_INCOMPLETE_CLASS	0x10
 			/* TRUE (in a pointer-to-member type) if the class
 			   containing the member is incomplete. */
-#define PFS_TRANSACTION_SAFE   0x20
-                        /* Currently unused. */
-#define PFS_NOEXCEPT           0x40
-                        /* TRUE (in a function-type) if the function-type is
-                           a noexcept function. */
+#define PFS_TRANSACTION_SAFE	0x20
+			/* Currently unused. */
+#define PFS_NOEXCEPT		0x40
+			/* TRUE (in a function-type) if the function-type is
+			   a noexcept function. */
 
 /*
 Bit set values for the flags word in a __vmi_class_type_info
