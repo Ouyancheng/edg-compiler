@@ -10989,7 +10989,8 @@ arrays with class elements.
   }  /* if */
   vec_new_node = insert_location.variant.expr;
   if (ndsp->placement_new || ndsp->aligned_version) {
-    /* Placement new.  Add the "?" operator over the whole expression. */
+    /* Placement or aligned new.  Add the "?" operator over the whole
+       expression. */
     test_node->next = vec_new_node;
     make_zero_of_proper_type(vec_new_node->type, null_constant);
     vec_new_node->next = alloc_node_for_constant(null_constant);
