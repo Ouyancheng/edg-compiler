@@ -10901,7 +10901,7 @@ arrays with class elements.
     delete_routine = NULL;
   }  /* if */
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-  if (!ndsp->placement_new) {
+  if (!ndsp->placement_new && !ndsp->aligned_version) {
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Construct the call of __vec_new or __array_new. */
     vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
@@ -10988,7 +10988,7 @@ arrays with class elements.
     insert_expr(var_rvalue_expr(new_temp_var), &insert_location);
   }  /* if */
   vec_new_node = insert_location.variant.expr;
-  if (ndsp->placement_new) {
+  if (ndsp->placement_new || ndsp->aligned_version) {
     /* Placement new.  Add the "?" operator over the whole expression. */
     test_node->next = vec_new_node;
     make_zero_of_proper_type(vec_new_node->type, null_constant);
