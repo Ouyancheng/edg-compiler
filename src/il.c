@@ -1201,7 +1201,8 @@ Dump the given exception specification (which may be NULL), for debug purposes.
       fputs(" <indeterminate>", f_debug);
     } else if (esp->arg_cached) {
       fputs(" <cached>", f_debug);
-    } else {
+    } else if (esp->variant.noexcept_arg != NULL) {
+      fputs(" ", f_debug);
       db_constant(esp->variant.noexcept_arg);
     }  /* if */
   } else if (esp->variant.exception_specification_type_list == NULL) {

@@ -9503,35 +9503,36 @@ Cfront mode.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- source_is_function is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean function_types_correspond(
+static a_boolean pm_function_types_correspond(
                                    a_type_ptr dest_type,
                                    a_type_ptr source_type,
                                    a_boolean  source_is_function,
                                    a_boolean  allow_qualifier_or_eh_mismatch)
 /*
-Return TRUE if the two function types given are compatible if one ignores any
-difference in the underlying class of their "this" parameter types.
-If source_is_function is TRUE, the source is a pointer-to-member for a
-specific function, which matters for a particular C++/CLI conversion.
-If allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and
-exception specification mismatches (the two types are probably the
-types of the operands of an operation).
+Return TRUE if a pointer-to-member-function type with underlying function type
+source_type can be converted to a pointer-to-member-function type with
+underlying function type dest_type.  This requires that the function types be
+compatible if one ignores any difference in the underlying class of their
+"this" parameter types.  If source_is_function is TRUE, the source is a
+pointer-to-member for a specific function, which matters for a particular
+C++/CLI conversion.  If allow_qualifier_or_eh_mismatch is TRUE, ignore
+cv-qualifier and exception specification mismatches (the two types are probably
+the types of the operands of an operation).
 */
 {
-  a_boolean                correspond = FALSE;
-  a_type_compat_flags_set  rt_flags;
+  a_boolean  correspond = FALSE;
 
   dest_type = skip_typerefs(dest_type);
   source_type = skip_typerefs(source_type);
   check_assertion(dest_type->kind == (a_type_kind)tk_routine &&
                   source_type->kind == (a_type_kind)tk_routine);
-  rt_flags = TCF_IGNORE_THIS_CLASS_TYPE |
-             TCF_IMPLICIT_CONVERSION |
-             TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
   if (this_param_types_correspond(dest_type, source_type,
                                   !allow_qualifier_or_eh_mismatch,
                                   allow_qualifier_or_eh_mismatch)) {
-    if (f_types_are_compatible(source_type, dest_type, rt_flags)) {
+    a_type_compat_flags_set  flags = TCF_IGNORE_THIS_CLASS_TYPE |
+                                     TCF_IMPLICIT_CONVERSION |
+                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
+    if (f_types_are_compatible(source_type, dest_type, flags)) {
       correspond = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled && source_is_function &&
@@ -9539,7 +9540,7 @@ types of the operands of an operation).
                dest_type->variant.routine.extra_info
                     ->calling_convention == (a_calling_convention)cc_clrcall &&
                f_types_are_compatible(source_type, dest_type,
-                                      (rt_flags |
+                                      (flags |
                                        TCF_IGNORE_CALLING_CONVENTIONS))) {
       /* In C++/CLI, a pointer-to-member for a specific function can
          be converted to a pointer-to-member to a __clrcall function
@@ -9550,7 +9551,7 @@ types of the operands of an operation).
     }  /* if */
   }  /* if */
   return correspond;
-}  /* function_types_correspond */
+}  /* pm_function_types_correspond */
 
 
 a_boolean member_types_correspond(a_type_ptr dest_type,
@@ -9564,10 +9565,10 @@ allowing for a possible difference due to the associated class type.
 Specifically, this means that when comparing function types, the
 difference in the underlying class of the "this" parameter type must
 be ignored.  If source_is_function is TRUE, the source is a
-pointer-to-member for a specific function, which matters for a
-particular C++/CLI conversion.  If allow_qualifier_or_eh_mismatch is
-TRUE, ignore cv-qualifier and exception specification mismatches (the
-two types are probably the types of the operands of an operation).
+pointer-to-member for a specific function, which matters for a particular
+C++/CLI conversion.  If allow_qualifier_or_eh_mismatch is TRUE, ignore
+cv-qualifier and exception specification mismatches (the two types are
+probably the types of the operands of an operation).
 */
 {
   a_boolean correspond;
@@ -9585,9 +9586,9 @@ two types are probably the types of the operands of an operation).
        of the "this" parameter.  Note that this test must be done even
        when the class types are the same, because the routines may
        be from base classes. */
-    correspond = function_types_correspond(dest_type, source_type,
-                                           source_is_function,
-                                           allow_qualifier_or_eh_mismatch);
+    correspond = pm_function_types_correspond(dest_type, source_type,
+                                              source_is_function,
+                                              allow_qualifier_or_eh_mismatch);
   }  /* if */
   return correspond;
 }  /* member_types_correspond */
@@ -9611,8 +9612,8 @@ source_is_function is TRUE, the source is a pointer-to-member for a
 specific function, which matters for a particular C++/CLI conversion.
 If allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and
 exception specification mismatches (the two types are probably the
-types of the operands of an operation).  If the conversion is
-possible, *std_conv is filled out to describe the conversion.
+types of the operands of an operation). If the conversion is possible,
+*std_conv is filled out to describe the conversion.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -9674,8 +9675,7 @@ pointers to members).
       a_boolean  qualifiers_added;
 
       /* Check the member types. */
-      if (member_types_correspond(dest_type_pointed_to,
-                                  source_type_pointed_to,
+      if (member_types_correspond(dest_type_pointed_to, source_type_pointed_to,
                                   source_is_function,
                                   allow_qualifier_or_eh_mismatch,
                                   &qualifiers_added)) {
@@ -10473,6 +10473,24 @@ exception specifications are not checked.
       if (cast_removes_qualifiers(source_type, dest_type,
                                   (an_error_code *)NULL)) {
         okay = FALSE;
+      } else if (exc_spec_in_func_type) {
+        /* Check that exception specifications haven't been weakened. */
+        a_type_ptr  src_base_type, dst_base_type;
+        if (is_ptr_to_member(source_type)) {
+          src_base_type = source_type->variant.ptr_to_member.type;
+          dst_base_type = dest_type->variant.ptr_to_member.type;
+        } else {
+          src_base_type = source_type->variant.pointer.type;
+          dst_base_type = dest_type->variant.pointer.type;
+        }  /* if */
+        src_base_type = skip_typerefs(src_base_type);
+        dst_base_type = skip_typerefs(dst_base_type);
+        if (src_base_type->kind == (a_type_kind)tk_routine &&
+            dst_base_type->kind == (a_type_kind)tk_routine &&
+            type_has_less_restrictive_exception_spec(src_base_type,
+                                                     dst_base_type)) {
+          okay = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
