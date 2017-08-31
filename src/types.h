@@ -921,6 +921,9 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_USE_CPP_QUALIFIER_RULES 0x80000
 			/* TRUE if even in C mode the C++ rules for
 			   TCF_IGNORE_TYPE_QUALIFIERS should be applied. */
+#define TCF_IGNORE_TOP_LEVEL_NOEXCEPT 0x100000
+			/* TRUE a top-level exception specifier should be
+			   ignored while comparing the types. */
 #define TCF_LAST TCF_USE_CPP_QUALIFIER_RULES
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,TCF_LAST)*/
@@ -989,6 +992,7 @@ circuit some of the processing in common cases.
          ((t1) == (t2) ||                                                 \
           f_types_are_compatible((t1), (t2),                              \
                                  TCF_IGNORE_CALLING_CONVENTIONS |         \
+                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT |          \
                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED | \
                                  TCF_CHECK_ENABLE_IF_ATTRIBUTES |         \
                                  (extra_flags)/*lint --e(835)*/))

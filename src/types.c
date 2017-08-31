@@ -7076,13 +7076,20 @@ check_typerefs:
              types must be compatible, and the "this" parameter types (if any)
              must be compatible. */
           { a_type_compat_flags_set  rt_flags;
-            a_boolean                check_enable_if_attr;
+            a_boolean                check_enable_if_attr, ignore_noexcept;
             /* The flag indicating that calling conventions should be ignored
                does not apply to function types on which this function type
-               is based. */
+               is based.  Similarly for the flag indicating that top-level
+               exception specifications should be ignored. */
             if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
               ignore_calling_conventions = TRUE;
               flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
+            }  /* if */
+            if (flags & TCF_IGNORE_TOP_LEVEL_NOEXCEPT) {
+              ignore_noexcept = TRUE;
+              flags &= ~TCF_IGNORE_TOP_LEVEL_NOEXCEPT;
+            } else {
+              ignore_noexcept = !exc_spec_in_func_type;
             }  /* if */
             rtsp1 = type_1->variant.routine.extra_info;
             rtsp2 = type_2->variant.routine.extra_info;
@@ -7131,7 +7138,7 @@ check_typerefs:
                    implicit conversion checks, type_1 cannot be less
                    restrictive than type_2, but the opposite is okay.  In
                    all other cases, the specifications have to match. */
-                (!exc_spec_in_func_type ||
+                (ignore_noexcept ||
                  (!type_has_less_restrictive_exception_spec(type_1, type_2) &&
                    (is_impl_conv ||
                     !type_has_less_restrictive_exception_spec(type_2,
