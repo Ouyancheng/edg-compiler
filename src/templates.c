@@ -11559,6 +11559,11 @@ points to the template parameter list.
                                               tp, /*copy_default_args=*/TRUE);
             }  /* if */
             new_flags |= MTT_REVERSE_BASE_DERIVED_THIS_TEST;
+            if (exc_spec_in_func_type && tp->kind == (a_type_kind)tk_routine) {
+              /* Allow noexcept routine type to match a "throws any" templated
+                 type. */
+              new_flags |= MTT_ALLOW_INEXACT_DEDUCTION;
+            }  /* if */
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
                                           new_flags);
@@ -11730,7 +11735,7 @@ points to the template parameter list.
               }  /* if */
               if (match && exc_spec_in_func_type) {
                 /* Check the exception specification. */
-                if (((flags & MTT_IS_CONVERSION_TEMPLATE) == 0 &&
+                if (((flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0 &&
                      type_has_less_restrictive_exception_spec(
                                                          type, templ_type)) ||
                     ((flags & MTT_ALLOW_INEXACT_DEDUCTION) == 0 &&
@@ -16495,7 +16500,11 @@ matching process.
      the type signature to the template's type signature.  If successful, a
      template arg list is returned; otherwise, NULL is returned. */
   mtt_flags = MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION;
-  if (is_decl_context) mtt_flags |= MTT_UNKNOWN_THIS_CLASS_TYPE;
+  if (is_decl_context) {
+    mtt_flags |= MTT_UNKNOWN_THIS_CLASS_TYPE;
+  } else {
+    mtt_flags |= MTT_ALLOW_STRICTER_NOEXCEPT;
+  }  /* if */
   if (matches_template_type(curr_type, templ_rout_type, 
                             templ_arg_list, templ_param_list, mtt_flags)) {
     match = TRUE;
@@ -16542,7 +16551,7 @@ matching process.
           }  /* if */
           new_type = instance_rp->type;
         }  /* if */
-        match = f_types_are_compatible(curr_type, new_type,
+        match = f_types_are_compatible(new_type, curr_type,
                                        TCF_IMPLICIT_CONVERSION |
                                        TCF_IGNORE_THIS_CLASS_TYPE |
                                        TCF_ALLOW_BASE_DERIVED_THIS_MATCH |

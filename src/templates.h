@@ -551,7 +551,9 @@ typedef unsigned int an_mtt_flag_set;
 			   to Base<T> may be done if needed, and qualifiers
 			   under an array type can be added.  Qualifiers
 			   on top-level types are handled outside of the
-			   deduction process. */
+			   deduction process.  When TRUE, this also permits
+			   noexcept specifiers to differ (when they are part
+			   of the function type). */
 #define MTT_UNKNOWN_THIS_CLASS_TYPE 0x02
 			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
@@ -573,6 +575,15 @@ typedef unsigned int an_mtt_flag_set;
 			   the template type can be a base of the other
 			   type.  This flag allows the other type to be a
 			   base of the template type. */
+#define MTT_ALLOW_STRICTER_NOEXCEPT 0x40
+			/* TRUE when the template routine type may have a more
+			   restrictive noexcept specifier than the other type.
+			   Use for cases like:
+                             template<class T> T f() noexcept;
+                             int (*fp)() noexcept(false) = &f;
+			   Note that MTT_ALLOW_INEXACT_DEDUCTION permits the
+			   relaxation in the other direction. */
+
 
 extern a_boolean matches_template_type_with_qualification_conversion(
 				a_type_ptr           type,

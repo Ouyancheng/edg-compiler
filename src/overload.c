@@ -13739,7 +13739,8 @@ not_direct_binding_case:
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                                 MTT_IS_CONVERSION_TEMPLATE)) {
+                                 MTT_IS_CONVERSION_TEMPLATE |
+                                   MTT_ALLOW_STRICTER_NOEXCEPT)) {
         /* Match with qualification conversion on pointer or
            pointer-to-member. */
       } else if (is_reference_binding &&
