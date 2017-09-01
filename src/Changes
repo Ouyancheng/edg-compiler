@@ -2593,26 +2593,6 @@ mode).  This attempt could fail on some platforms, resulting in a spurious
 fixed.
 
 
-3/9/17   [EDGcpfe/18072]
-Position of expression nodes after folding
-
-Consider the following example:
-
-  char buf[10]; // Line #1
-  bool f(char  *p) {
-    return p >= buf           // Line #3
-              + sizeof(buf);  // Line #4
-  }
-
-The position first recorded for the eok_padd node corresponding to the '+'
-operator is a position corresponding to line #4.  However, in this case,
-constant-folding folds the result of that operation into a IL entry of type
-a_constant (ck_address).  Previously, this caused the position of the backing
-expression to be replaced by the starting position of the folded expression
-(a position corresponding to line #3 in this case).  That is now fixed: The
-originally recorded expression is recorded in the eok_padd node.
-
-
 3/9/17   [EDGcpfe/18070]
 Spurious constexpr failure when adding/subtracting zero from null pointer
 

@@ -2981,7 +2981,7 @@ void set_operand_expr_position_if_expr(an_operand        *operand,
 If operand is an expression operand (or has an associated expression, such as
 a backing expression for a constant operand), set the source positions in the
 underlying expression from the positions already in the operand.  If
-operator_pos is non-NULL, use that position as the operator position
+operator_position is non-NULL, use that position as the operator position
 if setting the positions in the underlying expression.
 */
 {
@@ -2992,21 +2992,11 @@ if setting the positions in the underlying expression.
       /* Set the positions on the operand of the ref_indirect. */
       expr = expr->variant.operation.operands;
     }  /* if */
-    if (expr->position.seq != 0) {
-      /* A position has been recorded already.  Don't override it. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (expr->expr_range.start.seq == 0) {
-        /* The range hasn't been recorded yet.  Update it. */
-        expr->expr_range.start = operand->position;
-        expr->expr_range.end = operand->end_position;
-      }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (is_operation_node(expr) &&
-               expr->variant.operation.compiler_generated &&
-               !expr->variant.operation.call_uses_operator_syntax) {
-      /* Don't set the position on a compiler-generated operation unless it is
-         an operator-notation call node. */
-    } else {
+    /* Don't set the position on a compiler-generated operation unless it is
+       an operator-notation call node. */
+    if (!is_operation_node(expr) ||
+        !expr->variant.operation.compiler_generated ||
+        expr->variant.operation.call_uses_operator_syntax) {
       /* Set the position on the expression. */
       set_expr_position(expr, &operand->position, &operand->end_position,
                         operator_pos);
