@@ -11858,6 +11858,7 @@ enabled.
     if (throw_any) break;
   }  /* for */
   if (!throw_any) {
+    a_boolean  no_params = rtsp->param_type_list == NULL;
     fp = class_type->variant.class_struct_union.field_list;
     for (; fp != NULL; fp = fp->next) {
       a_type_qualifier_set  subobj_qual;
@@ -11873,8 +11874,7 @@ enabled.
       subobj_qual = get_type_qualifiers(tp);
       tp = skip_typedefs(tp);
       if (fp->has_initializer &&
-          sfkind == (a_special_function_kind)sfk_constructor &&
-          first_param == NULL) {
+          sfkind == (a_special_function_kind)sfk_constructor && no_params) {
         /* We're handling the default constructor and this is a field with an
            in-class initializer.  Ensure field initializers have been
            scanned. */
