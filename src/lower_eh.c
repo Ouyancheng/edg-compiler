@@ -2630,11 +2630,11 @@ They are differentiated by the ETS_IS_POINTER bit.
 #if GENERATE_EH_TABLES
 #if ABI_COMPATIBILITY_VERSION >= 241
 
-static a_variable_ptr ptr_flags_var_for_type(a_type_ptr type)
+static a_variable_ptr ptr_flags_var_for_type(a_type_ptr *type)
 /*
 Build an initialized array whose values represent the cv-qualifiers of
 the multi-level pointer type type, for use in qualifying a typeinfo.
-Return a pointer to the variable.
+Return a pointer to the variable and set *type to the underlying type.
 */
 {
   a_constant_ptr	aggr_con, flag_con;
@@ -2649,11 +2649,11 @@ Return a pointer to the variable.
                                               integer_type(PTR_FLAGS_INT_KIND),
                                               /*in_function_scope=*/FALSE,
                                               &aggr_con);
-  check_assertion(is_pointer_type(type));
+  check_assertion(is_pointer_type(*type));
   do {
-    type = type_pointed_to(type);
-    done = !is_pointer_type(type);
-    qualifiers = get_type_qualifiers(type);
+    *type = type_pointed_to(*type);
+    done = !is_pointer_type(*type);
+    qualifiers = get_type_qualifiers(*type);
     /* Make a flags set that describes the cv-qualifiers at this level. */
     flags_value = 0;
     if (qualifiers & TQ_CONST) {
@@ -2663,17 +2663,18 @@ Return a pointer to the variable.
       flags_value |= ETS_VOLATILE;
     }  /* if */
     /* See if the underlying type is a pointer to member type. */
-    if (is_or_was_ptr_to_data_member_type(type)) {
+    if (is_or_was_ptr_to_data_member_type(*type)) {
       flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
-    } else if (is_or_was_ptr_to_member_function_type(type)) {
+    } else if (is_or_was_ptr_to_member_function_type(*type)) {
       flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
     }  /* if */
     if (exc_spec_in_func_type &&
-        is_function_type(type) &&
+        is_function_type(*type) &&
         is_nothrow_spec(
-                  type->variant.routine.extra_info->exception_specification)) {
+               (*type)->variant.routine.extra_info->exception_specification)) {
       /* A noexcept exception specification is part of the function's type. */
       flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
+      *type = copy_of_function_type_without_exc_spec(*type);
     }  /* if */
     if (done) {
       flags_value |= ETS_LAST;
@@ -2739,12 +2740,14 @@ the cv-qualifiers and passes the type through.
       /* Multi-level pointer.  Build the flags array. */
       /* Don't build the array if we don't need it. */
       if (ptr_flags_var != NULL) {
-        *ptr_flags_var = ptr_flags_var_for_type(eff_type);
+        *ptr_flags_var = ptr_flags_var_for_type(&eff_type);
+      } else {
+        /* Find the underlying type. */
+        eff_type = under_ptr;
+        while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)){
+          eff_type = type_pointed_to(eff_type);
+        }  /* while */
       }  /* if */
-      eff_type = under_ptr;
-      while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
-        eff_type = type_pointed_to(eff_type);
-      }  /* while */
     } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     /* Do not insert code here. */
