@@ -5706,7 +5706,8 @@ Extract the constant value from the operand *operand and place it in
             constant->expr = NULL;
           }  /* if */
         } else if ((is_prototype_instantiation_context() ||
-                    (microsoft_mode && in_ms_nonreal_class_instantiation())) &&
+                    (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
+                    scope_stack_top().alias_in_template_decl) &&
                    operand_is_instantiation_dependent(operand)) {
           an_expr_node_ptr  node = make_node_from_operand(operand);
           make_template_param_expr_constant(node, constant);
