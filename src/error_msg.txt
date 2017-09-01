@@ -2464,7 +2464,7 @@ ec_dynamic_exception_specifications_deprecated;;"dynamic exception specification
 ec_bad_scope_for_partial_spec;;"%n cannot be partially specialized in the current scope"
 ec_previous_constexpr_decl_conflict;;"%nd was previously declared constexpr"
 ec_previous_nonconstexpr_decl_conflict;;"%nd was previously not declared constexpr"
-ec_constexpr_variable_decl_must_be_definition;;"a constexpr variable declaration must be a definition"
+ec_constexpr_variable_decl_must_be_definition;;"missing initializer for constexpr variable"
 ec_invalid_constexpr;;"\"constexpr\" is not valid here"
 ec_invalid_constexpr_body;;"a constexpr function must contain exactly one return statement"
 ec_invalid_statement_in_constexpr_function;;"statement may not appear in a constexpr function"

@@ -6566,7 +6566,10 @@ of the variable.
 */
 {
   if (dps->dso_flags & DSO_CONSTEXPR) {
-    if (is_definition) {
+    if (is_definition ||
+        (vp->is_prototype_instantiation &&
+         (could_be_dependent_class_type(vp->type) ||
+          is_class_struct_union_type(vp->type)))) {
       vp->is_constexpr = TRUE;
     } else {
       pos_error(ec_constexpr_variable_decl_must_be_definition,
