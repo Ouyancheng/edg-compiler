@@ -1,5 +1,18 @@
 Version 4.14
 
+9/1/17   [EDGcpfe/17685,EDGcpfe/18637]
+C++17: Library support for exception specifications as part of function types
+
+To support the throwing of pointers to function types with noexcept
+exceptions specifications in configurations where lowering generates
+exception tables, a new bit, ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION, is introduced
+to indicate the presence of a noexcept exception specification on the
+underlying function type.  Due to the lack of bits in the run time library's
+an_ETS_flag_set type, ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION uses the same bit
+as ETS_IS_ELLIPSIS with ETS_IS_POINTER being used to distinguish between
+the two cases.  This is a subtle IL CHANGE.
+
+
 8/24/17  [EDGcpfe/17696]
 C++17: overaligned storage allocation
 

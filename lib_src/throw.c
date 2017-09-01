@@ -1029,8 +1029,14 @@ is returned via nullptr_conv_needed (if it is not NULL).
         an_ETS_flag_set	dest_qualifiers = get_qualifiers(etsp->flags);
         if (!any_qualifier_in_set_missing(dest_qualifiers,
                                           source_qualifiers)) {
-          /* The qualifiers are acceptable. */
-          match = TRUE;
+          /* The cv-qualifiers are acceptable. */
+          if (!is_noexcept(etsp->flags) || is_noexcept(flags)) {
+            /* The destination has no noexcept exception specification (in
+               which case the source exception specification is irrelevant), or
+               both the source and destination have noexcept exception
+               specifications (which is also a match). */
+            match = TRUE;
+          }  /* if */
         }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 241
       } else {

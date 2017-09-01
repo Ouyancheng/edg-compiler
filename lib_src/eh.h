@@ -236,8 +236,21 @@ typedef a_byte an_ETS_flag_set;
 #define ETS_IS_REFERENCE	0x08
 			/* A reference to an object of the type specified
 			   by type_info is being caught. */
+/*
+Note that ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION and ETS_IS_ELLIPSIS are
+"overloaded" (i.e., they use the same bit).  That's because the library
+currently uses a_byte to store these flags and there are no unused bits.
+They are differentiated by the ETS_IS_POINTER bit.
+*/
+#define ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION 0x10
+			/* When ETS_IS_POINTER is TRUE, a pointer to a function
+			   or member function type with a "noexcept" exception
+			   specification (in configurations where exception
+			   specifications are considered part of the function
+			   type). */
 #define ETS_IS_ELLIPSIS		0x10
-			/* The catch clause contains an ellipsis. */
+			/* When ETS_IS_POINTER is FALSE, the catch clause
+			   contains an ellipsis. */
 #define ETS_LAST		0x20
 			/* TRUE if this is the last catch clause associated
 			   with a given try block (i.e., there are no more
@@ -280,7 +293,10 @@ typedef a_byte an_ETS_flag_set;
 #define is_const(flag)               ((flag & ETS_CONST) != 0)
 #define is_volatile(flag)            ((flag & ETS_VOLATILE) != 0)
 #define is_reference(flag)           ((flag & ETS_IS_REFERENCE) != 0)
-#define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS) != 0)
+#define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS) != 0 && \
+                                      (flag & ETS_IS_POINTER) == 0)
+#define is_noexcept(flag) ((flag & ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION)!=0 && \
+                           (flag & ETS_IS_POINTER) != 0)
 #define is_last(flag)                ((flag & ETS_LAST) != 0)
 
 /* Return the qualifiers from a flag entry. */

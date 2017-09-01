@@ -1407,6 +1407,28 @@ flag set value is returned.
 
 #endif /* IA64_ABI */
 
+static a_type_ptr copy_of_function_type_without_exc_spec(a_type_ptr type)
+/*
+Create and return a copy of the function type without the exception
+specification and re-set certain fields to ensure that a new typeinfo_var will
+be created for the new type.  The type must not have been lowered yet.
+The type is not added to any lists.
+*/
+{
+  an_exception_specification_ptr  save_esp;
+  a_type_ptr                      copied_type = alloc_type(type->kind);
+
+  check_assertion(is_function_type(type) && !visited_yet(type));
+  save_esp = type->variant.routine.extra_info->exception_specification;
+  type->variant.routine.extra_info->exception_specification = NULL;
+  copy_type(type, copied_type);
+  type->variant.routine.extra_info->exception_specification = save_esp;
+  il_lowering_flag_of(copied_type) = FALSE;
+  copied_type->typeinfo_var = NULL;
+  return copied_type;
+}  /* copy_of_function_type_without_exc_spec */
+
+
 #if !IA64_ABI
 /*ARGSUSED*/  /* <-- use_comdat is not used in that case. */
 #endif /* !IA64_ABI */
@@ -1818,19 +1840,8 @@ typeinfo variable in a COMDAT group.
                  the function typeinfo), so add a flag here and make sure the
                  pointed-to function type does not include the exception
                  specification. */
-              /* Create a copy of the type (without the exception
-                 specification) and re-set certain fields to ensure that
-                 a new typeinfo_var will be created for that type. */
-              a_type_ptr copied_type = alloc_type(pointed_to_type->kind);
-              pointed_to_type->
-                    variant.routine.extra_info->exception_specification = NULL;
-              copy_type(pointed_to_type, copied_type);
-              pointed_to_type->
-                     variant.routine.extra_info->exception_specification = esp;
-              check_assertion(!visited_yet(type));
-              il_lowering_flag_of(copied_type) = FALSE;
-              copied_type->typeinfo_var = NULL;
-              pointed_to_type = copied_type;
+              pointed_to_type = copy_of_function_type_without_exc_spec(
+                                                              pointed_to_type);
               flags_value |= PFS_NOEXCEPT;
             }  /* if */
           }  /* if */
@@ -2584,9 +2595,22 @@ typedef unsigned long an_eh_type_flags_set;
 #define ETS_IS_REFERENCE	0x08
 			/* A reference to an object of the type specified
 			   by typeinfo. */
+/*
+Note that ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION and ETS_IS_ELLIPSIS are
+"overloaded" (i.e., they use the same bit).  That's because the library
+currently uses a_byte to store these flags and there are no unused bits.
+They are differentiated by the ETS_IS_POINTER bit.
+*/
+#define ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION 0x10
+			/* When ETS_IS_POINTER is TRUE, a pointer to a function
+			   or member function type with a "noexcept" exception
+			   specification (in configurations where exception
+			   specifications are considered part of the function
+			   type). */
 #if DO_FULL_PORTABLE_EH_LOWERING
 #define ETS_IS_ELLIPSIS		0x10
-			/* An ellipsis (for a catch clause). */
+			/* When ETS_IS_POINTER is FALSE, the catch clause
+			   contains an ellipsis. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #define ETS_LAST		0x20
 			/* TRUE if this is the last type specification in
@@ -2643,6 +2667,13 @@ Return a pointer to the variable.
       flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
     } else if (is_or_was_ptr_to_member_function_type(type)) {
       flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
+    }  /* if */
+    if (exc_spec_in_func_type &&
+        is_function_type(type) &&
+        is_nothrow_spec(
+                  type->variant.routine.extra_info->exception_specification)) {
+      /* A noexcept exception specification is part of the function's type. */
+      flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
     }  /* if */
     if (done) {
       flags_value |= ETS_LAST;
@@ -2733,6 +2764,18 @@ the cv-qualifiers and passes the type through.
         *flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
       } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
         *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
+      }  /* if */
+      if (exc_spec_in_func_type &&
+          is_function_type(eff_type) &&
+          is_nothrow_spec(
+              eff_type->variant.routine.extra_info->exception_specification)) {
+        /* A noexcept exception specification is part of the function's type.
+           Include a flag to that effect, then strip the exception
+           specification from the effective type (as if the exception
+           specification was a type qualifier). */
+        *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
+        check_assertion(*flags_value & ETS_IS_POINTER);
+        eff_type = copy_of_function_type_without_exc_spec(eff_type);
       }  /* if */
     }  /* if */
   }  /* if */
