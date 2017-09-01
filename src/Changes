@@ -1,6 +1,6 @@
 Version 4.14
 
-9/1/17   [EDGcpfe/18541]
+9/1/17   [EDGcpfe/18727]
 Representation of dynamic_cast with static effect
 
 The front end previously unconditionally optimized the representation of a
