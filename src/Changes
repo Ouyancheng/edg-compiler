@@ -5,7 +5,7 @@ C++-generating back end: reordering of #pragma pack directives
 
 In some previous versions of the front end, #pragma pack was treated as an
 immediate pragma, processed as soon as it was encountered in the source.
-The result of this setting was that the source sequence entries for a
+The result of this setting was that the source sequence entry for a
 #pragma pack directive could appear out of order with respect to the
 end-of-construct entry for a preceding class.  The C++-generating back end
 compensated for this problem by deferring putting out #pragma pack
