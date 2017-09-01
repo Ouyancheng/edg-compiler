@@ -5602,16 +5602,23 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_return:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
+        a_byte            *result_storage = frame->result_storage;
+        a_byte            *complete_obj = frame->complete_object;
         if (stmt->expr != NULL) {
-          do_constexpr_full_expression(ips, stmt->expr, frame->result_storage,
-                                       frame->complete_object, result);
+          do_constexpr_full_expression(ips, stmt->expr, result_storage,
+                                       complete_obj, result);
         } else if (stmt->variant.return_dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
-          result = do_constexpr_dynamic_init(ips,
-                                             stmt->variant.return_dynamic_init,
-                                             &stmt->position, 
-                                             frame->result_storage,
-                                             frame->result_storage);
+          a_dynamic_init_ptr  dip = stmt->variant.return_dynamic_init;
+          if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+            a_type_ptr  fn_type = frame->routine->type, tp;
+            fn_type = skip_typerefs(fn_type);
+            tp = skip_typerefs(fn_type->variant.routine.return_type);
+            init_subobject_to_zero(ips, result_storage, tp, complete_obj);
+          } else {
+            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
+                                               result_storage, complete_obj);
+          }  /* if */
         } else {
           /* Return without a value. */
           a_type_ptr  fn_type = frame->routine->type;
@@ -12907,8 +12914,11 @@ source position of the initialization.
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
-    if (!do_constexpr_dynamic_init(&ips, dip, pos, result_storage,
-                                   result_storage)) {
+    if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+      init_subobject_to_zero(&ips, result_storage, result_type,
+                             result_storage);
+    } else if (!do_constexpr_dynamic_init(&ips, dip, pos, result_storage,
+                                          result_storage)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
@@ -12916,7 +12926,8 @@ source position of the initialization.
       } else {
         do_constexpr_fail(result);
       }  /* if */
-    } else {
+    }  /* if */
+    if (result) {
       /* Map the result address (which is the "this" pointer) to a ck_address
          constant, so that copy_interpreter_object_to_constant can turn that
          address back into a ck_address constant entry if needed. */
