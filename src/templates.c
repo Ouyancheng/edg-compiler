@@ -456,14 +456,6 @@ static unsigned long
 		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
-#if CHECKING
-static a_boolean
-		any_friend_state_changed;
-			/* TRUE if any template declarations had their friend
-			   status changed between the initial scan and the
-			   later prescan. */
-#endif /* CHECKING */
-
 /* Forward declarations. */
 static void find_or_create_master_instance(a_template_instance_ptr	tip);
 
@@ -25293,9 +25285,6 @@ instantiation, then you don't know what X is.
        only do this if is_member_decl is TRUE (a declaration outside of
        a class should never be considered a friend). */
     decl_state->is_template_friend = is_friend;
-#if CHECKING
-    any_friend_state_changed = TRUE;
-#endif /* CHECKING */   
   }  /* if */
   if (tp != NULL) tp = skip_typerefs(tp);
   /* The following is_class_struct_union_type test is needed because in
@@ -32758,11 +32747,6 @@ specific definition that made it unnecessary.
       (void)exported_definition_is_available(tip);
     }  /* for */
   }  /* if */
-  /* If any friend state changed between the initial prescan and the later one,
-     an error should have been issued somewhere. */
-  check_assertion_str2(!any_friend_state_changed || total_errors != 0,
-                       "trans_unit_instantiation_setup:",
-                       "silent change in friend state");
   db_exit();
 }  /* trans_unit_instantiation_setup */
 
@@ -35812,9 +35796,6 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(inline_function_list);
   register_trans_unit_variable(inline_variable_list);
   register_trans_unit_variable(can_instantiate_list);
-#if CHECKING
-  register_trans_unit_variable(any_friend_state_changed);
-#endif /* CHECKING */
 }  /* templates_one_time_init */
 
 
@@ -35832,12 +35813,9 @@ given translation unit.
   inline_function_list = NULL;
   inline_variable_list = NULL;
   can_instantiate_list = NULL;
-#if CHECKING
-  any_friend_state_changed = FALSE;
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+#if CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION
   after_instantiation_wrapup = FALSE;
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-#endif /* CHECKING */
+#endif /* CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION */
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such
      constants that are created. */
