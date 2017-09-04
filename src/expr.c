@@ -18619,10 +18619,9 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
     if (!placement_new && overaligned_allocation_enabled &&
         unqual_new_type->alignment > targ_default_new_alignment) {
-      /* Create an alignment argument and add it to the placement arguments
-         (if any).  It will be removed and overload resolution retried if
-         there is no match for the argument list containing the
-         alignment. */
+      /* Create an alignment argument as if it were a placement argument.
+         It will be removed and overload resolution retried if there is no
+         match for the argument list containing the alignment. */
       a_constant_ptr alignment_con = local_constant();
       a_boolean      did_not_fold;
       set_integer_constant(alignment_con,
@@ -18634,7 +18633,7 @@ expression, and return the result in *result (or an error indication in
                            &type_position);
       make_constant_operand(alignment_con, &alignment_operand);
       alignment_alep = alloc_arg_list_elem_for_operand(&alignment_operand);
-      append_elem(alignment_alep, arg_list);
+      check_assertion(arg_list == NULL);
       arg_list = alignment_alep;
       release_local_constant(&alignment_con);
     }  /* if */
