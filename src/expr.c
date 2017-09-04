@@ -18617,7 +18617,7 @@ expression, and return the result in *result (or an error indication in
                            targ_size_t_int_kind);
       make_constant_operand(sizeof_constant, &sizeof_operand);
     }  /* if */
-    if (overaligned_allocation_enabled &&
+    if (!placement_new && overaligned_allocation_enabled &&
         unqual_new_type->alignment > targ_default_new_alignment) {
       /* Create an alignment argument and add it to the placement arguments
          (if any).  It will be removed and overload resolution retried if
