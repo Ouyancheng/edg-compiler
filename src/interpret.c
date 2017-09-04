@@ -5611,7 +5611,7 @@ successfully interpreted, FALSE otherwise.
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip = stmt->variant.return_dynamic_init;
           if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-            a_type_ptr  fn_type = frame->routine->type, tp;
+            a_type_ptr  fn_type = frame->routine->type;
             fn_type = skip_typerefs(fn_type);
             tp = skip_typerefs(fn_type->variant.routine.return_type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
@@ -12923,9 +12923,8 @@ source position of the initialization.
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
         set_error_constant(result_con);
-      } else {
-        do_constexpr_fail(result);
       }  /* if */
+      do_constexpr_fail(result);
     }  /* if */
     if (result) {
       /* Map the result address (which is the "this" pointer) to a ck_address
