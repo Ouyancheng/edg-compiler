@@ -13679,6 +13679,13 @@ e.g., if the source operand is an lvalue.
   prep_generic_operand_full(operand, lvalue_expected, rvalue_expected);
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
+  } else if (is_undefined_symbol_operand(operand)) {
+    /* The undefined symbol is about to be the operand of some operation other
+       than a call, so it's truly undefined. */
+    if (expr_error_should_be_issued()) {
+      str_error(ec_undefined_identifier, operand->symbol->header->identifier);
+    }  /* if */
+    make_error_operand(operand);
   } else {
     /* Generate a cast expression.  For an implicit conversion, it's okay
        to add nothing at all.  If template_constant is TRUE, we will later put
