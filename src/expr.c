@@ -16464,7 +16464,6 @@ indication in *rcblock).
                          csf_dynamic_cast,
                          /*is_implicit_cast=*/FALSE);
     copy_operand(&operand, result);
-#if !DOING_SOURCE_ANALYSIS && !BACK_END_IS_CP_GEN_BE
   } else if (same_type_with_added_qualifiers(underlying_operand_type,
                                              underlying_cast_type,
                                              /*ignore_qualifiers=*/TRUE,
@@ -16479,9 +16478,7 @@ indication in *rcblock).
        -  The types are already the same except for qualifiers.
        -  A null pointer value cast to a pointer type.
        -  A known cast from derived to base.
-       This optimization is not done in source analysis configurations or when
-       the C++-generating back end is enabled (the resulting expressions are
-       not always valid C++). */
+    */
     if (reference_case) {
       cast_operand_for_reference_cast(&operand, cast_type,
                                       /*check_cast_access=*/TRUE,
@@ -16502,7 +16499,6 @@ indication in *rcblock).
                                            op_is_null_pointer_value(&operand));
     }  /* if */
     copy_operand(&operand, result);
-#endif /* !DOING_SOURCE_ANALYSIS && !BACK_END_IS_CP_GEN_BE */
   } else {
     /* For all other cases, the dynamic cast is done at runtime.  The operand
        must have a polymorphic class type. */
