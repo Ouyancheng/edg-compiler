@@ -34664,13 +34664,7 @@ is considered a full-expression.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to bool. */
   process_boolean_controlling_expression(&result);
-  if (is_template_dependent_context() && is_expression_operand(&result)) {
-    /* In template-dependent contexts we cannot always fold the result to a
-       constant. */
-    make_template_param_expr_constant(result.variant.expression, constant);
-  } else {
-    extract_constant_from_operand(&result, constant);
-  }  /* if */
+  extract_constant_from_operand(&result, constant);
   wrap_up_constant_full_expression(constant);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
