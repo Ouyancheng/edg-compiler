@@ -4164,6 +4164,10 @@ the clang 4.0 documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
 static a_feature_support feature_support_list[] = {
   { "",
+    &overaligned_allocation_enabled,
+    "__cpp_aligned_new",
+    "201606" },
+  { "",
     NULL,
     "__cpp_fold_expressions",
     "201411" },
