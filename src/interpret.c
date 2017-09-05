@@ -12923,10 +12923,11 @@ source position of the initialization.
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
         set_error_constant(result_con);
+      } else {
+        do_constexpr_fail(result);
       }  /* if */
-      do_constexpr_fail(result);
     }  /* if */
-    if (result) {
+    if (result && !ips.input_error) {
       /* Map the result address (which is the "this" pointer) to a ck_address
          constant, so that copy_interpreter_object_to_constant can turn that
          address back into a ck_address constant entry if needed. */
