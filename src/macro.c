@@ -9281,6 +9281,11 @@ from the front end to the runtime.
 			   "__EDG_REGION_NUMBER_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the type of the flags field for EH. */
+  (void)enter_predef_macro(int_kind_name(targ_ets_flag_type_int_kind),
+			   "__EDG_ETS_FLAG_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
   /* Define the value used as the null region number value in the EH tables. */
   enter_predef_num_macro_noredef(null_eh_region_number,
 			         "__EDG_NULL_EH_REGION_NUMBER");

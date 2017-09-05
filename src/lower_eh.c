@@ -2585,7 +2585,6 @@ exception handling.
 Bit set values for the flags byte of exception_type_spec.  These must
 match the runtime's definition.
 */
-typedef unsigned long an_eh_type_flags_set;
 #if GENERATE_EH_TABLES
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
@@ -2628,6 +2627,11 @@ They are differentiated by the ETS_IS_POINTER bit.
 			   case: the typeinfo refers to the pointer to
 			   member function type. */
 #endif /* GENERATE_EH_TABLES */
+/*
+Type used for internally storing the ETS_* flags (but use
+targ_ets_flag_type_int_kind when passing them to the run time library).
+*/
+typedef unsigned long an_eh_type_flags_set;
 
 #if GENERATE_EH_TABLES
 #if ABI_COMPATIBILITY_VERSION >= 241
@@ -2646,11 +2650,10 @@ Return a pointer to the variable and set *type to the underlying type.
   a_host_large_unsigned	flags_value;
 
   /* Create the array variable. */
-#define PTR_FLAGS_INT_KIND ((an_integer_kind)ik_unsigned_char)
   var = make_init_unnamed_local_static_array_var(
-                                              integer_type(PTR_FLAGS_INT_KIND),
-                                              /*in_function_scope=*/FALSE,
-                                              &aggr_con);
+                                     integer_type(targ_ets_flag_type_int_kind),
+                                     /*in_function_scope=*/FALSE,
+                                     &aggr_con);
   check_assertion(is_pointer_type(*type));
   do {
     *type = type_pointed_to(*type);
@@ -2683,7 +2686,8 @@ Return a pointer to the variable and set *type to the underlying type.
     }  /* if */
     /* Make a constant for the value of the flags set. */
     flag_con = alloc_constant((a_constant_repr_kind)ck_integer);
-    set_unsigned_integer_constant(flag_con, flags_value, PTR_FLAGS_INT_KIND);
+    set_unsigned_integer_constant(flag_con, flags_value,
+                                  targ_ets_flag_type_int_kind);
     /* Add the constant to the aggregate initializer list. */
     (void)add_elem_to_array_var(flag_con, var, aggr_con);
   } while (!done);
@@ -4324,8 +4328,10 @@ and return a pointer to it.  Its definition is
 
   struct exception_type_spec {
     const typeinfo *tinfo;
-    unsigned char  flags;
-    unsigned char  *ptr_flags;
+    targ_ets_flag_type_int_kind   // Originally "unsigned char", now "int"
+                   flags;
+    targ_ets_flag_type_int_kind   // Originally "unsigned char", now "int"
+                   *ptr_flags;
   };
 
 The ptr_flags field is not present for ABI levels less than 2.41.
@@ -4342,14 +4348,15 @@ The ptr_flags field is not present for ABI levels less than 2.41.
     make_lowered_field("tinfo", 
                        make_ptr_to_const_typeinfo_type(),
                        exception_type_spec_type, &last_field);
-    /* field: unsigned char flags */
+    /* field: targ_ets_flag_type_int_kind flags */
     make_lowered_field("flags",
-                       integer_type((an_integer_kind)ik_unsigned_char),
+                       integer_type(targ_ets_flag_type_int_kind),
                        exception_type_spec_type, &last_field);
 #if ABI_COMPATIBILITY_VERSION >= 241
-    /* field: unsigned char *ptr_flags */
+    /* field: targ_ets_flag_type_int_kind *ptr_flags */
     make_lowered_field("ptr_flags",
-                       make_pointer_type(integer_type(PTR_FLAGS_INT_KIND)),
+                       make_pointer_type(
+                                    integer_type(targ_ets_flag_type_int_kind)),
                        exception_type_spec_type, &last_field);
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     finish_class_type(exception_type_spec_type);
@@ -4448,7 +4455,7 @@ beginning and end of the list of constants for the array.  Increment
     a_constant_ptr ptr_flags_con =
                               alloc_constant((a_constant_repr_kind)ck_address);
     a_type_ptr     ptr_flags_type = make_pointer_type(
-                                             integer_type(PTR_FLAGS_INT_KIND));
+                                    integer_type(targ_ets_flag_type_int_kind));
     if (ptr_flags_var == NULL) {
       make_zero_of_proper_type(ptr_flags_type, ptr_flags_con);
     } else {
@@ -6103,7 +6110,7 @@ Lower an enk_throw expression node.
       size_node->next = array_first_element_addr_expr(ptr_flags_var);
     } else {
       flags_node = node_for_integer_constant((long)flags_value,
-                                             (an_integer_kind)ik_int);
+                                             targ_ets_flag_type_int_kind);
       size_node->next = flags_node;
     }  /* if */
 #if !ABI_CHANGES_FOR_RTTI
@@ -6167,7 +6174,7 @@ Lower an enk_throw expression node.
         call_node = make_prototyped_runtime_call_full("__throw_setup_ptr",
             &throw_setup_ptr_routine, void_star_type(),
             make_runtime_typeinfo_type(), size_t_type,
-            make_pointer_type(integer_type((an_integer_kind)ik_unsigned_char)),
+            make_pointer_type(integer_type(targ_ets_flag_type_int_kind)),
             NULL, NULL, NULL, NULL, typeinfo_node);
       } else {
         /* Not a multi_level pointer. */

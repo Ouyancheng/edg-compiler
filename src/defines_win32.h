@@ -312,6 +312,7 @@ the --target option is used).
 #define TARG_POINTER_MODE_win32 ((a_type_mode_kind)tmk_SI)
 #define TARG_PTRDIFF_T_INT_KIND_win32 ((an_integer_kind)ik_int)
 #define TARG_REGION_NUMBER_INT_KIND_win32 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_win32 ((an_integer_kind)ik_unsigned_int)
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_win32 1
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_win32 ((an_integer_kind)ik_int)
 #define TARG_SHORT_FIELD_ALIGNMENT_win32 2
@@ -434,6 +435,7 @@ the --target option is used).
 #define TARG_POINTER_MODE_win64 ((a_type_mode_kind)tmk_DI)
 #define TARG_PTRDIFF_T_INT_KIND_win64 ((an_integer_kind)ik_long_long)
 #define TARG_REGION_NUMBER_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_win64 ((an_integer_kind)ik_unsigned_int)
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_win64 1
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_win64 ((an_integer_kind)ik_long_long)
 #define TARG_SHORT_FIELD_ALIGNMENT_win64 2

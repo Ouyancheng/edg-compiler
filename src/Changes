@@ -1,5 +1,23 @@
 Version 4.14
 
+9/5/17   [EDGcpfe/18732]
+New configuration macro for passing exception type flags to run time library
+
+A new configuration macro, TARG_ETS_FLAG_TYPE_INT_KIND, has been added to
+allow configuration of the type used to pass exception type flags to the
+run time library.  The type, previously a_byte in some places in the front end
+and int in others, now defaults to "int" unless ABI_COMPATIBILITY_VERSION < 414
+in which case it is an unsigned char.  The change is made in anticipation of
+adding other bits to the ETS_* set of bits (currently limited to 8 because
+the flags are stored in a_byte in the run time library).  This type is
+passed to the run time library with --building_runtime is specified as the
+new __EDG_ETS_FLAG_TYPE configuration macro.
+
+This is an IL CHANGE for customers that use lowering to generate exception
+handling tables (unless TARG_ETS_FLAG_TYPE_INT_KIND is set to
+((an_integer_kind)ik_unsigned_char)).
+
+
 9/1/17   [EDGcpfe/18712]
 Spurious folding error on return of empty class type
 

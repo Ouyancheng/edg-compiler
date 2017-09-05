@@ -4934,6 +4934,19 @@ processing.
 #endif /* ifndef TARG_REGION_NUMBER_INT_KIND */
 
 /*
+The integral kind to be used for passing flags related to exception handling
+to the run time library.  Versions prior to 4.14 used ik_unsigned_char, but
+that type doesn't have room for any more bits so a larger type is warranted.
+*/
+#ifndef TARG_ETS_FLAG_TYPE_INT_KIND
+#if ABI_COMPATIBILITY_VERSION < 414
+#define TARG_ETS_FLAG_TYPE_INT_KIND ((an_integer_kind)ik_unsigned_char)
+#else /* ABI_COMPATIBILITY_VERSION >= 414 */
+#define TARG_ETS_FLAG_TYPE_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#endif /* ABI_COMPATIBILITY_VERSION < 414 */
+#endif /* ifndef TARG_ETS_FLAG_TYPE_INT_KIND */
+
+/*
 The integral kind to be used for a local variable identifier in exception
 processing.  In the portable scheme, this is an index into the object
 address table.  In the partial-lowering scheme, it is an offset in the

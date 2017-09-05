@@ -547,6 +547,7 @@ command-line when compiling system headers.
 #define TARG_POINTER_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_PTRDIFF_T_INT_KIND_win64 ((an_integer_kind)ik_long_long)
 #define TARG_REGION_NUMBER_INT_KIND_win64 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_win64 ((an_integer_kind)ik_unsigned_int)
 #define TARG_REUSE_TAIL_PADDING_win64 1
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_win64 1
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_win64 ((an_integer_kind)ik_long_long)

@@ -277,6 +277,8 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
 #if DO_IL_LOWERING && GENERATE_EH_TABLES
   TARGET_MAP_MACRO(TARG_REGION_NUMBER_INT_KIND,
                    targ_region_number_int_kind, _TC)
+  TARGET_MAP_MACRO(TARG_ETS_FLAG_TYPE_INT_KIND,
+                   targ_ets_flag_type_int_kind, _TC)
 #endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
 #if IA64_ABI
   TARGET_MAP_MACRO(TARG_REUSE_TAIL_PADDING, targ_reuse_tail_padding, _TC)

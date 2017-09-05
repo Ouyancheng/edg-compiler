@@ -1140,6 +1140,10 @@ EXTERN an_integer_kind
 		targ_region_number_int_kind;
                         /* The integral kind to be used for a cleanup region
                            number with exception processing. */
+EXTERN an_integer_kind
+		targ_ets_flag_type_int_kind;
+                        /* The integral kind to be used for flags passed to
+                           the run time library for exception processing. */
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
@@ -1260,6 +1264,7 @@ EXTERN an_integer_kind
 #undef TARG_IA64_VTABLE_ENTRY_INT_KIND
 #if GENERATE_EH_TABLES
 #undef TARG_REGION_NUMBER_INT_KIND
+#undef TARG_ETS_FLAG_TYPE_INT_KIND
 #endif /* GENERATE_EH_TABLES */
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
@@ -1469,6 +1474,7 @@ EXTERN an_integer_kind
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND targ_ia64_vtable_entry_int_kind
 #if GENERATE_EH_TABLES
 #define TARG_REGION_NUMBER_INT_KIND targ_region_number_int_kind
+#define TARG_ETS_FLAG_TYPE_INT_KIND targ_ets_flag_type_int_kind
 #endif /* GENERATE_EH_TABLES */
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */

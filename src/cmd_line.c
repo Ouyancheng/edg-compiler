@@ -8019,6 +8019,11 @@ file.
 #else /* !defined(TARG_ESC_CHAR) */
   comment_undefined_macro_name(TARG_ESC_CHAR);
 #endif /* defined(TARG_ESC_CHAR) */
+#if defined(TARG_ETS_FLAG_TYPE_INT_KIND)
+  define_string_valued_macro(TARG_ETS_FLAG_TYPE_INT_KIND);
+#else /* !defined(TARG_ETS_FLAG_TYPE_INT_KIND) */
+  comment_undefined_macro_name(TARG_ETS_FLAG_TYPE_INT_KIND);
+#endif /* defined(TARG_ETS_FLAG_TYPE_INT_KIND) */
 #if defined(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED)
   define_numeric_valued_macro(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED);
 #else /* !defined(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED) */

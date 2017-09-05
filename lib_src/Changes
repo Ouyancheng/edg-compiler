@@ -1,5 +1,15 @@
 Version 4.14
 
+9/5/17   [EDGcpfe/18732]
+New configuration macro for passing exception type flags to run time library
+
+When --building_runtime is specified on the command-line, the front end now
+sets a new configuration macro, __EDG_ETS_FLAG_TYPE, which specifies the type
+used to pass exception type flags to the run time library.  Previously the run
+time library had used a_byte for these flags.  The change is made in
+anticipation of adding other bits to the ETS_* set of bits.
+
+
 9/1/17   [EDGcpfe/17685,EDGcpfe/18637]
 C++17: Library support for exception specifications as part of function types
 

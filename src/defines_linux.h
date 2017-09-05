@@ -310,6 +310,7 @@ the --target option is used).
 #define TARG_POINTER_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
 #define TARG_PTRDIFF_T_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_REGION_NUMBER_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_REUSE_TAIL_PADDING_linux_i686 1
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_linux_i686 1
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_i686 2
@@ -468,6 +469,7 @@ the --target option is used).
 #define TARG_POINTER_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
 #define TARG_PTRDIFF_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_REGION_NUMBER_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_lilnux_x86_64 ((an_integer_kind)ik_unsigned_int)
 #define TARG_REUSE_TAIL_PADDING_linux_x86_64 1
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_linux_x86_64 1
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_x86_64 2
@@ -630,6 +632,7 @@ the --target option is used).
 #define TARG_POINTER_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
 #define TARG_PTRDIFF_T_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_REGION_NUMBER_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_linux_i686 1
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_i686 2
@@ -789,6 +792,7 @@ the --target option is used).
 #define TARG_POINTER_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
 #define TARG_PTRDIFF_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_REGION_NUMBER_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_short)
+#define TARG_ETS_FLAG_TYPE_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_int)
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC_linux_x86_64 1
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_SHORT_FIELD_ALIGNMENT_linux_x86_64 2

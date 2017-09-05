@@ -60,6 +60,8 @@ typedef void *an_object_ptr;
 typedef __EDG_REGION_NUMBER_TYPE a_region_number;
 			/* Type used to represent a region number.
 			   Must be an unsigned type. */
+typedef __EDG_ETS_FLAG_TYPE an_ETS_flag_set;
+			/* Type used to store ETS flags. */
 
 /* Definitions of the values in the flags field of the region description
    entry. */
@@ -223,7 +225,6 @@ typedef struct an_eh_region_descr {
 
 /* Definitions of the values in the flags field of the exception type
    specification entry. */
-typedef a_byte an_ETS_flag_set;
 #define ETS_NO_FLAGS		0x0
 			/* Value used when no flags are set. */
 #define ETS_IS_POINTER		0x01
