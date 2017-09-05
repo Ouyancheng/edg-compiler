@@ -18617,11 +18617,12 @@ expression, and return the result in *result (or an error indication in
                            targ_size_t_int_kind);
       make_constant_operand(sizeof_constant, &sizeof_operand);
     }  /* if */
-    if (!placement_new && overaligned_allocation_enabled &&
+    if (overaligned_allocation_enabled &&
         unqual_new_type->alignment > targ_default_new_alignment) {
-      /* Create an alignment argument as if it were a placement argument.
-         It will be removed and overload resolution retried if there is no
-         match for the argument list containing the alignment. */
+      /* Create an alignment argument and add it to the placement arguments
+         (if any).  It will be removed and overload resolution retried if
+         there is no match for the argument list containing the
+         alignment. */
       a_constant_ptr alignment_con = local_constant();
       a_boolean      did_not_fold;
       set_integer_constant(alignment_con,
@@ -18633,7 +18634,7 @@ expression, and return the result in *result (or an error indication in
                            &type_position);
       make_constant_operand(alignment_con, &alignment_operand);
       alignment_alep = alloc_arg_list_elem_for_operand(&alignment_operand);
-      check_assertion(arg_list == NULL);
+      append_elem(alignment_alep, arg_list);
       arg_list = alignment_alep;
       release_local_constant(&alignment_con);
     }  /* if */
@@ -18783,6 +18784,8 @@ expression, and return the result in *result (or an error indication in
       if (proj_function_symbol == NULL && alignment_alep != NULL) {
         /* Try overload resolution again without the alignment argument. */
         arg_list->next = alignment_alep->next;
+        alignment_alep->next = NULL;
+        free_arg_list(alignment_alep);
         alignment_alep = NULL;
         proj_function_symbol = select_overloaded_function(
                                         operator_new_symbol,
