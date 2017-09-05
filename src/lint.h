@@ -504,6 +504,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,vtbl_addr_from_construction_vtbls_array)*/
 /*lint -esym(755,TARG_INT128_FIELD_ALIGNMENT_win64)*/
 /*lint -esym(755,TARG_RUNTIME_ELEM_COUNT_INT_KIND_win64)*/
+/*lint -esym(755,TARG_ETS_FLAG_TYPE_INT_KIND_win64)*/
 /*lint -esym(755,TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_win64)*/
 /*lint -esym(755,TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_win64)*/
 #else /* !IA64_ABI */
