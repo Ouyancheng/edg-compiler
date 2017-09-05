@@ -1406,6 +1406,7 @@ flag set value is returned.
 }  /* vmi_flags_for_type */
 
 #endif /* IA64_ABI */
+#if IA64_ABI || GENERATE_EH_TABLES
 
 static a_type_ptr copy_of_function_type_without_exc_spec(a_type_ptr type)
 /*
@@ -1428,6 +1429,7 @@ The type is not added to any lists.
   return copied_type;
 }  /* copy_of_function_type_without_exc_spec */
 
+#endif /* IA64_ABI || GENERATE_EH_TABLES */
 
 #if !IA64_ABI
 /*ARGSUSED*/  /* <-- use_comdat is not used in that case. */
