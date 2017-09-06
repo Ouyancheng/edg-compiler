@@ -3843,7 +3843,6 @@ initializer, already copied and substituted.
   dtype = skip_typerefs(dtype);
   if (rescan_aggr != NULL) {
     /* Rescan.  The {...} is provided by the caller in init-component form. */
-    is->no_diagnostics = TRUE;
     icp_tree = rescan_aggr;
   } else {
     /* Parse the list structure (which may be nested and therefore really a
@@ -4466,8 +4465,13 @@ substituted.
   a_source_position   start_pos;
   a_dynamic_init_ptr  dip;
 
-  check_assertion((C_mode() || gpp_mode) &&
-                  (rescan_aggr != NULL || curr_token == tok_lbrace));
+  check_assertion(C_mode() || gpp_mode);
+  if (rescan_aggr != NULL) {
+    /* A rescan context. */
+    dps->init_state.no_diagnostics = TRUE;
+  } else {
+    check_assertion(curr_token == tok_lbrace);
+  }  /* if */
   start_pos = pos_curr_token;
   /* Call braced_initializer to scan the brace-enclosed initializer part of
      the compound initializer.  Set up the "init state" to ensure a dynamic
