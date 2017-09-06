@@ -2943,7 +2943,7 @@ ec_inline_nonstatic_data_mem;;"a nonstatic data member cannot be declared as inl
 ec_no_pack_in_fold_expression;;"fold expression does not refer to a parameter pack"
 ec_same_param_types_with_different_exception_specifications;;"two functions with the same parameter types but different exception specifications cannot be overloaded"
 ec_dynamic_exc_spec_not_permitted;;"dynamic exception specifications are not permitted in this mode"
-ec_dynamic_exc_spec_ignored;;"dynamic exception specifications ignored (they are not supported in this mode)"
+REMOVED;ec_dynamic_exc_spec_ignored;;"dynamic exception specifications ignored (they are not supported in this mode)"
 ec_invalid_noexcept_specifier_operand;;"invalid operand for noexcept specifier"
 ec_lambda_in_noexcept_specifier;;"lambda expression cannot appear in noexcept specifier of a template"
 ###############################################################################

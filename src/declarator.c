@@ -1840,20 +1840,16 @@ actually declares a function, member function, or function template).
       esp->throw_any = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (esp->variant.exception_specification_type_list != NULL) {
-      /* A dynamic exception specification other than "throw()" or
-         Microsoft's "throw(...)".  C++11 deprecated them and C++17
-         removed them altogether because they do not interact well with
-         exception specifications becoming part of a function type. */
+    if (esp->variant.exception_specification_type_list != NULL ||
+        (esp->throw_any && !esp->is_noexcept)) {
+      /* A dynamic exception specification other than "throw()".  C++11
+         deprecated them and C++17 removed them altogether because they do not
+         interact well with exception specifications becoming part of function
+         types. */
       a_source_position  *pos = &func_info->throw_position;
       if (exc_spec_in_func_type) {
-        static a_boolean  warning_issued = FALSE;
-        if (strict_ansi_mode) {
-          pos_error(ec_dynamic_exc_spec_not_permitted, pos);
-        } else if (!warning_issued) {
-          pos_warning(ec_dynamic_exc_spec_ignored, pos);
-          warning_issued = TRUE;
-        }  /* if */
+        pos_diagnostic(es_discretionary_error,
+                       ec_dynamic_exc_spec_not_permitted, pos);
         esp = NULL;
       } else if (cpp11_mode && !ignoring_exception_spec) {
         pos_diagnostic(cpp14_mode ? es_warning : es_remark,
