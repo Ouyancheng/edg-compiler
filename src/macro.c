@@ -9283,7 +9283,7 @@ from the front end to the runtime.
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the type of the flags field for EH. */
   (void)enter_predef_macro(int_kind_name(targ_ets_flag_type_int_kind),
-			   "__EDG_ETS_FLAG_TYPE",
+                           "__EDG_ETS_FLAG_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the value used as the null region number value in the EH tables. */
