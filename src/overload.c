@@ -22762,7 +22762,12 @@ be suppressed (i.e., SFINAE mode).
       if (issue_errors && curr_expr_is_evaluated()) {
         expr_pos_warning(ec_new_of_initializer_list, pos);
       }  /* if */
-    } else if (initializing_field) {
+    } else if (initializing_field &&
+               !(scope_is(&scope_stack_top(), sck_class_struct_union) &&
+                 class_type_supp(scope_stack_top().assoc_type)
+                                                 ->is_lambda_closure_class)) {
+      /* Don't issue a warning for init-captures because lambda expressions are
+         often only created with a limited lifetime. */
       if (issue_errors && curr_expr_is_evaluated()) {
         expr_pos_warning(ec_field_initializer_list, pos);
       }  /* if */
