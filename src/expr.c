@@ -741,17 +741,18 @@ function call and issue a warning if the routine or return type have the
 }  /* check_expression_for_nodiscard_warning */
 
 
-static void process_void_operand(an_operand *operand)
+static void process_void_operand(an_operand *operand,
+                                 a_boolean  suppress_warning)
 /*
 Examine the operand given by *operand, which has been scanned as a void
 expression, and issue a warning if the operand has no effect.
 Lvalue-to-rvalue transformations are done if appropriate.  Other
 transformations are done in all cases.  Processing for the "nodiscard"
-standard attribute is also performed.
+standard attribute is also performed.  If suppress_warning is TRUE,
+certain warnings are not issued.  When this flag is FALSE, it may be
+changed below to be TRUE for certain kinds of expressions and/or contexts.
 */
 {
-  a_boolean suppress_warning = FALSE;
-
   /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
   do_void_operand_transformations(operand,
                                   /*force_lvalue_to_rvalue=*/FALSE);
@@ -772,12 +773,11 @@ standard attribute is also performed.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (expr_stack->is_type_operator_arg_expression) {
+  if (suppress_warning) {
+    /* The caller has requested that warnings be suppressed. */
+  } else if (expr_stack->is_type_operator_arg_expression) {
     /* decltype expressions are sometimes written to check SFINAE
        conditions, so do not warn inside them. */
-    suppress_warning = TRUE;
-  } else if (scope_stack_top().in_discarded_statement) {
-    /* Don't issue warnings on discarded statements. */
     suppress_warning = TRUE;
   } else if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
@@ -29055,7 +29055,7 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      process_void_operand(operand_1);
+      process_void_operand(operand_1, /*suppress_warnings=*/FALSE);
       if (allow_call_with_incomplete_return_type) {
         /* If the second operand is a call, it might require a diagnostic
            later on if it turns out to have an incomplete return type and
@@ -34409,7 +34409,7 @@ case, just process that expression.
   check_assertion(!is_statement_expr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!result_of_stmt_expr) {
-    process_void_operand(&result);
+    process_void_operand(&result, /*suppress_warnings=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
   } else {
     a_boolean  incomplete;
@@ -39816,7 +39816,7 @@ handle_deduced_return_type:
       } else if (scope_stack_top().in_discarded_statement) {
         /* In the discarded branch of a constexpr "if" statement, treat the
            return expression as a void expression. */
-        process_void_operand(&result);
+        process_void_operand(&result, /*suppress_warnings=*/TRUE);
         expression = make_node_from_operand(&result);
         expression = wrap_up_full_expression(expression);
         goto done;
