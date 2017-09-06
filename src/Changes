@@ -457,7 +457,7 @@ feature in all modes, thereby maintaining ABI stability at the expense of
 standards conformance.
 
 To support the throwing of pointers to function types with noexcept
-exceptions specifications in configurations where lowering generates
+exception specifications in configurations where lowering generates
 exception tables, a new bit, ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION, is introduced
 to indicate the presence of a noexcept exception specification on the
 underlying function type.  Due to the lack of bits in the run time library's

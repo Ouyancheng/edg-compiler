@@ -14,7 +14,7 @@ anticipation of adding other bits to the ETS_* set of bits.
 C++17: Library support for exception specifications as part of function types
 
 To support the throwing of pointers to function types with noexcept
-exceptions specifications in configurations where lowering generates
+exception specifications in configurations where lowering generates
 exception tables, a new bit, ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION, is introduced
 to indicate the presence of a noexcept exception specification on the
 underlying function type.  Due to the lack of bits in the run time library's
