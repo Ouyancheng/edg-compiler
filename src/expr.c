@@ -776,6 +776,9 @@ standard attribute is also performed.
     /* decltype expressions are sometimes written to check SFINAE
        conditions, so do not warn inside them. */
     suppress_warning = TRUE;
+  } else if (scope_stack_top().in_discarded_statement) {
+    /* Don't issue warnings on discarded statements. */
+    suppress_warning = TRUE;
   } else if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
@@ -39711,16 +39714,20 @@ wrap_up_coroutine_result_expression.)
     scope_stack[depth_innermost_function_scope].il_scope
                                ->variant.routine.return_value_variable = NULL;
     icp = parse_braced_init_list(/*bundle=*/FALSE);
+    if (scope_stack_top().in_discarded_statement) {
+      expression = make_expr_from_argument(icp);
+      free_init_component_list(icp);
+      goto done;
 #if COROUTINES_ALLOWED
-    if (curr_routine->is_coroutine) {
+    } else if (curr_routine->is_coroutine) {
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
       expression = NULL;
       *alep = icp;
       bundle_coroutine_result(*alep);
       goto done;
-    }  /* if */
 #endif /* COROUTINES_ALLOWED */
+    }  /* if */
     if (curr_routine->has_deducible_return_type &&
         !curr_routine->is_prototype_instantiation) {
       /* A braced-init-list cannot be used for a lambda with an implicit
@@ -39806,6 +39813,13 @@ handle_deduced_return_type:
            was called recursively in the return expression). */
         expect_error();
         required_type = error_type();
+      } else if (scope_stack_top().in_discarded_statement) {
+        /* In the discarded branch of a constexpr "if" statement, treat the
+           return expression as a void expression. */
+        process_void_operand(&result);
+        expression = make_node_from_operand(&result);
+        expression = wrap_up_full_expression(expression);
+        goto done;
       } else {
         check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
                                                        &required_type);
@@ -39925,9 +39939,7 @@ handle_deduced_return_type:
     }  /* if */
   }  /* if */
   if (icp != NULL) free_init_component_list(icp);
-#if COROUTINES_ALLOWED
 done:
-#endif /* COROUTINES_ALLOWED */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

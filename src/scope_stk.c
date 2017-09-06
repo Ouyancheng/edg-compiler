@@ -2848,7 +2848,15 @@ the scope being pushed.
                                   (assoc_namespace != NULL &&
                                    assoc_namespace->has_gnu_abi_tag_attribute);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    ssep->in_discarded_statement = (ssep-1)->in_discarded_statement;
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_class_reactivation) {
+      /* If we are entering a class context or a lambda, don't inherit the
+         discarded statement context. */
+      ssep->in_discarded_statement = FALSE;
+    } else {
+      ssep->in_discarded_statement = (ssep-1)->in_discarded_statement;
+    }  /* if */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->rescan_depth_exceeded = FALSE;
