@@ -18626,10 +18626,11 @@ be called to start a copy.
     case enk_lambda:
       /* Make a copy of the lambda and its initialization. */
       if (!in_file_scope(expr->variant.lambda.ptr) &&
-          in_file_scope(expr_copy)) {
-        /* A local lambda should never have to be copied into file-scope
-           memory (it would cause memory region problems with captures), but
-           we may get here in severe error cases. */
+          in_file_scope(expr_copy) &&
+          expr->variant.lambda.ptr->capture_list != NULL) {
+        /* A local lambda with captures should never have to be copied into
+           file-scope memory (it would cause memory region problems with
+           the captures), but we may get here in severe error cases. */
         expect_error();
         expr_copy = error_node();
       } else {
