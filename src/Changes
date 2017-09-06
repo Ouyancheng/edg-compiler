@@ -1,5 +1,29 @@
 Version 4.14
 
+9/6/17   [EDGcpfe/17703]
+C++17: if constexpr
+
+The front end now implements the C++17 if constexpr feature as described
+in P0292R2.
+
+This is an IL CHANGE as there is a new stmk_constexpr_if statement kind
+that must be handled in both the unlowered and lowered IL.  In lowered IL,
+a back end should only generate code for the non-discarded statement.
+
+  void do_this(int){}
+  template <class T> inline void f(T t) {
+    if constexpr(sizeof(T) == sizeof(int)) {
+      do_this(t);
+    } else {
+      do_that(t);
+    } 
+  }
+  int main() {
+    f(1);  // okay
+    f('c'); // error: do_that is undefined
+  }
+
+
 9/6/17   [EDGcpfe/18317]
 GNU and Clang C++ compatibility: deduction of the noexcept flag
 
