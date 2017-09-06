@@ -10198,15 +10198,19 @@ instead.
     rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
     op_new_has_ellipsis = rtsp->has_ellipsis;
     op_new_param_type_list = rtsp->param_type_list;
-    if (op_new_param_type_list->next == NULL && !op_new_has_ellipsis) {
+    if (op_new_param_type_list->next == NULL && !op_new_has_ellipsis &&
+        !(overaligned_allocation_enabled && class_type != NULL &&
+          class_type->alignment > targ_default_new_alignment)) {
       /* This is default (single-argument) operator new, so find the default
-         operator delete. */
+         operator delete (but not if it's one that has an alignment
+         parameter). */
       corresp_op_delete_sym = find_default_operator_delete_sym(sym,
                                                                delete_type,
                                                                ambiguous);
     } else {
-      /* Placement new.  We need to examine all the delete operators and look
-         for a type match. */
+      /* Placement new or a single-argument new for an overaligned type.
+         We need to examine all the delete operators and look for a type
+         match. */
       any_template_seen = FALSE;
       /*lint --e{446} sym modified in loop (LINTBUG) */
       for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
