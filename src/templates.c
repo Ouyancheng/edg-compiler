@@ -10589,12 +10589,13 @@ of types after all of the function arguments have been processed.
   return match;
 }  /* matches_template_array_bound */
 
-#if /*FIXME*/0
 
-a_boolean matches_noexcept_operand(a_type_ptr           type,
-                                   a_constant_ptr       t_type,
-                                   a_template_arg_ptr   *templ_arg_list,
-                                   a_template_param_ptr templ_param_list)
+static a_boolean matches_noexcept_operand(
+				a_type_ptr		type,
+				a_type_ptr		templ_type,
+				a_template_arg_ptr	*templ_arg_list,
+				a_template_param_ptr	templ_param_list,
+				an_mtt_flag_set		flags)
 /*
 A nontype template parameter is potentially being deduced from a noexcept
 specifier.  For example:
@@ -10603,77 +10604,50 @@ specifier.  For example:
 
 This is currently nonstandard, but accepted by GCC and Clang, and the omission
 in the standard is perhaps accidental.
-
-See also matches_template_array_bound for related issues
 */
 {
-  a_boolean  match = FALSE;
-  an_exception_specification_ptr
-             esp, t_esp;
+  a_boolean				match = FALSE;
+  an_exception_specification_ptr	esp;
+  an_exception_specification_ptr	t_esp;
 
   esp = type->variant.routine.extra_info->exception_specification;
-  t_esp = t_type->variant.routine.extra_info->exception_specification;
+  t_esp = templ_type->variant.routine.extra_info->exception_specification;
   if (t_esp == NULL || !t_esp->is_noexcept ||
       t_esp->variant.noexcept_arg == NULL) {
     /* Assume a match, although we cannot always tell at this point. */
     match = TRUE;
   } else {
-    a_constant_ptr  t_cp = t_esp->variant.noexcept_arg;
-    if (!is_deducible_constant_param(&t_cp, /*remove_impl_cast=*/TRUE)) {
-      /* A nondeduced context.  Assume a match for now. */
-      match = TRUE;
-    } else {
-      a_template_arg_ptr  tap;
-      a_template_param_coordinate_ptr
-                        coordinates;
-      coordinates = &t_cp->variant.template_param.variant.coordinates;
-      tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                         coordinates, /*is_rescan=*/FALSE);
-      /* Now we have the nth template argument, which should correspond to
-         the nth template parameter, whose constant is t_cp. */
-      if (tap->variant.constant == NULL) {
-        /* No value has yet been deduced. */
-        if (is_integral_type(templ_constant->type)) {
-          /* If the type of the parameter is an integral type, use it as the
-             type of the constant. */
-          a_constant_ptr  constant;
-          a_type_ptr      constant_type = t_cp->type;
-          constant = fs_constant((a_constant_repr_kind)ck_integer);
-          set_unsigned_integer_constant(
-                     constant, (a_host_large_unsigned)elements,
-                     skip_typerefs(constant_type)->variant.integer.int_kind);
-          tap->variant.constant = constant;
-          tap->is_array_bound_of_unknown_type = FALSE;
-          match = TRUE;
-        } else if (!tap->is_array_bound_of_unknown_type) {
-          /* No value has been deduced yet, and the parameter type is not
-             integral (probably a template parameter type).  Use this as
-             the value and consider it a match. */
-          tap->variant.integer_value = elements;
-          match = TRUE;
-          tap->is_array_bound_of_unknown_type = TRUE;
-        } else {
-          /* A previous array bound has been seen.  Make sure the values
-             match. */
-          match = tap->variant.integer_value == cp;
-        }  /* if */
+    /* Check the exception specification. */
+    if (deduction_from_exc_spec_allowed) {
+      /* Some compilers allow deduction from the noexcept flag of a function
+         type.  Do this deduction, if needed. */
+      a_constant_ptr	t_cp = t_esp->variant.noexcept_arg;
+      a_constant_ptr	cp;
+      a_boolean		cp_is_local = FALSE;
+      if (esp != NULL) {
+        cp = esp->variant.noexcept_arg;
       } else {
-        /* A constant value has already been deduced for this argument. */
-        a_constant_ptr  prev_cp = tap->variant.constant;
-        check_assertion(prev_cp != NULL);
-        if (is_integral_type(prev_cp->type)) {
-          /* A noexcept operand can only match an integral value.  We have
-             a match if the operands are both true or both false. */
-          match = cmpulit_integer_constant(prev_cp,
-                                           (a_host_large_unsigned)cp) == 0;
-        }  /* if */
+        cp = local_constant();
+        cp_is_local = TRUE;
+        make_zero_of_proper_type(bool_type(), cp);
       }  /* if */
+      match = matches_template_constant(cp, t_cp, templ_arg_list,
+                                        templ_param_list);
+      if (cp_is_local) release_local_constant(&cp);
+    }  /* if */
+    if (((flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0 &&
+         type_has_less_restrictive_exception_spec(type, templ_type)) ||
+        ((flags & MTT_ALLOW_INEXACT_DEDUCTION) == 0 &&
+         type_has_less_restrictive_exception_spec(templ_type, type))) {
+      /* A less restrictive exception specification is not allowed in this
+         case.  Use the match value determined above. */
+    } else {
+      match = TRUE;
     }  /* if */
   }  /* if */
   return match;
 }  /* matches_noexcept_operand */
 
-#endif
 
 static a_boolean is_deducible_template_arg_list(
 				a_template_arg_ptr	templ_tap)
@@ -11726,15 +11700,10 @@ points to the template parameter list.
                 }  /* if */
               }  /* if */
               if (match && exc_spec_in_func_type) {
-                /* Check the exception specification. */
-                if (((flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0 &&
-                     type_has_less_restrictive_exception_spec(
-                                                         type, templ_type)) ||
-                    ((flags & MTT_ALLOW_INEXACT_DEDUCTION) == 0 &&
-                     type_has_less_restrictive_exception_spec(
-                                                         templ_type, type))) {
-                  match = FALSE;
-                }  /* if */
+                match = matches_noexcept_operand(type, templ_type,
+                                                 templ_arg_list,
+                                                 templ_param_list,
+                                                 flags);
               }  /* if */
             }  /* if */
           }  /* if */

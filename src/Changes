@@ -1,5 +1,25 @@
 Version 4.14
 
+9/6/17   [EDGcpfe/18317]
+GNU and Clang C++ compatibility: deduction of the noexcept flag
+
+g++ and clang allow deduction of the noexcept flag of a function type.
+This is not currently part of the C++17 standard.  This is now allowed
+in g++ and clang modes.
+
+  template <typename R, typename ... Args, bool Noex>
+  void f(R (*fp)(Args...) noexcept(Noex)) {}
+
+  void g1(int);
+  void g2(int,int) noexcept(true);
+  void g3(int,int,int) noexcept(false);
+  int main() {
+    f(g1);
+    f(g2);
+    f(g3);
+  }
+
+
 9/5/17   [EDGcpfe/18732]
 New configuration macro for passing exception type flags to run time library
 

@@ -2601,6 +2601,7 @@ option values if they were not already set by a command line option.
             exc_spec_in_func_type = TRUE;
           }  /* if */
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
+          deduction_from_exc_spec_allowed = FALSE;
           overaligned_allocation_enabled = TRUE;
         }  /* if */
       }  /* if */
@@ -4712,6 +4713,13 @@ before this routine is called.
          occurrence) in its C++11 mode. */
       deduced_return_types_enabled = TRUE;
       warn_on_deduced_return_types = TRUE;
+    }  /* if */
+  }  /* if */
+  if (cpp17_mode) {
+    /* g++ and clang allow deduction from the noexcept flag of a function
+       parameter. */
+    if (exc_spec_in_func_type) {
+      deduction_from_exc_spec_allowed = TRUE;
     }  /* if */
   }  /* if */
   if (clang_mode) {
@@ -11192,6 +11200,7 @@ variables declared in cmd_line.h.
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;
   exc_spec_in_func_type = FALSE;
+  deduction_from_exc_spec_allowed = FALSE;
   delegating_constructors_enabled = FALSE;
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
