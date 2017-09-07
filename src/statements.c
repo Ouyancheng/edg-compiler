@@ -3637,8 +3637,7 @@ static void dependent_statement_of_if(void)
 Scan the dependent statement of an if, which could be a constexpr if.
 For the constexpr case, if the dependent statement is to be considered
 discarded:
-  - In the non-template case, the dependent statement is currently 
-    discarded.  Eventually it will be scanned with some special processing
+  - In the non-template case, it is be scanned with some special processing
     (for example, not treating some references as ODR uses).
   - In the template case, the tokens of the dependent statement are
     discarded.
@@ -3995,9 +3994,9 @@ static void if_statement(void)
 Scan an "if" statement (with or without else) and add it to the current
 statement sequence.  The syntax is:
 
-	if constexpr   ( condition ) statement
+        if constexpr   ( condition ) statement
                     opt
-	if constexpr   ( condition ) statement else statement
+        if constexpr   ( condition ) statement else statement
                     opt
 
 */
@@ -4153,7 +4152,7 @@ statement sequence.  The syntax is:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (cicip_to_create != NULL) {
       /* Record the cached token handle of the start of the "else"
-         clause (for a constexpr if) */
+         clause (for a constexpr if). */
       cicip_to_create->else_handle = curr_cached_token_handle;
     }  /* if */
     (void)get_token();

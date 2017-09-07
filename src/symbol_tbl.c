@@ -3132,7 +3132,7 @@ fields, and return a pointer to it.
 
 void clear_constexpr_if_cache_info(a_constexpr_if_cache_info_ptr	cicip)
 /*
-Initialize the fields of a constexpr information entry.
+Initialize the fields of a constexpr if cache information entry.
 */
 {
   cicip->token_cache = NULL;
