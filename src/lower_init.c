@@ -3344,7 +3344,6 @@ IA-64 ABI; see comments below.
        The latter is for the two-argument delete case. */
     check_assertion(entity_node == NULL);
     dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
-    /* FIXME: handle aligned delete case. */
     is_two_arg_delete = (delete_routine != NULL &&
                          is_sized_delete(delete_routine, &is_aligned_delete));
 #if !IA64_ABI
@@ -3708,7 +3707,6 @@ A pointer to the expression created is returned.
        routine, 0 otherwise.
     */
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
-    /* FIXME: handle aligned delete. */
     is_two_arg_node = node_for_integer_constant(
                               is_sized_delete(delete_routine,
                                               &is_aligned_delete) ? 1L : 0L,
@@ -3776,7 +3774,6 @@ A pointer to the expression created is returned.
     a_boolean is_aligned_delete;
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     check_assertion(num_elem_node == NULL && free_storage);
-    /* FIXME: handle aligned delete. */
     if (is_sized_delete(delete_routine, &is_aligned_delete)) {
       /* The call looks like
            __cxa_vec_delete3(entity_node, size_elem, padding, dtor_addr_node,
@@ -11212,7 +11209,6 @@ as well as any additional code needed to process the deletion.
         /* Put a pointer to the allocated storage on the front of the argument
            list for the delete routine.  Add any placement delete args if
            necessary. */
-        /* FIXME: handle aligned delete. */
         if (is_sized_delete(dyn_init_to_free_storage->destructor,
                             &is_aligned_delete) &&
             delete_args == NULL) {
