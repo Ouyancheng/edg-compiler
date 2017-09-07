@@ -3637,7 +3637,7 @@ static void dependent_statement_of_if(void)
 Scan the dependent statement of an if, which could be a constexpr if.
 For the constexpr case, if the dependent statement is to be considered
 discarded:
-  - In the non-template case, it is be scanned with some special processing
+  - In the non-template case, it is scanned with some special processing
     (for example, not treating some references as ODR uses).
   - In the template case, the tokens of the dependent statement are
     discarded.
