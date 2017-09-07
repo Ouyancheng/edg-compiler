@@ -1,5 +1,13 @@
 Version 4.14
 
+9/6/17   [EDGcpfe/18741]
+Feature test macro refresh
+
+The list of standard feature test macros supported by the front end has
+been updated to reflect the latest version of the WG21 document (P0096R4,
+dated 2017-07-26).
+
+
 9/6/17   [EDGcpfe/17703]
 C++17: if constexpr
 

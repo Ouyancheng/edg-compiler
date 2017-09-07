@@ -4159,8 +4159,8 @@ feature strings and WG21 SG10 feature-test macros (type trait helpers can
 also be tested by the clang macros, but those are represented by a separate
 table).  It is sorted by the clang __has_feature string so it can be used
 with bsearch when the __has_feature or __has_extension macro is
-encountered.  The current contents reflect WG21 P0096R2 (2016-02-23) and
-the clang 4.0 documentation at clang.llvm.org/docs/LanguageExtensions.html.
+encountered.  The current contents reflect WG21 P0096R4 (2017-07-26) and
+the clang 6 documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
 static a_feature_support feature_support_list[] = {
   { "",
@@ -4168,13 +4168,29 @@ static a_feature_support feature_support_list[] = {
     "__cpp_aligned_new",
     "201606" },
   { "",
+    &capture_star_this_enabled,
+    "__cpp_capture_star_this",
+    "201603" },
+  { "",
     NULL,
     "__cpp_fold_expressions",
     "201411" },
   { "",
+    &hex_floating_point_constants_allowed,
+    "__cpp_hex_float",
+    "201603" },
+  { "",
+    &constexpr_if_enabled,
+    "__cpp_if_constexpr",
+    "201606" },
+  { "",
     &initializer_lists_enabled,
     "__cpp_initializer_lists",
     "200806" },
+  { "",
+    &inline_variables_allowed,
+    "__cpp_inline_variables",
+    "201606" },
   { "",
     &namespace_attributes_enabled,
     "__cpp_namespace_attributes",
@@ -4195,6 +4211,10 @@ static a_feature_support feature_support_list[] = {
     &sized_deallocation_enabled,
     "__cpp_sized_deallocation",
     "201309" },
+  { "",
+    &struct_bindings_enabled,
+    "__cpp_structured_bindings",
+    "201606" },
   { "",
     &char16_t_and_char32_t_are_keywords,
     "__cpp_unicode_characters",
@@ -10271,7 +10291,11 @@ command line -D options.
       /* __cpp_constexpr must be handled specially, as it will have
          different values depending on whether C++11 or C++14 constexpr
          features are supported. */
-      if (relaxed_constexpr_enabled) {
+      if (constexpr_lambdas_enabled) {
+        (void)enter_predef_macro("201606", "__cpp_constexpr",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else if (relaxed_constexpr_enabled) {
         (void)enter_predef_macro("201304", "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
