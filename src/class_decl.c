@@ -20277,13 +20277,8 @@ issue an error if it is not actually constexpr.
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */
     } else if (ctor_rp->is_defaulted && ctor_rp->is_constexpr) {
-      /* A defaulted constructor cannot be constexpr if it wouldn't have been
-         constexpr by default.  For template instantiations, the constexpr is
-         silently dropped.  Other cases are errors. */
-      if (!ctor_rp->is_template_function || ctor_rp->is_specialized) {
-        pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
-                  &ctor->decl_position);
-      }  /* if */
+      /* If a defaulted default constructor cannot be constexpr, silently
+         clear the is_constexpr flag. */
       ctor_rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
