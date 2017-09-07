@@ -816,7 +816,7 @@ This is now fixed (it no longer finds the template, and only considers the
 ellipsis function).
 
 
-6/20/17  [EDGcpfe/17959,EDGcpfe/18497]
+6/20/17  [EDGcpfe/16621,EDGcpfe/17959,EDGcpfe/18497]
 Spurious error on constexpr defaulted constructor with trivial base constructor
 
 The front end previously issued a spurious error on the following case:
