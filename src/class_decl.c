@@ -19993,7 +19993,8 @@ default constructor, or an array thereof.
                                                  /*check_access=*/TRUE,
                                                  &error_detected, &err);
     if (default_ctor != NULL) {
-      result = default_ctor->is_constexpr;
+      result = default_ctor->is_constexpr ||
+               default_ctor->is_declared_constexpr;
     } else {
       a_class_symbol_supplement_ptr
         cssp = class_symbol_supp(symbol_for(type));
