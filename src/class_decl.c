@@ -20067,15 +20067,17 @@ scanned.
 
 
 static a_boolean fields_initialized_for_constexpr_constructor(
-                                                       a_type_ptr  class_type)
+                                                     a_type_ptr  class_type,
+                                                     a_boolean   limited_check)
 /*
 Return TRUE if the field initialization constraints for a generated constexpr
 default constructor are satisfied by the given class type.  For non-union
 types, all fields must be initialized, and for union types exactly one field
 must be initialized.  The initializers must also be constants, but we do not
-enforce that for template classes to avoid forcing the premature instantiation
-of the initializers.  Volatile fields are never validly initialized in a
-constant-expression and thus cause this routine to return FALSE.
+enforce that when limited_check is TRUE or for template classes (to avoid
+forcing the premature instantiation of the initializers).  Volatile fields are
+never validly initialized in a constant-expression and thus cause this routine
+to return FALSE unless limited_check is TRUE.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
@@ -20089,11 +20091,11 @@ constant-expression and thus cause this routine to return FALSE.
     a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
     for (; fp != NULL; fp = next_initializable_field(fp->next)) {
       a_boolean  member_initialized;
-      if (fp->has_nonconstant_initializer) {
+      if (fp->has_nonconstant_initializer && !limited_check) {
         /* A nonconstant initializer is never okay. */
         okay = FALSE;
         break;
-      } else if (is_volatile_qualified_type(fp->type)) {
+      } else if (is_volatile_qualified_type(fp->type) && !limited_check) {
         /* A volatile field cannot be initialized in a constant-expression. */
         okay = FALSE;
         break;
@@ -20102,7 +20104,7 @@ constant-expression and thus cause this routine to return FALSE.
           /* If this field represents an anonymous union, apply the
              requirement recursively. */
           member_initialized = fields_initialized_for_constexpr_constructor(
-                                                     skip_typerefs(fp->type));
+                                      skip_typerefs(fp->type), limited_check);
         } else {
           continue;
         }  /* if */
@@ -20239,7 +20241,7 @@ issue an error if it is not actually constexpr.
                  cssp = symbol_supplement_for_class(class_type);
   a_symbol_ptr   ctor = get_generated_default_ctor(cssp);
   a_routine_ptr  ctor_rp;
-  a_boolean      is_constexpr = FALSE;
+  a_boolean      is_constexpr = FALSE, limited_check = FALSE;
 
   check_assertion(constexpr_enabled);
   if (ctor != NULL) {
@@ -20252,6 +20254,13 @@ issue an error if it is not actually constexpr.
     }
   }  /* if */
   if (ctor != NULL) {
+    if ((ctor_rp->is_template_function && !ctor_rp->is_specialized) ||
+        ctor_rp->is_defaulted) {
+      /* Default constructors that are template instantiations or that are
+         defaulted should not elicit errors for certain constructs that
+         guarantee a nonconstant outcome. */
+      limited_check = TRUE;
+    }  /* if */
     if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* A generated default constructor is implicitly "constexpr" if (a) the
          parent class has no virtual bases, (b) every field has a constant
@@ -20262,7 +20271,8 @@ issue an error if it is not actually constexpr.
          always meaningful and the downstream code cannot always handle such
          classes. */
       if (!class_type->variant.class_struct_union.is_nonreal_class &&
-          fields_initialized_for_constexpr_constructor(class_type) &&
+          fields_initialized_for_constexpr_constructor(class_type,
+                                                       limited_check) &&
           bases_initialized_for_constexpr_constructor(class_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
           && !(class_type_supp(class_type)->decl_modifiers & DM_DLLIMPORT)
@@ -20277,8 +20287,13 @@ issue an error if it is not actually constexpr.
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */
     } else if (ctor_rp->is_defaulted && ctor_rp->is_constexpr) {
-      /* If a defaulted default constructor cannot be constexpr, silently
-         clear the is_constexpr flag. */
+      /* A defaulted constructor cannot be constexpr if it wouldn't have been
+         constexpr by default.  For template instantiations, the constexpr is
+         silently dropped.  Other cases are errors. */
+      if (!ctor_rp->is_template_function || ctor_rp->is_specialized) {
+        pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
+                  &ctor->decl_position);
+      }  /* if */
       ctor_rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
