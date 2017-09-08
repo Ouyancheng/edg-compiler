@@ -11721,7 +11721,7 @@ the value representation of the integer value.
                   ips->constants = new_con;
                   /* Set the "length" field of the result to one to indicate
                      that this should be treated as an object address even if
-                     the address is null.  That is needed to accomodate
+                     the address is null.  That is needed to accommodate
                      traditional "offsetof" implementations. */
                   ((a_constexpr_address*)result_storage)->length = 1;
                 }  /* if */
