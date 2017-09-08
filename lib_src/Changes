@@ -1,4 +1,4 @@
-Version 4.14
+Version 4.14, September 12, 2017
 
 9/5/17   [EDGcpfe/18732]
 New configuration macro for passing exception type flags to run time library
