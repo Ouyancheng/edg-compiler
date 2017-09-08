@@ -922,7 +922,7 @@ Bit flags for calls of f_types_are_compatible et al.
 			/* TRUE if even in C mode the C++ rules for
 			   TCF_IGNORE_TYPE_QUALIFIERS should be applied. */
 #define TCF_IGNORE_TOP_LEVEL_NOEXCEPT 0x100000
-			/* TRUE a top-level exception specifier should be
+			/* TRUE if a top-level exception specifier should be
 			   ignored while comparing the types. */
 #define TCF_LAST TCF_USE_CPP_QUALIFIER_RULES
 			/* Last bit in the bit vector that is in use. */
