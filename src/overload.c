@@ -26074,6 +26074,7 @@ These are initializations that must be redone for each compilation.
   overload_level = 0;
 #endif /* DEBUG */
   substitution_stack = NULL;
+  avail_substitution_stack_entries = NULL;
 }  /* overload_init */
 
 
