@@ -410,6 +410,7 @@ with C++11 operator new has no exception specification.
 #endif /* __cplusplus < 201103L */
 #else /* !EXCEPTION_HANDLING */
 #define THROW_NOTHING() /* Nothing. */
+#define NEW_THROWS  /* nothing */
 #endif /* EXCEPTION_HANDLING */
 
 /*
