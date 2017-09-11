@@ -1,5 +1,30 @@
 Version 4.15
 
+9/11/17  [EDGcpfe/18727]
+Representation of dynamic_cast with static effect
+
+The front end previously unconditionally optimized the representation of a
+dynamic_cast operation known to have a static effect by replacing it with IL
+for a static_cast or reinterpret_cast.  For example:
+
+  struct V { virtual ~V(); };
+  struct C1: virtual V {};
+  struct C2: virtual V {};
+  struct D: C1, C2 {};
+  D *p = dynamic_cast<D*>((V*)nullptr);
+
+This change of representation causes a problem for the C++-generating back end
+which renders the initialization in this example as:
+
+  D *p = ((D *)((V *)nullptr));
+
+which is an error because a virtual base class cannot be cast to a derived
+class using an ordinary cast.  This problem is now fixed by disabling the
+optimization when DOING_SOURCE_ANALYSIS or BACK_END_IS_CP_GEN_BE is TRUE.
+The slightly-relaxed semantic constraints for such cases remain in effect,
+however (e.g., the destination class type need not be complete in all cases).
+
+
 -------------------------------------------------------------------------------
 Version 4.14, September 12, 2017
 

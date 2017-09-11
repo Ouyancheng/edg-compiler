@@ -16481,7 +16481,11 @@ indication in *rcblock).
        -  The types are already the same except for qualifiers.
        -  A null pointer value cast to a pointer type.
        -  A known cast from derived to base.
+       In C++-generating back end and source analysis configurations, we still
+       generate the corresponding dynamic_cast operator (but don't, e.g.,
+       requires complete types).
     */
+#if !DOING_SOURCE_ANALYSIS && !BACK_END_IS_CP_GEN_BE
     if (reference_case) {
       cast_operand_for_reference_cast(&operand, cast_type,
                                       /*check_cast_access=*/TRUE,
@@ -16502,6 +16506,30 @@ indication in *rcblock).
                                            op_is_null_pointer_value(&operand));
     }  /* if */
     copy_operand(&operand, result);
+#else /* DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE */
+    if (rvalue_reference_case) {
+      /* The IL operator takes a glvalue operand.  Convert a prvalue case
+         to an lvalue case. */
+      conv_reference_cast_operand_to_lvalue_if_necessary(&operand, cast_type);
+    }  /* if */
+    expr = make_node_from_operand(&operand);
+    if (reference_case) {
+      /* Generate an eok_ref_dynamic_cast operation. */
+      expr = make_lvalue_operator_node(
+                                (an_expr_operator_kind)eok_ref_dynamic_cast,
+                                underlying_cast_type, expr);
+      mark_as_reference_cast(expr, cast_type);
+      make_glvalue_expression_operand(expr, result);
+      if (rvalue_reference_case) {
+        conv_rvalue_reference_result_to_xvalue(result);
+      }  /* if */
+    } else {
+      /* Generate an eok_dynamic_cast operation. */
+      expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
+                                cast_type, expr);
+      make_expression_operand(expr, result);
+    }  /* if */
+#endif /* !DOING_SOURCE_ANALYSIS && !BACK_END_IS_CP_GEN_BE */
   } else {
     /* For all other cases, the dynamic cast is done at runtime.  The operand
        must have a polymorphic class type. */
