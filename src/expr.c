@@ -16234,16 +16234,16 @@ indication in *rcblock).
   an_operand        operand;
   a_type_ptr        cast_type, underlying_cast_type = NULL, operand_type;
   a_type_ptr        underlying_operand_type = NULL;
+  a_boolean         err = FALSE;
   a_boolean         cast_type_okay, operand_type_okay;
-  a_boolean         reference_case = FALSE, err = FALSE;
-  a_boolean         rvalue_reference_case = FALSE;
-  a_boolean         tracking_reference_case = FALSE;
-  a_boolean         handle_case = FALSE;
+  a_boolean         reference_case = FALSE, rvalue_reference_case = FALSE;
+  a_boolean         tracking_reference_case = FALSE, handle_case = FALSE;
   a_boolean         template_param_case = FALSE;
 #if IA64_ABI
   a_boolean         void_star_case = FALSE;
 #endif /* IA64_ABI */
   an_expr_node_ptr  expr;
+  a_base_class_ptr  bcp = NULL;
 
   db_enter(4, "scan_dynamic_cast_operator");
 #if CHECKING
@@ -16471,11 +16471,11 @@ indication in *rcblock).
                                              underlying_cast_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL) ||
-             (!reference_case && op_is_null_pointer_value(&operand)) ||
              (is_class_struct_union_type(underlying_cast_type) &&
               is_class_struct_union_type(underlying_operand_type) &&
-              find_base_class_of(underlying_operand_type,
-                                 underlying_cast_type) != NULL)) {
+              (bcp = find_base_class_of(underlying_operand_type,
+                                        underlying_cast_type)) != NULL) ||
+             (!reference_case && op_is_null_pointer_value(&operand))) {
     /* Cases where the cast is known at compile time and does not require
        a dynamic cast at runtime:
        -  The types are already the same except for qualifiers.
@@ -16507,6 +16507,22 @@ indication in *rcblock).
     }  /* if */
     copy_operand(&operand, result);
 #else /* DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE */
+    if (bcp != NULL) {
+      /* Explicitly check for an ambiguous or inaccessible base class (this
+         would have been done by the calls to cast_... in the alternative
+         configuration above). */
+      if (bcp->ambiguous) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_ambiguous_base_class, &operand.position, bcp->type);
+        }  /* if */
+      } else if (!is_accessible_base_class(bcp)) {
+        if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                             ec_inaccessible_base_class)) {
+          pos_ty_diagnostic(es_discretionary_error, ec_inaccessible_base_class,
+                            &operand.position, bcp->type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (rvalue_reference_case) {
       /* The IL operator takes a glvalue operand.  Convert a prvalue case
          to an lvalue case. */
