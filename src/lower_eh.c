@@ -4443,7 +4443,7 @@ beginning and end of the list of constants for the array.  Increment
   if (last_entry) flags_value |= ETS_LAST;
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(flags_con, (a_host_large_unsigned)flags_value,
-                                (an_integer_kind)ik_unsigned_char);
+                                targ_ets_flag_type_int_kind);
   sub_aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   sub_aggr_con->type = exception_type_spec_type;
   sub_aggr_con->variant.aggregate.first_constant = typeinfo_con;
