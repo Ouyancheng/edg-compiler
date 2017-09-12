@@ -12178,7 +12178,11 @@ If there is an error in the copying, set *copy_error to TRUE.
     is_generic = tssp->is_generic || is_cli_cx_pseudo_template(template_sym);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (options & CTWS_COPY_ARG_OPERAND_INFO) {
+  if (options & CTWS_COPY_ARG_OPERAND_INFO &&
+      (template_sym == NULL ||
+       !symbol_is(template_sym, sk_variable_template))) {
+    /* Arg operands are preserved during rescan for function template
+       references. */
     copy_arg_operands = TRUE;
     options &= ~CTWS_COPY_ARG_OPERAND_INFO;
   }  /* if */
