@@ -1,6 +1,7 @@
 Version 4.15
 
 9/12/17  [EDGcpfe/18759]
+Incorrect spelling of aligned nothrow version of operator new routine name
 
 The file newnothrow_aligned.c contained a typographical error, incorrectly
 spelling the name of operator new as operator_new.  This is now fixed.
