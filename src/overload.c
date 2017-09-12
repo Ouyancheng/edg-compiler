@@ -23104,7 +23104,7 @@ will be an lvalue instead of the usual prvalue.
   a_boolean            error_detected = FALSE;
   a_boolean            arg_match_err = FALSE;
   an_arg_match_summary internal_arg_match;
-  a_boolean            aggregate_case = FALSE;
+  a_boolean            aggregate_case = FALSE, reference_case;
   a_boolean            error_on_narrowing;
   a_boolean            init_handled_at_this_level = TRUE;
   a_boolean            elision_done;
@@ -23218,7 +23218,8 @@ will be an lvalue instead of the usual prvalue.
       aggregate_case = TRUE;
     }  /* if */
   }  /* if */
-  if (icp->contains_designator && !aggregate_case) {
+  reference_case = is_any_reference_type(dest_type);
+  if (icp->contains_designator && !aggregate_case && !reference_case) {
     /* Designators are not allowed in non-aggregate initializations. */
     if (arg_match != NULL) {
       arg_match_err = TRUE;
@@ -23319,7 +23320,7 @@ will be an lvalue instead of the usual prvalue.
         }  /* if */
         fill_in_dtor = FALSE;
         if (elision_done) init_handled_at_this_level = FALSE;
-      } else if (is_any_reference_type(dest_type)) {
+      } else if (reference_case) {
         /* Reference types. */
         if (is_cast) {
           cast_operand_for_reference_cast(&operand,
