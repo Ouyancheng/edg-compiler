@@ -1,5 +1,12 @@
 Version 4.15
 
+9/12/17  [EDGcpfe/18757]
+Compilation error in some configurations
+
+A compilation error (in pch_fixup_part_1) had occurred in some configurations.
+Now fixed.
+
+
 9/11/17  [EDGcpfe/18727]
 Representation of dynamic_cast with static effect
 
