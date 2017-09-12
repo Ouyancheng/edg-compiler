@@ -69,7 +69,7 @@ exception.
 }  /* call_new_handler */
 
 
-void *operator_new(size_t size, STD_NAMESPACE::align_val_t align,
+void *operator new(size_t size, STD_NAMESPACE::align_val_t align,
                    const STD_NAMESPACE::nothrow_t&) THROW_NOTHING()
 /*
 Allocate the specified memory size and alignment from free store, using
