@@ -4,6 +4,8 @@ Version 4.15
 
 The file newnothrow_aligned.c contained a typographical error, incorrectly
 spelling the name of operator new as operator_new.  This is now fixed.
+(This was updated in the 4.14 master copy, but early downloads will contain
+the erroneous spelling.)
 
 -------------------------------------------------------------------------------
 Version 4.14, September 12, 2017
