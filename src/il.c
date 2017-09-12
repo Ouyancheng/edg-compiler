@@ -20534,12 +20534,25 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       }  /* if */
       break;
     case eok_ref_dynamic_cast:
-      /* A dynamic_cast to a reference from an object with a polymorphic
-         class type can throw an exception. */
-      operand_type = op1->type;
-      if (is_polymorphic_class_type(operand_type) ||
-          could_be_dependent_class_type(operand_type)) {
-        has_side_effects = TRUE;
+      { /* A dynamic_cast to a reference from an object with a polymorphic
+           class type can throw an exception. */
+        a_type_ptr  dest_type = skip_typerefs(node->type);
+        operand_type = op1->type;
+        
+        if (could_be_dependent_class_type(operand_type)) {
+          has_side_effects = TRUE;
+        } else if (is_polymorphic_class_type(operand_type)) {
+          /* Some cases may end up having static_cast semantics. */
+          if (could_be_dependent_class_type(operand_type) ||
+              !(same_type_with_added_qualifiers(operand_type, dest_type,
+                                                /*ignore_qualifiers=*/TRUE,
+                                                (a_boolean *)NULL) ||
+                (is_class_struct_union_type(dest_type) &&
+                 is_class_struct_union_type(operand_type) &&
+                 find_base_class_of(operand_type, dest_type) != NULL))) {
+            has_side_effects = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
