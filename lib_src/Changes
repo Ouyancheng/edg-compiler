@@ -1,5 +1,15 @@
 Version 4.15
 
+9/12/17  [EDGcpfe/18760]
+Incompatible definition of _GNU_SOURCE
+
+Support for C++17 overaligned storage allocation using gcc to compile the
+library source requires defining the macro _GNU_SOURCE in config.h to
+enable the declaration of posix_memalign in the system headers.  This macro
+was previously given an empty definition, but it is now defined to the
+value 1 to be compatible with its definition by g++.
+
+
 9/12/17  [EDGcpfe/18759]
 Incorrect spelling of aligned nothrow version of operator new routine name
 
