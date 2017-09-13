@@ -1,5 +1,20 @@
 Version 4.15
 
+9/12/17  [EDGcpfe/18550]
+Abort on invalid reference to inlined namespace member
+
+Consider:
+
+  inline namespace N {
+    void f();
+    void f(int);
+  }
+  int N::f;  // Previously triggered an abort.  Now a normal error.
+
+The last declaration is invalid.  Previously, however, it triggered an abort
+due to a null pointer indirection.  That is now fixed.
+
+
 9/12/17  [EDGcpfe/18598]
 Abort in add_reference_indirection for tuple-like reference structured binding
 

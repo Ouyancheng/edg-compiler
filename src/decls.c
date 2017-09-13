@@ -6695,7 +6695,7 @@ for use in generating cross-reference output describing this declaration.
   locator = idlb.locator;
   storage_class = idlb.storage_class;
   linked_symbol = idlb.linked_symbol;
-  if (idlb.from_inline_namespace) {
+  if (idlb.from_inline_namespace && linked_symbol != NULL) {
     /* If the linked symbol is a namespace projection for an inline namespace
        member, use the fundamental symbol. */
     linked_symbol = fundamental_symbol_of(linked_symbol);
