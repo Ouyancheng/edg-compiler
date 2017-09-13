@@ -1,5 +1,19 @@
 Version 4.15
 
+9/13/17  [EDGcpfe/18767]
+Microsoft compatibility: typeid and incomplete class types
+
+In Microsoft C++ modes with microsoft_version >= 1912, the front end no longer
+accepts the typeid operator applied to an incomplete class type (see the entry
+of 5/2/08).  For example:
+
+  #include <typeinfo>
+  struct S;
+  void f() {
+    typeid(S);  // Previously a warning in all Microsoft C++ modes.
+  }             // Now an error if microsoft_version >= 1912.
+
+
 9/13/17  [EDGcpfe/18694]
 Structured bindings in range-based-for iterator declarations
 

@@ -15674,7 +15674,7 @@ indication in *rcblock).
     if (is_class_struct_union_type(typeid_type)) {
       /* The type cannot be incomplete if it is a class type. */
       if (is_incomplete_type(typeid_type)) {
-        if (microsoft_mode) {
+        if (microsoft_mode && microsoft_version < 1912) {
           /* Microsoft accepts incomplete class types and assumes they are
              nonpolymorphic.  Since that assumption may be wrong, issue a
              warning. */
