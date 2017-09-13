@@ -1,5 +1,35 @@
 Version 4.15
 
+9/13/17  [EDGcpfe/18765]
+Incorrect folding of certain dependent logical operators
+
+Under certain circumstances, rescanning a dependent logical operator in a
+context requiring a constant-expression could produce an invalid result.
+This is now fixed.  Below is an example of a case that previously produced
+the wrong result in C++17 mode (causing the final static_assert to fail).
+
+  template<bool V> struct B {
+    static bool const value = V;
+  };
+  template<typename D, typename S>
+  struct NA: B<__is_nothrow_assignable(D, S)> {
+  };
+
+  template<typename H, typename... Ts> using F = H;
+
+  template<typename... Ts> struct S {
+    template<typename U>
+      void operator=(U) noexcept(!!NA<F<U, Ts...>&, U>::value) {
+    }
+  };
+  static_assert(NA<S<int>, int>::value, "");  // Previously failed in C++17
+                                              // mode.
+
+This particular case only started failing in version 4.14 due to the noexcept
+specifier becoming part of C++17 function types in that version.  However, the
+underlying issue exists in prior versions too.
+
+
 9/13/17  [EDGcpfe/18764]
 Internal error creating substituted exception specification
 
