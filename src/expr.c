@@ -29257,10 +29257,15 @@ dependent lookup only.  Set *lvalue_binding to TRUE if the produced expression
 is an lvalue.
 */
 {
-  a_constant_ptr    i_con = local_constant();
-  a_symbol_ptr      mem_sym;
-  a_symbol_locator  loc;
+  a_constant_ptr       i_con = local_constant();
+  a_symbol_ptr         mem_sym;
+  a_symbol_locator     loc;
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
 
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   set_integer_constant(i_con, (a_host_large_integer)elem_idx,
                        targ_size_t_int_kind);
   clear_locator(&loc, diag_pos);
@@ -29273,12 +29278,7 @@ is an lvalue.
        the cases that do not call a member function, we create the expression
        from tokens. */
     a_boolean            err = FALSE;
-    an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
     an_operand           e_opnd, i_opnd;
-    save_expr_stack(&saved_expr_stack);
-    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
     make_lvalue_variable_operand(container, diag_pos, diag_pos, &e_opnd,
                                  (a_ref_entry *)NULL);
     make_constant_operand(i_con, &i_opnd);
@@ -29332,8 +29332,6 @@ is an lvalue.
       check_assertion(*p_icp != NULL && is_expression_component(*p_icp));
       *lvalue_binding = is_an_lvalue(operand_of_arg_list_elem(*p_icp));
     }  /* if */
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
   } else {
     /* No "get" member: Create a call "get<i>(e)" instead where "get" is
        looked up using argument-dependent lookup. */
@@ -29358,6 +29356,8 @@ is an lvalue.
     free_arg_list(arg);
     *lvalue_binding = is_an_lvalue(operand_of_arg_list_elem(*p_icp));
   }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   release_local_constant(&i_con);
 }  /* determine_get_call_for_tuple_like_binding */
 
