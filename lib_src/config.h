@@ -465,7 +465,9 @@ allocation failed.
 #else /* !defined(__sun) */
 /* Use the POSIX function, which is declared in stdlib.h but protected by
    an ifdef _GNU_SOURCE on Linux, at least. */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1
+#endif /* ifndef _GNU_SOURCE */
 #define __EDG_ALIGNED_MALLOC(_res, _align, _size) \
   (posix_memalign(&(_res), (_align), (_size)) ? NULL : (_res))
 #define __EDG_ALIGNED_FREE(_ptr) free(_ptr)
