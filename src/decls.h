@@ -1281,8 +1281,6 @@ extern void check_prefix_attributes_without_a_declarator(
 extern void disallow_attributes(an_attribute_ptr  *p_attributes,
                                 an_error_severity sev);
 
-extern void define_struct_bindings(a_decl_parse_state  *dps);
-
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
@@ -1624,7 +1622,6 @@ an attribute.
     f_record_strongest_alignment_attr(dps, kind, scp, is_defined,             \
                                       is_definition);                         \
   }  /* if */
-
 extern void f_record_strongest_alignment_attr(
                                         a_decl_parse_state      *dps,
                                         an_il_entry_kind        kind,
