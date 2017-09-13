@@ -5600,6 +5600,9 @@ specification, copy it with substitutions to rp.
               esp = rtsp->exception_specification;
 
   if (proto_esp != NULL) {
+    if (proto_esp->arg_cached) {
+      instantiate_exception_spec_if_needed(symbol_for(proto_rp));
+    }  /* if */
     check_assertion(!proto_esp->arg_cached && !proto_esp->indeterminate);
     if (esp == NULL) {
       esp = alloc_exception_specification();
