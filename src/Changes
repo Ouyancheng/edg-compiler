@@ -1,5 +1,23 @@
 Version 4.15
 
+9/13/17  [EDGcpfe/18495]
+Abort on noexcept in Microsoft in-class specialization
+
+An abort could occur (in add_token_cache_segment_to_string) if a Microsoft
+in-class specialization of a class contained a noexcept specifier and
+RECORD_TEMPLATE_STRINGS is TRUE.  Now fixed.
+
+  template<typename T> class A { 
+    template<bool> struct B { };
+    template<> struct B<true> {
+      template<typename U> void f() noexcept(true) { }
+    };
+  };
+  int main() {
+    A<int> a;
+  }
+
+
 9/12/17  [EDGcpfe/18550]
 Abort on invalid reference to inlined namespace member
 

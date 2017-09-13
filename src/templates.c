@@ -23323,7 +23323,10 @@ Make the string version of the template specified by sym and tssp.
 */
 {
   if (sym != NULL && !sym->is_error &&
-      !scope_stack[depth_scope_stack].in_nonreal_instantiation) {
+      !scope_stack[depth_scope_stack].in_nonreal_instantiation &&
+      (decl_state->class_declared_in == NULL ||
+       !decl_state->class_declared_in->
+                      variant.class_struct_union.is_in_class_specialization)) {
     /* Create the string that represents the template declaration. */
     select_caches_and_make_template_string(decl_state, sym,
                                            p_template_body_cache);
