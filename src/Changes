@@ -1,5 +1,20 @@
 Version 4.15
 
+9/13/17  [EDGcpfe/18764]
+Internal error creating substituted exception specification
+
+When exception specifications are part of the type (e.g., C++17 mode),
+an internal error could occur in create_pack_instantiation_descr on
+a class member function template declaration that contains a parameter
+pack expansion.  Now fixed.
+
+  void f(...) {}
+  template<class T> struct A {
+    template<class... Ts> void g(Ts... ts) noexcept(noexcept(f(ts...))) {}
+  };
+  A<int> s;
+
+
 9/13/17  [EDGcpfe/18495]
 Abort on noexcept in Microsoft in-class specialization
 

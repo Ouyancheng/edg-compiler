@@ -5581,6 +5581,41 @@ template was defined in a friend declaration.
 }  /* check_for_definition_in_friend_declaration */
 
 
+static void create_variadic_param_info_for_routine(
+				a_ctws_state_ptr		ctws_state,
+				a_routine_ptr			rp)
+/*
+Go through the parameter list of the routine specified by rp and create
+variadic param info entries for any variadic parameters so that they can
+be found by the substitution process.
+*/
+{
+  a_routine_type_supplement_ptr	rtsp;
+  a_type_ptr			rout_type;
+  a_param_type_ptr		ptp;
+
+  rout_type = skip_typerefs(rp->type);
+  rtsp = rout_type->variant.routine.extra_info;
+  for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+    if (ptp->is_parameter_pack) {
+      a_variadic_param_info_ptr	vpip;
+      vpip = alloc_variadic_param_info();
+      vpip->param_type = ptp;
+      vpip->orig_param_type = ptp;
+      vpip->level = ctws_state->routine_type_levels;
+      if (ctws_state->variadic_param_info == NULL) {
+        vpip->next = ctws_state->variadic_param_info;
+        ctws_state->variadic_param_info = vpip;
+      } else {
+        vpip->next = ctws_state->variadic_param_info_tail->next;
+        ctws_state->variadic_param_info_tail->next = vpip;
+      }  /* if */
+      ctws_state->variadic_param_info_tail = vpip;
+    }  /* if */
+  }  /* for */
+}  /* create_variadic_param_info_for_routine */
+
+
 static void copy_exc_spec_from_prototype_template(a_routine_ptr  proto_rp,
                                                   a_routine_ptr  rp)
 /*
@@ -5614,11 +5649,13 @@ specification, copy it with substitutions to rp.
         a_boolean     err = FALSE, was_err;
         was_err = constant_is(esp->variant.noexcept_arg, ck_error);
         init_ctws_state(&ctws_state);
+        create_variadic_param_info_for_routine(&ctws_state, rp);
         substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
                             (a_template_param_ptr)NULL,
                             (a_template_arg_ptr)NULL,
                             &ctws_state, &rp->source_corresp.decl_position,
                             &err);
+        free_list_of_variadic_param_info(ctws_state.variadic_param_info);
         if (!err) {
           if (!constant_is(esp->variant.noexcept_arg, ck_template_param)) {
             esp->throw_any = is_false_constant(esp->variant.noexcept_arg);
