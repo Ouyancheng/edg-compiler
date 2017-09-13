@@ -17167,7 +17167,7 @@ early so that cases like "auto [x] = x;" are diagnosed.
 }  /* declare_struct_bindings */
 
 
-static void define_struct_bindings(a_decl_parse_state  *dps)
+void define_struct_bindings(a_decl_parse_state  *dps)
 /*
 dps represents a structured binding declaration (and the container variable,
 which has just been declared, in particular).  Define the variables
@@ -17882,7 +17882,7 @@ if one is present.
                                                     iek_variable);
   }  /* if */
 #endif /* MODULE_ID_NEEDED */
-  if (state->is_struct_binding_decl) {
+  if (state->is_struct_binding_decl && !state->range_based_for) {
     define_struct_bindings(state);
   }  /* if */
 }  /* variable_declaration */
@@ -18495,7 +18495,7 @@ which are diagnosed elsewhere).
     /* Some error already occurred.  Additional diagnostics are unlikely to
        be helpful. */
     expect_error();
-  } else if ((!dps->range_based_for || dps->is_struct_binding_decl) &&
+  } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->has_initializer || !dps->auto_type_allowed)) {
     /* "auto"/"decltype(auto)" was seen, but we never saw an initializer or

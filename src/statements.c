@@ -2112,29 +2112,27 @@ start_potential_decl_statement and reclaim associated unused memory.
 }  /* end_potential_decl_statement */
 
 
-static void for_range_declaration(a_symbol_ptr *range_based_for_iterator)
+static void for_range_declaration(a_decl_parse_state  *dps)
 /*
 Parse the for-range-declaration portion of a range-based-for statement.
-*range_based_for_iterator is set to the symbol pointer of the variable just
-scanned (which may be NULL in some error cases).
+Initialize and update *dps to reflect the declaration state (e.g., dps->sym
+is set to the symbol pointer of the variable just scanned; it may be NULL in
+some error cases).
 */
 {
-  a_decl_parse_state dps;
-
-  init_decl_parse_state(&dps);
-  dps.range_based_for = TRUE;
-  scan_nonmember_declaration(&dps, (a_source_range *)NULL);
-  if (dps.sym != NULL &&
-      symbol_is(dps.sym, sk_variable) &&
-      dps.sym->variant.variable.ptr->is_thread_local) {
+  init_decl_parse_state(dps);
+  dps->range_based_for = TRUE;
+  scan_nonmember_declaration(dps, (a_source_range *)NULL);
+  if (dps->sym != NULL &&
+      symbol_is(dps->sym, sk_variable) &&
+      dps->sym->variant.variable.ptr->is_thread_local) {
     /* Only "constexpr" and a type-specifier are allowed in the
        decl-specifier. */
-    pos_error(ec_thread_local_not_allowed, &dps.storage_class_pos);
-  } else if (dps.declared_storage_class != (a_storage_class)sc_unspecified) {
+    pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
+  } else if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
     /* A storage class is not allowed on a for-range-declaration. */
-    pos_error(ec_storage_class_not_allowed, &dps.storage_class_pos);
+    pos_error(ec_storage_class_not_allowed, &dps->storage_class_pos);
   }  /* if */
-  *range_based_for_iterator = dps.sym;
 }  /* for_range_declaration */
 
 
@@ -5100,7 +5098,6 @@ The affinity can be an expression or the keyword "continue".
   a_token_sequence_number    expr_tok_seq_number;
   a_range_based_for_loop_ptr rbflp = NULL;
   a_scope_pointers_block     iterator_pointers_block, middle_pointers_block;
-  a_symbol_ptr               iterator_sym = NULL;
 
   db_enter(3, "for_statement");
 
@@ -5154,6 +5151,7 @@ The affinity can be an expression or the keyword "continue".
   if (is_range_based_for) {
     /* A range-based-for has three scopes, all of which are pushed in
        preparation for scanning the for-range-declaration. */
+    a_decl_parse_state dps;
     rbflp->range_based_for_scope =
                              start_fabricated_block_scope_for_enhanced_for(
                                              (a_scope_pointers_block_ptr)NULL);
@@ -5163,10 +5161,9 @@ The affinity can be an expression or the keyword "continue".
                                                      &iterator_pointers_block);
     add_stop_token(tok_colon);
     /* Scan the for-range-declaration. */
-    for_range_declaration(&iterator_sym);
-    if (iterator_sym != NULL &&
-        iterator_sym->kind == (a_symbol_kind)sk_variable) {
-      rbflp->iterator = iterator_sym->variant.variable.ptr;
+    for_range_declaration(&dps);
+    if (dps.sym != NULL && symbol_is(dps.sym, sk_variable)) {
+      rbflp->iterator = dps.sym->variant.variable.ptr;
       if (rbflp->iterator != NULL) {
         rbflp->iterator->is_enhanced_for_iterator = TRUE;
       }  /* if */
@@ -5192,6 +5189,9 @@ The affinity can be an expression or the keyword "continue".
                                   &middle_pointers_block);
     push_block_reactivation_scope(rbflp->iterator_scope,
                                   &iterator_pointers_block);
+    if (dps.is_struct_binding_decl) {
+      define_struct_bindings(&dps);
+    }  /* if */
   } else {
     /* A plain-old-for loop (or a UPC forall). */
     /* Scan the initializing expression or declaration if it is present.  It

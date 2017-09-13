@@ -6626,10 +6626,12 @@ and record it in *dps.  Also update positions in decl_pos_block.
   terminate_token_cache(cache);
   dps->is_struct_binding_decl = TRUE;
   dps->variant.struct_bindings_cache = cache;
-  /* An initializer should be next. */
-  if (curr_token != tok_assign && curr_token != tok_lbrace &&
-      curr_token != tok_lparen) {
-    pos_error(ec_missing_initializer, &pos_curr_token);
+  if (!dps->range_based_for) {
+    /* An initializer should be next. */
+    if (curr_token != tok_assign && curr_token != tok_lbrace &&
+        curr_token != tok_lparen) {
+      pos_error(ec_missing_initializer, &pos_curr_token);
+    }  /* if */
   }  /* if */
 }  /* cache_struct_bindings_list */
 
