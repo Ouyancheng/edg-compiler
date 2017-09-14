@@ -2603,6 +2603,7 @@ option values if they were not already set by a command line option.
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
           deduction_from_exc_spec_allowed = FALSE;
           overaligned_allocation_enabled = TRUE;
+          mandatory_copy_elision = TRUE;
         }  /* if */
       }  /* if */
     } else {
