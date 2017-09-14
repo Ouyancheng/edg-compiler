@@ -16243,7 +16243,9 @@ indication in *rcblock).
   a_boolean         void_star_case = FALSE;
 #endif /* IA64_ABI */
   an_expr_node_ptr  expr;
+#if DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE
   a_base_class_ptr  bcp = NULL;
+#endif /* DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE */
 
   db_enter(4, "scan_dynamic_cast_operator");
 #if CHECKING
@@ -16473,7 +16475,11 @@ indication in *rcblock).
                                              (a_boolean *)NULL) ||
              (is_class_struct_union_type(underlying_cast_type) &&
               is_class_struct_union_type(underlying_operand_type) &&
-              (bcp = find_base_class_of(underlying_operand_type,
+              (
+#if DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE
+               bcp =
+#endif /* DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE */
+                     find_base_class_of(underlying_operand_type,
                                         underlying_cast_type)) != NULL) ||
              (!reference_case && op_is_null_pointer_value(&operand))) {
     /* Cases where the cast is known at compile time and does not require
