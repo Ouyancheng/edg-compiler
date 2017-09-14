@@ -42107,7 +42107,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
     a_constant_ptr  con = local_constant();
     an_operand      orig_result;
     copy_operand(result, &orig_result);
-    if (is_unknown_template_param_type(orig_expr_type)) {
+    if (is_unknown_template_param_type(orig_expr_type) &&
+        !is_indefinite_function_operand(result)) {
       /* An expression like X<T>::K may have an unknown type associated with it
          (such types cannot be substituted).  Do not attempt to force the
          result type to be unknown after folding. */
