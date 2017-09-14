@@ -19677,6 +19677,7 @@ source position to be used for any errors.
           !have_access_to_symbol(dtor_sym)) {
         /* The destructor is inaccessible. */
         an_error_severity sev = (an_error_severity)es_warning;
+        an_error_code     err_code;
         a_boolean         error_detected = FALSE;
         a_boolean         *p_error_detected = NULL;
         /* If errors are suppressed, get a returned variable instead of
@@ -19685,9 +19686,14 @@ source position to be used for any errors.
           p_error_detected = &error_detected;
         }  /* if */
         if (strict_ansi_mode) sev = strict_ansi_discretionary_severity; 
+        if (mandatory_copy_elision) {
+          err_code = ec_inaccessible_rvalue_dtor;
+        } else {
+          err_code = ec_inaccessible_elided_dtor;
+        }  /* if */
         record_access_error(dtor_sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
-                            err_pos, (a_symbol_locator*)NULL, sev,
-                            ec_inaccessible_elided_dtor, p_error_detected);
+                            err_pos, (a_symbol_locator*)NULL, sev, err_code,
+                            p_error_detected);
         if (error_detected) record_suppressed_error();
       }  /* if */
       expr_check_use_of_deleted_function(dtor_sym, /*elided_ref=*/TRUE,
