@@ -924,7 +924,7 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_TOP_LEVEL_NOEXCEPT 0x100000
 			/* TRUE if a top-level exception specifier should be
 			   ignored while comparing the types. */
-#define TCF_LAST TCF_IGNORE_TOP_LEVEL_NOEXCEPT
+#define TCF_LAST TCF_USE_CPP_QUALIFIER_RULES
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,TCF_LAST)*/
 #define TCF_NO_FLAGS 0x0
