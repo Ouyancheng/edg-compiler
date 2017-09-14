@@ -1277,6 +1277,13 @@ EXTERN a_boolean
 			   "= delete" syntax. */
 
 EXTERN a_boolean
+		mandatory_copy_elision;
+			/* TRUE if the elision of copy operations on temporary
+			   objects is mandatory.  In such cases, no diagnostic
+			   should be issued if an elided copy constructor or
+			   destructor is not available. */
+
+EXTERN a_boolean
 		local_types_as_template_args_enabled;
 			/* TRUE if local and unnamed types are allowed as
 			   template arguments. */

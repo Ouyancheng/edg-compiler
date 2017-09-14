@@ -1,5 +1,26 @@
 Version 4.15
 
+
+9/13/17  [EDGcpfe/17997]
+C++17: Elision of temporary class object copies
+
+The forthcoming C++17 standard reformulates the handling of temporaries such
+that the copying of class-type temporaries must be elided in many contexts.
+This eliding, which was previously permitted but not required, was already
+performed by the front end, but the elided copy constructor was still checked
+(e.g., to ensure that it is accessible).  Now those checks are not longer
+performed in C++17 mode.  For example:
+
+  struct S {
+    S();
+    S(S const&) = delete;
+  };
+  S f() { return S(); }  // Now accepted in C++17 mode.
+  S s = f();             // Now accepted in C++17 mode.
+
+This example still elicits warnings or errors in C++14 mode.
+
+
 9/13/17  [EDGcpfe/18767]
 Microsoft compatibility: typeid and incomplete class types
 

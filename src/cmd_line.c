@@ -3396,6 +3396,7 @@ default mode (e.g., exception handling).
       }  /* if */
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
       overaligned_allocation_enabled = TRUE;
+      mandatory_copy_elision = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11389,6 +11390,7 @@ variables declared in cmd_line.h.
   ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
+  mandatory_copy_elision = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */

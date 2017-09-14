@@ -21845,7 +21845,8 @@ that the caller may record a fixup entry to revisit the transfer method later.
                  || (emulate_gnu_abi_bugs && gnu_abi_version < 40600 &&
                      generated_copy_constructor_is_trivial(cssp))
 #endif /* IA64_ABI */
-                                                                 )
+                                                                 ) ||
+               cssp->has_deleted_copy_or_move_constructor
 #if IA64_ABI
 #if ABI_COMPATIBILITY_VERSION >= 408
                || has_deleted_or_nontrivial_destructor(cssp)

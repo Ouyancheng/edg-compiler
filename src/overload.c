@@ -19770,6 +19770,11 @@ cases.
   /* Avoid problems when the source is an error. */
   if (!is_error_type(source_type)) {
     check_assertion(is_immediate_class_type(class_type));
+    if (mandatory_copy_elision) {
+      /* C++17 requires copy elision, which no check on the elided copy/move
+         constructor.  However, the destructor must still be checked. */
+      goto destructor_check;
+    }  /* if */
     if (elided_cctor != NULL) {
       a_param_type_ptr ptp = function_type_params(elided_cctor->type);
       check_assertion(ptp != NULL && is_any_reference_type(ptp->type));
@@ -19857,6 +19862,7 @@ cases.
       expr_check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE,
                                          err_pos);
     }  /* if */
+destructor_check:
     /* Do anything required for the elided destructor. */
     handle_elided_destructor(class_type, err_pos);
   }  /* if */
@@ -21800,7 +21806,7 @@ the conversion.
          direct binding and therefore eliminating the idea that any
          copy constructor call is being elided. */
       a_boolean do_check;
-      if (cpp11_mode) {
+      if (cpp11_mode || mandatory_copy_elision) {
         do_check = FALSE;
       } else if (gpp_mode) {
         /* g++ as of 4.3 apparently implements the core issue 391 change. */
