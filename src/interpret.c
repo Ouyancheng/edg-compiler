@@ -4039,7 +4039,8 @@ of subscript operations or pointer arithmetic).
           }  /* for */
           if (fp == NULL) {
             /* No field was found: Look among the base classes. */
-            a_base_class_ptr  bcp = base_classes_of(obj_type);
+            a_base_class_ptr  bcp = base_classes_of(obj_type),
+                              match_bcp = NULL;
             for (; bcp != NULL; bcp = bcp->next) {
               a_targ_size_t  base_size;
               if (t_offset < (a_targ_ptrdiff_t)bcp->offset) continue;
@@ -4065,27 +4066,30 @@ of subscript operations or pointer arithmetic).
                   }  /* if */
                   if (!top_bcp->is_optimized_empty_base ||
                       identical_types(bcp->type, subobj_type)) {
-                    bcp = top_bcp;
+                    match_bcp = top_bcp;
+                    break;
                   } else {
                     continue;
                   }  /* if */
                 }  /* if */
-                if (!bcp->direct) continue;
-                /* We found the base. */
-                break;
+                if (bcp->direct) {
+                  /* We found the base. */
+                  match_bcp = bcp;
+                  break;
+                }  /* if */
               }  /* if */
             }  /* for */
-            check_assertion(bcp != NULL);
+            check_assertion(match_bcp != NULL);
             if (*p_subobj == NULL || (*p_subobj)->kind != iek_base_class ||
-                (*p_subobj)->variant.base_class != bcp) {
+                (*p_subobj)->variant.base_class != match_bcp) {
               a_subobject_path_ptr  tail = *p_subobj;
               *p_subobj = alloc_subobject_path();
               (*p_subobj)->next = tail;
               (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
-              (*p_subobj)->variant.base_class = bcp;
+              (*p_subobj)->variant.base_class = match_bcp;
             }  /* if */
-            t_offset -= bcp->offset;
-            obj_type = bcp->type;
+            t_offset -= match_bcp->offset;
+            obj_type = match_bcp->type;
           }  /* if */
         }
         break;
