@@ -32,7 +32,7 @@ These changes were added to the working paper for the C++17 standard through
 paper N4268.
 
 
-9/14/17  [EDGcpfe/17997]
+9/14/17  [EDGcpfe/17997,EDGcpfe/18069]
 C++17: Elision of temporary class object copies
 
 The forthcoming C++17 standard reformulates the handling of temporaries such
@@ -50,6 +50,21 @@ performed in C++17 mode.  For example:
   S s = f();             // Now accepted in C++17 mode.
 
 This example still elicits warnings or errors in pre-C++17 modes.
+
+The changes for this C++17 feature also affect some pre-C++17 case.  For
+example:
+
+  template<typename T> T val() noexcept; 
+  struct E { E(const E&) = delete; };
+  template<typename T> struct B {
+    B() noexcept(noexcept(T(val<T>())));
+  };
+  struct D: B<E> {
+    D() = default;
+  };
+
+Previously this produced an error in all C++11 modes.  Now, the diagnostic is
+reduced to just a warning in nonstrict C++11 modes.
 
 
 9/13/17  [EDGcpfe/18767]
