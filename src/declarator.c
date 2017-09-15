@@ -1848,7 +1848,7 @@ actually declares a function, member function, or function template).
          types. */
       a_source_position  *pos = &func_info->throw_position;
       if (exc_spec_in_func_type) {
-        pos_diagnostic(es_discretionary_error,
+        pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                        ec_dynamic_exc_spec_not_permitted, pos);
         esp = NULL;
       } else if (cpp11_mode && !ignoring_exception_spec) {

@@ -1,5 +1,14 @@
 Version 4.15
 
+9/15/17  [EDGcpfe/18770]
+Diagnostic on dynamic exception specifications
+
+The changes for EDGcpfe/17685,EDGcpfe/18637 caused the front end to emit a
+discretionary error on dynamic exception specifications when exception
+specifications are part of the function type (as they are by default in C++17
+modes).  Now, that error is weakened to a warning in Microsoft modes.
+
+
 9/15/17  [EDGcpfe/18769]
 TCF_LAST
 
