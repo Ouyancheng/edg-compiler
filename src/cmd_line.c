@@ -2604,6 +2604,7 @@ option values if they were not already set by a command line option.
           deduction_from_exc_spec_allowed = FALSE;
           overaligned_allocation_enabled = TRUE;
           mandatory_copy_elision = TRUE;
+          generalized_nontype_arguments = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3398,6 +3399,7 @@ default mode (e.g., exception handling).
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
       overaligned_allocation_enabled = TRUE;
       mandatory_copy_elision = TRUE;
+      generalized_nontype_arguments = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11392,6 +11394,7 @@ variables declared in cmd_line.h.
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
   mandatory_copy_elision = FALSE;
+  generalized_nontype_arguments = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */

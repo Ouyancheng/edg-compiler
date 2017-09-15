@@ -40711,8 +40711,9 @@ escape at the end of the expression.)
     a_type_ptr  ftp = skip_typerefs(type);
     if (ftp->kind == (a_type_kind)tk_pointer ||
         ftp->kind == (a_type_kind)tk_ptr_to_member) {
-      if (!operand->is_id_expression &&
-          !operand->is_address_of_id_expression &&
+      if ((generalized_nontype_arguments ||
+           (!operand->is_id_expression &&
+            !operand->is_address_of_id_expression)) &&
           !(is_constant_operand(operand) &&
             is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                &operand->variant.constant))) {

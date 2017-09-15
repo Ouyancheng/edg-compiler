@@ -3966,6 +3966,155 @@ done:
 }  /* translate_il_address_offset */
 
 
+static void finalize_subobject_path(a_constant_ptr  con)
+/*
+con is a ck_address/abk_variable entry.  Make sure its subobject path is
+complete (it may be incomplete if the interpreter adjusted the offset because
+of subscript operations or pointer arithmetic).
+*/
+{
+  a_type_ptr            obj_type, subobj_type;
+  a_variable_ptr        var;
+  a_targ_ptrdiff_t      t_offset, t_pos;
+  a_subobject_path_ptr  *p_subobj;
+
+  check_assertion(constant_is(con, ck_address) &&
+                  con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable);
+  var = con->variant.address.variant.variable;
+  if (var == NULL) {
+    /* No actual variable. */
+    goto done;
+  }  /* if */
+  obj_type = skip_typerefs(var->type);
+  subobj_type = skip_typerefs(con->type);
+  subobj_type = skip_typerefs(subobj_type->variant.pointer.type);
+  p_subobj = &con->variant.address.subobject_path;
+  t_offset = con->variant.address.offset;
+  for (;;) {
+    if (t_offset == 0 && identical_types(subobj_type, obj_type)) {
+      /* The subobject path is complete. */
+      break;
+    }  /* if */
+    switch (obj_type->kind) {
+      case tk_array:
+        if (*p_subobj == NULL || (*p_subobj)->kind != iek_constant) {
+          a_subobject_path_ptr  tail = *p_subobj;
+          *p_subobj = alloc_subobject_path();
+          (*p_subobj)->next = tail;
+          (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
+        }  /* if */
+        obj_type = skip_typerefs(obj_type->variant.array.element_type);
+        if (obj_type->size == 0) {
+          t_pos = 0;
+        } else {
+          t_pos = t_offset/(a_targ_ptrdiff_t)obj_type->size;
+        }  /* if */
+        (*p_subobj)->variant.ptr_offset = t_pos;
+        t_offset -= t_pos*obj_type->size;
+        break;
+      case tk_class:
+      case tk_struct:
+        { /* Search fields and direct nonvirtual bases for the right offset. */
+          a_field_ptr  fp = obj_type->variant.class_struct_union.field_list;
+          fp = next_alloc_field(fp);
+          for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+            a_type_ptr  ftp;
+            if (t_offset < (a_targ_ptrdiff_t)fp->offset) continue;
+            ftp = skip_typerefs(fp->type);
+            if (t_offset < (a_targ_ptrdiff_t)(fp->offset+ftp->size)) {
+              /* We found the field. */
+              if (*p_subobj == NULL || (*p_subobj)->kind != iek_field ||
+                  (*p_subobj)->variant.field != fp) {
+                a_subobject_path_ptr  tail = *p_subobj;
+                *p_subobj = alloc_subobject_path();
+                (*p_subobj)->next = tail;
+                (*p_subobj)->kind = (an_il_entry_kind)iek_field;
+                (*p_subobj)->variant.field = fp;
+              }  /* if */
+              t_offset -= fp->offset;
+              obj_type = ftp;
+              break;
+            }  /* if */
+          }  /* for */
+          if (fp == NULL) {
+            /* No field was found: Look among the base classes. */
+            a_base_class_ptr  bcp = base_classes_of(obj_type);
+            for (; bcp != NULL; bcp = bcp->next) {
+              a_targ_size_t  base_size;
+              if (t_offset < (a_targ_ptrdiff_t)bcp->offset) continue;
+              base_size = class_type_supp(bcp->type)
+                                          ->size_without_virtual_base_classes;
+              if (base_size == 0) {
+                /* The size without virtual base classes could be zero, which
+                   would make the following test systematically fail.  Use a
+                   size of one in those cases. */
+                base_size = 1;
+              }  /* if */
+              if (t_offset < (a_targ_ptrdiff_t)(bcp->offset+base_size)) {
+                if (t_offset == (a_targ_ptrdiff_t)bcp->offset) {
+                  /* Because of empty bases, this special may need
+                     disambiguation. */
+                  a_base_class_ptr  top_bcp = bcp->derivation->path
+                                                             ->base_class;
+                  if (!top_bcp->direct) {
+                    /* Since the derivation doesn't start at a direct base,
+                       there must be an intervening virtual base.  We will
+                       run into its direct ancestor later. */
+                    continue;
+                  }  /* if */
+                  if (!top_bcp->is_optimized_empty_base ||
+                      identical_types(bcp->type, subobj_type)) {
+                    bcp = top_bcp;
+                  } else {
+                    continue;
+                  }  /* if */
+                }  /* if */
+                if (!bcp->direct) continue;
+                /* We found the base. */
+                break;
+              }  /* if */
+            }  /* for */
+            check_assertion(bcp != NULL);
+            if (*p_subobj == NULL || (*p_subobj)->kind != iek_base_class ||
+                (*p_subobj)->variant.base_class != bcp) {
+              a_subobject_path_ptr  tail = *p_subobj;
+              *p_subobj = alloc_subobject_path();
+              (*p_subobj)->next = tail;
+              (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
+              (*p_subobj)->variant.base_class = bcp;
+            }  /* if */
+            t_offset -= bcp->offset;
+            obj_type = bcp->type;
+          }  /* if */
+        }
+        break;
+      case tk_union:
+        { /* Look through the subobject path for this union (it must be
+             present). */
+          a_field_ptr           selected_field = NULL;
+          a_subobject_path_ptr  path = *p_subobj;
+          check_assertion(path != NULL &&
+                          path->kind == (an_il_entry_kind)iek_field);
+          selected_field = path->variant.field;
+          check_assertion(selected_field != NULL);
+          /* Adjust the remaining target offset to account for the selected
+             field offset (normally a no-op for a union field). */
+          t_offset -= selected_field->offset;
+          obj_type = skip_typerefs(selected_field->type);
+        }
+        break;
+      default:
+        goto outer_loop_done;
+    }  /* switch */
+    p_subobj = &(*p_subobj)->next;
+  }  /* for */
+outer_loop_done:
+  *p_subobj = NULL;
+done:;
+}  /* finalize_subobject_path */
+
+
 static a_constant_ptr instantiate_member_constant(a_variable_ptr  vp)
 /*
 vp represents a variable that is expected to have a constant value, but with
@@ -12289,6 +12438,10 @@ diagnostic in *ips.
                                     &ips->position, var_sym, ips);
                 }  /* if */
                 break;
+              } else {
+                /* Make sure a complete subobject path is recorded (when
+                   needed. */
+                finalize_subobject_path(rt_con);
               }  /* if */
             }  /* if */
           } else {

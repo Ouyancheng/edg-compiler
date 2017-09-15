@@ -645,6 +645,11 @@ EXTERN a_boolean
 			   with fundamental alignment (a C++17 feature). */
 
 EXTERN a_boolean
+		generalized_nontype_arguments;
+			/* TRUE if the C++17 rules for nontype template
+			   arguments are in effect. */
+
+EXTERN a_boolean
 		floating_point_template_parameters_allowed;
 			/* TRUE if template parameters of floating-point type
 			   are allowed (which is nonstandard). */

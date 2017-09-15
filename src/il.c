@@ -16427,13 +16427,17 @@ a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                           a_constant_ptr  con)
 /*
 Return TRUE if the given constant represents a valid pointer or pointer-to-
-member template argument that is not an id-expression or an id-expression
-prefixed with "&".  The most common valid cases are null-pointer-like
-constants and (in some emulations) folded cast expressions.
+member template argument.  In pre-C++17 modes, we assume that con is not an
+id-expression or an id-expression prefixed with "&" (see also
+check_nontype_template_argument_type, which checks for those cases).  In C++17
+mode (i.e., when generalized_nontype_arguments is TRUE), we have to check that
+a pointer or reference doesn't refer to a proper subobject.  The most common
+valid other cases are null-pointer-like constants and (in some emulations)
+folded cast expressions.
 */
 {
   a_boolean  result = FALSE;
-  a_boolean  null_value_okay = cpp11_mode ||
+  a_boolean  null_value_okay = cpp11_mode || generalized_nontype_arguments ||
                                (ms_extensions && microsoft_version >= 1800);
   a_boolean  cast_okay = (ms_extensions ||
                           (cpp11_mode && gpp_mode && !clang_mode));
@@ -16445,29 +16449,38 @@ constants and (in some emulations) folded cast expressions.
      and pointers to members. */
   if (null_value_okay && is_null_pointer_constant(con)) {
     result = TRUE;
-  } else if (con->kind == (a_constant_repr_kind)ck_address) {
+  } else if (constant_is(con, ck_address)) {
     if (ms_extensions &&
              (con->variant.address.kind == (an_address_base_kind)abk_typeid ||
               con->variant.address.kind == (an_address_base_kind)abk_uuidof)) {
       result = TRUE;
     } else if (!null_value_okay) {
-      /* The remaining clauses test null pointer value and cast cases. */
+      /* The remaining clauses test null pointer value, cast cases, and
+         C++17 cases. */
     } else if (con->variant.address.kind ==
                                           (an_address_base_kind)abk_routine) {
-      result = con->variant.address.variant.routine == NULL || cast_okay;
+      result = generalized_nontype_arguments ||
+               con->variant.address.variant.routine == NULL || cast_okay;
     } else if (con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
-      result = con->variant.address.variant.variable == NULL || cast_okay;
+      if (con->variant.address.variant.variable == NULL) {
+        result = TRUE;
+      } else if (generalized_nontype_arguments) {
+        /* Check that this is not the address of a proper subobject. */
+        result = con->variant.address.subobject_path == NULL;
+      } else {
+        result = cast_okay;
+      }  /* if */
     }  /* if */
-  } else if (null_value_okay &&
-             con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
-    /* A null pointer value or cast for a pointer-to-member constant. */
-    result = ((con->variant.ptr_to_member.is_function_ptr
+  } else if (null_value_okay && constant_is(con, ck_ptr_to_member)) {
+    /* A null pointer value or cast for a pointer-to-member constant, or, in
+       C++17-like modes, a general pointer-to-member value . */
+    result = generalized_nontype_arguments ||
+             ((con->variant.ptr_to_member.is_function_ptr
                          ? con->variant.ptr_to_member.variant.routine == NULL
                          : con->variant.ptr_to_member.variant.field == NULL) ||
               (cast_okay && con->explicit_cast_applied));
-  } else if (null_value_okay &&
-             con->kind == (a_constant_repr_kind)ck_integer &&
+  } else if (null_value_okay && constant_is(con, ck_integer) &&
              (is_pointer_type(con->type) ||
               is_ptr_to_member_type(con->type)) &&
              cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
