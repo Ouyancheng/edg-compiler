@@ -19777,7 +19777,7 @@ cases.
   if (!is_error_type(source_type)) {
     check_assertion(is_immediate_class_type(class_type));
     if (mandatory_copy_elision) {
-      /* C++17 requires copy elision, which no check on the elided copy/move
+      /* C++17 requires copy elision with no check on the elided copy/move
          constructor.  However, the destructor must still be checked. */
       goto destructor_check;
     }  /* if */

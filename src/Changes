@@ -8,7 +8,7 @@ The forthcoming C++17 standard reformulates the handling of temporaries such
 that the copying of class-type temporaries must be elided in many contexts.
 This eliding, which was previously permitted but not required, was already
 performed by the front end, but the elided copy constructor was still checked
-(e.g., to ensure that it is accessible).  Now those checks are not longer
+(e.g., to ensure that it is accessible).  Now those checks are no longer
 performed in C++17 mode.  For example:
 
   struct S {
@@ -18,7 +18,7 @@ performed in C++17 mode.  For example:
   S f() { return S(); }  // Now accepted in C++17 mode.
   S s = f();             // Now accepted in C++17 mode.
 
-This example still elicits warnings or errors in C++14 mode.
+This example still elicits warnings or errors in pre-C++17 modes.
 
 
 9/13/17  [EDGcpfe/18767]
