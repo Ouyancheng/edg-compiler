@@ -1,5 +1,12 @@
 Version 4.15
 
+9/15/17  [EDGcpfe/18769]
+TCF_LAST
+
+The macro TCF_LAST in version 4.14 was not updated for a recent addition to
+the set of TCF_... flags.  Now fixed.
+
+
 9/15/17  [EDGcpfe/18747]
 C++17: Nontype template arguments
 
