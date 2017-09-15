@@ -66,7 +66,7 @@ of 5/2/08).  For example:
   }             // Now an error if microsoft_version >= 1912.
 
 
-9/13/17  [EDGcpfe/18694]
+9/13/17  [EDGcpfe/18632,EDGcpfe/18694]
 Structured bindings in range-based-for iterator declarations
 
 The original implementation of structured bindings in version 4.14 omitted the
