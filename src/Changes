@@ -51,7 +51,7 @@ performed in C++17 mode.  For example:
 
 This example still elicits warnings or errors in pre-C++17 modes.
 
-The changes for this C++17 feature also affect some pre-C++17 case.  For
+The changes for this C++17 feature also affect some pre-C++17 cases.  For
 example:
 
   template<typename T> T val() noexcept; 
