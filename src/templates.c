@@ -12224,8 +12224,8 @@ If there is an error in the copying, set *copy_error to TRUE.
     /* Arg operands are preserved during rescan for function template
        references. */
     copy_arg_operands = TRUE;
-    options &= ~CTWS_COPY_ARG_OPERAND_INFO;
   }  /* if */
+  options &= ~CTWS_COPY_ARG_OPERAND_INFO;
   prev_new_tap = new_list = NULL;
   /* Note that this routine does not use the template argument list
      traversal routines. */
