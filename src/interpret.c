@@ -4017,7 +4017,7 @@ of subscript operations or pointer arithmetic).
       case tk_struct:
         {
           a_subobject_path_ptr  path = *p_subobj;
-          a_field_ptr  fp;
+          a_field_ptr           fp;
           if (path != NULL) {
             /* If this is already the correct path entry, move on. */
             if (path->kind == iek_field &&
@@ -4034,6 +4034,30 @@ of subscript operations or pointer arithmetic).
               break;
             }  /* if */
           }  /* if */
+          /* A new path entry is needed. */
+          *p_subobj = alloc_subobject_path();
+          (*p_subobj)->next = path;
+          if (is_immediate_class_type(subobj_type) &&
+              subobj_type->variant.class_struct_union.is_empty_class) {
+            /* We're looking for an empty class type subobject.  Look first
+               among the empty base classes.  This avoids situations where we
+               see a non-empty base or leading field first and go down that
+               non-empty subobject path when the empty base should have been
+               picked instead. */
+            a_base_class_ptr  bcp = base_classes_of(obj_type);
+            for (; bcp != NULL; bcp = bcp->next) {
+              if (t_offset == (a_targ_ptrdiff_t)bcp->offset &&
+                  bcp->type == subobj_type) {
+                bcp = bcp->derivation->path->base_class;
+                check_assertion(bcp->direct);
+                (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
+                (*p_subobj)->variant.base_class = bcp;
+                t_offset -= bcp->offset;
+                obj_type = bcp->type;
+              }  /* if */
+            }  /* for */
+            if (bcp != NULL) break;
+          }  /* if */
           /* Search fields and direct nonvirtual bases for the right offset. */
           fp = obj_type->variant.class_struct_union.field_list;
           fp = next_alloc_field(fp);
@@ -4043,14 +4067,8 @@ of subscript operations or pointer arithmetic).
             ftp = skip_typerefs(fp->type);
             if (t_offset < (a_targ_ptrdiff_t)(fp->offset+ftp->size)) {
               /* We found the field. */
-              if (*p_subobj == NULL || (*p_subobj)->kind != iek_field ||
-                  (*p_subobj)->variant.field != fp) {
-                a_subobject_path_ptr  tail = *p_subobj;
-                *p_subobj = alloc_subobject_path();
-                (*p_subobj)->next = tail;
-                (*p_subobj)->kind = (an_il_entry_kind)iek_field;
-                (*p_subobj)->variant.field = fp;
-              }  /* if */
+              (*p_subobj)->kind = (an_il_entry_kind)iek_field;
+              (*p_subobj)->variant.field = fp;
               t_offset -= fp->offset;
               obj_type = ftp;
               break;
@@ -4098,17 +4116,23 @@ of subscript operations or pointer arithmetic).
                 }  /* if */
               }  /* if */
             }  /* for */
-            check_assertion(match_bcp != NULL);
-            if (*p_subobj == NULL || (*p_subobj)->kind != iek_base_class ||
-                (*p_subobj)->variant.base_class != match_bcp) {
-              a_subobject_path_ptr  tail = *p_subobj;
-              *p_subobj = alloc_subobject_path();
-              (*p_subobj)->next = tail;
+            if (match_bcp != NULL) {
               (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
               (*p_subobj)->variant.base_class = match_bcp;
+              t_offset -= match_bcp->offset;
+              obj_type = match_bcp->type;
+            } else {
+              /* This can happen with something like:
+                    X x = {};
+                    X *p = &x+1;
+                 where a class object is treated as an array of one element.
+              */
+              check_assertion(subobj_type == obj_type);
+              (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
+              check_assertion(t_offset == (a_targ_ptrdiff_t)obj_type->size);
+              (*p_subobj)->variant.ptr_offset = 1;
+              goto outer_loop_done;
             }  /* if */
-            t_offset -= match_bcp->offset;
-            obj_type = match_bcp->type;
           }  /* if */
         }
         break;
@@ -4128,6 +4152,13 @@ of subscript operations or pointer arithmetic).
         }
         break;
       default:
+        if (t_offset != 0 && *p_subobj == NULL) {
+          /* A non-array variable treated as an array of length one. */
+          *p_subobj = alloc_subobject_path();
+          (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
+          check_assertion(t_offset == (a_targ_ptrdiff_t)obj_type->size);
+          (*p_subobj)->variant.ptr_offset = 1;
+        }  /* if */
         goto outer_loop_done;
     }  /* switch */
     p_subobj = &(*p_subobj)->next;
