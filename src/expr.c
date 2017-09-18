@@ -34619,12 +34619,24 @@ an enumerator.
     /* Do lvalue --> rvalue and other transformations for the non-class
        case. */
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
-    if (constexpr_enabled && is_expression_operand(operand) &&
-        !is_prototype_instantiation_context()) {
-      /* Attempt to interpret the expression.  A failure will produce a
-         diagnostic indicating the reason the operand is non-constant. */
-      (void)expr_interpret_expression_operand(operand,
-                                              /*must_be_constant=*/TRUE);
+    if (constexpr_enabled && is_expression_operand(operand)) {
+      if (is_template_dependent_context() &&
+          operand_is_instantiation_dependent(operand)) {
+        /* Assume we'll be able to fold the operand after substitution. */
+        an_expr_node_ptr  node;
+        if (dest_type != NULL) {
+          generic_cast_operand(operand, dest_type, csf_none,
+                               /*is_implicit_cast=*/TRUE);
+        }  /* if */
+        node = make_node_from_operand(operand);
+        make_template_param_expr_constant(node, result_con);
+        goto done;
+      } else {
+        /* Attempt to interpret the expression.  A failure will produce a
+           diagnostic indicating the reason the operand is non-constant. */
+        (void)expr_interpret_expression_operand(operand,
+                                                /*must_be_constant=*/TRUE);
+      }  /* if */
     }  /* if */
     if (is_array_bound && is_constant_operand(operand)) {
       /* Check specially for a negative array size to produce a better
@@ -34692,6 +34704,7 @@ an enumerator.
     force_operand_to_constant_if_possible(operand);
   }  /* if */
   extract_constant_from_operand(operand, result_con);
+done:;
 }  /* process_converted_constant_expression */
 
 
