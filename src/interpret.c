@@ -4073,7 +4073,7 @@ of subscript operations or pointer arithmetic).
               }  /* if */
               if (t_offset < (a_targ_ptrdiff_t)(bcp->offset+base_size)) {
                 if (t_offset == (a_targ_ptrdiff_t)bcp->offset) {
-                  /* Because of empty bases, this special may need
+                  /* Because of empty bases, this special case may need
                      disambiguation. */
                   a_base_class_ptr  top_bcp = bcp->derivation->path
                                                              ->base_class;
@@ -12463,7 +12463,7 @@ diagnostic in *ips.
                 break;
               } else {
                 /* Make sure a complete subobject path is recorded (when
-                   needed. */
+                   needed). */
                 finalize_subobject_path(rt_con);
               }  /* if */
             }  /* if */
