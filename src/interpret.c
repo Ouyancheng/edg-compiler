@@ -4015,8 +4015,27 @@ of subscript operations or pointer arithmetic).
         break;
       case tk_class:
       case tk_struct:
-        { /* Search fields and direct nonvirtual bases for the right offset. */
-          a_field_ptr  fp = obj_type->variant.class_struct_union.field_list;
+        {
+          a_subobject_path_ptr  path = *p_subobj;
+          a_field_ptr  fp;
+          if (path != NULL) {
+            /* If this is already the correct path entry, move on. */
+            if (path->kind == iek_field &&
+                parent_class_of(path->variant.field) == obj_type) {
+              fp = path->variant.field;
+              obj_type = skip_typerefs(fp->type);
+              t_offset -= fp->offset;
+              break;
+            } else if (path->kind == iek_base_class &&
+                       path->variant.base_class->direct &&
+                       path->variant.base_class->derived_class == obj_type) {
+              obj_type = path->variant.base_class->type;
+              t_offset -= path->variant.base_class->offset;
+              break;
+            }  /* if */
+          }  /* if */
+          /* Search fields and direct nonvirtual bases for the right offset. */
+          fp = obj_type->variant.class_struct_union.field_list;
           fp = next_alloc_field(fp);
           for (; fp != NULL; fp = next_alloc_field(fp->next)) {
             a_type_ptr  ftp;
