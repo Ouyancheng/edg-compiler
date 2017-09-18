@@ -4048,15 +4048,20 @@ of subscript operations or pointer arithmetic).
             for (; bcp != NULL; bcp = bcp->next) {
               if (t_offset == (a_targ_ptrdiff_t)bcp->offset &&
                   bcp->type == subobj_type) {
-                bcp = bcp->derivation->path->base_class;
-                check_assertion(bcp->direct);
-                (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
-                (*p_subobj)->variant.base_class = bcp;
-                t_offset -= bcp->offset;
-                obj_type = bcp->type;
+                break;
               }  /* if */
             }  /* for */
-            if (bcp != NULL) break;
+            if (bcp != NULL) {
+              /* We found the subobject: Use the root of its derivation path
+                 as the next step in the subobject path. */
+              bcp = bcp->derivation->path->base_class;
+              check_assertion(bcp->direct);
+              (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
+              (*p_subobj)->variant.base_class = bcp;
+              t_offset -= bcp->offset;
+              obj_type = bcp->type;
+              break;
+            }  /* if */
           }  /* if */
           /* Search fields and direct nonvirtual bases for the right offset. */
           fp = obj_type->variant.class_struct_union.field_list;
