@@ -10819,6 +10819,21 @@ implicit "this" is available, e.g., during overload resolution.
         }  /* if */
       }  /* if */
     }  /* for */
+  } else if (ssep->is_rescan) {
+    /* Check if we are rescanning (SFINAE) a trailing return type, which could
+       also have access to an implicit "this" parameter. */
+    if (scope_is(ssep, sck_function_access)) {
+      /* Skip any scope pushed for SFINAE access checking. */
+      ssep = previous_scope_of(ssep);
+    }  /* if */
+    if (scope_is(ssep, sck_template_instantiation) &&
+        ssep->assoc_routine != NULL) {
+      a_type_ptr  rout_type = ssep->assoc_routine->type;
+      if (routine_type_is_nonstatic_member_function(rout_type)) {
+        local_this_type = f_implicit_this_param_type_of(rout_type);
+        this_exists = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (local_this_var != NULL) local_this_type = local_this_var->type;
   if (this_var != NULL) *this_var = local_this_var;
