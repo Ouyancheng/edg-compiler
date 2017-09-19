@@ -1977,6 +1977,7 @@ extern void substitute_constant(a_constant_ptr           *p_constant,
                                 a_type_ptr               parent_class,
                                 struct a_template_param  *t_params,
                                 a_template_arg_ptr       t_args,
+                                a_ctws_options_set       options,
                                 a_ctws_state             *ctws_state,
                                 a_source_position        *source_pos,
                                 a_boolean                *p_error);

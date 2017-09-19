@@ -1,5 +1,21 @@
 Version 4.15
 
+9/19/17  [EDGcpfe/18772]
+Spurious error on pack expansion in noexcept when noexcept is part of the type
+
+A spurious error could occur on a pack expansion in a noexcept specifier
+of a member function template in modes where the exception specification
+is part of the type.  Now fixed.
+
+  void g(...) {}
+  template <typename> void h(...) {}
+  template <typename> struct S {
+  template <class... Ts>
+      void f(Ts... ts) noexcept(noexcept(g(h<Ts>(ts)...))) {}
+  };
+  S<int> s;
+
+
 9/19/17  [EDGcpfe/18665]
 SFINAE involving implicit "this" selector
 

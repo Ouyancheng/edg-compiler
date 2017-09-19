@@ -18109,6 +18109,7 @@ void substitute_constant(a_constant_ptr        *p_constant,
                          a_type_ptr            parent_class,
                          a_template_param_ptr  t_params,
                          a_template_arg_ptr    t_args,
+                         a_ctws_options_set    options,
                          a_ctws_state          *ctws_state,
                          a_source_position     *source_pos,
                          a_boolean             *p_error)
@@ -18117,9 +18118,9 @@ Replace *p_constant by an entry in which the given template parameters have
 been replaced by the given template arguments (if any).  Furthermore, if
 parent_class (which may be NULL) is an instantiated template class of the form 
 X<A1, A2, ...>, (recursively) perform the substitutions implied by the template
-arguments A1, A2, ... first.  ctws_state points to state information for the
-substitution.  *source_pos is the position associated with the substitution.
-*p_error is set to TRUE if a substitution error occurs.
+arguments A1, A2, ... first.  options and ctws_state provide state information
+for the substitution.  *source_pos is the position associated with the
+substitution. *p_error is set to TRUE if a substitution error occurs.
 */
 {
   if (parent_class != NULL &&
@@ -18133,14 +18134,15 @@ substitution.  *source_pos is the position associated with the substitution.
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
                                               &parent_t_args);
     substitute_constant(p_constant, parent_class_or_null(parent_class),
-                        parent_t_params, parent_t_args, ctws_state,
+                        parent_t_params, parent_t_args, options, ctws_state,
                         source_pos, p_error);
   }  /* if */
   if (!*p_error && t_args != NULL) {
     *p_constant = copy_template_param_con_with_substitution(
                                         *p_constant, t_args, t_params,
                                         (a_type_ptr)NULL, source_pos,
-                                        CTWS_NO_OPTIONS, p_error, ctws_state);
+                                        options, p_error,
+                                        ctws_state);
   }  /* if */
 }  /* substitute_constant */
 

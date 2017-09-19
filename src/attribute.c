@@ -3661,7 +3661,7 @@ error occurs.
 {
   check_assertion(constant_is(aap->variant.constant, ck_template_param));
   substitute_constant(&aap->variant.constant, parent_class, t_params, t_args,
-                      ctws_state, &aap->position, p_error);
+		      CTWS_NO_OPTIONS, ctws_state, &aap->position, p_error);
 }  /* substitute_attribute_arg_constant */
 
 
