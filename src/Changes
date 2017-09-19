@@ -32,7 +32,7 @@ This is now fixed.
 
 
 9/15/17  [EDGcpfe/18770]
-Diagnostic on dynamic exception specifications
+Microsoft compatibility: Diagnostic on dynamic exception specifications
 
 The changes for EDGcpfe/17685,EDGcpfe/18637 caused the front end to emit a
 discretionary error on dynamic exception specifications when exception
