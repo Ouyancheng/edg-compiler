@@ -1,5 +1,22 @@
 Version 4.15
 
+9/19/17  [EDGcpfe/18668]
+Deducible return types and functions defined as friends in class templates
+
+Consider:
+
+  template<typename T> struct S {
+    friend auto f(S&) { return 0; }
+  };
+  int g(S<void> p) {
+    return f(p);  // Previously an error.  Now okay.
+  }
+
+Previously, the front end issued a spurious error about f not being defined.
+This was due to a failure to force the "instantiation" of functions defined
+in friend declarations appearing in class templates.  That is now fixed.
+
+
 9/18/17  [EDGcpfe/18778]
 Microsoft compatibility: _NOEXCEPT_TYPES_SUPPORTED predefined macro
 

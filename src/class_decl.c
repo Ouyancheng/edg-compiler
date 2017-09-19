@@ -2975,8 +2975,11 @@ in-class member function template specializations.
      fixup of friend functions should be postponed until the end of the
      translation unit.  In such modes, the flag is cleared once the fixups
      have completed so that any additional fixups that are needed will be done
-     when this routine is called. */
-  if (use_deferred_friend_fixup_list) {
+     when this routine is called.  (The flag is ignored for constexpr functions
+     and for functions with a deducible return type since their definitions
+     must be processed before evaluating a call.) */
+  if (use_deferred_friend_fixup_list &&
+      !rp->is_constexpr && !rp->has_deducible_return_type) {
     if (deferred_friend_fixup_list == NULL) deferred_friend_fixup_list = rfp;
     if (deferred_friend_fixup_list_tail != NULL) {
       deferred_friend_fixup_list_tail->next = rfp;

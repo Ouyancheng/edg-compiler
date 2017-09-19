@@ -31521,7 +31521,9 @@ available, issue an error at the given position.
 {
   check_assertion(rp->has_deducible_return_type);
   if (!rp->has_deduced_return_type && !rp->is_prototype_instantiation) {
-    if (rp->is_template_function && !routine_has_been_defined(rp)) {
+    if (rp->routine_fixup != NULL) {
+      add_to_deferred_friend_function_fixup_list(rp->routine_fixup);
+    } else if (rp->is_template_function && !routine_has_been_defined(rp)) {
       force_instantiation_to_deduce_return_type(rp);
     }  /* if */
     /* If the instantiation resulted in recursion, has_deducible_return_type
