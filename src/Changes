@@ -1,5 +1,18 @@
 Version 4.15
 
+9/19/17  [EDGcpfe/18788]
+GNU and Clang C++ compatibility: Abort in noexcept deduction in an explicit
+specialization
+
+When the exception specification is part of the type, an abort could occur
+(in strip_implicit_casts_if_template_param_constant) on an explicit
+specialization in which the noexcept operator did not have an explicit
+operand.  Now fixed.
+
+  template <typename T> void f() noexcept(true) {}
+  template void f<int>() noexcept;
+ 
+
 9/19/17  [EDGcpfe/18772]
 Spurious error on pack expansion in noexcept when noexcept is part of the type
 

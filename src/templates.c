@@ -10631,7 +10631,7 @@ in the standard is perhaps accidental.
       a_constant_ptr	t_cp = t_esp->variant.noexcept_arg;
       a_constant_ptr	cp;
       a_boolean		cp_is_local = FALSE;
-      if (esp != NULL) {
+      if (esp != NULL && esp->variant.noexcept_arg != NULL) {
         cp = esp->variant.noexcept_arg;
       } else {
         cp = local_constant();
