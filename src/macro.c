@@ -10431,6 +10431,11 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (exc_spec_in_func_type) {
+      (void)enter_predef_macro("1", "_NOEXCEPT_TYPES_SUPPORTED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

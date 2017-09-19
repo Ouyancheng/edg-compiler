@@ -1,5 +1,13 @@
 Version 4.15
 
+9/18/17  [EDGcpfe/18778]
+Microsoft compatibility: _NOEXCEPT_TYPES_SUPPORTED predefined macro
+
+In Microsoft modes when exception specifications are part of function types
+(see EDGcpfe/17685,EDGcpfe/18637), the front end now defines the macro
+_NOEXCEPT_TYPES_SUPPORTED to the value 1.
+
+
 9/18/17  [EDGcpfe/18773]
 Partial function template ordering and exception specifications
 
