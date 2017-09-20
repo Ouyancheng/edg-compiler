@@ -23,7 +23,7 @@ is part of the type.  Now fixed.
   void g(...) {}
   template <typename> void h(...) {}
   template <typename> struct S {
-  template <class... Ts>
+    template <class... Ts>
       void f(Ts... ts) noexcept(noexcept(g(h<Ts>(ts)...))) {}
   };
   S<int> s;
