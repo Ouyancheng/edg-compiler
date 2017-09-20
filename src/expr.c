@@ -8379,6 +8379,9 @@ the selection, not an operator token for the call.
                                  (an_expr_operator_kind)eok_pm_field,
                                result_type,
                                object_node);
+          if (strict_cpp17_eval_order) {
+            select_node->variant.operation.eval_left_to_right = TRUE;
+          }  /* if */
           make_expression_operand(select_node, result);
           if (result_is_a_glvalue) {
             /* The result is a glvalue. */

@@ -4356,6 +4356,17 @@ Display the indicated expression node.
         disp_boolean("requires_runtime_cast_check", TRUE);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if BACK_END_IS_CP_GEN_BE
+      if (ptr->variant.operation.has_deferred_ampersand) {
+        disp_boolean("has_deferred_ampersand", TRUE);
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
+      if (ptr->variant.operation.eval_left_to_right) {
+        disp_boolean("eval_left_to_right", TRUE);
+      }  /* if */
+      if (ptr->variant.operation.eval_right_to_left) {
+        disp_boolean("eval_right_to_left", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

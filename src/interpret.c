@@ -6932,6 +6932,44 @@ record a diagnostic in the interpreter state (using the position of expr).
 }  /* adjust_this_address */
 
 
+static a_boolean eval_selector_arg(an_interpreter_state  *ips,
+                                   an_expr_node_ptr      arg,
+                                   a_type_ptr            tp,
+                                   a_byte                *this_bytes)
+/*
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (arg->is_lvalue || arg->is_xvalue ||
+      tp->kind == (a_type_kind)tk_pointer) {
+    /* The usual case: An address is produced. */
+    if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+  } else {
+    /* The call is on a class rvalue.  E.g., "X().f();". */
+    a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+    a_byte        *class_bytes;
+    if (!result) goto done;
+    alloc_complete_object(ips, n_bytes, tp, class_bytes);
+    if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    mark_complete_object_initialized(class_bytes);
+    /* Store the address of the class in *this_bytes. */
+    clear_address(this_bytes, class_bytes);
+    ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+                                    ips->storage_stack.alloc_seq_number;
+  }  /* if */
+  mark_complete_object_initialized(this_bytes);
+done:
+  return result;
+}  /* eval_selector_arg */
+
+
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
                                    a_byte                *result_storage,
@@ -7061,6 +7099,8 @@ otherwise, return FALSE and update *ips accordingly.
     an_alloc_seq_number
                     alloc_seq_number;
     unsigned long   up_front_cost;
+    a_boolean       eval_right_to_left =
+                              call_node->variant.operation.eval_right_to_left;
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -7137,35 +7177,16 @@ otherwise, return FALSE and update *ips accordingly.
       alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
-      if (arg->is_lvalue || arg->is_xvalue ||
-          tp->kind == (a_type_kind)tk_pointer) {
-        /* The usual case: An address is produced. */
-        if (!do_constexpr_expression(ips, arg, this_bytes, this_bytes)) {
-          do_constexpr_fail(result);
-          goto done;
-        }  /* if */
+      if (eval_right_to_left) {
+        /* Don't evaluate the operation just yet. */
       } else {
-        /* The call is on a class rvalue.  E.g., "X().f();". */
-        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-        a_byte        *class_bytes;
-        if (!result) goto done;
-        alloc_complete_object(ips, n_bytes, tp, class_bytes);
-        if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
+        if (!eval_selector_arg(ips, arg, tp, this_bytes) ||
+            (pm_target != NULL &&
+             !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
+                                  pm_target, this_var->type, call_node))) {
           do_constexpr_fail(result);
           goto done;
         }  /* if */
-        mark_complete_object_initialized(class_bytes);
-        /* Store the address of the class in *this_bytes. */
-        clear_address(this_bytes, class_bytes);
-        ((a_constexpr_address *)this_bytes)->alloc_seq_number =
-                                          ips->storage_stack.alloc_seq_number;
-      }  /* if */
-      mark_complete_object_initialized(this_bytes);
-      if (pm_target != NULL &&
-          !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
-                               pm_target, this_var->type, call_node)) {
-        do_constexpr_fail(result);
-        goto done;
       }  /* if */
       arg = arg->next;
     }  /* if */
@@ -7195,7 +7216,13 @@ otherwise, return FALSE and update *ips accordingly.
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
-      if (result) {
+      if (!result) {
+        goto done;
+      }  /* if */
+      /* Evaluate the argument, unless it is the first argument in a call for
+         a right-to-left operator (which can only happen here if there was no
+         selector argument (i.e., this_var == NULL). */
+      if (!eval_right_to_left || this_var != NULL || arg->next == NULL) {
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -7210,6 +7237,29 @@ otherwise, return FALSE and update *ips accordingly.
         goto done;
       }  /* if */
     }  /* for */
+    if (eval_right_to_left) {
+      /* Evaluate the first operand now that the second operand has been
+         evaluated (the first operand was allocated but not evaluated
+         earlier on). */
+      a_byte            *arg_bytes = *(a_byte**)arg_ptrs;
+      an_expr_node_ptr  first_arg = callee_node->next;
+      a_type_ptr        tp = skip_typerefs(first_arg->type);
+      if (this_var != NULL) {
+        if (!eval_selector_arg(ips, first_arg, tp, arg_bytes) ||
+            (pm_target != NULL &&
+             !adjust_this_address(ips, (a_constexpr_address*)arg_bytes,
+                                  pm_target, this_var->type, call_node))) {
+          do_constexpr_fail(result);
+          goto done;
+        }  /* if */
+      } else {
+        if (!do_constexpr_expression(ips, first_arg, arg_bytes, arg_bytes)) {
+          do_constexpr_fail(result);
+          goto done;
+        }  /* if */
+        mark_complete_object_initialized(arg_bytes);
+      }  /* if */
+    }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
     /* Associate with the parameter variables the allocation sequence number
        that is about to be created for the top-level block (since the
@@ -8515,7 +8565,7 @@ the value representation of the integer value.
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = expr_result_size(ips, opnd1, opnd1_type, &result);
         alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
-        if (result &&
+        if (result && !expr->variant.operation.eval_right_to_left &&
             !do_constexpr_expression(ips, opnd1, opnd1_value, opnd1_value)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -8537,6 +8587,10 @@ the value representation of the integer value.
           alloc_complete_object(ips, opnd_n_bytes, opnd2_type, opnd2_value);
           if (result &&
               !do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
+            do_constexpr_fail(result);
+          }  /* if */
+          if (result && expr->variant.operation.eval_right_to_left &&
+              !do_constexpr_expression(ips, opnd1, opnd1_value, opnd1_value)) {
             do_constexpr_fail(result);
           }  /* if */
         } else {

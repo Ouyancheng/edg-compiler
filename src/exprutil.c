@@ -9579,6 +9579,33 @@ lvalue if result_is_lvalue is TRUE.
     node->next = make_node_from_operand(operand_2);
     /* Make an expression operator node which has the above operand nodes. */
     node = make_operator_node(kind, type, node);
+    if (strict_cpp17_eval_order) {
+      switch (kind) {
+        case eok_assign:
+        case eok_add_assign:
+        case eok_subtract_assign:
+        case eok_multiply_assign:
+        case eok_divide_assign:
+        case eok_remainder_assign:
+        case eok_shiftl_assign:
+        case eok_shiftr_assign:
+        case eok_and_assign:
+        case eok_or_assign:
+        case eok_xor_assign:
+        case eok_padd_assign:
+        case eok_psubtract_assign:
+          node->variant.operation.eval_right_to_left = TRUE;
+          break;
+        case eok_subscript:
+        case eok_shiftl:
+        case eok_shiftr:
+          node->variant.operation.eval_left_to_right = TRUE;
+          break;
+        default:
+          /* No mandated evaluation order. */
+          break;
+      }  /* switch */
+    }  /* if */
     /* Make an operand of the expression. */
     make_expression_operand(node, result);
     if (result_is_lvalue) {
@@ -16769,6 +16796,40 @@ error cases.
 #endif /* BACK_END_IS_CP_GEN_BE */
   call_node->variant.operation.call_uses_operator_syntax =
                                                           uses_operator_syntax;
+  if (strict_cpp17_eval_order) {
+    if (uses_operator_syntax) {
+      check_assertion(rout != NULL && special_kind_is(rout, sfk_operator));
+      switch (rout->variant.opname_kind) {
+        case onk_assign:
+        case onk_plus_assign:
+        case onk_minus_assign:
+        case onk_times_assign:
+        case onk_divide_assign:
+        case onk_remainder_assign:
+        case onk_excl_or_assign:
+        case onk_and_assign:
+        case onk_or_assign:
+        case onk_shift_left_assign:
+        case onk_shift_right_assign:
+          call_node->variant.operation.eval_right_to_left = TRUE;
+          break;
+        case onk_shift_left:
+        case onk_shift_right:
+        case onk_arrow_star:
+        case onk_subscript:
+        case onk_function_call:
+          call_node->variant.operation.eval_left_to_right = TRUE;
+          break;
+        default:
+          /* No mandated evaluation order. */
+          break;
+      }  /* switch */
+    } else {
+      /* An ordinary call (not operator syntax): The operands have to be
+         evaluated in left-to-right order. */
+      call_node->variant.operation.eval_left_to_right = TRUE;
+    }  /* if */
+  }  /* if */
   /* If the return value must be constructed, create the necessary temporary
      to hold the result.  For unknown dependent functions we assume this is
      not needed, and for certain decltype operands (identified with the flag

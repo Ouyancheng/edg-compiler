@@ -13434,6 +13434,14 @@ typedef struct an_expr_node {
 			   must be deferred and applied to the second
 			   operand of the comma expression instead. */
 #endif /* BACK_END_IS_C_GEN_BE */
+      a_bit_field
+		eval_left_to_right:1;
+			/* TRUE the operands must be evaluated in the order
+			   in which they appear on the operands list. */
+      a_bit_field
+		eval_right_to_left:1;
+			/* TRUE the operands must be evaluated in the reverse
+			   order in which they appear on the operands list. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */

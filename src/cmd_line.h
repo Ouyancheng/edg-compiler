@@ -645,6 +645,11 @@ EXTERN a_boolean
 			   with fundamental alignment (a C++17 feature). */
 
 EXTERN a_boolean
+		strict_cpp17_eval_order;
+			/* TRUE if the C++17 rules for operand evaluation order
+			   are in effect. */
+
+EXTERN a_boolean
 		generalized_nontype_arguments;
 			/* TRUE if the C++17 rules for nontype template
 			   arguments are in effect. */
