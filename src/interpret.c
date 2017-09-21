@@ -7260,12 +7260,12 @@ otherwise, return FALSE and update *ips accordingly.
           /* When a class-type argument is passed by-value via a copy
              constructor call, the argument is left as an lvalue.  Temporarily
              set it back to an rvalue. */
-          if (arg->is_lvalue) {
+          if (first_arg->is_lvalue) {
             restore_lvalue = TRUE;
-            arg->is_lvalue = FALSE;
-          } else if (arg->is_xvalue) {
+            first_arg->is_lvalue = FALSE;
+          } else if (first_arg->is_xvalue) {
             restore_xvalue = TRUE;
-            arg->is_xvalue = FALSE;
+            first_arg->is_xvalue = FALSE;
           }  /* if */
         }  /* if */
         if (!do_constexpr_expression(ips, first_arg, arg_bytes, arg_bytes)) {
@@ -7274,9 +7274,9 @@ otherwise, return FALSE and update *ips accordingly.
           mark_complete_object_initialized(arg_bytes);
         }  /* if */
         if (restore_lvalue) {
-          arg->is_lvalue = TRUE;
+          first_arg->is_lvalue = TRUE;
         } else if (restore_xvalue) {
-          arg->is_xvalue = TRUE;
+          first_arg->is_xvalue = TRUE;
         }  /* if */
         if (!result) {
           goto done;
