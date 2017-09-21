@@ -13967,6 +13967,13 @@ Make and return an expression for an argument in arg-list-element form.
     check_assertion(is_braced_init_component(arg));
     expr = make_braced_init_expr_from_arg_list_elem(arg);
   }  /* if */
+  if (expr->rescan_info != NULL && arg->pack_expansion_descr != NULL) {
+    /* If this expression may need rescanning in the future and it is part of
+       a pack expansion, make sure the pack expansion descriptor is available
+       in the operand saved for rescanning. */
+    expr->rescan_info->saved_operand.pack_expansion_descr =
+                                                    arg->pack_expansion_descr;
+  }  /* if */
   return expr;
 }  /* make_expr_from_argument */
 
