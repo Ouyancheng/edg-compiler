@@ -1,5 +1,15 @@
 Version 4.15
 
+9/21/17  [EDGcpfe/18804]
+Feature test macros for fold expressions and exception specifications in
+function types
+
+The standard feature test macros for fold expressions (__cpp_fold_expressions)
+and exception specifications in function types (__cpp_noexcept_function_type)
+were previously not defined when the associated feature was enabled.  This
+is now fixed.
+
+
 9/19/17  [EDGcpfe/17701]
 C++17: Evaluation order
 
