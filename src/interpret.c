@@ -6985,10 +6985,10 @@ otherwise, return FALSE and update *ips accordingly.
 {
   an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee = NULL;
-  a_boolean         result = TRUE;
+  a_boolean         result = TRUE, lambda_entry_case;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
-  a_boolean         lambda_entry_case;
+  a_byte            *pre_evaluated_this_bytes = NULL;
 
   /* First determine the actual callee. */
   callee_node = call_node->variant.operation.operands;
@@ -7003,6 +7003,25 @@ otherwise, return FALSE and update *ips accordingly.
     a_byte_count  n_pm_bytes = value_bytes_for_type(ips, pm_type, &result);
     alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
     pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
+    if (call_node->variant.operation.eval_left_to_right) {
+      /* As of C++17, in a call like (f().*pm())() the sub-expression f() must
+         be evaluated before the sub-expression pm().  We therefore evaluate
+         that expression now, and copy the result (which is a constexpr address
+         and therefore safe to copy) to the expected location of the "this"
+         pointer value later on. */
+      an_expr_node_ptr  selector_arg = callee_node->next;
+      a_type_ptr        tp = skip_typerefs(selector_arg->type);
+      a_type_ptr        this_type = make_pointer_type(tp);
+      a_byte_count      this_n_bytes = sizeof(a_constexpr_address);
+      do_host_alignment(this_n_bytes);
+      alloc_complete_object(ips, this_n_bytes, this_type,
+                            pre_evaluated_this_bytes);
+      if (!eval_selector_arg(ips, selector_arg, tp,
+                             pre_evaluated_this_bytes)) {
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+    }  /* if */
     if (do_constexpr_expression(ips, callee_node, pm_bytes, pm_bytes)) {
       callee = pm_target->variant.routine;
       if (callee == NULL) {
@@ -7183,7 +7202,16 @@ otherwise, return FALSE and update *ips accordingly.
       if (eval_right_to_left) {
         /* Don't evaluate the operation just yet. */
       } else {
-        if (!eval_selector_arg(ips, arg, tp, this_bytes) ||
+        if (pre_evaluated_this_bytes != NULL) {
+          /* The selector argument was evaluated before the pointer-to-member
+             expression above.  Just copy the resulting "this" value. */
+          (void)memcpy(this_bytes, pre_evaluated_this_bytes,
+                       sizeof(a_constexpr_address));
+          mark_complete_object_initialized(this_bytes);
+        } else if (!eval_selector_arg(ips, arg, tp, this_bytes)) {
+          do_constexpr_fail(result);
+        }  /* if */
+        if (!result ||
             (pm_target != NULL &&
              !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
                                   pm_target, this_var->type, call_node))) {
