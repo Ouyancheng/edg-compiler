@@ -6937,6 +6937,9 @@ static a_boolean eval_selector_arg(an_interpreter_state  *ips,
                                    a_type_ptr            tp,
                                    a_byte                *this_bytes)
 /*
+Evaluate the given expression (of the given type, excluding typerefs) to
+produce a "this" pointer value.  The result is stored at the location indicated
+by this_bytes.
 */
 {
   a_boolean  result = TRUE;
@@ -7216,13 +7219,11 @@ otherwise, return FALSE and update *ips accordingly.
       alloc_complete_object(ips, n_bytes, tp, arg_bytes);
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
-      if (!result) {
-        goto done;
-      }  /* if */
       /* Evaluate the argument, unless it is the first argument in a call for
          a right-to-left operator (which can only happen here if there was no
          selector argument (i.e., this_var == NULL). */
-      if (!eval_right_to_left || this_var != NULL || arg->next == NULL) {
+      if (result &&
+          (!eval_right_to_left || this_var != NULL || arg->next == NULL)) {
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -7253,11 +7254,33 @@ otherwise, return FALSE and update *ips accordingly.
           goto done;
         }  /* if */
       } else {
+        a_boolean  restore_lvalue = FALSE, restore_xvalue = FALSE;
+        if (!(tp->kind == (a_type_kind)tk_pointer &&
+              tp->variant.pointer.is_reference)) {
+          /* When a class-type argument is passed by-value via a copy
+             constructor call, the argument is left as an lvalue.  Temporarily
+             set it back to an rvalue. */
+          if (arg->is_lvalue) {
+            restore_lvalue = TRUE;
+            arg->is_lvalue = FALSE;
+          } else if (arg->is_xvalue) {
+            restore_xvalue = TRUE;
+            arg->is_xvalue = FALSE;
+          }  /* if */
+        }  /* if */
         if (!do_constexpr_expression(ips, first_arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
+        } else {
+          mark_complete_object_initialized(arg_bytes);
+        }  /* if */
+        if (restore_lvalue) {
+          arg->is_lvalue = TRUE;
+        } else if (restore_xvalue) {
+          arg->is_xvalue = TRUE;
+        }  /* if */
+        if (!result) {
           goto done;
         }  /* if */
-        mark_complete_object_initialized(arg_bytes);
       }  /* if */
     }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
