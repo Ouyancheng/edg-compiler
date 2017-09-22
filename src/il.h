@@ -1508,6 +1508,9 @@ typedef int an_expr_copy_options_set;
 			   expression tree in function-scope memory that
 			   can be referenced by an a_local_expr_node_ref
 			   entry. */
+#define CE_PRESERVE_RESCAN_INFO 0x4000
+			/* When TRUE, rescan info is preserved in the copy of
+			   expression nodes. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

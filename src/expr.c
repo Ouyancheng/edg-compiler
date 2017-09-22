@@ -2220,7 +2220,8 @@ done.
        that the substituted list keeps the ability to gain more elements (i.e.,
        this is really a dependent expression list still).  Append a copy of the
        parameterized pack expansion. */
-    an_expr_node_ptr     expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
+    an_expr_node_ptr     expr_copy = copy_expr_tree(expr,
+                                                    CE_PRESERVE_RESCAN_INFO);
     an_operand           opnd;
     an_arg_list_elem_ptr alep;
     expr_copy->is_pack_expansion = TRUE;

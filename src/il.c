@@ -18533,7 +18533,7 @@ be called to start a copy.
 
   /* Copy the top node. */
   expr_copy = copy_node(expr);
-  if (options & CE_COPYING_FOR_CONSTEXPR_FOLDING) {
+  if (options & (CE_COPYING_FOR_CONSTEXPR_FOLDING | CE_PRESERVE_RESCAN_INFO)) {
     expr_copy->rescan_info = expr->rescan_info;
   }  /* if */
   switch (expr->kind) {
