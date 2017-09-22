@@ -18,7 +18,7 @@ various circumstances.  Calls resulting from call syntax, the subscript
 operator, pointer-to-member selection operators (.* and ->*) and shift
 operators now must have their operands evaluated in left-to-right order.
 Conversely, assignments and compound assignments must have their right operand
-evaluated before their left operand.  (Those orderings are required even the
+evaluated before their left operand.  (Those orderings are required even if the
 operator invocation is implemented as a call to an operator function.)  The IL
 variant for enk_operation expression nodes has been augmented with two flags
 indicating whether strict left-to-right or right-to-left evaluation order is

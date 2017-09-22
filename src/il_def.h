@@ -13436,12 +13436,17 @@ typedef struct an_expr_node {
 #endif /* BACK_END_IS_C_GEN_BE */
       a_bit_field
 		eval_left_to_right:1;
-			/* TRUE the operands must be evaluated in the order
-			   in which they appear on the operands list. */
+			/* TRUE if the operands must be evaluated in the order
+			   in which they appear on the operands list, except
+			   that for eok_dot_pm_call and eok_points_to_pm_call
+			   the selector object/pointer (second operand) is
+			   evaluated before the pointer-to-member (first
+			   operand). */
       a_bit_field
 		eval_right_to_left:1;
-			/* TRUE the operands must be evaluated in the reverse
-			   order in which they appear on the operands list. */
+			/* TRUE if the operands must be evaluated in the
+			   reverse order in which they appear on the operands
+			   list. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
