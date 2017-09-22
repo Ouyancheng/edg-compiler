@@ -9356,6 +9356,11 @@ from the front end to the runtime.
   /* Can the front end use __float128? */
   enter_predef_num_macro_noredef(FLOAT128_ENABLING_POSSIBLE,
                                  "__EDG_FLOAT128_ENABLING_POSSIBLE");
+  /* Are dynamic exception specifications permitted? */
+  enter_predef_macro(exc_spec_in_func_type ? "1" : "0",
+                     "__EDG_EXC_SPEC_IN_FUNC_TYPE",
+                     /*cannot_be_redeclared=*/TRUE,
+                     /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_runtime_macros */
 
 
