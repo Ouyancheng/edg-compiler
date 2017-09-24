@@ -10990,6 +10990,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
             check_assertion(is_rescan || vpip != NULL);
             if (vpip != NULL) {
               new_prp->curr_argument.param_type = vpip->param_type;
+            } else {
+              new_prp->curr_argument.param_type = NULL;
             }  /* if */
             new_prp->param_info = vpip;
           }  /* if */

@@ -18134,8 +18134,8 @@ substitution. *p_error is set to TRUE if a substitution error occurs.
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
                                               &parent_t_args);
     substitute_constant(p_constant, parent_class_or_null(parent_class),
-                        parent_t_params, parent_t_args, options, ctws_state,
-                        source_pos, p_error);
+                        parent_t_params, parent_t_args,	CTWS_NO_OPTIONS,
+                        ctws_state, source_pos, p_error);
   }  /* if */
   if (!*p_error && t_args != NULL) {
     *p_constant = copy_template_param_con_with_substitution(

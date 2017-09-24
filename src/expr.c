@@ -2214,7 +2214,8 @@ done.
                                                /*is_declarator=*/FALSE);
     any_more = advance_to_next_pack_element(pesep);
   }  /* while */
-  if (rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) {
+  if ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0 &&
+       !pedep->uses_only_enclosing_packs) {
     /* We're in a context where some pack elements might have been specified
        explicitly, but more such elements might be deduced.  We have to ensure
        that the substituted list keeps the ability to gain more elements (i.e.,
