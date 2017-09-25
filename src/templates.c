@@ -24840,8 +24840,11 @@ caller.
   }  /* if */
   /* Stop the background caching and save the declaration up to this point.
      This is not done for the generated conversion operator for a generic
-     lambda. */
-  if (rout_ptr == NULL || !rout_ptr->compiler_generated) {
+     lambda.  This is not done when sym is NULL (i.e., in error cases)
+     because it isn't needed and we don't have a reliable ending token
+     number. */
+  if (sym != NULL &&
+      (rout_ptr == NULL || !rout_ptr->compiler_generated)) {
     make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
                              /*include_last_token=*/FALSE);
   }  /* if */
