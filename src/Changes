@@ -1,5 +1,14 @@
 Version 4.15
 
+9/25/17  [EDGcpfe/18807]
+Parenthesized values for FLT_MAX/DBL_MAX
+
+If the values of the macros FLT_MAX or DBL_MAX are parenthesized, the global
+variables host_fp_flt_max/host_fp_dbl_max may be uninitialized which could
+result in undefined behavior.  Now fixed.  See the Changes entry for
+EDGcpfe/13041 for a similar change.
+
+
 9/25/17  [EDGcpfe/18814]
 Internal error on invalid template declaration
 

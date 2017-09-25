@@ -404,6 +404,7 @@ If the conversion can be done, return the result in "result".
 #define str1_flt_max(x) str2_flt_max(x)
     char buf_flt_max[] = str1_flt_max(FLT_MAX);
     char *str_flt_max = buf_flt_max;
+    a_boolean strip_trailing_paren = FALSE;
 #undef str2_flt_max
 #undef str1_flt_max
     if (strncmp(str_flt_max, "((float)", 8) == 0 ||
@@ -412,18 +413,26 @@ If the conversion can be done, return the result in "result".
          "((float)3.40282347e+38)".  Also accept a function-style cast form.
          strtod cannot deal with the parentheses or the cast, so skip past
          them. */
-      char *tmp;
       if (str_flt_max[0] == '(') {
         str_flt_max += 8;
       } else {
         str_flt_max += 6;
       }  /* if */
-      tmp = strchr(str_flt_max, ')');
+      strip_trailing_paren = TRUE;
+    } else if (str_flt_max[0] == '(') {
+      /* Look for the case where it's a parenthesized number. */
+      str_flt_max++;
+      strip_trailing_paren = TRUE;
+    }  /* if */
+    if (strip_trailing_paren) {
+      char *tmp = strchr(str_flt_max, ')');
       check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
                           isdigit((unsigned char)str_flt_max[0]),
                           "conv_host_fp_to_float: bad FLT_MAX definition");
       *tmp = '\0';
     }  /* if */
+    /* Make sure str_flt_max is something that sscanf will parse. */
+    check_assertion(isdigit((unsigned char)str_flt_max[0]));
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     host_fp_flt_max = str_to_long_double(str_flt_max);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
@@ -564,6 +573,7 @@ underflow.  If the conversion can be done, return the result in "result".
 #define str1_dbl_max(x) str2_dbl_max(x)
     char buf_dbl_max[] = str1_dbl_max(DBL_MAX);
     char *str_dbl_max = buf_dbl_max;
+    a_boolean strip_trailing_paren = FALSE;
 #undef str2_dbl_max
 #undef str1_dbl_max
     if (strncmp(str_dbl_max, "((double)", 9) == 0 ||
@@ -573,18 +583,26 @@ underflow.  If the conversion can be done, return the result in "result".
          with g++ 4.6.0, the string "double(1.79769313486231570815e+308L)"
          is used.  strtod cannot deal with the parentheses or the cast, so
          skip past them. */
-      char *tmp;
       if (str_dbl_max[0] == '(') {
         str_dbl_max += 9;
       } else {
         str_dbl_max += 7;
       }  /* if */
-      tmp = strchr(str_dbl_max, ')');
+      strip_trailing_paren = TRUE;
+    } else if (str_dbl_max[0] == '(') {
+      /* Look for the case where it's a parenthesized number. */
+      str_dbl_max++;
+      strip_trailing_paren = TRUE;
+    }  /* if */
+    if (strip_trailing_paren) {
+      char *tmp = strchr(str_dbl_max, ')');
       check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
                           isdigit((unsigned char)str_dbl_max[0]),
                           "conv_host_fp_to_double: bad DBL_MAX definition");
       *tmp = '\0';
     }  /* if */
+    /* Make sure str_dbl_max is something that sscanf will parse. */
+    check_assertion(isdigit((unsigned char)str_dbl_max[0]));
     host_fp_dbl_max = str_to_long_double(str_dbl_max);
     check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
                          "error on conversion of DBL_MAX");
