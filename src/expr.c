@@ -5440,7 +5440,6 @@ are expected to be NULL in that case.
       routine_type = NULL;
       prep_generic_operand(operand);
       if ((gpp_mode || clang_mode || microsoft_mode) &&
-          !scope_stack_top().in_noexcept_spec &&
           member_of_proto_inst && !stricter_template_checking) {
         /* Make the call target opaque. */
         make_template_param_expr_constant_operand(operand);
