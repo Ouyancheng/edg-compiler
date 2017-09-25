@@ -399,8 +399,21 @@ handling is not being used, and to allow "noexcept" to be used starting
 with C++11 mode.  NEW_THROWS is used to provide the exception specification
 of the default operator new.  Originally this was bad_alloc, but starting
 with C++11 operator new has no exception specification.
+
+The Microsoft compiler always sets __cplusplus to reflect C++98, so an
+alternative mechanism is needed to determine when to use "throw" and when
+to use "noexcept".
 */
 #if EXCEPTION_HANDLING
+#ifdef _MSC_VER
+#if _NOEXCEPT_TYPES_SUPPORTED
+#define NEW_THROWS  /* nothing */
+#define THROW_NOTHING noexcept
+#else /* !_NOEXCEPT_TYPES_SUPPORTED */
+#define NEW_THROWS  throw(__EDG_STD_NAMESPACE::bad_alloc)
+#define THROW_NOTHING throw()
+#endif /* _NOEXCEPT_TYPES_SUPPORTED */
+#else /* !defined(_MSC_VER) */
 #if __cplusplus < 201103L
 #define THROW_NOTHING() throw()
 #define NEW_THROWS throw(__EDG_STD_NAMESPACE::bad_alloc)
@@ -411,6 +424,7 @@ with C++11 operator new has no exception specification.
 #else /* !EXCEPTION_HANDLING */
 #define THROW_NOTHING() /* Nothing. */
 #define NEW_THROWS  /* nothing */
+#endif /* ifdef _MSC_VER */
 #endif /* EXCEPTION_HANDLING */
 
 /*
