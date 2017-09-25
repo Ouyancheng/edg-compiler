@@ -167,6 +167,7 @@ extension keywords that construct a type specifier.
 #define or_is_edg_type_keyword(tok)                                       \
   || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
       (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type ||       \
+      (tok) == tok_edg_wchar_type ||                                      \
       (tok) == tok_edg_internal_type)
 
 /*
