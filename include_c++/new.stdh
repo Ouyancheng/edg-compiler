@@ -25,7 +25,18 @@ new -- Include file for C++ default operator new (see ARM 12.5).
 
 /* C++03 uses "throw(std::bad_alloc)" and "throw()" exception specifications.
    C++11 uses "noexcept" instead of "throw()" and does not otherwise specify
-   exception specifications. */
+   exception specifications.  The Microsoft compiler always sets __cplusplus
+   to reflect C++98, so an alternative mechanism is needed to determine
+   when to use "throw" and "noexcept". */
+#ifdef _MSC_VER
+#if _NOEXCEPT_TYPES_SUPPORTED
+#define __NEW_THROWS  /* nothing */
+#define __DOES_NOT_THROW noexcept
+#else /* !_NOEXCEPT_TYPES_SUPPORTED */
+#define __NEW_THROWS  throw(__EDG_STD_NAMESPACE::bad_alloc)
+#define __DOES_NOT_THROW throw()
+#endif /* _NOEXCEPT_TYPES_SUPPORTED */
+#else /* !defined(_MSC_VER) */
 #if __cplusplus < 201103L
 #define __NEW_THROWS  throw(__EDG_STD_NAMESPACE::bad_alloc)
 #define __DOES_NOT_THROW throw()
@@ -33,6 +44,7 @@ new -- Include file for C++ default operator new (see ARM 12.5).
 #define __NEW_THROWS  /* nothing */
 #define __DOES_NOT_THROW noexcept
 #endif /* __cplusplus < 201103L */
+#endif /* ifdef _MSC_VER */
 
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES

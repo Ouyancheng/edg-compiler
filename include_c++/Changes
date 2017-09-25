@@ -1,5 +1,19 @@
 Version 4.15
 
+9/25/17  [EDGcpfe/18806]
+Microsoft compatibility: exception specifications for allocation/deallocation
+functions
+
+C++17 removes dynamic exception specifications (those using the "throw"
+keyword).  The new.stdh file previously determined whether to use the newer
+"noexcept" forms based on the value of the __cplusplus predefined macro.
+However, the Microsoft compiler always sets __cplusplus to reflect C++98,
+resulting in incorrect exception specifications when compiling in Microsoft
+C++17 mode.  The new.stdh file has now been changed to use the value of the
+Microsoft-specific predefined macro _NOEXCEPT_TYPES_SUPPORTED to determine
+which form of exception specification to use in Microsoft-mode
+compilations.
+
 -------------------------------------------------------------------------------
 Version 4.14, September 12, 2017
 
