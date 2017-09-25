@@ -14,16 +14,6 @@ Now fixed.
   };
 
 
-9/22/17  [EDGcpfe/18806]
-Microsoft compatibility: exception specifications in runtime library
-
-When --building_runtime is specified on the command line, the front end now
-defines the macro __EDG_EXC_SPEC_IN_FUNC_TYPE to the value 1 if exception
-specifications are part of the function type (and thus exception
-specifications using the "throw" keyword should not be used) and 0
-otherwise.
-
-
 9/21/17  [EDGcpfe/18804]
 Feature test macros for fold expressions and exception specifications in
 function types
