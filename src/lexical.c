@@ -1941,13 +1941,16 @@ If include_last_token is TRUE, last_tsn is included in the cache.
         (a_token_kind)ctp->token == tok_end_of_source) break;
     last_ctp_to_copy = ctp->next;
   }  /* for */
-  check_assertion_str(ctp != NULL || last_tsn == NO_TOKEN_SEQUENCE_NUMBER,
-                      "copy_tokens_from_cache: last_tsn missing");
+  check_assertion_or_expect_error_str2(ctp != NULL ||
+                                       last_tsn == NO_TOKEN_SEQUENCE_NUMBER,
+                                       "copy_tokens_from_cache:",
+                                       "last_tsn missing");
   /* The final token sequence number will be greater than last_tsn if the
      token referred to by last_tsn is the second ">" of a ">>" that was
      split into two tokens.  The code below will copy the ">>" and the copied
      token will then be adjusted to a ">". */
   adjust_final_token = last_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
+                       ctp != NULL &&
                        ctp->token_sequence_number == (last_tsn - 1);
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
