@@ -32921,7 +32921,7 @@ see expr.h).
   a_token_kind      ntoken;
   a_ref_entry_ptr   saved_ref_list, selector_ref_entry_list, last_rep;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean         saved_marked_as_gnu_extension;
+  a_boolean         saved_marked_as_gnu_extension, marked_as_gnu_extension;
   a_boolean         gnu_not_evaluated_case = FALSE;
   an_expr_stack_entry
                     expr_stack_entry;
@@ -32948,11 +32948,14 @@ see expr.h).
     goto end_of_routine;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  saved_marked_as_gnu_extension = expr_stack->marked_as_gnu_extension;
-  if (curr_token == tok_extension && !expr_stack->marked_as_gnu_extension) {
+  if (curr_token == tok_extension) {
     /* Ignore the GNU __extension__ annotation. */
     (void)get_token();
+    saved_marked_as_gnu_extension = expr_stack->marked_as_gnu_extension;
     expr_stack->marked_as_gnu_extension = TRUE;
+    marked_as_gnu_extension = TRUE;
+  } else {
+    marked_as_gnu_extension = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -33866,7 +33869,7 @@ bad_start_of_primary:
   }  /* switch */
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (expr_stack->marked_as_gnu_extension && !saved_marked_as_gnu_extension) {
+  if (marked_as_gnu_extension) {
     mark_operand_as_gnu_extension(&local_result);
     expr_stack->marked_as_gnu_extension = saved_marked_as_gnu_extension;
   }  /* if */
