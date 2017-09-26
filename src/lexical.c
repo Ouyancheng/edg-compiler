@@ -16404,6 +16404,7 @@ all arguments were explicit.
          C++-generating back end cases where pack_expansion_descr is NULL
          in some alias-in-template-decl cases. */
       arg_ptr->has_pack_ellipsis =
+                         arg_ptr->is_pack &&
                          pesep != NULL && pesep->instantiation_descr != NULL &&
                          depth_innermost_instantiation_scope !=
                                                               NO_SCOPE_DEPTH &&
