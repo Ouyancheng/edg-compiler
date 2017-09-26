@@ -1,5 +1,29 @@
 Version 4.15
 
+9/26/17  [EDGcpfe/18805]
+Don't emit guard variables for unneeded static data members
+
+Previously, a guard variable was generated for a static data member even if the
+static data member was not needed in the translation unit.  That could lead to
+cases where COMDAT sections with the same name in different translation units
+had different members (i.e., both guard variable and static data member in
+units where the static data member was needed and just the guard variable if
+the static data member was not needed).  Such cases could lead to issues at
+link time.  The guard variable is now only emitted when the "needed" flag is
+set on the static data member.  For example (with -tused):
+
+  struct A {
+    A() {}
+  };
+  template <typename T> struct B {
+    static T m;
+  };
+  template <typename T> T B<T>::m;
+  static void f() {
+    A a = B<A>::m;
+  };
+
+
 9/25/17  [EDGcpfe/18790]
 __edg_wchar_type__ now considered a type
 
