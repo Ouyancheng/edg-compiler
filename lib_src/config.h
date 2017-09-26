@@ -411,7 +411,7 @@ to use "noexcept".
 #define THROW_NOTHING() noexcept
 #else /* !_NOEXCEPT_TYPES_SUPPORTED */
 #define NEW_THROWS  throw(__EDG_STD_NAMESPACE::bad_alloc)
-#define THROW_NOTHING throw()
+#define THROW_NOTHING() throw()
 #endif /* _NOEXCEPT_TYPES_SUPPORTED */
 #else /* !defined(_MSC_VER) */
 #if __cplusplus < 201103L
