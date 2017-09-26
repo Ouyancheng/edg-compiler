@@ -1,5 +1,35 @@
 Version 4.15
 
+9/26/17  [EDGcpfe/18467,EDGcpfe/18582,EDGcpfe/18800]
+Volatile and trivial copyability
+
+Some years ago, the C++ standards committee made a change (through its Core
+issue 496) that caused volatile types and classes with volatile members not
+to be "trivially copyable".  Recently, that decision has been reversed through
+the resolution of Core issue 2094.  The front end now implements the revised
+rules by default.  For example:
+
+  static_assert(__is_trivially_copyable(volatile int), "");  // Now okay.
+  struct V { volatile int vi; };
+  static_assert(__is_trivially_copyable(V), "");  // Now okay.
+
+(Unfortunately, existing practice in this area varies: The front end attempts
+to emulate the currently-known behaviors of various versions of MSVC, GCC, and
+Clang in their respective emulation modes.)
+
+Interestingly, some types that are now "trivially copyable" are still not
+copyable through ordinary copy syntax:
+
+  struct X {};
+  struct Y { X volatile x; };
+  static_assert(__is_trivially_copyable(Y), "");  // Now okay.
+  Y y, c(y);  // Error: y cannot be copied to c because the copy constructor
+              // is deleted.
+
+See also the changes for EDGcpfe/16025.  This change affects the result of the
+type traits helpers __is_trivially_copyable and __is_pod, but not the ABI.
+
+
 9/26/17  [EDGcpfe/18705]
 Microsoft compatibility: hexadecimal floating-point literals
 

@@ -1172,9 +1172,13 @@ typedef struct a_class_def_state {
 			   For example:
 			     struct T {};
 			     struct S { volatile T v; };
-			     static_assert(!__is_trivially_copyable(S), "X");
+			     S x, y(x);  // Error.
 			   The trivial copy constructor of T cannot copy a
-			   volatile T since it takes a "T const&". */
+			   volatile T since it takes a "T const&".  The copy
+			   constructor of S is therefore marked "deleted".
+			   Perhaps surprisingly, __is_trivially_copyable(S)
+			   remains true (after the resolution of Core issue
+			   2094). */
   a_bit_field	rule_out_bitwise_copy_for_deleted_ctor:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a copy/move constructor is deleted. */
