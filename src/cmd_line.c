@@ -2190,6 +2190,9 @@ option values if they were not already set by a command line option.
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
       c99_bool_is_keyword = TRUE;
       allow_decl_after_stmt = TRUE;
+      if (microsoft_version >= 1912) {
+        hex_floating_point_constants_allowed = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
@@ -2605,6 +2608,7 @@ option values if they were not already set by a command line option.
           overaligned_allocation_enabled = TRUE;
           mandatory_copy_elision = TRUE;
           generalized_nontype_arguments = TRUE;
+          hex_floating_point_constants_allowed = TRUE;
         }  /* if */
       }  /* if */
     } else {

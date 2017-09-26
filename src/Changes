@@ -1,5 +1,13 @@
 Version 4.15
 
+9/26/17  [EDGcpfe/18705]
+Microsoft compatibility: hexadecimal floating-point literals
+
+Hexadecimal floating-point literals (see EDGcpfe/17694) are now enabled in
+Microsoft C mode and with --ms_c++17 or --ms_c++latest when
+microsoft_version is 1912 or larger.
+
+
 9/26/17  [EDGcpfe/18805]
 Don't emit guard variables for unneeded static data members
 
