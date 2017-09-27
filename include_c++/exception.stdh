@@ -51,7 +51,7 @@ namespace std {
   extern unexpected_handler set_unexpected(unexpected_handler)
                                                           __EDG_DOES_NOT_THROW;
 
-  __EDG_NORETURN void terminate();
+  void terminate();
   void unexpected();
 
   /* std::uncaught_exception is deprecated in C++17; use
