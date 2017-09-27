@@ -2607,13 +2607,18 @@ and for member functions of template classes.
            prototype instantiation. */
         if (!fixup_class_is_real_template_instantiation &&
             template_second_pass) {
+          a_boolean	do_proto_inst_for_sym;
           sym = rfp->symbol;
-          if (daefp != NULL && nonclass_prototype_instantiations) {
+          do_proto_inst_for_sym =
+                       nonclass_prototype_instantiations ||
+                      prototype_instantiation_should_be_done_for_function(sym);
+          if (daefp != NULL && do_proto_inst_for_sym) {
             default_arg_prototype_instantiation(
                                      sym, daefp, rfp->prototype_scope_symbols,
                                      /*update_declared_type=*/TRUE);
           }  /* if */
-          if (rfp->process_exception_spec) {
+          if (rfp->process_exception_spec &&
+              (is_real_template_instantiation || do_proto_inst_for_sym)) {
             a_routine_ptr  proto_rp = sym->variant.template_info
                                          ->variant.function.routine;
             instantiate_exception_spec_if_needed(symbol_for(proto_rp));
@@ -3965,17 +3970,17 @@ after a class instantiation.
                                           cfp->is_template_instantiation,
                                           /*template_second_pass=*/FALSE);
     }  /* for */
-    if (nonclass_prototype_instantiations) {
-      /* Do the second pass of default argument fixup to do prototype
-         instantiations of template default arguments. */
-      for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
-        /* Make sure we are in the right translation unit. */
-        check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
-        def_arg_and_eh_spec_fixup_for_class(cfp->class_type,
-                                            cfp->is_template_instantiation,
-                                            /*template_second_pass=*/TRUE);
-      }  /* for */
-    }  /* if */
+    /* Do the second pass of default argument fixup to do prototype
+       instantiations of template default arguments.  Some operations will
+       be suppressed by the called routine when nonclass prototype
+       instantiations are not being done. */
+    for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
+      /* Make sure we are in the right translation unit. */
+      check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
+      def_arg_and_eh_spec_fixup_for_class(cfp->class_type,
+                                          cfp->is_template_instantiation,
+                                          /*template_second_pass=*/TRUE);
+    }  /* for */
     /* cfhp points into the scope_stack, so refresh the pointer after
        the above processing. */
     cfhp = curr_class_fixup_header(for_instantiation);
