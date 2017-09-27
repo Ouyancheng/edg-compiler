@@ -17954,8 +17954,11 @@ name lookup options.
   } else if (cpp11_sfinae_enabled &&
              is_instantiation_dependent_type(con->type)) {
     /* A constant that is not a ck_template_param but that does have an
-       instantiation-dependent type.  Do substitution on it to see if
-       there's an error. */
+       instantiation-dependent type.  Do substitution on it to see if there's
+       an error.  This may turn out to be a cast represented as a ck_aggregate
+       constant (e.g., X<T>::Y{3} is represented as a ck_aggregate constant of
+       instantiation-dependent type, but if the substituted type ends up not
+       being an aggregate, it should be treated as a cast). */
     new_type = copy_type_with_substitution(con->type,
                                            template_arg_list,
                                            template_param_list,
@@ -17964,10 +17967,44 @@ name lookup options.
                                            copy_error,
                                            ctws_state);
     if (!*copy_error) {
-      copy_constant(con, constant);
-      constant->type = new_type;
-      constant->expr = NULL;
-      con_copy = NULL;
+      if (con->explicit_cast_applied && constant_is(con, ck_aggregate) &&
+          !is_aggregate_type(new_type) &&
+          !is_instantiation_dependent_type(new_type)) {
+        src_con = con->variant.aggregate.first_constant;
+        if (src_con == NULL || src_con->next != NULL) {
+          /* More than one constant being cast. */
+          *copy_error = TRUE;
+        } else if (!substituted_cast_is_valid(src_con, new_type,
+                                              con->explicit_cast_applied,
+                                              &reinterpret_cast_needed)) {
+          /* The cast is not valid. */
+          *copy_error = TRUE;
+        } else {
+          copy_constant(src_con, constant);
+          type_change_constant_full(constant, new_type,
+                                    /*is_implicit_cast=*/FALSE,
+                                    /*constant_context=*/TRUE,
+                                    /*evaluated_context=*/TRUE,
+                                    /*fold_constant_addr_exprs=*/TRUE,
+                                    /*is_cli_attr_arg_expression=*/FALSE,
+                                    /*check_cast_access=*/FALSE,
+                                    /*check_ambiguity=*/TRUE,
+                                    reinterpret_cast_needed,
+                                    /*maintain_expression=*/FALSE,
+                                    &did_not_fold,
+                                    &error_detected,
+                                    source_pos);
+          con_copy = NULL;
+          if (error_detected != ec_no_error || did_not_fold) {
+            *copy_error = TRUE;
+          }  /* if */
+        }  /* if */
+      } else {
+        copy_constant(con, constant);
+        constant->type = new_type;
+        constant->expr = NULL;
+        con_copy = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (*copy_error) {

@@ -1,5 +1,20 @@
 Version 4.15
 
+9/27/17  [EDGcpfe/18250,EDGcpfe/18585]
+Faulty substitution of braced cast notation
+
+Consider the following example:
+
+  template <bool> struct I { typedef bool type; };
+  template<bool B> struct P {};
+  template<bool B> auto f() -> P<typename I<B>::type{true}>;
+  auto r = f<true>();
+
+While substituting f<true>, the front end incorrectly handled the construct
+"typename I<B>::type{true}" (a functional-notation cast), resulting in a
+spurious error about an "unexpected function type".  That is now fixed.
+
+
 9/26/17  [EDGcpfe/18577,EDGcpfe,18753,EDGcpfe/18817]
 Regression in handling of GNU __extension__ keyword
 
