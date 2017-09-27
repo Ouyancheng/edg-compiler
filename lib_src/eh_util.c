@@ -62,6 +62,7 @@ The default terminate routine.
   __abort_execution(ec_terminate_returned);
 }  /* terminate */
 
+typedef void (*a_terminate_type)(void);
 
 EXTERN_C void __default_terminate(void)
 /*
@@ -72,16 +73,25 @@ The default terminate routine, which is just a wrapup around abort().
 }  /* __default_terminate */
 
 
-a_void_function_ptr set_terminate(a_void_function_ptr new_func) THROW_NOTHING()
+a_terminate_type set_terminate(a_terminate_type new_func) THROW_NOTHING()
 /*
 Set the terminate routine pointer to the value passed by the caller
 and return the old value.
 */
 {
-  a_void_function_ptr	old_func = __default_terminate_routine;
+  a_terminate_type	old_func = __default_terminate_routine;
   __default_terminate_routine = new_func;
   return old_func;
 }  /* set_terminate */
+
+
+a_terminate_type get_terminate(void) THROW_NOTHING()
+/*
+Return a pointer to the terminate routine currently installed.
+*/
+{
+  return __default_terminate_routine;
+}  /* get_terminate */
 
 
 void unexpected()
@@ -107,31 +117,40 @@ and return the old value.
 }  /* set_unexpected */
 
 
+int uncaught_exceptions() THROW_NOTHING()
+/*
+Returns the number of uncaught exception objects in the current process.
+*/
+{
+  an_eh_stack_entry_ptr	ehsep;
+  int			result = 0;
+
+  /* Return 0 if terminate() has been called by the implementation. */
+  if (!terminate_called_by_runtime) {
+    /* This function is used instead of simply using __curr_eh_stack_entry
+       because of a problem using this variable in code that also uses
+       it via generated EH code. */
+    ehsep = __get_curr_eh_stack_entry();
+    for (; ehsep != NULL; ehsep = ehsep->next) {
+      if (ehsep->kind == ehsek_throw_processing_marker) {
+        /* We are processing a throw.  An exception cannot be thrown here
+           without resulting in a call to terminate().  Note that this is
+           TRUE even if a try block is nested inside the throw processing
+           marker. */
+        result++;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* uncaught_exceptions */
+
+
 __bool uncaught_exception() THROW_NOTHING()
 /*
 Return TRUE if an exception is in the process of being thrown.
 */
 {
-  an_eh_stack_entry_ptr	ehsep;
-  __bool		result;
-
-  /* This function is used instead of simply using __curr_eh_stack_entry
-     because of a problem using this variable in code that also uses
-     it via generated EH code. */
-  ehsep = __get_curr_eh_stack_entry();
-  /* TRUE should be returned if uncaught_exception() is called after
-     terminate() has been called by the implementation. */
-  result = terminate_called_by_runtime;
-  for (; result == FALSE && ehsep != NULL; ehsep = ehsep->next) {
-    if (ehsep->kind == ehsek_throw_processing_marker) {
-      /* We are processing a throw.  An exception cannot be thrown here
-         without resulting in a call to terminate().  Note that this is
-         TRUE even if a try block is nested inside the throw processing
-         marker. */
-      result = TRUE;
-    }  /* if */
-  }  /* for */
-  return result;
+  return uncaught_exceptions() > 0;
 }  /* uncaught_exception */
 
 /*
