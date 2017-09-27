@@ -1,5 +1,23 @@
 Version 4.15
 
+9/27/17  [EDGcpfe/18614]
+C++-generating back end: spurious pack expansion in generated code
+
+The C++-generating back end could sometimes introduce a spurious pack expansion
+ellipsis in some cases involving aliases.  In this example, the definition
+of C3 in was incorrect in the generated code.  Now fixed.
+
+  template <bool b, typename T, typename F> struct A { };
+  template <class...> using void_t = void; 
+  template <class... Args> struct B { using t = int; }; 
+  template <class... Args> using E = typename B<Args...>::t; 
+  template <class TU, class... Ts> struct C;
+  template <class TU, class... Ts> using C2 = typename C<TU,Ts...>::type;
+  template <class TU, class... Ts> using D = E<TU, Ts...>;
+  template <class T, template <class...> class F, class... Ts>
+  using C3 = A< D<T,Ts...>::value, int, int >;
+
+
 9/27/17  [EDGcpfe/18250,EDGcpfe/18585]
 Faulty substitution of braced cast notation
 
