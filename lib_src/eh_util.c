@@ -62,7 +62,6 @@ The default terminate routine.
   __abort_execution(ec_terminate_returned);
 }  /* terminate */
 
-typedef void (*a_terminate_type)(void);
 
 EXTERN_C void __default_terminate(void)
 /*
@@ -73,19 +72,20 @@ The default terminate routine, which is just a wrapup around abort().
 }  /* __default_terminate */
 
 
-a_terminate_type set_terminate(a_terminate_type new_func) THROW_NOTHING()
+STD_NAMESPACE::terminate_handler set_terminate(
+                     STD_NAMESPACE::terminate_handler new_func) THROW_NOTHING()
 /*
 Set the terminate routine pointer to the value passed by the caller
 and return the old value.
 */
 {
-  a_terminate_type	old_func = __default_terminate_routine;
+  STD_NAMESPACE::terminate_handler	old_func = __default_terminate_routine;
   __default_terminate_routine = new_func;
   return old_func;
 }  /* set_terminate */
 
 
-a_terminate_type get_terminate(void) THROW_NOTHING()
+STD_NAMESPACE::terminate_handler get_terminate(void) THROW_NOTHING()
 /*
 Return a pointer to the terminate routine currently installed.
 */
