@@ -1,6 +1,6 @@
 Version 4.15
 
-9/26/17  [EDGcpfe/18817]
+9/26/17  [EDGcpfe/18577,EDGcpfe,18753,EDGcpfe/18817]
 Regression in handling of GNU __extension__ keyword
 
 The changes for EDGcpfe/15044 caused the front end to sometimes issue a
