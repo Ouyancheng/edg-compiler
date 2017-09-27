@@ -277,7 +277,7 @@ These changes were added to the working paper for the C++17 standard through
 paper N4268.
 
 
-9/14/17  [EDGcpfe/17997,EDGcpfe/18069]
+9/14/17  [EDGcpfe/17997]
 C++17: Elision of temporary class object copies
 
 The forthcoming C++17 standard reformulates the handling of temporaries such
