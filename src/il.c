@@ -17971,7 +17971,12 @@ name lookup options.
           !is_aggregate_type(new_type) &&
           !is_instantiation_dependent_type(new_type)) {
         src_con = con->variant.aggregate.first_constant;
-        if (src_con == NULL || src_con->next != NULL) {
+        if (src_con == NULL) {
+          /* X{} where X is the non-aggregate type represented by new_type. */
+          if (!make_value_initialized_constant(new_type, constant)) {
+            *copy_error = TRUE;
+          }  /* if */
+        } else if (src_con->next != NULL) {
           /* More than one constant being cast. */
           *copy_error = TRUE;
         } else if (!substituted_cast_is_valid(src_con, new_type,
@@ -17994,7 +17999,6 @@ name lookup options.
                                     &did_not_fold,
                                     &error_detected,
                                     source_pos);
-          con_copy = NULL;
           if (error_detected != ec_no_error || did_not_fold) {
             *copy_error = TRUE;
           }  /* if */
@@ -18003,8 +18007,8 @@ name lookup options.
         copy_constant(con, constant);
         constant->type = new_type;
         constant->expr = NULL;
-        con_copy = NULL;
       }  /* if */
+      con_copy = NULL;
     }  /* if */
   }  /* if */
   if (*copy_error) {
