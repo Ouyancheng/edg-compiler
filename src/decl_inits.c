@@ -3597,7 +3597,7 @@ the type pointed to is opaque to declaration processing.
 {
   a_source_position_ptr  diag_pos = init_component_pos(icp);
   a_routine_ptr          dtor_rp = NULL;
-  a_type_ptr             dtype = *p_type;
+  a_type_ptr             dtype = *p_type, orig_dtype = dtype;
   a_boolean              saved_force_dynamic_init = is->force_dynamic_init;
   a_boolean              unknown_bound_array;
   struct an_arg_match_summary
@@ -3623,8 +3623,9 @@ the type pointed to is opaque to declaration processing.
     case tk_error:
     case tk_template_param:
       /* Unknown destination type: Create an aggregate constant that follows
-         the source form. */
-      aggr_init_generic_element(icp, dtype, is, &is->init_con);
+         the source form.  Be sure to pass in the original type, which may
+         include typeref entries that might need substitution later on. */
+      aggr_init_generic_element(icp, orig_dtype, is, &is->init_con);
       break;
     case tk_array:
       /* Arrays are aggregates. */
