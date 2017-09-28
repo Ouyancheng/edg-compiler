@@ -17985,7 +17985,13 @@ name lookup options.
           /* The cast is not valid. */
           *copy_error = TRUE;
         } else {
-          copy_constant(src_con, constant);
+          other_con = copy_template_param_con(
+                             src_con, template_arg_list, template_param_list,
+                             new_type, source_pos, options | CTWS_CAST_OPERAND,
+                             copy_error, ctws_state, constant);
+          if (other_con != NULL) {
+            copy_constant(other_con, constant);
+          }  /* if */
           type_change_constant_full(constant, new_type,
                                     /*is_implicit_cast=*/FALSE,
                                     /*constant_context=*/TRUE,
