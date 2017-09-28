@@ -48,7 +48,7 @@ of C3 in was incorrect in the generated code.  Now fixed.
   using C3 = A< D<T,Ts...>::value, int, int >;
 
 
-9/27/17  [EDGcpfe/18250,EDGcpfe/18585]
+9/27/17  [EDGcpfe/18250,EDGcpfe/18350,EDGcpfe/18585]
 Faulty substitution of braced cast notation
 
 Consider the following example:
