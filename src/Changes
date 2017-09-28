@@ -1,5 +1,32 @@
 Version 4.15
 
+9/28/17  [EDGcpfe/18707]
+Spurious declaration mismatch with alias instance differences
+
+A change in version 4.13 (see EDGcpfe/17737) introduced a regression in
+declaration matching in cases where alias instances with different, but
+compatible, template arguments were used in an in-class declaration and
+an out-of-class definition of a member of a class template.  Now fixed.
+
+  template <typename T> struct A {};
+  template <typename U> using B_t = typename U::D_t;
+  template <typename U> struct C {
+    using C_t = B_t<U>;
+    A<C_t> f();
+  };
+  template <typename U> A<B_t<U>> C<U>::f() {
+    A<B_t<U>> f;
+    return f;
+  }
+  struct D {
+    typedef int D_t;
+  };
+  int main() {
+    C<D> cd;
+    cd.f();
+  }
+
+
 9/27/17  [EDGcpfe/18691]
 Microsoft compatibility: Deferral of function prototype instantiations
 

@@ -5943,9 +5943,9 @@ check_typerefs:
         goto done;
       } else if (is_nonreal1 &&
                  type_1->source_corresp.is_class_member &&
-                 (!type_2->source_corresp.is_class_member ||
-                  !f_identical_types(parent_class_of(type_1),
-                                     parent_class_of(type_2), flags))) {
+                 type_2->source_corresp.is_class_member &&
+                 !f_identical_types(parent_class_of(type_1),
+                                    parent_class_of(type_2), flags)) {
         /* Nonreal alias template instances are considered different if their
            parent types are different.  E.g.:
              template<class T> struct S {
