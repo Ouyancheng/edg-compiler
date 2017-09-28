@@ -3254,7 +3254,8 @@ an error if a default argument expression is encountered.
                if the function declarator could be an abstract declarator
                (e.g., a type-id or parameter declaration) and therefore not a
                top-level declaration. */
-            ptp->is_parameter_pack = TRUE;
+            ptp->is_parameter_pack =
+                                   !state->param_with_only_enclosing_pack_refs;
           }  /* if */
           if (is_pack_element &&
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {

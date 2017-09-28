@@ -1,5 +1,22 @@
 Version 4.15
 
+9/29/17  [EDGcpfe/18679]
+Deduction failure with template using enclosing template parameter pack
+
+A change in version 4.12 (see EDGcpfe/17035) introduced a regression in
+template argument deduction in cases where a member function template
+included a nondeduced template parameter pack from an enclosing class
+template.  Now fixed.
+
+  template <class T> struct A {};
+  template <typename... Args> struct B {
+    template <typename T> B(Args... args, A<T>) {}
+  };
+  int main() {
+    B<int> b(1, A<int>());
+  }
+
+
 9/28/17  [EDGcpfe/18707]
 Spurious declaration mismatch with alias instance differences
 
