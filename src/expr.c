@@ -32956,6 +32956,7 @@ see expr.h).
     marked_as_gnu_extension = TRUE;
   } else {
     marked_as_gnu_extension = FALSE;
+    saved_marked_as_gnu_extension = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
