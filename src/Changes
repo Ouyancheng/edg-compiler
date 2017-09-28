@@ -10,8 +10,9 @@ be rejected by the front end.  To reduce the number of cases in which this
 occurs, the function prototype instantiations deferral is now enabled in
 Microsoft mode when FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED is
 set.  Deferral is only enabled if C++/CLI mode is not being used, Microsoft
-permissive mode is being used and --stricter_template_checking has not
-been requested.
+permissive mode is being used, --stricter_template_checking has not been
+requested, and nonclass prototype instantiations were not specifically
+enabled or disabled by --[no_]parse_templates.
 
 Formerly, it was possible to request deferral of function prototype
 instantiations in Microsoft mode, but this did not work properly in

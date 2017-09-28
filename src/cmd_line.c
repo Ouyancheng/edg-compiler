@@ -2486,11 +2486,14 @@ option values if they were not already set by a command line option.
       if (!option_kind_used[(int)optk_variadic_templates]) {
         variadic_templates_enabled = TRUE;
 #if FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
-        /* Defer function prototype instantiations except in modes where
-           they should be done unconditionally. */
-        if (microsoft_mode && !cppcli_enabled && ms_permissive &&
-            !stricter_template_checking) {
-          defer_function_prototype_instantiations = TRUE;
+        if (!option_kind_used[(int)optk_defer_parse_function_templates] &&
+            !option_kind_used[(int)optk_parse_nonclass_templates]) {
+          /* Defer function prototype instantiations except in modes where
+             they should be done unconditionally. */
+          if (microsoft_mode && !cppcli_enabled && ms_permissive &&
+              !stricter_template_checking) {
+            defer_function_prototype_instantiations = TRUE;
+          }  /* if */
         }  /* if */
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
       }  /* if */
