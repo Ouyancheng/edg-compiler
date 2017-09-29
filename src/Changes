@@ -1,6 +1,6 @@
 Version 4.15
 
-9/29/17  [EDGcpfe/18679]
+9/29/17  [EDGcpfe/18554,EDGcpfe/18679]
 Deduction failure with template using enclosing template parameter pack
 
 A change in version 4.12 (see EDGcpfe/17035) introduced a regression in
