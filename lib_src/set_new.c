@@ -52,6 +52,15 @@ previous value of _new_handler.
   return rr;
 }  /* set_new_handler */
 
+
+new_handler get_new_handler(new_handler handler) THROW_NOTHING()
+/*
+Returns a pointer to the function that handles "new" operations.
+*/
+{
+  return _new_handler;
+}  /* get_new_handler */
+
 /*
 If the runtime should be defined in the std namespace, close
 the std namespace.
