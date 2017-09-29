@@ -3415,6 +3415,9 @@ default mode (e.g., exception handling).
       mandatory_copy_elision = TRUE;
       generalized_nontype_arguments = TRUE;
       strict_cpp17_eval_order = TRUE;
+      if (!option_kind_used[(int)optk_trigraphs]) {
+        trigraphs_allowed = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -3856,8 +3859,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 	long_preserving_rules = FALSE;
     }  /* if */
   }  /* if */
-  if (!(option_kind_used[(int)optk_trigraphs])) {
-    /* Trigraphs should be allowed if not disabled by a command-line option. */
+  if (!option_kind_used[(int)optk_trigraphs] && !cpp17_mode) {
+    /* Trigraphs should be allowed if not disabled by a command-line option,
+       except in C++17 and later modes. */
     trigraphs_allowed = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_extended_designators])) {
