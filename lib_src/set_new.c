@@ -53,7 +53,7 @@ previous value of _new_handler.
 }  /* set_new_handler */
 
 
-new_handler get_new_handler(new_handler handler) THROW_NOTHING()
+new_handler get_new_handler(void) THROW_NOTHING()
 /*
 Returns a pointer to the function that handles "new" operations.
 */
