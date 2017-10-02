@@ -1,5 +1,17 @@
 Version 4.15
 
+10/2/17  [EDGcpfe/18695]
+Clang compatibility: Conditional operators and std::common_type
+
+The front end emulates an old GCC behavior where a conditional operator whose
+second and third operands are xvalues of identical types did not produce an
+xvalue (see the entry for EDGcpfe/17851).  It turns out that Clang follows that
+GCC behavior during the definition of std::common_type (but is otherwise
+standard compliant), presumably to be able to handle the GNU implementations
+of std::common_type that rely on GCC's old behavior.  The front end now
+emulates Clang's behavior in Clang mode.
+
+
 9/29/17  [EDGcpfe/18796]
 C++17: Trigraphs
 

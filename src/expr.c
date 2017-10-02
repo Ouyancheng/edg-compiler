@@ -26780,6 +26780,29 @@ included as well.
 }  /* type_plus_operand_type_qualifiers */
 
 
+static a_boolean in_std_common_type_definition(void)
+/*
+Clang emulate a specific behavior of (some versions of) GCC only during the
+definition of std::common_type.  This function returns whether we are currently
+in that definition.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    a_type_ptr  tp = scope_stack_top().assoc_type;
+    if (has_name(tp) && !tp->source_corresp.is_class_member &&
+        strcmp(tp->source_corresp.name, "common_type") == 0) {
+      a_namespace_ptr  nsp = parent_namespace_or_null(tp);
+      if (nsp != NULL && symbol_for(nsp) == symbol_for_namespace_std) {
+       result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_std_common_type_definition */
+
+
 static void scan_conditional_operator(an_operand             *operand_1,
                                       a_rescan_control_block *rcblock,
                                       an_operand             *result)
@@ -27215,14 +27238,17 @@ that case.
       /* In C++, if the second and third operands have the same type and
          they are lvalues, the result is also an lvalue. */
       result_is_a_glvalue = TRUE;
-    } else if (types_are_the_same && (!microsoft_mode || ms_strict_ternary) &&
+    } else if (types_are_the_same &&
+               is_an_xvalue(&operand_2) && is_an_xvalue(&operand_3) &&
+               !(microsoft_mode && !ms_strict_ternary) &&
                !(gpp_mode && !clang_mode && gnu_version < 40900) &&
-               is_an_xvalue(&operand_2) &&
-               is_an_xvalue(&operand_3)) {
+               !(clang_mode && in_std_common_type_definition())) {
       /* If the second and third operands have the same type and they are
          xvalues, the result is also an xvalue. */
       /* Some GNU and Microsoft compilers don't seem to do this yet.  Checked
-         with MSVC++ 18.00.21114. */
+         with MSVC++ 18.00.21114.  Furthermore, Clang appears to emulate GCC
+         for this only during the definition of std::common_type (presumably
+         to be able to compile the GCC standard library, libstdc++). */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
     } else if ((!gpp_mode || clang_mode) &&
