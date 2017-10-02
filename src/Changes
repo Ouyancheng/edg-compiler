@@ -1,7 +1,7 @@
 Version 4.15
 
 9/29/17  [EDGcpfe/18796]
-C++`17: Trigraphs
+C++17: Trigraphs
 
 The C++17 Standard removes support for trigraphs, and the front end has now
 been changed to disable them by default in C++17 modes.  Support can still
