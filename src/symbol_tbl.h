@@ -6672,7 +6672,7 @@ extern a_symbol_ptr find_literal_operator(a_const_char      *name,
 Return TRUE if "tp" is a proxy class.
 */
 #define is_proxy_class(tp)						\
-  ((tp)->kind == (a_type_kind)tk_class &&				\
+  (is_immediate_class_type(tp) &&					\
    class_type_supp(tp)->proxy_of_type != NULL)
 
 extern a_scope_number take_next_scope_number(void);
