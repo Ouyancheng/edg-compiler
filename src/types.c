@@ -13424,15 +13424,14 @@ its parameters?).
              template parameter.  If this is a C++/CLI constraint type,
              the associated generic parameter is only traversed if requested
              by the caller. */
-          a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
-          if (ctsp == NULL) {
+          if (class_type_supp(type_ptr) == NULL) {
             /* This can happen if the type was recently eliminated from the
                IL tree. */
             break;
           }  /* if */
           if (!is_cli_generic_constraint(type_ptr) ||
               (flags & TTT_CLI_GENERIC_PARAMETERS) != 0) {
-            tp = ctsp->proxy_of_type;
+            tp = class_type_supp(type_ptr)->proxy_of_type;
             if (tp != NULL) {
               if (traverse_type_tree(tp, func, flags)) {
                 status = TRUE;
@@ -13447,7 +13446,7 @@ its parameters?).
                 is_cli_type_to_treat_as_nonreal(type_ptr)))) {
             /* Traverse the template argument list, if present. */
             a_template_arg_ptr	tap;
-            tap = ctsp->template_arg_list;
+            tap = class_type_supp(type_ptr)->template_arg_list;
             if (tap != NULL) {
               status = traverse_template_args(tap, func, flags);
             }  /* if */
