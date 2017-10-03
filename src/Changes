@@ -1,5 +1,12 @@
 Version 4.15
 
+10/3/17  [EDGcpfe/18836]
+Clang compatibility: 5.0.0 builtin functions
+
+The builtin function information was updated to include builtin signatures from
+clang 5.0.0.  Seven new builtins were added and some signatures were changed.
+
+
 10/3/17  [EDGcpfe/18650]
 Back ends and traverse_type_tree
 
