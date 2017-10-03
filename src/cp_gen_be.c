@@ -18007,6 +18007,7 @@ managed C++/CLI class.
 }  /* gen_overridden_function_list */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 static a_boolean has_lvalue_ref_param_type_deduced_from_rvalue_ref_param(
                                                             a_routine_ptr rout)
 /*
@@ -18040,7 +18041,7 @@ lvalue.
   }  /* if */
   return result;
 }  /* has_lvalue_ref_param_type_deduced_from_rvalue_ref_param */
-
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
