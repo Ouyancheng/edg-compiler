@@ -10876,17 +10876,15 @@ matches a class type from the parameter list of a template function.
         if (sym->header != templ_sym->header) {
           /* Members have different names -- no match. */
         } else {
-          a_class_symbol_supplement_ptr	ttp_cssp;
-          a_type_ptr			tp;
-          a_type_ptr			ttp;
+          a_type_ptr	tp;
+          a_type_ptr	ttp;
           tp = parent_class_of(type);
           ttp = parent_class_of(templ_type);
-          ttp_cssp = symbol_supplement_for_class(ttp);
-          if (ttp_cssp->template_param_for_proxy_class != NULL) {
+          if (class_type_supp(ttp)->proxy_of_type != NULL) {
             /* The type being matches is a member of a proxy class.
                Substitute the original template parameter for the proxy
                class in the matching process. */
-            ttp = ttp_cssp->template_param_for_proxy_class;
+            ttp = class_type_supp(ttp)->proxy_of_type;
           }  /* if */
           if (matches_template_type(tp, ttp, templ_arg_list,
                                     templ_param_list,
@@ -10905,14 +10903,12 @@ matches a class type from the parameter list of a template function.
          should be used to determine the type.  Consider this type to
          match for now.  The type that results from the substitution of
          the template argument values will be checked later. */
-      a_class_symbol_supplement_ptr	ttp_cssp;
-      a_type_ptr			ttp;
+      a_type_ptr	ttp;
       ttp = parent_class_of(templ_type);
-      ttp_cssp = symbol_supplement_for_class(ttp);
-      if (ttp_cssp->template_param_for_proxy_class != NULL) {
+      if (class_type_supp(ttp)->proxy_of_type != NULL) {
         /* The type is a member of a proxy class.  Substitute the original
            template parameter for the proxy class in the matching process. */
-        ttp = ttp_cssp->template_param_for_proxy_class;
+        ttp = class_type_supp(ttp)->proxy_of_type;
       }  /* if */
       match = is_or_contains_template_param(ttp);
     }  /* if */
@@ -11112,10 +11108,8 @@ points to the template parameter list.
     /* If the template type is a proxy class for a template parameter,
        substitute the underlying template parameter for the deduction
        process. */
-    a_class_symbol_supplement_ptr	cssp;
-    cssp = symbol_supplement_for_class(templ_type);
-    if (cssp->template_param_for_proxy_class != NULL) {
-      templ_type = cssp->template_param_for_proxy_class;
+    if (class_type_supp(templ_type)->proxy_of_type != NULL) {
+      templ_type = class_type_supp(templ_type)->proxy_of_type;
     }  /* if */
   }  /* if */
   if (is_immediate_class_type(type)) {
@@ -11123,10 +11117,8 @@ points to the template parameter list.
        substitute the underlying template parameter for the deduction
        process.  This can occur during partial ordering comparison where
        both type and templ_type can contain template parameter types. */
-    a_class_symbol_supplement_ptr	cssp;
-    cssp = symbol_supplement_for_class(type);
-    if (cssp->template_param_for_proxy_class != NULL) {
-      type = cssp->template_param_for_proxy_class;
+    if (class_type_supp(type)->proxy_of_type != NULL) {
+      type = class_type_supp(type)->proxy_of_type;
     }  /* if */
   }  /* if */
   if ((flags & MTT_ALLOW_ADDED_QUALIFIERS) != 0 &&
@@ -11266,12 +11258,9 @@ points to the template parameter list.
                 /* Convert the proxy class into its associated template
                    parameter and call matches_template_type on the parent
                    type. */
-                a_class_symbol_supplement_ptr  cssp;
-
                 tp = parent_class_of(type);
                 ttp = parent_class_of(templ_type);
-                cssp = symbol_supplement_for_class(ttp);
-                ttp = cssp->template_param_for_proxy_class;
+                ttp = class_type_supp(ttp)->proxy_of_type;
                 if (ttp != NULL) {
                   if (matches_template_type(tp, ttp, templ_arg_list,
   				            templ_param_list,
@@ -11303,14 +11292,12 @@ points to the template parameter list.
                type.  Consider this type to match for now.  The type
                that results from the substitution of the template
                argument values will be checked later. */
-            a_class_symbol_supplement_ptr	ttp_cssp;
             ttp = parent_class_of(templ_type);
-            ttp_cssp = symbol_supplement_for_class(ttp);
-            if (ttp_cssp->template_param_for_proxy_class != NULL) {
+            if (class_type_supp(ttp)->proxy_of_type != NULL) {
               /* The type is a member of a proxy class.  Substitute the
                  original template parameter for the proxy class in
                  the matching process. */
-              ttp = ttp_cssp->template_param_for_proxy_class;
+              ttp = class_type_supp(ttp)->proxy_of_type;
             }  /* if */
             match = is_or_contains_template_param(ttp);
           }  /* if */
@@ -12869,10 +12856,9 @@ is a set of bit flags used to control how names are looked up, if needed.
 is_type is TRUE if the child entity is known to be a type.
 */
 {
-  a_type_ptr			orig_parent_type;
-  a_symbol_ptr			fund_sym = NULL;
-  a_symbol_ptr			new_sym = NULL;
-  a_class_symbol_supplement_ptr	parent_cssp;
+  a_type_ptr	orig_parent_type;
+  a_symbol_ptr	fund_sym = NULL;
+  a_symbol_ptr	new_sym = NULL;
 
   check_assertion(parent_type != NULL);
   if (ctws_state->parent_levels == 0) options &= (~CTWS_IS_PARENT);
@@ -12882,11 +12868,10 @@ is_type is TRUE if the child entity is known to be a type.
      enumeration.  The substitution is performed on the class-of-which-member
      rather than on the nested type itself.  Note that the algorithm deals
      with any nesting depth. */
-  parent_cssp = symbol_supplement_for_class(parent_type);
-  if (parent_cssp->template_param_for_proxy_class) {
+  if (class_type_supp(parent_type)->proxy_of_type) {
     /* The parent type is a proxy class for a template parameter.  Substitute
        the original template parameter for the proxy class. */
-    parent_type = parent_cssp->template_param_for_proxy_class;
+    parent_type = class_type_supp(parent_type)->proxy_of_type;
   }  /* if */
   orig_parent_type = parent_type;
   /* Copy the parent type.  Pass in the CTWS_IS_PARENT flag so that only
@@ -13766,11 +13751,11 @@ done_with_routine:
             !is_cli_open_constructed_instance(type)) {
           /* Reuse the current type. */
           new_type = type;
-        } else if (cssp->template_param_for_proxy_class != NULL) {
+        } else if (class_type_supp(type)->proxy_of_type != NULL) {
           /* The proxy class for a template parameter.  Use the substituted
              template parameter type. */
           a_type_ptr	templ_param_for_type;
-          templ_param_for_type = cssp->template_param_for_proxy_class;
+          templ_param_for_type = class_type_supp(type)->proxy_of_type;
           new_type = copy_type_with_substitution(templ_param_for_type,
                                                  templ_arg_list,
                                                  templ_param_list,

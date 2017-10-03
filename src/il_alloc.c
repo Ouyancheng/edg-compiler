@@ -1830,9 +1830,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->event_interfaces                  = NULL;
   clear_ms_attribute_usage(&ctsp->attribute_usage);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   ctsp->proxy_of_type                     = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* clear_class_type_supplement */
 
 

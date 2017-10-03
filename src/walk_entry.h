@@ -3280,9 +3280,7 @@ after_entry_from_class:
         walk_ptr(ctsp->event_interfaces, an_event_interface_ptr,
                  iek_event_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ctsp->proxy_of_type, a_type_ptr, iek_type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }
       break;
     case iek_template_param_type_supplement:

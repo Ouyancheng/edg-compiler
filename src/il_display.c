@@ -7021,11 +7021,9 @@ Display the indicated class type supplement entry.
              iek_event_interface);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->proxy_of_type != NULL) {
     disp_ptr("proxy_of_type", (char *)ptr->proxy_of_type, iek_type);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* disp_class_type_supplement */
 
 

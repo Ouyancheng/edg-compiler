@@ -815,7 +815,7 @@ and indentation is the indentation desired.
         if (cssp->any_template_dependent_fields) {
           put_string("has dependent field");
         }  /* if */
-        if (cssp->template_param_for_proxy_class != NULL) {
+        if (class_type_supp(type)->proxy_of_type != NULL) {
           if (debug_level >= 4) put_string("has ptr for proxy");
         }  /* if */
         if (temp_type->variant.class_struct_union.
@@ -3757,7 +3757,6 @@ state.
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->num_unparsed_field_initializers = 0;
         cssp->instantiation_position = null_source_position;
-        cssp->template_param_for_proxy_class = NULL;
         cssp->corresp_prototype_sym = NULL;
         cssp->prototype_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         cssp->referencing_namespace = NULL;

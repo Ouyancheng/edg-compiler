@@ -576,19 +576,13 @@ created.
   }  /* if */
   /* If the proxy class does not exist yet, create it now. */
   if (*proxy_class == NULL) {
-    a_symbol_ptr			sym;
-    a_class_symbol_supplement_ptr	cssp;
-    /* Get the symbol pointer, if any, associated with the type. */
-    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-    *proxy_class = create_proxy_class(sym, &type->source_corresp,
+    /* Assigning through *proxy_class ensures that "type" is also updated to
+       point to the newly created class. */
+    *proxy_class = create_proxy_class(symbol_for(type), &type->source_corresp,
                                       is_generic);
-    cssp = symbol_supplement_for_class(*proxy_class);
-    cssp->template_param_for_proxy_class = type;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     /* Allow users of the proxy class to find the associated template
        parameter or decltype type. */
     class_type_supp(*proxy_class)->proxy_of_type = type;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   return *proxy_class;
 }  /* proxy_class_for_template_param */
@@ -936,8 +930,7 @@ routine.
         a_type_ptr  dtor_type = locator->variant.destructor_type; 
         if (is_proxy_class(dtor_type)) {
           /* Use the "original" type of a proxy type. */
-          dtor_type = class_symbol_supp(symbol_for(dtor_type))
-                                             ->template_param_for_proxy_class;
+          dtor_type = class_type_supp(dtor_type)->proxy_of_type;
         }  /* if */
         set_template_param_constant_kind(
                     constant, (a_template_param_constant_kind)tpck_destructor);
@@ -4625,8 +4618,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        instantiation from being considered nonreal for lookup
        purposes. */
     if (class_type->variant.class_struct_union.is_nonreal_class) {
-      if (symbol_supplement_for_class(class_type)
-                                  ->template_param_for_proxy_class != NULL) {
+      if (class_type_supp(class_type)->proxy_of_type != NULL) {
         /* A proxy class. */
         is_proxy_or_nonreal_class_lookup = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

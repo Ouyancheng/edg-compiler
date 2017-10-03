@@ -26122,9 +26122,9 @@ associated with a generic parameter).  Complete the class by adding base
 classes and possibly a default constructor as indicated by the constraints.
 */
 {
-  a_type_ptr                    templ_param_type;
+  a_class_type_supplement_ptr   ctsp = class_type_supp(proxy_class);
+  a_type_ptr                    templ_param_type = ctsp->proxy_of_type;
   a_generic_constraint_ptr      gc_list;
-  a_class_type_supplement       *ctsp;
   a_class_def_state             class_state;
   a_base_class_ptr              last_bcp = NULL;
   a_base_class_sequence_number  direct_base_number = 1;
@@ -26134,12 +26134,9 @@ classes and possibly a default constructor as indicated by the constraints.
   /* Push a scope to provide a clean context to the constraint type
      definition. */
   push_instantiation_scope_for_constraint_type();
-  templ_param_type = symbol_supplement_for_class(proxy_class)
-                                            ->template_param_for_proxy_class;
   gc_list = templ_param_type->variant.template_param.extra_info
                             ->generic_constraints;
   initialize_class_def_state(proxy_class, &class_state);
-  ctsp = class_type_supp(proxy_class);
   if (gc_list == NULL) {
     /* No constraints: The constraint type derives from System::Object. */
     add_direct_base_of_type(cli_system_object_type(), &class_state,

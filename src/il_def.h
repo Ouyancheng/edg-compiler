@@ -8169,14 +8169,12 @@ typedef struct a_class_type_supplement {
 			   to be initialized by
 			   set_attribute_usage_for_attribute_type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_type_ptr
 		proxy_of_type;
 			/* For nonreal classes that directly represent a
 			   proxy class, this points back to the template
 			   parameter or decltype type for which the proxy
 			   class was created; otherwise, NULL. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_class_type_supplement;
 
 enum a_template_param_type_kind_tag {

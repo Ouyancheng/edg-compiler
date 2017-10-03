@@ -15180,14 +15180,12 @@ class, we should accept any type, and in error cases dtor_or_finalizer_type
 can be an error type.
 */
 {
-  a_class_symbol_supplement_ptr	cssp;
-  a_boolean			result = FALSE;
+  a_boolean	result = FALSE;
 
   check_assertion(is_immediate_class_type(field_sel_type));
-  cssp = symbol_supplement_for_class(field_sel_type);
   if (is_error_type(dtor_or_finalizer_type)) {
     result = FALSE;
-  } else if (cssp->template_param_for_proxy_class != NULL) {
+  } else if (is_proxy_class(field_sel_type)) {
     result = TRUE;
   } else if (is_template_param_type(dtor_or_finalizer_type)) {
     /* The destructor/finalizer type is a template parameter.  This could

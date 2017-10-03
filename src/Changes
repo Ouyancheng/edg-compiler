@@ -1,5 +1,18 @@
 Version 4.15
 
+10/3/17  [EDGcpfe/18650]
+Back ends and traverse_type_tree
+
+Previously, the function traverse_type_tree (which is a general-purpose way to
+visit the various components of the representation of a type) was not available
+to back ends because it relied on the symbol table -- which only exists during
+front end processing -- to find the template type parameter entry associated
+with a proxy class.  That has been remedied and traverse_type_tree can now be
+called from back ends.  The field template_param_for_proxy_class has been
+removed from class symbol supplement entries; use the proxy_of_type field in
+the class type supplement instead (that field is now unconditionally present).
+
+
 10/2/17  [EDGcpfe/18829]
 Microsoft mode assertion failure in expand_macro_buffer
 

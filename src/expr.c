@@ -7009,8 +7009,6 @@ a left parenthesis in the source.
           if (member_con != NULL) {
             /* See if we need to do a lookup to find the member. */
             a_type_ptr parent_type = parent_class_of(member_con);
-            a_class_symbol_supplement_ptr
-                       parent_cssp = symbol_supplement_for_class(parent_type);
             check_assertion(member_con->kind ==
                                       (a_constant_repr_kind)ck_template_param);
             if (member_con->variant.template_param.kind ==
@@ -7023,11 +7021,11 @@ a left parenthesis in the source.
                 is_conversion_func = TRUE;
               }  /* if */
             }  /* if */
-            if (parent_cssp->template_param_for_proxy_class != NULL) {
+            if (class_type_supp(parent_type)->proxy_of_type != NULL) {
               /* The parent type is a proxy class for a template parameter.
                  Substitute the original template parameter for the proxy
                  class. */
-              parent_type = parent_cssp->template_param_for_proxy_class;
+              parent_type = class_type_supp(parent_type)->proxy_of_type;
             }  /* if */
             /* For an unqualified name or a member of an unknown class, look
                up the member name in the actual class of the first operand.

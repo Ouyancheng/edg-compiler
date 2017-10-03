@@ -759,10 +759,11 @@ entry.
 {
   char *entity = (char*)type;
 
-  if (type->kind == (a_type_kind)tk_class && symbol_for(type) != NULL) {
+  if (type->kind == (a_type_kind)tk_class &&
+      type->variant.class_struct_union.proxy_class) {
     /* If this class is a proxy class for a template parameter, use the
        template parameter as the entity. */
-    type = class_symbol_supp(symbol_for(type))->template_param_for_proxy_class;
+    type = class_type_supp(type)->proxy_of_type;
     if (type != NULL) {
 #if ABI_COMPATIBILITY_VERSION >= 414
       /* In rare cases (e.g., class portion of a pointer-to-member in GNU
@@ -3370,9 +3371,7 @@ appropriate. The type must not have had its typerefs skipped by the caller.
       type->variant.typeref.is_decltype) {
     result = TRUE;
   } else {
-    if (is_immediate_class_type(type) &&
-        symbol_supplement_for_class(type)->template_param_for_proxy_class
-                                                                     != NULL) {
+    if (is_proxy_class(type)) {
       result = TRUE;
     } else if (is_template_param_type(type)) {
       result = TRUE;
@@ -7963,15 +7962,10 @@ that fact should be put out.
   a_const_char *name;
 
   check_assertion(is_immediate_class_type(type));
-  if (type->source_corresp.assoc_info != NULL) {
-    /* See if this class is a proxy class for a template parameter.  If so,
-       we will use the template parameter encoding. */
-    template_param =
-             symbol_supplement_for_class(type)->template_param_for_proxy_class;
-  }  /* if */
-  if (template_param != NULL) {
+  if (is_proxy_class(type)) {
     /* This class is the proxy for a template parameter.  Use the encoding
        for the template parameter as the name for the class. */
+    template_param = class_type_supp(type)->proxy_of_type;
     if (template_param->kind == (a_type_kind)tk_template_param) {
       switch (template_param->variant.template_param.kind) {
         case tptk_param:
@@ -8176,8 +8170,7 @@ be individuated in late-specified return types as well.
       if (((is_immediate_class_type((a_type_ptr)scp) &&
             scp->assoc_info != NULL &&
             symbol_supplement_for_class((a_type_ptr)scp) != NULL &&
-            symbol_supplement_for_class((a_type_ptr)scp)->
-                                     template_param_for_proxy_class == NULL) ||
+            !is_proxy_class((a_type_ptr)scp)) ||
            is_immediate_enum_type((a_type_ptr)scp)) &&
           type_is_unnamed((a_type_ptr)scp) &&
           !scp->is_class_member &&

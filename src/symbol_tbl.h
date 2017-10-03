@@ -1020,12 +1020,6 @@ typedef struct a_class_symbol_supplement {
 			   that haven't yet been parsed.  (When this number
 			   drops to zero, certain properties of the class can
 			   be established.) */
-  a_type_ptr    template_param_for_proxy_class;
-			/* If the class is a proxy class associated with
-			   a template parameter type, dependent decltype or
-			   C++/CLI type parameter, this field points back
-			   to the template/generic parameter or the decltype
-			   typeref; otherwise it is NULL. */
   a_symbol_ptr	corresp_prototype_sym;
 			/* If the class is a template class instance, or a
 			   class nested within a template class, this points
@@ -6093,7 +6087,7 @@ class definition.
    template.  This will include prototype instantiations.  Note that this
    is not TRUE for other nonreal types such as proxy classes for template
    parameters. */
-#define is_nonreal_instance_class_symbol(sym)				\
+#define is_nonreal_instance_class_symbol(sym)                         \
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
    (sym)->variant.class_struct_union.type->			      \
@@ -6107,15 +6101,14 @@ If type is a proxy class, return the associated template parameter,
 otherwise return NULL.
 */
 #define template_param_if_proxy_class(type)				\
-  (is_immediate_class_type(type) &&					\
+  ((type->kind == (a_type_kind)tk_class) &&				\
    (type)->variant.class_struct_union.proxy_class			\
-   ? symbol_for(type)->variant.class_struct_union.extra_info->		\
-                                      template_param_for_proxy_class	\
+   ? class_type_supp(type)->proxy_of_type                               \
    : NULL)
 
 /* Return TRUE if the symbol is a template class symbol for a Microsoft mode
    instantiated nonreal class. */
-#define is_ms_instantiated_nonreal_class_symbol(sym)			\
+#define is_ms_instantiated_nonreal_class_symbol(sym)                  \
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
    (sym)->variant.class_struct_union.type->			      \
@@ -6679,8 +6672,8 @@ extern a_symbol_ptr find_literal_operator(a_const_char      *name,
 Return TRUE if "tp" is a proxy class.
 */
 #define is_proxy_class(tp)						\
-  (is_immediate_class_type(tp) &&					\
-   class_symbol_supp(symbol_for(tp))->template_param_for_proxy_class != NULL)
+  ((tp)->kind == (a_type_kind)tk_class &&				\
+   class_type_supp(tp)->proxy_of_type != NULL)
 
 extern a_scope_number take_next_scope_number(void);
 

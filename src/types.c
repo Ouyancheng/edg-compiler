@@ -5364,8 +5364,7 @@ ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED, TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED,
 and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
 */
 {
-  a_boolean                     equiv = FALSE;
-  a_class_symbol_supplement_ptr cssp_1, cssp_2;
+  a_boolean  equiv = FALSE;
 
   /* If the pointers are identical, the types are equivalent. */
   if (same_entities(type_1, type_2)) {
@@ -5412,32 +5411,30 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
     a_symbol_ptr  type_sym_1 = symbol_for(type_1),
                   type_sym_2 = symbol_for(type_2);
     if (type_sym_1 != NULL && type_sym_2 != NULL) {
-      cssp_1 = class_symbol_supp(type_sym_1);
-      cssp_2 = class_symbol_supp(type_sym_2);
-      if (cssp_1->template_param_for_proxy_class != NULL &&
-          cssp_2->template_param_for_proxy_class != NULL) {
+      if (class_type_supp(type_1)->proxy_of_type != NULL &&
+          class_type_supp(type_2)->proxy_of_type != NULL) {
         /* Both types are proxy classes for template parameters.  See if the
            underlying parameters are the same. */
-        if (identical_types(cssp_1->template_param_for_proxy_class,
-                            cssp_2->template_param_for_proxy_class)) {
+        if (identical_types(class_type_supp(type_1)->proxy_of_type,
+                            class_type_supp(type_2)->proxy_of_type)) {
           equiv = TRUE;
         }  /* if */
-      } else if (cssp_1->class_template != NULL &&
-                 cssp_2->class_template != NULL) {
+      } else if (class_symbol_supp(type_sym_1)->class_template != NULL &&
+                 class_symbol_supp(type_sym_2)->class_template != NULL) {
         /* Check whether both types are template classes, and they are based
            on the same class template, or equivalent nonreal templates, and
            if so, whether the template arguments are equivalent. */
         if (equiv_templates_and_arg_lists(
-                                    cssp_1->class_template,
-                                    cssp_2->class_template,
-                                    &type_1->source_corresp,
-                                    &type_2->source_corresp,
-                                    class_type_supp(type_1)->template_arg_list,
-                                    class_type_supp(type_2)->template_arg_list,
-                                    ETA_NO_OPTIONS,
-                                    error_matches_anything,
-                                    exact_templ_arg_match_required,
-                                    exact_decltype_exprs_required)) {
+                                class_symbol_supp(type_sym_1)->class_template,
+                                class_symbol_supp(type_sym_2)->class_template,
+                                &type_1->source_corresp,
+                                &type_2->source_corresp,
+                                class_type_supp(type_1)->template_arg_list,
+                                class_type_supp(type_2)->template_arg_list,
+                                ETA_NO_OPTIONS,
+                                error_matches_anything,
+                                   exact_templ_arg_match_required,
+                                   exact_decltype_exprs_required)) {
           equiv = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5452,9 +5449,7 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
            But Microsoft instantiated nonreal classes have actual nested
            classes as members.  They are considered the same if their names
            are the same and their parent classes are the same. */
-        a_symbol_ptr	sym_1 = symbol_for(type_1);
-        a_symbol_ptr	sym_2 = symbol_for(type_2);
-        equiv = sym_1->header == sym_2->header &&
+        equiv = type_sym_1->header == type_sym_2->header &&
                 identical_types(parent_class_of(type_1),
                                 parent_class_of(type_2));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13399,7 +13394,7 @@ its parameters?).
              nondeduced contexts, or when this is a deduced context when
              nonstandard deduction is enabled. */
           tp = parent_class_of(type_ptr);
-          tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
+          tp = class_type_supp(tp)->proxy_of_type;
           if (tp != NULL) {
             if (traverse_type_tree(tp, func, flags)) {
               status = TRUE;
@@ -13431,17 +13426,11 @@ its parameters?).
           if (in_front_end &&
               (!is_cli_generic_constraint(type_ptr) ||
                (flags & TTT_CLI_GENERIC_PARAMETERS) != 0)) {
-            a_symbol_ptr			class_sym;
-            a_class_symbol_supplement_ptr	cssp;
-            class_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-            if (class_sym != NULL) {
-              cssp = class_sym->variant.class_struct_union.extra_info;
-              tp = cssp->template_param_for_proxy_class;
-              if (tp != NULL) {
-                if (traverse_type_tree(tp, func, flags)) {
-                  status = TRUE;
-                  break;
-                }  /* if */
+            tp = class_type_supp(type_ptr)->proxy_of_type;
+            if (tp != NULL) {
+              if (traverse_type_tree(tp, func, flags)) {
+                status = TRUE;
+                break;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -13464,9 +13453,7 @@ its parameters?).
                of the template parameter with which the proxy class is
                associated. */
             tp = parent_class_of(type_ptr);
-            check_assertion(tp->source_corresp.assoc_info != NULL);
-            tp = symbol_supplement_for_class(tp)
-                                             ->template_param_for_proxy_class;
+            tp = class_type_supp(tp)->proxy_of_type;
             if (tp != NULL) {
               if (traverse_type_tree(tp, func, flags)) {
                 status = TRUE;
