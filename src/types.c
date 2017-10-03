@@ -13393,10 +13393,11 @@ its parameters?).
              is the parent class.  This is only checked when considering
              nondeduced contexts, or when this is a deduced context when
              nonstandard deduction is enabled. */
+          a_class_type_supplement_ptr  ctsp;
           tp = parent_class_of(type_ptr);
-          tp = class_type_supp(tp)->proxy_of_type;
-          if (tp != NULL) {
-            if (traverse_type_tree(tp, func, flags)) {
+          ctsp = class_type_supp(tp);
+          if (ctsp != NULL && ctsp->proxy_of_type != NULL) {
+            if (traverse_type_tree(ctsp->proxy_of_type, func, flags)) {
               status = TRUE;
               break;
             }  /* if */
@@ -13423,10 +13424,15 @@ its parameters?).
              template parameter.  If this is a C++/CLI constraint type,
              the associated generic parameter is only traversed if requested
              by the caller. */
-          if (in_front_end &&
-              (!is_cli_generic_constraint(type_ptr) ||
-               (flags & TTT_CLI_GENERIC_PARAMETERS) != 0)) {
-            tp = class_type_supp(type_ptr)->proxy_of_type;
+          a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
+          if (ctsp == NULL) {
+            /* This can happen if the type was recently eliminated from the
+               IL tree. */
+            break;
+          }  /* if */
+          if (!is_cli_generic_constraint(type_ptr) ||
+              (flags & TTT_CLI_GENERIC_PARAMETERS) != 0) {
+            tp = ctsp->proxy_of_type;
             if (tp != NULL) {
               if (traverse_type_tree(tp, func, flags)) {
                 status = TRUE;
@@ -13441,14 +13447,12 @@ its parameters?).
                 is_cli_type_to_treat_as_nonreal(type_ptr)))) {
             /* Traverse the template argument list, if present. */
             a_template_arg_ptr	tap;
-            tap = type_ptr->
-                      variant.class_struct_union.extra_info->template_arg_list;
+            tap = ctsp->template_arg_list;
             if (tap != NULL) {
               status = traverse_template_args(tap, func, flags);
             }  /* if */
           }  /* if */
-          if (!status && type_ptr->source_corresp.is_class_member &&
-              in_front_end) {
+          if (!status && type_ptr->source_corresp.is_class_member) {
             /* If this class is a member of a proxy class, traverse the type
                of the template parameter with which the proxy class is
                associated. */
