@@ -26782,7 +26782,7 @@ included as well.
 
 static a_boolean in_std_common_type_definition(void)
 /*
-Clang emulate a specific behavior of (some versions of) GCC only during the
+Clang emulates a specific behavior of (some versions of) GCC only during the
 definition of std::common_type.  This function returns whether we are currently
 in that definition.
 */
