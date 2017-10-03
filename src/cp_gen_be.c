@@ -18007,6 +18007,40 @@ managed C++/CLI class.
 }  /* gen_overridden_function_list */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean has_lvalue_ref_param_type_deduced_from_rvalue_ref_param(
+                                                            a_routine_ptr rout)
+/*
+Return TRUE if the parameter list of rout, which must be a template
+function, contains an lvalue reference parameter type and the corresponding
+parameter in the prototype instantiation has an rvalue reference type,
+presumably reflecting the special deduction rule for parameter types
+deduced for rvalue reference parameters whose corresponding argument is an
+lvalue.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(rout->is_template_function);
+  if (rout->assoc_template != NULL &&
+      rout->assoc_template->prototype_instantiation.routine != NULL) {
+    a_param_type_ptr tpl_param_type =
+                  rout->assoc_template->prototype_instantiation.routine->type->
+                                   variant.routine.extra_info->param_type_list;
+    a_param_type_ptr deduced_param_type =
+                       rout->type->variant.routine.extra_info->param_type_list;
+    while (!result && tpl_param_type != NULL && deduced_param_type != NULL) {
+      if (is_lvalue_reference_type(deduced_param_type->type) &&
+          is_rvalue_reference_type(tpl_param_type->type)) {
+        result = TRUE;
+      } else {
+        tpl_param_type = tpl_param_type->next;
+        deduced_param_type = deduced_param_type->next;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* has_lvalue_ref_param_type_deduced_from_rvalue_ref_param */
+
 
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
@@ -18227,6 +18261,23 @@ handle_as_definition:
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (msvc_is_generated_code_target && msvc_target_version_number < 1910 &&
+      rout->is_template_function && !rout->is_specialized &&
+      has_lvalue_ref_param_type_deduced_from_rvalue_ref_param(rout)) {
+    /* Versions of the Microsoft compiler earlier than 1910 have a bug that
+       results in an error if an attempt is made to explicitly specialize a
+       function template when a function parameter type reflects the
+       special deduction rule that changes an rvalue reference to an lvalue
+       reference if the argument is an lvalue.  For example, given
+           template<typename T> void f(T&&);
+       calling f("abc") would result in the explicit specialization
+           template<> void f(const char (&)[4]);
+       Older Microsoft compilers issue a spurious error on such explicit
+       specializations.  Discard the declaration. */
+    discard_declaration = TRUE;
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (discard_declaration) {
     /* Discard this declaration. */
     goto end_of_routine;

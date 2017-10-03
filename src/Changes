@@ -1,5 +1,32 @@
 Version 4.15
 
+10/3/17  [EDGcpfe/18793]
+C++-generating back end: generated function template instances with
+parameter types deduced from rvalue references
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+generated code contains an explicit specialization for each
+implicitly-instantiated function template.  Versions of the Microsoft
+compiler earlier than 1910 have a bug that results in an error if an
+attempt is made to explicitly specialize a function template when a
+function parameter type reflects the special deduction rule that changes
+an rvalue reference to an lvalue reference if the function argument is an
+lvalue.  For example, given
+
+  template<typename T> int f(T&& t) { return 0; }
+  int i = f("abc");
+
+the generated code would normally contain the explicit specialization
+
+  template<> int f(const char (&)[4]) { return 0; }
+
+which cannot be compiled successfully by older Microsoft compilers.  The
+C++-generating back end has now been changed not to put out such explicit
+specializations when msvc_is_generated_code_target is TRUE and
+msvc_target_version_number is less than 1910.
+
+
 10/3/17  [EDGcpfe/18836]
 Clang compatibility: 5.0.0 builtin functions
 
