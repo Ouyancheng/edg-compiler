@@ -1602,10 +1602,12 @@ ensure_macro_buffer_space.
           nested_slmp = nested_source_line_modif(src - 1);
           if (nested_slmp->inserted_text == nested_slmp->inserted_chars) {
             /* This is a deletion source line modification.  Just update
-               the location of the deletion. */
+               the location of the deletion and skip over the deleted
+               characters. */
             rem_source_line_modif_from_hash_table(nested_slmp);
             nested_slmp->line_loc = dst - 1;
             add_source_line_modif_to_hash_table(nested_slmp);
+            src += nested_slmp->num_chars_to_delete - 1;
           } else {
             /* This deletion is for a macro replacement: skip over the
                replaced characters, copying only any attention markers
@@ -2940,14 +2942,14 @@ an LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.
        deletion count in macro_buffer accordingly. */
     rem_source_line_modif(raw_slmp);
     free_source_line_modif(&raw_slmp);
-    num_chars_deleted_in_macro_buffer += exp_slmp->num_chars_to_delete - 1;
+    adjust_deletion_counts(exp_slmp->line_loc, exp_slmp->num_chars_to_delete);
   } else {
     /* Remove the deletion source line modification from the expanded
        version of the argument, leaving the raw one deleted, and update the
        delete count in macro_buffer accordingly. */
     rem_source_line_modif(exp_slmp);
     free_source_line_modif(&exp_slmp);
-    num_chars_deleted_in_macro_buffer += raw_slmp->num_chars_to_delete - 1;
+    adjust_deletion_counts(raw_slmp->line_loc, raw_slmp->num_chars_to_delete);
   }  /* if */
   /* Ensure that this routine is not called again for this argument. */
   *(char *)(curr_char_loc + 1) = LE_END_OF_TOKEN;

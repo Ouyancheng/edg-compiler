@@ -1,5 +1,13 @@
 Version 4.15
 
+10/2/17  [EDGcpfe/18829]
+Microsoft mode assertion failure in expand_macro_buffer
+
+The changes for EDGcpfe/15923 (in version 4.10.1) could result in a failed
+assertion in expand_macro_buffer when certain complex and lengthy macro
+expansions occurred in Microsoft mode.  This is now fixed.
+
+
 10/2/17  [EDGcpfe/18695]
 Clang compatibility: Conditional operators and std::common_type
 
