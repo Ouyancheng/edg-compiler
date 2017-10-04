@@ -5795,9 +5795,6 @@ supplement already associated with ft_symbol.
       rp->is_deleted = orig_rp->is_deleted;
       /* A member template cannot be "defaulted". */
       check_assertion(!orig_rp->is_defaulted);
-      if (exc_spec_in_func_type) {
-        copy_exc_spec_from_prototype_template(orig_rp, rp);
-      }  /* if */
     }
   }  /* if */
 error_exit:
@@ -14234,6 +14231,7 @@ accordingly.
   tip = sym->variant.routine.instance_ptr;
   /* Check if rp is a template function declared with a function declarator. */
   if (rp->type->kind == (a_type_kind)tk_routine && tip != NULL) {
+    a_routine_ptr  proto_rout;
     esp = rp->type->variant.routine.extra_info->exception_specification;
     template_sym = tip->template_sym;
     if (template_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -14244,9 +14242,9 @@ accordingly.
     }  /* if */
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
+    proto_rout = tssp->variant.function.routine;
     if (nonclass_prototype_instantiations &&
         !tssp->variant.function.exception_spec_prototype_instantiation_done) {
-      a_routine_ptr	proto_rout = tssp->variant.function.routine;
       a_symbol_ptr	proto_sym = symbol_for(proto_rout);
       /* If the prototype instantiation of this exception specification has
          not been done, do it now.  If sym and proto_sym are the same,
@@ -14257,6 +14255,10 @@ accordingly.
       }  /* if */
     }  /* if */
     tssp->variant.function.exception_spec_prototype_instantiation_done = TRUE;
+    if (exc_spec_in_func_type && rp->is_prototype_instantiation &&
+        rp != proto_rout) {
+      copy_exc_spec_from_prototype_template(proto_rout, rp);
+    }  /* if */
   }  /* if */
   if (esp != NULL && esp->arg_cached) {
     /* The template function has an exception specification that is still in

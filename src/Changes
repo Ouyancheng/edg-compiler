@@ -1,5 +1,23 @@
 Version 4.15
 
+10/4/17  [EDGcpfe/18811]
+Spurious error on this->x() in noexcept specifier
+
+Consider the following example:
+
+  void g(...);
+  template<typename> struct S {
+    template<typename... Ts>
+      int f(Ts &...ps) noexcept(noexcept(g(this->x(), ps...)));
+    int x();
+  };
+  int r = S<int>().f();
+
+Previously, this triggered a spurious error because during template argument
+substitution for the expression "S<int>().f()", the sub-expression "this->x()"
+in the noexcept specifier did not find "x".  That is now fixed.
+
+
 10/3/17  [EDGcpfe/18834]
 Failure to fold initializer for static-lifetime variable
 
