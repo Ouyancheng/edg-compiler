@@ -20,7 +20,7 @@ parameter types deduced from rvalue references
 In C++-generating back end configurations in which
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
 generated code contains an explicit specialization for each
-implicitly-instantiated function template.  Versions of the Microsoft
+implicitly-instantiated template function.  Versions of the Microsoft
 compiler earlier than 1910 have a bug that results in an error if an
 attempt is made to explicitly specialize a function template when a
 function parameter type reflects the special deduction rule that changes
