@@ -5466,7 +5466,9 @@ the current context.
       !expr_stack->suppress_constexpr_call_folding &&
       ((curr_expr_is_evaluated() &&
         (!is_prototype_instantiation_context() ||
-         curr_expr_kind_is_const())) ||
+         curr_expr_kind_is_const() ||
+         (expr_stack->favor_constant_result &&
+          !is_template_dependent_context()))) ||
        expr_stack->in_noexcept_operand_expression)) {
     fold = TRUE;
   }  /* if */
@@ -5487,6 +5489,8 @@ constant expressions, fold to a constant result.
 
   if (constexpr_enabled &&
       (curr_expr_kind_is_const() ||
+       (expr_stack->favor_constant_result &&
+        !is_template_dependent_context()) ||
        (!relaxed_constexpr_enabled &&
         in_potential_constant_constexpr_context())) &&
       constexpr_call_folding_should_be_done() &&
