@@ -4729,10 +4729,15 @@ successfully emitted.
          qual = qual->previous_qualifier) {
       if (qual->qualifier.class_type->kind == (a_type_kind)tk_typeref &&
           typeref_is_typedef(qual->qualifier.class_type) &&
-          typedef_is_unusable(qual->qualifier.class_type)) {
-        /* One of the qualifiers is a typedef that cannot be used at this
-           point; ignore the name reference and just generate a qualified
-           name. */
+          (typedef_is_unusable(qual->qualifier.class_type) ||
+           (qual == nrp->qualifier &&
+            cp->kind == (a_constant_repr_kind)ck_template_param &&
+            cp->variant.template_param.kind ==
+                           (a_template_param_constant_kind)tpck_destructor))) {
+        /* Either one of the qualifiers is a typedef that cannot be used at
+           this point or a typedef is used as a qualifier to name a
+           destructor, which causes problems for some compilers; ignore the
+           name reference and just generate a qualified name. */
         use_name_reference = FALSE;
       }  /* if */
     }  /* if */

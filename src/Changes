@@ -1,5 +1,23 @@
 Version 4.15
 
+10/4/17  [EDGcpfe/16748]
+C++-generating back end: use of typedef naming dependent destructor
+
+In C++-generating back end configurations in which template definitions
+are generated from their prototype instantiations, naming a dependent
+destructor as a qualified-id using a typedef name previously resulted in
+generating the qualifier as the typedef name and the destructor name as
+the underlying type of the typedef.  This mismatch resulted in spurious
+errors in some compilers when compiling the generated code.  This has now
+been fixed so that the typedef name is not used as a qualifier.  For
+example:
+
+  template <typename T1> void foo(T1 *val) {
+    typedef T1 T2;
+    val->T2::~T2(); // Previously generated as val->T2::~T1(), now val->~T1()
+  }
+
+
 10/4/17  [EDGcpfe/18811]
 Spurious error on this->x() in noexcept specifier
 
