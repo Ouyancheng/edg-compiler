@@ -18401,6 +18401,17 @@ from being re-introduced once lowering has eliminated it).
     /* A temporary initialization indicating the value of a temporary.
        Change it to an lvalue for the temporary. */
     possible = TRUE;
+  } else if (is_constant_node(node)) {
+    a_constant_ptr  con = node_constant(node);
+    if (con->is_result_of_constexpr_call && con->expr != NULL &&
+        con->expr->kind == (an_expr_node_kind)enk_temp_init) {
+      /* We sometimes fold rvalue enk_temp_init nodes before knowing that they
+         will be turned back into lvalues. */
+      possible = TRUE;
+      if (!see_if_possible) {
+        node = con->expr;
+      }  /* if */
+    }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_lambda) {
     /* A lambda.  Change it to an lvalue by just changing the is_lvalue
        flag. */
