@@ -1,5 +1,20 @@
 Version 4.15
 
+10/5/17  [EDGcpfe/18837]
+Use of __make_integer_seq in C++-generating back ends
+
+The use of the builtin template __make_integer_seq had caused issues in
+C++-generating back end configurations when dependent template arguments
+were used.  That has now been fixed.  In the example below (with --c++11
+--clang_version 40000), the generated C++ code was invalid:
+
+  template <class> struct S {
+    template <long> using T = int;
+  };
+  template <int N>
+    using x = typename __make_integer_seq<S, int, N>::template T<N>;
+
+
 10/4/17  [EDGcpfe/16748]
 C++-generating back end: use of typedef naming dependent destructor
 
