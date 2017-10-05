@@ -2605,10 +2605,15 @@ and for member functions of template classes.
            is not done for real template instantiations -- they get their
            default information from the information saved during the
            prototype instantiation. */
-        if (!fixup_class_is_real_template_instantiation &&
+        a_boolean  is_member_function_template = FALSE;
+        sym = rfp->symbol;
+        if (symbol_is(sym, sk_function_template)) {
+          is_member_function_template = TRUE;
+        }  /* if */
+        if ((!fixup_class_is_real_template_instantiation ||
+             is_member_function_template) &&
             template_second_pass) {
           a_boolean	do_proto_inst_for_sym;
-          sym = rfp->symbol;
           do_proto_inst_for_sym =
                        nonclass_prototype_instantiations ||
                       prototype_instantiation_should_be_done_for_function(sym);

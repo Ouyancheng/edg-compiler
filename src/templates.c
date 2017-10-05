@@ -12849,7 +12849,7 @@ and the corresponding member is looked up in the updated parent type.
 The symbol associated with the corresponding member is returned.  A
 NULL symbol is returned if the updated parent type does not contain
 the specified member.  The returned symbol can be a projection symbol.
-If it involves no template-parameter type, simply return "type".  options
+If it involves no template-parameter type, simply return "sym".  options
 is a set of bit flags used to control how names are looked up, if needed.
 is_type is TRUE if the child entity is known to be a type.
 */
@@ -14258,7 +14258,9 @@ accordingly.
     tssp->variant.function.exception_spec_prototype_instantiation_done = TRUE;
     if (exc_spec_in_func_type && rp->is_prototype_instantiation &&
         rp != proto_rout) {
+      push_instantiation_scope_for_rescan(template_sym);
       copy_exc_spec_from_prototype_template(proto_rout, rp);
+      pop_instantiation_scope_for_rescan();
     }  /* if */
   }  /* if */
   if (esp != NULL && esp->arg_cached) {
