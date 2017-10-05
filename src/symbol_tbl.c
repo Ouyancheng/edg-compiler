@@ -7954,17 +7954,28 @@ the template is for a C++/CLI type and FALSE otherwise.
 
 void make_make_integer_seq_internal_template(void)
 /*
-Creates a builtin alias template for "__make_integer_seq" at the file scope.
+Creates a builtin class template for "__make_integer_seq" and also a builtin
+alias template for "__make_integer_seq_alias" at the file scope.  In cases
+where the arguments to __make_integer_seq are dependent, the class template is
+used (so that it survives rescanning).  For the non-dependent case, the
+internal alias is used.
 */
 {
-  /* Note that the target type of the alias template (i.e., "T") is arbitrary
-     here as the template will be instantiated programatically (by
-     instantiate_make_integer_seq). */
   check_assertion(variadic_templates_enabled);
+  /* Create a class template for __make_integer_seq. */
   symbol_for_make_integer_seq = make_internal_template(
       "__make_integer_seq",
       "template<template<typename U, U... K> class S, typename T, T N>"
-      "  __internal_alias_decl __make_integer_seq = T;",
+      "  struct __make_integer_seq;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+  /* Note that the target type of the alias template (i.e., "T") is arbitrary
+     here as the template will be instantiated programatically (by
+     instantiate_make_integer_seq). */
+  symbol_for_make_integer_seq_alias = make_internal_template(
+      "__make_integer_seq_alias",
+      "template<template<typename U, U... K> class S, typename T, T N>"
+      "  __internal_alias_decl __make_integer_seq_alias = T;",
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
 }  /* make_make_integer_seq_internal_template */
@@ -16860,6 +16871,7 @@ are handled in symbol_tbl_init.)
       pch_array_saved_var_array_elem(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(symbol_for_make_integer_seq),
+      pch_saved_var_array_elem(symbol_for_make_integer_seq_alias),
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
       pch_saved_var_array_elem(symbols_with_no_scope),
@@ -16944,6 +16956,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_array(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(symbol_for_make_integer_seq);
+  register_trans_unit_variable(symbol_for_make_integer_seq_alias);
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
@@ -16989,6 +17002,7 @@ given translation unit.
   memzero((char *)cli_symbols, sizeof(cli_symbols));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   symbol_for_make_integer_seq = NULL;
+  symbol_for_make_integer_seq_alias = NULL;
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;

@@ -4603,7 +4603,16 @@ extern void make_type_pack_element_internal_template(void);
 EXTERN a_symbol_ptr
                 symbol_for_make_integer_seq;
                         /* Symbol for "__make_integer_seq", which is a
-                           builtin alias template. */
+                           builtin class template (used for cases where
+                           template arguments to __make_integer_seq are
+                           dependent). */
+
+EXTERN a_symbol_ptr
+                symbol_for_make_integer_seq_alias;
+                        /* Symbol for "__make_integer_seq_alias", which is a
+                           builtin alias template (used for cases where
+                           template arguments to __make_integer_seq are
+                           non-dependent). */
 
 EXTERN a_symbol_ptr
                 symbol_for_type_pack_element;

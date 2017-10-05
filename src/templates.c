@@ -7318,10 +7318,10 @@ static a_boolean check_make_integer_seq(a_template_arg_ptr template_arg_list,
                                         a_source_position  *arg2_pos,
                                         a_source_position  *arg3_pos)
 /*
-The __make_integer_seq builtin alias template is being instantiated with the
-template arguments specified in template_arg_list; issue appropriate errors
-for improper arguments using the error positions specified in arg1_pos, etc.
-If argN_pos is NULL, suppress the error message.
+The __make_integer_seq/__make_integer_seq_alias builtin template is being
+instantiated with the template arguments specified in template_arg_list; issue
+appropriate errors for improper arguments using the error positions specified
+in arg1_pos, etc.  If argN_pos is NULL, suppress the error message.
 */
 {
   a_template_arg_ptr tap;
@@ -7869,7 +7869,8 @@ positions (arg1_pos is the first argument position, etc.).
 {
   a_boolean  result = TRUE;
 
-  if (template_sym == symbol_for_make_integer_seq) {
+  if (template_sym == symbol_for_make_integer_seq ||
+      template_sym == symbol_for_make_integer_seq_alias) {
     /* __make_integer_seq builtin alias template. */
     result = check_make_integer_seq(template_arg_list, arg1_pos, arg2_pos,
                                     arg3_pos);
@@ -8682,7 +8683,7 @@ error type is used.
                       (an_access_specifier)tssp->variant.class_template.access;
     }  /* if */
   }  /* if */
-  if (template_sym == symbol_for_make_integer_seq) {
+  if (template_sym == symbol_for_make_integer_seq_alias) {
     /* This is the builtin alias template __make_integer_seq; the template
        is instantiated programatically rather than by scanning the cache
        for the template. */
@@ -9374,6 +9375,15 @@ use the current global value of the template template parameter.
                                    &new_list_without_local_types,
                                    &list_for_instantiation, &list_copied,
                                    &dependent_arg_list);
+  if (template_sym == symbol_for_make_integer_seq && !dependent_arg_list) {
+    /* For non-dependent arguments to __make_integer_seq, substitute a
+       reference to the builtin alias __make_integer_seq_alias which will
+       invoke instantiate_make_integer_seq to programatically instantiate
+       the template. */
+    template_sym = symbol_for_make_integer_seq_alias;
+    tssp = template_sym->variant.template_info;
+    is_alias_template = TRUE;
+  }  /* if */
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (any_prototype_allowed || specific_prototype_allowed != NULL) {
@@ -12539,7 +12549,7 @@ new type may not be a typeref.
                                            copy_error, ctws_state);
   if (!*copy_error &&
       !template_arg_list_is_dependent(new_list)) {
-    if (template_sym == symbol_for_make_integer_seq &&
+    if (template_sym == symbol_for_make_integer_seq_alias &&
         check_make_integer_seq(new_list, (a_source_position*)NULL,
                                (a_source_position*)NULL,
                                (a_source_position*)NULL)) {
