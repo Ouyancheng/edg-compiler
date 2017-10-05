@@ -12549,17 +12549,8 @@ new type may not be a typeref.
                                            copy_error, ctws_state);
   if (!*copy_error &&
       !template_arg_list_is_dependent(new_list)) {
-    if (template_sym == symbol_for_make_integer_seq_alias &&
-        check_make_integer_seq(new_list, (a_source_position*)NULL,
-                               (a_source_position*)NULL,
-                               (a_source_position*)NULL)) {
-      /* This is the builtin alias template __make_integer_seq; the template
-         is instantiated programatically rather than by scanning the cache for
-         the template. */
-      result_type = instantiate_make_integer_seq(new_list);
-      new_list = NULL;
-    } else if (template_sym == symbol_for_type_pack_element &&
-               check_type_pack_element(new_list, (a_source_position*)NULL)) {
+    if (template_sym == symbol_for_type_pack_element &&
+        check_type_pack_element(new_list, (a_source_position*)NULL)) {
       /* This is the builtin alias template __type_pack_element; the template
          is instantiated programatically rather than by scanning the cache for
          the template. */
