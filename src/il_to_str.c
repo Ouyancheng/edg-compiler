@@ -5892,32 +5892,45 @@ do_sizeof_cases:
           { a_type_ptr dtor_type =
                      constant->variant.template_param.variant.destructor.type;
             if (need_parens) octl->output_str("(", octl);
-            octl->output_str("~", octl);
-            if (has_name(dtor_type) &&
-                constant
-                    ->variant.template_param.variant.destructor.unqualified) {
-              /* Render the type with an unqualified name (form_type has
-                 insufficient information to determine this, so we handle that
-                 case at this level).  Note that an unqualified destructor
-                 invocation like p->~decltype(...) should still go through
-                 form_type (hence the "has_name" test above). */
-              a_boolean  saved_suppress_template_args =
-                                                  octl->suppress_template_args;
-              if (is_immediate_class_type(dtor_type) &&
-                  dtor_type->
-                       variant.class_struct_union.is_prototype_instantiation) {
-                /* A destructor prototype instantiation can only appear in
-                   the prototype instantiation of its parent, so no
-                   template argument list is needed (and, if a template
-                   parameter is unnamed, couldn't be put out in any
-                   case). */
-                octl->suppress_template_args = TRUE;
-              }  /* if */
-              form_unqualified_name(&dtor_type->source_corresp, iek_type,
-                                    octl);
-              octl->suppress_template_args = saved_suppress_template_args;
+            if (has_name(constant) &&
+                constant->source_corresp.name[0] == '~' &&
+                constant->source_corresp.name[1] != '<') {
+              /* The constant's name reflects the way it actually appeared
+                 in the original source code, which might involve typedefs
+                 or dependent names that should be preserved, rather than
+                 using resolved types.  (The check to exclude names
+                 beginning with "~<" is so that destructors involving type
+                 operators like decltype will use form_type.) */
+              octl->output_str(constant->source_corresp.name, octl);
             } else {
-              form_type(dtor_type, octl);
+              octl->output_str("~", octl);
+              if (has_name(dtor_type) &&
+                  constant
+                    ->variant.template_param.variant.destructor.unqualified) {
+                /* Render the type with an unqualified name (form_type has
+                   insufficient information to determine this, so we handle
+                   that case at this level).  Note that an unqualified
+                   destructor invocation like p->~decltype(...) should
+                   still go through form_type (hence the "has_name" test
+                   above). */
+                a_boolean  saved_suppress_template_args =
+                                                  octl->suppress_template_args;
+                if (is_immediate_class_type(dtor_type) &&
+                    dtor_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+                  /* A destructor prototype instantiation can only appear
+                     in the prototype instantiation of its parent, so no
+                     template argument list is needed (and, if a template
+                     parameter is unnamed, couldn't be put out in any
+                     case). */
+                  octl->suppress_template_args = TRUE;
+                }  /* if */
+                form_unqualified_name(&dtor_type->source_corresp, iek_type,
+                                      octl);
+                octl->suppress_template_args = saved_suppress_template_args;
+              } else {
+                form_type(dtor_type, octl);
+              }  /* if */
             }  /* if */
             if (need_parens) octl->output_str(")", octl);
           }
