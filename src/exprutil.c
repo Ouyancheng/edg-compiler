@@ -5466,9 +5466,7 @@ the current context.
       !expr_stack->suppress_constexpr_call_folding &&
       ((curr_expr_is_evaluated() &&
         (!is_prototype_instantiation_context() ||
-         curr_expr_kind_is_const() ||
-         (expr_stack->favor_constant_result &&
-          !is_template_dependent_context()))) ||
+         curr_expr_kind_is_const())) ||
        expr_stack->in_noexcept_operand_expression)) {
     fold = TRUE;
   }  /* if */
@@ -5499,6 +5497,19 @@ constant expressions, fold to a constant result.
                           /*force_prvalue=*/FALSE)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && con->null_pointer_constant_ruled_out &&
+        cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
+      /* Microsoft compilers accept a broader range on "null pointer" forms.
+         After folding, restore the null pointer flag if needed. */
+      a_boolean       is_nullptr_constant;
+      a_constant_ptr  null_con;
+      adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                          operand, &is_nullptr_constant,
+                                          &null_con, (an_expr_node_ptr*)NULL);
+      if (is_nullptr_constant) con->null_pointer_constant_ruled_out = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     make_constant_operand(con, operand);
     restore_operand_details(operand, &orig_operand);
   } else if (is_expression_operand(operand) &&

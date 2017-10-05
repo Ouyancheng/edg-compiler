@@ -1968,12 +1968,18 @@ Allocate an ick_expression init-component, scan an expression into it
 return a pointer to the init_component.
 */
 {
-  an_init_component_ptr icp =
+  an_init_component_ptr  icp =
                   alloc_init_component((an_init_component_kind)ick_expression);
-  a_boolean saved_constant_expr_ruled_out= expr_stack->constant_expr_ruled_out;
+  a_boolean              saved_constant_expr_ruled_out;
+  an_operand             *opnd;
 
+  saved_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
   expr_stack->constant_expr_ruled_out = FALSE;
-  scan_expr(operand_of_arg_list_elem(icp), PREC_LOWEST, options);
+  opnd = operand_of_arg_list_elem(icp);
+  scan_expr(opnd, PREC_LOWEST, options);
+  if (expr_stack->favor_constant_result) {
+    force_operand_to_constant_if_possible(opnd);
+  }  /* if */
   if (expr_stack->constant_expr_ruled_out) {
     icp->constant_expr_ruled_out = TRUE;
   }  /* if */
