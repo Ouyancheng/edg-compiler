@@ -5500,7 +5500,7 @@ constant expressions, fold to a constant result.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && con->null_pointer_constant_ruled_out &&
         cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
-      /* Microsoft compilers accept a broader range on "null pointer" forms.
+      /* Microsoft compilers accept a broader range of "null pointer" forms.
          After folding, restore the null pointer flag if needed. */
       a_boolean       is_nullptr_constant;
       a_constant_ptr  null_con;
