@@ -14706,8 +14706,8 @@ is the one associated with the template.
     gen_member_access_specifier_for_decl_of(&tp->source_corresp);
     write_tok_str("friend class ");
     set_output_position(&tp->source_corresp.decl_position);
-    gen_name(&tp->source_corresp, iek_template, GN_NO_OPTIONS,
-             (a_boolean*)NULL);
+    gen_name(&tp->source_corresp, iek_template,
+             GN_DECLARATION | GN_FRIEND_DECL, (a_boolean*)NULL);
     write_tok_str("; ");
     adv_curr_source_sequence_entry();
   } else {

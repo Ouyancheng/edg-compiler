@@ -1,5 +1,22 @@
 Version 4.15
 
+10/5/17  [EDGcpfe/18030]
+C++-generating back end: Microsoft-mode dependent friend declarations
+
+In some cases, the C++-generating back end generated a dependent friend
+declaration as if the befriended class were defined in the global
+namespace.  This is now fixed.  For example, with --microsoft:
+
+  namespace NS {
+  template<class T> struct S1 {};
+  }
+
+  template<class T>
+  struct S2: public NS::S1<T> {
+    friend class S1;  // Previously generated as "friend class ::S1;"
+  };
+
+
 10/5/17  [EDGcpfe/18837]
 Use of __make_integer_seq in C++-generating back ends
 
