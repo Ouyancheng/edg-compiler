@@ -16128,6 +16128,54 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
 }  /* scan_unknown_template_arg_list */
 
 
+static a_boolean assoc_template_param_is_pack(a_template_arg_ptr	tap)
+/*
+If the value of tap is a template parameter type, constant, or template,
+locate the associated parameter and return TRUE if it is a parameter pack.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean				result = FALSE;
+
+  /* Loop through the scope stack and inspect any template instantiation
+     scopes. */
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr		ssep;
+    a_template_param_coordinate_ptr	arg_tpcp;
+    /* Call a routine that will return the coordinates if tap is an argument
+       whose value is a template parameter.  It will return NULL if tap
+       is not a template argument. */
+    arg_tpcp = coordinates_of_template_arg(tap);    
+    if (arg_tpcp != NULL) {
+      for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+           ssep != NULL; ssep = previous_scope_of(ssep)) {
+        if (scope_is(ssep, sck_template_instantiation) &&
+            ssep->template_decl_info != NULL &&
+            ssep->template_decl_info->parameters != NULL) {
+          /* If the nesting depth of the template parameters match the one
+             we are looking for, go through the parameter list and find the
+             corresponding parameter. */
+          a_template_param_ptr			tpp;
+          a_template_param_coordinate_ptr	param_tpcp;
+          tpp = ssep->template_decl_info->parameters;
+          param_tpcp = coordinates_of_template_param(tpp);
+          if (param_tpcp->depth == arg_tpcp->depth) {
+            a_template_param_list_pos		pos;
+            for (pos = 1; pos < arg_tpcp->position && tpp != NULL;
+                 pos++) {
+              tpp = tpp->next;
+            }  /* for */
+            result = tpp != NULL ? tpp->is_pack : FALSE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* assoc_template_param_is_pack */
+
+
 static
 a_template_arg_ptr scan_template_argument_list(
                                              a_symbol_ptr template_sym,
@@ -16405,12 +16453,12 @@ all arguments were explicit.
          C++-generating back end cases where pack_expansion_descr is NULL
          in some alias-in-template-decl cases. */
       arg_ptr->has_pack_ellipsis =
-                         arg_ptr->is_pack &&
                          pesep != NULL && pesep->instantiation_descr != NULL &&
                          depth_innermost_instantiation_scope !=
                                                               NO_SCOPE_DEPTH &&
                          scope_stack[depth_innermost_instantiation_scope].
-                                                        alias_in_template_decl;
+                                                    alias_in_template_decl &&
+                         assoc_template_param_is_pack(arg_ptr);
       if (param_ptr->is_pack) {
         /* Record that this argument was associated with a pack. */
         arg_ptr->is_pack_element = TRUE;

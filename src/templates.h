@@ -509,6 +509,9 @@ extern a_template_arg_ptr get_template_arg_for_coordinates(
 extern a_template_param_coordinate_ptr coordinates_of_template_param_symbol(
                                                    a_symbol_ptr sym);
 
+extern a_template_param_coordinate_ptr coordinates_of_template_arg(
+						a_template_arg_ptr	tap);
+
 extern a_template_param_coordinate_ptr coordinates_of_template_param(
                                                    a_template_param_ptr tpp);
 

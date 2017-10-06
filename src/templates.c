@@ -2956,6 +2956,59 @@ specified by sym.
 }  /* coordinates_of_template_param_symbol */
 
 
+a_template_param_coordinate_ptr coordinates_of_template_arg(
+						a_template_arg_ptr	tap)
+/*
+If the value of tap is a template parameter type, constant, or template,
+return a pointer to its coordinates.
+*/
+{
+  a_template_param_coordinate_ptr	tpcp = NULL;
+
+  switch (tap->kind) {
+    case tak_type:
+      {
+        a_type_ptr	type = tap->variant.type;
+        type = skip_typerefs(type);
+        if (type->kind == (a_type_kind)tk_template_param &&
+            type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+          a_template_param_type_supplement_ptr	tptsp;
+          tptsp = type->variant.template_param.extra_info;
+          tpcp = &tptsp->coordinates;
+        }  /* if */
+      }
+      break;
+    case tak_template:
+      {
+        a_template_ptr	templ = tap->variant.templ.ptr;
+        if (templ->kind == (a_template_kind)templk_template_template_param) {
+          tpcp = &templ->coordinates;
+        }  /* if */
+      }
+      break;
+    case tak_nontype:
+      {
+        a_constant_ptr	constant = tap->variant.constant;
+        if (constant != NULL) {
+          if (constant_is(constant, ck_template_param) &&
+              constant->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_param) {
+            tpcp = &constant->variant.template_param.variant.coordinates;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case tak_start_of_pack_expansion:
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+  return tpcp;
+}  /* coordinates_of_template_arg */
+
+
 a_template_param_coordinate_ptr coordinates_of_template_param(
                                                    a_template_param_ptr tpp)
 /*
