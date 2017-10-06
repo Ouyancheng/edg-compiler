@@ -1465,12 +1465,16 @@ template-dependent context or a member of a class).
          declaration in a template context. */
       expect_error();
     }  /* if */
-  } else if (may_cache && (is_inclass_member_function_decl ||
-                           is_template_dependent_context() ||
-                           is_nonspecialized_instantiation_context())) {
+  } else if (may_cache &&
+             (is_inclass_member_function_decl ||
+              is_template_dependent_context() ||
+              is_nonspecialized_instantiation_context()) &&
+              !is_microsoft_in_class_specialization_context()) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
-       cache segment to extract the tokens later on. */
+       cache segment to extract the tokens later on.  Microsoft in-class
+       specializations are handled differently than other template members,
+       so a template cache segment should not be created. */
     a_token_set_array             stop_tokens;
     a_token_sequence_number       first_tsn, last_tsn;
     /* The caller ensured that an exception specification entry was

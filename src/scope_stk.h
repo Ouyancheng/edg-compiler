@@ -1801,6 +1801,12 @@ this is FALSE for template declaration contexts.
    !scope_stack[depth_scope_stack].in_class_specialization)
 
 /*
+TRUE if we are in a Microsoft in-class specialization.
+*/
+#define is_microsoft_in_class_specialization_context()		\
+  (scope_stack[depth_scope_stack].in_class_specialization)
+
+/*
 TRUE if we are in a template instantiation context, but not a special
 instantiation scope pushed for specializations in Microsoft and Sun modes.
 */
