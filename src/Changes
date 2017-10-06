@@ -37,12 +37,12 @@ C++-generating back end: use of typedef naming dependent destructor
 
 In C++-generating back end configurations in which template definitions are
 generated from their prototype instantiations, naming a dependent
-destructor a typedef name in the original source code previously resulted
-in using the underlying type of the typedef in the destructor name.  This
-mismatch resulted in incorrect generated code in some cases and in spurious
-errors in some compilers when compiling the generated code in other cases.
-This has now been fixed so that the typedef name is preserved.  For
-example:
+destructor using a typedef name in the original source code previously
+resulted in using the underlying type of the typedef in the destructor
+name.  This mismatch resulted in incorrect generated code in some cases and
+in spurious errors in some compilers when compiling the generated code in
+other cases.  This has now been fixed so that the typedef name is
+preserved in the generated code.  For example:
 
   template <typename T1> void foo(T1 *val) {
     typedef T1 T2;
