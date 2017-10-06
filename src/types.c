@@ -7879,6 +7879,9 @@ Return TRUE if the given exception specification is of the form "noexcept",
   a_boolean  result = FALSE;
 
   if (esp != NULL && !esp->arg_cached && !esp->indeterminate) {
+    if (esp->copy_from_prototype) {
+      copy_exc_spec_from_prototype_template(esp);
+    }  /* if */
     if (esp->throw_any) {
       /* This case eliminates "noexcept(<false-constant>)" and
          "noexcept(<template-dependent-constant>)". */
@@ -12636,7 +12639,7 @@ based on the specified template parameter constant.
     an_exception_specification_ptr  esp = type_ptr->variant.routine.extra_info
                                                   ->exception_specification;
     if (esp != NULL && esp->is_noexcept && !esp->arg_cached &&
-        esp->variant.noexcept_arg != NULL) {
+        !esp->copy_from_prototype && esp->variant.noexcept_arg != NULL) {
       found = constant_contains_template_param_constant(
                                                    esp->variant.noexcept_arg);
     }  /* if */

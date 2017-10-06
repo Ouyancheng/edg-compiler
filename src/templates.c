@@ -5581,62 +5581,69 @@ template was defined in a friend declaration.
 }  /* check_for_definition_in_friend_declaration */
 
 
-static void copy_exc_spec_from_prototype_template(a_routine_ptr  proto_rp,
-                                                  a_routine_ptr  rp)
+void copy_exc_spec_from_prototype_template(an_exception_specification_ptr  esp)
 /*
-proto_rp and rp are both prototype instantiations, but proto_rp is an instance
-of a prototype template whereas rp is an instance of a member template of a
-real class template instance.  If the prototype template includes an exception
-specification, copy it with substitutions to rp.
+esp is the exception specification of a subordinate member template.  Update
+it by copying the exception specification of the corresponding prototype
+template with any needed substitutions.
 */
 {
-  a_type_ptr  proto_rtp = skip_typerefs(proto_rp->type),
-              rtp = skip_typerefs(rp->type);
+  a_routine_ptr  rp = esp->variant.routine;
+  a_template_instance_ptr
+                 tip = symbol_for(rp)->variant.routine.instance_ptr;
+  a_symbol_ptr   templ_sym = tip->template_sym,
+                 proto_templ_sym = prototype_template_of(templ_sym);
+  a_template_symbol_supplement_ptr
+                 proto_tssp = template_supplement_for_symbol(proto_templ_sym);
+  a_routine_ptr  proto_rp = proto_tssp->variant.function.routine;
+  a_type_ptr     proto_rtp = skip_typerefs(proto_rp->type),
+                 rtp = skip_typerefs(rp->type);
   a_routine_type_supplement_ptr
-              proto_rtsp = proto_rtp->variant.routine.extra_info,
-              rtsp = rtp->variant.routine.extra_info;
+                 proto_rtsp = proto_rtp->variant.routine.extra_info,
+                 rtsp = rtp->variant.routine.extra_info;
   an_exception_specification_ptr
-              proto_esp = proto_rtsp->exception_specification,
-              esp = rtsp->exception_specification;
+                 proto_esp = proto_rtsp->exception_specification;
 
-  if (proto_esp != NULL) {
-    if (proto_esp->arg_cached) {
-      instantiate_exception_spec_if_needed(symbol_for(proto_rp));
-    }  /* if */
-    check_assertion(!proto_esp->arg_cached && !proto_esp->indeterminate);
-    if (esp == NULL) {
-      esp = alloc_exception_specification();
-    }  /* if */
-    *esp = *proto_esp;
-    if (proto_esp->is_noexcept) {
-      if (esp->variant.noexcept_arg != NULL) {
-        a_ctws_state  ctws_state;
-        a_boolean     err = FALSE, was_err;
-        was_err = constant_is(esp->variant.noexcept_arg, ck_error);
-        init_ctws_state(&ctws_state);
-        ctws_state.preserve_deduced_packs = TRUE;
-        substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
-                            (a_template_param_ptr)NULL,
-                            (a_template_arg_ptr)NULL,
-                            CTWS_PRESERVE_DEDUCED_PACKS,
-                            &ctws_state, &rp->source_corresp.decl_position,
-                            &err);
-        if (!err) {
-          if (!constant_is(esp->variant.noexcept_arg, ck_template_param)) {
-            esp->throw_any = is_false_constant(esp->variant.noexcept_arg);
-          }  /* if */
-        } else if (!was_err) {
-          pos_error(ec_invalid_noexcept_specifier_operand,
-                    &rp->source_corresp.decl_position);
-          set_error_constant(esp->variant.noexcept_arg);
-        }  /* if */
-      }  /* if */
-    } else {
-      check_assertion(proto_esp->variant.exception_specification_type_list
-                                                                     == NULL);
-    }  /* if */
-    rtsp->exception_specification = esp;
+  check_assertion(proto_esp != NULL);
+  if (proto_esp->arg_cached) {
+    instantiate_exception_spec_if_needed(symbol_for(proto_rp));
   }  /* if */
+  if (proto_esp->copy_from_prototype) {
+    copy_exc_spec_from_prototype_template(esp);
+  }  /* if */
+  check_assertion(!proto_esp->arg_cached && !proto_esp->indeterminate &&
+                  !proto_esp->copy_from_prototype);
+  *esp = *proto_esp;
+  if (proto_esp->is_noexcept) {
+    if (esp->variant.noexcept_arg != NULL) {
+      a_ctws_state  ctws_state;
+      a_boolean     err = FALSE, was_err;
+      was_err = constant_is(esp->variant.noexcept_arg, ck_error);
+      init_ctws_state(&ctws_state);
+      ctws_state.preserve_deduced_packs = TRUE;
+      push_instantiation_scope_for_rescan(templ_sym);
+      substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
+                          (a_template_param_ptr)NULL,
+                          (a_template_arg_ptr)NULL,
+                          CTWS_PRESERVE_DEDUCED_PACKS,
+                          &ctws_state, &rp->source_corresp.decl_position,
+                          &err);
+      pop_instantiation_scope_for_rescan();
+      if (!err) {
+        if (!constant_is(esp->variant.noexcept_arg, ck_template_param)) {
+          esp->throw_any = is_false_constant(esp->variant.noexcept_arg);
+        }  /* if */
+      } else if (!was_err) {
+        pos_error(ec_invalid_noexcept_specifier_operand,
+                  &rp->source_corresp.decl_position);
+        set_error_constant(esp->variant.noexcept_arg);
+      }  /* if */
+    }  /* if */
+  } else {
+    check_assertion(proto_esp->variant.exception_specification_type_list
+                                                                     == NULL);
+  }  /* if */
+  rtsp->exception_specification = esp;
 }  /* copy_exc_spec_from_prototype_template */
 
 
@@ -13036,6 +13043,8 @@ parameters, see copy_type_with_substitution.
   if (esp->arg_cached) {
     new_esp = esp;
     goto done;
+  } else if (esp->copy_from_prototype) {
+    copy_exc_spec_from_prototype_template(esp);
   }  /* if */
   new_esp = alloc_exception_specification();
   if (esp->indeterminate) {
@@ -14223,7 +14232,7 @@ accordingly.
   a_template_instance_ptr           tip;
   a_template_symbol_supplement_ptr  tssp = NULL;
   an_exception_specification_ptr    esp = NULL;
-  a_symbol_ptr                      template_sym = NULL;
+  a_symbol_ptr                      template_sym = NULL, proto_sym;
   a_symbol_ptr                      decl_seq_sym = sym;
   a_boolean                         is_member_of_class_template = FALSE;
   
@@ -14233,7 +14242,9 @@ accordingly.
   /* Check if rp is a template function declared with a function declarator. */
   if (rp->type->kind == (a_type_kind)tk_routine && tip != NULL) {
     a_routine_ptr  proto_rout;
-    esp = rp->type->variant.routine.extra_info->exception_specification;
+    a_routine_type_supplement_ptr
+                   rtsp = rp->type->variant.routine.extra_info;
+    esp = rtsp->exception_specification;
     template_sym = tip->template_sym;
     if (template_sym->kind == (a_symbol_kind)sk_function_template) {
       /* When doing the special g++ processing below, use the decl_seq of
@@ -14244,9 +14255,9 @@ accordingly.
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
     proto_rout = tssp->variant.function.routine;
+    proto_sym = symbol_for(proto_rout);
     if (nonclass_prototype_instantiations &&
         !tssp->variant.function.exception_spec_prototype_instantiation_done) {
-      a_symbol_ptr	proto_sym = symbol_for(proto_rout);
       /* If the prototype instantiation of this exception specification has
          not been done, do it now.  If sym and proto_sym are the same,
          this call was done to do the prototype instantiation, which will
@@ -14256,11 +14267,23 @@ accordingly.
       }  /* if */
     }  /* if */
     tssp->variant.function.exception_spec_prototype_instantiation_done = TRUE;
-    if (exc_spec_in_func_type && rp->is_prototype_instantiation &&
-        rp != proto_rout) {
-      push_instantiation_scope_for_rescan(template_sym);
-      copy_exc_spec_from_prototype_template(proto_rout, rp);
-      pop_instantiation_scope_for_rescan();
+    if (rp->is_prototype_instantiation && rp != proto_rout) {
+      /* A subordinate prototype instantiation.  Create an exception
+         specification entry with the information needed to copy with
+         substitutions from the prototype template when needed. */
+      an_exception_specification_ptr
+              proto_esp = proto_rout->type->variant.routine.extra_info
+                                          ->exception_specification;
+      if (proto_esp != NULL) {
+        if (esp == NULL) {
+          esp = alloc_exception_specification();
+          rtsp->exception_specification = esp;
+        }  /* if */
+        *esp = *proto_esp;
+        esp->arg_cached = FALSE;
+        esp->copy_from_prototype = TRUE;
+        esp->variant.routine = rp;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (esp != NULL && esp->arg_cached) {

@@ -6215,6 +6215,12 @@ typedef struct an_exception_specification {
 			   rescanning.  In the case of members of class
 			   templates, this rescanning may never occur if the
 			   member is never used. */
+  a_bit_field
+		copy_from_prototype:1;
+			/* TRUE for the exception specification of a
+			   subordinate member template that still must be
+			   copied (with substitutions) from the prototype
+			   template. */
   union {
     /* When arg_cached is TRUE. */
     struct a_token_cache
@@ -6222,8 +6228,15 @@ typedef struct an_exception_specification {
 			/* Opaque pointer to a token cache containing the
 			   argument tokens of the exception specifier (for
 			   later rescanning).  This is for front-end use
-			   only. */
-    /* When is_noexcept is FALSE (and arg_cached is FALSE). */
+			   only.  This is for front-end use only. */
+    /* When copy_from_prototype is TRUE. */
+    a_routine_ptr
+		routine;
+			/* Pointer to the subordinate prototype instantiation
+			   for which the exception specification must be
+			   copied. */
+    /* When is_noexcept is FALSE (and arg_cached and copy_from_prototype are
+       FALSE). */
     an_exception_specification_type_ptr
 		exception_specification_type_list;
 			/* Pointer to the linked list of exception
@@ -6232,7 +6245,8 @@ typedef struct an_exception_specification {
 			     void f() throw (int,char);
                            or NULL if no exceptions will be thrown, e.g.,
 			     void f() throw ();              */
-    /* When is_noexcept is TRUE (and arg_cached is FALSE). */
+    /* When is_noexcept is TRUE (and arg_cached and copy_from_prototype are
+       FALSE). */
     a_constant_ptr
 		noexcept_arg;
 			/* Representation of the constant-expression specified

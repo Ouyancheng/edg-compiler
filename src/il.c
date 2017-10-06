@@ -1201,6 +1201,8 @@ Dump the given exception specification (which may be NULL), for debug purposes.
       fputs(" <indeterminate>", f_debug);
     } else if (esp->arg_cached) {
       fputs(" <cached>", f_debug);
+    } else if (esp->copy_from_prototype) {
+      fputs(" <pending substitution>", f_debug);
     } else if (esp->variant.noexcept_arg != NULL) {
       fputs(" ", f_debug);
       db_constant(esp->variant.noexcept_arg);

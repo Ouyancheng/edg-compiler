@@ -2051,8 +2051,14 @@ consistent with that of the previous declaration.
     }  /* if */
     old_esp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
+    if (old_esp != NULL && old_esp->copy_from_prototype) {
+      copy_exc_spec_from_prototype_template(old_esp);
+    }  /* if */
     new_esp = skip_typerefs(new_rout_type)->
                     variant.routine.extra_info->exception_specification;
+    if (new_esp != NULL && new_esp->copy_from_prototype) {
+      copy_exc_spec_from_prototype_template(new_esp);
+    }  /* if */
     /* Set error_code for issuing diagnostics. */
     if (is_redecl) {
       /* This a function redeclaration -- the exception specifications have to

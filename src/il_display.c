@@ -4724,7 +4724,11 @@ Display the indicated exception-specification entry.
   if (ptr->indeterminate) disp_boolean("indeterminate", TRUE);
   if (ptr->throw_any) disp_boolean("throw_any", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
-  if (ptr->is_noexcept) {
+  if (ptr->arg_cached) {
+    disp_boolean("arg_cached", TRUE);
+  } else if (ptr->copy_from_prototype) {
+    disp_boolean("copy_from_prototype", TRUE);
+  } else if (ptr->is_noexcept) {
     disp_ptr("noexcept_arg", (char *)ptr->variant.noexcept_arg,
              iek_constant);
   } else {

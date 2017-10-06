@@ -1300,7 +1300,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
           /* The exception specification was never required to be
              evaluated.  The token cache pointer is for front end use
              only. */
-          conditionally_clear_fe_pointer(eptr->variant.token_cache);
+        } else if (eptr->copy_from_prototype) {
+          conditionally_clear_fe_pointer(eptr->variant.routine);
         } else if (eptr->is_noexcept) {
           walk_ptr(eptr->variant.noexcept_arg, a_constant_ptr, iek_constant);
         } else {

@@ -4872,7 +4872,7 @@ bypass_normal_search:
               (gpp_mode || ms_extensions))) &&
             (cssp->any_nonreal_base_classes ||
              (gpp_mode || ms_extensions)) &&
-              is_prototype_instantiation_lookup) {
+            is_prototype_instantiation_lookup) {
           /* If a nonreal member needs to be created, create it as a member of
              the class in which the lookup is being done.  See the comment
              below where create_proxy_of_nonreal_class_member is called for

@@ -2730,6 +2730,7 @@ region.
   esp->throw_any = FALSE;
   esp->compiler_generated = FALSE;
   esp->arg_cached = FALSE;
+  esp->copy_from_prototype = FALSE;
   esp->variant.exception_specification_type_list = NULL;
   esp->variant.token_cache = NULL;
   esp->variant.noexcept_arg = NULL;
