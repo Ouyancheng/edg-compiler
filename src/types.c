@@ -13458,10 +13458,11 @@ its parameters?).
             /* If this class is a member of a proxy class, traverse the type
                of the template parameter with which the proxy class is
                associated. */
+            a_class_type_supplement_ptr  ctsp;
             tp = parent_class_of(type_ptr);
-            tp = class_type_supp(tp)->proxy_of_type;
-            if (tp != NULL) {
-              if (traverse_type_tree(tp, func, flags)) {
+            ctsp = class_type_supp(tp);
+            if (ctsp != NULL && ctsp->proxy_of_type != NULL) {
+              if (traverse_type_tree(ctsp->proxy_of_type, func, flags)) {
                 status = TRUE;
               }  /* if */
               break;
