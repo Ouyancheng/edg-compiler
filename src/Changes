@@ -8,11 +8,9 @@ declaration as if the befriended class were defined in the global
 namespace.  This is now fixed.  For example, with --microsoft:
 
   namespace NS {
-  template<class T> struct S1 {};
+    template<class T> struct S1 {};
   }
-
-  template<class T>
-  struct S2: public NS::S1<T> {
+  template<class T> struct S2: public NS::S1<T> {
     friend class S1;  // Previously generated as "friend class ::S1;"
   };
 
