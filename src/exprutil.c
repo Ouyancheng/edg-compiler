@@ -14803,11 +14803,19 @@ on output it will be an lvalue.
     } else {
       node = make_node_from_operand(result);
       if (is_an_lvalue(result)) {
-        a_boolean constant_addr;
+        a_boolean constant_addr, *p_constant_addr;
         /* Convert from an lvalue for the reference to a prvalue for the value
            of the reference (in effect, loading the reference pointer value
            from the location that contains it). */
-        node = conv_glvalue_expr_to_prvalue(node, &constant_addr,
+        if (is_variable_node(node)) {
+          /* The address may be "constant", but we don't want to fold it. */
+          a_variable_ptr  vp = node_variable(node);
+          p_constant_addr = (a_boolean*)NULL;
+          constant_addr = var_has_static_storage_duration(vp);
+        } else {
+          p_constant_addr = &constant_addr;
+        }  /* if */
+        node = conv_glvalue_expr_to_prvalue(node, p_constant_addr,
                                             (a_constant_ptr *)NULL,
                                             &result->position);
         if (!relaxed_constexpr_enabled &&
