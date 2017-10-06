@@ -14818,20 +14818,9 @@ on output it will be an lvalue.
         node = conv_glvalue_expr_to_prvalue(node, p_constant_addr,
                                             (a_constant_ptr *)NULL,
                                             &result->position);
-        if (!relaxed_constexpr_enabled &&
-            !in_potential_constant_constexpr_context() &&
-            !constant_addr &&
-            !potential_gnu_ignored_object_expr(node, next_token()) &&
-            construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                         &result->position)) {
-          /* Reference indirection is not allowed in C++11 constant
-             expressions unless the address is constant. */
-          err = TRUE;
-        } else {
-          /* Change the references to "use". */
-          change_some_ref_kinds(result->ref_entries_list,
-                                SRK_REFERENCE, SRK_USE);
-        }  /* if */
+        /* Change the references to "use". */
+        change_some_ref_kinds(result->ref_entries_list,
+                              SRK_REFERENCE, SRK_USE);
       }  /* if */
       if (!err) {
         /* Add a reference indirection to make an lvalue.  This is similar to
