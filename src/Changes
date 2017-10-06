@@ -1,5 +1,27 @@
 Version 4.15
 
+10/6/17  [EDGcpfe/18031]
+C++-generating back end: unnecessary global scope qualifier on namespace name
+
+In C++-generating back end configurations in which template definitions are
+generated from their prototype instantiations, a namespace name used in a
+qualified-id in some contexts was previously generated with an unnecessary
+global namespace qualifier.  The resulting code sometimes caused older
+versions of the Microsoft compiler to encounter an internal compiler error.
+This is now fixed, and these unneeded global qualifiers are no longer put
+out.  For example, with --microsoft:
+
+  namespace NS {
+    template<class T> struct S1 { template<typename> using t = int; };
+  }
+
+  template<class A> struct S2 : public A {
+    typedef NS::S1<A> T1;
+    typedef typename T1::template t<char> T2; // Previously generated as
+                                              // ::NS::S1<A>::template...
+  };
+
+
 10/5/17  [EDGcpfe/18030]
 C++-generating back end: Microsoft-mode dependent friend declarations
 

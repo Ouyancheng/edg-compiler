@@ -4106,7 +4106,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       }  /* if */
     }  /* if */
   } else if (in_class_scope_with_dependent_base &&
-             !(options & GN_DECLARATION) &&
+             !(options & GN_DECLARATION) && entry_kind != iek_namespace &&
              !entity_is_member_of_current_instantiation(scp, entry_kind)) {
     /* A reference to a dependent name that is not a member of the current
        instantiation.  Add qualification to ensure that it's dependent in
