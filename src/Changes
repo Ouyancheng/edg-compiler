@@ -16,7 +16,7 @@ namespace.  This is now fixed.  For example, with --microsoft:
 
 
 10/5/17  [EDGcpfe/18837]
-Use of __make_integer_seq in C++-generating back ends
+C++-generating back end: Use of __make_integer_seq
 
 The use of the builtin template __make_integer_seq had caused issues in
 C++-generating back end configurations when dependent template arguments
