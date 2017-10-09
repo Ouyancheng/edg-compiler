@@ -14451,8 +14451,14 @@ source sequence entries recorded with this particular header.  */
                                    &octl);
       if (param->variant.nontype.default_arg_constant != NULL) {
         a_constant_ptr  dac = param->variant.nontype.default_arg_constant;
+        a_boolean       need_parens =
+                                    has_unprotected_gt_or_comma_operation(dac);
         write_tok_str(" = ");
-        gen_constant(dac, has_unprotected_gt_or_comma_operation(dac));
+        if (is_any_reference_type(cp->type)) {
+          form_lvalue_address_constant(dac, need_parens, &octl);
+        } else {
+          form_constant(dac, need_parens, &octl);
+        }  /* if */
       }  /* if */  
     } else if (param->kind == (a_template_parameter_kind)tpk_type) {
       /* Remap the source correspondence entry for output. */

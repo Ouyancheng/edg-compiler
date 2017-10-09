@@ -1,5 +1,18 @@
 Version 4.15
 
+10/9/17  [EDGcpfe/18484]
+C++-generating back end: default args for reference non-type template params
+
+The C++-generating back end previously incorrectly added an ampersand to
+default arguments for reference non-type template arguments.  This is now
+fixed.  For example:
+
+  int x = 1;
+  int y = 1;
+  template <int &I, int &J=x>  // Previously generated as "int &J = &x"
+  struct S { };
+
+
 10/9/17  [EDGcpfe/18830]
 Enumerator constants and multiple translation units
 
