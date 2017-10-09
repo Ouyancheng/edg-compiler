@@ -12237,13 +12237,10 @@ other initializations.  This routine returns TRUE if guard code was emitted.
 
   *guard_var = NULL;
   /* If the variable has internal linkage (e.g., in -tlocal mode), or if the
-     variable is an explicit specialization, or if the variable is not needed,
-     do not put out guard code at all. */
+     variable is an explicit specialization, do not put out guard code at
+     all. */
   if (variable->source_corresp.name_linkage !=
                         (a_name_linkage_kind)nlk_internal &&
-#if MAINTAIN_NEEDED_FLAGS
-      variable->source_corresp.needed &&
-#endif /* MAINTAIN_NEEDED_FLAGS */
       !variable->is_specialized) {
     /* This is not a specialization, so the guard variable must be tested
        here. */
@@ -17470,6 +17467,21 @@ enough to cause the back end to invoke the routine at initialization.
       insert_pending_stmk_init_statements_at_mark(eff_insert_location);
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && IA64_ABI
       if (guard_var != NULL) {
+#if MAINTAIN_NEEDED_FLAGS
+        if (eff_insert_location->kind == ilk_block_start) {
+          /* No code was generated for initialization of a variable in a
+             comdat group (e.g., its inlined constructor is empty).  If that
+             variable is otherwise unused in the translation unit, needed flag
+             processing may remove it but leave the guard variable, creating a
+             partial comdat group that could cause problems for a linker.  In
+             this case, simply emit a reference to the variable so needed flag
+             processing won't remove it. */
+          an_expr_node_ptr var_expr = var_rvalue_expr(var);
+          set_expr_result_not_used(var_expr);
+          check_assertion(guard_var->comdat_group != NULL);
+          (void)insert_expr_statement(var_expr, eff_insert_location);
+        }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
         /* Set the guard variable to indicate the local static is initialized
            after the initialization is completed. */
         set_local_static_guard_var(guard_var, eff_insert_location);

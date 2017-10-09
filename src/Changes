@@ -375,16 +375,18 @@ microsoft_version is 1912 or larger.
 
 
 9/26/17  [EDGcpfe/18805]
-Don't emit guard variables for unneeded static data members
+Initialization of static data member can lead to incomplete COMDAT section
 
-Previously, a guard variable was generated for a static data member even if the
-static data member was not needed in the translation unit.  That could lead to
-cases where COMDAT sections with the same name in different translation units
-had different members (i.e., both guard variable and static data member in
-units where the static data member was needed and just the guard variable if
-the static data member was not needed).  Such cases could lead to issues at
-link time.  The guard variable is now only emitted when the "needed" flag is
-set on the static data member.  For example (with -tused):
+In configurations that use lowering and where needed flag processing is
+enabled, the initialization of a static data member for which no lowered
+initialization is generated had resulted in the creation of an
+initialization routine where the static guard variable is used but the
+static data member is not.  Needed flag processing then marks the static data
+member as unneeded while the guard variable is needed, resulting in a COMDAT
+section that will be unlike other translation units in which the static data
+member is referenced.  A dummy reference to the static data member is now
+emitted so that needed flag processing will treat the two variables similarly.
+For example (with -tused):
 
   struct A {
     A() {}
