@@ -16143,8 +16143,8 @@ Otherwise, return FALSE.
     a_scope_stack_entry_ptr		ssep;
     a_template_param_coordinate_ptr	arg_tpcp;
     /* Call a routine that will return the coordinates if tap is an argument
-       whose value is a template parameter.  It will return NULL if tap
-       is not a template argument. */
+       whose value is a template parameter.  It will return NULL if the
+       value of tap is not a template parameter. */
     arg_tpcp = coordinates_of_template_arg(tap);    
     if (arg_tpcp != NULL) {
       for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
@@ -16457,7 +16457,7 @@ all arguments were explicit.
                          depth_innermost_instantiation_scope !=
                                                               NO_SCOPE_DEPTH &&
                          scope_stack[depth_innermost_instantiation_scope].
-                                                    alias_in_template_decl &&
+                                                      alias_in_template_decl &&
                          assoc_template_param_is_pack(arg_ptr);
       if (param_ptr->is_pack) {
         /* Record that this argument was associated with a pack. */
