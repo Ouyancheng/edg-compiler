@@ -6228,13 +6228,13 @@ typedef struct an_exception_specification {
 			/* Opaque pointer to a token cache containing the
 			   argument tokens of the exception specifier (for
 			   later rescanning).  This is for front-end use
-			   only.  This is for front-end use only. */
+			   only. */
     /* When copy_from_prototype is TRUE. */
     a_routine_ptr
 		routine;
 			/* Pointer to the subordinate prototype instantiation
 			   for which the exception specification must be
-			   copied. */
+			   copied.  This is for front-end use only. */
     /* When is_noexcept is FALSE (and arg_cached and copy_from_prototype are
        FALSE). */
     an_exception_specification_type_ptr
