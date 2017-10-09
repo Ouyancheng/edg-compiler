@@ -30781,6 +30781,7 @@ variable:
               } else {
                 conv_glvalue_to_prvalue(result);
               }  /* if */
+              force_operand_to_constant_if_possible(result);
             }   /* if */
           }  /* if */
           if (is_error_operand(result)) {
