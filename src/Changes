@@ -1,5 +1,12 @@
 Version 4.15
 
+10/9/17  [EDGcpfe/18841]
+Microsoft compatibility: type of first argument to __annotation builtin
+
+The type of the first argument to the __annotation builtin function has been
+changed from "wchar_t" to "const wchar_t".
+
+
 10/6/17  [EDGcpfe/18031]
 C++-generating back end: unnecessary global scope qualifier on namespace name
 
