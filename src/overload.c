@@ -19077,6 +19077,12 @@ is used only in C++ mode.
         /* prep_special_selector_operand (call below) will drop the const. */
       }  /* if */
     }  /* if */
+    if (is_constant_operand(operand) && is_a_prvalue(operand) &&
+        !(routine_type->variant.routine.extra_info->qualifiers & TQ_CONST)) {
+      /* Don't apply a member call to a constant node (which might have
+         resulted from folding) if the member is not "const". */
+      temp_init_from_operand(operand, /*result_is_lvalue=*/FALSE);
+    }  /* if */
     change_refs_on_selector(routine_type, operand);
     /* Convert the operand to the proper type to be the "this" argument of the
        conversion function. */
