@@ -3244,8 +3244,7 @@ other entities.
   if (!type->source_corresp.is_class_member) {
     a_constant_ptr  enumerator = enum_constants(type);
     for (; enumerator != NULL; enumerator = enumerator->next) {
-      a_symbol_ptr            enum_sym = (a_symbol_ptr)enumerator
-                                                   ->source_corresp.assoc_info,
+      a_symbol_ptr            enum_sym = symbol_for(enumerator),
                               sym = corresp_symbol_list(enum_sym);
       a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(enum_sym);
       /* Look through the symbol table for any entities with linkage that may
@@ -3263,12 +3262,16 @@ other entities.
             } else if (is_tag_symbol(sym)) {
               /* Tag names have their own name space. */
             } else {
-              f_report_bad_trans_unit_corresp((char*)enumerator,
-                                              &sym->decl_position);
+              a_source_correspondence_ptr
+                               scp = source_corresp_entry_for_symbol(sym);
+              if (scp != NULL && !in_secondary_trans_unit(scp)) {
+                scp->same_name_as_external_entity_in_secondary_trans_unit =
+                                                                         TRUE;
+              }  /* if */
             }  /* if */
           } else {
-            a_source_correspondence_ptr  scp =
-                                         source_corresp_entry_for_symbol(sym);
+            a_source_correspondence_ptr
+                               scp = source_corresp_entry_for_symbol(sym);
             if (scp != NULL && !in_secondary_trans_unit(scp)) {
               scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
             }  /* if */
