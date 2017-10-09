@@ -19981,7 +19981,10 @@ in *rcblock).
   a_dynamic_init_ptr dip;
   a_new_delete_supplement_ptr
                      rescan_ndsp, ndsp;
-  a_boolean          handle_type_case = FALSE, is_sized_ver;
+  a_boolean          handle_type_case = FALSE;
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+  a_boolean          is_sized_ver;
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
   a_boolean          is_aligned_delete = FALSE;
 
   db_enter(4, "scan_delete_operator");
