@@ -5930,7 +5930,6 @@ successfully interpreted, FALSE otherwise.
             !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
           break;
         }  /* if */
-        /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
         alloc_complete_object(ips, n_bytes, tp, expr_value);
@@ -9342,7 +9341,8 @@ the value representation of the integer value.
                     } else {
                       if (is_runtime_data_address(ptr)) {
                         if (!offset_runtime_address(
-                                             ips, &expr->position, ptr, 1,
+                                             ips, &expr->position, ptr,
+                                             (a_host_large_integer)1,
                                              elem_size, /*subtract=*/FALSE)) {
                           do_constexpr_fail(result);
                         }  /* if */
@@ -9453,7 +9453,8 @@ the value representation of the integer value.
                     } else {
                       if (is_runtime_data_address(ptr)) {
                         if (!offset_runtime_address(
-                                              ips, &expr->position, ptr, 1,
+                                              ips, &expr->position, ptr,
+                                               (a_host_large_integer)1,
                                               elem_size, /*subtract=*/TRUE)) {
                           do_constexpr_fail(result);
                         }  /* if */
@@ -9571,7 +9572,8 @@ the value representation of the integer value.
                   } else {
                     if (is_runtime_data_address(ptr)) {
                       if (!offset_runtime_address(
-                                             ips, &expr->position, ptr, 1,
+                                             ips, &expr->position, ptr,
+                                             (a_host_large_integer)1,
                                              elem_size, /*subtract=*/FALSE)) {
                         do_constexpr_fail(result);
                       }  /* if */
@@ -9687,7 +9689,8 @@ the value representation of the integer value.
                   } else {
                     if (is_runtime_data_address(ptr)) {
                       if (!offset_runtime_address(
-                                              ips, &expr->position, ptr, 1,
+                                              ips, &expr->position, ptr,
+                                              (a_host_large_integer)1,
                                               elem_size, /*subtract=*/TRUE)) {
                         do_constexpr_fail(result);
                       }  /* if */
