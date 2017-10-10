@@ -9303,30 +9303,53 @@ the value representation of the integer value.
                 } else if (tp->kind == (a_type_kind)tk_pointer) {
                   /* A pointer. */
                   a_constexpr_address  *ptr;
-                  a_type_ptr           elem_type;
-                  a_byte_count         elem_size;
                   ptr = (a_constexpr_address*)value_bytes_at(cap);
-                  if (cannot_dereference(ptr)) {
-                    /* Invalid pointer value. */
-                    info_with_pos(ec_constexpr_invalid_pointer,
-                                  &expr->position, ips);
+                  if (is_function_address(ptr)) {
                     do_constexpr_fail(result);
-                    break;
-                  }  /* if */
-                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
-                  ptr->address += elem_size;
-                  if (!is_array_element(ptr)) {
-                    /* The address of a non-array can be treated as a pointer
-                       to an array of one element. */
-                    ptr->flags |= CA_CANNOT_DEREFERENCE;
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
+                  } else if (ptr->address == NULL &&
+                             (!is_runtime_data_address(ptr) ||
+                              constant_is(ptr->variant.addr_con,
+                                          ck_integer))) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_invalid_null_ptr_operation,
+                                  &expr->position, ips);
                   } else {
-                    a_byte        *base_address;
-                    base_address = get_base_address(ptr);
-                    if (ptr->address == base_address + ptr->length*elem_size) {
-                      /* We've reached "one past the end of the array". */
-                      ptr->flags |= CA_CANNOT_DEREFERENCE;
-                    }    /* if */
+                    a_byte_count  elem_size, pos, len;
+                    a_type_ptr    elem_type;
+                    elem_type =
+                              skip_typerefs(opnd1_type->variant.pointer.type);
+                    get_array_pos(ips, ptr, elem_type, &len, &pos,
+                                  &elem_size, &result);
+                    if (!is_array_element(ptr) && cannot_dereference(ptr)) {
+                      /* Non-arrays are treated as arrays of length one. */
+                      do_constexpr_fail(result);
+                      info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                    &expr->position, ips);
+                    }  /* if */
+                    if (!result) break;
+                    if (len == pos) {
+                      /* Out of bounds. */
+                      do_constexpr_fail(result);
+                      info_with_pos_num2(
+                                       ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position, (unsigned long)(pos+1),
+                                       (unsigned long)len, ips);
+                    } else {
+                      if (is_runtime_data_address(ptr)) {
+                        if (!offset_runtime_address(
+                                             ips, &expr->position, ptr, 1,
+                                             elem_size, /*subtract=*/FALSE)) {
+                          do_constexpr_fail(result);
+                        }  /* if */
+                      } else {
+                        ptr->address += elem_size;
+                      }  /* if */
+                      if (pos+1 == len) {
+                        ptr->flags |= CA_CANNOT_DEREFERENCE;
+                      }  /* if */
+                    }  /* if */
                   }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
                 } else if (tp->kind == (a_type_kind)tk_complex) {
@@ -9394,31 +9417,51 @@ the value representation of the integer value.
                 } else if (tp->kind == (a_type_kind)tk_pointer) {
                   /* A pointer. */
                   a_constexpr_address  *ptr;
-                  a_type_ptr           elem_type;
-                  a_byte_count         elem_size;
                   ptr = (a_constexpr_address*)value_bytes_at(cap);
-                  if (!is_array_element(ptr)) {
-                    /* Not a pointer to an array element in interpreter
-                       storage. */
-                    if (!cannot_dereference(ptr)) {
-                      info_with_pos(ec_constexpr_invalid_pointer,
-                                    &expr->position, ips);
-                      do_constexpr_fail(result);
-                      break;
-                    }  /* if */
+                  if (is_function_address(ptr)) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
+                  } else if (ptr->address == NULL &&
+                             (!is_runtime_data_address(ptr) ||
+                              constant_is(ptr->variant.addr_con,
+                                          ck_integer))) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_invalid_null_ptr_operation,
+                                  &expr->position, ips);
                   } else {
-                    if (ptr->address == get_base_address(ptr)) {
-                      /* The pointer cannot point ahead of the array. */
-                      info_with_pos(ec_constexpr_invalid_pointer,
-                                    &expr->position, ips);
+                    a_byte_count  elem_size, pos, len;
+                    a_type_ptr    elem_type;
+                    elem_type =
+                              skip_typerefs(opnd1_type->variant.pointer.type);
+                    get_array_pos(ips, ptr, elem_type, &len, &pos,
+                                  &elem_size, &result);
+                    if (!is_array_element(ptr) && !cannot_dereference(ptr)) {
                       do_constexpr_fail(result);
-                      break;
+                      info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                    &expr->position, ips);
+                    }  /* if */
+                    if (!result) break;
+                    if (pos < 1) {
+                      /* Out of bounds. */
+                      do_constexpr_fail(result);
+                      info_with_pos(ec_constexpr_pointer_ahead_of_array,
+                                    &expr->position, ips);
+                    } else {
+                      if (is_runtime_data_address(ptr)) {
+                        if (!offset_runtime_address(
+                                              ips, &expr->position, ptr, 1,
+                                              elem_size, /*subtract=*/TRUE)) {
+                          do_constexpr_fail(result);
+                        }  /* if */
+                      } else {
+                        ptr->address -= elem_size;
+                      }  /* if */
+                      if (pos == len) {
+                        ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                      }  /* if */
                     }  /* if */
                   }  /* if */
-                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                  elem_size = value_bytes_for_type(ips, elem_type, &result);
-                  ptr->address -= elem_size;
-                  ptr->flags &= ~CA_CANNOT_DEREFERENCE;
 #if C99_IL_EXTENSIONS_SUPPORTED
                 } else if (tp->kind == (a_type_kind)tk_complex) {
                   /* A complex floating-point type. */
@@ -9492,28 +9535,49 @@ the value representation of the integer value.
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 /* A pointer. */
                 a_constexpr_address  *ptr;
-                a_type_ptr           elem_type;
-                a_byte_count         elem_size;
                 ptr = (a_constexpr_address*)value_bytes_at(cap);
-                if (cannot_dereference(ptr)) {
-                  /* Invalid pointer value. */
-                  info_with_pos(ec_constexpr_invalid_pointer,
-                                &expr->position, ips);
+                if (is_function_address(ptr)) {
                   do_constexpr_fail(result);
-                  break;
-                }  /* if */
-                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                elem_size = value_bytes_for_type(ips, elem_type, &result);
-                ptr->address += elem_size;
-                if (!is_array_element(ptr)) {
-                  /* The address of a non-array can be treated as a pointer to
-                     an array of one element. */
-                  ptr->flags |= CA_CANNOT_DEREFERENCE;
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
+                } else if (ptr->address == NULL &&
+                           (!is_runtime_data_address(ptr) ||
+                            constant_is(ptr->variant.addr_con, ck_integer))) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_invalid_null_ptr_operation,
+                                &expr->position, ips);
                 } else {
-                  a_byte  *base_address = get_base_address(ptr);
-                  if (ptr->address == base_address + ptr->length*elem_size) {
-                    /* We've reached "one past the end of the array". */
-                    ptr->flags |= CA_CANNOT_DEREFERENCE;
+                  a_byte_count  elem_size, pos, len;
+                  a_type_ptr    elem_type;
+                  elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                  get_array_pos(ips, ptr, elem_type, &len, &pos,
+                                &elem_size, &result);
+                  if (!is_array_element(ptr) && cannot_dereference(ptr)) {
+                    /* Non-arrays are treated as arrays of length one. */
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                  &expr->position, ips);
+                  }  /* if */
+                  if (!result) break;
+                  if (len == pos) {
+                    /* Out of bounds. */
+                    do_constexpr_fail(result);
+                    info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                       &expr->position, (unsigned long)(pos+1),
+                                       (unsigned long)len, ips);
+                  } else {
+                    if (is_runtime_data_address(ptr)) {
+                      if (!offset_runtime_address(
+                                             ips, &expr->position, ptr, 1,
+                                             elem_size, /*subtract=*/FALSE)) {
+                        do_constexpr_fail(result);
+                      }  /* if */
+                    } else {
+                      ptr->address += elem_size;
+                    }  /* if */
+                    if (pos+1 == len) {
+                      ptr->flags |= CA_CANNOT_DEREFERENCE;
+                    }  /* if */
                   }  /* if */
                 }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -9588,30 +9652,50 @@ the value representation of the integer value.
               } else if (tp->kind == (a_type_kind)tk_pointer) {
                 /* A pointer. */
                 a_constexpr_address  *ptr;
-                a_type_ptr           elem_type;
-                a_byte_count         elem_size;
                 ptr = (a_constexpr_address*)value_bytes_at(cap);
-                if (!is_array_element(ptr)) {
-                  /* Not a pointer to an array element in interpreter
-                     storage. */
-                  if (!cannot_dereference(ptr)) {
+                if (is_function_address(ptr)) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
+                } else if (ptr->address == NULL &&
+                           (!is_runtime_data_address(ptr) ||
+                            constant_is(ptr->variant.addr_con, ck_integer))) {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_invalid_null_ptr_operation,
+                                &expr->position, ips);
+                } else {
+                  a_byte_count  elem_size, pos, len;
+                  a_type_ptr    elem_type;
+                  elem_type =
+                            skip_typerefs(opnd1_type->variant.pointer.type);
+                  get_array_pos(ips, ptr, elem_type, &len, &pos,
+                                &elem_size, &result);
+                  if (!is_array_element(ptr) && !cannot_dereference(ptr)) {
+                    do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                                   &expr->position, ips);
-                    do_constexpr_fail(result);
                   }  /* if */
-                } else {
-                  if (ptr->address == get_base_address(ptr)) {
-                    /* The pointer cannot point ahead of the array. */
+                  if (!result) break;
+                  if (pos < 1) {
+                    /* Out of bounds. */
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                   &expr->position, ips);
-                    break;
+                  } else {
+                    if (is_runtime_data_address(ptr)) {
+                      if (!offset_runtime_address(
+                                              ips, &expr->position, ptr, 1,
+                                              elem_size, /*subtract=*/TRUE)) {
+                        do_constexpr_fail(result);
+                      }  /* if */
+                    } else {
+                      ptr->address -= elem_size;
+                    }  /* if */
+                    if (pos == len) {
+                      ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                    }  /* if */
                   }  /* if */
                 }  /* if */
-                elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                elem_size = value_bytes_for_type(ips, elem_type, &result);
-                ptr->address -= elem_size;
-                ptr->flags &= ~CA_CANNOT_DEREFERENCE;
 #if C99_IL_EXTENSIONS_SUPPORTED
               } else if (tp->kind == (a_type_kind)tk_complex) {
                 fp_subtract(tp->variant.float_kind, &cx_value_at(cap)->real,

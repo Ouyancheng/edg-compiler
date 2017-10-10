@@ -1,5 +1,24 @@
 Version 4.15
 
+10/10/17 [EDGcpfe/18729]
+Interpreter and ++/-- on run-time addresses
+
+The interpreter previously did not correctly handle increment (++) and
+decrement (--) operations applied to the addresses of run-time entities.
+Both the pre-increment/decrement and the post-increment/decrement varieties
+were affected.  For example:
+
+  constexpr int* pred(int *p) {
+    p--;
+    return p;
+  }
+  int x[3];  // Run-time array.
+  static_assert(pred(x+2) == &x[1], "Unexpected");
+      // Previously a spurious error.  Now okay.
+
+This is now fixed.
+
+
 10/10/17 [EDGcpfe/18742]
 Abort on use of implicit "this" in generic lambda
 
