@@ -13256,6 +13256,20 @@ by this routine.
                                            (a_boolean)bound_function_selector->
                                                     selector_is_object_pointer,
                                            function_operand);
+      } else if (in_lambda_body() &&
+                 overloaded_function_symbol->is_class_member) {
+        /* Check if "this" should be captured.  We could end up here with a
+           generic lambda in a context that's otherwise nondependent.  In that
+           case we must make sure "this" is captured while performing the
+           prototype instantiation of the lambda call operator. */
+        a_variable_ptr  this_var;
+        a_type_ptr      this_type;
+        if (variable_this_exists(&this_var, &this_type)) {
+          /* A side-effect of calling lambda_capture_for_variable is that the
+             indicated variable ("this" in this case) is captured. */
+          (void)lambda_capture_for_variable(this_var, call_position,
+                                            (a_boolean*)NULL);
+        }  /* if */
       }  /* if */
     }  /* if */
     routine_type = NULL;

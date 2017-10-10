@@ -2176,7 +2176,9 @@ TRUE.
       if (vp != NULL && vp->constant_valued && rvalue_only != NULL) {
         *rvalue_only = TRUE;
       } else {
-        err_code = ec_not_captured_local_var_in_lambda;
+        err_code = vp->is_this_parameter ?
+                        ec_not_captured_this_in_lambda :
+                        ec_not_captured_local_var_in_lambda;
       }  /* if */
     } else {
       /* The variable (or reference to "this") is valid.  Add a new capture
@@ -2186,7 +2188,9 @@ TRUE.
                                /*is_implicit=*/TRUE, by_ref, pos,
                                &no_impl_capture);
       if (no_impl_capture) {
-        err_code = ec_no_implicit_capture_on_enclosing_lambda;
+        err_code = vp->is_this_parameter ?
+                        ec_not_captured_this_in_lambda :
+                        ec_no_implicit_capture_on_enclosing_lambda;
       }  /* if */
     }  /* if */
     if (err_code != ec_no_error) {
