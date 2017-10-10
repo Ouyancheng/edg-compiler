@@ -1,5 +1,13 @@
 Version 4.15
 
+10/10/17 [EDGcpfe/18845]
+GCC compatibility: Incorporate changes for builtin functions from GCC 5.5.0
+
+A number of builtin functions have slightly different signatures in the 5.5.0
+release of GCC.  Those have now been integrated into the front end.  No
+new builtins were added.
+
+
 10/10/17 [EDGcpfe/18729]
 Interpreter and ++/-- on run-time addresses
 
