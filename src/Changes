@@ -59,7 +59,7 @@ non-tag name in the same scope of another translation unit.  For example:
 
 Such errors were not justified, however, because enumerator constants do not
 actually have linkage.  The front end has been adjusted to avoid issuing such
-errors (the conflicting entry are renamed by the C-generating back end to
+errors (the conflicting entries are renamed by the C-generating back end to
 avoid errors issued by the target C compiler).
 
 
