@@ -3288,7 +3288,8 @@ when the declaration is a friend declaration within a class.
             /* Look for a match on the list of instantiations. */
             if (has_matching_template_function(fund_other_decl, idlbp->type,
                                                locator->template_arg_list,
-                                              /*is_decl_context=*/TRUE)) {
+                                              /*is_decl_context=*/TRUE,
+                                              /*ignore_noexcept=*/FALSE)) {
               /* This template can generate an instance of the appropriate
                  type.  Add the matching template to a list of matching
                  candidates. */
@@ -3315,6 +3316,7 @@ when the declaration is a friend declaration within a class.
                                            locator->template_arg_list,
 					   (a_boolean)locator->is_template_id,
                                            /*is_decl_context=*/TRUE,
+                                           /*ignore_noexcept=*/FALSE,
 					   /*in_class_specialization=*/FALSE,
                                            &is_new_template_instance);
           other_decl = best_sym;
@@ -10558,7 +10560,8 @@ definition of a member function of a class template.
           if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
                                              templ_decl_info->parameters,
                                              (a_template_arg_ptr)NULL,
-                                             /*is_decl_context=*/TRUE)) {
+                                             /*is_decl_context=*/TRUE,
+                                             /*ignore_noexcept=*/FALSE)) {
             sym_error(ec_template_instance_already_used, rout_sym);
           }  /* if */
         }  /* if */

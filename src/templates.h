@@ -641,7 +641,8 @@ extern a_boolean is_match_for_function_template(
 				a_symbol_ptr		*instance_sym,
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	explicit_arg_list,
-				a_boolean		is_decl_context);
+				a_boolean		is_decl_context,
+				a_boolean		ignore_noexcept);
 
 extern a_symbol_ptr matching_template_function(
 				a_symbol_ptr        templ_sym,
@@ -649,6 +650,7 @@ extern a_symbol_ptr matching_template_function(
 				a_template_arg_ptr  explicit_arg_list,
 				a_boolean	    explicit_arg_list_present,
 				a_boolean	    is_decl_context,
+				a_boolean	    ignore_noexcept,
 				a_boolean	    in_class_specialization,
 				a_boolean	    *is_new_template_instance);
 
@@ -656,7 +658,8 @@ extern
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
                                          a_type_ptr         curr_type,
 					 a_template_arg_ptr explicit_arg_list,
-                                         a_boolean          is_decl_context);
+                                         a_boolean          is_decl_context,
+                                         a_boolean          ignore_noexcept);
 
 extern a_type_ptr explicit_arg_list_identifies_specialization(
 				a_symbol_ptr		template_sym,

@@ -6179,10 +6179,16 @@ check_typerefs:
         break;
       case tk_routine:
         {
-          a_boolean	   this_class_matches = FALSE;
+          a_boolean	   this_class_matches = FALSE, ignore_noexcept;
           a_type_ptr	   this1;
           a_type_ptr	   this2;
           an_itf_flag_set  rt_flags = flags;
+          if (flags & ITF_IGNORE_TOP_LEVEL_NOEXCEPT) {
+            ignore_noexcept = TRUE;
+            flags &= ~ITF_IGNORE_TOP_LEVEL_NOEXCEPT;
+          } else {
+            ignore_noexcept = !exc_spec_in_func_type;
+          }  /* if */
           rtsp1 = type_1->variant.routine.extra_info;
           rtsp2 = type_2->variant.routine.extra_info;
           this1 = rtsp1->this_class;
@@ -6260,7 +6266,7 @@ check_typerefs:
                  together. */
               identical = (list1 == NULL && list2 == NULL);
             }  /* if */
-            if (identical && exc_spec_in_func_type &&
+            if (identical && exc_spec_in_func_type && !ignore_noexcept &&
                 (type_has_less_restrictive_exception_spec(type_1, type_2) ||
                  type_has_less_restrictive_exception_spec(type_2, type_1))) {
               /* The exception specifications are different. */

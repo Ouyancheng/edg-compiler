@@ -757,7 +757,10 @@ typedef unsigned int an_itf_flag_set;
 			   placeholder should be considered identical to a
 			   tk_typeref entry indicating a deduced type for such
 			   a placeholder. */
-#define ITF_LAST ITF_CHECK_DEDUCED_PLACEHOLDER_MATCH
+#define ITF_IGNORE_TOP_LEVEL_NOEXCEPT 0x2000
+			/* TRUE if a top-level exception specifier should be
+			   ignored while comparing the types. */
+#define ITF_LAST ITF_IGNORE_TOP_LEVEL_NOEXCEPT
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,ITF_LAST)*/
 

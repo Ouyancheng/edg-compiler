@@ -923,7 +923,8 @@ destination type (this comes up in a Microsoft-mode extension).
           /* Function template. */
           if (has_matching_template_function(sym, dest_underlying_type,
                                              template_arg_list,
-                                             /*is_decl_context=*/FALSE)) {
+                                             /*is_decl_context=*/FALSE,
+                                             /*ignore_noexcept=*/FALSE)) {
             /* This template can generate an instance of the appropriate
                type.  Add the matching template to a list of matching
                candidates. */
@@ -950,6 +951,7 @@ destination type (this comes up in a Microsoft-mode extension).
                                             template_arg_list,
                                             is_template_id,
                                             /*is_decl_context=*/FALSE,
+                                            /*ignore_noexcept=*/FALSE,
                                             /*in_class_specialization=*/FALSE,
                                             &is_new_template_instance);
           *match_level = aml_exact;
@@ -1107,6 +1109,7 @@ destination type (this comes up in a Microsoft-mode extension).
                                             template_arg_list,
                                             is_template_id,
                                             /*is_decl_context=*/FALSE,
+                                            /*ignore_noexcept=*/FALSE,
                                             /*in_class_specialization=*/FALSE,
                                             &is_new_template_instance);
         }  /* if */

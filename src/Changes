@@ -1,5 +1,18 @@
 Version 4.15
 
+10/10/17 [EDGcpfe/18787]
+Explicit instantiation and noexcept specifiers
+
+In C++17 mode, noexcept specifiers are part of function types.  However, they
+need not be specified in explicit instantiation directives.  The front end,
+however, did not permit them to be omitted in such cases.  For example:
+
+  template<typename T> void f() noexcept(true) {}
+  template void f<int>();  // Previously an error in C++17 mode.  Now okay.
+
+That is now fixed.
+
+
 10/9/17  [EDGcpfe/18843]
 Microsoft bugs: typename behavior emulation in member templates
 

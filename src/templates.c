@@ -16447,7 +16447,8 @@ a_boolean is_match_for_function_template(
 			a_symbol_ptr		*p_instance_sym,
 			a_template_param_ptr	templ_param_list,
 			a_template_arg_ptr	explicit_arg_list,
-			a_boolean		is_decl_context)
+			a_boolean		is_decl_context,
+			a_boolean		ignore_noexcept)
 /*
 Search for a template function based on the function template represented by
 templ_sym and the type pointed to by curr_type.  If such a template function
@@ -16461,6 +16462,9 @@ is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
 function has a this class type, so the this class should not be used in the
 matching process.
+
+If ignore_noexcept is TRUE, top-level noexcept specifiers on the function type
+are ignored even in modes where such specifiers are part of that type.
 */
 {
   a_boolean                         match = FALSE;
@@ -16540,6 +16544,9 @@ matching process.
   mtt_flags = MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION;
   if (is_decl_context) {
     mtt_flags |= MTT_UNKNOWN_THIS_CLASS_TYPE;
+    if (ignore_noexcept) {
+      mtt_flags |= MTT_ALLOW_STRICTER_NOEXCEPT;
+    }  /* if */
   } else {
     mtt_flags |= MTT_ALLOW_STRICTER_NOEXCEPT;
   }  /* if */
@@ -16565,15 +16572,19 @@ matching process.
            has a this class type.  Consequently, a NULL this class
            type should be considered a match for a non-NULL one in the
            routine we are matching with. */
-        match = f_identical_types(curr_type, new_type,
-                                  ITF_UNKNOWN_THIS_CLASS_TYPE |
-                                  ITF_CHECKING_DEDUCTION_RESULT |
-                                  ITF_IGNORE_MS_CALLING_CONVENTION);
+        an_itf_flag_set  itf_flags = ITF_UNKNOWN_THIS_CLASS_TYPE |
+                                     ITF_CHECKING_DEDUCTION_RESULT |
+                                     ITF_IGNORE_MS_CALLING_CONVENTION;
+        if (ignore_noexcept) {
+          itf_flags |= ITF_IGNORE_TOP_LEVEL_NOEXCEPT;
+        }  /* if */
+        match = f_identical_types(curr_type, new_type, itf_flags);
       } else {
         /* In nondeclarative contexts, the this class parameter types must
            match exactly.  types_are_compatible is used so that a conversion
            from a C++ linkage function to C linkage can be permitted in
 	   some modes. */
+        a_type_compat_flags_set  tcf_flags;
         if (proto_rp->has_deducible_return_type) {
           /* For functions with deducible return types, ensure that the type
              has been deduced before comparing the routine type. */
@@ -16589,11 +16600,14 @@ matching process.
           }  /* if */
           new_type = instance_rp->type;
         }  /* if */
-        match = f_types_are_compatible(new_type, curr_type,
-                                       TCF_IMPLICIT_CONVERSION |
-                                       TCF_IGNORE_THIS_CLASS_TYPE |
-                                       TCF_ALLOW_BASE_DERIVED_THIS_MATCH |
-                                       TCF_CHECKING_DEDUCTION_RESULT);
+        tcf_flags = TCF_IMPLICIT_CONVERSION |
+                    TCF_IGNORE_THIS_CLASS_TYPE |
+                    TCF_ALLOW_BASE_DERIVED_THIS_MATCH |
+                    TCF_CHECKING_DEDUCTION_RESULT;
+        if (ignore_noexcept) {
+          tcf_flags |= ITF_IGNORE_TOP_LEVEL_NOEXCEPT;
+        }  /* if */
+        match = f_types_are_compatible(new_type, curr_type, tcf_flags);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -16648,6 +16662,7 @@ a_symbol_ptr matching_template_function(
 				a_template_arg_ptr  explicit_arg_list,
 				a_boolean	    explicit_arg_list_present,
 				a_boolean	    is_decl_context,
+				a_boolean	    ignore_noexcept,
 				a_boolean	    in_class_specialization,
 				a_boolean	    *is_new_template_instance)
 /*
@@ -16658,10 +16673,13 @@ return a pointer to the symbol; otherwise, return NULL.
 
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
-function has a this class type, so the this class type should not be
-used in the matching process.  explicit_arg_list is non-NULL if an explicitly
-specified template argument list was provided.  *is_new_template_instance is
-returned TRUE if a new template instance is created with this call.
+function has a this class type, so the this class type should not be used in
+the matching process.  If ignore_noexcept is TRUE, top-level noexcept
+specifiers on the function type are ignored even in modes where such
+specifiers are part of that type.  explicit_arg_list is non-NULL if an
+explicitly-specified template argument list was provided.
+*is_new_template_instance is returned TRUE if a new template instance is
+created with this call.
 */
 {
   a_symbol_ptr          		sym;
@@ -16682,9 +16700,8 @@ returned TRUE if a new template instance is created with this call.
   *is_new_template_instance = FALSE;
   if (is_match_for_function_template(templ_sym, curr_type,
                                      &templ_arg_list, &sym,
-                                     templ_param_list,
-				     explicit_arg_list,
-                                     is_decl_context)) {
+                                     templ_param_list, explicit_arg_list,
+                                     is_decl_context, ignore_noexcept)) {
     if (sym != NULL) {
       /* A match has been found -- just return a pointer to it. */
     } else {
@@ -16706,7 +16723,8 @@ returned TRUE if a new template instance is created with this call.
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
                                          a_type_ptr         curr_type,
 					 a_template_arg_ptr explicit_arg_list,
-		  		         a_boolean	    is_decl_context)
+		  		         a_boolean	    is_decl_context,
+                                         a_boolean          ignore_noexcept)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  Return TRUE if a
@@ -16718,6 +16736,9 @@ a template instance.  In such cases it is not known whether or not the
 function has a this class type, so the this class type should not be used
 in the matching process.  explicit_arg_list is non-NULL if an explicitly
 specified template argument list was provided.
+
+If ignore_noexcept is TRUE, top-level noexcept specifiers on the function type
+are ignored even in modes where such specifiers are part of that type.
 */
 {
   a_symbol_ptr          		sym;
@@ -16739,7 +16760,8 @@ specified template argument list was provided.
                                           &templ_arg_list, &sym,
                                           templ_param_list,
 					  explicit_arg_list,
-					  is_decl_context);
+					  is_decl_context,
+                                          ignore_noexcept);
   /* Free any template arguments that may have been created. */
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   return result;
@@ -16863,7 +16885,8 @@ is the template entry for the template being declared.
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym,
                                        templ_param_list,
                                        (a_template_arg_ptr)NULL,
-				       /*is_decl_context=*/TRUE)) {
+				       /*is_decl_context=*/TRUE,
+				       /*ignore_noexcept=*/FALSE)) {
       /* A match has been found. */
 #if CHECKING
       if (sym != NULL) {
@@ -26660,7 +26683,8 @@ otherwise, set it to FALSE.
       }  /* if */
       any_templates = TRUE;
       if (has_matching_template_function(fund_sym, type, explicit_arg_list,
-                                         /*is_decl_context=*/TRUE)) {
+                                         /*is_decl_context=*/TRUE,
+                                         dps->is_explicit_instantiation)) {
         /* This template can generate an instance of the appropriate
            type.  Add the matching template to a list of matching
            candidates. */
@@ -26687,6 +26711,7 @@ otherwise, set it to FALSE.
         new_sym = matching_template_function(sym, type, explicit_arg_list,
                                              explicit_arg_list_present,
                                              /*is_decl_context=*/TRUE,
+                                             dps->is_explicit_instantiation,
                                              in_class_specialization,
                                              is_new_template_instance);
       }  /* if */
@@ -26752,7 +26777,8 @@ by type.
     if (lookup_sym != NULL) {
       found = has_matching_template_function(lookup_sym, type,
                                              explicit_arg_list,
-                                             /*is_decl_context=*/TRUE);
+                                             /*is_decl_context=*/TRUE,
+                                             /*ignore_noexcept=*/FALSE);
       if (found) break;
     }  /* for */
   }  /* if */

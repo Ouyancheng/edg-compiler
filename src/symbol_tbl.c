@@ -10305,7 +10305,8 @@ next_delete_symbol:;
             if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
               if (has_matching_template_function(
                                        fund_sym, tp, (a_template_arg_ptr)NULL,
-                                       /*is_decl_context=*/TRUE)) {
+                                       /*is_decl_context=*/TRUE,
+                                       /*ignore_noexcept=*/FALSE)) {
                 /* We have a match.  Add the matching template to a list of
                    matching candidates.  Any poorer matches will be removed
                    by this process. */
@@ -10333,6 +10334,7 @@ next_delete_symbol:;
                                            (a_template_arg_ptr)NULL,
 				           /*explicit_arg_list_present=*/FALSE,
                                            /*is_decl_context=*/TRUE,
+                                           /*ignore_noexcept=*/FALSE,
                                            /*in_class_specialization=*/FALSE,
                                            &is_new_template_instance);
               }  /* if */
