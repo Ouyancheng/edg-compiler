@@ -4318,9 +4318,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                  it has a representation in static interpreter storage.
                  Otherwise, create a run-time address. */
               a_variable_ptr  vp = con->variant.address.variant.variable;
+              a_type_ptr      vtp = skip_typerefs(vp->type);
               if (vp->constant_valued || vp->is_constexpr) {
                 a_byte      *var_bytes;
-                a_type_ptr  vtp = skip_typerefs(vp->type);
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {
                   alloc_static_object(ips, vtp, var_bytes, &result);
@@ -4385,6 +4385,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 }  /* if */
                 obj_type = vtp;
               } else {
+                clear_runtime_constant_address(value, con);
+                if (vtp->kind == (a_type_kind)tk_array) {
+                  ((a_constexpr_address*)value)->flags |= CA_ARRAY_ELEMENT;
+                }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
                 if (vp->is_weak) {
                   /* Weakly declared variables have no definite address (they
@@ -4400,7 +4404,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   break;
                 }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                clear_runtime_constant_address(value, con);
               }  /* if */
             }
             break;
