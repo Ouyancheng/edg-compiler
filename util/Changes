@@ -1,5 +1,12 @@
 Version 4.15
 
+10/11/17 [EDGcpfe/18850]
+Possible buffer overflow in decode.c in Cfront ABI
+
+The buffer allocated for demangling of a Cfront parameter reference could
+overflow in certain cases and has now been fixed.
+
+
 -------------------------------------------------------------------------------
 Version 4.14, September 12, 2017
 

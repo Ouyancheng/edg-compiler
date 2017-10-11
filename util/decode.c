@@ -1193,7 +1193,7 @@ type) as pointed to by ptr:
 {
   a_const_char  *p = ptr;
   unsigned long num, level = 0;
-  char          buffer[50];
+  char          buffer[60];
 
   /* Advance past the initial "I" (verified by caller). */
   p++;
