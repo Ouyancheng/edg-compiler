@@ -5812,7 +5812,7 @@ successfully interpreted, FALSE otherwise.
             goto done_with_switch;
           }  /* if */
           get_int_val_from(case_value, tp, bool_val, ovfl);
-          if (bool_val) {
+          if (ovfl || bool_val) {
             /* Continue the loop. */
             break;
           } else {
