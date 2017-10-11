@@ -466,11 +466,15 @@ typedef struct a_call_frame {
 			   result_storage points. */
   a_bit_field	return_active:1;
 			/* TRUE while backtracking from a return statement. */
-  a_bit_field	break_active:1;
-			/* TRUE while backtracking from a break statement. */
+  a_bit_field	loop_break_active:1;
+			/* TRUE while backtracking from a break statement
+			   that applies to a loop statement. */
   a_bit_field	continue_active:1;
 			/* TRUE while backtracking from a continue
 			   statement. */
+  a_bit_field	switch_break_active:1;
+			/* TRUE while backtracking from a break statement
+			   that applies to a switch statement. */
 } a_call_frame;
 
 
@@ -1108,8 +1112,9 @@ Macros to push and pop call frames.
     (p_frame)->result_storage = (p_result);                                  \
     (p_frame)->complete_object = (p_complete);                               \
     (p_frame)->return_active = FALSE;                                        \
-    (p_frame)->break_active = FALSE;                                         \
+    (p_frame)->loop_break_active = FALSE;                                    \
     (p_frame)->continue_active = FALSE;                                      \
+    (p_frame)->switch_break_active = FALSE;                                  \
     (ips)->curr_call_frame = (p_frame);                                      \
   }
 
@@ -4236,8 +4241,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       /* If the constant includes an implicit cast, evaluate the constant
          through the backing expression so that the cast is correctly
          applied. */
-      do_constexpr_full_expression(
-                              ips, con->expr, value, complete_object, result);
+      if (!do_constexpr_expression(ips, con->expr, value, complete_object)) {
+        result = FALSE;
+      }  /* if */
       goto done;
     }  /* if */
   }  /* if */
@@ -5358,8 +5364,9 @@ Interpret the given block statement and its associated scope (if any).
     for (; result && stmt != NULL; stmt = stmt->next) {
       result = do_constexpr_statement(ips, stmt);
       if (ips->curr_call_frame->return_active ||
-          ips->curr_call_frame->break_active ||
-          ips->curr_call_frame->continue_active) {
+          ips->curr_call_frame->loop_break_active ||
+          ips->curr_call_frame->continue_active ||
+          ips->curr_call_frame->switch_break_active) {
         /* A branching statement ends execution for this block. */
         break;
       }  /* if */
@@ -5388,9 +5395,11 @@ Interpret the given block statement and its associated scope (if any).
 
 
 static a_boolean do_constexpr_for_statement(an_interpreter_state  *ips,
-                                            a_statement_ptr       stmt)
+                                            a_statement_ptr       stmt,
+                                            a_boolean             skip_init)
 /*
-Interpret the given for-statement.
+Interpret the given for-statement.  If skip_init is TRUE, skip its
+initialization.
 */
 {
   a_boolean              result = TRUE;
@@ -5403,7 +5412,7 @@ Interpret the given for-statement.
      state to enable deallocation when we're done. */
   save_storage_stack(ips, saved_stack);
   /* Run the initialization statement (if any). */
-  if (init != NULL && !do_constexpr_statement(ips, init)) {
+  if (init != NULL && !skip_init && !do_constexpr_statement(ips, init)) {
     do_constexpr_fail(result);
   } else {
     an_expr_node_ptr  expr = stmt->expr, incr = loop_info->increment;
@@ -5476,10 +5485,10 @@ Interpret the given for-statement.
               /* Stop the loop (leave the flag active since we may have to
                  break out of other constructs). */
               bool_val = FALSE;
-            } else if (ips->curr_call_frame->break_active) {
+            } else if (ips->curr_call_frame->loop_break_active) {
               /* Stop the loop (which completes the execution of the break
                  statement). */
-              ips->curr_call_frame->break_active = FALSE;
+              ips->curr_call_frame->loop_break_active = FALSE;
               bool_val = FALSE;
             } else {
               if (ips->curr_call_frame->continue_active) {
@@ -5627,10 +5636,10 @@ Interpret the given range-based for-statement.
               /* Break out of the loop (leave the flag active since we may
                  have to break out of other constructs). */
               break;
-            } else if (ips->curr_call_frame->break_active) {
+            } else if (ips->curr_call_frame->loop_break_active) {
               /* Break out of the loop (which completes the execution of
                  the break statement). */
-              ips->curr_call_frame->break_active = FALSE;
+              ips->curr_call_frame->loop_break_active = FALSE;
               break;
             } else if (ips->curr_call_frame->continue_active) {
               /* Continue, but clear the continue_active flag since we've
@@ -5654,6 +5663,188 @@ done:
   restore_storage_stack(ips, saved_stack);
   return result;
 }  /* do_constexpr_range_based_for_statement */
+
+
+static a_boolean do_constexpr_switch(an_interpreter_state  *ips,
+                                     a_statement_ptr       stmt)
+/*
+Interpret the given switch statement.  Return TRUE if the statement was
+successfully interpreted, FALSE otherwise.
+*/
+{
+  a_boolean                result = TRUE;
+  an_expr_node_ptr         expr = stmt->expr;
+  a_byte                   *expr_value, *case_value;
+  a_storage_stack_state    saved_stack;
+  a_type_ptr               tp;
+  a_byte_count             n_bytes;
+  a_statement_ptr          substmt;
+  a_switch_case_entry_ptr  scep = stmt->variant.switch_stmt.extra_info
+                                      ->sorted_cases;
+  a_boolean                is_signed, has_cond_var;
+
+  has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+  if (has_cond_var &&
+      !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+    has_cond_var = FALSE;
+    goto done_with_switch;
+  }  /* if */
+  tp = skip_typerefs(expr->type);
+  n_bytes = value_bytes_for_type(ips, tp, &result);
+  alloc_complete_object(ips, n_bytes, tp, expr_value);
+  result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                  expr_value);
+  if (!result) {
+    goto done_with_switch;
+  }  /* if */
+  is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
+  /* Search through the ordered list of case labels for the one selected
+     by the switch expression. */
+  alloc_complete_object(ips, n_bytes, tp, case_value);
+  for (; scep != NULL; scep = scep->next_on_sorted_list) {
+    int             cmp;
+    a_constant_ptr  case_con = scep->case_value;
+    result = copy_val_from_constant(ips, case_con, case_value, case_value);
+    if (!result) {
+      goto done_with_switch;
+    }  /* if */
+    cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
+                             (an_integer_value*)case_value, is_signed);
+    if (cmp == 0) {
+      /* We found the case entry. */
+      break;
+    } else if (cmp < 0) {
+      /* There may be more entries, but they won't match. */
+      scep = NULL;
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (scep->range_end != NULL) {
+      result = copy_val_from_constant(
+                                ips, scep->range_end, case_value, case_value);
+      if (!result) {
+        goto done_with_switch;
+      }  /* if */
+      cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
+                               (an_integer_value*)case_value, is_signed);
+      if (cmp <= 0) {
+        /* We're in the range. */
+        break;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* for */
+  if (scep == NULL) {
+    /* No case found: Use the default (if any). */
+    scep = stmt->variant.switch_stmt.extra_info->default_case;
+    if (scep == NULL) {
+      /* No default. */
+      goto done_with_switch;
+    }  /* if */
+  }  /* if */
+  substmt = scep->stmt;
+  /* Continue execution at the labeled statement.  Note that we don't
+     have to activate intervening block scopes because they cannot
+     contain variable declarations (errors are issued for case labels
+     that enable branching past an initialized variable, and declaring
+     uninitialized variables is not allowed in constexpr function
+     definitions). */
+  for (;;) {
+    /* Move to the next statement.  The first time around, this means
+       moving past the selected switch-case statement. */
+    if (ips->curr_call_frame->switch_break_active) {
+      /* Break out of the switch statements (which completes the
+         execution of the break statement). */
+      ips->curr_call_frame->switch_break_active = FALSE;
+      break;
+    } else if (ips->curr_call_frame->loop_break_active) {
+      /* This is usually a break out of a loop enclosing the switch statement.
+         However, if we switched into the body of an inner loop, it could also
+         be a break out of that loop.  Traverse the parent statements to see
+         which case it is. */
+      for (;;) {
+        substmt = substmt->parent;
+        if (substmt == stmt) {
+          /* We're breaking out of the switch statement itself. */
+          goto done_with_switch;
+        } else if (substmt->kind == (a_statement_kind)stmk_while ||
+                   substmt->kind == (a_statement_kind)stmk_end_test_while ||
+                   substmt->kind == (a_statement_kind)stmk_for) {
+          /* We're breaking out of an inner loop.  This completes the
+             execution of the break statement. */
+          ips->curr_call_frame->loop_break_active = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    } else if (ips->curr_call_frame->return_active ||
+               ips->curr_call_frame->continue_active) {
+      /* Other branching statements end the execution of the switch, but
+         they are not completed by the switch. */
+      break;
+    }  /* if */
+    if (substmt->next != NULL) {
+      /* The statement just interpreted is followed by another one.
+         We'll interpret it next. */
+      substmt = substmt->next;
+    } else {
+      /* There are no more statements in this sequence.  Move up to the
+         parent sequence if appropriate. */
+      for (;;) {
+        substmt = substmt->parent;
+        if (substmt == stmt) {
+          /* We're flowing off the switch statement itself. */
+          goto done_with_switch;
+        } else if (substmt->kind == (a_statement_kind)stmk_while) {
+          /* We jumped into a simple while loop.  Continue the loop. */
+          break;
+        } else if (substmt->kind == (a_statement_kind)stmk_end_test_while) {
+          /* We jumped into a do...while loop.  Evaluate the loop condition to
+             decide whether the loop should be continued.  Since the condition
+             is an integral value (bool), we can reuse the case_value
+             storage. */
+          a_host_large_integer  bool_val;
+          a_boolean             ovfl;
+          expr = substmt->expr;
+          tp = skip_typerefs(expr->type);
+          do_constexpr_full_expression(
+                                   ips, expr, case_value, case_value, result);
+          release_address_structures(expr, tp, case_value);
+          if (!result) {
+            goto done_with_switch;
+          }  /* if */
+          get_int_val_from(case_value, tp, bool_val, ovfl);
+          if (bool_val) {
+            /* Continue the loop. */
+            break;
+          } else {
+            /* Keep looking for the next statement to execute. */
+          }  /* if */
+        } else if (substmt->kind == (a_statement_kind)stmk_for) {
+          /* We jumped into a "for" loop.  Continue the loop, but skip
+             its initialization. */
+          if (!do_constexpr_for_statement(ips, substmt, /*skip_init=*/TRUE)) {
+            result = FALSE;
+            goto done_with_switch;
+          }  /* if */
+        }  /* if */
+        if (substmt->next != NULL) {
+          substmt = substmt->next;
+          break;
+        }  /* if */
+        /* Continue up the parent chain. */
+      }  /* for */
+    }  /* if */
+    if (!do_constexpr_statement(ips, substmt)) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+done_with_switch:
+  if (has_cond_var) {
+    do_constexpr_condition_cleanup(ips, expr);
+    do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+  }  /* if */
+  return result;
+}  /* do_constexpr_switch */
 
 
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
@@ -5776,10 +5967,10 @@ successfully interpreted, FALSE otherwise.
                   /* Stop the loop (leave the flag active since we may have to
                      break out of other constructs). */
                   bool_val = FALSE;
-                } else if (ips->curr_call_frame->break_active) {
+                } else if (ips->curr_call_frame->loop_break_active) {
                   /* Stop the loop (which completes the execution of the break
                      statement). */
-                  ips->curr_call_frame->break_active = FALSE;
+                  ips->curr_call_frame->loop_break_active = FALSE;
                   bool_val = FALSE;
                 } else if (ips->curr_call_frame->continue_active) {
                   /* Continue, but clear the continue_active flag since we've
@@ -5799,8 +5990,16 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_goto:
-      if (stmt->variant.label.ptr->break_label) {
-        ips->curr_call_frame->break_active = TRUE;
+      /* An actual "goto" statement is not valid.  However, stmk_goto statement
+         generated for other branch statements ("break" and "continue") are
+         okay.  For those, we activate a flag in the interpreter state
+         depending on the kind of label we are branching to.  This flag are
+         consulted to determine the control flow during loop and switch
+         statements. */
+      if (stmt->variant.label.ptr->switch_break_label) {
+        ips->curr_call_frame->switch_break_active = TRUE;
+      } else if (stmt->variant.label.ptr->break_label) {
+        ips->curr_call_frame->loop_break_active = TRUE;
       } else if (stmt->variant.label.ptr->continue_label) {
         ips->curr_call_frame->continue_active = TRUE;
       } else {
@@ -5881,10 +6080,10 @@ successfully interpreted, FALSE otherwise.
             /* Break out of the loop (leave the flag active since we may
                have to break out of other constructs). */
             break;
-          } else if (ips->curr_call_frame->break_active) {
+          } else if (ips->curr_call_frame->loop_break_active) {
             /* Break out of the loop (which completes the execution of the
                break statement). */
-            ips->curr_call_frame->break_active = FALSE;
+            ips->curr_call_frame->loop_break_active = FALSE;
             break;
           } else if (ips->curr_call_frame->continue_active) {
             /* Continue, but clear the continue_active flag since we've
@@ -5911,7 +6110,7 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_for:
-      result = do_constexpr_for_statement(ips, stmt);
+      result = do_constexpr_for_statement(ips, stmt, /*skip_init=*/FALSE);
       break;
     case stmk_range_based_for:
       result = do_constexpr_range_based_for_statement(ips, stmt);
@@ -5920,122 +6119,7 @@ successfully interpreted, FALSE otherwise.
       /* Nothing to do. */
       break;
     case stmk_switch:
-      { a_statement_ptr          substmt;
-        a_switch_case_entry_ptr  scep = stmt->variant.switch_stmt.extra_info
-                                            ->sorted_cases;
-        a_boolean                is_signed, has_cond_var;
-        expr = stmt->expr;
-        has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
-        if (has_cond_var &&
-            !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
-          break;
-        }  /* if */
-        tp = skip_typerefs(expr->type);
-        n_bytes = value_bytes_for_type(ips, tp, &result);
-        alloc_complete_object(ips, n_bytes, tp, expr_value);
-        result = do_constexpr_condition(has_cond_var, ips, expr, tp,
-                                        expr_value);
-        if (!result) {
-          goto done_with_switch;
-        }  /* if */
-        is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
-        /* Search through the ordered list of case labels for the one selected
-           by the switch expression. */
-        for (; scep != NULL; scep = scep->next_on_sorted_list) {
-          a_byte          *case_bytes;
-          int             cmp;
-          a_constant_ptr  case_con = scep->case_value;
-          a_type_ptr      case_tp = skip_typerefs(case_con->type);
-          alloc_complete_object(ips, n_bytes, case_tp, case_bytes);
-          result = copy_val_from_constant(
-                               ips, scep->case_value, case_bytes, case_bytes);
-          if (!result) {
-            goto done_with_switch;
-          }  /* if */
-          cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
-                                   (an_integer_value*)case_bytes, is_signed);
-          if (cmp == 0) {
-            /* We found the case entry. */
-            break;
-          } else if (cmp < 0) {
-            /* There may be more entries, but they won't match. */
-            scep = NULL;
-            break;
-#if GNU_EXTENSIONS_ALLOWED
-          } else if (scep->range_end != NULL) {
-            result = copy_val_from_constant(
-                                ips, scep->range_end, case_bytes, case_bytes);
-            if (!result) {
-              goto done_with_switch;
-            }  /* if */
-            cmp = cmp_integer_values((an_integer_value*)expr_value, is_signed,
-                                     (an_integer_value*)case_bytes, is_signed);
-            if (cmp <= 0) {
-              /* We're in the range. */
-              break;
-            }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          }  /* if */
-        }  /* for */
-        if (scep == NULL) {
-          /* No case found: Use the default (if any). */
-          scep = stmt->variant.switch_stmt.extra_info->default_case;
-          if (scep == NULL) {
-            /* No default. */
-            goto done_with_switch;
-          }  /* if */
-        }  /* if */
-        substmt = scep->stmt;
-        /* Continue execution at the labeled statement.  Note that we don't
-           have to activate intervening block scopes because they cannot
-           contain variable declarations (errors are issued for case labels
-           that enable branching past an initialized variable, and declaring
-           uninitialized variables is not allowed in constexpr function
-           definitions). */
-        for (;;) {
-          /* Move to the next statement.  The first time around, this means
-             moving past the selected switch-case statement. */
-          if (ips->curr_call_frame->break_active) {
-            /* Break out of the switch statements (which completes the
-               execution of the break statement). */
-            ips->curr_call_frame->break_active = FALSE;
-            break;
-          } else if (ips->curr_call_frame->return_active ||
-                     ips->curr_call_frame->break_active ||
-                     ips->curr_call_frame->continue_active) {
-            /* Other branching statements end the execution of the switch, but
-               they are not completed by the switch. */
-            break;
-          } else if (substmt->next != NULL) {
-            /* The statement just interpreted is followed by another one.
-               We'll interpret it next. */
-            substmt = substmt->next;
-          } else {
-            /* There are no more statements in this sequence.  Move up to the
-               parent sequence if appropriate. */
-            for (;;) {
-              substmt = substmt->parent;
-              if (substmt == stmt) {
-                /* We're flowing off the switch statement itself. */
-                goto done_with_switch;
-              } else if (substmt->next != NULL) {
-                substmt = substmt->next;
-                break;
-              }  /* if */
-              /* Continue up the parent chain. */
-            }  /* for */
-          }  /* if */
-          result = do_constexpr_statement(ips, substmt);
-          if (!result) {
-            goto done_with_switch;
-          }  /* if */
-        }  /* for */
-done_with_switch:
-        if (has_cond_var) {
-          do_constexpr_condition_cleanup(ips, expr);
-          do_constexpr_condition_dealloc(ips, expr, &saved_stack);
-        }  /* if */
-      }
+      result = do_constexpr_switch(ips, stmt);
       break;
     case stmk_init:
       { a_dynamic_init_ptr  dip = stmt->variant.dynamic_init;

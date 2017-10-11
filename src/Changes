@@ -1,5 +1,30 @@
 Version 4.15
 
+10/11/17 [EDGcpfe/17181,EDGcpfe/18722]
+Constexpr interpreter and switching into loops
+
+The handling of switch statements in the constexpr interpreter has been
+improved to handle cases that switch into the body of a loop statement.
+For example:
+
+  constexpr int g(int x, int y) {
+   switch(x) {
+     case 1:
+       for (y = 0; y < 10; ++y) {
+         if (y == -1)
+           return 42;
+     case 2:
+         ;
+       }
+       break;
+     default:
+       break;
+     }
+     return x+y;
+  }
+  static_assert(g(2, -2) == 42, "Unexpected");  Previously failed.  Now okay.
+
+
 10/11/17 [EDGcpfe/18818]
 Promotion of local static temporary when ENSURE_LOWERED_TYPE_LIST_ORDERING is
 FALSE
