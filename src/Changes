@@ -1,5 +1,25 @@
 Version 4.15
 
+10/11/17 [EDGcpfe/18809]
+Member string constants and multiple translation units
+
+Previously, when simultaneously compiling the following two translation units,
+
+  // File 1:
+  struct S {
+    static constexpr char const *s = "";
+  };
+
+  // File 2:
+  struct S {
+    static constexpr char const *s = "";
+  };
+
+the front end issued a correspondence error, because the member S::s is
+initialized with two distinct addresses.  Now, such cases are accepted in
+nonstrict modes if the strings have the same contents.
+
+
 10/11/17 [EDGcpfe/17181,EDGcpfe/18722]
 Constexpr interpreter and switching into loops
 

@@ -7191,8 +7191,14 @@ definition of the CC flags in il.h for more information.
                                        cp2->variant.address.variant.variable);
               break;
             case abk_constant:
-              eq = (cp1->variant.address.variant.constant ==
-                    cp2->variant.address.variant.constant);
+              if (options & CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON) {
+                eq = compare_constants(cp1->variant.address.variant.constant,
+                                       cp2->variant.address.variant.constant,
+                                       options);
+              } else {
+                eq = (cp1->variant.address.variant.constant ==
+                      cp2->variant.address.variant.constant);
+              }  /* if */
               break;
             case abk_temporary:
               eq = (cp1->variant.address.variant.constant ==

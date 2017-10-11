@@ -3108,6 +3108,26 @@ declaration modifiers.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
+static a_boolean equiv_member_constants(a_variable_ptr  var,
+                                        a_variable_ptr  corresp_var)
+/*
+The given variable entries represent member constants.  Return TRUE if their
+associated constants can be considered equivalent.
+*/
+{
+  a_compare_constants_options_set  options;
+
+  if (!strict_ansi_mode) {
+    options = CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON;
+  } else {
+    options = CC_NO_OPTIONS;
+  }  /* if */
+  return compare_constants(var->initializer.constant,
+                           corresp_var->initializer.constant,
+                           options);
+}  /* equiv_member_constants */
+
+
 static a_boolean verify_variable_correspondence(a_variable_ptr  var)
 /*
 Check that the recorded translation unit correspondence for the given variable
@@ -3148,9 +3168,8 @@ is in fact valid.
             another one.) */
          (var->is_member_constant == corresp_var->is_member_constant ?
            (var->is_member_constant &&
-            !eq_constants(var->initializer.constant,
-                          corresp_var->initializer.constant)) :
-            !var->is_template_variable) ||
+            !equiv_member_constants(var, corresp_var)) :
+           !var->is_template_variable) ||
 #if DECL_MODIFIERS_IN_USE
          incompatible_variable_decl_modifiers(var, corresp_var) ||
 #endif /* DECL_MODIFIERS_IN_USE */

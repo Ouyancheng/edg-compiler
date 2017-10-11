@@ -1543,6 +1543,10 @@ typedef int a_compare_constants_options_set;
 #define CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED 0x10
 			/* TRUE if, when comparing template constant
 			   identities, they must match exactly. */
+#define CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON 0x20
+			/* TRUE if abk_constant entries compare equal if they
+			   point to constants that compare equal (instead of
+			   pointing to the same constant entry). */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,
