@@ -3288,8 +3288,8 @@ when the declaration is a friend declaration within a class.
             /* Look for a match on the list of instantiations. */
             if (has_matching_template_function(fund_other_decl, idlbp->type,
                                                locator->template_arg_list,
-                                              /*is_decl_context=*/TRUE,
-                                              /*ignore_noexcept=*/FALSE)) {
+                                               /*is_decl_context=*/TRUE,
+                                               /*ignore_noexcept=*/FALSE)) {
               /* This template can generate an instance of the appropriate
                  type.  Add the matching template to a list of matching
                  candidates. */

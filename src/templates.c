@@ -16759,8 +16759,8 @@ are ignored even in modes where such specifiers are part of that type.
   result = is_match_for_function_template(templ_sym, curr_type,
                                           &templ_arg_list, &sym,
                                           templ_param_list,
-					  explicit_arg_list,
-					  is_decl_context,
+                                          explicit_arg_list,
+                                          is_decl_context,
                                           ignore_noexcept);
   /* Free any template arguments that may have been created. */
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
@@ -16885,8 +16885,8 @@ is the template entry for the template being declared.
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym,
                                        templ_param_list,
                                        (a_template_arg_ptr)NULL,
-				       /*is_decl_context=*/TRUE,
-				       /*ignore_noexcept=*/FALSE)) {
+                                       /*is_decl_context=*/TRUE,
+                                       /*ignore_noexcept=*/FALSE)) {
       /* A match has been found. */
 #if CHECKING
       if (sym != NULL) {
