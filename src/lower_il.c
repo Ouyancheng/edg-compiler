@@ -19593,10 +19593,9 @@ by things that will be in the file scope.
          fix_type_list_ordering_problems during wrapup processing to ensure
          that the type list is properly ordered. */
       promotion_needed = TRUE;
-    } else
+    }  /* if */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
-    /* Do not insert code here. */
-    {
+    if (!promotion_needed) {
       /* Look for a local static variable with a destructor.  That might force
          the variable to be at the file scope, because if the destruction is
          complicated, a routine is generated to contain the destruction
@@ -19608,10 +19607,11 @@ by things that will be in the file scope.
         if (init_kind == (an_init_kind)initk_dynamic) {
           dip = initializer->dynamic;
           if (dip->destructor != NULL ||
-              dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-            /* The initialization has a destructor, or it's an aggregate that
-               might have a ck_dynamic_init with a destructor somewhere in
-               it (it's not worth the effort to look). */
+              (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+               dip->kind == (a_dynamic_init_kind)dik_constructor)) {
+            /* The initialization has a destructor, or it's an aggregate or a
+               constructor that might have a ck_dynamic_init with a destructor
+               somewhere in it (it's not worth the effort to look). */
             promotion_needed = TRUE;
             break;
           }  /* if */

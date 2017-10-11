@@ -1,5 +1,25 @@
 Version 4.15
 
+10/11/17 [EDGcpfe/18818]
+Promotion of local static temporary when ENSURE_LOWERED_TYPE_LIST_ORDERING is
+FALSE
+
+In configurations that do lowering but have ENSURE_LOWERED_TYPE_LIST_ORDERING
+set to FALSE, lowering had failed to promote a temporary local static variable
+to the file scope resulting in a lowering-generated destruction routine that
+refers to an automatic variable defined in a different function scope.
+Now fixed.  For example (with --c++11):
+
+  #include <initializer_list>
+  struct A {
+    template <class T> A(T &);
+    ~A();
+  };
+  void f() {
+    static std::initializer_list<A> a = { "foo" };
+  }
+
+
 10/10/17 [EDGcpfe/18845]
 GCC compatibility: Incorporate changes for builtin functions from GCC 5.5.0
 
