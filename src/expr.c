@@ -40,11 +40,7 @@ expr.c -- Expression scanning routines.
 /* widen_string_literal is used by scan_microsoft_lprefix_operator. */
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
-/* Needed for GNU statement expression, ({...}).  Also for checking co_await
-   expressions. */
 #include "statements.h"
-#endif /* GNU_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
