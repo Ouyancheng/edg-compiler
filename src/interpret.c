@@ -4287,10 +4287,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       } else {
         a_type_ptr  obj_type = NULL;
         if (con->explicit_cast_applied) {
-          a_type_ptr  ptr_type = skip_typerefs(con->type);
-          if (ptr_type->kind != (a_type_kind)tk_pointer) {
-            /* A reinterpret-like cast from pointer to integer. */
-            check_assertion(con->orig_type != NULL);
+          a_type_ptr  con_type = skip_typerefs(con->type);
+          if (con->orig_type != NULL &&
+              !types_are_compatible(con_type, con->orig_type)) {
+            /* A reinterpret-like cast (e.g., from pointer to integer). */
             info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                 &ips->position, con->orig_type, con->type,
                                 ips);

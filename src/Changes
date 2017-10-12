@@ -1,5 +1,17 @@
 Version 4.15
 
+10/12/17 [EDGcpfe/18857]
+Constexpr interpreter and casts of scalars to function addresses
+
+Explicitly casting a scalar value to a reference or pointer to a function is
+possible.  The interpreter previously failed to notice that such a cast is not
+a valid constant expression (even though it might be represented through an
+entry of type a_constant) and instead produced a corrupt interpreter
+representation of the construct.  In at least one complex case, this resulted
+in an unbounded loop in translate_interpreter_offset.  That problem is fixed
+now.
+
+
 10/12/17 [EDGcpfe/18856]
 Constexpr lambda captures and class hierarchy representation
 
