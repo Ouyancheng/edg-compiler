@@ -8414,6 +8414,7 @@ is within the given complete_object.
                                                 dst_bytes, complete_object);
         }  /* if */
       } else {
+        /* An ordinary simple capture. */
         a_byte              *var_storage;
         a_variable_ptr      vp = cap->captured.variable;
         a_type_ptr          vtp = vp->type, uvtp = skip_typerefs(vtp);
@@ -8499,8 +8500,6 @@ is within the given complete_object.
             if (!constexpr_copy_object(ips, fp->type, var_storage, dst_bytes,
                                        complete_object)) {
               do_constexpr_fail(is_constant);
-            } else {
-              mark_complete_class_object_if_needed(fp->type, dst_bytes);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor) {
             if (!do_constexpr_ctor(ips, sub_dip, &expr->position, dst_bytes,
@@ -8519,6 +8518,9 @@ is within the given complete_object.
             do_constexpr_fail(is_constant);
           } else {
             unexpected_condition();
+          }  /* if */
+          if (is_constant) {
+            mark_complete_class_object_if_needed(fp->type, dst_bytes);
           }  /* if */
         }  /* if */
       }  /* if */

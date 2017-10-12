@@ -1,5 +1,15 @@
 Version 4.15
 
+10/12/17 [EDGcpfe/18856]
+Constexpr lambda captures and class hierarchy representation
+
+The internal representation of class type objects in the interpreter includes
+metadata determining whether such an object is a base subobject of a more
+derived object.  Previously, however, class type objects created through
+lambda captures did not always initialize that metadata, which could lead to
+aborts on base-to-derived casts.
+
+
 10/12/17 [EDGcpfe/18846]
 Diagnose transfer of control bypassing initialization for range-based-for loops
 
