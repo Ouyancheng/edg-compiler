@@ -1,5 +1,30 @@
 Version 4.15
 
+10/12/17 [EDGcpfe/18855]
+Spurious error on specialization of member template
+
+The front end could issue a spurious "specialization ... must precede the
+first use" error on an explicit specialization if the instance being
+specialized was referenced in a context that did not actually require
+its instantiation (in the example below it is used in the definition
+of a templated function that is never instantiated).  An error should only
+be issued if the prior use would result in the instantiation of the instance.
+Now fixed.
+
+  struct A {
+    template<typename T> void f();
+  };
+  template<typename T> void A::f() {
+    A a;
+    a.f<bool>();
+  }
+  template<> void A::f<bool>() { }
+  int main() {
+    A a;
+    a.f<bool>();
+  }
+
+
 10/12/17 [EDGcpfe/18857]
 Constexpr interpreter and casts of scalars to function addresses
 

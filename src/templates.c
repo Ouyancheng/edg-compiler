@@ -27456,25 +27456,27 @@ that follows.
           an_error_severity	severity = es_error;
           tip = template_instance_for_symbol(sym);
           check_assertion(tip != NULL);
-          if (microsoft_bugs) {
-            /* This is accepted for class members in Microsoft bugs mode
-               through version 1300.  Later Microsoft versions also accept this
-               if the template has not yet been defined. */
-            if (sym->is_class_member &&
-                (microsoft_version <= 1300 || !tip->template_sym->defined)) {
-              severity = es_warning;
+          if (tip->instantiation_required) {
+            if (microsoft_bugs) {
+              /* This is accepted for class members in Microsoft bugs mode
+                 through version 1300.  Later Microsoft versions also accept
+                 this if the template has not yet been defined. */
+              if (sym->is_class_member &&
+                  (microsoft_version <= 1300 || !tip->template_sym->defined)) {
+                severity = es_warning;
+              }  /* if */
+            } else if (gpp_mode) {
+              /* g++ allows this for static data members. */
+              if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+                severity = es_warning;
+              }  /* if */
             }  /* if */
-          } else if (gpp_mode) {
-            /* g++ allows this for static data members. */
-            if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-              severity = es_warning;
-            }  /* if */
+            pos2_sy_diagnostic(severity,
+                               ec_specialization_of_referenced_entity_pos,
+                               &locator.source_position,
+                               &tip->pos_of_first_reference, sym);
+            if (severity == es_error) sym = NULL;
           }  /* if */
-          pos2_sy_diagnostic(severity,
-                             ec_specialization_of_referenced_entity_pos,
-                             &locator.source_position,
-                             &tip->pos_of_first_reference, sym);
-          if (severity == es_error) sym = NULL;
         }  /* if */
       } else if (dps->is_definition && sym->defined) {
         /* The entity has already been defined. */
