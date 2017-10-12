@@ -42,7 +42,8 @@ For example:
      }
      return x+y;
   }
-  static_assert(g(2, -2) == 42, "Unexpected");  Previously failed.  Now okay.
+  static_assert(g(2, -2) == 42, "Unexpected");   // Previously failed.
+                                                 //  Now okay.
 
 
 10/11/17 [EDGcpfe/18818]

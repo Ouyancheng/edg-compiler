@@ -5990,12 +5990,12 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_goto:
-      /* An actual "goto" statement is not valid.  However, stmk_goto statement
-         generated for other branch statements ("break" and "continue") are
-         okay.  For those, we activate a flag in the interpreter state
-         depending on the kind of label we are branching to.  This flag are
-         consulted to determine the control flow during loop and switch
-         statements. */
+      /* An actual "goto" statement is not valid.  However, stmk_goto
+         statements generated for other branch statements ("break" and
+         "continue") are okay.  For those, we activate a flag in the
+         interpreter state depending on the kind of label we are branching to.
+         These flags are consulted to determine the control flow during loop
+         and switch statements. */
       if (stmt->variant.label.ptr->switch_break_label) {
         ips->curr_call_frame->switch_break_active = TRUE;
       } else if (stmt->variant.label.ptr->break_label) {
