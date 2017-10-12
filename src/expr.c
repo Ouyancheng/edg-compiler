@@ -36307,6 +36307,12 @@ Set the initializer for the variable vp from the operand "operand".
             dip,
             /*static_lifetime=*/var_has_static_or_thread_storage_duration(vp),
             /*block_lifetime=*/TRUE);
+    if (symbol_for(vp) != NULL) {
+      /* Record initialization for purposes of analyzing control flow (i.e.,
+         whether a goto bypasses required initialization).  Skip this for
+         compiler-generated variables. */
+      record_trivial_init_control_flow(vp);
+    }  /* if */
   }  /* if */
 }  /* set_variable_initializer */
 

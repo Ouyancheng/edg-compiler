@@ -1,5 +1,22 @@
 Version 4.15
 
+10/12/17 [EDGcpfe/18846]
+Diagnose transfer of control bypassing initialization for range-based-for loops
+
+Previously the front end had failed to diagnose cases where a transfer of
+control bypassed the initialization of a range-based-for or other similar
+loop types (e.g., a Microsoft for-each loop).  These are now diagnosed with
+a warning or error depending on the mode.  For example (with --c++11):
+
+  int main() {
+    int z[] = { 1, 2, 3 };
+    goto label;
+    for (auto x: z) {
+      label:;
+    }
+  }
+
+
 10/11/17 [EDGcpfe/18809]
 Member string constants and multiple translation units
 

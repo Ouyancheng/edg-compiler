@@ -5149,6 +5149,7 @@ The affinity can be an expression or the keyword "continue".
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   if (is_range_based_for) {
+    a_control_flow_descr_ptr  cfdp;
     /* A range-based-for has three scopes, all of which are pushed in
        preparation for scanning the for-range-declaration. */
     a_decl_parse_state dps;
@@ -5159,6 +5160,11 @@ The affinity can be an expression or the keyword "continue".
                                                        &middle_pointers_block);
     rbflp->iterator_scope = start_fabricated_block_scope_for_enhanced_for(
                                                      &iterator_pointers_block);
+    /* Add a control flow entry to represent the range-based-for block. */
+    cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+    cfdp->source_pos = pos_curr_token;
+    cfdp->variant.block.object_lifetime = curr_object_lifetime;
+    add_to_control_flow_descr_list(cfdp);
     add_stop_token(tok_colon);
     /* Scan the for-range-declaration. */
     for_range_declaration(&dps);
@@ -5289,6 +5295,9 @@ The affinity can be an expression or the keyword "continue".
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
   if (is_range_based_for) {
+    /* End the control flow block. */
+    add_to_control_flow_descr_list(
+       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
     /* Pop the scopes that have been pushed. */
     finish_block_scope_for_enhanced_for();
     finish_block_scope_for_enhanced_for();
