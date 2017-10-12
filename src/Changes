@@ -19,7 +19,7 @@ The internal representation of class type objects in the interpreter includes
 metadata determining whether such an object is a base subobject of a more
 derived object.  Previously, however, class type objects created through
 lambda captures did not always initialize that metadata, which could lead to
-aborts on base-to-derived casts.
+aborts on base-to-derived casts.  Now fixed.
 
 
 10/12/17 [EDGcpfe/18846]
