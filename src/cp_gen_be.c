@@ -4615,6 +4615,20 @@ put out nothing.
       } else if (is_immediate_class_type(class_type)) {
         decltype_type = decltype_typeref_from_proxy(class_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      } else if (class_type->kind == (a_type_kind)tk_typeref &&
+                 typeref_is_type_operator(class_type)) {
+        a_type_ptr targ_type = skip_typerefs(class_type);
+        if (is_immediate_class_type(targ_type) &&
+            targ_type->variant.class_struct_union.extra_info->
+                                                     is_lambda_closure_class &&
+            targ_type->has_been_declared) {
+          /* This is a type operator referring to a closure type, and a
+             typedef (with a temp name) for that type was inserted into the
+             generated code by gen_variable_decl.  Use the typedef for this
+             reference instead of the type operator (which would be
+             generated as an undeclared temp name). */
+          scp = &class_type->variant.typeref.type->source_corresp;
+        }  /* if */
       }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (decltype_type != NULL) {
@@ -17096,6 +17110,7 @@ this one is such a continuation.
   a_boolean                    embedded_constructs;
   a_storage_class              storage_class;
   a_type_ptr                   var_type;
+  a_type_ptr                   unqual_var_type;
   a_boolean                    is_specialization;
   a_boolean                    force_unqualified_name;
   a_scope_ptr                  common_scope, orig_scope = NULL;
@@ -17498,22 +17513,33 @@ this one is such a continuation.
     adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
   var->declaration_has_been_put_out = TRUE;
+  unqual_var_type = skip_typerefs(var->type);
   if (var->declared_with_auto_type_specifier &&
-      is_immediate_class_type(var->type) &&
-      var->type->variant.class_struct_union.extra_info->
+      is_immediate_class_type(unqual_var_type) &&
+      unqual_var_type->variant.class_struct_union.extra_info->
                                                      is_lambda_closure_class) {
-    /* The type of the variable is an unnamed closure class.  If the
-       closure class is later referred to in the source using a
-       decltype-specifier, we need a name with which to refer to it in the
-       generated code, since the IL will simply point to the type with no
-       way to reconstruct the original decltype-specifier, so put out a
-       typedef for it now while we still have access to the variable. */
+    /* The type of the variable is a (possibly cv-qualified) unnamed
+       closure class.  If that type is later referred to in the source
+       using a decltype-specifier, we need a name with which to refer to it
+       in the generated code, since the IL will simply point to the type
+       with no way to reconstruct the original decltype-specifier, so put
+       out a typedef for it now while we still have access to the
+       variable. */
     write_tok_str("typedef decltype(");
     gen_unqualified_name(&var->source_corresp, (an_il_entry_kind)iek_variable);
     write_tok_str(") ");
     gen_temp_name((char *)var->type);
-    write_tok_ch(';');
     var->type->has_been_declared = TRUE;
+    if (unqual_var_type != var->type) {
+      /* Put out a typedef for the unqualified version of the type, as
+         well.  Presumably this must have been used in the source as a
+         decltype operator applied to the variable, so we can use the
+         same declared type for the unqualified version as well. */\
+      write_tok_str(", ");
+      gen_temp_name((char *)unqual_var_type);
+      unqual_var_type->has_been_declared = TRUE;
+    }  /* if */
+    write_tok_ch(';');
   }  /* if */
 }  /* gen_variable_decl */
 

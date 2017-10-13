@@ -1,5 +1,22 @@
 Version 4.15
 
+10/13/17 [EDGcpfe/18319]
+C++-generating back end: decltype of cv-qualified lambda variable
+
+The changes of EDGcpfe/17073, which allowed using a decltype-specifier
+naming a variable whose type is a lambda closure class when forming a
+pointer-to-member constant, failed to handle the case when the type of the
+variable is cv-qualified.  This is now fixed, and typedefs are added for
+both the cv-qualified and cv-unqualified versions of the closure class
+type in such cases.  For example, with --c++14:
+
+  template<typename C> int f(void (C::*)() const) { return 0; }
+  const auto l = []{};
+  // The following pointer to member constant was previously generated
+  // using an undeclared temporary name, e.g., &__T12345678::operator():
+  int i = f(&decltype(l)::operator());
+
+
 10/12/17 [EDGcpfe/18855]
 Spurious error on specialization of member template
 
