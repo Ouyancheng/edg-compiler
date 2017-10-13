@@ -1,5 +1,22 @@
 Version 4.15
 
+10/13/17 [EDGcpfe/18710]
+Injected class name incorrectly used in generic lambda instantiation
+
+In some cases, the injected class name of a class template was found by
+lookup when the class template should have been found.  This occurred when
+scanning an explicit template argument list in the call of a function
+template and resulted in incorrect overload resolution.  Now fixed.
+
+  template <typename T> struct A {
+    template <typename F> A(F f) { f(0); }
+  };
+  template <template <typename> class TT> TT<int>* f(int i) { return i; }
+  int main() {
+    auto l = [](auto x) { f<A>(x); return 0; };
+    A<int> a(l);
+  }
+
 10/13/17 [EDGcpfe/18824]
 GNU C++ compatibility: typename lookup regression with --ms_extensions
 

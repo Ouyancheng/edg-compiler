@@ -1779,7 +1779,6 @@ instantiation or definition) we return TRUE.  If the symbol is a class
 template with no current instantiation or definition, we return FALSE.
 */
 {
-  a_scope_depth  depth;
   a_boolean      found = TRUE;
   a_boolean      is_instantiation_scope;
   a_symbol_ptr   instance_sym = NULL;
@@ -1800,8 +1799,9 @@ template with no current instantiation or definition, we return FALSE.
          finding the first instantiation scope.  Check each of these
          scopes to see if the associated type is a template class associated
          with the class template symbol. */
-      for (depth = depth_scope_stack; depth >= 0; --depth) {
-        a_scope_stack_entry_ptr ssep = &scope_stack[depth];
+      a_scope_stack_entry_ptr ssep;
+      for (ssep = &scope_stack[depth_scope_stack];
+           ssep != NULL; ssep = previous_scope_of(ssep)) {
         is_instantiation_scope =
                         ssep->kind == (a_scope_kind)sck_template_instantiation;
         if (is_instantiation_scope ||
