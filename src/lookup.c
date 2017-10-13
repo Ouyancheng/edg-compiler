@@ -4785,9 +4785,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
              to refer to a typedef for a tagged type.  Return the symbol
              for the tagged type.  (If direct_class_members_only is TRUE,
              the typeref should not be skipped since that may result in a
-             nonmember type.) */
+             nonmember type.)  In some cases (such as g++ typename lookup)
+             the underling type might not have a symbol.  In that case
+             use the original symbol. */
           sym = (a_symbol_ptr)skip_typerefs(type_tag_symbol->
                                   variant.type.ptr)->source_corresp.assoc_info;
+          if (sym == NULL) sym = type_tag_symbol;
         } else {
           sym = type_tag_symbol;
         }  /* if */

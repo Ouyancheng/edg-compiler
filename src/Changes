@@ -1,5 +1,22 @@
 Version 4.15
 
+10/13/17 [EDGcpfe/18824]
+GNU C++ compatibility: typename lookup regression with --ms_extensions
+
+A change in version 4.14 (see EDGcpfe/18326) could result in incorrect
+lookup results when using both g++ mode and ms_extensions mode.  The
+incorrect behavior occurred when the name after "typename" referred
+to a fundamental type.  Now fixed.
+
+  template <class T> struct A {
+    typedef char X;
+  };
+  template <typename T, typename U = A<T> > class B {
+    typedef typename U::X Y;  // formerly '"A<char>" has no member "X"'
+  };
+  B<char> b;
+
+
 10/13/17 [EDGcpfe/18319]
 C++-generating back end: decltype of cv-qualified lambda variable
 
