@@ -11,7 +11,7 @@ template and resulted in incorrect overload resolution.  Now fixed.
   template <typename T> struct A {
     template <typename F> A(F f) { f(0); }
   };
-  template <template <typename> class TT> TT<int>* f(int i) { return i; }
+  template <template <typename> class TT> TT<int>* f(int i) { return 0; }
   int main() {
     auto l = [](auto x) { f<A>(x); return 0; };
     A<int> a(l);
