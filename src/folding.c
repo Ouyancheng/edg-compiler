@@ -217,9 +217,8 @@ The cast is implicit if is_implicit_cast is TRUE.
   if (!is_implicit_cast) {
     /* Note that the TRUE setting of explicit_cast_applied is sticky. */
     cp->explicit_cast_applied = TRUE;
-    if (cp->orig_type == NULL &&
-        !types_are_compatible(cp->type, new_type)) {
-      cp->orig_type = cp->type;
+    if (cp->orig_type == NULL && !types_are_compatible(cp->type, new_type)) {
+      cp->is_reinterpret_like_cast = TRUE;
     }  /* if */
   }  /* if */
   cp->type = new_type;

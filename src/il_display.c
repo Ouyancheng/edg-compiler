@@ -1119,6 +1119,9 @@ Display the indicated constant entry.
   if (ptr->is_reinterpret_cast) {
     disp_boolean("is_reinterpret_cast", TRUE);
   }  /* if */
+  if (ptr->is_reinterpret_like_cast) {
+    disp_boolean("is_reinterpret_like_cast", TRUE);
+  }  /* if */
   if (ptr->non_arithmetic) {
     disp_boolean("non_arithmetic", TRUE);
   }  /* if */

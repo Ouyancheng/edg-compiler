@@ -4286,17 +4286,32 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                               ips, con->expr, value, complete_object, result);
       } else {
         a_type_ptr  obj_type = NULL;
-        if (con->explicit_cast_applied) {
-          a_type_ptr  con_type = skip_typerefs(con->type);
-          if (con->orig_type != NULL &&
-              !types_are_compatible(con_type, con->orig_type)) {
-            /* A reinterpret-like cast (e.g., from pointer to integer). */
-            info_with_pos_type2(ec_constexpr_invalid_type_conversion,
-                                &ips->position, con->orig_type, con->type,
-                                ips);
-            do_constexpr_fail(result);
-            break;
+        if (con->is_reinterpret_like_cast) {
+          /* A reinterpret-like cast (e.g., from pointer to integer). */
+          /* Reconstruct the original type for the recorded diagnostic. */
+          a_type_ptr  orig_type;
+          switch (con->variant.address.kind) {
+            case abk_routine:
+              orig_type = con->variant.address.variant.routine->type;
+              break;
+            case abk_variable:
+              orig_type = con->variant.address.variant.variable->type;
+              break;
+            case abk_constant:
+            case abk_temporary:
+              orig_type = con->variant.address.variant.constant->type;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          if (is_any_reference_type(orig_type)) {
+            orig_type = type_pointed_to(orig_type);
           }  /* if */
+          orig_type = make_pointer_type(orig_type);
+          info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                              &ips->position, orig_type, con->type, ips);
+          do_constexpr_fail(result);
+          break;
         }  /* if */
         switch (con->variant.address.kind) {
           case abk_routine:

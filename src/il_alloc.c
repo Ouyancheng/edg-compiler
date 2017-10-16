@@ -935,6 +935,7 @@ associated variant fields to default values.
   cp->implicit_cast  = FALSE;
   cp->explicit_cast_applied = FALSE;
   cp->is_reinterpret_cast = FALSE;
+  cp->is_reinterpret_like_cast = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;
   cp->null_pointer_constant_ruled_out = FALSE;
