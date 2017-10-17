@@ -9943,13 +9943,17 @@ See conversion_possible.
        One is allowed to declare a parameter of that type, but the type must
        be completed if the function is defined or called. */
     /* okay = FALSE; -- already set. */
-  } else if (is_bool(dest_type)) {
+  } else if (is_bool(dest_type) &&
+             !(is_enum(source_type) &&
+               !integer_type_is_scoped_enum(source_type))) {
     /* Conversion to the bool type.  This is possible only in C++.
        Conversion is allowed from arithmetic, unscoped enumeration,
        pointer, and pointer to member, as well as from nullptr_t in
        direct-initialization contexts.  C++/CLI does not allow conversion
        from a handle to bool (though it is allowed, effectively, in a
-       boolean controlling expression). */
+       boolean controlling expression).  Don't handle the conversion from
+       an unscoped enum here because it can be a promotion case; we therefore
+       handle that case with the arithmetic types below. */
     if (is_bool(source_type)) {
       /* bool --> bool is no conversion. */
       okay = TRUE;
@@ -10039,7 +10043,7 @@ See conversion_possible.
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
       if (warning_on_lossy_conversion && !source_is_constant &&
-          !identical_types(source_type, dest_type)) {
+          !is_bool(dest_type) && !identical_types(source_type, dest_type)) {
         if (num_significant_bits(dest_type) <
                                            num_significant_bits(source_type) ||
             (is_floating_type(source_type) && !is_floating_type(dest_type))) {
@@ -10077,7 +10081,7 @@ See conversion_possible.
              is a promotion, and is preferred over other kinds of promotions.
              (See core issue 1601 and [conv.prom]/4 in N4659.)  Clang and GCC
              do not implement this yet. */
-          base_type = integer_type(source_type->variant.integer.int_kind);
+          base_type = source_type->variant.integer.extra_info->base_type;
           if (cpp14_mode && !(gpp_mode || clang_mode) &&
               identical_types(base_type, dest_type)) {
             std_conv->promotion = TRUE;
