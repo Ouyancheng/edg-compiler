@@ -3811,6 +3811,7 @@ static void braced_initializer(a_type_ptr          dtype,
                                an_init_component   *rescan_aggr,
                                an_init_state       *is,
                                a_decl_parse_state  *dps,
+                               a_boolean           fill_in_dtor,
                                an_init_component   **return_icp,
                                a_source_position   *diag_pos)
 /*
@@ -3912,7 +3913,7 @@ initializer, already copied and substituted.
         } else {
           a_type_ptr  etype = underlying_array_element_type(atype);
           etype = skip_typerefs(etype);
-          if (is_immediate_class_type(etype)) {
+          if (fill_in_dtor && is_immediate_class_type(etype)) {
             dtor_rp = get_init_destructor(etype, is, diag_pos);
           }  /* if */
         }  /* if */
@@ -3968,17 +3969,17 @@ initializer, already copied and substituted.
             }  /* if */
           }  /* if */
           if (special_singleton) {
-            convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE,
-                                is);
+            convert_initializer(icp, dtype, is_var_init, fill_in_dtor, is);
           } else {
             is_aggregate = TRUE;
-            dtor_rp = get_init_destructor(dtype, is, diag_pos);
+            if (fill_in_dtor) {
+              dtor_rp = get_init_destructor(dtype, is, diag_pos);
+            }  /* if */
             aggr_init_class(&icp, dtype, is, diag_pos, &is->init_con);
           }  /* if */
         } else {
           /* Non-aggregate class type. */
-          convert_initializer(icp, dtype, is_var_init, /*fill_in_dtor=*/TRUE,
-                              is);
+          convert_initializer(icp, dtype, is_var_init, fill_in_dtor, is);
         }  /* if */
       }  /* if */
       break;
@@ -4116,8 +4117,8 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     dps->init_state.resumable = TRUE;
   }  /* if */
   braced_initializer(dps->type, (an_init_component *)NULL,
-                     &dps->init_state, dps, (an_init_component **)NULL,
-                     diag_pos);
+                     &dps->init_state, dps, /*fill_in_dtor=*/TRUE,
+                     (an_init_component **)NULL, diag_pos);
   if (vp != NULL && is_incomplete_array_type(vp->type) &&
       is_array_type(dps->type)) {
     /* An array declarator of the form "X[]" followed by a braced initializer:
@@ -4487,7 +4488,7 @@ substituted.
     dps->init_state.traditional_const_expr_required = TRUE;
   }  /* if */
   braced_initializer(dps->type, rescan_aggr, &dps->init_state, dps,
-                     return_icp, &start_pos);
+                     /*fill_in_dtor=*/TRUE, return_icp, &start_pos);
   /* Adjust the dynamic initializer entry that was produced to reflect that it
      represents a compound initializer. */
   dip = dps->init_state.init_dip;
@@ -5381,8 +5382,9 @@ expressions.  For the latter, see init_capture_initializer below.)
       }  /* if */
       /* Scan the initializer. */
       braced_initializer(dtype, (an_init_component*)NULL, is,
-                         (a_decl_parse_state*)NULL, (an_init_component**)NULL,
-                         &init_pos);
+                         (a_decl_parse_state*)NULL,
+                         /*fill_in_dtor=*/exceptions_enabled,
+                         (an_init_component**)NULL, &init_pos);
     } else {
       /* An initialization of the form "T x = <expr>". */
       expr_init_field(dps, dtype);
@@ -5398,8 +5400,9 @@ expressions.  For the latter, see init_capture_initializer below.)
     }  /* if */
     /* Scan the initializer. */
     braced_initializer(dtype, (an_init_component*)NULL, is,
-                       (a_decl_parse_state*)NULL, (an_init_component**)NULL,
-                       &init_pos);
+                       (a_decl_parse_state*)NULL,
+                       /*fill_in_dtor=*/exceptions_enabled,
+                       (an_init_component**)NULL, &init_pos);
   } else if (curr_token == tok_removed_expr) {
     /* We can get here with severe syntax errors.  Use an error constant to
        proceed. */
@@ -5614,7 +5617,7 @@ memory).
   } else if (!dps->has_direct_initializer) {
     /* A capture of the form "x = ..." or "&x = ...". */
     convert_initializer(icp_tree, dps->type, /*is_var_init=*/FALSE,
-                        /*fill_in_dtor=*/TRUE, is);
+                        /*fill_in_dtor=*/exceptions_enabled, is);
   } else if (dps->initializer_is_expr_list) {
     /* Parenthesized initialization.  Since this is an auto-deduced
        initialization, it's just a single component to convert. */
@@ -5625,7 +5628,7 @@ memory).
     } else {
       /* Ordinary initialization. */
       convert_initializer(icp_tree, dps->type, /*is_var_init=*/FALSE,
-                          /*fill_in_dtor=*/TRUE, is);
+                          /*fill_in_dtor=*/exceptions_enabled, is);
     }  /* if */
 
   } else {
@@ -5636,6 +5639,7 @@ memory).
       is->warning_on_narrowing = TRUE;
     }  /* if */
     braced_initializer(dps->type, icp_tree, is, dps,
+                       /*fill_in_dtor=*/exceptions_enabled,
                        /*return_icp=*/(an_init_component**)NULL,
                        &dps->start_pos);
   }  /* if */
@@ -6913,8 +6917,9 @@ given type, and record the initializer in *cip if cip is non-NULL.
   }  /* if */
   /* Scan the initializer. */
   braced_initializer(dtype, (an_init_component*)NULL, &is,
-                     (a_decl_parse_state*)NULL, (an_init_component**)NULL,
-                     &lbrace_pos);
+                     (a_decl_parse_state*)NULL,
+                     /*fill_in_dtor=*/exceptions_enabled,
+                     (an_init_component**)NULL, &lbrace_pos);
   check_constexpr_ctor_init(ctor, &is, &lbrace_pos);
   if (cip != NULL) {
     /* A dynamic init entry has been produced: Record it in the

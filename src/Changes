@@ -1,5 +1,20 @@
 Version 4.15
 
+10/17/17 [EDGcpfe/18633]
+Abort in lowering on lambda with init-capture when exceptions turned off
+
+Consider the following C++14 case:
+
+  void g() {
+    struct D { ~D() {} } d;
+    [c = d]{}();
+  }
+
+Lowering previously aborted with an internal error handling the init-capture
+in the lambda expression when support for exceptions is disabled (e.g., with
+the option --no_exceptions).  This is now fixed.
+
+
 10/17/17 [EDGcpfe/18779]
 Core issue 1601: Enum promotion rules
 
