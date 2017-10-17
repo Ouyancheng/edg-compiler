@@ -14927,11 +14927,16 @@ match, promotion, etc.) for the operand and record it in arg_match.
                   !tp->variant.integer.is_scoped_enum) {
                 /* If the conversion is to the explicit underlying type, it is
                    a "better conversion" (core issue 1601). */
-                if ((type_code != PROMOTED_INTEGRAL_TYPE_CODE &&
-                     type_code != PROMOTED_ARITH_TYPE_CODE) ||
-                    types_are_compatible(
-                                     type_after_integral_promotion(tp), tp)) {
+                if (type_code != PROMOTED_INTEGRAL_TYPE_CODE &&
+                    type_code != PROMOTED_ARITH_TYPE_CODE) {
                   arg_match->conversion.std.fixed_enum_promotion = TRUE;
+                } else {
+                  /* Additional promotion is done.  If it has no effect, then
+                     this is still the "better conversion" case. */
+                  a_type_ptr  prom_tp = type_after_integral_promotion(tp);
+                  if (types_are_compatible(prom_tp, tp)) {
+                    arg_match->conversion.std.fixed_enum_promotion = TRUE;
+                  }  /* if */    
                 }  /* if */    
               }  /* if */    
             }  /* if */    

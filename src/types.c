@@ -10089,8 +10089,8 @@ See conversion_possible.
         }  /* if */
         if (base_type == NULL) {
           /* We're done. */
-        } else if (types_are_compatible(default_argument_promotion(base_type),
-                                        dest_type)) {
+        } else if ((base_type = default_argument_promotion(base_type),
+                    types_are_compatible(base_type, dest_type))) {
           std_conv->promotion = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_bugs &&
