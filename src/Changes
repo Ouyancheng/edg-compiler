@@ -1,5 +1,21 @@
 Version 4.15
 
+10/17/17 [EDGcpfe/18779]
+Core issue 1601: Enum promotion rules
+
+The front end now implements core issue 1601, which specifies that during
+overload resolution promotion of an unscoped enum type to its explicitly-
+specified underlying type is a match than other promotions.  This change
+takes effect in C++14.  For example:
+
+  enum E: char { e };
+  void f(char);
+  void f(int) = delete;
+  void g() {
+    f(e);      // Previously ambiguous.  Now okay in C++14 mode.
+  }            // (The call selects the non-deleted function f.)
+
+
 10/13/17 [EDGcpfe/18710]
 Injected class name incorrectly used in generic lambda instantiation
 

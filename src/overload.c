@@ -6518,7 +6518,6 @@ hide-by-sig lookup.
 
 static int compare_standard_conversions(a_std_conv_descr *conv1,
                                         a_std_conv_descr *conv2,
-                                        a_boolean        skip_rank_comparisons,
                                         a_boolean        init_conv_after_udc,
                                         a_type_ptr       source_type1,
                                         a_type_ptr       source_type2)
@@ -6529,10 +6528,6 @@ overload resolution [over.ics.rank], and return
   +1 if conv1 is a better conversion than conv,
    0 if the two conversions are equal, or
   -1 if conv1 is a worse conversion than conv.
-
-The comparisons that involve rank ordering (e.g., promotion versus
-conversion) are skipped if skip_rank_comparisons is TRUE.  This is used
-as a speed optimization if those have already been handled.
 
 init_conv_after_udc is TRUE if the conversions are the standard conversions
 that follow user-defined conversions in the context of an initialization.
@@ -6551,34 +6546,36 @@ in [over.ics.rank].
   int              cmp = 0;
   a_base_class_ptr bcp_1, bcp_2;
 
-  if (!skip_rank_comparisons) {
-    /* A trivial conversion (i.e., an "exact match") is better than another
-       conversion that is nontrivial. */
-    if (!conv1->nontrivial_conversion || !conv2->nontrivial_conversion) {
-      /* conv1 or conv2 is a trivial conversion (or both are). */
-      if (conv2->nontrivial_conversion) {
-        /* conv1 is a trivial conversion and conv2 is not, so conv1 is
-           better. */
-        cmp = 1;
-      } else if (conv1->nontrivial_conversion) {
-        /* conv2 is a trivial conversion and conv1 is not, so conv2 is
-           better. */
-        cmp = -1;
-      }  /* if */
-      goto have_cmp;
+  /* A trivial conversion (i.e., an "exact match") is better than another
+     conversion that is nontrivial. */
+  if (!conv1->nontrivial_conversion || !conv2->nontrivial_conversion) {
+    /* conv1 or conv2 is a trivial conversion (or both are). */
+    if (conv2->nontrivial_conversion) {
+      /* conv1 is a trivial conversion and conv2 is not, so conv1 is
+         better. */
+      cmp = 1;
+    } else if (conv1->nontrivial_conversion) {
+      /* conv2 is a trivial conversion and conv1 is not, so conv2 is
+         better. */
+      cmp = -1;
     }  /* if */
-    /* A promotion is better than a conversion. */
-    if (conv1->promotion || conv2->promotion) {
-      /* conv1 or conv2 is a promotion (or both are). */
-      if (!conv2->promotion) {
-        /* conv1 is a promotion and conv2 is not, so conv1 is better. */
-        cmp = 1;
-      } else if (!conv1->promotion) {
-        /* conv2 is a promotion and conv1 is not, so conv2 is better. */
-        cmp = -1;
-      }  /* if */
-      goto have_cmp;
+    goto have_cmp;
+  }  /* if */
+  /* A promotion is better than a conversion, and in C++14 mode a promotion
+     of an enum type with a fixed underlying type to that underlying type
+     is better than other promotions. */
+  if (conv1->promotion || conv2->promotion) {
+    /* conv1 or conv2 is a promotion (or both are). */
+    if (!conv2->promotion) {
+      /* conv1 is a promotion and conv2 is not, so conv1 is better. */
+      cmp = 1;
+    } else if (!conv1->promotion) {
+      /* conv2 is a promotion and conv1 is not, so conv2 is better. */
+      cmp = -1;
+    } else if (conv1->fixed_enum_promotion != conv2->fixed_enum_promotion) {
+      cmp = conv1->fixed_enum_promotion ? 1 : -1;
     }  /* if */
+    goto have_cmp;
   }  /* if */
   if (bool_is_keyword) {
     /* A cast of a pointer or pointer-to-member to bool is worse than
@@ -7227,8 +7224,6 @@ for a Microsoft bug).
          already by the match_level test above). */
       cmp = compare_standard_conversions(&arg_match1->conversion.std,
                                          &arg_match2->conversion.std,
-                                         /*skip_rank_comparisons=*/
-                                                       (arg_routine1 == NULL),
                                          /*init_conv_after_udc=*/FALSE,
                                          (a_type_ptr)NULL,
                                          (a_type_ptr)NULL);
@@ -7757,8 +7752,6 @@ other.  Return
   } else if (cfp1->is_user_conversion &&
              (cmp = compare_standard_conversions(&cfp1->conversion.std,
                                                  &cfp2->conversion.std,
-                                                 /*skip_rank_comparisons=*/
-                                                                         FALSE,
                                                  /*init_conv_after_udc=*/TRUE,
                                                  candidate_return_type(cfp1),
                                                  candidate_return_type(cfp2)))
@@ -14861,6 +14854,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
     /* cfront 2.1 considers all matches like this for builtins to be standard
        conversions. */
     match_level = aml_std_conversion;
+    arg_match->conversion.std.nontrivial_conversion = TRUE;
   } else if (special_subscript_cost &&
              kind == (an_opname_kind)onk_subscript &&
              type_code == PTRDIFF_T_TYPE_CODE) {
@@ -14868,6 +14862,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
        standard conversion always in cfront 3.0.2.  Who knows why,
        but this is used in jcool and tools.h++. */
     match_level = aml_std_conversion;
+    arg_match->conversion.std.nontrivial_conversion = TRUE;
   } else {
     a_type_ptr operand_type = prvalue_type(operand->type);
     if (type_code == BOOL_TYPE_CODE) {
@@ -14879,6 +14874,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
         /* Conversion of arithmetic, enum, pointer, or pointer to member
            to bool; this is a standard conversion. */
         match_level = aml_std_conversion;
+        arg_match->conversion.std.nontrivial_conversion = TRUE;
         if (is_pointer_type(operand_type) ||
             is_ptr_to_member_type(operand_type)) {
           /* Conversion of a pointer or pointer to member to bool is worse
@@ -14909,10 +14905,12 @@ match, promotion, etc.) for the operand and record it in arg_match.
             if (is_ptrdiff_t_type(promoted_type)) {
               /* The operand promotes to ptrdiff_t. */
               match_level = aml_promotion;
+              arg_match->conversion.std.promotion = TRUE;
             } else {
               /* The operand converts to ptrdiff_t. */
               match_level = aml_std_conversion;
             }  /* if */
+            arg_match->conversion.std.nontrivial_conversion = TRUE;
           }  /* if */
         } else if (is_enum_type(operand_type)) {
           if (any_cfront_mode()) {
@@ -14922,6 +14920,22 @@ match, promotion, etc.) for the operand and record it in arg_match.
             /* An enum type is not an integral type, so there's always at
                least a promotion cost. */
             match_level = aml_promotion;
+            arg_match->conversion.std.promotion = TRUE;
+            if (cpp14_mode) {
+              a_type_ptr  tp = skip_typerefs(operand_type);
+              if (tp->variant.integer.has_explicit_enum_base &&
+                  !tp->variant.integer.is_scoped_enum) {
+                /* If the conversion is to the explicit underlying type, it is
+                   a "better conversion" (core issue 1601). */
+                if ((type_code != PROMOTED_INTEGRAL_TYPE_CODE &&
+                     type_code != PROMOTED_ARITH_TYPE_CODE) ||
+                    types_are_compatible(
+                                     type_after_integral_promotion(tp), tp)) {
+                  arg_match->conversion.std.fixed_enum_promotion = TRUE;
+                }  /* if */    
+              }  /* if */    
+            }  /* if */    
+            arg_match->conversion.std.nontrivial_conversion = TRUE;
           }  /* if */
         } else {
           /* The operand has a non-enum integral type. */
@@ -14938,6 +14952,8 @@ match, promotion, etc.) for the operand and record it in arg_match.
               /* The type gets changed by promotion, so the cost is a
                  promotion. */
               match_level = aml_promotion;
+              arg_match->conversion.std.promotion = TRUE;
+              arg_match->conversion.std.nontrivial_conversion = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */

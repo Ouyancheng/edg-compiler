@@ -1063,19 +1063,19 @@ typedef struct a_std_conv_descr {
 			/* If the standard conversion is a related-class cast,
 			   this is the base class entry for it.  Otherwise,
 			   NULL. */
-  a_byte_boolean
-		reversed_cast;
+  an_error_code	warning_suggested;
+			/* If not ec_no_error, the code for a warning to be
+			   issued if this conversion is done. */
+  a_bit_field	reversed_cast:1;
 			/* If TRUE, cast_base_class describes the
 			   reverse of the cast performed.  Used for
 			   conversions of pointers to members to
 			   pointers to members of derived classes. */
-  a_byte_boolean
-		type_qualifiers_added;
+  a_bit_field	type_qualifiers_added:1;
 			/* TRUE if type qualifiers were added under a pointer,
 			   pointer-to-member, reference, or C++/CLI handle.
 			   Serves as a tie-breaker in overload resolution. */
-  a_byte_boolean
-		secondary_type_qualifiers_added;
+  a_bit_field	secondary_type_qualifiers_added:1;
 			/* TRUE if type qualifiers were added on a conversion
 			   under a reference, e.g., when a reference to a
 			   pointer type is bound to a pointer to a slightly
@@ -1083,8 +1083,7 @@ typedef struct a_std_conv_descr {
 			   that case refers to the qualifiers directly under
 			   the reference, and this field refers to the
 			   qualifiers added under the pointer type. */
-  a_byte_boolean
-		pointer_normalization_needed;
+  a_bit_field	pointer_normalization_needed:1;
 			/* TRUE if the conversion involves converting an
 			   integral null pointer constant to a pointer or
 			   nullptr type or converting a pointer type to
@@ -1093,71 +1092,61 @@ typedef struct a_std_conv_descr {
 			   pointer-to-member type.)  Also covers the C++/CLI
 			   conversion of a handle to interface to a handle to
 			   System::Object^. */
-  a_byte_boolean
-		nontrivial_conversion;
+  a_bit_field	nontrivial_conversion:1;
 			/* TRUE if the conversion is, in the terms of
 			   overload resolution (ARM 13.2), more than just
 			   a sequence of trivial conversions. */
-  a_byte_boolean
-		promotion;
+  a_bit_field	promotion:1;
 			/* TRUE if the conversion is a promotion, e.g.,
 			   short --> int.  Only set in C++ mode. */
-  a_byte_boolean
-		ptr_or_pm_to_bool;
+  a_bit_field	fixed_enum_promotion:1;
+			/* TRUE if the conversion is a promotion from an enum
+			   type with a fixed underlying type to that underlying
+			   type in a mode where such promotions are preferred
+			   over other promotions. */
+  a_bit_field	ptr_or_pm_to_bool:1;
 			/* TRUE if this conversion is from a pointer type,
 			   pointer to member type, or nullptr type to
 			   bool. */
-  a_byte_boolean
-		boxing_conversion;
+  a_bit_field	boxing_conversion:1;
 			/* TRUE if this conversion is a C++/CLI boxing
 			   conversion, i.e., from a value type to a handle
 			   to the value type. */
-  a_byte_boolean
-		exception_spec_incompatibility;
+  a_bit_field	exception_spec_incompatibility:1;
 			/* TRUE if the conversion involves converting to
 			   a function type with a more restrictive exception
 			   specification, which is disallowed in
 			   initializations and assignments. */
-  a_byte_boolean
-		conv_of_string_literal_to_ptr_to_nonconst;
+  a_bit_field	conv_of_string_literal_to_ptr_to_nonconst:1;
 			/* TRUE if the conversion is the deprecated conversion
 			   of a string literal to "char *", or a wide string
 			   literal to "wchar_t *". */
-  an_error_code	warning_suggested;
-			/* If not ec_no_error, the code for a warning to be
-			   issued if this conversion is done. */
-  a_byte_boolean
-		is_mild_warning;
+  a_bit_field	is_mild_warning:1;
 			/* If TRUE, the warning indicated by warning_suggested
 			   is mild, more an observation than a conformance
 			   issue. */
-  a_byte_boolean
-		cli_array_covariance_conversion;
+  a_bit_field	cli_array_covariance_conversion:1;
 			/* TRUE if this conversion is a C++/CLI array
 			   covariance conversion, i.e., from an array of handle
 			   types to a array of handle types where a conversion
 			   exists for the underlying element types and the
 			   arrays have the same rank. */
-  a_byte_boolean
-		gpp_conv_of_real_to_complex;
+  a_bit_field	gpp_conv_of_real_to_complex:1;
 			/* TRUE if this conversion is from an integer or
 			   real floating type to a complex type, in
 			   g++ mode. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_byte_boolean
-		conv_of_string_literal_to_cli_string;
+  a_bit_field	conv_of_string_literal_to_cli_string:1;
 			/* TRUE if the conversion involves the conversion of a
 			   string literal to a C++/CLI System::String^ (it does
 			   not imply that the destination type is
 			   System::String^; there could follow an additional
 			   conversion to another handle type). */
-  a_byte_boolean
-		param_array_conversion;
+  a_bit_field	param_array_conversion:1;
 			/* TRUE if this is a conversion to the element type of
 			   a C++/CLI parameter array. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_byte_boolean
-		conv_to_std_initializer_list;
+  a_bit_field	conv_to_std_initializer_list:1;
 			/* TRUE if this is a conversion of a braced-init-list
 			   to an std::initializer_list<X> object.  See C++11
 			   [over.ics.rank]p3 last bullet. */

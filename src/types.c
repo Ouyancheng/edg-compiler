@@ -7458,6 +7458,7 @@ Clear a standard conversion description to default values.
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
   std_conv->promotion = FALSE;
+  std_conv->fixed_enum_promotion = FALSE;
   std_conv->ptr_or_pm_to_bool = FALSE;
   std_conv->boxing_conversion = FALSE;
   std_conv->exception_spec_incompatibility = FALSE;
@@ -10069,8 +10070,27 @@ See conversion_possible.
       } else {
         /* C++ mode. */
         /* Note the cases that are promotions. */
-        a_type_ptr prom_type = default_argument_promotion(source_type);
-        if (types_are_compatible(prom_type, dest_type)) {
+        a_type_ptr  base_type;
+        if (is_enum(source_type) && is_integral(dest_type) &&
+            source_type->variant.integer.has_explicit_enum_base) {
+          /* A conversion from an unscoped enum to its explicit underlying type
+             is a promotion, and is preferred over other kinds of promotions.
+             (See core issue 1601 and [conv.prom]/4 in N4659.)  Clang and GCC
+             do not implement this yet. */
+          base_type = integer_type(source_type->variant.integer.int_kind);
+          if (cpp14_mode && !(gpp_mode || clang_mode) &&
+              identical_types(base_type, dest_type)) {
+            std_conv->promotion = TRUE;
+            std_conv->fixed_enum_promotion = TRUE;
+            base_type = NULL;
+          }  /* if */
+        } else {
+          base_type = source_type;
+        }  /* if */
+        if (base_type == NULL) {
+          /* We're done. */
+        } else if (types_are_compatible(default_argument_promotion(base_type),
+                                        dest_type)) {
           std_conv->promotion = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_bugs &&
