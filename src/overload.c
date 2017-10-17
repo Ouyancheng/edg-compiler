@@ -14921,7 +14921,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
                least a promotion cost. */
             match_level = aml_promotion;
             arg_match->conversion.std.promotion = TRUE;
-            if (cpp14_mode) {
+            if (cpp14_mode && !(gpp_mode || clang_mode)) {
               a_type_ptr  tp = skip_typerefs(operand_type);
               if (tp->variant.integer.has_explicit_enum_base &&
                   !tp->variant.integer.is_scoped_enum) {

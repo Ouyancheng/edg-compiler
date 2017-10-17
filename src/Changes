@@ -6,7 +6,8 @@ Core issue 1601: Enum promotion rules
 The front end now implements core issue 1601, which specifies that during
 overload resolution promotion of an unscoped enum type to its explicitly-
 specified underlying type is a match than other promotions.  This change
-takes effect in C++14.  For example:
+takes effect in C++14, but not in Clang and GCC modes (since those compilers
+do not appear to implement the new rules yet).  For example:
 
   enum E: char { e };
   void f(char);
