@@ -4302,6 +4302,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               orig_type = con->variant.address.variant.constant->type;
               break;
             default:
+              orig_type = con->type;
               unexpected_condition();
           }  /* switch */
           if (is_any_reference_type(orig_type)) {
