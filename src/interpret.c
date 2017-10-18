@@ -9042,7 +9042,6 @@ the value representation of the integer value.
               a_byte_count         offset;
               bcp = find_direct_base_class_of(opnd1_type, tp);
               get_mapped_byte_count(&persistent_map, bcp, offset);
-              if (!result) break;
               if (constexpr_copy_object(ips, tp, opnd1_value+offset,
                                         result_storage, complete_object)) {
                 record_subobject_derivation(result_storage, NULL);
