@@ -6545,16 +6545,28 @@ in [over.ics.rank].
 {
   int              cmp = 0;
   a_base_class_ptr bcp_1, bcp_2;
+  a_boolean        conv1_is_trivial = !conv1->nontrivial_conversion;
+  a_boolean        conv2_is_trivial = !conv2->nontrivial_conversion;
 
   /* A trivial conversion (i.e., an "exact match") is better than another
      conversion that is nontrivial. */
-  if (!conv1->nontrivial_conversion || !conv2->nontrivial_conversion) {
+  if (cfront_3_0_mode) {
+    /* The null pointer constant conversion is considered trivial by Cfront 3.0
+       in this respect. */
+    if (conv1->null_pointer_constant) {
+      conv1_is_trivial = TRUE;
+    }  /* if */
+    if (conv2->null_pointer_constant) {
+      conv2_is_trivial = TRUE;
+    }  /* if */
+  }  /* if */
+  if (conv1_is_trivial || conv2_is_trivial) {
     /* conv1 or conv2 is a trivial conversion (or both are). */
-    if (conv2->nontrivial_conversion) {
+    if (!conv2_is_trivial) {
       /* conv1 is a trivial conversion and conv2 is not, so conv1 is
          better. */
       cmp = 1;
-    } else if (conv1->nontrivial_conversion) {
+    } else if (!conv1_is_trivial) {
       /* conv2 is a trivial conversion and conv1 is not, so conv2 is
          better. */
       cmp = -1;

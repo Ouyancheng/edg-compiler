@@ -1083,6 +1083,11 @@ typedef struct a_std_conv_descr {
 			   that case refers to the qualifiers directly under
 			   the reference, and this field refers to the
 			   qualifiers added under the pointer type. */
+  a_bit_field	null_pointer_constant:1;
+			/* TRUE if the conversion involves converting an
+			   integral null pointer constant to a pointer.  (Note
+			   that this does not apply to conversion of a
+			   std::nullptr_t value.) */
   a_bit_field	pointer_normalization_needed:1;
 			/* TRUE if the conversion involves converting an
 			   integral null pointer constant to a pointer or

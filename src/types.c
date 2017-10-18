@@ -7455,6 +7455,7 @@ Clear a standard conversion description to default values.
   std_conv->reversed_cast = FALSE;
   std_conv->type_qualifiers_added = FALSE;
   std_conv->secondary_type_qualifiers_added = FALSE;
+  std_conv->null_pointer_constant = FALSE;
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
   std_conv->promotion = FALSE;
@@ -8651,6 +8652,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     } else {
       /* Normal case. */
       std_conv->pointer_normalization_needed = TRUE;
+      std_conv->null_pointer_constant = TRUE;
     }  /* if */
   } else if (is_nullptr(source_type)) {
     /* Values of nullptr types can be converted to any pointer type.
@@ -9745,9 +9747,10 @@ pointers to members).
     /* 0 --> pointer-to-member. */
     okay = TRUE;
     if (!is_nullptr(source_type)) {
-      /* The flag is only set for integral null pointer constants, so that
+      /* The flags are only set for integral null pointer constants, so that
          the C++11 nullptr keyword can be used with a pointer-to-member
          non-type template parameter. */
+      std_conv->null_pointer_constant = TRUE;
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
   } else if (is_nullptr(source_type)) {
@@ -10201,7 +10204,10 @@ See conversion_possible.
          non-type template parameter of type std::nullptr_t without a cast,
          but passing a template parameter should be allowed, since it might
          be instantiated as std::nullptr_t. */
-      std_conv->pointer_normalization_needed = is_integral(source_type);
+      if (is_integral(source_type)) {
+        std_conv->null_pointer_constant = TRUE;
+        std_conv->pointer_normalization_needed = TRUE;
+      }  /* if */
     }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
