@@ -5414,10 +5414,11 @@ Interpret the given block statement and its associated scope (if any).
 
 static a_boolean do_constexpr_for_statement(an_interpreter_state  *ips,
                                             a_statement_ptr       stmt,
-                                            a_boolean             skip_init)
+                                            a_boolean             do_continue)
 /*
-Interpret the given for-statement.  If skip_init is TRUE, skip its
-initialization.
+Interpret the given for-statement.  If do_continue is TRUE, we have jumped
+into the body of the loop and encountered a "continue" statement: Skip the
+initialization and execute the increment before the main iteration.
 */
 {
   a_boolean              result = TRUE;
@@ -5430,7 +5431,7 @@ initialization.
      state to enable deallocation when we're done. */
   save_storage_stack(ips, saved_stack);
   /* Run the initialization statement (if any). */
-  if (init != NULL && !skip_init && !do_constexpr_statement(ips, init)) {
+  if (init != NULL && !do_continue && !do_constexpr_statement(ips, init)) {
     do_constexpr_fail(result);
   } else {
     an_expr_node_ptr  expr = stmt->expr, incr = loop_info->increment;
@@ -5466,6 +5467,20 @@ initialization.
       n_bytes = expr_result_size(ips, incr, incr_type, &result);
       if (!result) goto unmap_storage;
       alloc_complete_object(ips, n_bytes, incr_type, incr_value);
+      if (do_continue) {
+        /* We called to implement a "continue" statement after having jumped
+           into the loop body (through a switch statement). The loop increment
+           has to be executed first. */
+        do_constexpr_full_expression(
+                                   ips, incr, incr_value, incr_value, result);
+        if (result) {
+          release_address_structures(incr, incr_type, incr_value);
+        } else {
+          /* The initialization state of incr_value is uncertain.
+             Rely on reclaim_variant_path_entries to recover entries
+             in that case. */
+        }  /* if */
+      }  /* if */
     } else {
       /* To avoid spurious warnings from certain tools. */
       incr_type = NULL;
@@ -5793,9 +5808,34 @@ successfully interpreted, FALSE otherwise.
           break;
         }  /* if */
       }  /* for */
-    } else if (ips->curr_call_frame->return_active ||
-               ips->curr_call_frame->continue_active) {
-      /* Other branching statements end the execution of the switch, but
+    } else if (ips->curr_call_frame->continue_active) {
+      /* This is similar to the loop_break_active case, except the loop is
+         continued. */
+      for (;;) {
+        substmt = substmt->parent;
+        if (substmt == stmt) {
+          /* We're continuing out of the switch statement itself. */
+          goto done_with_switch;
+        } else if (substmt->kind == (a_statement_kind)stmk_while ||
+                   substmt->kind == (a_statement_kind)stmk_end_test_while ||
+                   substmt->kind == (a_statement_kind)stmk_for) {
+          /* We're continuing an inner loop.  This completes the
+             execution of the break statement. */
+          ips->curr_call_frame->continue_active = FALSE;
+          if (substmt->kind == (a_statement_kind)stmk_for) {
+            result = do_constexpr_for_statement(ips, substmt,
+                                                /*do_continue=*/TRUE);
+          } else {
+            result = !do_constexpr_statement(ips, substmt);
+          }  /* if */
+          if (!result) {
+            goto done_with_switch;
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* for */
+    } else if (ips->curr_call_frame->return_active) {
+      /* Return statements end the execution of the switch, but
          they are not completed by the switch. */
       break;
     }  /* if */
@@ -5807,6 +5847,7 @@ successfully interpreted, FALSE otherwise.
       /* There are no more statements in this sequence.  Move up to the
          parent sequence if appropriate. */
       for (;;) {
+        a_statement_ptr  next_stmt;
         substmt = substmt->parent;
         if (substmt == stmt) {
           /* We're flowing off the switch statement itself. */
@@ -5839,13 +5880,21 @@ successfully interpreted, FALSE otherwise.
         } else if (substmt->kind == (a_statement_kind)stmk_for) {
           /* We jumped into a "for" loop.  Continue the loop, but skip
              its initialization. */
-          if (!do_constexpr_for_statement(ips, substmt, /*skip_init=*/TRUE)) {
+          if (!do_constexpr_for_statement(ips, substmt,
+                                          /*do_continue=*/TRUE)) {
             result = FALSE;
             goto done_with_switch;
           }  /* if */
         }  /* if */
-        if (substmt->next != NULL) {
-          substmt = substmt->next;
+        next_stmt = substmt->next;
+        /* Skip over label statements because some compiler-generated labels
+           do not have the right parent statement for our purposes. */
+        while (next_stmt != NULL &&
+               next_stmt->kind == (a_statement_kind)stmk_label) {
+          next_stmt = next_stmt->next;
+        }  /* if */
+        if (next_stmt != NULL) {
+          substmt = next_stmt;
           break;
         }  /* if */
         /* Continue up the parent chain. */
@@ -6128,7 +6177,7 @@ successfully interpreted, FALSE otherwise.
       }
       break;
     case stmk_for:
-      result = do_constexpr_for_statement(ips, stmt, /*skip_init=*/FALSE);
+      result = do_constexpr_for_statement(ips, stmt, /*do_continue=*/FALSE);
       break;
     case stmk_range_based_for:
       result = do_constexpr_range_based_for_statement(ips, stmt);
