@@ -4307,6 +4307,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* switch */
           if (is_any_reference_type(orig_type)) {
             orig_type = type_pointed_to(orig_type);
+          } else if (is_array_type(orig_type)) {
+            orig_type = array_element_type(orig_type);
           }  /* if */
           orig_type = make_pointer_type(orig_type);
           info_with_pos_type2(ec_constexpr_invalid_type_conversion,
