@@ -1,5 +1,26 @@
 Version 4.15
 
+10/18/17 [EGcpfe/18780]
+Memory corruption in interpreter for certain address constants
+
+In some cases where the type of a constant reflects an implicit conversion
+applied to that constant (such as array decay for a string literal), the
+interpreter's representation of the value of that constant was sometimes
+corrupted.  This could lead to spurious errors or aborts.  For example:
+
+  struct S {
+    char m = 0;
+    constexpr S(char const[]) {
+      char min = 127;
+      m = min;
+    }
+  };
+  constexpr S x("Msg");  // Previously triggered a spurious error in
+                         // some configurations.
+
+This is now fixed.
+
+
 10/17/17 [EDGcpfe/18633]
 Abort in lowering on lambda with init-capture when exceptions turned off
 
