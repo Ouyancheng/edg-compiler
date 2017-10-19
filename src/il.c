@@ -22640,7 +22640,6 @@ evaluated (e.g., it's FALSE for the operand of a sizeof and also FALSE
 for a dead part of a short-circuiting operation).
 */
 {
-  check_assertion(exceptions_enabled);
   if (dip->is_creation_of_initializer_list_object) {
     /* The lifetime of the array underlying an std::initializer_list object
        matches the lifetime of the object.  See core issue 1290.  Add

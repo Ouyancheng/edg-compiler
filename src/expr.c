@@ -32259,8 +32259,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                lambda->closure_class, &is, capture_pos);
       if (is.has_dynamic_init_component) {
         nonconstant = TRUE;
-        if (exceptions_enabled &&
-            init_con->variant.dynamic_init->destructor != NULL) {
+        if (init_con->variant.dynamic_init->destructor != NULL) {
           /* Make sure that an exception during a later capture cleans up this
              one. */
           record_partial_aggregate_cleanup_destruction(

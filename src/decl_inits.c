@@ -904,7 +904,7 @@ remove_any_extraneous_braces:
                            dip->variant.constant->uses_designated_initializers;
       }  /* if */
       is->has_dynamic_init_component = TRUE;
-      if (exceptions_enabled && dip->destructor != NULL) {
+      if (dip->destructor != NULL) {
         record_partial_aggregate_cleanup_destruction(dip,
                                                      !elem_is.not_evaluated);
       }  /* if */
@@ -1333,7 +1333,9 @@ given position, unless is->no_diagnostics is TRUE.
     if (dtor_rp != NULL && !is->check_validity_only) {
       record_dtor_in_dynamic_init(dtor_rp, dip,
                                   !is->not_potentially_evaluated);
-      record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
+      if (exceptions_enabled) {
+        record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
+      }  /* if */
     }  /* if */
     /* Now create the constant entry (if needed). */
     if (!is->check_validity_only && result == NULL) {
@@ -1448,8 +1450,10 @@ Issue any diagnostics at the given position.
       if (!fp->is_init_capture) {
         dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
         if (dip->destructor != NULL) {
-          record_partial_aggregate_cleanup_destruction(dip,
-                                                       !is->not_evaluated);
+          if ( dip->destructor != NULL) {
+            record_partial_aggregate_cleanup_destruction(dip,
+                                                         !is->not_evaluated);
+          }  /* if */
         }  /* if */
       }  /* if */
       elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
