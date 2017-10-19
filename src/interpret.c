@@ -4301,6 +4301,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             case abk_temporary:
               orig_type = con->variant.address.variant.constant->type;
               break;
+            case abk_typeid:
+              orig_type = typeid_constant_type(/*is_cli_typeid=*/FALSE);
+              break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            case abk_uuidof:
+              orig_type = make_qualified_type(type_of_guid,
+                                              (a_type_qualifier_set)TQ_CONST);
+              break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             default:
               orig_type = con->type;
               unexpected_condition();
