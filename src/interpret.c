@@ -5468,9 +5468,9 @@ initialization and execute the increment before the main iteration.
       if (!result) goto unmap_storage;
       alloc_complete_object(ips, n_bytes, incr_type, incr_value);
       if (do_continue) {
-        /* We called to implement a "continue" statement after having jumped
-           into the loop body (through a switch statement). The loop increment
-           has to be executed first. */
+        /* This function was called to implement a "continue" statement after
+           having jumped into the loop body (through a switch statement). The
+           loop increment has to be executed first. */
         do_constexpr_full_expression(
                                    ips, incr, incr_value, incr_value, result);
         if (result) {
@@ -5820,7 +5820,7 @@ successfully interpreted, FALSE otherwise.
                    substmt->kind == (a_statement_kind)stmk_end_test_while ||
                    substmt->kind == (a_statement_kind)stmk_for) {
           /* We're continuing an inner loop.  This completes the
-             execution of the break statement. */
+             execution of the continue statement. */
           ips->curr_call_frame->continue_active = FALSE;
           if (substmt->kind == (a_statement_kind)stmk_for) {
             result = do_constexpr_for_statement(ips, substmt,
