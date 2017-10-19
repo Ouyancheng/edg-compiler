@@ -6548,6 +6548,36 @@ in [over.ics.rank].
   a_boolean        conv1_is_trivial = !conv1->nontrivial_conversion;
   a_boolean        conv2_is_trivial = !conv2->nontrivial_conversion;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* The C++/CLI string literal -> String^ conversion is better than
+     other conversions when the ranks are equal.  In particular,
+     that conversion is better than decay of a string literal to
+     a pointer to the element type. */
+  if (conv1->conv_of_string_literal_to_cli_string !=
+      conv2->conv_of_string_literal_to_cli_string) {
+    check_assertion(cli_or_cx_enabled);
+    if (conv1->conv_of_string_literal_to_cli_string) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
+  if (conv1->cli_array_covariance_conversion !=
+      conv2->cli_array_covariance_conversion) {
+    /* One has a C++/CLI array covariance conversion and the other does
+       not.  The one with the array covariance conversion is better than
+       the other one (which would have to be something like
+         array<D^>^ ==> System::Array^
+       ).  See ECMA-372 14.2.1. */
+    if (conv1->cli_array_covariance_conversion) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* A trivial conversion (i.e., an "exact match") is better than another
      conversion that is nontrivial. */
   if (cfront_3_0_mode) {
@@ -6605,36 +6635,6 @@ in [over.ics.rank].
       goto have_cmp;
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* The C++/CLI string literal -> String^ conversion is better than
-     other conversions when the ranks are equal.  In particular,
-     that conversion is better than decay of a string literal to
-     a pointer to the element type. */
-  if (conv1->conv_of_string_literal_to_cli_string !=
-      conv2->conv_of_string_literal_to_cli_string) {
-    check_assertion(cli_or_cx_enabled);
-    if (conv1->conv_of_string_literal_to_cli_string) {
-      cmp = 1;
-    } else {
-      cmp = -1;
-    }  /* if */
-    goto have_cmp;
-  }  /* if */
-  if (conv1->cli_array_covariance_conversion !=
-      conv2->cli_array_covariance_conversion) {
-    /* One has a C++/CLI array covariance conversion and the other does
-       not.  The one with the array covariance conversion is better than
-       the other one (which would have to be something like
-         array<D^>^ ==> System::Array^
-       ).  See ECMA-372 14.2.1. */
-    if (conv1->cli_array_covariance_conversion) {
-      cmp = 1;
-    } else {
-      cmp = -1;
-    }  /* if */
-    goto have_cmp;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gpp_mode &&
       conv1->gpp_conv_of_real_to_complex !=
       conv2->gpp_conv_of_real_to_complex) {
