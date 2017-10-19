@@ -1,6 +1,6 @@
 Version 4.15
 
-10/18/17 [EGcpfe/18780]
+10/18/17 [EDGcpfe/18780]
 Memory corruption in interpreter for certain address constants
 
 In some cases where the type of a constant reflects an implicit conversion
