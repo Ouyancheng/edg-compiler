@@ -2742,7 +2742,9 @@ search_base_subobjects:
         }  /* if */
       }  /* for */
     }  /* if */
-    if (offset-sub_offset < value_bytes_for_type(ips, last_bcp->type, &okay)) {
+    type_size = value_bytes_for_type(ips, last_bcp->type, &okay);
+    if (offset-sub_offset < type_size ||
+        (offset-sub_offset == type_size && cannot_dereference(cap))) {
       check_assertion(okay);
       *p_field = NULL;
       *p_bcp = last_bcp;
