@@ -5832,7 +5832,7 @@ pos.
 */
 {
   an_integer_kind  ikind;
-  a_float_kind     fkind;
+  a_float_kind     fkind = 0;
   a_type_kind      type_kind = (a_type_kind)tk_unknown;
   a_targ_size_t    size = 0;
 
@@ -5867,12 +5867,34 @@ pos.
       break;
     case tmk_XF:
       type_kind = (a_type_kind)tk_float;
-      size = 12;
+      /* Force to __float80 type. */
+      fkind = fk_float80;
       break;
     case tmk_TF:
       type_kind = (a_type_kind)tk_float;
-      size = 16;
+      /* Force to __float128 type. */
+      fkind = fk_float128;
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tmk_SC:
+      type_kind = (a_type_kind)tk_complex;
+      size = 4;
+      break;
+    case tmk_DC:
+      type_kind = (a_type_kind)tk_complex;
+      size = 8;
+      break;
+    case tmk_XC:
+      type_kind = (a_type_kind)tk_complex;
+      /* Force to __float80 base type. */
+      fkind = fk_float80;
+      break;
+    case tmk_TC:
+      type_kind = (a_type_kind)tk_complex;
+      /* Force to __float128 base type. */
+      fkind = fk_float128;
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tmk_error:
       type_kind = (a_type_kind)tk_error;
       break;
@@ -5887,7 +5909,7 @@ pos.
        qualified copy. */
     qualifiers = get_type_qualifiers(type);
     /* Check to see that the type implied by the mode matches the type
-     of the variable. */
+       of the variable. */
     type = skip_typerefs(type);
     if (type->kind != type_kind) {
       pos_ty_error(ec_mode_incompatible_with_type, pos, type);
@@ -5902,18 +5924,28 @@ pos.
         type = integer_type(ikind);
       }  /* if */
     } else {
-      for (fkind = (a_float_kind)0;
-           fkind < (a_float_kind)fk_last;
-           fkind = (a_float_kind)((int)fkind + 1)) {
-        if (float_type(fkind)->size == size) {
-          break; 
-        }  /* if */
-      }  /* for */
+      if (fkind == 0) {
+        /* Some base floating point types are already specified above; if not
+           look for the smallest floating-point type that matches the size. */
+        for (fkind = (a_float_kind)0;
+             fkind < (a_float_kind)fk_last;
+             fkind = (a_float_kind)((int)fkind + 1)) {
+          if (float_type(fkind)->size == size) {
+            break; 
+          }  /* if */
+        }  /* for */
+      }  /* if */
       if (fkind == (a_float_kind)fk_last) {
         pos_error(ec_no_type_of_specified_width, pos);
         type = error_type();
-      } else {
+      } else if (type->kind == (a_type_kind)tk_float) {
         type = float_type(fkind);
+#if C99_IL_EXTENSIONS_SUPPORTED
+      } else if (type->kind == (a_type_kind)tk_complex) {
+        type = complex_type(fkind);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      } else {
+        unexpected_condition();
       }  /* if */
     }  /* if */
     /* The new type should have the same qualifiers as the original. */

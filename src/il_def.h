@@ -4945,6 +4945,10 @@ enum a_type_mode_kind_tag {
   tmk_DF,             /* 8-byte floats. */
   tmk_XF,             /* 12-byte floats. */
   tmk_TF,             /* 16-byte floats. */
+  tmk_SC,             /* 4-byte complex floats. */
+  tmk_DC,             /* 8-byte complex floats. */
+  tmk_XC,             /* 12-byte complex floats. */
+  tmk_TC,             /* 16-byte complex floats. */
   tmk_none,
   tmk_last = tmk_none
 };
@@ -4967,6 +4971,10 @@ EXTERN a_const_char *type_mode_kind_names[(int)tmk_last + 1]
 /* tmk_DF */    "DF",
 /* tmk_XF */    "XF",
 /* tmk_TF */    "TF",
+/* tmk_SF */    "SC",
+/* tmk_DF */    "DC",
+/* tmk_XF */    "XC",
+/* tmk_TF */    "TC",
 /* tmk_last */  "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */

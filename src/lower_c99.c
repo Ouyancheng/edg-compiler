@@ -1182,6 +1182,8 @@ Return names[fkind] (a string naming the given floating-point precision).
 static a_type_ptr lowered_complex_float;
 static a_type_ptr lowered_complex_double;
 static a_type_ptr lowered_complex_long_double;
+static a_type_ptr lowered_complex_float80;
+static a_type_ptr lowered_complex_float128;
 
 
 static a_type_ptr make_lowered_complex_type(a_float_kind  fkind,
@@ -1239,6 +1241,20 @@ lowered IL.
                                                fkind, "_Complex_long_double");
       }  /* if */
       result = lowered_complex_long_double;
+      break;
+    case fk_float80:
+      if (lowered_complex_float80 == NULL) {
+        lowered_complex_float80 = make_lowered_complex_type(fkind,
+							   "_Complex_float80");
+      }  /* if */
+      result = lowered_complex_float80;
+      break;
+    case fk_float128:
+      if (lowered_complex_float128 == NULL) {
+        lowered_complex_float128 = make_lowered_complex_type(fkind,
+						          "_Complex_float128");
+      }  /* if */
+      result = lowered_complex_float128;
       break;
     default:
       unexpected_condition_str("lowered_complex_type: invalid float kind");
@@ -4553,6 +4569,8 @@ Replace the imaginary and complex C99 types by their lowered representations.
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
+  lower_c99_complex_type((a_float_kind)fk_float80, "_Complex_float80");
+  lower_c99_complex_type((a_float_kind)fk_float128, "_Complex_float128");
 }  /* lower_c99_nonreal_float_types */
 
 #endif /* LOWER_COMPLEX */
@@ -4722,6 +4740,8 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_saved_var_array_elem(lowered_complex_float),
       pch_saved_var_array_elem(lowered_complex_double),
       pch_saved_var_array_elem(lowered_complex_long_double),
+      pch_saved_var_array_elem(lowered_complex_float80),
+      pch_saved_var_array_elem(lowered_complex_float128),
       pch_array_saved_var_array_elem(xnegate_routine),
       pch_array_saved_var_array_elem(xadd_routine),
       pch_array_saved_var_array_elem(xsubtract_routine),
@@ -4802,6 +4822,8 @@ Do one-time initialization of variables related to C99 IL lowering.
   register_trans_unit_variable(lowered_complex_float);
   register_trans_unit_variable(lowered_complex_double);
   register_trans_unit_variable(lowered_complex_long_double);
+  register_trans_unit_variable(lowered_complex_float80);
+  register_trans_unit_variable(lowered_complex_float128);
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
   register_trans_unit_variable(fixed_conv_routine);
@@ -4873,6 +4895,8 @@ for each translation unit.
   lowered_complex_float = NULL;
   lowered_complex_double = NULL;
   lowered_complex_long_double = NULL;
+  lowered_complex_float80 = NULL;
+  lowered_complex_float128 = NULL;
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
   fixed_conv_routine = NULL;
