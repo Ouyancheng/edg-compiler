@@ -1244,15 +1244,15 @@ lowered IL.
       break;
     case fk_float80:
       if (lowered_complex_float80 == NULL) {
-        lowered_complex_float80 = make_lowered_complex_type(fkind,
-							   "_Complex_float80");
+        lowered_complex_float80 = make_lowered_complex_type(
+                                                    fkind, "_Complex_float80");
       }  /* if */
       result = lowered_complex_float80;
       break;
     case fk_float128:
       if (lowered_complex_float128 == NULL) {
-        lowered_complex_float128 = make_lowered_complex_type(fkind,
-						          "_Complex_float128");
+        lowered_complex_float128 = make_lowered_complex_type(
+                                                   fkind, "_Complex_float128");
       }  /* if */
       result = lowered_complex_float128;
       break;

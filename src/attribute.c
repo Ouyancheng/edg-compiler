@@ -5832,7 +5832,7 @@ pos.
 */
 {
   an_integer_kind  ikind;
-  a_float_kind     fkind = 0;
+  a_float_kind     fkind = (a_float_kind)fk_float;
   a_type_kind      type_kind = (a_type_kind)tk_unknown;
   a_targ_size_t    size = 0;
 
@@ -5924,8 +5924,8 @@ pos.
         type = integer_type(ikind);
       }  /* if */
     } else {
-      if (fkind == 0) {
-        /* Some base floating point types are already specified above; if not
+      if (fkind == (a_float_kind)fk_float) {
+        /* Some base floating point types are already specified above; if not,
            look for the smallest floating-point type that matches the size. */
         for (fkind = (a_float_kind)0;
              fkind < (a_float_kind)fk_last;
