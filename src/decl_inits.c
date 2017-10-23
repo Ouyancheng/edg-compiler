@@ -1450,10 +1450,8 @@ Issue any diagnostics at the given position.
       if (!fp->is_init_capture) {
         dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
         if (dip->destructor != NULL) {
-          if ( dip->destructor != NULL) {
-            record_partial_aggregate_cleanup_destruction(dip,
-                                                         !is->not_evaluated);
-          }  /* if */
+          record_partial_aggregate_cleanup_destruction(dip,
+                                                       !is->not_evaluated);
         }  /* if */
       }  /* if */
       elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
