@@ -7947,10 +7947,17 @@ of the C++11 standard.
                       rp->never_throws);
 
   if (!result) {
-    if (rp->type->kind == (a_type_kind)tk_routine) {
+    a_type_ptr  rtp = rp->type;
+    if (rtp->kind == (a_type_kind)tk_routine) {
+      a_routine_type_supplement_ptr   rtsp = rtp->variant.routine.extra_info;
+      an_exception_specification_ptr  esp = rtsp->exception_specification;
+      if (esp != NULL && esp->indeterminate) {
+        resolve_indeterminate_exception_specification(rp);
+      }  /* if */
       instantiate_exception_spec_if_needed(symbol_for(rp));
     }  /* if */
-    result = is_nothrow_type(f_skip_typerefs(rp->type));
+    rtp = skip_typerefs(rtp);
+    result = is_nothrow_type(rtp);
   }  /* if */
   return result;
 }  /* is_non_throwing_routine */

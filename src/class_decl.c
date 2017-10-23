@@ -3834,7 +3834,7 @@ static void form_exception_specification_for_generated_function(
                                                          a_routine_ptr  rp,
                                                          a_symbol_ptr   bctor);
 
-static void complete_defaulted_member_decl(a_type_ptr  class_type)
+static void complete_all_defaulted_member_decls(a_type_ptr  class_type)
 /*
 If needed, establish the exception specification of any special members of
 class_type defined with "= default".  If an exception specification was
@@ -3859,6 +3859,11 @@ Also, if the member is virtual, force its definition to be generated.
            the generated specification. */
         an_exception_specification_ptr  declared_exception_spec
                                               = rtsp->exception_specification;
+        if (declared_exception_spec != NULL &&
+            declared_exception_spec->compiler_generated) {
+          /* We already generated this one. */
+          continue;
+        }  /* if */
         rtsp->exception_specification = NULL;
         form_exception_specification_for_generated_function(
                                                       rp, (a_symbol_ptr)NULL);
@@ -3891,7 +3896,7 @@ Also, if the member is virtual, force its definition to be generated.
       }  /* if */
     }  /* if */
   }  /* for */
-}  /* complete_defaulted_member_decl */
+}  /* complete_all_defaulted_member_decls */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -4019,7 +4024,7 @@ after a class instantiation.
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
         if (!cfp->class_type->variant.class_struct_union.is_nonreal_class) {
-          complete_defaulted_member_decl(cfp->class_type);
+          complete_all_defaulted_member_decls(cfp->class_type);
         }  /* if */
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
@@ -11727,13 +11732,22 @@ that member function can throw any exception, return TRUE.
   a_boolean                            throw_any, is_noexcept;
   an_exception_specification_ptr       old_esp, new_esp;
   an_exception_specification_type_ptr  old_estp, estp;
+  a_routine_ptr                        rp;
   a_type_ptr                           rtp;
   a_routine_type_supplement_ptr        old_rtsp, rtsp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-  instantiate_exception_spec_if_needed(sym);
-  rtp = sym->variant.routine.ptr->type;
+  rp = sym->variant.routine.ptr;
+  rtp = rp->type;
   old_rtsp = rtp->variant.routine.extra_info;
+  if (rp->is_defaulted && !rp->is_deleted &&
+      old_rtsp->exception_specification == NULL) {
+    /* A defaulted special member with no exception specification.  Make sure
+       the exception specification is generated. */
+    form_exception_specification_for_generated_function(
+                                                      rp, (a_symbol_ptr)NULL);
+  }  /* if */
+  instantiate_exception_spec_if_needed(sym);
   /* Fetch the exception specification associated with the member function
      indicated by sym. */
   old_esp = old_rtsp->exception_specification;

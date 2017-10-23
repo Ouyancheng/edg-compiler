@@ -1195,11 +1195,11 @@ Dump the given exception specification (which may be NULL), for debug purposes.
 {
   if (esp == NULL || esp->throw_any) {
     if (exceptions_enabled) fputs("throws any", f_debug);
+  } else if (esp->indeterminate) {
+    fputs(" <indeterminate>", f_debug);
   } else if (esp->is_noexcept) {
     fputs("noexcept", f_debug);
-    if (esp->indeterminate) {
-      fputs(" <indeterminate>", f_debug);
-    } else if (esp->arg_cached) {
+    if (esp->arg_cached) {
       fputs(" <cached>", f_debug);
     } else if (esp->copy_from_prototype) {
       fputs(" <pending substitution>", f_debug);
