@@ -1,5 +1,20 @@
 Version 4.15
 
+10/24/17 [EDGcpfe/18887]
+Fold expressions and packs referenced in template arguments
+
+In some cases, the front end issued spurious errors (e.g., about a pack being
+referenced but not expanded) if a C++17 fold expression referred to a template
+parameter pack from within a template argument list.  For example:
+
+  template<int> void ft();
+  template<int... Ns> void g() {
+    (ft<1+Ns>(), ...);  // Previously triggered a series of spurious errors.
+  }
+
+This is now fixed.
+
+
 10/24/17 [EDGcpfe/18733,EDGcpfe/18888]
 Abort on partial specialization of pointer-to-function template
 

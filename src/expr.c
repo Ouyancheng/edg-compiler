@@ -23618,23 +23618,11 @@ static void scan_cast_or_expr(
                              an_operand               *bound_function_selector,
                              a_local_expr_options_set local_options)
 /*
-Scan something after an opening left paren.  This may be a cast operation or
+Scan something after an opening left paren.  This may be a cast operation, a
+C99 compound literal, a C++17 fold expression, a GNU statement expression, or
 just an expression in parentheses.  Return the scanned expression in
 *result (and, if it is a C++ bound function, return the object in
 *bound_function_selector).
-
-Syntax:
- 	( type-name ) expression
-or
-	( expression )
-
-Also scans C99 compound literals:
-
-        ( type-name ) { expression, expression, ... }
-
-Also scans GNU statement expressions:
-
-        ({ statement; statement; })
 */
 {
   a_source_position start_position, type_position;
@@ -23664,6 +23652,12 @@ Also scans GNU statement expressions:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
+    a_pack_expansion_stack_entry_ptr  pesep = NULL;
+    a_boolean                         expr_present = TRUE;
+    if (is_variadic_template_context() && fold_expressions_enabled &&
+        curr_token != tok_ellipsis) {
+      expr_present = begin_potential_pack_expansion_context(&pesep);
+    }  /* if */
     add_matching_stop_token(tok_rparen);
     /* Determine if this is a cast operation.  Cast operations are not
        allowed in preprocessing expressions (although the check is superfluous
@@ -23675,6 +23669,7 @@ Also scans GNU statement expressions:
                              DFS_IS_CAST)) {
       /* This is a cast operation. */
       a_boolean explicit_cv_qualifiers, type_defined;
+      abandon_potential_pack_expansion_context(pesep);
       /* Don't permit a call with incomplete type to be cast. */
       expr_stack->allow_call_with_incomplete_return_type = FALSE;
       /* Get the type to cast to. */
@@ -23753,7 +23748,7 @@ Also scans GNU statement expressions:
       /* This is an expression in parentheses, or, possibly (e.g., in C++17),
          a fold-expression. */
       a_boolean         is_expression = FALSE, is_constant = FALSE;
-      a_boolean         expr_present = TRUE, left_unary_fold_expr = FALSE;
+      a_boolean         left_unary_fold_expr = FALSE;
       a_boolean         need_expr = FALSE, need_expr_for_constant = FALSE;
       a_boolean         is_fold_expression = FALSE;
       an_expr_node_ptr  expr = NULL;
@@ -23767,15 +23762,10 @@ Also scans GNU statement expressions:
                                                  EOPT_DELEGATE_INITIALIZER)) |
                                   EOPT_ALLOW_BOUND_FUNCTION |
                                   EOPT_PRESERVE_PROPERTY_REF;
-      a_pack_expansion_stack_entry_ptr
-                               pesep = NULL;
-      if (fold_expressions_enabled) {
-        if (curr_token == tok_ellipsis) {
-          left_unary_fold_expr = TRUE;
-        } else {
-          options |= EOPT_FOLD_EXPR_CONTEXT;
-          expr_present = begin_potential_pack_expansion_context(&pesep);
-        }  /* if */
+      if (curr_token == tok_ellipsis) {
+        left_unary_fold_expr = TRUE;
+      } else {
+        options |= EOPT_FOLD_EXPR_CONTEXT;
       }  /* if */
       if (left_unary_fold_expr || !expr_present) {
         /* "( ..." in an expression context always introduces a unary fold
