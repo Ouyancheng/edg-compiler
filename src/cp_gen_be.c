@@ -7613,7 +7613,7 @@ recorded).
     for (ap = scp->attributes;
          ap != NULL && saved_float_kind == (a_float_kind)fk_last;
          ap = ap->next) {
-      if (ap->kind == (an_attribute_kind)ak_mode) {
+      if (ap->kind == (a_byte_attribute_kind)ak_mode) {
         /* The type is a complex float80 or complex float128 type, but the
            existence of the "mode" attribute indicates that the source
            specified that type using the "mode(XC)" or "mode(TC)"
