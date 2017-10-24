@@ -2003,6 +2003,10 @@ consistent with that of the previous declaration.
     case sk_variable:
       prev_type = prev_decl->variant.variable.ptr->type;
       break;
+    case sk_variable_template:
+      prev_type = prev_decl->variant.template_info
+                           ->variant.variable.prototype_variable->type;
+      break;
     case sk_static_data_member:
       prev_type = prev_decl->variant.static_data_member.variable->type;
       break;

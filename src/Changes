@@ -1,5 +1,19 @@
 Version 4.15
 
+10/24/17 [EDGcpfe/18888]
+Abort on partial specialization of pointer-to-function template
+
+When partially specializing a variable template whose type is a
+pointer-to-function type, the front end aborted with an internal error in
+check_exception_specification.  For example (in C++14 mode):
+
+template<typename T> T (*pft)();
+template<typename T> T (*pft<T&>)();  // Previously triggered an
+                                      // internal error.
+
+This is now fixed.
+
+
 10/24/17 [EDGcpfe/18880]
 Abort in pop_object_lifetime_full with decltype(auto) variable declaration
 
