@@ -7594,7 +7594,7 @@ recorded).
   a_name_context_ptr name_context_for_access_reset = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   a_float_kind       saved_float_kind = (a_float_kind)fk_last;
-#endif /* GNu_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (!C_mode() && !force_unqualified_name &&
       scp != NULL && scp->is_class_member) {
