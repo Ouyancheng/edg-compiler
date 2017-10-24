@@ -7592,6 +7592,9 @@ recorded).
                                    (options & GDO_FORCE_UNQUALIFIED_NAME) != 0;
   a_boolean          context_pop_needed = FALSE;
   a_name_context_ptr name_context_for_access_reset = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  a_float_kind       saved_float_kind = (a_float_kind)fk_last;
+#endif /* GNu_EXTENSIONS_ALLOWED */
 
   if (!C_mode() && !force_unqualified_name &&
       scp != NULL && scp->is_class_member) {
@@ -7601,6 +7604,29 @@ recorded).
                                                         scp_parent_class(scp);
     name_context_for_access_reset = curr_name_context;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (type->kind == (a_type_kind)tk_complex &&
+      (type->variant.float_kind == (a_float_kind)fk_float80 ||
+       type->variant.float_kind == (a_float_kind)fk_float128) &&
+      scp != NULL && scp->attributes != NULL) {
+    an_attribute_ptr ap;
+    for (ap = scp->attributes;
+         ap != NULL && saved_float_kind == (a_float_kind)fk_last;
+         ap = ap->next) {
+      if (ap->kind == (an_attribute_kind)ak_mode) {
+        /* The type is a complex float80 or complex float128 type, but the
+           existence of the "mode" attribute indicates that the source
+           specified that type using the "mode(XC)" or "mode(TC)"
+           attribute.  gcc (but not g++) rejects the resulting declaration
+           because of the combination of "complex" and extended-precision
+           floating type specifiers.  Change the floating point kind
+           temporarily to fk_float to work around this problem. */
+        saved_float_kind = type->variant.float_kind;
+        type->variant.float_kind = (a_float_kind)fk_float;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -7658,6 +7684,13 @@ recorded).
   if (name_context_for_access_reset != NULL) {
     name_context_for_access_reset->class_type_for_access_not_naming = NULL;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (saved_float_kind != (a_float_kind)fk_last) {
+    /* The float kind was changed above to fk_float to accommodate a
+       mode attribute.  Restore it to the original value for the type. */
+    type->variant.float_kind = saved_float_kind;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* gen_general_declaration_using_type */
 
 
