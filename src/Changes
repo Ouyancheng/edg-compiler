@@ -1,6 +1,6 @@
 Version 4.15
 
-10/24/17 [EDGcpfe/18888]
+10/24/17 [EDGcpfe/18733,EDGcpfe/18888]
 Abort on partial specialization of pointer-to-function template
 
 When partially specializing a variable template whose type is a
