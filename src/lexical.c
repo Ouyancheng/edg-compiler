@@ -2841,18 +2841,14 @@ is set to TRUE in that case, FALSE otherwise.
     copy_constant(ctp->variant.ud_lit.value_con, &const_for_curr_token);
     copy_constant(ctp->variant.ud_lit.spelling_con,
                   &const_with_curr_tok_spelling);
-    /* Set up locator_for_curr_id and look up the symbol for the literal
-       operator or literal operator template.  (The lookup must be repeated
-       here, rather than using the symbol stored with the token, to handle
-       cases where the result will be different from that of the original
-       lookup, e.g., because of a using-directive in this scope that would
-       not have been parsed before the UDL was cached.) */
-    ud_lit_op_sym_for_curr_token =
-               find_literal_operator(ctp->variant.ud_lit.suffix,
-                                     strlen(ctp->variant.ud_lit.suffix),
-                                     &pos_curr_token, ctp->variant.ud_lit.type,
-                                     /*from_cache=*/TRUE,
-                                     (a_diagnostic_ptr)NULL);
+    /* Unlike tokens in reusable caches, tokens in cached_token_rescan_list
+       are intended to be evaluated in the context in which they initially
+       appeared.  As a result, the code below differs from the similar code
+       in get_token_from_reusable_cache in that the result of the original
+       lookup for the literal operator symbol is simply reused rather than
+       repeating the lookup in the current context, which in some cases may
+       be (temporarily) different and thus yield a different result. */
+    ud_lit_op_sym_for_curr_token = ctp->variant.ud_lit.op_sym;
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
   free_cached_token(ctp);
