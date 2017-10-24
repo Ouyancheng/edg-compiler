@@ -22886,7 +22886,7 @@ stack, a string supplied by the caller, and the object lifetime "name".
 {
   an_object_lifetime_ptr  parent = olp->parent_lifetime;
 
-  fprintf(f_debug, "OL-%.4d..", (int)pos_curr_token.seq);
+  fprintf(f_debug, "OL (%p)-%.4d..", (void*)olp, (int)pos_curr_token.seq);
   if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
     while (parent->kind == (an_object_lifetime_kind)olk_block_after_label) {
       parent = parent->parent_lifetime;

@@ -347,13 +347,10 @@ was not attempted because the types involved are still dependent,
               is_braced_init_component(initializer_alep));
     if (result) {
       a_boolean   no_parens_matters;
-      an_operand  local_operand, *p_operand;
+      an_operand  *p_operand;
       if (initializer_alep != NULL) {
         check_assertion(is_expression_component(initializer_alep));
-        extract_operand_from_expression_component(initializer_alep,
-                                                  &local_operand,
-                                                  /*free_icp=*/FALSE);
-        p_operand = &local_operand;
+        p_operand = operand_of_arg_list_elem(initializer_alep);
       } else {
         p_operand = initializer_operand;
       }  /* if */
