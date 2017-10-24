@@ -11740,7 +11740,7 @@ that member function can throw any exception, return TRUE.
   rp = sym->variant.routine.ptr;
   rtp = rp->type;
   old_rtsp = rtp->variant.routine.extra_info;
-  if (rp->is_defaulted && !rp->is_deleted &&
+  if (rp->is_defaulted && !rp->is_deleted && !rp->defined_outside_of_parent &&
       old_rtsp->exception_specification == NULL) {
     /* A defaulted special member with no exception specification.  Make sure
        the exception specification is generated. */
