@@ -1,5 +1,18 @@
 Version 4.15
 
+10/25/127 [EDGcpfe/18864]
+Result of __has_unique_object_representations type traits helper
+
+The result of the __has_unique_object_representations type traits helper
+(see [EDGcpfe/17964,EDGcpfe/17999]) is largely left by the C++ Standard as
+implementation-defined.  The front end has now been updated to mimic the
+behavior of Microsoft Visual Studio and g++; if other values are desired
+for a different ABI or emulation, the function
+type_has_unique_object_representations (folding.c) should be changed.  In
+addition, the front end previously aborted when the operand of the helper
+function is a function type; this has now been fixed.
+
+
 10/24/17 [EDGcpfe/18887]
 Fold expressions and packs referenced in template arguments
 

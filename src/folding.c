@@ -8017,74 +8017,103 @@ static a_boolean type_has_unique_object_representations(a_type_ptr type)
 /*
 Return TRUE if type satisfies the std::has_unique_object_representations
 trait as described in the C++17 Standard. If type is a class type, it must
-be complete.
+be complete and be trivially copyable.
 
-Note that the code below assumes that all integer, pointer, and pointer to
-member types have no padding bits and only canonical representations and
-thus satisfy the requirements and that fixed point, floating point,
-imaginary, and complex types do not.  This function will need to be
-customized for ABIs and architectures for which these assumptions are not
-valid.
+The result of this predicate is largely left implementation-defined in the
+C++ Standard; the code below reflects the values for the Microsoft
+compiler.  This function will need to be customized for ABIs and
+architectures for which these assumptions are not valid.
 */
 {
-  a_boolean result = TRUE;
+  a_boolean  result = TRUE;
+  a_type_ptr orig_type = type;
 
+  type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
-    /* A class type has unique object representations if all of its
-       subobjects do and it has no padding bytes anywhere. */
-    a_targ_size_t    end_of_last_subobject = 0;
-    unsigned int     bit_offset_of_end = 0;
-    a_base_class_ptr bcp;
-    a_field_ptr      field;
-    /* First check all direct base subobjects to see if they have unique
-       object representations and if there is any padding between them. */
-    for (bcp = type->variant.class_struct_union.extra_info->base_classes;
-         result && bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct) {
-        if (bcp->offset != end_of_last_subobject) {
-          /* There's padding between base class subobjects. */
+    if (!is_trivially_copyable_type(type)) {
+      /* The result is false for a type that is not trivially copyable. */
+      result = FALSE;
+    } else {
+      /* A trivially-copyable class type has unique object representations
+         if all of its subobjects do and it has no padding bytes
+         anywhere. */
+      a_targ_size_t    end_of_last_subobject = 0;
+      unsigned int     bit_offset_of_end = 0;
+      a_base_class_ptr bcp;
+      a_field_ptr      field;
+      a_field_ptr      prev_field = NULL;
+      a_targ_size_t    prev_field_size = 0;
+      /* First check all direct base subobjects to see if they have unique
+         object representations and if there is any padding between
+         them. */
+      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+           result && bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct) {
+          if (bcp->offset != end_of_last_subobject) {
+            /* There's padding between base class subobjects. */
+            result = FALSE;
+          } else if (bcp->type->variant.class_struct_union.field_list ==
+                                                                        NULL) {
+            /* An empty base class: treat it as having size 0 and do not
+               check type_has_unique_object_representation, since an empty
+               class will consist of nothing but padding.  If it was not
+               optimized as an empty base class, the offset checks below
+               will catch it and give a FALSE result. */
+          } else {
+            if (!type_has_unique_object_representations(bcp->type)) {
+              result = FALSE;
+            }  /* if */
+            end_of_last_subobject += bcp->type->size;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      /* Now check all nonstatic data members for the same. */
+      for (field = type->variant.class_struct_union.field_list;
+           result && field != NULL; field = field->next) {
+        a_type_ptr field_type = skip_typerefs(field->type);
+        if (type->kind == (a_type_kind)tk_union && prev_field != NULL &&
+            field_type->size != prev_field_size) {
+          /* There will be padding in a union if not all fields are the
+             same size. */
+          result = FALSE;
+        } else if (field->offset != end_of_last_subobject ||
+            field->offset_bit_remainder != bit_offset_of_end) {
+          /* There's padding between nonstatic data members. */
           result = FALSE;
         } else {
-          if (!type_has_unique_object_representations(bcp->type)) {
+          if (!type_has_unique_object_representations(field_type)) {
             result = FALSE;
           }  /* if */
-          end_of_last_subobject += bcp->type->size;
+          if (type->kind == (a_type_kind)tk_union) {
+            /* Do not update end_of_last_subobject: each subobject begins
+               at offset 0. */
+            prev_field = field;
+            prev_field_size = field_type->size;
+          } else if (field->is_bit_field) {
+            bit_offset_of_end += field->bit_size;
+            end_of_last_subobject += bit_offset_of_end / targ_char_bit;
+            bit_offset_of_end %= targ_char_bit;
+          } else {
+            end_of_last_subobject += field_type->size;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
-    /* Now check all nonstatic data members for the same. */
-    for (field = type->variant.class_struct_union.field_list;
-         result && field != NULL; field = field->next) {
-      if (field->offset != end_of_last_subobject ||
-          field->offset_bit_remainder != bit_offset_of_end) {
-        /* There's padding between nonstatic data members. */
+      }  /* for */
+      /* Finally, check for tail padding. */
+      if (type->kind != (a_type_kind)tk_union &&
+          end_of_last_subobject != type->size) {
         result = FALSE;
-      } else {
-        a_type_ptr field_type = skip_typerefs(field->type);
-        if (!type_has_unique_object_representations(field_type)) {
-          result = FALSE;
-        }  /* if */
-        if (field->is_bit_field) {
-          bit_offset_of_end += field->bit_size;
-          end_of_last_subobject += bit_offset_of_end / targ_char_bit;
-          bit_offset_of_end %= targ_char_bit;
-        } else {
-          end_of_last_subobject += field_type->size;
-        }  /* if */
       }  /* if */
-    }  /* for */
-    /* Finally, check for tail padding. */
-    if (end_of_last_subobject != type->size) {
-      result = FALSE;
     }  /* if */
+  } else if (gpp_mode && is_volatile_qualified_type(orig_type)) {
+    /* g++ treats volatile-qualified types as not having unique object
+       representations. */
+    result = FALSE;
   } else {
     /* A non-class type. */
     switch (type->kind) {
       /* Types with no padding and no non-canonical representations. */
       case tk_error:
-      case tk_void:
       case tk_integer:
-      case tk_pointer:
       case tk_ptr_to_member:
       case tk_template_param:
         break;
@@ -8100,8 +8129,18 @@ valid.
       case tk_nullptr:
         result = FALSE;
         break;
+      case tk_void:
+        /* A void type has no fixed representation. */
+        result = FALSE;
+        break;
+      case tk_pointer:
+        /* Reference types are not object types. */
+        result = !type->variant.pointer.is_reference;
+        break;
       default:
-        unexpected_condition();
+        /* Non-object types, such as function types, should return
+           FALSE. */
+        result = FALSE;
         break;
     }  /* switch */
   }  /* if */
@@ -8158,9 +8197,7 @@ and, if pos is not NULL, an error will be reported.
     if (kind == (a_builtin_operation_kind)bok_is_trivial ||
         kind == (a_builtin_operation_kind)bok_is_standard_layout ||
         kind == (a_builtin_operation_kind)bok_is_literal_type ||
-        kind == (a_builtin_operation_kind)bok_is_pod ||
-        kind ==
-             (a_builtin_operation_kind)bok_has_unique_object_representations) {
+        kind == (a_builtin_operation_kind)bok_is_pod) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);
@@ -8300,7 +8337,8 @@ and, if pos is not NULL, an error will be reported.
           result = TRUE;
           break;
         case bok_has_unique_object_representations:
-          result = type_has_unique_object_representations(type);
+          result = type_has_unique_object_representations(
+                                                  skip_array_types(orig_type));
           break;
         default:
           unexpected_condition();
