@@ -2847,8 +2847,13 @@ is set to TRUE in that case, FALSE otherwise.
        in get_token_from_reusable_cache in that the result of the original
        lookup for the literal operator symbol is simply reused rather than
        repeating the lookup in the current context, which in some cases may
-       be (temporarily) different and thus yield a different result. */
+       be (temporarily) different and thus yield a different result.  We
+       still set locator_for_curr_id as if the lookup had occurred,
+       however. */
     ud_lit_op_sym_for_curr_token = ctp->variant.ud_lit.op_sym;
+    make_literal_opname_locator(ctp->variant.ud_lit.suffix,
+                                strlen(ctp->variant.ud_lit.suffix),
+                                &locator_for_curr_id, &pos_curr_token);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
   }  /* if */
   free_cached_token(ctp);
