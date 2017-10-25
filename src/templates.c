@@ -15645,8 +15645,8 @@ instantiations from the IL.
                         symbol_is(instance_sym, sk_member_function));
         rp = instance_sym->variant.routine.ptr;
         if (rp->function_def_number != NULL_function_def_number) {
-          rp_scope = scope_for_routine(rp);
-          clear_function_body(rp_scope);
+          rp_scope = scope_for_routine_or_null(rp);
+          if (rp_scope != NULL) clear_function_body(rp_scope);
         }  /* if */
       }  /* if */
     }  /* if */

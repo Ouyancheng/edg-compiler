@@ -1,5 +1,24 @@
 Version 4.15
 
+10/25/17 [EDGcpfe/18889]
+Internal error on unneeded function with deduced return type
+
+When writing an IL file and FREE_MEMORY_REGIONS_EARLY is TRUE, an
+internal error could occur (in scope_for_routine) when attempting to
+remove the definition of A<int>::f, which was only needed to determine
+its return type.  Now fixed.
+
+  template <class T> struct A {
+    auto f();
+  };
+  template <class T> auto A<T>::f(){ return T(); }
+  int main() {
+    A<int> ai;
+    auto x = ai.f();
+  }
+  extern template auto A<int>::f();
+
+
 10/25/127 [EDGcpfe/18864]
 Result of __has_unique_object_representations type traits helper
 
