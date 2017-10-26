@@ -8020,8 +8020,8 @@ trait as described in the C++17 Standard. If type is a class type, it must
 be complete and be trivially copyable.
 
 The result of this predicate is largely left implementation-defined in the
-C++ Standard; the code below reflects the values for the Microsoft
-compiler.  This function will need to be customized for ABIs and
+C++ Standard; the code below reflects the values for the Microsoft and g++
+compilers.  This function will need to be customized for ABIs and
 architectures for which these assumptions are not valid.
 */
 {
