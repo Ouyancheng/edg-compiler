@@ -6371,7 +6371,7 @@ expression context) rather than a declaration.
   }  /* if */
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
-  if ((!is_var_templ_instance && !tip->template_sym->defined) ||
+  if ((!is_var_templ_instance && !template_sym->defined) ||
       tssp->cache.decl_info->parameters == NULL) {
     internal_error("instantiate_template_variable: undef'd template");
   } else if (var_sym->defined) {
@@ -6424,7 +6424,7 @@ expression context) rather than a declaration.
                                    (a_type_ptr)NULL,
                                    (a_routine_ptr)NULL,
                                    var_sym,
-                                   tip->template_sym,
+                                   template_sym,
                                    templ_arg_list,
                                    /*push_lex_state=*/TRUE,
                                    ps_options);
@@ -6450,7 +6450,7 @@ expression context) rather than a declaration.
     /* Copy the in-class initializer flag from the prototype instantiation. */
     var_ptr->initializer_in_class = proto_var->initializer_in_class;
   }  /* if */
-  if (!tip->template_sym->is_class_member &&
+  if (!template_sym->is_class_member &&
       is_const_qualified_type(var_ptr->type)) {
     var_ptr->storage_class = (a_storage_class)sc_static;
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
@@ -6506,7 +6506,7 @@ expression context) rather than a declaration.
     } else {
       if (!is_var_templ_instance ||
           !proto_var->initializer_in_class || var_ptr->is_constexpr) {
-        initializer(&dps, &tip->template_sym->decl_position, idl_external,
+        initializer(&dps, &template_sym->decl_position, idl_external,
                     has_parenthesized_initializer,
                     &incomplete_type_error_reported,
                     (a_decl_pos_block_ptr)NULL);
@@ -6535,7 +6535,7 @@ expression context) rather than a declaration.
     /* There's no explicit initializer.  See if the variable can be
        default-initialized. */
     def_init_okay = def_initializer(var_sym,
-                                    &tip->template_sym->decl_position);
+                                    &template_sym->decl_position);
     if (!def_init_okay) {
       /* It could not be default initialized.  See if an initializer is
          required. */
@@ -6578,7 +6578,7 @@ expression context) rather than a declaration.
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION |
                                 (is_definition ? SRK_DEFINITION : SRK_NONE),
                               var_sym,
-                              &tip->template_sym->decl_position,
+                              &template_sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);
     var_ptr->source_corresp.referenced = TRUE;
   }  /* if */

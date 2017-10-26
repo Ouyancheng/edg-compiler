@@ -1,5 +1,18 @@
 Version 4.15
 
+10/26/17 [EDGcpfe/18493,EDGcpfe/18725]
+Errors instantiating variadic partial specialization of variable template
+
+The instantiation of a variadic partial specialization of a non-variadic
+primary variable template could result in spurious errors.  Now fixed.
+
+  struct A { };
+  template<typename T> class B;
+  template<typename T> A v;
+  template<typename... T> A v<B<T...>>;
+  A a = v<B<int>>;
+
+
 10/26/17 [EDGcpfe/18688]
 Internal error on invalid decl-specifiers in enum template declaration
 
