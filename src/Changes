@@ -1,5 +1,23 @@
 Version 4.15
 
+10/26/17 [EDGcpfe/18688]
+Internal error on invalid decl-specifiers in enum template declaration
+
+An internal error would occur (in enum_template_declaration) if invalid
+decl-specifiers came before the enum keyword in a template enum declaration.
+An error is now issued.  A friend declaration, such as the one in the
+example below, is currently ill-formed, but there is some question about
+whether the changes that cause it to be ill-formed were intended.  A
+core issue is being opened to address this.
+
+  template <typename T> struct A {
+    enum E { };
+  };
+  struct B {
+    template <typename T> friend enum A<T>::E;
+  };
+
+
 10/25/17 [EDGcpfe/18889]
 Internal error on unneeded function with deduced return type
 

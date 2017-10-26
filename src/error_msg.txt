@@ -2947,6 +2947,7 @@ REMOVED;ec_dynamic_exc_spec_ignored;;"dynamic exception specifications ignored (
 ec_invalid_noexcept_specifier_operand;;"invalid operand for noexcept specifier"
 ec_lambda_in_noexcept_specifier;;"lambda expression cannot appear in noexcept specifier of a template"
 ec_inaccessible_rvalue_dtor;;"%nfd is inaccessible"
+ec_bad_enum_template_decl;;"invalid specifier in enum template declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

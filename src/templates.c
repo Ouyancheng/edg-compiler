@@ -19486,13 +19486,17 @@ of which it is a member.
 }  /* check_qualified_template_redecl_scope */
 
 
-static void skip_illegal_class_template_decl_specifiers(a_boolean  diagnose)
+static void skip_illegal_class_or_enum_template_decl_specifiers(
+                                                           a_boolean  diagnose,
+                                                           a_boolean  is_enum)
 /*
-A class template declaration cannot have tokens like "volatile" precede the
-class key.  E.g., "template<class T> const struct X;" is not legal.  This
-routine is used to enhance diagnostics on such cases.  While exploring the
-token stream to see if the upcoming construct is a class template declaration,
-diagnostics can be inhibited by setting diagnose to FALSE.
+A class or enum template declaration cannot have tokens like "volatile"
+precede the class key.  E.g., "template<class T> const struct X;" is not
+legal.  This routine is used to enhance diagnostics on such cases.  While
+exploring the token stream to see if the upcoming construct is a class
+or enum template declaration, diagnostics can be inhibited by setting diagnose
+to FALSE.  is_enum is TRUE if the declaration is known to be an enum (which
+will not be known when diagnose is TRUE).
 */
 {
   a_boolean  error_issued = FALSE;
@@ -19501,6 +19505,7 @@ diagnostics can be inhibited by setting diagnose to FALSE.
       case tok_class:
       case tok_struct:
       case tok_union:
+      case tok_enum:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
       case tok_value_struct:
@@ -19510,8 +19515,11 @@ diagnostics can be inhibited by setting diagnose to FALSE.
       case tok_interface_struct:
       case tok_interface_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* These are the possible valid tokens: continue normal parsing. */
-        goto done;
+        /* These are the possible valid tokens: continue normal parsing.
+           Make sure the keyword kind matches the expected value based on
+           is-enum.  When diagnose is FALSE we don't know the class/enum
+           kind. */
+        if ((curr_token == tok_enum) == is_enum || !diagnose) goto done;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_partial_ref_struct:
       case tok_partial_ref_class:
@@ -19525,7 +19533,9 @@ diagnostics can be inhibited by setting diagnose to FALSE.
         /* Known illegal tokens: issue an error message if requested and skip
            the token. */
         if (diagnose && !error_issued) {
-          pos_error(ec_bad_class_template_decl, &error_position);
+          an_error_code	err_code = is_enum ? ec_bad_enum_template_decl :
+                                             ec_bad_class_template_decl;
+          pos_error(err_code, &error_position);
         }  /* if */
         break;
       default:
@@ -19536,7 +19546,7 @@ diagnostics can be inhibited by setting diagnose to FALSE.
     (void)get_token();
   }  /* for */
 done:;
-}  /* skip_illegal_class_template_decl_specifiers */
+}  /* skip_illegal_class_or_enum_template_decl_specifiers */
 
 
 void set_il_template_entry(
@@ -20420,7 +20430,8 @@ declaration of a partial specialization declared outside of its class.
                                               &decl_state->cli_visibility_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
+  skip_illegal_class_or_enum_template_decl_specifiers(/*diagnose=*/TRUE,
+                                                      /*is_enum=*/FALSE);
   switch (curr_token) {
     case tok_struct:
       type_kind = (a_type_kind)tk_struct;
@@ -25234,7 +25245,8 @@ updated.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
+  skip_illegal_class_or_enum_template_decl_specifiers(/*diagnose=*/FALSE,
+                                                      /*is_enum=*/FALSE);
   if (is_class_type_keyword(curr_token)
       /* Partial classes cannot be templates. */
       if_microsoft_extensions(&& !is_partial_class_type_keyword(curr_token))) {
@@ -26060,10 +26072,24 @@ instantiation of the containing class.
   a_decl_parse_state			dps;
   a_type_ptr				enum_type;
   an_integer_type_supplement_ptr	itsp;
+  an_attribute_ptr			attributes;
+  an_attribute_ptr			*p_attributes = &attributes;
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  attributes = scan_attributes(al_prefix);
+  disallow_attributes(p_attributes, es_default);
+  skip_illegal_class_or_enum_template_decl_specifiers(/*diagnose=*/TRUE,
+                                                      /*is_enum=*/TRUE);
+  if (curr_token == tok_friend) {
+    /* An enum cannot be a friend. */
+    pos_error(ec_bad_friend_decl, &pos_curr_token);
+    (void)get_token();
+    decl_state->decl_scope_err = TRUE;
+  }  /* if */
+  skip_illegal_class_or_enum_template_decl_specifiers(/*diagnose=*/TRUE,
+                                                      /*is_enum=*/TRUE);
   check_assertion(curr_token == tok_enum);
   init_decl_parse_state(&dps);
   enum_specifier(&dps, DSI_IS_TEMPLATE_DECLARATION,
