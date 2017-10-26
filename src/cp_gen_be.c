@@ -17550,7 +17550,8 @@ this one is such a continuation.
   if (var->declared_with_auto_type_specifier &&
       is_immediate_class_type(unqual_var_type) &&
       unqual_var_type->variant.class_struct_union.extra_info->
-                                                     is_lambda_closure_class) {
+                                                     is_lambda_closure_class &&
+      !unqual_var_type->has_been_declared) {
     /* The type of the variable is a (possibly cv-qualified) unnamed
        closure class.  If that type is later referred to in the source
        using a decltype-specifier, we need a name with which to refer to it
