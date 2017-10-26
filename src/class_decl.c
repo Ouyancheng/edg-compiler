@@ -19578,8 +19578,7 @@ member of a union or anonymous union).
 {
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   rout_sym;
-  a_boolean                      ambiguous;
-  a_boolean                      bitwise_copy;
+  a_boolean                      ambiguous, bitwise_copy;
   a_type_qualifier_set           subobj_qual, src_qual;
 
   subobj_qual = get_type_qualifiers(type);
@@ -19589,11 +19588,15 @@ member of a union or anonymous union).
       !(microsoft_mode && microsoft_version < 1900)) {
     /* A volatile subobject cannot be copied by its trivial copy functions
        because their parameter is "X const&".  (Microsoft compilers ignore
-       this issue until version 19.00.) */
+       this issue until version 19.00.)  Don't check the constructor case
+       for the virtual base of an abstract class, since that base need not
+       be initialized. */
     if (cssp->assignment_by_bitwise_copy_allowed) {
       gsfd->suppress_copy_assign = TRUE;
     }  /* if */
-    if (cssp->construction_by_bitwise_copy_allowed) {
+    if (cssp->construction_by_bitwise_copy_allowed &&
+        !(class_type->variant.class_struct_union.abstract &&
+          base_class != NULL && base_class->is_virtual)) {
       gsfd->suppress_copy_ctor = TRUE;
     }  /* if */
   }  /* if */
@@ -19692,6 +19695,13 @@ member of a union or anonymous union).
     }  /* if */
   }  /* if */
 skip_assignment_operators:
+  /* Abstract class type constructors and destructors do not construct or
+     destroy their virtual base classes since that will be done by a more
+     derived object. */
+  if (class_type->variant.class_struct_union.abstract &&
+      base_class != NULL && base_class->is_virtual) {
+    goto done;
+  }  /* if */
   /* Check the copy constructor. */
   if (gsfd->suppress_copy_ctor) {
     /* If we already know the copy constructor should be suppressed, no further
@@ -19810,6 +19820,8 @@ skip_assignment_operators:
       gsfd->suppress_dtor = TRUE;
     }  /* if */
   }  /* if */
+done:
+  return;
 }  /* check_base_or_mbr_class_type_for_suppression */
 
 
@@ -20531,10 +20543,12 @@ constructor should be deleted.
     }  /* for */
     if (!gsfd->suppress_default_ctor) {
       /* Now scan through all the direct base classes of this class. */
+      a_boolean  abstract = class_type->variant.class_struct_union.abstract;
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->direct  &&
             !(bcp->is_virtual &&
-              virtual_base_class_is_indirect(bcp, class_type))) {
+              (abstract ||
+                virtual_base_class_is_indirect(bcp, class_type)))) {
           a_boolean  error_detected, err;
           (void)select_default_constructor_full(
                                     bcp->type, &pos_curr_token, class_type,

@@ -7808,7 +7808,7 @@ which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     is_union;
+  a_boolean                     is_union, abstract;
   a_boolean                     has_field = FALSE, has_field_init = FALSE;
   a_boolean                     has_explicit_field_init = FALSE;
   a_boolean                     is_generated_cctor, is_generated_mctor;
@@ -7902,11 +7902,14 @@ initialized.  These are addressed in the course of the processing.
      Eventually these three lists will be merged into one.  The order of
      items on the list is the order in which initializations are to be
      performed. */
+  /* For abstract classes, virtual bases need not be initialized. */
+  abstract = class_type->variant.class_struct_union.abstract;
   /* Handle the first two lists together. */
   /* Scan the list of base classes, which may include some that are
      ineligible for initialization. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_virtual || bcp->direct) {
+    if ((bcp->direct || bcp->is_virtual) &&
+        !(bcp->is_virtual && abstract)) {
       cssp = symbol_supplement_for_class(bcp->type);
       /* If the virtual base class or direct base class has a constructor, a
          dynamic init entry will be required; otherwise it is optional.
@@ -8264,12 +8267,8 @@ initialized.  These are addressed in the course of the processing.
         prev_cip = cip;
         continue;
       }  /* if */
-    } else if (class_type->variant.class_struct_union.is_nonreal_class ||
-               (cip->kind == (a_constructor_init_kind)cik_virtual_base_class &&
-                class_type->variant.class_struct_union.abstract)) {
-      /* Handling implicit initializations is not needed for templates, nor
-         for virtual base classes of abstract classes (there is always a more
-         derived class that will initialize the virtual base classes). */
+    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+      /* Handling implicit initializations is not needed for templates. */
       if (prev_cip == NULL) {
         cib.cip_list = cip->next;
       } else {
@@ -8830,8 +8829,9 @@ though neither constructors nor initialization is involved here.)
      logic in ctor_initializer, except that the lists are built backwards and
      merged backwards.   First construct the lists for virtual base classes
      and nonvirtual direct base classes. */
-  /* First loop through the base classes looking for virtual base classes. */
-  is_virtual_pass = TRUE;
+  /* First loop through the base classes looking for virtual base classes.
+     Do not do this for abstract classes. */
+  is_virtual_pass = !class_type->variant.class_struct_union.abstract;
   for (;;) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       /* On the first pass select out virtual base classes; on the second
