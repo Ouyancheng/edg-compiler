@@ -19521,16 +19521,16 @@ will not be known when diagnose is TRUE).
            kind. */
         if ((curr_token == tok_enum) == is_enum || !diagnose) goto done;
         /*FALLTHROUGH*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case tok_partial_ref_struct:
-      case tok_partial_ref_class:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
       case tok_volatile:
       case tok_inline:
       case tok_typedef:
       case tok_static:
       case tok_extern:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_partial_ref_struct:
+      case tok_partial_ref_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Known illegal tokens: issue an error message if requested and skip
            the token. */
         if (diagnose && !error_issued) {
