@@ -19520,7 +19520,6 @@ will not be known when diagnose is TRUE).
            is-enum.  When diagnose is FALSE we don't know the class/enum
            kind. */
         if ((curr_token == tok_enum) == is_enum || !diagnose) goto done;
-        /*FALLTHROUGH*/
       case tok_const:
       case tok_volatile:
       case tok_inline:
