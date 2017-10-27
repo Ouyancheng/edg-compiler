@@ -29978,13 +29978,43 @@ an appropriate error code.
 }  /* check_var_for_lambda_capture */
 
 
+static a_boolean var_is_copy_captured(a_lambda_ptr    lambda,
+                                      a_variable_ptr  var)
+/*
+Return TRUE if the given variable is captured "by copy" by the given lambda.
+*/
+{
+  a_boolean             result = FALSE;
+  a_lambda_capture_ptr  lcp;
+
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    if (!lcp->is_init_capture && lcp->captured.variable == var) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (lcp != NULL) {
+    /* Explicit capture. */
+    if (!lcp->capture_by_reference) {
+      result = TRUE;
+    }  /* if */
+  } else {
+    /* Check for implicit capture. */
+    if (lambda->has_capture_default && !lambda->default_is_by_reference) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* var_is_copy_captured */
+
+
 static a_boolean bad_nested_function_variable_ref(
                                           a_symbol_ptr         sym_ptr,
                                           a_source_position    *ref_pos,
                                           an_operand           *operand,
                                           a_ref_entry_ptr      *rep,
                                           a_lambda_capture_ptr *lambda_capture,
-                                          a_boolean            *rvalue_only)
+                                          a_boolean            *rvalue_only,
+                                          a_boolean            *add_const)
 /*
 sym_ptr is a symbol for a variable being referenced in an expression.
 The reference is at source position ref_pos.  Issue an error and return
@@ -30009,6 +30039,14 @@ capture.  If so, return *lambda_capture set to the capture entry for
 the variable.  If not, issue an error, set *lambda_capture to NULL,
 and return TRUE indicating an invalid reference.  lambda_capture NULL
 indicates that the symbol is an anonymous union and cannot be captured.
+
+If rvalue_only is non-NULL, set *rvalue_only to TRUE if the variable can be
+used as an rvalue only.
+
+If add_const is non-NULL, set *add_const to TRUE if the operand created for
+this variable should have a const type (this is sometimes needed in non-mutable
+lambda expressions, when the reference to the variable doesn't actually trigger
+a capture).
 */
 {
   a_boolean      bad_ref = FALSE;
@@ -30069,6 +30107,23 @@ indicates that the symbol is an anonymous union and cannot be captured.
            variable has been captured or (for variables whose type is not
            "variably modified") if this is not a potentially-evaluated
            context. */
+        a_lambda_ptr  lambda;
+        lambda = scope_stack[depth_innermost_function_scope].lambda;
+        if (add_const != NULL && !lambda->is_mutable &&
+            var_is_copy_captured(lambda, var)) {
+          /* Consider:
+               int g;
+               void f() {
+                 int &v = g;
+                 [?]{ decltype(auto) r = (v); };
+               }
+             If v is captured by copy, the type of r is "int const&" (and the
+             reference binds to the member of the closure type).  Otherwise,
+             the type of r is "int&" (and the reference binds to g).  In the
+             former case, the caller therefore has to add a "const" to the
+             type of the operand. */
+          *add_const = TRUE;
+        }  /* if */
         if (!expr_stack->potentially_evaluated &&
             !var->has_variably_modified_type) {
           /* The reference is acceptable. */
@@ -30639,7 +30694,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       change_refs_to_error(rep);
       rep = NULL;
     } else {
-      a_boolean  rvalue_only = FALSE;
+      a_boolean  rvalue_only = FALSE, add_const = FALSE;
       if (warning_on_for_init_difference) {
         /* Unless it is a qualified-name reference, if sym_ptr is visible with
            new-style for-init declaration scoping but would be hidden using
@@ -30708,7 +30763,7 @@ variable:
           if (bad_nested_function_variable_ref(sym_ptr,
                                                &locator.source_position,
                                                result, &rep, &lambda_capture,
-                                               &rvalue_only)) {
+                                               &rvalue_only, &add_const)) {
             /* Error. */
           } else if (lambda_capture != NULL) {
             /* This is a local variable referenced via a lambda capture.
@@ -30758,6 +30813,10 @@ variable:
                                          &start_position,
                                          end_position_or_null(&end_position),
                                          result, rep);
+            if (add_const && !is_const_qualified_type(result->type) &&
+                !is_any_reference_type(result->type)) {
+              result->type = make_qualified_type(result->type, TQ_CONST);
+            }  /* if */
             if (rvalue_only) {
               /* We determined that this variable can only be used as an
                  rvalue (e.g., because it's a constant-valued variable that
@@ -30884,11 +30943,11 @@ normal_function:
               change_refs_to_error(rep);
               rep = NULL;
             } else if (bad_nested_function_variable_ref(
-                                                  anon_var_sym,
-                                                  &locator.source_position,
-                                                  result, &rep,
-                                                  (a_lambda_capture **)NULL,
-                                                  (a_boolean*)NULL)) {
+                                        anon_var_sym,
+                                        &locator.source_position,
+                                        result, &rep,
+                                        (a_lambda_capture **)NULL,
+                                        (a_boolean*)NULL, (a_boolean*)NULL)) {
               /* If we're inside a local class, we are not allowed to reference
                  non-static variables of the containing function.  If we're
                  inside a default argument expression, we're not allowed to
