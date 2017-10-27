@@ -1,5 +1,24 @@
 Version 4.15
 
+10/27/17 [EDGcpfe/18808]
+Partial specializations of class member variable templates
+
+Partial specializations of class member variable templates (i.e., static
+data member templates) were sometimes not handled properly.  In particular,
+out-of-class definitions were sometimes not considered constant when
+they should be, and some invalid out-of-class definitions were incorrectly
+accepted.
+
+  struct A {
+    template <typename T> static const int v;
+    template <typename T> static const int v<T*>;
+    template <typename T> static const int v<T**> = 1;
+  };
+  template <typename T> int const A::v<T*> = 1;  // previously non-constant
+  template <typename T> int const A::v<T**> = 2;  // previously accepted
+  constexpr int i = A::v<int*>e; // previously rejected as non-constant
+
+
 10/27/17 [EDGcpfe/18895]
 Non-mutable lambdas and the type of unevaluated variable references
 

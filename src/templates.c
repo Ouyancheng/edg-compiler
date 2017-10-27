@@ -6339,7 +6339,7 @@ expression context) rather than a declaration.
   a_boolean				is_definition = FALSE;
   a_boolean				incomplete_type_error_reported = FALSE;
   a_template_arg_ptr			templ_arg_list;
-  a_push_scope_options_set		ps_options = PS_IGNORE_CLASS_CONTEXT;
+  a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -6368,6 +6368,7 @@ expression context) rather than a declaration.
     template_sym_of_prototype = template_sym;
     tssp = template_supplement_for_symbol(template_sym);
     tssp_of_prototype = tssp;
+    ps_options |= PS_IGNORE_CLASS_CONTEXT;
   }  /* if */
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
@@ -9691,6 +9692,43 @@ Update var with a dependent type.
 }  /* make_noreal_variable_instance */
 
 
+static a_symbol_ptr find_variable_template_partial_specialization(
+			a_symbol_ptr				template_sym,
+			a_template_symbol_supplement_ptr	tssp,
+			a_template_arg_ptr			templ_arg_list)
+/*
+Look through the partial specializations of the variable template specified
+by template_sym and tssp to see if there is a partial specialization that
+matches templ_arg_list.   If so, return the symbol for the partial
+specialization.  Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr				result_sym = NULL;
+  a_symbol_ptr				ps_sym;
+  an_equiv_templ_arg_options_set	eta_options;
+
+  ps_sym = tssp->partial_specializations;
+  eta_options = eta_options_for_template(template_sym, tssp);
+  for (; ps_sym != NULL; ps_sym = ps_sym->next) {
+    /* Get the symbol associated with the prototype instantiation of this
+       partial specialization. */
+    a_variable_ptr	ps_var;
+    a_template_arg_ptr	old_list;
+    ps_var = variable_for_symbol(ps_sym);
+    /* old_list is the template argument list associated with the
+       prototype instantiation of the partial specialization.  See if
+       the list passed in matches it. */
+    old_list = ps_var->template_info->template_arg_list;
+    if (equiv_template_arg_lists(old_list, templ_arg_list,
+                                 eta_options | ETA_IS_PROTOTYPE)) {
+      result_sym = ps_sym;
+      break;
+    }  /* if */
+  }  /* for */
+  return result_sym;
+}  /* find_variable_template_partial_specialization */
+
+
 a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*new_templ_arg_list,
@@ -9715,7 +9753,6 @@ use of the argument list in case it has been freed.
   a_template_symbol_supplement_ptr	tssp;
   a_template_instance_ptr		tip = NULL;
   a_boolean				is_nonreal = FALSE;
-  an_equiv_templ_arg_options_set	eta_options;
   a_template_arg_ptr			new_list_without_local_types;
   a_template_arg_ptr			list_for_instantiation;
   a_boolean				dependent_arg_list;
@@ -9739,27 +9776,10 @@ use of the argument list in case it has been freed.
   }  /* if */
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
-  eta_options = eta_options_for_template(template_sym, tssp);
   if (is_nonreal && prototype_allowed) {
     /* See if the list matches a partial specialization. */
-    a_symbol_ptr	ps_sym;
-    ps_sym = tssp->partial_specializations;
-    for (; ps_sym != NULL; ps_sym = ps_sym->next) {
-      /* Get the symbol associated with the prototype instantiation of this
-         partial specialization. */
-      a_variable_ptr		ps_var;
-      a_template_arg_ptr	old_list;
-      ps_var = variable_for_symbol(ps_sym);
-      /* old_list is the template argument list associated with the
-         prototype instantiation of the partial specialization.  See if
-         the list passed in matches it. */
-      old_list = ps_var->template_info->template_arg_list;
-      if (equiv_template_arg_lists(old_list, list_for_instantiation,
-                                   eta_options | ETA_IS_PROTOTYPE)) {
-        sym = ps_sym;
-        break;
-      }  /* if */
-    }  /* for */
+    sym = find_variable_template_partial_specialization(
+                                   template_sym, tssp, list_for_instantiation);
   }  /* if */
   if (sym == NULL) {
     a_symbol_ptr	*hash_table_sym = NULL;
@@ -23942,10 +23962,8 @@ return NULL.
   } else {
     a_symbol_ptr			primary_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
-    a_template_symbol_supplement_ptr	tssp;
     a_template_ptr			templ;
-    a_variable_template_info_ptr	vtip;
-    a_variable_ptr			ps_var;
+    a_template_arg_ptr			templ_arg_list;
 
     check_assertion(orig_var->is_template_variable);
     decl_state->is_partial_specialization = TRUE;
@@ -23955,29 +23973,42 @@ return NULL.
                     primary_sym->kind == (a_symbol_kind)sk_variable_template);
     primary_sym = primary_template_of(primary_sym);
     primary_tssp = primary_sym->variant.template_info;
-    ps_sym = create_variable_template_symbol(decl_state, locator);
-    ps_sym->decl_scope = primary_sym->decl_scope;
-    tssp = ps_sym->variant.template_info;
-    tssp->primary_template_sym = primary_sym;
-    ps_var = variable_for_symbol(ps_sym);
-    vtip = ps_var->template_info;
-    /* The call to create_variable_template_symol above created a
-       template argument list based on the parameters of the partial
-       specialization.  That should be used as the
-       partial_spec_template_arg_list.  The template_arg_list should be the
-       one specified on the declaration.  For example, for the declarations:
-         template <typename U> T x<U> = z1;
-         template <typename T> T* x<T*> = z2;
-       the template_arg_list for the partial specialization would be T*, while
-       the partial_spec_template_arg_list would just be T. */
-    vtip->partial_spec_template_arg_list = vtip->template_arg_list;
-    vtip->template_arg_list =
-            copy_template_arg_list(orig_var->template_info->template_arg_list);
-    if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
-      /* Only link the symbol to the primary template if some error has not
-         already occurred. */
-      ps_sym->next = primary_tssp->partial_specializations;
-      primary_tssp->partial_specializations = ps_sym;
+    templ_arg_list = orig_var->template_info->template_arg_list;
+    /* In some cases a partial specialization declarator may not have found
+       the partial specialization symbol and instead created a nonreal
+       variable.  This happens because in some contexts we can't be
+       sure which version of the variable is needed.  Look for a partial
+       specialization that matches the argument list now. */
+    ps_sym = find_variable_template_partial_specialization(
+                                    primary_sym, primary_tssp, templ_arg_list);
+    if (ps_sym == NULL) {
+      /* Create a new partial specialization. */
+      a_variable_template_info_ptr	vtip;
+      a_variable_ptr			ps_var;
+      a_template_symbol_supplement_ptr	tssp;
+      ps_sym = create_variable_template_symbol(decl_state, locator);
+      ps_sym->decl_scope = primary_sym->decl_scope;
+      tssp = ps_sym->variant.template_info;
+      tssp->primary_template_sym = primary_sym;
+      ps_var = variable_for_symbol(ps_sym);
+      vtip = ps_var->template_info;
+      /* The call to create_variable_template_symol above created a
+         template argument list based on the parameters of the partial
+         specialization.  That should be used as the
+         partial_spec_template_arg_list.  The template_arg_list should be the
+         one specified on the declaration.  For example, for the declarations:
+           template <typename U> T x<U> = z1;
+           template <typename T> T* x<T*> = z2;
+         the template_arg_list for the partial specialization would be T*,
+         while the partial_spec_template_arg_list would just be T. */
+      vtip->partial_spec_template_arg_list = vtip->template_arg_list;
+      vtip->template_arg_list = copy_template_arg_list(templ_arg_list);
+      if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
+        /* Only link the symbol to the primary template if some error has not
+           already occurred. */
+        ps_sym->next = primary_tssp->partial_specializations;
+        primary_tssp->partial_specializations = ps_sym;
+      }  /* if */
     }  /* if */
   }  /* if */
   return ps_sym;
