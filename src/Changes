@@ -1,5 +1,31 @@
 Version 4.15
 
+10/27/17 [EDGcpfe/18680]
+Incorrect comparison of dependent decltype expressions
+
+When the front end was comparing two nontype template arguments that
+are constants from dependent class template instances (e.g., something
+like C<D<decltype(x1)>::v vs C<D<decltype(x2)>::v) the expressions in
+the decltype were sometimes considered to match when they should not have.
+This resulted in spurious "has already been defined" error on the second
+partial specialization of E in the example below.  Now fixed.
+
+  struct A { };
+  struct B { };
+  int f(A);
+  int f(B, B);
+  template <bool B> struct C { };
+  template <> struct C<true> { typedef void t; };
+  template <class T> struct D { static constexpr bool v = true; };
+  template<class, class = void> struct E;
+  template <class T> struct E<T, typename C<D<decltype(f(T()))>::v>::t> {
+    static constexpr int v = 1;
+  };
+  template <class T> struct E<T, typename C<D<decltype(f(T(),T()))>::v>::t> {
+    static constexpr int v = 2;
+  };
+
+
 10/27/17 [EDGcpfe/18899]
 GCC compatibility: Core issue 429
 

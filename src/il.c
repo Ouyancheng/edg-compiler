@@ -6961,14 +6961,17 @@ are done.
 
 
 static a_boolean equiv_template_constant_identity(
-                                                 a_constant *cp1,
-                                                 a_constant *cp2,
-                                                 a_boolean  strictly_identical)
+                            a_constant                      *cp1,
+                            a_constant                      *cp2,
+                            a_compare_constants_options_set options,
+                            a_boolean                       strictly_identical)
 /*
 Compare two ck_template_param constants that represent dependent entities
 to see if they have the same name and parent ("identity") information.
 Return TRUE if so.  If strictly_identical is TRUE, the identity information
-has to be identical, not just equivalent.
+has to be identical, not just equivalent.  options is a set of flags that
+control the way in which certain comparisons are done.
+
 */
 {
   a_boolean eq;
@@ -6991,11 +6994,14 @@ has to be identical, not just equivalent.
       eq = TRUE;
     } else {
       /* Compare parent information. */
+      an_itf_flag_set itf_options;
+      itf_options = itf_flags_for_cc_options(options);
       eq = (cp1->source_corresp.is_class_member ?
              (strictly_identical ? corresponding_types(parent_class_of(cp1),
                                                        parent_class_of(cp2)) :
-                                   identical_types(parent_class_of(cp1),
-                                                   parent_class_of(cp2))) :
+                                   identical_types_full(parent_class_of(cp1),
+                                                        parent_class_of(cp2),
+                                                        itf_options)) :
               corresponding_namespaces(parent_namespace_or_null(cp1),
                                        parent_namespace_or_null(cp2)));
     }  /* if */
@@ -7330,12 +7336,12 @@ definition of the CC flags in il.h for more information.
               break;
             case tpck_member:
               eq = equiv_template_constant_identity(
-                                            cp1, cp2,
+                                            cp1, cp2, options,
                                             strict_template_constant_identity);
               break;
             case tpck_unknown_function:
               if (equiv_template_constant_identity(
-                                          cp1, cp2,
+                                          cp1, cp2, options,
                                           strict_template_constant_identity) &&
                   (!strictly_identical ||
                    (cp1->variant.template_param.variant.
