@@ -1,5 +1,26 @@
 Version 4.15
 
+10/27/17 [EDGcpfe/18899]
+GCC compatibility: Core issue 429
+
+Previous changes for Core issue 429 (see EDGcpfe/7107 and EDGcpfe/16465)
+did not include GCC as it seemed that GCC did not issue a diagnostic when
+a non-placement deallocation function was selected for deallocation of a
+placement new function.  It seems that GCC does implement this behavior, but
+only when invoking a virtual destructor.  The example below now issues
+an error (with --g++ --c++11):
+
+  typedef decltype(sizeof(int)) size_t;
+  struct A {
+    virtual ~A(){}    // No diagnostic issued if destructor is not virtual
+    void* operator new(size_t, size_t) noexcept;
+    void operator delete(void*, size_t) noexcept;
+  };
+  void f(void) {
+    A* a = new(2) A;
+  }
+
+
 10/27/17 [EDGcpfe/18870]
 Spurious errors on conditional operators in constexpr contexts
 

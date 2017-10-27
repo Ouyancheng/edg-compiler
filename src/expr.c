@@ -16993,16 +16993,32 @@ the delete routine is ambiguous (an error will have been issued).
           find_default_operator_delete_sym(overload_delete_sym, base_new_type,
                                            &delete_ambiguous) !=
                                                              fund_delete_sym &&
-          !delete_ambiguous) &&
-        !((gpp_mode && !(clang_mode && cpp11_mode)) ||
-          (microsoft_mode && microsoft_version < 1900))) {
+          !delete_ambiguous)) {
       /* Core issue 429: Give an error if a placement new operation results
          in the selection of a non-placement operator delete function (i.e.,
          one whose second argument is size_t).  Clang (in C++11 mode) and
-         Microsoft implement this; GNU does not. */
-      pos_sy_error(ec_placement_new_refers_to_non_placement_delete, position,
-                   delete_sym);
-      delete_routine = NULL;
+         Microsoft implement this; GCC only checks when the class destructor
+         is virtual. */
+      a_routine_ptr dtor_routine;
+      if (microsoft_mode && microsoft_version < 1900) {
+        /* Suppress the error in early versions of Microsoft. */
+      } else if (clang_mode && !cpp11_mode) {
+        /* Clang only gives an error in C++11 mode. */
+      } else if (gpp_mode && !clang_mode &&
+                 (class_type == NULL ||
+                  (dtor_routine =
+                    expr_select_destructor(class_type,
+                                           class_type,
+                                           position,
+                                           /*honor_virtual=*/TRUE)) == NULL ||
+                  !dtor_routine->is_virtual)) {
+        /* GCC only performs this check when the class' destructor is
+           virtual. */
+      } else {
+        pos_sy_error(ec_placement_new_refers_to_non_placement_delete, position,
+                     delete_sym);
+        delete_routine = NULL;
+      }  /* if */
     } else {
       if (delete_sym->is_class_member) {
         /* Check access and ambiguity for class member operator deletes. */
