@@ -1,5 +1,14 @@
 Version 4.15
 
+10/27/17 [EDGcpfe/18893]
+Microsoft C++ compatibility: internal error with C++/CLI, PCH, and preusing
+
+An internal error (in translation_unit) could occur when doing a --preusing
+of an assembly when precompiled header processing is enabled and the
+primary source file did not contain any preprocessing directives.  Now
+fixed.
+
+
 10/26/17 [EDGcpfe/18833]
 Abstract classes and virtual bases
 

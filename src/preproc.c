@@ -1776,6 +1776,14 @@ system types.  Then import any other metadata files specified via --preusing.
                     &preinclude_source_position);
     preusing_file_list = preusing_file_list->next;
   }  /* while */
+  /* See if the end of the preusing marks the end of the precompiled header
+     potentially being generated. */
+  if (header_stop_position_pending &&
+      cmp_source_positions(header_stop_source_position,
+                           preinclude_source_position) == 0) {
+    generate_pch_on_return_to_primary_source_file = TRUE;
+    check_for_generation_of_pch_on_return_to_primary_file();
+  }  /* if */
 }  /* process_preusings */
 
 
