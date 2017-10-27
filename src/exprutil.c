@@ -14601,12 +14601,14 @@ position of the "?" and ":".
              is_error_operand(operand_3)) {
     /* Some error. */
     make_error_operand(result);
-  } else if (curr_expr_kind_is_evaluated_const() &&
+  } else if (curr_expr_kind_is_evaluated_const() && !constexpr_enabled &&
              !operand_1_is_const &&
              !is_template_dependent_context()) {
-    /* A constant expression where the value of the first operand is
-       not known at compile time, except a template-dependent
-       value.  Error. */
+    /* A constant expression is expected by the value of the first operand is
+       not known at compile time: Issue an error.  Don't issue an error for a
+       template-dependent value.  If constexpr evaluation is in effect, a
+       constant is not always required at this level (the enclosing expression
+       may be found to be a valid constant instead). */
     error_in_operand(ec_constant_value_not_known, operand_1);
     make_error_operand(result);
   } else {

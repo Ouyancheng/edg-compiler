@@ -1,5 +1,20 @@
 Version 4.15
 
+10/27/17 [EDGcpfe/18870]
+Spurious errors on conditional operators in constexpr contexts
+
+In modes supporting constexpr evaluation, the front end previously too-eagerly
+issued errors on certain uses of the conditional operator (?:).  For example:
+
+  constexpr int g() {
+    constexpr int arr[] = { 1 };
+    constexpr int r = arr ? 1 : 0;  // Previously triggered a spurious
+    return r;                       // "constant value is not known" error.
+  }
+
+This problem is now fixed.
+
+
 10/27/17 [EDGcpfe/18902]
 Microsoft compatibility: _INLINE_VARIABLES_SUPPORTED macro
 
