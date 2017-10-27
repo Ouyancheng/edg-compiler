@@ -1,5 +1,13 @@
 Version 4.15
 
+10/27/17 [EDGcpfe/18902]
+Microsoft compatibility: _INLINE_VARIABLES_SUPPORTED macro
+
+The _INLINE_VARIABLES_SUPPORTED macro is now defined by the front end when
+inline variables are enabled in Microsoft emulation mode (i.e., when
+microsoft_version >= 1912 and --ms_c++latest or --ms_c++17 is specified).
+
+
 10/27/17 [EDGcpfe/18808]
 Partial specializations of class member variable templates
 
