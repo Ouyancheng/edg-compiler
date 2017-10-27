@@ -7808,7 +7808,7 @@ which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     is_union, abstract;
+  a_boolean                     is_union;
   a_boolean                     has_field = FALSE, has_field_init = FALSE;
   a_boolean                     has_explicit_field_init = FALSE;
   a_boolean                     is_generated_cctor, is_generated_mctor;
@@ -7902,14 +7902,11 @@ initialized.  These are addressed in the course of the processing.
      Eventually these three lists will be merged into one.  The order of
      items on the list is the order in which initializations are to be
      performed. */
-  /* For abstract classes, virtual bases need not be initialized. */
-  abstract = class_type->variant.class_struct_union.abstract;
   /* Handle the first two lists together. */
   /* Scan the list of base classes, which may include some that are
      ineligible for initialization. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if ((bcp->direct || bcp->is_virtual) &&
-        !(bcp->is_virtual && abstract)) {
+    if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
       /* If the virtual base class or direct base class has a constructor, a
          dynamic init entry will be required; otherwise it is optional.
@@ -8249,6 +8246,27 @@ initialized.  These are addressed in the course of the processing.
         }  /* if */
         if (field_sym->variant.field.extra_info->is_last_variant_member) {
           variant_complete = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (cip->kind == (a_constructor_init_kind)cik_virtual_base_class) {
+      /* Remove implicit initializers for virtual bases of abstract class
+         types.  The resolution of Core issue 1658 clarified that they do
+         not participate in the semantic checks for constructors (and they
+         are never invoked). */
+      if (class_type->variant.class_struct_union.abstract) {
+        if (cip->compiler_generated) {
+          if (cib.end_of_virtual_list == cip) {
+            cib.virtual_list = NULL;
+            cib.end_of_virtual_list = NULL;
+          } else if (cib.virtual_list == cip) {
+            cib.virtual_list = cip->next;
+          }  /* if */
+          if (prev_cip == NULL) {
+            cib.cip_list = cip->next;
+          } else {
+            prev_cip->next = cip->next;
+          }  /* if */
+          continue;
         }  /* if */
       }  /* if */
     }  /* if */
