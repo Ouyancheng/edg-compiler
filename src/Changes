@@ -1,5 +1,22 @@
 Version 4.15
 
+10/28/17 [EDGcpfe/18748]
+Abort in on template-id that refers to non-template member function
+
+An abort could occur (in copy_template_argument_list_with_substitution)
+during SFINAE processing when the substitution of a dependent template-id
+produced a non-template member function (which should result in a substitution
+failure).  Now fixed.
+
+  struct A {
+    void f();
+  };
+  template <class T> auto f() -> decltype(T::template f<T>()) {}
+  int main() {
+    f<A>();
+  }
+
+
 10/27/17 [EDGcpfe/18680]
 Incorrect comparison of dependent decltype expressions
 

@@ -6843,8 +6843,21 @@ to the given locator.
       rescan_orig_templ_param_list = sym->variant.template_info->
                                                    cache.decl_info->parameters;
     }  /* if */
+  } else if (symbol_is(sym, sk_overloaded_function)) {
+    /* An overload set (presumably containing a template).  Don't provide
+       a symbol for the template argument list substitution below. */
+    sym = NULL;
+  } else if (symbol_is(sym, sk_constant)) {
+    /* A constant (presumably the original ck_template_param constant).
+       Don't provide a symbol for the template argument list substitution
+       below. */
+    sym = NULL;
+  } else {
+    /* Not a template symbol.  Fail substitution. */
+    copy_error = TRUE;
   }  /* if */
-  locator->template_arg_list =
+  if (!copy_error) {
+    locator->template_arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                              sym,
                                              rescan_orig_templ_arg_list,
@@ -6855,6 +6868,7 @@ to the given locator.
                                              rcblock->options,
                                              &copy_error,
                                              rcblock->ctws_state);
+  }  /* if */
   if (copy_error) {
     locator->is_error = TRUE;
     record_suppressed_error();
