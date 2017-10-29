@@ -1,5 +1,21 @@
 Version 4.15
 
+10/28/17 [EDGcpfe/18904]
+Incorrect lookup in instantiation of member variable template
+
+In the instantiation of a variable template declared in an explicitly
+specialized class, the lookup in the initializer could fail to find
+a template parameter if it had a different name in an out-of-class
+definition.  Now fixed
+
+  template<typename> struct A;
+  template<> struct A<int> {
+    template<bool B> static constexpr int v = B;
+  };
+  template<bool> constexpr int A<int>::v;
+  int i = A<int>::template v<true>; // "B is undefined" during instantiation
+
+
 10/28/17 [EDGcpfe/18748]
 Abort in on template-id that refers to non-template member function
 
