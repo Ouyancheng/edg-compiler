@@ -6844,14 +6844,16 @@ to the given locator.
                                                    cache.decl_info->parameters;
     }  /* if */
   } else if (symbol_is(sym, sk_overloaded_function)) {
-    /* An overload set (presumably containing a template).  Don't provide
-       a symbol for the template argument list substitution below. */
+    /* An overload set.  Fail substitution if it does not contain a
+       template.  Otherwise, don't pass a symbol for substitution below. */
+    copy_error = !symbol_is_or_contains_template(sym);
     sym = NULL;
   } else if (symbol_is(sym, sk_constant)) {
-    /* A constant (presumably the original ck_template_param constant).
-       Don't provide a symbol for the template argument list substitution
-       below. */
+    /* A constant.  Fail substitution if it is not a ck_template_param
+       constant.  Otherwise, don't pass a symbol for substitution below. */
+    a_constant_ptr con = sym->variant.constant;
     sym = NULL;
+    copy_error = !constant_is(con, ck_template_param);
   } else {
     /* Not a template symbol.  Fail substitution. */
     copy_error = TRUE;
