@@ -9850,7 +9850,9 @@ use of the argument list in case it has been freed.
     }  /* if */
 #endif /* DEBUG */
   } else {
-    if (!is_nonreal && !sym->defined &&
+    a_variable_ptr	var;
+    var = variable_for_symbol(sym);
+    if (!is_nonreal && !sym->defined && !var->is_specialized &&
         !master_instance_of(tip)->already_instantiated) {
       instantiate_template_variable(tip, /*is_new=*/FALSE, is_use);
     }  /* if */

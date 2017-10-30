@@ -1,5 +1,22 @@
 Version 4.15
 
+10/30/17 [EDGcpfe/18750]
+Spurious error on variable template specialized with different type
+
+A spurious "incompatible type" error could be issued if a variable
+template was specialized with a type that did not match the one that
+would have been generated from the template.  Now fixed.
+
+  struct A { void f() {} };
+  struct B { void f() {} };
+  template <class T> A a;
+  template <> B a<int>;
+  template <class T> void g() { a<T>.f(); }
+  int main() {
+    g<int>();
+  }
+
+
 10/30/17 [EDGcpfe/18689]
 Internal error parsing a variadic declaration with C-style ellipsis
 
