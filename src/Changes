@@ -1,5 +1,21 @@
 Version 4.15
 
+10/30/17 [EDGcpfe/18689]
+Internal error parsing a variadic declaration with C-style ellipsis
+
+An internal error could occur (in end_potential_pack_expansion_context)
+when parsing a top-level function declarator that contains both a pack
+expansion and a C-style ellipsis parameter.  Now fixed.
+
+  template <typename F> void g(int i, F f){ f(); }
+  template <typename ...T> void f() {
+    g(1, []{ void i(T..., ...); });
+  }
+  int main() {
+      f();
+  }
+
+
 10/30/17 [EDGcpfe/18877]
 Abort deducing empty variadic generic lambda template argument list
 

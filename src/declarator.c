@@ -3686,7 +3686,7 @@ an error if a default argument expression is encountered.
                we now know that the ellipsis terminates the parameter list.
                E.g., template<class ...T> void f(int, T..., ...) {} */
             any_variadic_params = FALSE;
-            if (!is_top_level_declarator && pesep != NULL) {
+            if (pesep != NULL) {
               abandon_potential_pack_expansion_context(pesep);
               pesep = NULL;
             }  /* if */
