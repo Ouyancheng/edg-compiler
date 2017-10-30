@@ -24311,7 +24311,7 @@ template symbol supplement for this template should be returned to the caller.
     /* Save the information needed to create an instantiation based
        on the definition of the template.  First, save the initializer
        expression.  For a static data member initialized in-class, don't
-       update the for an out-of-class definition. */
+       update the initializer cache for an out-of-class definition. */
     if (!is_variable_template || is_initial_decl ||
         !var->initializer_in_class) {
       set_template_cache_info(&tssp->cache, p_token_cache,
