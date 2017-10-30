@@ -17,7 +17,7 @@ definition.  Now fixed
 
 
 10/28/17 [EDGcpfe/18748]
-Abort in on template-id that refers to non-template member function
+Abort on template-id that refers to non-template member function
 
 An abort could occur (in copy_template_argument_list_with_substitution)
 during SFINAE processing when the substitution of a dependent template-id
