@@ -2991,6 +2991,13 @@ typedef struct a_template_symbol_supplement {
     } function;
     /* When symbol kind = sk_variable_template or sk_static_data_member: */
     struct {
+      a_bit_field
+		has_out_of_class_definition:1;
+			/* TRUE if the variable template or static data
+			   member has a definition that was not inside
+			   the parent class (if any).  Note, this is always
+			   TRUE for variable templates declared outside of
+			   class scope. */
       a_template_instance_ptr
 		definitions;
 			/* Pointer to a list of entries specifying definitions

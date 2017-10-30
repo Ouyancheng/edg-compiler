@@ -3566,6 +3566,7 @@ and return a pointer to it.
     case sk_static_data_member:
     case sk_variable_template:
       tssp->variant.variable.definitions = NULL;
+      tssp->variant.variable.has_out_of_class_definition = FALSE;
       tssp->variant.variable.instantiations = NULL;
       tssp->variant.variable.prototype_variable = NULL;
       clear_template_cache(&tssp->variant.variable.decl_cache,
@@ -15484,11 +15485,12 @@ a_boolean symbol_is_from_trans_unit(a_symbol_ptr		sym,
 				    a_translation_unit_ptr	tup)
 /*
 Return TRUE if the declaration scope of sym is from a scope associated
-with the translation unit specified by tup.
+with the translation unit specified by tup.  If the symbol has no scope,
+return TRUE.
 */
 {
   a_scope_number	scope_number;
-  a_boolean		result = FALSE;
+  a_boolean		result = TRUE;
 
   scope_number = sym->decl_scope;
   if (scope_number != NO_SCOPE_NUMBER) {

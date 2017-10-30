@@ -17604,16 +17604,18 @@ is the one actually associated with this reference.
 
 static a_symbol_ptr coalesce_template_variable_reference(
 			a_symbol_ptr			template_sym,
+			a_token_sequence_number		start_tsn,
 			an_identifier_options_set	options,
 			a_token_kind			next_tok,
 			a_boolean			*err)
 /*
 The current identifier is a variable template symbol.  If next_tok is
 tok_lt ("<"), it is followed by a template argument list.  Scan the template
-argument list and update the locator to point to it.  options is the set
-of options flags passed into the identifier scanning routines.  Return the
-symbol of the variable template instance indicated by the template argument
-list.
+argument list and update the locator to point to it.  start_tsn
+is the token sequence number of the first token of the whole qualified
+name.  options is the set of options flags passed into the identifier
+scanning routines.  Return the symbol of the variable template instance
+indicated by the template argument list.
 */
 {
   a_source_position		start_position;
@@ -17622,12 +17624,10 @@ list.
   a_symbol_locator		orig_locator;
   a_boolean			any_errors = FALSE;
   a_symbol_ptr			new_sym = NULL;
-  a_token_sequence_number	start_tsn;
   a_boolean			is_template_id = TRUE;
 
   /* Save source position for error reporting. */
   start_position = pos_curr_token;
-  start_tsn = curr_token_sequence_number;
   if (next_tok != tok_lt) {
     if ((options & GID_TEMPLATE_ARGS_OPTIONAL) != 0) {
       /* If template arguments are not required, return the template
@@ -17809,6 +17809,7 @@ otherwise the original "sym" is returned.
 static a_symbol_ptr coalesce_template_id(
 			a_symbol_ptr			template_sym,
 			a_token_kind			next_tok,
+			a_token_sequence_number		start_tsn,
 			an_identifier_options_set	options,
 			a_boolean			*err)
 /*
@@ -17820,13 +17821,17 @@ template symbol, or an overload set containing one or more templates,
 coalesce_template_function_reference is called to scan the argument list.
 Otherwise, coalesce_template_class_reference is called to either scan
 the class template argument list or diagnose an invalid template reference.
+start_tsn is the token sequence number of the first token of the whole
+qualified name.
 */
 {
   a_symbol_ptr	result_sym;
 
   if (template_sym != NULL &&
       symbol_is(template_sym, sk_variable_template)) {
-    result_sym = coalesce_template_variable_reference(template_sym, options,
+    result_sym = coalesce_template_variable_reference(template_sym,
+                                                      start_tsn,
+                                                      options,
                                                       next_tok, err);
   } else if (template_sym != NULL &&
              !is_class_template_or_injected_template_symbol(template_sym) && 
@@ -19466,7 +19471,8 @@ selection operator, in which case it points to the type of the left operand.
         template_options |= GID_TEMPLATE_ARGS_OPTIONAL;
       }  /* if */
       qualifier_sym = coalesce_template_id(qualifier_sym, next_tok,
-                                           template_options, &err);
+                                           start_seq_number, template_options,
+                                           &err);
       specific_sym = locator_for_curr_id.specific_symbol;
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
@@ -19984,7 +19990,8 @@ selection operator, in which case it points to the type of the left operand.
                or if the next token is a "<" (which could be a function
                template reference or an error case). */
             qualifier_sym = coalesce_template_id(qualifier_sym, next_tok,
-                                                 options, &err);
+                                                 start_seq_number, options,
+                                                 &err);
             /* We can only now determine whether this template reference is
                followed by a "::".  If it is not, break out of the qualifier
                loop. */
@@ -20919,9 +20926,9 @@ scanned is, in fact, an identifier).
          For the variable case, an error will result (from the missing
          argument list). */
       if (symbol_is(symbol, sk_variable_template)) {
-        symbol = coalesce_template_variable_reference(symbol, options,
-                                                      next_token(),
-                                                      &templ_err);
+        symbol = coalesce_template_variable_reference(
+                                            symbol, curr_token_sequence_number,
+                                            options, next_token(), &templ_err);
       } else {
         symbol = coalesce_template_class_reference(symbol, options,
                                                    &templ_err);

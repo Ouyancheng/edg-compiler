@@ -1,4 +1,31 @@
 Version 4.15
+
+10/30/17 [EDGcpfe/18777]
+Various variable template issues regarding out-of-class definitions
+
+A number of issues regarding class member variable templates (i.e.,
+static data member templates) involving out-of-class definitions have
+been fixed:
+
+- A variable template with an incomplete array type in the in-class declaration
+  but a complete out-of-class definition resulted in spurious errors.
+
+- A variable template where the template parameter names differed between
+  the in-class declaration and the out-of-class definition could result
+  in spurious errors.
+
+The definition of A<T>::iarr is an example of the first issue and the
+definition of A<T>::i is an example of the second.
+
+  template <typename T> struct A {
+    template<typename V> static int iarr[];
+    template<typename V> static const int i;
+  };
+  template <typename T> template <typename V> int A<T>::iarr[10];
+  template <typename T> template <typename Z> const int A<T>::i = sizeof(Z);
+  int j = A<int>::iarr<int>[0];
+  constexpr int k = A<int>::i<char>;
+
   
 10/28/17 [EDGcpfe/18904]
 Incorrect lookup in instantiation of member variable template

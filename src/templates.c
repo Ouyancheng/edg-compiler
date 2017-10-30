@@ -5405,14 +5405,16 @@ diagnostic about the invalid type.
   if (is_function_type(tp)) {
     result = TRUE;
     error_code = ec_variable_templ_function_type;
-  } else if (is_incomplete_array_type(tp)) {
-    if (!is_extern) {
+  } else if (is_incomplete_type(tp)) {
+    if (is_incomplete_array_type(tp) &&
+        (is_extern || is_prototype_instantiation_context())) {
+      /* Allow an incomplete array on an extern declaration and also in a
+         prototype instantiation because it could be completed in an
+         out-of-class definition. */
+    } else {
       result = TRUE;
       error_code = ec_incomplete_var_type;
     }  /* if */
-  } else if (is_incomplete_type(tp)) {
-    result = TRUE;
-    error_code = ec_incomplete_var_type;
   }  /* if */
   if (result && issue_error) {
     pos_ty_error(error_code, &dps->specifiers_pos, tp);
@@ -6340,6 +6342,7 @@ expression context) rather than a declaration.
   a_boolean				incomplete_type_error_reported = FALSE;
   a_template_arg_ptr			templ_arg_list;
   a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
+  a_template_cache_ptr			body_cache;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -6370,6 +6373,7 @@ expression context) rather than a declaration.
     tssp_of_prototype = tssp;
     ps_options |= PS_IGNORE_CLASS_CONTEXT;
   }  /* if */
+  body_cache = cache_for_template(tssp_of_prototype);
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
   if ((!is_var_templ_instance && !template_sym->defined) ||
@@ -6421,7 +6425,7 @@ expression context) rather than a declaration.
      should be visible to the instantiation. */
   if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
   (void)push_template_instantiation_scope(
-                                   tssp->cache.decl_info,
+                                   tssp->variant.variable.decl_cache.decl_info,
                                    (a_type_ptr)NULL,
                                    (a_routine_ptr)NULL,
                                    var_sym,
@@ -6476,7 +6480,28 @@ expression context) rather than a declaration.
     a_boolean	is_constant_member;
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
-    rescan_reusable_cache(&tssp_of_prototype->cache.tokens);
+    rescan_reusable_cache(&body_cache->tokens);
+    if (tssp->variant.variable.decl_cache.decl_info != body_cache->decl_info) {
+      /* The decl_info for the declaration and the body are different (i.e.,
+         they came from different declarations of the template).  We need
+         to push a different instantiation scope to make sure the correct
+         template parameters are visible.  Pop the old instantiation scope
+         and push a new one.  Transfer any pragmas from the previous
+         context. */
+      a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+      a_pending_pragma_ptr	saved_curr_construct_pragmas =
+                                                  ssep->curr_construct_pragmas;
+      a_pending_pragma_ptr	saved_pending_pragmas = ssep->pending_pragmas;
+      ssep->curr_construct_pragmas = NULL;
+      ssep->pending_pragmas = NULL;
+      pop_template_instantiation_scope();
+      (void)push_template_instantiation_scope(
+                body_cache->decl_info, (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                var_sym, template_sym, templ_arg_list, /*push_lex_state=*/TRUE,
+                ps_options);
+      ssep->curr_construct_pragmas = saved_curr_construct_pragmas;
+      ssep->pending_pragmas = saved_pending_pragmas;
+    }  /* if */
     master_instance_of(tip)->already_instantiated = TRUE;
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
@@ -23839,7 +23864,7 @@ variable template specified by locator.  Return the symbol.
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
 
-  if (!decl_state->is_partial_specialization) {
+  if (!decl_state->is_partial_specialization && !is_error_locator(*locator)) {
     sym = enter_symbol((a_symbol_kind)sk_variable_template, locator,
                        decl_state->effective_decl_level,
                        /*suppress_error=*/FALSE);
@@ -23852,6 +23877,9 @@ variable template specified by locator.  Return the symbol.
   tssp = sym->variant.template_info;
   set_il_template_entry(decl_state, sym, tssp);
   create_prototype_variable(decl_state, sym);
+  if (is_error_locator(*locator)) {
+    decl_state->decl_scope_err = TRUE;
+  }  /* if */
   return sym;
 }  /* create_variable_template_symbol */
 
@@ -23925,6 +23953,7 @@ and returned.  Otherwise, NULL is returned.
   if (err) {
     /* Some sort of error occurred above. */
     set_to_error_locator(*locator);
+    decl_state->decl_scope_err = TRUE;
   } else if (sym == NULL) {
     /* Create the symbol and associated entries for the variable template. */
     sym = create_variable_template_symbol(decl_state, locator);
@@ -24106,10 +24135,6 @@ template symbol supplement for this template should be returned to the caller.
        scope in which the variable template or parent class was defined. */
     sym_error(ec_bad_scope_for_definition, sym);
     err = TRUE;
-  } else if (sym->defined && !var->initializer_in_class) {
-    /* Prior definition. */
-    pos_sy_error(ec_already_defined, &locator->source_position, sym);
-    err = TRUE;
   } else if (!is_initial_decl &&
              !types_are_redecl_compatible(dps->type, var->type)) {
     /* The type of the static data member definition does not match
@@ -24157,6 +24182,10 @@ template symbol supplement for this template should be returned to the caller.
                     &locator->source_position,
                     &var->source_corresp.decl_position);
     err = TRUE;
+  } else if (sym->defined && !var->initializer_in_class) {
+    /* Prior definition. */
+    pos_sy_error(ec_already_defined, &locator->source_position, sym);
+    err = TRUE;
   } else if (!is_initial_decl) {
     /* This is a template definition of a static data member of a
        class template or a redeclaration of a variable template. */
@@ -24197,6 +24226,11 @@ template symbol supplement for this template should be returned to the caller.
       dps->sym = var_sym;
       attach_decl_attributes(dps, /*primary_decl=*/TRUE);
     }  /* if */
+  }  /* if */
+  if (err) {
+    set_to_named_error_locator(*locator);
+    sym = create_variable_template_symbol(decl_state, locator);
+    decl_state->decl_scope_err = TRUE;
   }  /* if */
   /* Scan the initializer expression, if any, and cache its tokens.
      The initializer may be of the form "= ...;", "(...);", or "{ ... };".
@@ -24314,8 +24348,12 @@ template symbol supplement for this template should be returned to the caller.
        update the initializer cache for an out-of-class definition. */
     if (!is_variable_template || is_initial_decl ||
         !var->initializer_in_class) {
-      set_template_cache_info(&tssp->cache, p_token_cache,
-                              decl_state->decl_info);
+      /* Don't update the cache if an error occurred above (unless this is
+         the initial declaration). */
+      if (tssp->cache.tokens.first_token == NULL || !err) {
+        set_template_cache_info(&tssp->cache, p_token_cache,
+                                decl_state->decl_info);
+      }  /* if */
     }  /* if */
     adjust_token_handles(&tssp->cache.tokens);
     if (decl_state->defines_something) {
@@ -24323,13 +24361,15 @@ template symbol supplement for this template should be returned to the caller.
     } else {
       mark_declared(sym, &locator->source_position);
     }  /* if */
-    if (tssp->variant.variable.decl_cache.tokens.first_token == NULL) {
+    if (tssp->variant.variable.decl_cache.tokens.first_token == NULL ||
+        (!err && !tssp->variant.variable.has_out_of_class_definition)) {
       /* The decl_token_cache is always saved from the initial declaration
          of the template. */
       set_template_cache_info(&tssp->variant.variable.decl_cache,
                               &decl_state->decl_token_cache,
                               decl_state->decl_info);
       tssp->variant.variable.declarator_name_tsn = dps->declarator_name_tsn;
+      tssp->variant.variable.has_out_of_class_definition = TRUE;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&var->source_corresp, &decl_state->decl_pos_block);
@@ -26576,7 +26616,9 @@ any non-empty template parameter lists that were scanned.
     } else if (nonclass_prototype_instantiations || tssp->is_variadic) {
       check_assertion(symbol_is(sym, sk_static_data_member) ||
                       symbol_is(sym, sk_variable_template));
-      variable_template_prototype_instantiation(decl_state, sym);
+      if (!decl_state->decl_scope_err) {
+        variable_template_prototype_instantiation(decl_state, sym);
+      }  /* if */
     }  /* if */
   }  /* if */
   check_use_of_auto_type(dps);
