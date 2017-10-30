@@ -40,7 +40,7 @@ When the front end was comparing two nontype template arguments that
 are constants from dependent class template instances (e.g., something
 like C<D<decltype(x1)>::v vs C<D<decltype(x2)>::v) the expressions in
 the decltype were sometimes considered to match when they should not have.
-This resulted in spurious "has already been defined" error on the second
+This resulted in a spurious "has already been defined" error on the second
 partial specialization of E in the example below.  Now fixed.
 
   struct A { };
