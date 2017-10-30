@@ -24310,9 +24310,13 @@ template symbol supplement for this template should be returned to the caller.
                                       decl_state->has_variadic_template_params;
     /* Save the information needed to create an instantiation based
        on the definition of the template.  First, save the initializer
-       expression. */
-    set_template_cache_info(&tssp->cache, p_token_cache,
-                            decl_state->decl_info);
+       expression.  For a static data member initialized in-class, don't
+       update the initializer cache for an out-of-class definition. */
+    if (!is_variable_template || is_initial_decl ||
+        !var->initializer_in_class) {
+      set_template_cache_info(&tssp->cache, p_token_cache,
+                              decl_state->decl_info);
+    }  /* if */
     adjust_token_handles(&tssp->cache.tokens);
     if (decl_state->defines_something) {
       mark_defined(sym, &locator->source_position);
