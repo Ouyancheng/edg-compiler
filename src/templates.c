@@ -23992,7 +23992,7 @@ return NULL.
       tssp->primary_template_sym = primary_sym;
       ps_var = variable_for_symbol(ps_sym);
       vtip = ps_var->template_info;
-      /* The call to create_variable_template_symol above created a
+      /* The call to create_variable_template_symbol above created a
          template argument list based on the parameters of the partial
          specialization.  That should be used as the
          partial_spec_template_arg_list.  The template_arg_list should be the
