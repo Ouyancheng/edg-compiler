@@ -10601,12 +10601,23 @@ rescan.
 
   *elements = 0;
   *template_param = NULL;
-  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
-                                    &tpp, &tap);
-  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+  begin_special_variadic_template_arg_list_traversal(
+                                 templ_param_list, templ_arg_list, &tpp, &tap);
+  for (; tap != NULL;
+       special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
     if (tpp->param_symbol->token_sequence_number ==
                                                   sym->token_sequence_number) {
       check_assertion(tpp->param_symbol->header == sym->header);
+      /* If this is a start of pack placeholder, advance to the next
+         argument. */
+      if (is_start_of_pack_expansion_templ_arg(tap)) {
+        tap = tap->next;
+        /* If the next argument is also a start of pack, this argument is
+           empty. */
+        if (tap != NULL && is_start_of_pack_expansion_templ_arg(tap)) {
+          tap = NULL;
+        }  /* if */
+      }  /* if */
       result_tap = tap;
       *template_param = tpp;
       found = TRUE;

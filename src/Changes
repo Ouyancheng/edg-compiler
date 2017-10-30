@@ -1,5 +1,25 @@
 Version 4.15
 
+10/30/17 [EDGcpfe/18877]
+Abort deducing empty variadic generic lambda template argument list
+
+An abort could occur (in get_enclosing_template_params_and_args) while
+deducing an empty template argument list for a call of a variadic generic
+lambda. Now fixed.
+
+  template <typename T> T&& declval();
+  template <typename...> using void_t = void;
+  template <typename, typename=void> struct A;
+  template <typename T> struct A<T, void_t<decltype(declval<T>()())>> {
+    static constexpr bool x = true;
+  };
+  int main() {
+    auto l = [](auto... xs){};
+    bool v = A<decltype(l)>::x;
+    return !v;
+  }
+
+
 10/30/17 [EDGcpfe/18777]
 Various variable template issues regarding out-of-class definitions
 
