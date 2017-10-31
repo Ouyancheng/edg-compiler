@@ -1,5 +1,23 @@
 Version 4.15
 
+10/31/17 [EDGcpfe/18728,EDGcpfe/18743]
+Spurious constexpr evaluation failure on default member initializer
+
+Consider:
+
+  struct S {
+    int i;
+    char const *str;
+    int n = str[i];
+  };
+  constexpr int f(S const &s) { return s.i; }
+  constexpr int r = f(S{ 2, "msg" });
+
+This previously failed because the constexpr evaluation of "str[i]" in the
+default initializer of S::n failed.  That is now fixed.  This issue is a
+regression introduced in version 4.11 of the front end.
+
+
 10/31/17 [EDGcpfe/18797]
 Missing error on variadic lambda parameter default argument
 

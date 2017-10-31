@@ -5043,7 +5043,8 @@ Evaluate the given dynamic initialization for the given storage.
         if (is_immediate_class_type(con_type)) {
           /* Set up a "this" pointer in case we run into enk_param_ref nodes.
              It is associated with &ips->curr_call_frame. */
-          a_type_ptr  this_type = make_pointer_type(con_type);
+          a_type_ptr      this_type = make_pointer_type(con_type);
+          a_variable_ptr  vp = dip->variable;
           alloc_complete_object(ips, sizeof(a_constexpr_address), this_type,
                                this_bytes);
           clear_address(this_bytes, result_storage);
@@ -5051,6 +5052,9 @@ Evaluate the given dynamic initialization for the given storage.
                                                               complete_object;
           ((a_constexpr_address *)this_bytes)->alloc_seq_number =
                                                    ips->curr_alloc_seq_number;
+          if (vp != NULL && is_const_qualified_type(vp->type)) {
+            ((a_constexpr_address*)this_bytes)->flags |= CA_CONST_STORAGE;
+          }  /* if */
           mark_complete_object_initialized(this_bytes);
           map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
         } else {
@@ -12630,8 +12634,7 @@ the value representation of the integer value.
       break;
     case enk_param_ref:
       { a_byte  *this_bytes = NULL;
-        if (ips->curr_call_frame != NULL &&
-            expr->variant.param_ref.param_num == 0) {
+        if (expr->variant.param_ref.param_num == 0) {
           /* An entry representing "this" in a field initializer.  The code
              handling constructor calls (which initializes members based on
              field initializers when needed) associated the address of the

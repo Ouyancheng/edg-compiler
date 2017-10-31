@@ -1432,7 +1432,9 @@ Issue any diagnostics at the given position.
     }  /* if */
   } else {
     /* A non-constant initializer. */
-    if (is->initializer_must_be_constant) {
+    if (is->initializer_must_be_constant && !constexpr_enabled) {
+      /* A constant initializer is required, and the initializer will not be
+         interpreted higher up. */
       if (!is->no_diagnostics) {
         a_diagnostic_ptr  dp;
         dp = pos_sy_start_error(ec_field_initializer_is_not_constant, diag_pos,
