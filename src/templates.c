@@ -27096,6 +27096,9 @@ that follows.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block.extra_positions = decl_state->decl_parse.extra_positions;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (deduced_return_types_enabled) {
+    dps->auto_type_allowed = TRUE;
+  }  /* if */
   /* The pragmas were extracted before the "template <>" was scanned.
      Reactivate them now. */
   reactivate_curr_construct_pragmas(decl_state->pragmas_bound_to_template);
@@ -27502,7 +27505,8 @@ that follows.
         vp->type = composite_type(vp->type, dps->type);
         /* The Microsoft compiler treats a static data member specialization
            declaration as a definition. */
-        dps->is_definition = (microsoft_bugs || curr_token == tok_assign ||
+        dps->is_definition = (symbol_is(sym, sk_variable) || microsoft_bugs ||
+                              curr_token == tok_assign ||
                               has_parenthesized_initializer ||
                               (list_init_enabled && curr_token == tok_lbrace));
         if (symbol_is(sym, sk_variable)) {
@@ -27734,6 +27738,7 @@ that follows.
               }  /* if */
             }  /* if */
           }  /* if */
+          check_use_of_auto_type(dps);
 #if GNU_EXTENSIONS_ALLOWED
           if (gpp_mode && has_parenthesized_initializer &&
               curr_token == tok_attribute) {
