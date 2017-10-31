@@ -14604,8 +14604,8 @@ position of the "?" and ":".
   } else if (curr_expr_kind_is_evaluated_const() && !constexpr_enabled &&
              !operand_1_is_const &&
              !is_template_dependent_context()) {
-    /* A constant expression is expected by the value of the first operand is
-       not known at compile time: Issue an error.  Don't issue an error for a
+    /* A constant expression expected by the value of the first operand is not
+       known at compile time: Issue an error.  Don't issue an error for a
        template-dependent value.  If constexpr evaluation is in effect, a
        constant is not always required at this level (the enclosing expression
        may be found to be a valid constant instead). */
