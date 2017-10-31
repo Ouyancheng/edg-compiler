@@ -1,5 +1,22 @@
 Version 4.15
 
+10/31/17 [EDGcpfe/18910]
+Abort on use of deleted function with deducible return type
+
+Consider:
+
+  struct S {
+    static auto f() = delete;
+  };
+  template<class T> int g() {
+    return T::f();  // Previously triggered an abort when instantiated for
+  }                 // T == S.
+  int r = g<S>();
+
+The front end previously aborted on this example (with an internal error in
+generic_cast_operand).  That is now fixed.
+
+
 10/30/17 [EDGcpfe/18750]
 Spurious error on variable template specialized with different type
 

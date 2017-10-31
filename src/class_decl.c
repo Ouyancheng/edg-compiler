@@ -12857,6 +12857,20 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       rp->is_deleted = TRUE;
       rp->is_inline = TRUE;
       rp->defined = TRUE;
+      if (rp->has_deducible_return_type) {
+        /* Something like "auto f() = delete;": Make sure the routine doesn't
+           escape with "auto" as an actual return type.  We just record "void"
+           instead, with a placeholder typeref on top. */
+        a_type_ptr  rtp = rp->type, return_type;
+        a_boolean   is_decltype_auto;
+        return_type = rtp->variant.routine.return_type;
+        check_assertion(is_auto_type(return_type));
+        is_decltype_auto = return_type->variant.template_param.extra_info
+                                      ->coordinates.position
+                                                  == DECLTYPE_AUTO_POS_NUMBER;
+        rtp->variant.routine.return_type =
+                       add_placeholder_typeref(void_type(), is_decltype_auto);
+      }  /* if */
     }  /* if */
   } else if (func_info->is_defaulted) {
     /* Verify that sym represents a special member function for which a
