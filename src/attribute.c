@@ -5868,12 +5868,12 @@ pos.
     case tmk_XF:
       type_kind = (a_type_kind)tk_float;
       /* Force to __float80 type. */
-      fkind = (a_float_kind)fk_float80;
+      fkind = float_kind_for_float80;
       break;
     case tmk_TF:
       type_kind = (a_type_kind)tk_float;
       /* Force to __float128 type. */
-      fkind = (a_float_kind)fk_float128;
+      fkind = float_kind_for_float128;
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tmk_SC:
@@ -5887,12 +5887,12 @@ pos.
     case tmk_XC:
       type_kind = (a_type_kind)tk_complex;
       /* Force to __float80 base type. */
-      fkind = (a_float_kind)fk_float80;
+      fkind = float_kind_for_float80;
       break;
     case tmk_TC:
       type_kind = (a_type_kind)tk_complex;
       /* Force to __float128 base type. */
-      fkind = (a_float_kind)fk_float128;
+      fkind = float_kind_for_float128;
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tmk_error:
