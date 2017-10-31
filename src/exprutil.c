@@ -5846,7 +5846,14 @@ folding failed.  Return TRUE if an error was issued.
       /* A dependent call might call a constexpr function and be folded,
          so turn it into a constant and await a real instantiation. */
       if (operand != NULL) {
-        make_template_param_expr_constant_operand(operand);
+        if (scope_stack_top().is_rescan &&
+            !operand_is_instantiation_dependent(operand)) {
+          /* In a SFINAE context is_template_dependent_context() is TRUE, but
+             the rescan may be "real".  In such situations, don't force the
+             representation into a constant if folding failed. */
+        } else {
+          make_template_param_expr_constant_operand(operand);
+        }  /* if */
       }  /* if */
     } else if (expr_stack != NULL && curr_expr_kind_is_traditional_const()) {
       /* Unfolded routine calls are not allowed in constant expressions. */

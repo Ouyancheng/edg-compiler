@@ -1,5 +1,30 @@
 Version 4.15
 
+10/31/17 [EDGcpfe/18719]
+Incorrect handling of SFINAE failures due to failed constexpr evaluations
+
+Consider:
+
+  constexpr bool d_zero(int i, int j) {
+    return 1 + j/(i == 0);  // Valid when i == 0.
+  }
+  constexpr bool d_nonzero(int i, int j) {
+    return 1 + j/(i != 0);  // Valid when i != 0.
+  }
+  template <int I> constexpr int f(int (*)[d_zero(I, 0)] = nullptr) {
+    return 0;
+  }
+  template <int I> constexpr int f(int (*)[d_nonzero(I, 0)] = nullptr) {
+    return 1;
+  }
+  static_assert (f<0>() == 0, "");  // Previously an error.
+
+Previously, the fact that the invocation of d_nonzero(I, 0) cannot be folded
+was ignored by the front end's SFINAE processing, causing both candidate
+function templates f to be considered valid matches.  That in turn triggered
+a spurious ambiguity error.  This problem is now fixed.
+
+
 10/31/17 [EDGcpfe/18728,EDGcpfe/18743]
 Spurious constexpr evaluation failure on default member initializer
 
