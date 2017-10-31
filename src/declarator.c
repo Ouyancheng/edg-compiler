@@ -3235,7 +3235,8 @@ an error if a default argument expression is encountered.
              If it is a real pack (for a function template), default arguments
              are not permitted.  However, if it is a pack in an ordinary member
              of a class template, then default arguments are okay. */
-          if (scope_is(&scope_stack_top()-1, sck_template_declaration)) {
+          if (scope_is(&scope_stack_top()-1, sck_template_declaration) ||
+              state->is_lambda) {
             default_arg_allowed_on_curr_param = FALSE;
           }  /* if */
         } else {

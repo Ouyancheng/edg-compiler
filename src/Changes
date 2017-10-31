@@ -1,5 +1,19 @@
 Version 4.15
 
+10/31/17 [EDGcpfe/18797]
+Missing error on variadic lambda parameter default argument
+
+The front end failed to issue on the declaration of a variadic lambda
+parameter with a default argument.  Now fixed.
+
+  template <class... Ts> void f(Ts... args) {
+    auto l = [](Ts... x= args...){};
+  }
+  int main() {
+    f(1, 2, 3);
+  }
+
+
 10/31/17 [EDGcpfe/18910]
 Abort on use of deleted function with deducible return type
 
