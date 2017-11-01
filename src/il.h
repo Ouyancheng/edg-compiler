@@ -2169,10 +2169,8 @@ EXTERN an_object_lifetime_ptr
 			/* The top of the currently active object lifetime
 			   stack. */
 
-extern void add_to_end_of_destructions_list(
-                    a_dynamic_init_ptr      dip,
-                    an_object_lifetime_ptr  olp,
-                    a_boolean               update_parent_destruction_sublist);
+extern void add_to_end_of_destructions_list(a_dynamic_init_ptr      dip,
+                                            an_object_lifetime_ptr  olp);
 
 extern void add_to_destructions_list_following(a_dynamic_init_ptr dip,
                                                a_dynamic_init_ptr new_dip);
