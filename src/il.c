@@ -22476,11 +22476,15 @@ indicated object lifetime entry.
 }  /* add_to_destructions_list */
 
 
-void add_to_end_of_destructions_list(a_dynamic_init_ptr      dip,
-                                     an_object_lifetime_ptr  olp)
+void add_to_end_of_destructions_list(
+                     a_dynamic_init_ptr      dip,
+                     an_object_lifetime_ptr  olp,
+                     a_boolean               update_parent_destruction_sublist)
 /*
 Add the indicated dynamic init entry to the end of the destructions list
-of the indicated object lifetime entry.
+of the indicated object lifetime entry.  When update_parent_destruction_sublist
+is TRUE (typical case), adjust the parent_destruction_sublist pointers
+of any child lifetimes to point to the new destruction (if needed).
 */
 {
   a_dynamic_init_ptr     last_dip;
@@ -22505,13 +22509,16 @@ of the indicated object lifetime entry.
   dip->next_in_destruction_list = NULL;
   /* Update the lifetime pointer in the dynamic init entry. */
   dip->lifetime = olp;
-  /* Any child lifetime whose parent_destruction_sublist indicates that
-     it is at the beginning of the lifetime should include this destruction. */
-  for (colp = olp->child_lifetime; colp != NULL; colp = colp->next) {
-    if (colp->parent_destruction_sublist == NULL) {
-      colp->parent_destruction_sublist = dip;
-    }  /* if */
-  }  /* for */
+  if (update_parent_destruction_sublist) {
+    /* Any child lifetime whose parent_destruction_sublist indicates that
+       it is at the beginning of the lifetime should include this
+       destruction. */
+    for (colp = olp->child_lifetime; colp != NULL; colp = colp->next) {
+      if (colp->parent_destruction_sublist == NULL) {
+        colp->parent_destruction_sublist = dip;
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* add_to_end_of_destructions_list */
 
 
