@@ -1439,6 +1439,29 @@ instantiation.
 }  /* cache_for_template */
 
 
+a_template_cache_ptr decl_cache_for_variable_template(
+					a_template_symbol_supplement_ptr tssp)
+/*
+Returns a pointer to the declaration cache to be used for a variable template.
+Typically, this is the one cache stored in the template symbols supplement.
+But if the template is a member template declared within a class template,
+the body may be associated with the member template from the prototype
+instantiation.
+*/
+{
+  a_template_cache_ptr	tcp;
+
+  if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
+    /* Use the cache from the original template. */
+    tcp = &tssp->prototype_template->variant.template_info->
+                                                   variant.variable.decl_cache;
+  } else {
+    tcp = &tssp->variant.variable.decl_cache;
+  }  /* if */
+  return tcp;
+}  /* decl_cache_for_variable_template */
+
+
 static
 a_func_info_block *func_info_for_template(
                                       a_template_symbol_supplement_ptr tssp)
@@ -6310,10 +6333,11 @@ static a_boolean is_template_param_from_list(
 			a_template_param_ptr		templ_param_list);
 
 static void scan_template_variable_declaration(
-				a_template_instance_ptr			tip,
-				a_symbol_ptr				sym,
-				a_template_symbol_supplement_ptr	tssp,
-				a_decl_parse_state_ptr			dps);
+			a_template_instance_ptr			tip,
+			a_symbol_ptr				sym,
+			a_template_symbol_supplement_ptr	tssp,
+			a_template_cache_ptr			decl_cache,
+			a_decl_parse_state_ptr			dps);
 
 
 static void instantiate_template_variable(a_template_instance_ptr  tip,
@@ -6343,6 +6367,7 @@ expression context) rather than a declaration.
   a_template_arg_ptr			templ_arg_list;
   a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
   a_template_cache_ptr			body_cache;
+  a_template_cache_ptr			decl_cache;
 
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
@@ -6374,6 +6399,7 @@ expression context) rather than a declaration.
     ps_options |= PS_IGNORE_CLASS_CONTEXT;
   }  /* if */
   body_cache = cache_for_template(tssp_of_prototype);
+  decl_cache = decl_cache_for_variable_template(tssp_of_prototype);
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
   if ((!is_var_templ_instance && !template_sym->defined) ||
@@ -6425,7 +6451,7 @@ expression context) rather than a declaration.
      should be visible to the instantiation. */
   if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
   (void)push_template_instantiation_scope(
-                                   tssp->variant.variable.decl_cache.decl_info,
+                                   decl_cache->decl_info,
                                    (a_type_ptr)NULL,
                                    (a_routine_ptr)NULL,
                                    var_sym,
@@ -6440,7 +6466,8 @@ expression context) rather than a declaration.
                                     tssp->variant.variable.declarator_name_tsn;
   /* Scan or rescan the declaration of the variable template or static
      data member. */
-  scan_template_variable_declaration(tip, var_sym, tssp_of_prototype, &dps);
+  scan_template_variable_declaration(tip, var_sym, tssp_of_prototype,
+                                     decl_cache, &dps);
   if (var_ptr->initializer_in_class &&
       gpp_mode && gnu_version >= 40100 && !clang_mode) {
     /* In GNU C++ mode, in-class initializers are instantiated only when
@@ -15586,10 +15613,11 @@ information.
 
 
 static void scan_template_variable_declaration(
-				a_template_instance_ptr			tip,
-				a_symbol_ptr				sym,
-				a_template_symbol_supplement_ptr	tssp,
-				a_decl_parse_state_ptr			dps)
+			a_template_instance_ptr			tip,
+			a_symbol_ptr				sym,
+			a_template_symbol_supplement_ptr	tssp,
+			a_template_cache_ptr			decl_cache,
+			a_decl_parse_state_ptr			dps)
 /*
 Scan the declaration of a variable template instance, or rescan the
 declaration of a template static data member.  For static data members
@@ -15610,7 +15638,7 @@ by this routine.
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   dps->is_definition = TRUE;
   dps->sym = sym;
-  rescan_reusable_cache(&tssp->variant.variable.decl_cache.tokens);
+  rescan_reusable_cache(&decl_cache->tokens);
   scan_template_declaration(dps, /*is_initial_decl=*/FALSE,
                             /*is_member_decl=*/FALSE,
                             tip->template_sym, (a_type_ptr)NULL,
