@@ -32015,11 +32015,9 @@ which of the various keywords was used.
       var_type = type_of_unknown_templ_param_nontype;
       switch_to_file_scope_region(&region_to_switch_back_to);
       dep_con = alloc_constant((a_constant_repr_kind)ck_template_param);
+      make_template_param_cast_constant(name_string, dep_con, var_type,
+                                        /*is_explicit=*/FALSE);
       switch_back_to_original_region(region_to_switch_back_to);
-      set_template_param_constant_kind(
-                          dep_con, (a_template_param_constant_kind)tpck_cast);
-      dep_con->type = type_of_unknown_templ_param_nontype;
-      dep_con->variant.template_param.variant.constant = name_string;
       name_string = dep_con;
     } else {
       /* The C99 __func__ has a type of const array of char.  All the cases
@@ -40950,7 +40948,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
       if (constant_is(constant, ck_template_param)) {
         /* Implicit casts are usually stripped when rescanning expressions with
            substitution, but that should not be done with this particular
-           cast (tpck_expression or tpck_cast constant). */
+           cast (tpck_expression constant). */
         constant->variant.template_param
                          .has_generic_cast_for_nontype_template_param = TRUE;
       }  /* if */

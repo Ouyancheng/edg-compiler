@@ -2387,69 +2387,6 @@ template template parameter), if any.
 }  /* mangled_encoding_for_template_parameter */
 
 
-static void mangled_encoding_for_constant_cast(a_type_ptr               type,
-                                               a_constant_ptr           con,
-                                               a_mangling_control_block *mctl)
-/*
-Add to the mangled name the mangled encoding for the constant "con" cast
-to the type "type".  This is used for template-dependent casts.
-*/
-{
-#if !IA64_ABI
-  a_boolean cast_to_unknown =
-             (type->kind == (a_type_kind)tk_template_param &&
-              type->variant.template_param.kind ==
-                    (a_template_param_type_kind)tptk_unknown);
-
-  /* Output has the form
-       Ocsi1Z1ZO <-- "(int)Z1", Z1 indicating a nontype template parameter.
-               ^---- "O" to end the operation encoding.
-            ^^^----- Operand.
-           ^-------- Count of operands, always 1 for cast.
-          ^--------- Encoding for type to cast to.
-        ^^---------- Operation, always "cs" for cast.
-       ^------------ "O" for operation.
-     mangled_encoding_for_expression generates a compatible structure, so
-     if you change this be sure to change that as well.
-  */
-  /* If the cast is to an unknown type, omit the cast and just put out the
-     underlying constant. */
-  if (!cast_to_unknown) {
-    /* Put out the initial "O" followed by the operator name "cs". */
-    add_str_to_mangled_name("Ocs", mctl);
-    /* The operator name "cs" is followed by the encoding for the
-       type cast to. */
-    mangled_encoding_for_type(type, mctl);
-    /* Put out the count of operands. */
-#if ABI_COMPATIBILITY_VERSION >= 402
-    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
-#else /* ABI_COMPATIBILITY_VERSION < 402 */
-    store_digits_and_underscore((unsigned long)1, /*old_form=*/TRUE, mctl);
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-  }  /* if */
-#else /* IA64_ABI */
-  /* IA-64 encoding.  "cv" is the operator for a cast.  Implicit casts
-     are not rendered. */
-  if (con->explicit_cast_applied) {
-    add_str_to_mangled_name("cv", mctl);
-    mangled_encoding_for_type(type, mctl);
-  }  /* if */
-#endif /* IA64_ABI */
-  /* Put out the operand. */
-  /* in_dependent_expr is TRUE because this routine is used only for
-     dependent casts. */
-  mangled_encoding_for_constant(con, /*old_form=*/FALSE,
-                                /*in_dependent_expr=*/TRUE,
-                                /*suppress_address_of=*/FALSE, mctl);
-#if !IA64_ABI
-  if (!cast_to_unknown) {
-    /* Put out the final "O". */
-    add_to_mangled_name('O', mctl);
-  }  /* if */
-#endif /* !IA64_ABI */
-}  /* mangled_encoding_for_constant_cast */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* orig_expr is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4263,12 +4200,6 @@ do_unknown_function:
                                    (a_routine_info_block *)NULL,
                                    /*add_address_of=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-          break;
-        case tpck_cast:
-          mangled_encoding_for_constant_cast(
-                                  con->type,
-                                  con->variant.template_param.variant.constant,
-                                  mctl);
           break;
         case tpck_address:
 #if !IA64_ABI
@@ -6202,8 +6133,6 @@ is TRUE.
               ^^------------ Operation, using same encoding as for operator
                              function names.
              ^-------------- "O" for operation.
-           mangled_encoding_for_constant_cast generates a compatible structure,
-           so if you change this be sure to change that as well.
         */
         /* Put out the initial "O". */
         add_to_mangled_name('O', mctl);
@@ -7469,22 +7398,24 @@ last argument in the list).
       add_to_mangled_name('X', mctl);
 #else /* IA64_ABI */
 #if ABI_COMPATIBILITY_VERSION >= 402
-      if (con->kind == (a_constant_repr_kind)ck_template_param &&
-          con->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-          !con->explicit_cast_applied) {
-        /* If the constant is an implicit cast (presumably to the template
-           parameter type), the cast shouldn't be part of the mangled name,
-           so remove it. */
-        con = con->variant.template_param.variant.constant;
+      if (constant_is(con, ck_template_param)) {
+        a_constant_ptr  base_con;
+        a_boolean       explicit_cast;
+        if (is_template_param_cast_constant(con, &base_con, &explicit_cast) &&
+            !explicit_cast) {
+          /* If the constant is an implicit cast (presumably to the template
+             parameter type), the cast shouldn't be part of the mangled name,
+             so remove it. */
+          con = base_con;
+        }  /* if */
       }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       /* If this argument is an expression, mark it accordingly.  A ck_address
          of reference type doesn't qualify as an expression (unless we're
          trying to be compatible with GNU 3.3 or earlier). */
-      if (con->kind == (a_constant_repr_kind)ck_template_param ||
-          con->kind == (a_constant_repr_kind)ck_ptr_to_member ||
-          (con->kind == (a_constant_repr_kind)ck_address
+      if (constant_is(con, ck_template_param) ||
+          constant_is(con, ck_ptr_to_member) ||
+          (constant_is(con, ck_address)
 #if ABI_COMPATIBILITY_VERSION >= 402
            && (!is_reference_type(con->type) ||
                (emulate_gnu_abi_bugs && gnu_abi_version < 30400))

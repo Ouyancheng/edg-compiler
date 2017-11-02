@@ -1019,12 +1019,6 @@ Display a ck_template_param constant.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* unknown_function.symbol is front-end-only and is not printed. */
       break;
-    case tpck_cast:
-      (void)printf("tpck_cast\n");
-      disp_ptr("constant",
-               (char *)ptr->variant.template_param.variant.constant,
-               iek_constant);
-      break;
     case tpck_address:
       (void)printf("tpck_address\n");
       disp_ptr("constant",

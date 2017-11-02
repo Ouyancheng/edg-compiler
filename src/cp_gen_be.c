@@ -7816,21 +7816,22 @@ is the one associated with the definition of the enum.
   enum_con = enum_constants(type);
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
-    a_boolean is_initial_implicit_zero = FALSE;
+    a_boolean        is_initial_implicit_zero = FALSE;
     an_integer_value one;
+    a_constant_ptr   base_con = NULL;
+    a_boolean        explicit_cast;
     set_integer_value(&one, (a_host_large_integer)1);
     /* Start with an expected value of 0 next. */
     *next_enum_value = *enum_con;
-    if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
+    if (constant_is(enum_con, ck_integer)) {
       set_integer_value(&next_enum_value->variant.integer_value,
                         (a_host_large_integer)0);
-    } else if (enum_con->kind == (a_constant_repr_kind)ck_template_param &&
-               enum_con->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
+    } else if (constant_is(enum_con, ck_template_param) &&
+               is_template_param_cast_constant(enum_con, &base_con,
+                                               &explicit_cast)) {
       /* The implicit initial zero constant of a dependent enumeration in a
-         prototype instantiation will appear as a tpck_cast. */
-      is_initial_implicit_zero =
-           is_zero_constant(enum_con->variant.template_param.variant.constant);
+         prototype instantiation will appear as a tpck_expression. */
+      is_initial_implicit_zero = is_zero_constant(base_con);
     }  /* if */
     for (;;) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7874,21 +7875,17 @@ is the one associated with the definition of the enum.
         }  /* if */
       } else {
         /* This constant involves a template parameter. */
-        check_assertion(enum_con->kind ==
-                                      (a_constant_repr_kind)ck_template_param);
+        check_assertion(constant_is(enum_con, ck_template_param));
         explicit_enum_expr = TRUE;
-        if (enum_con->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
+        if (base_con != NULL) {
+          /* We determined above that enum_con represents a cast. */
           if (is_initial_implicit_zero) {
             /* No explicit_expression is needed for the first constant. */
             explicit_enum_expr = FALSE;
-          } else if (enum_con->variant.template_param.variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-                     enum_con->variant.template_param.variant.constant->
-                                                 variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-            an_expr_node_ptr con_expr = expr_node_from_tpck_expression(
-                            enum_con->variant.template_param.variant.constant);
+          } else if (constant_is(base_con, ck_template_param) &&
+                     tpck_is(base_con, tpck_expression)) {
+            an_expr_node_ptr con_expr;
+            con_expr = expr_node_from_tpck_expression(base_con);
             if (is_operation_node(con_expr)) {
               if (node_operator_is(con_expr, eok_cast) &&
                   con_expr->variant.operation.compiler_generated) {
@@ -7916,12 +7913,7 @@ is the one associated with the definition of the enum.
                                 /*need_parens=*/TRUE, &octl);
         } else {
           /* Handle ck_template_param constants in prototype instantiations. */
-          a_boolean saved_suppress_name_flag =
-                                octl.suppress_name_in_template_cast_enum_const;
-          octl.suppress_name_in_template_cast_enum_const = TRUE;
           gen_constant(enum_con, /*need_parens=*/FALSE);
-          octl.suppress_name_in_template_cast_enum_const =
-                                                      saved_suppress_name_flag;
         }  /* if */
         *next_enum_value = *enum_con;
       }  /* if */
@@ -12703,17 +12695,6 @@ used as an rvalue).
          lvalue. */
       form_unknown_function_constant(constant, &octl);
       processed = TRUE;
-    } else if (tpkind == (a_template_param_constant_kind)tpck_cast) {
-      /* In some cases, a do-nothing tpck_cast is used to make it clear that
-         a constant is template-dependent.  Drop such a cast. */
-      a_constant_ptr sub_con =
-                             constant->variant.template_param.variant.constant;
-      if (constant->type == sub_con->type) {
-        if (sub_con->kind == (a_constant_repr_kind)ck_address) {
-          form_lvalue_address_constant(sub_con, /*need_parens=*/TRUE, &octl);
-          processed = TRUE;
-        }  /* if */
-      }  /* if */
     } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
       /* A tpck_uuidof constant represents the address of the Microsoft
          __uuidof.  Drop the "&" to make an lvalue. */
@@ -12724,6 +12705,20 @@ used as an rvalue).
          result.  Drop the "&" to make an lvalue. */
       form_typeid_reference(constant, &octl);
       processed = TRUE;
+    } else if (tpkind == (a_template_param_constant_kind)tpck_expression) {
+      /* In some cases, a do-nothing do-nothing cast is added via a
+         tpck_expression entry to make it clear that a constant is
+         template-dependent.  Drop such a cast. */
+      a_constant_ptr sub_con;
+      a_boolean      explicit_cast;
+      if (is_template_param_cast_constant(constant, &sub_con,
+                                          &explicit_cast) &&
+          constant->type == sub_con->type) {
+        if (sub_con->kind == (a_constant_repr_kind)ck_address) {
+          form_lvalue_address_constant(sub_con, /*need_parens=*/TRUE, &octl);
+          processed = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Using an address constant as the lvalue address. */

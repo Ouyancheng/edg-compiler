@@ -2820,7 +2820,6 @@ it's the initializer for an aggregate.
                             tblock);
             }  /* if */
             break;
-          case tpck_cast:
           case tpck_address:
             traverse_constant(constant->
                                        variant.template_param.variant.constant,

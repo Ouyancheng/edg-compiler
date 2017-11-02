@@ -6769,19 +6769,15 @@ Return TRUE if the constants should be considered to match.
 {
   a_boolean	result = FALSE;
 
-  if (con1->kind == (a_constant_repr_kind)ck_template_param &&
-      con1->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_param) {
+  if (constant_is(con1, ck_template_param) && tpck_is(con1, tpck_param)) {
     /* The first constant is the name of a template parameter. */
-    if (con2->kind == (a_constant_repr_kind)ck_template_param &&
-        con2->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
+    a_constant_ptr  base_con2;
+    a_boolean       explicit_cast;
+    if (is_template_param_cast_constant(con2, &base_con2, &explicit_cast)) {
       /* The second constant is a cast of something.  Remove the cast. */
-      con2 = con2->variant.template_param.variant.constant;
+      con2 = base_con2;
     }  /* if */
-    if (con2->kind == (a_constant_repr_kind)ck_template_param &&
-        con2->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_param) {
+    if (constant_is(con2, ck_template_param) && tpck_is(con2, tpck_param)) {
       /* The thing being cast is the name of a template parameter.
          Make a copy of the constant under the cast, but use the type of
          the first constant.  Compare the resulting constants. */
@@ -10568,11 +10564,12 @@ list of a template function.  Returns TRUE if a match is found.
          constant.  We pass remove_impl_cast as FALSE so that the code below
          will use the original constant, not the constant under an implicit
          cast. */
+      a_constant_ptr  tcp; 
+      a_boolean       explicit_cast;
       match = TRUE;
-      if (templ_constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_cast) {
-        a_constant_ptr	tcp; 
-        tcp = templ_constant->variant.template_param.variant.constant;
+      if (tpck_is(templ_constant, tpck_expression) &&
+          is_template_param_cast_constant(
+                                      templ_constant, &tcp, &explicit_cast)) {
         if (is_integral_type(constant->type) &&
             matches_template_type(constant->type, templ_constant->type,
                                   templ_arg_list, templ_param_list,

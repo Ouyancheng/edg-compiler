@@ -917,7 +917,6 @@ debug builds) don't recognize that these variables are mutually-exclusive.
                 conditionally_clear_fe_pointer(eptr->variant.template_param.
                                               variant.unknown_function.symbol);
                 break;
-              case tpck_cast:
               case tpck_address:
                 walk_ptr(eptr->variant.template_param.variant.constant,
                          a_constant_ptr, iek_constant);

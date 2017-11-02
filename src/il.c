@@ -5233,6 +5233,38 @@ otherwise, the abk_temporary variant is produced instead.
 }  /* set_temporary_address_constant */
 
 
+a_boolean is_template_param_cast_constant(a_constant_ptr  con,
+                                          a_constant_ptr  *p_base_con,
+                                          a_boolean       *is_explicit)
+/*
+Return TRUE if the given constant is a ck_template_param/tpck_expression entry
+for an eok_cast/eok_ref_cast node on top of an eok_constant node.  If so, set
+*p_base_con to the underlying constant entry of that node, and set *is_explicit
+to TRUE or FALSE depending on whether the cast was explicit or not.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (constant_is(con, ck_template_param) && tpck_is(con, tpck_expression) &&
+      con->variant.template_param.do_not_rescan) {
+    an_expr_node_ptr  expr = expr_node_from_tpck_expression(con);
+    if (is_operation_node(expr) &&
+        (node_operator_is(expr, eok_cast) ||
+         node_operator_is(expr, eok_ref_cast)) &&
+        !expr->variant.operation.is_reinterpret_cast &&
+        !expr->variant.operation.is_const_cast) {
+      an_expr_node_ptr  opnd = expr->variant.operation.operands;
+      if (is_constant_node(opnd)) {
+        *is_explicit = !expr->variant.operation.compiler_generated;
+        *p_base_con = node_constant(opnd);
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_param_cast_constant */
+
+
 a_boolean con_is_exact_addr_of_variable(a_constant_ptr con,
                                         a_variable_ptr *var,
                                         a_boolean      array_decay_allowed)
@@ -5245,16 +5277,21 @@ pointer to its first element is ignored in the determination.
 {
   a_boolean is_exact_addr = FALSE;
 
-  while (con->kind == (a_constant_repr_kind)ck_template_param &&
-         con->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-         con->type == con->variant.template_param.variant.constant->type) {
+  while (constant_is(con, ck_template_param) &&
+         tpck_is(con, tpck_expression)) {
     /* Eliminate do-nothing template parameter casts added to force
        a constant to be template-dependent.  These come up in prototype
        instantiations. */
-    con = con->variant.template_param.variant.constant;
+    a_constant_ptr  base_con;
+    a_boolean       explicit_cast;
+    if (is_template_param_cast_constant(con, &base_con, &explicit_cast) &&
+        con->type == base_con->type) {
+      con = base_con;
+    } else {
+      break;
+    }  /* if */
   }  /* while */
-  if (con->kind == (a_constant_repr_kind)ck_address &&
+  if (constant_is(con, ck_address) &&
       con->variant.address.kind == (an_address_base_kind)abk_variable &&
       con->variant.address.offset == 0) {
     a_variable_ptr cvar = con->variant.address.variant.variable;
@@ -5932,7 +5969,6 @@ copy_constant_full should be called to start a copy.
           }  /* if */
         }
         break;
-      case tpck_cast:
       case tpck_address:
         new_constant->variant.template_param.variant.constant =
                i_copy_constant_full(
@@ -7377,7 +7413,6 @@ definition of the CC flags in il.h for more information.
                 }  /* if */
               }  /* if */
               break;
-            case tpck_cast:
             case tpck_address:
               eq = compare_constants(cp1->variant.template_param.variant.
                                                                       constant,
@@ -7733,7 +7768,6 @@ at the file scope (it would contain a pointer down into a function scope).
           has_nfs_ref = cp->variant.template_param.variant.expr != NULL &&
                        !in_file_scope(cp->variant.template_param.variant.expr);
           break;
-        case tpck_cast:
         case tpck_address:
           has_nfs_ref =
            has_non_file_scope_ref(cp->variant.template_param.variant.constant);
@@ -17264,45 +17298,32 @@ for the copy/substitution.
 
 
 a_constant_ptr strip_implicit_casts_if_template_param_constant(
-						a_constant_ptr	constant)
+                                                     a_constant_ptr  constant)
 /*
 If constant is a template parameter constant (i.e., a ck_template_param),
-check for the case of an underlying template parameter constant to
-which implicit cast(s) have been added.  An implicit cast can be added as
-an eok_cast expression node and can also be added as a tpck_cast either
-in place of or in addition to the eok_cast.  If this is such a case,
-return the underlying template parameter constant, otherwise return the
-original constant.
+check for the case of an underlying template parameter constant to which
+implicit cast(s) have been added.  If this is such a case, return the
+underlying template parameter constant, otherwise return the original
+constant.
 */
 {
   a_constant_ptr	result = constant;
 
-  /* Remove an implicit tpck_cast. */
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    if (constant->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast &&
-        !constant->explicit_cast_applied) {
-      constant = constant->variant.template_param.variant.constant;
-    }  /* if */
-  }  /* if */
   /* Remove an implicit eok_cast. */
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    if (constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-      an_expr_node_ptr	expr = expr_node_from_tpck_expression(constant);
-      if (expr->kind == (an_expr_node_kind)enk_operation &&
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-          expr->variant.operation.compiler_generated) {
-        an_expr_node_ptr	operand = expr->variant.operation.operands;
-        if (operand->kind == (an_expr_node_kind)enk_constant) {
-          constant = node_constant(operand);
-        }  /* if */
+  if (constant_is(constant, ck_template_param) &&
+      tpck_is(constant, tpck_expression)) {
+    an_expr_node_ptr	expr = expr_node_from_tpck_expression(constant);
+    if (is_operation_node(expr) && node_operator_is(expr, eok_cast) &&
+        expr->variant.operation.compiler_generated) {
+      an_expr_node_ptr	operand = expr->variant.operation.operands;
+      if (is_constant_node(operand)) {
+        constant = node_constant(operand);
       }  /* if */
     }  /* if */
   }  /* if */
   /* If, after possibly removing the casts above, the underlying constant is
      a template parameter constant, use that constant. */
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_is(constant, ck_template_param)) {
     result = constant;
   }  /* if */
   return result;
@@ -17418,7 +17439,7 @@ name lookup options.
         unhandled_template_args = FALSE;
         release_local_constant(&tcon);
       }  /* if */
-      /* Add a tpck_cast to the guide type. */
+      /* Add a substitutable cast to the guide type. */
       make_template_param_cast_constant(fcon, constant, guide_type,
                                         /*is_explicit=*/FALSE);
       con_copy = NULL;
@@ -17577,6 +17598,100 @@ instantiation dependent, set *p_template_case to TRUE.
 }  /* compute_alignof_value */
 
 
+static a_constant_ptr copy_template_param_cast_constant(
+                                  a_constant_ptr           con,
+                                  a_constant_ptr           base_con,
+                                  a_boolean                explicit_cast,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state,
+                                  a_constant_ptr           constant)
+/*
+con is a constant for which is_template_param_cast_constant returns TRUE,
+which means it represents a substitutable cast expression.  Perform template
+substitution on this constant and place the result in *constant, or set
+*copy_error to TRUE if the substitution fails.
+
+base_con is the underlying constant being cast, and explicit_cast indicates
+whether the cast should be considered an explicit cast (both parameters are
+produced by a call to is_template_param_cast_constant).  See
+copy_template_param_con for the meaning of the remaining parameters.
+*/
+{
+  a_type_ptr      new_type, copied_con_type;
+  a_constant_ptr  src_con, other_con, con_copy = con;
+  a_boolean       reinterpret_cast_needed = FALSE;
+
+  new_type = copy_type_with_substitution(con->type,
+                                         template_arg_list,
+                                         template_param_list,
+                                         source_pos,
+                                         options,
+                                         copy_error,
+                                         ctws_state);
+  if (*copy_error) goto done;
+  other_con = copy_template_param_con(
+                               base_con,
+                               template_arg_list,
+                               template_param_list,
+                               new_type,
+                               source_pos,
+                               options | CTWS_CAST_OPERAND,
+                               copy_error,
+                               ctws_state,
+                               constant);
+  if (*copy_error) goto done;
+  /* Get the type of the copied constant from either other_con or constant,
+     as appropriate. */
+  src_con = (other_con != NULL) ? other_con : constant;
+  copied_con_type = src_con->type;
+  if (!(options & CTWS_NON_CONSTANT_EXPR) &&
+      (is_bad_type_for_template_arg_operand(new_type) ||
+       is_bad_type_for_template_arg_operand(copied_con_type)) &&
+      !is_valid_ptr_or_ptr_to_member_templ_arg_constant(src_con) &&
+      !types_are_compatible(new_type, copied_con_type)) {
+    /* One of the types is invalid for a template argument constant
+       expression.  However, exempt the idiom where a constant is
+       converted to its own type as a way of marking it as dependent. */
+    *copy_error = TRUE;
+  } else if (!substituted_cast_is_valid(src_con, new_type, explicit_cast,
+                                        &reinterpret_cast_needed)) {
+    /* The cast is not valid. */
+    *copy_error = TRUE;
+  } else if (same_entities(new_type, con->type) && other_con == base_con) {
+    /* No change in the type or constant. */
+  } else {
+    a_boolean      did_not_fold;
+    an_error_code  error_detected;
+    if (other_con != NULL) *constant = *other_con;
+    /* Do the cast again with the type and constant after substitution. */
+    type_change_constant_full(constant, new_type,
+                              /*is_implicit_cast=*/FALSE,
+                              /*constant_context=*/TRUE,
+                              /*evaluated_context=*/TRUE,
+                              /*fold_constant_addr_exprs=*/TRUE,
+                              /*is_cli_attr_arg_expression=*/FALSE,
+                              /*check_cast_access=*/FALSE,
+                              /*check_ambiguity=*/TRUE,
+                              reinterpret_cast_needed,
+                              /*maintain_expression=*/FALSE,
+                              &did_not_fold,
+                              &error_detected,
+                              source_pos);
+    if (error_detected != ec_no_error || did_not_fold) {
+      *copy_error = TRUE;
+    } else {
+      con_copy = NULL;
+    }  /* if */
+  }  /* if */
+done:
+  return con_copy;
+}  /* copy_template_param_cast_constant */
+
+
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
@@ -17605,7 +17720,6 @@ name lookup options.
 {
   a_constant_ptr con_copy, other_con, src_con;
   a_type_ptr     new_type;
-  a_type_ptr     copied_con_type;
   a_boolean      did_not_fold, reinterpret_cast_needed = FALSE;
   an_error_code  error_detected;
   a_template_param_coordinate_ptr
@@ -17656,70 +17770,6 @@ name lookup options.
                                                   source_pos, ctws_state,
                                                   options,
                                                   copy_error, constant);
-        break;
-      case tpck_cast:
-        /* The template param constant represents a cast of a constant to
-           a template parameter type. */
-        new_type = copy_type_with_substitution(con->type,
-                                               template_arg_list,
-                                               template_param_list,
-                                               source_pos,
-                                               options,
-                                               copy_error,
-                                               ctws_state);
-        other_con = copy_template_param_con(
-                                 con->variant.template_param.variant.constant,
-                                 template_arg_list,
-                                 template_param_list,
-                                 new_type,
-                                 source_pos,
-                                 options | CTWS_CAST_OPERAND,
-                                 copy_error,
-                                 ctws_state,
-                                 constant);
-        /* Get the type of the copied constant from either other_con or
-           constant, as appropriate. */
-        src_con = (other_con != NULL) ? other_con : constant;
-        copied_con_type = src_con->type;
-        if (!(options & CTWS_NON_CONSTANT_EXPR) &&
-            (is_bad_type_for_template_arg_operand(new_type) ||
-             is_bad_type_for_template_arg_operand(copied_con_type)) &&
-            !is_valid_ptr_or_ptr_to_member_templ_arg_constant(src_con) &&
-            !types_are_compatible(new_type, copied_con_type)) {
-          /* One of the types is invalid for a template argument constant
-             expression.  However, exempt the idiom where a constant is
-             converted to its own type as a way of marking it as dependent. */
-          *copy_error = TRUE;
-        } else if (!substituted_cast_is_valid(src_con, new_type,
-                                              con->explicit_cast_applied,
-                                              &reinterpret_cast_needed)) {
-          /* The cast is not valid. */
-          *copy_error = TRUE;
-        } else if (same_entities(new_type, con->type) &&
-                   other_con == con->variant.template_param.variant.constant) {
-          /* No change in the type or constant. */
-        } else {
-          if (other_con != NULL) *constant = *other_con;
-          /* Do the cast again with the type and constant after
-             substitution. */
-          type_change_constant_full(constant, new_type,
-                                    /*is_implicit_cast=*/FALSE,
-                                    /*constant_context=*/TRUE,
-                                    /*evaluated_context=*/TRUE,
-                                    /*fold_constant_addr_exprs=*/TRUE,
-                                    /*is_cli_attr_arg_expression=*/FALSE,
-                                    /*check_cast_access=*/FALSE,
-                                    /*check_ambiguity=*/TRUE,
-                                    reinterpret_cast_needed,
-                                    /*maintain_expression=*/FALSE,
-                                    &did_not_fold,
-                                    &error_detected,
-                                    source_pos);
-          con_copy = NULL;
-          if (error_detected != ec_no_error || did_not_fold) {
-            *copy_error = TRUE;
-          }  /* if */
-        }  /* if */
         break;
       case tpck_address:
         /* The template param constant represents the address of a member.
@@ -17898,8 +17948,20 @@ name lookup options.
         /* The template param represents an expression that involves
            template parameters.  Substitute the values of the template
            arguments and fold any constant operations that result. */
-        { an_expr_node_ptr expr = expr_node_from_tpck_expression(con);
-          an_expr_node_ptr expr_copy = copy_template_param_expr(
+        { a_constant_ptr  base_con;
+          a_boolean       explicit_cast;
+          if (is_template_param_cast_constant(
+                                            con, &base_con, &explicit_cast)) {
+            /* Handle some eok_cast/eok_ref_cast nodes specially, because they
+               don't always have associated rescan info. */
+            con_copy = copy_template_param_cast_constant(
+                                     con, base_con, explicit_cast,
+                                     template_arg_list, template_param_list,
+                                     source_pos, options, copy_error,
+                                     ctws_state, constant);
+          } else {
+            an_expr_node_ptr expr = expr_node_from_tpck_expression(con);
+            an_expr_node_ptr expr_copy = copy_template_param_expr(
                                                          expr,
                                                          template_arg_list,
                                                          template_param_list,
@@ -17910,20 +17972,32 @@ name lookup options.
                                                          ctws_state,
                                                          constant,
                                                          &con_copy);
-          if (expr_copy == NULL) {
-            /* The expression folds to a constant. */
-            /* con_copy and constant are already set correctly. */
-          } else if (!cpp11_sfinae_enabled && !expr_copy->is_lvalue) {
-            /* The expression remains an expression.  If the expression
-               changed, make a new tpck_expression constant for it.  With
-               C++11 SFINAE, tpck_expression constants are rescanned, and
-               this isn't needed. */
-            if (expr != expr_copy) {
-              make_template_param_expr_constant(expr_copy, constant);
-              con_copy = NULL;
+            if (expr_copy != NULL && !*copy_error) {
+              /* The expression isn't a constant.  See if it can be
+                 interpreted. */
+              a_diag_list  diag_list;
+              clear_diag_list(&diag_list);
+              if (interpret_expr(expr_copy, /*force_prvalue=*/FALSE,
+                                 constant, &diag_list)) {
+                expr_copy = NULL;
+              }  /* if */
+              discard_more_info_list(&diag_list);
             }  /* if */
-          } else {
-            *copy_error = TRUE;
+            if (expr_copy == NULL) {
+              /* The expression folds to a constant. */
+              /* con_copy and constant are already set correctly. */
+            } else if (!cpp11_sfinae_enabled && !expr_copy->is_lvalue) {
+              /* The expression remains an expression.  If the expression
+                 changed, make a new tpck_expression constant for it.  With
+                 C++11 SFINAE, tpck_expression constants are rescanned, and
+                 this isn't needed. */
+              if (expr != expr_copy) {
+                make_template_param_expr_constant(expr_copy, constant);
+                con_copy = NULL;
+              }  /* if */
+            } else {
+              *copy_error = TRUE;
+            }  /* if */
           }  /* if */
         }
         break;
@@ -18064,15 +18138,24 @@ placed in the file scope memory region.  options is a set of name
 lookup options.
 */
 {
-  a_constant_ptr con_copy = NULL;
-  a_constant_ptr constant = local_constant();
-
-  a_memory_region_number region_to_switch_back_to;
+  a_constant_ptr  con_copy = NULL, base_con;
+  a_constant_ptr  constant = local_constant();
+  a_boolean       explicit_cast;
+  a_memory_region_number
+                  region_to_switch_back_to;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
-  if (template_param_type != NULL &&
-      con->kind == (a_constant_repr_kind)ck_template_param &&
-      con->variant.template_param.kind ==
+  if (is_template_param_cast_constant(con, &base_con, &explicit_cast)) {
+    /* Handle some eok_cast/eok_ref_cast nodes specially, because they don't
+       have associated rescan info. */
+   con_copy = copy_template_param_cast_constant(
+                                       con, base_con, explicit_cast,
+                                       template_arg_list, template_param_list,
+                                       source_pos, options, copy_error,
+                                       ctws_state, constant);
+  } else if (template_param_type != NULL &&
+             constant_is(con, ck_template_param) &&
+             con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
     /* We know the template parameter type, so we can tell whether the
        argument is being used as an lvalue or an rvalue.  We also have an
@@ -18141,8 +18224,7 @@ lookup options.
       }  /* if */
     }  /* if */
     if (*copy_error) {
-      set_error_constant(constant);
-      con_copy = NULL;
+      con_copy = con;
     }  /* if */
   } else {
     /* The template parameter type is unknown.  Just copy the constant with
@@ -18157,7 +18239,7 @@ lookup options.
                                        ctws_state,
                                        constant);
   }  /* if */
-  if (con_copy == NULL) {
+  if (con_copy == NULL && !*copy_error) {
     con_copy = alloc_shareable_constant(constant);
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
@@ -18390,10 +18472,8 @@ Make a placeholder lvalue expression whose type is "type".
     con = alloc_shareable_constant(zero_con);
     /* Cast is marked as explicit so the C++-generating back end won't
        elide it. */
-    make_template_param_cast_constant(con,
-                                      zero_con,
-                                      ptr_type,
-                                      /*is_explicit=*/TRUE);
+    make_template_param_cast_constant(con, zero_con, ptr_type,
+                                      /*is_explicit=*/FALSE);
   } else {
     /* Normal non-dependent case. */
     make_zero_of_proper_type(ptr_type, zero_con);

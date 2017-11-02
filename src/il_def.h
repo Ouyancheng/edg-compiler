@@ -3877,14 +3877,6 @@ enum a_template_param_constant_kind_tag {
 			   "address" really means "an rvalue for the function,"
 			   which has unknown type and might therefore be a
 			   pointer or a pointer to member. */
-  tpck_cast,		/* The template param constant represents some constant
-			   (ck_template_param or other) cast to a type that
-			   contains a template parameter type.  Mostly used
-			   in the form of a cast to the same type to make
-			   something visibly dependent, and for implicit
-			   casts.  Use for explicit casts is deprecated and
-			   has been almost completely phased out in favor of
-			   a tpck_expression representation. */
   tpck_address,		/* Used, pointing to a tpck_member constant, to
 			   indicate the address of the indicated member. */
   tpck_sizeof,		/* The template param constant represents the sizeof
@@ -4150,12 +4142,8 @@ typedef struct a_constant {
   a_bit_field	explicit_cast_applied:1;
 			/* TRUE when implicit_cast is TRUE and some part of
 			   the type change is explicit in the source code.
-			   Also set for tpck_cast constructs (see the
-			   template_param variant below) when an explicit
-			   cast was used in the source to convert the value
-			   indicated by the representation to the type
-			   indicated above.  Also TRUE for functional notation
-			   casts applied to braced lists ("T{}"). */
+			   Also TRUE for functional notation casts applied to
+			   braced lists ("T{}"). */
   a_bit_field	is_reinterpret_cast:1;
 			/* If this is TRUE, implicit_cast will also be
 			   TRUE, and the cast was a reinterpret_cast in
@@ -4599,6 +4587,12 @@ typedef struct a_constant {
 			   be NULL and the expression can be found using
 			   find_local_expr_node instead. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      a_bit_field
+		do_not_rescan:1;
+			/* TRUE if expression nodes associated with this entry
+			   should not be rescanned (because the information
+			   needed for such rescanning was not recorded).  For
+			   front end use only. */
       union {
 	/* When template param constant kind == tpck_param: */
         a_template_param_coordinate
@@ -4652,13 +4646,11 @@ typedef struct a_constant {
 			   otherwise. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } unknown_function;
-        /* When template param constant kind == tpck_cast or tpck_address: */
+        /* When template param constant kind == tpck_address: */
         a_constant_ptr
 		constant;
-			/* The constant that is cast to the type indicated in
-			   the tpck_cast constant, or the member whose
-			   address is being taken by the tpck_address
-			   constant. */
+			/* The member whose address is being taken by the
+			   tpck_address constant. */
         /* When template param constant kind == tpck_sizeof, tpck_alignof,
            tpck_uuidof, tpck_typeid, or tpck_noexcept: */
         struct {

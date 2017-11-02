@@ -461,6 +461,13 @@ Return TRUE if a constant is of a given kind.
   ((con)->kind == (a_constant_repr_kind)(con_kind))
 
 /*
+Return TRUE if a ck_template_param entry is of the given kind.
+*/
+#define tpck_is(con, tpck_kind)                                             \
+  ((con)->variant.template_param.kind ==                                    \
+                                (a_template_param_constant_kind)tpck_kind)
+
+/*
 Return TRUE if cp is a ck_template_param/tpck_unknown_function constant.
 */
 #define is_unknown_function_constant(cp) \
@@ -878,6 +885,10 @@ extern void set_constant_address_constant(a_constant_ptr constant,
 
 extern void set_temporary_address_constant(a_constant_ptr constant,
                                            a_constant    *con);
+
+extern a_boolean is_template_param_cast_constant(a_constant_ptr  con,
+                                                 a_constant_ptr  *p_base_con,
+                                                 a_boolean       *is_explicit);
 
 #if BUILTIN_FUNCTIONS_ENABLED
 extern a_boolean is_gnu_builtin_function(a_routine_ptr  rp);

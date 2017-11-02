@@ -746,6 +746,7 @@ ck_template_param constant.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   cp->variant.template_param.local_expr_ref = FALSE;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  cp->variant.template_param.do_not_rescan = FALSE;
   switch (kind) {
     case tpck_param:
       cp->variant.template_param.variant.coordinates.position = 0;
@@ -769,7 +770,6 @@ ck_template_param constant.
       cp->variant.template_param.variant.unknown_function.opname_kind =
                                                       (an_opname_kind)onk_none;
       break;
-    case tpck_cast:
     case tpck_address:
       cp->variant.template_param.variant.constant = NULL;
       break;

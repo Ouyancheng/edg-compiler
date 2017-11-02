@@ -105,7 +105,6 @@ Clear an output control block to default values.
   octl->remove_template_typedefs  = FALSE;
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
-  octl->suppress_name_in_template_cast_enum_const = FALSE;
   octl->render_auto_deduction_typerefs = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
   octl->defer_vector_attribute    = FALSE;
@@ -5799,41 +5798,6 @@ precedence confusion.  Do the output in the way described by octl.
                                     !need_parens);
           } else {
             form_expression(expr_node_from_tpck_expression(constant), octl);
-          }  /* if */
-          break;
-        case tpck_cast:
-          if (need_parens && octl->gen_compilable_code) {
-            octl->output_str("(", octl);
-          }  /* if */
-          if (constant->type->kind == (a_constant_repr_kind)tk_integer &&
-              constant->type->variant.integer.enum_type &&
-              has_name(constant) &&
-              !octl->suppress_name_in_template_cast_enum_const) {
-            /* This is an alias for a named enumerator -- just put out the
-               name. */
-            form_name(&constant->source_corresp, iek_constant, octl);
-          } else {
-            a_constant_ptr op_con =
-                             constant->variant.template_param.variant.constant;
-            if (!cast_already_put_out &&
-                ((is_pointer_or_handle_type(con_type) &&
-                  op_con->kind == (a_constant_repr_kind)ck_integer &&
-                  cmplit_integer_constant(op_con,
-                                          (a_host_large_integer)0) == 0)
-#if DEBUG
-                 || octl->debug_output
-#endif /* DEBUG */
-                )) {
-              /* A cast was not put out above, so put one out here if this
-                 is a cast of a null pointer constant or if we're producing
-                 debug output. */
-              form_cast(constant->type, octl);
-              cast_already_put_out = TRUE;
-            }  /* if */
-            form_constant(op_con, cast_already_put_out, octl);
-          }  /* if */
-          if (need_parens && octl->gen_compilable_code) {
-            octl->output_str(")", octl);
           }  /* if */
           break;
         case tpck_address:

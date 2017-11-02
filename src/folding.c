@@ -182,19 +182,26 @@ void make_template_param_cast_constant(a_constant  *old_constant,
                                        a_type_ptr  new_type,
                                        a_boolean   is_explicit)
 /*
-Make, in *new_constant, a ck_template_param/tpck_cast constant that
-represents *old_constant cast to the type new_type.  is_explicit is set
-to TRUE if the cast actually appeared in the source.
+Make, in *new_constant, a ck_template_param/tpck_expression constant that
+represents *old_constant cast to the type new_type.  is_explicit is set to
+TRUE if the cast actually appeared in the source.
 */
 {
-  a_constant_ptr old_cp = alloc_shareable_constant(old_constant);
+  a_boolean              is_reference_cast = is_any_reference_type(new_type);
+  an_expr_node_ptr       node = alloc_node_for_constant(old_constant);
+  an_expr_operator_kind  op;
 
-  clear_constant(new_constant, (a_constant_repr_kind)ck_template_param);
-  set_template_param_constant_kind(new_constant,
-                                   (a_template_param_constant_kind)tpck_cast);
-  new_constant->variant.template_param.variant.constant = old_cp;
-  new_constant->type = new_type;
-  new_constant->explicit_cast_applied = is_explicit;
+  if (is_reference_cast) {
+    op = (an_expr_operator_kind)eok_ref_cast;
+  } else {
+    op = (an_expr_operator_kind)eok_cast;
+  }  /* if */
+  node = make_operator_node(op, new_type, node);
+  if (!is_explicit) {
+    node->variant.operation.compiler_generated = TRUE;
+  }  /* if */
+  make_template_param_expr_constant(node, new_constant);
+  new_constant->variant.template_param.do_not_rescan = TRUE;
 }  /* make_template_param_cast_constant */
 
 
@@ -1972,9 +1979,8 @@ for any diagnostics issued.
   /* Not using context_may_have_dependent_types here because we can get
      "auto" from type deductions in initializations. */
   template_case = (!C_mode() &&
-                   (constant->kind == (a_constant_repr_kind)ck_template_param||
-                    (in_front_end &&
-                     is_template_dependent_type(new_type))));
+                   (constant_is(constant, ck_template_param) ||
+                    (in_front_end && is_template_dependent_type(new_type))));
   if (identical_types(constant_type, new_type) &&
       (is_implicit_cast || !template_case)) {
     /* The current and new types are the same, so no change is required. */
@@ -1985,7 +1991,7 @@ for any diagnostics issued.
   }  /* if */
   if (template_case) {
     /* Casting a template parameter constant, or casting to a template
-       parameter type.  Use a special tpck_cast constant. */
+       parameter type.  Use a tpck_expression constant. */
     make_template_param_cast_constant(constant, new_constant, new_type,
                                       !is_implicit_cast);
     goto exit;
@@ -2549,32 +2555,37 @@ Return TRUE if the given constant is a null pointer constant.
 
 a_boolean is_or_might_be_null_pointer_constant(a_constant *constant)
 /*
-Return TRUE if the given constant is a null pointer constant or is
-a template parameter constant that might be a null pointer constant.
+Return TRUE if the given constant is a null pointer constant or is a template
+parameter constant that might be a null pointer constant.
 */
 {
   a_boolean might_be_null_pointer = FALSE;
 
-  if (constant->kind != (a_constant_repr_kind)ck_template_param) {
+  if (!constant_is(constant, ck_template_param)) {
     might_be_null_pointer = is_null_pointer_constant(constant);
   } else {
     /* Template parameter constant.  This might be a null pointer constant
-       if its type is integral or a template parameter type (so not,
-       for example, if it's a pointer to a template parameter type). */
+       if its type is integral or a template parameter type (so not, for
+       example, if it's a pointer to a template parameter type). */
     a_type_ptr type = skip_typerefs(constant->type);
     if (type->kind == (a_type_kind)tk_integer ||
         type->kind == (a_type_kind)tk_template_param) {
       a_constant_ptr eff_constant = constant;
       might_be_null_pointer = TRUE;
       /* Drop casts to get to the underlying constant. */
-      while (eff_constant->kind == (a_constant_repr_kind)ck_template_param &&
-             eff_constant->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tpck_cast) {
-        eff_constant  = eff_constant->variant.template_param.variant.constant;
+      while (constant_is(eff_constant, ck_template_param) &&
+             tpck_is(eff_constant, tpck_expression)) {
+        a_constant_ptr  base_con;
+        a_boolean       explicit_cast;
+        if (is_template_param_cast_constant(eff_constant, &base_con,
+                                            &explicit_cast)) {
+          eff_constant = base_con;
+        } else {
+          break;
+        }  /* if */
       }  /* while */
-      if (eff_constant->kind == (a_constant_repr_kind)ck_template_param &&
-          eff_constant->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_sizeof) {
+      if (constant_is(eff_constant, ck_template_param) &&
+          tpck_is(eff_constant, tpck_sizeof)) {
         /* A sizeof constant never has a value of zero, and therefore is
            never a null pointer constant. */
         might_be_null_pointer = FALSE;
