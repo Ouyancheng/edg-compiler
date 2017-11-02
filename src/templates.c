@@ -1439,7 +1439,7 @@ instantiation.
 }  /* cache_for_template */
 
 
-a_template_cache_ptr decl_cache_for_variable_template(
+static a_template_cache_ptr decl_cache_for_variable_template(
 					a_template_symbol_supplement_ptr tssp)
 /*
 Returns a pointer to the declaration cache to be used for a variable template.
