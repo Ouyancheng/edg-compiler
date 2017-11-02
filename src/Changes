@@ -1,6 +1,6 @@
 Version 4.15
 
-10/1/17  [EDGcpfe/17707,EDGcpfe/18676]
+11/1/17  [EDGcpfe/17707,EDGcpfe/18676]
 Generic casts: tpck_cast and tpck_expression (IL CHANGE)
 
 The front end previously generated both tpck_cast and tpck_expression entries

@@ -17669,7 +17669,7 @@ copy_template_param_con for the meaning of the remaining parameters.
     if (other_con != NULL) *constant = *other_con;
     /* Do the cast again with the type and constant after substitution. */
     type_change_constant_full(constant, new_type,
-                              /*is_implicit_cast=*/FALSE,
+                              !explicit_cast,
                               /*constant_context=*/TRUE,
                               /*evaluated_context=*/TRUE,
                               /*fold_constant_addr_exprs=*/TRUE,
