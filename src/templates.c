@@ -6335,7 +6335,6 @@ static a_boolean is_template_param_from_list(
 static void scan_template_variable_declaration(
 			a_template_instance_ptr			tip,
 			a_symbol_ptr				sym,
-			a_template_symbol_supplement_ptr	tssp,
 			a_template_cache_ptr			decl_cache,
 			a_decl_parse_state_ptr			dps);
 
@@ -6466,8 +6465,7 @@ expression context) rather than a declaration.
                                     tssp->variant.variable.declarator_name_tsn;
   /* Scan or rescan the declaration of the variable template or static
      data member. */
-  scan_template_variable_declaration(tip, var_sym, tssp_of_prototype,
-                                     decl_cache, &dps);
+  scan_template_variable_declaration(tip, var_sym, decl_cache, &dps);
   if (var_ptr->initializer_in_class &&
       gpp_mode && gnu_version >= 40100 && !clang_mode) {
     /* In GNU C++ mode, in-class initializers are instantiated only when
@@ -15615,7 +15613,6 @@ information.
 static void scan_template_variable_declaration(
 			a_template_instance_ptr			tip,
 			a_symbol_ptr				sym,
-			a_template_symbol_supplement_ptr	tssp,
 			a_template_cache_ptr			decl_cache,
 			a_decl_parse_state_ptr			dps)
 /*
