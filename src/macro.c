@@ -1608,6 +1608,7 @@ ensure_macro_buffer_space.
             nested_slmp->line_loc = dst - 1;
             add_source_line_modif_to_hash_table(nested_slmp);
             src += nested_slmp->num_chars_to_delete - 1;
+            nested_slmp->num_chars_to_delete = 1;
           } else {
             /* This deletion is for a macro replacement: skip over the
                replaced characters, copying only any attention markers
