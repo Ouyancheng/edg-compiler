@@ -189,17 +189,41 @@ has a corresponding earlier entry.
                                                     ssep->templ_args);
         ssep->substitution_hash_computed = TRUE;
       }  /* if */
-      if (ssep->substitution_hash == hash_value &&
-          equiv_template_arg_lists(ssep->templ_args, templ_args,
-                                   ETA_EXACT_MATCH_REQUIRED)) {
-        result = TRUE;
-        break;
+      if (ssep->substitution_hash == hash_value) {
+        an_equiv_templ_param_options_set  eta_flags = ETA_EXACT_MATCH_REQUIRED;
+        if (sym->variant.template_info->has_variadic_template_params &&
+            scope_stack_top().in_nonreal_instantiation) {
+          eta_flags |= ETA_IS_VARIADIC;
+        }  /* if */
+        if (equiv_template_arg_lists(ssep->templ_args, templ_args,
+                                     eta_flags)) {
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
 done:
   return result;
 }  /* in_substitution_loop */
+
+#if DEBUG
+
+void db_substitution_stack(void)
+/*
+*/
+{
+  a_substitution_stack_entry_ptr  ssep = substitution_stack;
+  int                             k;
+
+  for (k = 1; ssep != NULL; ssep = ssep->prev, ++k) {
+    fprintf(f_debug, "\nSubstitution -%d\n", k);
+    db_sym(ssep->sym);
+    db_template_arg_list(ssep->templ_args);
+  }  /* for */
+}  /* db_substitution_stack */
+
+#endif  /* DEBUG */
 
 /*
 Return TRUE if the indicated symbol is invisible because it was
