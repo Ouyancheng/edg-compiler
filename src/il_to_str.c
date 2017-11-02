@@ -105,6 +105,7 @@ Clear an output control block to default values.
   octl->remove_template_typedefs  = FALSE;
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
+  octl->suppress_name_in_template_cast_enum_const = FALSE;
   octl->render_auto_deduction_typerefs = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
   octl->defer_vector_attribute    = FALSE;
@@ -5792,7 +5793,14 @@ precedence confusion.  Do the output in the way described by octl.
           }
           break;
         case tpck_expression:
-          if (octl->output_expression != NULL) {
+          if (constant->type->kind == (a_constant_repr_kind)tk_integer &&
+              constant->type->variant.integer.enum_type &&
+              has_name(constant) &&
+              !octl->suppress_name_in_template_cast_enum_const) {
+            /* This is an alias for a named enumerator -- just put out the
+               name. */
+            form_name(&constant->source_corresp, iek_constant, octl);
+          } else if (octl->output_expression != NULL) {
             /* Do not add parentheses gratuitously. */
             octl->output_expression(expr_node_from_tpck_expression(constant),
                                     !need_parens);

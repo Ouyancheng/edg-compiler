@@ -422,9 +422,9 @@ return that expression; otherwise return e.
     constant_should_be_put_out_as_expr(node_constant(e))) ?                   \
                                         node_constant(e)->expr :              \
    (is_constant_node(e) &&                                                    \
-    node_constant(e)->kind == (a_constant_repr_kind)ck_template_param &&      \
-    node_constant(e)->variant.template_param.kind ==                          \
-                          (a_template_param_constant_kind)tpck_expression) ?  \
+    constant_is(node_constant(e), ck_template_param) &&                       \
+    tpck_is(node_constant(e), tpck_expression) &&                             \
+    !has_name_before_mangling(node_constant(e))) ?                            \
                      expr_node_from_tpck_expression(node_constant(e)) : (e))
 
 
@@ -7913,7 +7913,12 @@ is the one associated with the definition of the enum.
                                 /*need_parens=*/TRUE, &octl);
         } else {
           /* Handle ck_template_param constants in prototype instantiations. */
+          a_boolean saved_suppress_name_flag =
+                                octl.suppress_name_in_template_cast_enum_const;
+          octl.suppress_name_in_template_cast_enum_const = TRUE;
           gen_constant(enum_con, /*need_parens=*/FALSE);
+          octl.suppress_name_in_template_cast_enum_const =
+                                                      saved_suppress_name_flag;
         }  /* if */
         *next_enum_value = *enum_con;
       }  /* if */
