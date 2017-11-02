@@ -5014,6 +5014,38 @@ not.
 }  /* source_corresp_for_il_entry */
 
 
+a_boolean is_template_param_cast_constant(a_constant_ptr  con,
+                                          a_constant_ptr  *p_base_con,
+                                          a_boolean       *is_explicit)
+/*
+Return TRUE if the given constant is a ck_template_param/tpck_expression entry
+for an eok_cast/eok_ref_cast node on top of an eok_constant node.  If so, set
+*p_base_con to the underlying constant entry of that node, and set *is_explicit
+to TRUE or FALSE depending on whether the cast was explicit or not.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (constant_is(con, ck_template_param) && tpck_is(con, tpck_expression) &&
+      con->variant.template_param.do_not_rescan) {
+    an_expr_node_ptr  expr = expr_node_from_tpck_expression(con);
+    if (is_operation_node(expr) &&
+        (node_operator_is(expr, eok_cast) ||
+         node_operator_is(expr, eok_ref_cast)) &&
+        !expr->variant.operation.is_reinterpret_cast &&
+        !expr->variant.operation.is_const_cast) {
+      an_expr_node_ptr  opnd = expr->variant.operation.operands;
+      if (is_constant_node(opnd)) {
+        *is_explicit = !expr->variant.operation.compiler_generated;
+        *p_base_con = node_constant(opnd);
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_param_cast_constant */
+
+
 a_boolean is_zero_constant(a_constant *constant)
 /*
 Return TRUE if the constant is an integer, fixed-point, or floating zero.
@@ -5231,38 +5263,6 @@ otherwise, the abk_temporary variant is produced instead.
   con->type = make_pointer_type(constant->type);
   check_assertion(!is_incomplete_type(constant->type));
 }  /* set_temporary_address_constant */
-
-
-a_boolean is_template_param_cast_constant(a_constant_ptr  con,
-                                          a_constant_ptr  *p_base_con,
-                                          a_boolean       *is_explicit)
-/*
-Return TRUE if the given constant is a ck_template_param/tpck_expression entry
-for an eok_cast/eok_ref_cast node on top of an eok_constant node.  If so, set
-*p_base_con to the underlying constant entry of that node, and set *is_explicit
-to TRUE or FALSE depending on whether the cast was explicit or not.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (constant_is(con, ck_template_param) && tpck_is(con, tpck_expression) &&
-      con->variant.template_param.do_not_rescan) {
-    an_expr_node_ptr  expr = expr_node_from_tpck_expression(con);
-    if (is_operation_node(expr) &&
-        (node_operator_is(expr, eok_cast) ||
-         node_operator_is(expr, eok_ref_cast)) &&
-        !expr->variant.operation.is_reinterpret_cast &&
-        !expr->variant.operation.is_const_cast) {
-      an_expr_node_ptr  opnd = expr->variant.operation.operands;
-      if (is_constant_node(opnd)) {
-        *is_explicit = !expr->variant.operation.compiler_generated;
-        *p_base_con = node_constant(opnd);
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_template_param_cast_constant */
 
 
 a_boolean con_is_exact_addr_of_variable(a_constant_ptr con,
