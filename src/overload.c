@@ -211,6 +211,7 @@ done:
 
 void db_substitution_stack(void)
 /*
+Output a log of the current substitution stack.
 */
 {
   a_substitution_stack_entry_ptr  ssep = substitution_stack;
