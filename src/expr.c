@@ -6832,6 +6832,7 @@ to the given locator.
   a_boolean            copy_error = FALSE;
 
   check_assertion(sym != NULL);
+  sym = fundamental_symbol_of(sym);
   if (symbol_is(sym, sk_function_template)) {
     rescan_orig_templ_param_list = sym->variant.template_info->variant.
                                      function.decl_cache.decl_info->parameters;
