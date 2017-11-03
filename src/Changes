@@ -60,7 +60,7 @@ spurious errors.  For example:
 
 Previously, the front end was unable to distinguish the two partial
 specializations; now it picks the second one.  The resolution of this issue
-required the elimination of the tpck_cast variable of ck_template_param
+required the elimination of the tpck_cast variant of ck_template_param
 constants, which is an IL CHANGE (such entries are now represented instead by
 tpck_expression entries pointing to a cast expression).
 

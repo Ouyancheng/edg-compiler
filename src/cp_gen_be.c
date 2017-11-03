@@ -12711,9 +12711,9 @@ used as an rvalue).
       form_typeid_reference(constant, &octl);
       processed = TRUE;
     } else if (tpkind == (a_template_param_constant_kind)tpck_expression) {
-      /* In some cases, a do-nothing do-nothing cast is added via a
-         tpck_expression entry to make it clear that a constant is
-         template-dependent.  Drop such a cast. */
+      /* In some cases, a do-nothing cast is added via a tpck_expression entry
+         to make it clear that a constant is template-dependent.  Drop such a
+         cast. */
       a_constant_ptr sub_con;
       a_boolean      explicit_cast;
       if (is_template_param_cast_constant(constant, &sub_con,
