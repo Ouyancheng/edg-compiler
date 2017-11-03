@@ -6462,7 +6462,7 @@ expression context) rather than a declaration.
       entry.  This is used to allow the template argument list of
       a partial specialization to be ignored. */
    scope_stack_top().var_templ_decl_name_tsn =
-                                    tssp->variant.variable.declarator_name_tsn;
+                      tssp_of_prototype->variant.variable.declarator_name_tsn;
   /* Scan or rescan the declaration of the variable template or static
      data member. */
   scan_template_variable_declaration(tip, var_sym, decl_cache, &dps);
@@ -6549,7 +6549,7 @@ expression context) rather than a declaration.
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
                                  is_var_templ_instance,
-                                 /*nonrea_context=*/FALSE)) {
+                                 /*nonreal_context=*/FALSE)) {
       /* Issue a diagnostic for an invalid member constant type. */
       var_ptr->type = check_for_invalid_member_constant(
                                     &dps, var_ptr->type, &pos_curr_token);
