@@ -5741,6 +5741,12 @@ associated sk_external_variable or sk_external_routine symbol, if any.
             sev = es_warning;
           }  /* if */
         }  /* if */
+        if (microsoft_mode && !sym->defined && sev == es_error &&
+            idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+          /* Microsoft compilers silently accept a change to internal
+             linkage. */
+          sev = es_warning;
+        }  /* if */
         /* Reset the name linkage in certain cases: when the current linkage
            was explicitly specified whereas the previous one was not, or when
            one of the declarations specified internal linkage and the other
@@ -5756,26 +5762,35 @@ associated sk_external_variable or sk_external_routine symbol, if any.
              scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
              (idlbp->name_linkage == (a_name_linkage_kind)nlk_internal &&
               !(sun_mode && idlbp->is_friend_decl)))) {
-          if (is_function &&
-              scp->name_linkage == (a_name_linkage_kind)nlk_external &&
-              decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-            /* Since this is an extern "C" function, its a_routine entry is
-               on the file scope's list.  Changing the name linkage to
-               something else requires us to move the entry to the appropriate
-               scope: Otherwise, schedule_move_to_current_end_of_routines_list
-               will operate on the wrong routines list. */
-            a_routine_ptr  rp = sym->variant.routine.ptr;
-            remove_from_routines_list(rp, DEPTH_OF_FILE_SCOPE);
-            /* Clear the parent_scope pointer so add_to_routines_list can
-               update it for the effective scope. */
-            rp->source_corresp.parent_scope = NULL;
-            add_to_routines_list(rp, idlbp->effective_decl_level);
-          }  /* if */
-          if (microsoft_mode && !sym->defined && sev == es_error &&
-              idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
-            /* Microsoft compilers silently accept a change to internal
-               linkage. */
-            sev = es_warning;
+          if (scp->name_linkage == (a_name_linkage_kind)nlk_external ||
+              idlbp->name_linkage == (a_name_linkage_kind)nlk_external) {
+            /* The IL entry of an extern "C" entity is on the file scope's
+               list.  If we change the linkage, we must therefore move the
+               IL entry so it can be found later on if needed (e.g., by
+               schedule_move_to_current_end_of_routines_list). */
+            a_scope_depth  from_depth, to_depth;
+            if (scp->name_linkage == (a_name_linkage_kind)nlk_external) {
+              from_depth = DEPTH_OF_FILE_SCOPE;
+              to_depth = idlbp->effective_decl_level;
+            } else {
+              from_depth = idlbp->effective_decl_level;
+              to_depth = DEPTH_OF_FILE_SCOPE;
+            }  /* if */
+            if (is_function) {
+              a_routine_ptr  rp = sym->variant.routine.ptr;
+              remove_from_routines_list(rp, from_depth);
+              /* Clear the parent_scope pointer so add_to_routines_list can
+                 update it for the effective scope. */
+              rp->source_corresp.parent_scope = NULL;
+              add_to_routines_list(rp, to_depth);
+            } else {
+              a_variable_ptr  vp = sym->variant.variable.ptr;
+              remove_from_variables_list(vp, from_depth);
+              /* Clear the parent_scope pointer so add_to_variables_list can
+                 update it for the effective scope. */
+              vp->source_corresp.parent_scope = NULL;
+              add_to_variables_list(vp, to_depth);
+            }  /* if */
           }  /* if */
           scp->name_linkage = idlbp->name_linkage;
           sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
