@@ -1255,9 +1255,9 @@ extern an_expr_node_ptr convert_arg_list_to_expr_list(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
-
-#endif /* DEBUG */
 extern void db_substitution_stack(void);
+#endif /* DEBUG */
+
 #endif /* ifndef OVERLOAD_H */
 
 
