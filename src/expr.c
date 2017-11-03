@@ -704,7 +704,7 @@ function call and issue a warning if the routine or return type have the
         if (rp != NULL && rp->has_nodiscard_attribute &&
             !is_void_type(rp->type->variant.routine.return_type)) {
           error_code = ec_nodiscard_routine;
-        } else {
+        } else if (is_function_type(tp)) {
           /* Look at the function's return type. */
           if (type_has_nodiscard_attribute(return_type_of(tp))) {
             error_code = ec_nodiscard_return_type;
