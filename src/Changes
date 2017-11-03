@@ -1,5 +1,21 @@
 Version 4.15
 
+11/3/17  [EDGcpfe/18758]
+Unbounded loop after name linkage conflict in GNU and Clang modes
+
+Consider:
+
+  namespace N { void f(); }
+  extern "C" {
+    namespace N { void f() {} }
+  }
+
+This triggers an error because the linkage for the two declarations of N::f
+differ.  In GNU and Clang modes, however, the front end did not recover
+correctly from that error, and ended up in an unbounded loop in
+perform_scheduled_routine_moves.  That is now fixed.
+
+
 11/2/17  [EDGcpfe/18869]
 Abort on use of [[nodiscard]] function in template-dependent context
 

@@ -5749,12 +5749,13 @@ associated sk_external_variable or sk_external_routine symbol, if any.
            friend declarations in GNU C++ mode, a surrounding name linkage
            specification is ignored.  In Sun mode, a friend declaration doesn't
            affect a prior name linkage. */
-        if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
-            !(gpp_mode && idlbp->is_friend_decl) &&
-             !sym->explicit_linkage_specifier) ||
-            scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
-            (idlbp->name_linkage == (a_name_linkage_kind)nlk_internal &&
-             !(sun_mode && idlbp->is_friend_decl))) {
+        if ((int)sev < (int)es_error &&
+            ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
+             !(gpp_mode && idlbp->is_friend_decl) &&
+              !sym->explicit_linkage_specifier) ||
+             scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+             (idlbp->name_linkage == (a_name_linkage_kind)nlk_internal &&
+              !(sun_mode && idlbp->is_friend_decl)))) {
           if (is_function &&
               scp->name_linkage == (a_name_linkage_kind)nlk_external &&
               decl_scope_level != DEPTH_OF_FILE_SCOPE) {
