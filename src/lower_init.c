@@ -7724,7 +7724,8 @@ code is needed, insert it at *insert_location.
   dip->variable = local_static_guard_var;
   dip->has_temporary_lifetime = TRUE;
   dip->is_guard_var_for_local_static_var_init = TRUE;
-  add_to_end_of_destructions_list(dip, local_static_lifetime);
+  add_to_end_of_destructions_list(dip, local_static_lifetime,
+                                  /*update_parent_destruction_sublist=*/TRUE);
   dip->destructible_entity_descr = alloc_destructible_entity_descr();
   set_var_init_pos_descr(local_static_guard_var, &ipd);
   add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
@@ -7759,7 +7760,8 @@ of code for the handler.  Insert any required code at *insert_location.
   dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
   dip->is_freeing_of_exception_object = TRUE;
   dip->destructible_entity_descr = alloc_destructible_entity_descr();
-  add_to_end_of_destructions_list(dip, curr_object_lifetime);
+  add_to_end_of_destructions_list(dip, curr_object_lifetime,
+                                  /*update_parent_destruction_sublist=*/TRUE);
   add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
                        curr_context, insert_location);
 }  /* add_runtime_exception_object_cleanup */
@@ -8528,12 +8530,16 @@ void copy_non_static_data_member_initializers_if_necessary(a_scope_ptr scope)
 /*
 If scope represents a constructor whose class has non-static data member
 initialized fields, copy the dynamic initialization from the field to
-the constructor initializer.
+the constructor initializer.  Note that the list of destructions for the
+lifetime associated with the scope must be managed carefully to ensure that
+the destructions associated with any copied field initializers are inserted
+at the proper locations.
 */
 {
   an_object_lifetime_ptr  olp = scope->lifetime;
   an_object_lifetime_ptr  saved_curr_object_lifetime = NULL;
-  a_dynamic_init_ptr      field_dip, dip, prev_dip = NULL;
+  a_dynamic_init_ptr      field_dip, dip, prev_init_with_destruction = NULL;
+  a_dynamic_init_ptr      save_destructions, added_destructions, last_dip, p;
   a_constructor_init_ptr  ctor_init;
   a_routine_ptr           routine = scope->variant.routine.ptr;
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
@@ -8601,23 +8607,87 @@ the constructor initializer.
             olp = scope->lifetime;
             curr_object_lifetime = olp;
           }  /* if */
+          /* Copying an initialization to the current lifetime may introduce
+             some destructions (for partially-initialized aggregates) onto the
+             destruction list.  Those may or may not belong at this location
+             in the overall destruction list, so save the current head of the
+             destruction list (so any destructions added by the
+             copy_dynamic_init operation can be easily dealt with later). */
+          save_destructions = curr_object_lifetime->destructions;
+          curr_object_lifetime->destructions = NULL;
           dip = copy_dynamic_init(field_dip, CE_NO_OPTIONS);
-          if (dip->destructor != NULL) {
-            if (prev_dip == NULL) {
-              add_to_end_of_destructions_list(dip, olp);
-            } else {
-              add_to_destructions_list_following(prev_dip, dip);
-            }  /* if */
-          }  /* if */
+          added_destructions = curr_object_lifetime->destructions;
+          curr_object_lifetime->destructions = save_destructions;
           ctor_init->initializer = dip;
           /* Set the flag that indicates that a dynamic initializer is pointed
              to by a constructor_init entry (now that it is). */
           dip->is_constructor_init = TRUE;
+          if (dip->destructor != NULL) {
+            /* This initialization has an associated destruction that must be
+               added in the correct location in the list of destructions
+               associated with the lifetime. */
+            if (added_destructions != NULL) {
+              /* Some destructions (presumably for partially-initialized
+                 aggregates) were added above.  The fully-constructed
+                 destruction (associated with dip) should be placed on the
+                 destructions list ahead of these. */
+              dip->next_in_destruction_list = added_destructions;
+              for (last_dip = added_destructions;
+                   last_dip->next_in_destruction_list != NULL;
+                   last_dip = last_dip->next_in_destruction_list) {
+              }  /* for */
+            } else {
+              last_dip = dip;
+            }  /* if */
+            if (prev_init_with_destruction == NULL) {
+              /* This is the first initialization in the class, so its
+                 destruction should go at the end of the list of
+                 destructions. */
+              add_to_end_of_destructions_list(dip, olp,
+                                  /*update_parent_destruction_sublist=*/FALSE);
+              /* If there are any added destructions, add them to the end
+                 of the list now (they were removed by the call above). */
+              dip->next_in_destruction_list = added_destructions;
+            } else {
+              /* Link this on the destruction list so the destruction happens
+                 just before prev_init_with_destruction. */
+              dip->lifetime = olp;
+              last_dip->next_in_destruction_list = prev_init_with_destruction;
+              if (olp->destructions == prev_init_with_destruction) {
+                olp->destructions = dip;
+              } else {
+                for (p = olp->destructions;
+                     p != NULL;
+                     p = p->next_in_destruction_list) {
+                  if (p->next_in_destruction_list ==
+                                                  prev_init_with_destruction) {
+                    break;
+                  }  /* if */
+                }  /* for */
+                check_assertion(p != NULL);
+                p->next_in_destruction_list = dip;
+              }  /* if */
+            }  /* if */
+          } else {
+            check_assertion(added_destructions == NULL);
+          }  /* if */
         }  /* if */
       }  /* if */
       dip = ctor_init->initializer;
-      if (dip != NULL && dip->destructor != NULL) {
-        prev_dip = dip;
+      if (dip != NULL) {
+        if (dip->destructor != NULL) {
+          /* Keep track of where we are in the destruction list. */
+          prev_init_with_destruction = dip;
+        }  /* if */
+        if (dip->init_expr_lifetime != NULL) {
+          /* For initializations that have a temporary lifetime, it's possible
+             that the parent_destruction_sublist pointer of that lifetime
+             needs to be updated to point to the proper place in its parent
+             lifetime (i.e., if a field initialization was added above). */
+          check_assertion(dip->init_expr_lifetime->destructions != NULL);
+          dip->init_expr_lifetime->parent_destruction_sublist =
+                                                    prev_init_with_destruction;
+        }  /* if */
       }  /* if */
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
       prev_ctor_init = ctor_init;
@@ -15650,7 +15720,8 @@ constructor scope, and also lower the user code.
                               "lower_constructor_code: no lifetime");
           /* Add the dynamic initialization to the object lifetime list. */
           add_to_end_of_destructions_list(dyn_init_to_free_storage,
-                                          scope->lifetime);
+                                   scope->lifetime,
+                                   /*update_parent_destruction_sublist=*/TRUE);
           /* Allocate a destructible entity description and add a conditional
              flag variable. */
           /* Note that NULL for the insert location here indicates that

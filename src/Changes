@@ -1,5 +1,27 @@
 Version 4.15
 
+11/3/17  [EDGcpfe/18911]
+Handling of destructions involving lowered NSDMIs
+
+Classes that have nonstatic data member initializers (NSDMIs), require
+lowering to copy any NSDMI initializations into the scope of the class
+constructor.  In certain cases (mostly involving constructors with temporary
+expression lifetimes), the resulting order of destructions generated for
+exception handling purposes, had been incorrect, possibly leading to
+incorrect cleanup if an exception were to be thrown.  In the example below,
+the cleanup state after the temporary for A is created had erroneously
+pointed to a destruction of "c" (which hadn't been created yet).  With --c++11:
+
+  struct A { ~A(); };
+  struct B { B(A); };
+  struct C { C(int); ~C(); };
+  struct D {
+    B b;
+    C c = 0;
+    D() : b(A()) {}
+  } d;
+
+
 11/3/17  [EDGcpfe/18758]
 Unbounded loop after name linkage conflict in GNU and Clang modes
 
