@@ -285,14 +285,6 @@ typedef struct a_can_instantiate_entry {
 
 static a_can_instantiate_entry_ptr can_instantiate_list;
 
-static a_boolean
-		default_defer_inline;
-			/* TRUE if the instantiation of an inline function
-			   should be deferred by default instead of performed
-			   immediately upon a call (even when the flag
-			   SIR_DEFER_INLINE is not passed to the call to
-			   update_instantiation_required_flag). */
-
 #if TEMPLATE_LOOKUP_NEEDED
 	
 typedef struct a_template_lookup_entry *a_template_lookup_entry_ptr;
@@ -31691,10 +31683,7 @@ body.  If possible, instantiate the routine.
   a_symbol_ptr			sym;
   a_template_instance_ptr	tip;
   a_master_instance_ptr		mip;
-  a_boolean			saved_default_defer_inline;
 
-  saved_default_defer_inline = default_defer_inline;
-  default_defer_inline = TRUE;
   sym = symbol_for(rp);
   check_assertion(sym != NULL);
   check_assertion(is_simple_function_symbol(sym));
@@ -31712,9 +31701,16 @@ body.  If possible, instantiate the routine.
       f_entity_can_be_instantiated(tip,
                                    /*implicit_inclusion_okay=*/FALSE,
                                    /*for_return_type_deduction=*/TRUE)) {
+    /* Defer any instantiations that might be kicked of by this instantiation
+       to make sure we don't get get back to something that requires this
+       deduction to be complete. */
+    defer_instantiations++;
     instantiate_entity(tip);
+    defer_instantiations--;
+    if (defer_instantiations == 0) {
+      process_deferred_instantiation_requests();
+    }  /* if */
   }  /* if */
-  default_defer_inline = saved_default_defer_inline;
 }  /* force_instantiation_to_deduce_return_type */
 
 
@@ -31776,7 +31772,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   a_boolean	                   rout_is_constexpr = FALSE;
 
   db_enter(5, "update_instantiation_required_flag");
-  defer_inline = default_defer_inline || (options & SIR_DEFER_INLINE) != 0;
+  defer_inline = (options & SIR_DEFER_INLINE) != 0;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
   if (is_function_symbol(sym)) {
@@ -36106,7 +36102,6 @@ Initializations for template.
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   memzero((char *)template_lookup_table, sizeof(template_lookup_table));
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  default_defer_inline = FALSE;
 }  /* templates_init */
 
 #if MAKE_FRONT_END_CALLABLE
