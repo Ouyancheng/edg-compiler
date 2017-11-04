@@ -5260,6 +5260,31 @@ demangled as part of the template function instead).
           case 'i':
             s = "char32_t";
             break;
+          case 'v':
+            /* Vector type.  Format is: "Dv<number>_<type>".  Scan the type
+               portion twice in order to get the proper "vector_size" value
+               (by "multiplying" by sizeof(type) -- since the demangling
+               doesn't know the size of types). */
+            { long num;
+              a_const_char *typep;
+              p = get_number(p, &num, dctl);
+              if (*p != '_') {
+                bad_mangled_name(dctl);
+              } else {
+                p++;
+                typep = p;
+                p = demangle_type(p, dctl);
+                write_id_str(" __attribute((vector_size(", dctl);
+                write_id_signed_number(num, dctl);
+                write_id_str("*sizeof(", dctl);
+                dctl->suppress_substitution_recording++;
+                (void)demangle_type(typep, dctl);
+                dctl->suppress_substitution_recording--;
+                write_id_str(")))) ", dctl);
+              }  /* if */
+              s = "";
+            }
+            break;
           default:
             bad_mangled_name(dctl);
             s = "";

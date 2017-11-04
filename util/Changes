@@ -1,5 +1,11 @@
 Version 4.15
 
+11/4/17  [EDGcpfe/17567,EDGcpfe/18915]
+IA-64 ABI: demangling of vector types
+
+Demangling of IA-64 vector types (Dv<number>_<type>) has been added.
+
+
 10/11/17 [EDGcpfe/18850]
 Possible buffer overflow in decode.c in Cfront ABI
 

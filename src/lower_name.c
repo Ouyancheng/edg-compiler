@@ -9798,6 +9798,13 @@ top_of_loop:
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         s = MANGLING_STRING_FOR_VECTOR;
+#if ABI_COMPATIBILITY_VERSION >= 415 && IA64_ABI
+        if (!(gnu_mode && !clang_mode && gnu_abi_version < 50000)) {
+          /* Later versions of GCC use the IA-64 ABI standard way to mangle
+             a vector type. */
+          s = "Dv";
+        }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 415 && IA64_ABI */
         /* More of this below. */
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -10013,18 +10020,23 @@ top_of_loop:
       case tk_vector:
         check_assertion(!vector_type_is_template_dependent(type));
 #if IA64_ABI
-        /* For the IA-64 ABI, we emulate the GNU C++ behavior exactly.
-           Unfortunately, GNU's mangling scheme does not include the vector
-           size, and as a result two different vector types may mangle to
-           the same encoding. */
-        mangled_encoding_for_type(type->variant.vector.element_type, mctl);
+        /* For the IA-64 ABI, use either the old (i.e., U8__vector) mangling
+           or the newer (i.e., "Dv<expression>_<type>") mangling. */
+#if ABI_COMPATIBILITY_VERSION >= 415
+        if (!(gnu_mode && !clang_mode && gnu_abi_version < 50000)) {
+          /* Later versions of GCC use the IA-64 ABI standard way to mangle
+             a vector type. */
+          add_number_to_mangled_name((unsigned long)type->size, mctl);
+          add_to_mangled_name('_', mctl);
+        }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 415 */
 #else /* !IA64_ABI */
         /* With the Cfront ABI we have no compatibility constraints, so the
            type is unambiguously encoded. */
         add_number_to_mangled_name((unsigned long)type->size, mctl);
         add_to_mangled_name('_', mctl);
-        mangled_encoding_for_type(type->variant.vector.element_type, mctl);
 #endif /* if */
+        mangled_encoding_for_type(type->variant.vector.element_type, mctl);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:;
