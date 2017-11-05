@@ -5428,8 +5428,12 @@ precedence confusion.  Do the output in the way described by octl.
         /* The GNU C++ __null keyword. */
         octl->output_str("__null", octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      } else if (!octl->c_generating_back_end && constant->nullptr_keyword) {
-        /* The C++ and C++/CLI nullptr keyword. */
+      } else if (!octl->c_generating_back_end && is_nullptr_type(con_type)) {
+        /* The C++ and C++/CLI nullptr keyword.  (We test the type rather
+           than checking constant->nullptr_keyword in order to handle the
+           case of a call to a constexpr function resulting in a constant
+           for which the call was not kept as the constant's backing
+           expression, e.g., in a template argument.) */
         octl->output_str("nullptr", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (!octl->c_generating_back_end &&

@@ -1,5 +1,19 @@
 Version 4.15
 
+11/5/17  [EDGcpfe/18918]
+C++-generating back end: template argument with constexpr function returning
+std::nullptr_t
+
+The C++-generating back end produced incorrect code for a non-type template
+argument consisting of a call to a constexpr function returning
+std::nullptr_t.  This is now fixed.  For example, with --c++11:
+
+  constexpr decltype(nullptr) x() { return nullptr; }
+  template <decltype(nullptr) I = x()>  // Previously generated as "I = 0",
+                                        // now as "I = nullptr"
+  void f() {}
+
+
 11/4/17  [EDGcpfe/17567,EDGcpfe/18915]
 IA-64 ABI: mangling of vector types
 
