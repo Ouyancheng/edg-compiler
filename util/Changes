@@ -1,5 +1,12 @@
 Version 4.15
 
+11/6/17  [EDGcpfe/18923]
+Undefined behavior when demangling IA-64 user-defined operator name
+
+The string created to hold an IA-64 ABI user-defined operator name had not been
+properly NULL terminated.
+
+
 11/4/17  [EDGcpfe/17567,EDGcpfe/18915]
 IA-64 ABI: demangling of vector types
 

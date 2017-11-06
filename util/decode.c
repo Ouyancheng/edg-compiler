@@ -5915,6 +5915,7 @@ be copied quickly.
                 } else {
                   strcpy(ud_suffix_buffer, "\"\"");
                   strncpy(&ud_suffix_buffer[2], ud_suffix_ptr, ud_suffix_len);
+                  ud_suffix_buffer[2 + ud_suffix_len] = '\0';
                   str = (a_const_char *)ud_suffix_buffer;
                   *length = ud_suffix_ptr + ud_suffix_len - ptr;
                 }  /* if */
