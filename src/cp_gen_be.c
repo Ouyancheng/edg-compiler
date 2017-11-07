@@ -17904,10 +17904,14 @@ declarator (or NULL if it wasn't recorded).
       set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the routine name. */
-    if (gen_name_from_name_reference(name_ref, scp, iek_routine,
+    if (!rout->is_in_class_specialization &&
+        gen_name_from_name_reference(name_ref, scp, iek_routine,
                                      /*is_declaration=*/TRUE,
                                      suppress_declarator_parens)) {
-      /* We generated the name in source form. */
+      /* We generated the name in source form.  (We must avoid doing that
+         for out-of-line generated explicit specializations, because the
+         name reference will reflect the in-class location and thus lead
+         to an unqualified name.) */
     } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */

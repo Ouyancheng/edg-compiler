@@ -1,5 +1,30 @@
 Version 4.15
 
+11/7/17  [EDGcpfe/18867]
+C++-generating back end: generated explicit specializations of in-class
+specializations
+
+In configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+DEFAULT_FORM_OF_NAME_REFERENCE set to TRUE, the C++-generating back end
+used an unqualified name when generating the (out-of-class) definition of
+an in-class explicit specialization of a member function template of a
+class template.  This is now fixed.  For example, with --microsoft:
+
+  template <typename T> struct S {
+    template <typename U> void f(U) { }
+    template <> void f(int) { }
+  };
+  void g() {
+    S<int> si;
+    si.f(0);
+  }
+  // Previously generated the definition of S<int>::f<int>(int) here as:
+  //   template<> inline void f(int) { }
+  // Now correctly generated as:
+  //   template<> inline void S<int>::f(int) { }
+
+
 11/5/17  [EDGcpfe/18918]
 C++-generating back end: template argument with constexpr function returning
 std::nullptr_t
