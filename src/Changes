@@ -1,5 +1,19 @@
 Version 4.15
 
+11/7/17  [EDGcpfe/18925]
+Core issue 1920: qualifier mismatching is pseudo-destructor call
+
+The front end now implements core issue 1920, which clarifies that top-level
+cv-qualifiers should be ignored when comparing the type before the "::" and
+the type after the "~" in a pseudo-destructor call.
+
+  typedef char A;
+  typedef const A B;
+  void f(A* p) {
+    p->B::~A();  // Now accepted
+  }
+
+
 11/7/17  [EDGcpfe/18924]
 Missing file name in macro context diagnostics
 

@@ -20360,7 +20360,8 @@ selection operator, in which case it points to the type of the left operand.
           if (dtor_or_finalizer_class_type == NULL) {
             qualifier_type = NULL;
           } else if (dtor_or_finalizer_type == NULL ||
-                     (!identical_types(dtor_or_finalizer_class_type,
+                     (!identical_types_ignoring_qualifiers(
+                                       dtor_or_finalizer_class_type,
                                        dtor_or_finalizer_type) &&
                       !is_template_param_type(dtor_or_finalizer_type))) {
             if (!in_if_exists) {
