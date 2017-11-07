@@ -876,12 +876,12 @@ e.g., 1297 --> 4.
 #endif /* CHECKING */
 
 static void form_source_position(a_source_position   *pos,
-                                 a_source_position   *error_pos,
+                                 a_diagnostic_ptr    dp,
 			         a_const_char	     *prefix_string,
 			         a_const_char	     *suffix_string,
                                  a_const_char	     *end_of_source_string)
 /*
-Add the source position error_pos to msg_buffer.  The generated format is
+Add the source position pos to msg_buffer.  The generated format is
 one of:
 
         <prefix_string>at line xxx of "file name"<suffix string>
@@ -891,16 +891,19 @@ depending on whether or not the line number is zero (e.g., for assemblies).
 
 If the file is stdin or the file name is identical to that of the error
 position of the diagnostic message being composed, the file name is not
-emitted as part of this declaration position.  error_pos represents the
-source position of the diagnostic being formed and is used  to eliminate
-redundant file names in a diagnostic.
+emitted as part of this declaration position.  dp is the diagnostic
+being formed and is used  to eliminate redundant file names in a diagnostic.
 */
 {
-  a_const_char	*file_name, *full_name, *diag_file_name;
-  char		buffer[20];
-  a_line_number line_number;
-  a_boolean	at_end_of_source;
+  a_const_char		*file_name, *full_name, *diag_file_name;
+  char			buffer[20];
+  a_line_number		line_number;
+  a_boolean		at_end_of_source;
+  a_diagnostic_ptr	primary_dp;
+  a_source_position_ptr	error_pos;
 
+  primary_dp = dp->primary_diag != NULL ? dp->primary_diag : dp;
+  error_pos = &primary_dp->diag_header_pos;
   diag_file_name = "";
   if (error_pos->seq != 0) {
     /* Have a valid diagnostic source position. */
@@ -1650,7 +1653,7 @@ symbol_name:
       f_add_string_to_text_buffer(msg_buffer,
                                   error_text(ec_declared_implicitly));
     } else {
-      form_source_position(&sym->decl_position, &dp->position,
+      form_source_position(&sym->decl_position, dp,
                            error_text(ec_declared_prefix), ")",
                            error_text(ec_at_end_of_source));
     }  /* if */
@@ -3385,8 +3388,7 @@ null-terminated.
 #if !STANDALONE_UTILITY_PROGRAM
     case dfk_position:
       /* A position fill-in.  Add it to the message buffer. */
-      form_source_position(&dfip->variant.position, &dp->position,
-                           "", "", "");
+      form_source_position(&dfip->variant.position, dp, "", "", "");
       break;
     case dfk_symbol:
       /* A symbol fill-in.  Add it to the message buffer. */

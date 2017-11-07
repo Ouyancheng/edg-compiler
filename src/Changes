@@ -1,5 +1,15 @@
 Version 4.15
 
+11/7/17  [EDGcpfe/18924]
+Missing file name in macro context diagnostics
+
+When FULLY_RESOLVED_MACRO_POSITIONS is being used, the macro context
+information that is generated sometimes omitted the file name from the
+diagnostics in cases where it should be included.  The file name should be
+omitted only when it is the same as the file name given on the initial line
+of the diagnostic.  Now fixed.
+
+
 11/7/17  [EDGcpfe/18867]
 C++-generating back end: generated explicit specializations of in-class
 specializations
