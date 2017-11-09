@@ -4963,10 +4963,10 @@ EXTERN a_const_char *type_mode_kind_names[(int)tmk_last + 1]
 /* tmk_DF */    "DF",
 /* tmk_XF */    "XF",
 /* tmk_TF */    "TF",
-/* tmk_SF */    "SC",
-/* tmk_DF */    "DC",
-/* tmk_XF */    "XC",
-/* tmk_TF */    "TC",
+/* tmk_SC */    "SC",
+/* tmk_DC */    "DC",
+/* tmk_XC */    "XC",
+/* tmk_TC */    "TC",
 /* tmk_last */  "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
