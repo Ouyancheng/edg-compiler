@@ -560,9 +560,9 @@ typedef struct an_arg_operand {
 
 
 /*
-Entry used to attach front-end-only information to an_expr_node for
-use when the expression is rescanned to do semantic analysis as part
-of template deduction.
+Entry used to attach front-end-only information to an_expr_node (or a_constant
+or a_dynamic_init) for use when the expression is rescanned to do semantic
+analysis as part of template deduction.
 */
 /* The typedef an_expr_rescan_info_entry_ptr is defined in il_def.h. */
 typedef struct an_expr_rescan_info_entry {

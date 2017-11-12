@@ -1,5 +1,14 @@
 Version 4.15
 
+11/12/17 [EDGcpfe/18116,EDGcpfe/18927]
+Substitution of sizeof... operator during SFINAE processing
+
+In some relatively complex cases of function template argument deduction the
+front end incorrectly substituted the sizeof... operator during SFINAE
+processing, which could result in spurious errors about a call to a function
+template not being valid.  This is now fixed.
+
+
 11/7/17  [EDGcpfe/18925]
 Core issue 1920: qualifier mismatching is pseudo-destructor call
 

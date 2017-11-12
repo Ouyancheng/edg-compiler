@@ -10672,6 +10672,12 @@ indication in *rcblock).
       rescan_err = TRUE;
       any_more = FALSE;
     } else {
+      if ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+        /* Just copy the saved operand for another rescan later on. */
+        copy_operand(&rcblock->expr->rescan_info->saved_operand, result);
+        make_template_param_expr_constant_operand(result);
+        goto operand_ready;
+      }  /* if */
       any_more = begin_rescan_pack_expansion_context(
                                                   pedep,
                                                   rcblock->template_param_list,
@@ -10760,6 +10766,7 @@ indication in *rcblock).
     make_constant_operand(constant, result);
     release_local_constant(&constant);
   }  /* if */
+operand_ready:
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   record_operator_position_in_rescan_info(result, &start_position,
