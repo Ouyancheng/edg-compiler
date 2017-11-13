@@ -31701,9 +31701,9 @@ body.  If possible, instantiate the routine.
       f_entity_can_be_instantiated(tip,
                                    /*implicit_inclusion_okay=*/FALSE,
                                    /*for_return_type_deduction=*/TRUE)) {
-    /* Defer any instantiations that might be kicked of by this instantiation
-       to make sure we don't get get back to something that requires this
-       deduction to be complete. */
+    /* Defer any instantiations that might be kicked off by this instantiation
+       to make sure we don't get back to something that requires this deduction
+       to be complete. */
     defer_instantiations++;
     instantiate_entity(tip);
     defer_instantiations--;
