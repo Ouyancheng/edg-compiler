@@ -1,5 +1,15 @@
 Version 4.15
 
+11/13/17 [EDGcpfe/18921]
+New __EDG_INT128_EXTENSIONS_ALLOWED macro with --building_runtime
+
+A new macro, __EDG_INT128_EXTENSIONS_ALLOWED, is now defined (to the value
+of the configuration macro INT128_EXTENSIONS_ALLOWED) when --building_runtime
+is specified as a command-line option.  This is used by the run time library
+to determine whether or not to generate typeinfo information for the
+__int128_t and __uint128_t types.
+
+
 11/12/17 [EDGcpfe/18116,EDGcpfe/18927]
 Substitution of sizeof... operator during SFINAE processing
 

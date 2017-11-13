@@ -9359,6 +9359,9 @@ from the front end to the runtime.
   /* Can the front end use __float128? */
   enter_predef_num_macro_noredef(FLOAT128_ENABLING_POSSIBLE,
                                  "__EDG_FLOAT128_ENABLING_POSSIBLE");
+  /* Does the front end support 128-bit integers? */
+  enter_predef_num_macro_noredef(INT128_EXTENSIONS_ALLOWED,
+                                 "__EDG_INT128_EXTENSIONS_ALLOWED");
 }  /* init_runtime_macros */
 
 

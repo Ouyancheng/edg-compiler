@@ -1,5 +1,15 @@
 Version 4.15
 
+11/13/17 [EDGcpfe/18921]
+typeinfo now for __float80, __float128, __int128_t, and __uint128_t
+
+typeinfo entries have now been added for __float80, __float128, __int128_t, and
+__uint128_t types in configurations where the front end implements those
+types.  Note that the 128-bit integer types will only be available when the
+run time library is built in GCC or clang emulation mode (because those types
+are not available otherwise).
+
+
 9/25/17  [EDGcpfe/18806]
 Microsoft compatibility: exception specifications for allocation/deallocation
 functions

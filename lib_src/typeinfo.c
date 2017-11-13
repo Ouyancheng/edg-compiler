@@ -254,9 +254,25 @@ void __gen_dummy_typeinfos()
   gen_typeinfos(float); 
   gen_typeinfos(double); 
   gen_typeinfos(long double);
-#ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
+#if __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
   gen_typeinfos(decltype(nullptr));
-#endif /* ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED */
+#endif /* if __EDG_CPP11_IL_EXTENSIONS_SUPPORTED */
+#if __EDG_FLOAT80_ENABLING_POSSIBLE
+  gen_typeinfos(__float80);
+#endif /* if __EDG_FLOAT80_ENABLING_POSSIBLE */
+#if __EDG_FLOAT128_ENABLING_POSSIBLE
+  gen_typeinfos(__float128);
+#endif /* if __EDG_FLOAT128_ENABLING_POSSIBLE */
+#if __EDG_FLOAT128_ENABLING_POSSIBLE
+  gen_typeinfos(__float128);
+#endif /* if __EDG_FLOAT128_ENABLING_POSSIBLE */
+#if __EDG_INT128_EXTENSIONS_ALLOWED && \
+    (defined(__GNUC__) || defined(__clang__))
+  /* These types are only available if the front end is running in GCC
+     emulation mode. */
+  gen_typeinfos(__int128_t);
+  gen_typeinfos(__uint128_t);
+#endif /* if __EDG_INT128_EXTENSIONS_ALLOWED && defined(__GNUC__)...*/
 #undef gen_typeinfos
 }
   
