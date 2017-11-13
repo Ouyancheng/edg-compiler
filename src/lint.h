@@ -729,6 +729,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ignoring_attribute_on_non_inline_namespace)*/
 /*lint -esym(769,ec_ignoring_attribute_on_anonymous_namespace)*/
 /*lint -esym(769,ec_constexpr_weak_address)*/
+/*lint -esym(769,ec_no_float80)*/
+/*lint -esym(769,ec_no_float128)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
@@ -1381,13 +1383,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_user_function_kind_tag::bufk_first)*/
 /*lint -esym(769,a_builtin_user_function_kind_tag::bufk_last)*/
 /*lint -esym(552,targ_ssize_t_int_kind)*/
-
-#if FLOAT80_ENABLING_POSSIBLE
-/*lint -esym(769,ec_no_float80)*/
-#endif /* FLOAT80_ENABLING_POSSIBLE */
-#if FLOAT128_ENABLING_POSSIBLE
-/*lint -esym(769,ec_no_float128)*/
-#endif /* FLOAT128_ENABLING_POSSIBLE */
 
 #endif /* ifndef LINT_H */
 
