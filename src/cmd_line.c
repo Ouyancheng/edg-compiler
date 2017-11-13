@@ -6838,6 +6838,11 @@ file.
 #else /* !defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
   comment_undefined_macro_name(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
 #endif /* defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
+#if defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY)
+  define_numeric_valued_macro(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
+#else /* !defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
+  comment_undefined_macro_name(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
+#endif /* defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
 #if defined(HOST_POINTER_ALIGNMENT)
   define_numeric_valued_macro(HOST_POINTER_ALIGNMENT);
 #else /* !defined(HOST_POINTER_ALIGNMENT) */

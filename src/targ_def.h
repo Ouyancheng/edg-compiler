@@ -891,10 +891,24 @@ Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
 */
 #ifndef TARG_LITTLE_ENDIAN
-#define TARG_LITTLE_ENDIAN FALSE
+#define TARG_LITTLE_ENDIAN TRUE
 			/* Default value, used to initialize global variable
 			   targ_little_endian. */
 #endif /* !defined(TARG_LITTLE_ENDIAN) */
+
+/*
+When the default value of TARG_LITTLE_ENDIAN changed from FALSE to TRUE
+(because the majority of target architectures are little endian), the
+HOST_TARGET_ENDIAN_MISMATCH_OKAY configuration macro was added to cause
+an internal error to be diagnosed when the host and target machine endian
+values differ (i.e., because a configuration that had relied on the default
+value for TARG_LITTLE_ENDIAN may have had its value unwittingly changed).
+For configurations where the host and target endian values do indeed differ
+(i.e., cross-compilers), this value should be set to TRUE.
+*/
+#ifndef HOST_TARGET_ENDIAN_MISMATCH_OKAY
+#define HOST_TARGET_ENDIAN_MISMATCH_OKAY FALSE
+#endif /* HOST_TARGET_ENDIAN_MISMATCH_OKAY */
 
 /*
 Char types:

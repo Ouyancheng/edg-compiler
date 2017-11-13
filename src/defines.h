@@ -529,7 +529,7 @@ command-line when compiling system headers.
 #define TARG_LDBL_MIN_EXP_win64 (-16381)
 #define TARG_LIBGCC_CMP_RETURN_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_win64 ((a_type_mode_kind)tmk_SI)
-#define TARG_LITTLE_ENDIAN_win64 0
+#define TARG_LITTLE_ENDIAN_win64 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_win64 4
 #define TARG_LONG_FIELD_ALIGNMENT_win64 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT_win64 4

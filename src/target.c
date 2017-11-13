@@ -608,6 +608,14 @@ are diagnosed.
                 "targ_field_alloc_sequence_equals_decl_sequence must be TRUE");
   }  /* if */
 #endif /* IA64_ABI */
+#if !HOST_TARGET_ENDIAN_MISMATCH_OKAY
+  if (targ_little_endian != host_little_endian) {
+    /* In cross-compilation configurations, a host/target endian mismatch is
+       okay (HOST_TARGET_ENDIAN_MISMATCH_OKAY must be set to TRUE). */
+    internal_error("check_target_config: "
+                   "unexpected host/target endian mismatch");
+  }  /* if */
+#endif /* !HOST_TARGET_ENDIAN_MISMATCH_OKAY */
 }  /* check_target_configuration */
 
 #endif /* CHECKING */

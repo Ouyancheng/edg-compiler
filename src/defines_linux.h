@@ -292,7 +292,7 @@ the --target option is used).
 #define TARG_LDBL_MIN_EXP_linux_i686 (-16381)
 #define TARG_LIBGCC_CMP_RETURN_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
-#define TARG_LITTLE_ENDIAN_linux_i686 0
+#define TARG_LITTLE_ENDIAN_linux_i686 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_linux_i686 4
 #define TARG_LONG_FIELD_ALIGNMENT_linux_i686 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT_linux_i686 4
@@ -451,7 +451,7 @@ the --target option is used).
 #define TARG_LDBL_MIN_EXP_linux_x86_64 (-16381)
 #define TARG_LIBGCC_CMP_RETURN_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
-#define TARG_LITTLE_ENDIAN_linux_x86_64 0
+#define TARG_LITTLE_ENDIAN_linux_x86_64 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_linux_x86_64 16
 #define TARG_LONG_FIELD_ALIGNMENT_linux_x86_64 8
 #define TARG_LONG_LONG_FIELD_ALIGNMENT_linux_x86_64 8
@@ -614,7 +614,7 @@ the --target option is used).
 #define TARG_LDBL_MIN_EXP_linux_i686 (-16381)
 #define TARG_LIBGCC_CMP_RETURN_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_linux_i686 ((a_type_mode_kind)tmk_SI)
-#define TARG_LITTLE_ENDIAN_linux_i686 0
+#define TARG_LITTLE_ENDIAN_linux_i686 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_linux_i686 4
 #define TARG_LONG_FIELD_ALIGNMENT_linux_i686 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT_linux_i686 4
@@ -774,7 +774,7 @@ the --target option is used).
 #define TARG_LDBL_MIN_EXP_linux_x86_64 (-16381)
 #define TARG_LIBGCC_CMP_RETURN_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_linux_x86_64 ((a_type_mode_kind)tmk_DI)
-#define TARG_LITTLE_ENDIAN_linux_x86_64 0
+#define TARG_LITTLE_ENDIAN_linux_x86_64 1
 #define TARG_LONG_DOUBLE_FIELD_ALIGNMENT_linux_x86_64 16
 #define TARG_LONG_FIELD_ALIGNMENT_linux_x86_64 8
 #define TARG_LONG_LONG_FIELD_ALIGNMENT_linux_x86_64 8
