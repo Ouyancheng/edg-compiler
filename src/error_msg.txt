@@ -2948,6 +2948,8 @@ ec_invalid_noexcept_specifier_operand;;"invalid operand for noexcept specifier"
 ec_lambda_in_noexcept_specifier;;"lambda expression cannot appear in noexcept specifier of a template"
 ec_inaccessible_rvalue_dtor;;"%nfd is inaccessible"
 ec_bad_enum_template_decl;;"invalid specifier in enum template declaration"
+ec_no_float80;;"80-bit floating-point types are not supported in this configuration"
+ec_no_float128;;"128-bit floating-point types are not supported in this configuration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
