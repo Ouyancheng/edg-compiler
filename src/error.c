@@ -892,7 +892,7 @@ depending on whether or not the line number is zero (e.g., for assemblies).
 If the file is stdin or the file name is identical to that of the error
 position of the diagnostic message being composed, the file name is not
 emitted as part of this declaration position.  dp is the diagnostic
-being formed and is used  to eliminate redundant file names in a diagnostic.
+being formed and is used to eliminate redundant file names in a diagnostic.
 */
 {
   a_const_char		*file_name, *full_name, *diag_file_name;
