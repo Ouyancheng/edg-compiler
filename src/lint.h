@@ -1382,6 +1382,13 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_user_function_kind_tag::bufk_last)*/
 /*lint -esym(552,targ_ssize_t_int_kind)*/
 
+#if FLOAT80_ENABLING_POSSIBLE
+/*lint -esym(769,ec_no_float80)*/
+#endif /* FLOAT80_ENABLING_POSSIBLE */
+#if FLOAT128_ENABLING_POSSIBLE
+/*lint -esym(769,ec_no_float128)*/
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+
 #endif /* ifndef LINT_H */
 
 /******************************************************************************
