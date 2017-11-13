@@ -10,7 +10,7 @@ template not being valid.  This is now fixed.
 
 
 11/7/17  [EDGcpfe/18925]
-Core issue 1920: qualifier mismatching is pseudo-destructor call
+Core issue 1920: qualifier mismatching in pseudo-destructor call
 
 The front end now implements core issue 1920, which clarifies that top-level
 cv-qualifiers should be ignored when comparing the type before the "::" and
