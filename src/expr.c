@@ -24158,6 +24158,9 @@ freed by this routine.
     /* C++11 list-initializer syntax, e.g., T{x, y}. */
     scan_braced_init_list_cast(type_cast_to, csf_functional,
                                braced_init_list, result);
+    if (rcblock != NULL && is_error_operand(result)) {
+      rcblock->error_detected = TRUE;
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (scanning_source) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
