@@ -5866,24 +5866,14 @@ pos.
       size = 8;
       break;
     case tmk_XF:
-#if FLOAT80_ENABLING_POSSIBLE
       type_kind = (a_type_kind)tk_float;
       /* Force to __float80 type. */
       fkind = float_kind_for_float80;
-#else /* !FLOAT80_ENABLING_POSSIBLE */
-      pos_error(ec_no_float80, pos);
-      type_kind = (a_type_kind)tk_error;
-#endif /* FLOAT80_ENABLING_POSSIBLE */
       break;
     case tmk_TF:
-#if FLOAT128_ENABLING_POSSIBLE
       type_kind = (a_type_kind)tk_float;
       /* Force to __float128 type. */
       fkind = float_kind_for_float128;
-#else /* !FLOAT128_ENABLING_POSSIBLE */
-      pos_error(ec_no_float128, pos);
-      type_kind = (a_type_kind)tk_error;
-#endif /* FLOAT128_ENABLING_POSSIBLE */
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tmk_SC:
@@ -5895,24 +5885,14 @@ pos.
       size = 8;
       break;
     case tmk_XC:
-#if FLOAT80_ENABLING_POSSIBLE
       type_kind = (a_type_kind)tk_complex;
       /* Force to __float80 base type. */
       fkind = float_kind_for_float80;
-#else /* !FLOAT80_ENABLING_POSSIBLE */
-      pos_error(ec_no_float80, pos);
-      type_kind = (a_type_kind)tk_error;
-#endif /* FLOAT80_ENABLING_POSSIBLE */
       break;
     case tmk_TC:
-#if FLOAT128_ENABLING_POSSIBLE
       type_kind = (a_type_kind)tk_complex;
       /* Force to __float128 base type. */
       fkind = float_kind_for_float128;
-#else /* !FLOAT128_ENABLING_POSSIBLE */
-      pos_error(ec_no_float128, pos);
-      type_kind = (a_type_kind)tk_error;
-#endif /* FLOAT128_ENABLING_POSSIBLE */
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tmk_error:
@@ -5954,18 +5934,31 @@ pos.
             break; 
           }  /* if */
         }  /* for */
-      }  /* if */
-      if (fkind == (a_float_kind)fk_last) {
-        pos_error(ec_no_type_of_specified_width, pos);
+        if (fkind == (a_float_kind)fk_last) {
+          pos_error(ec_no_type_of_specified_width, pos);
+          type = error_type();
+        }  /* if */
+#if !FLOAT80_ENABLING_POSSIBLE
+      } else if (fkind == float_kind_for_float80) {
+        pos_error(ec_no_float80, pos);
         type = error_type();
-      } else if (type->kind == (a_type_kind)tk_float) {
-        type = float_type(fkind);
+#endif /* !FLOAT80_ENABLING_POSSIBLE */
+#if !FLOAT128_ENABLING_POSSIBLE
+      } else if (fkind == float_kind_for_float128) {
+        pos_error(ec_no_float128, pos);
+        type = error_type();
+#endif /* !FLOAT128_ENABLING_POSSIBLE */
+      }  /* if */
+      if (!is_error_type(type)) {
+        if (type->kind == (a_type_kind)tk_float) {
+          type = float_type(fkind);
 #if C99_IL_EXTENSIONS_SUPPORTED
-      } else if (type->kind == (a_type_kind)tk_complex) {
-        type = complex_type(fkind);
+        } else if (type->kind == (a_type_kind)tk_complex) {
+          type = complex_type(fkind);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      } else {
-        unexpected_condition();
+        } else {
+          unexpected_condition();
+        }  /* if */
       }  /* if */
     }  /* if */
     /* The new type should have the same qualifiers as the original. */
