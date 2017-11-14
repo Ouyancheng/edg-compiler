@@ -1,5 +1,22 @@
 Version 4.15
 
+11/14/17 [EDGcpfe/18730]
+Digit separators in invalid locations
+
+In modes in which digit separators are accepted, the front end previously
+erroneously treated an apostrophe as a digit separator in preprocessor
+tokens in cases when the apostrophe should terminate the token, i.e., when
+the character following the apostrophe is not an acceptable character for
+continuing the number.  Similarly, the front end failed to diagnose a
+putative digit separator appearing at the end of the mantissa portion of a
+floating-point literal.  These are now fixed.  For example, with --c++14:
+
+  #define STR(s) #s
+  const char *p = STR(1' ');  // Previously an error, now same as STR(1 ' ')
+  double d1 = 1.0';           // Previously undiagnosed error
+  double d2 = 1.0'e1;         // Previously undiagnosed error
+
+
 11/15/17 [EDGcpfe/17932,EDGcpfe/18938]
 Incorrect code generated for array delete of zero elements when the element
 type is a class with a virtual destructor

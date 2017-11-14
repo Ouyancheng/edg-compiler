@@ -8871,6 +8871,16 @@ end_skip:
 }  /* skip_white_space */
 
 
+/*
+Valid characters (depending on the kind of number being scanned) that can
+follow a digit separator (apostrophe).
+*/
+static a_const_char *dig_or_nondig =
+             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+static a_const_char *binary_dig = "01";
+static a_const_char *decimal_dig = "0123456789";
+static a_const_char *hex_dig = "0123456789ABCDEFabcdef";
+
 static a_token_kind scan_number(void)
 /*
 Scan a numeric token (integer, fixed-point, or floating constant).  Return
@@ -8907,6 +8917,9 @@ the kind of token.
   a_boolean     first_digit_seen = FALSE;
   a_const_char  *possible_start_of_ud_suffix = NULL;
   a_boolean     decimal_point_seen = FALSE;
+  a_const_char  *valid_chars = fetch_pp_tokens ? dig_or_nondig : decimal_dig;
+  a_const_char  *separator_diag_issued_for = NULL;
+  a_boolean     valid_sep;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -8915,24 +8928,35 @@ a warning if an apostrophe is seen when digit separators are not enabled
 C and in skipped conditionally-compiled code, where digit separators are
 either not expected or aren't considered) and an error if a digit separator
 appears immediately following a prefix or radix point (as indicated by the
-value of first_digit_seen).  N is either 0 or 1, indicating whether the
-character to be tested is at curr_char_loc or the following position.
+value of first_digit_seen) or at the end of the number (as indicated by the
+next character not being part of valid_chars).  N is either 0 or 1,
+indicating whether the character to be tested is at curr_char_loc or the
+following position.
 */
-#define skip_digit_separator(N)                                             \
-  if (*(curr_char_loc + (N)) == '\'') {                                     \
-    if (!digit_separators_enabled && !C_mode() &&                           \
-        !currently_in_pp_if_skip) {                                         \
-      warning_at_line_pos(ec_digit_separators_not_enabled,                  \
-                          curr_char_loc + (N));                             \
-    } else {                                                                \
-      number_contains_digit_separator = TRUE;                               \
-      if (!first_digit_seen) {                                              \
-        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc + (N)); \
-        err = TRUE;                                                         \
-      }  /* if */                                                           \
-      /* Skip over the apostrophe. */                                       \
-      ++curr_char_loc;                                                      \
-    }  /* if*/                                                              \
+#define skip_digit_separator(N)                                               \
+  if (*(curr_char_loc + (N)) == '\'') {                                       \
+    if (!digit_separators_enabled && !C_mode() &&                             \
+        !currently_in_pp_if_skip) {                                           \
+      warning_at_line_pos(ec_digit_separators_not_enabled,                    \
+                          curr_char_loc + (N));                               \
+    } else {                                                                  \
+      valid_sep = (strchr(valid_chars, *(curr_char_loc + (N) + 1)) != NULL);  \
+      if (!valid_sep && fetch_pp_tokens) {                                    \
+        /* End the token, i.e., don't skip the apostrophe: the following */   \
+	/* character does not satisfy the pp-number syntax, but that is */    \
+	/* not necessarily an error. */                                       \
+      } else {                                                                \
+	number_contains_digit_separator = TRUE;                               \
+	if ((!first_digit_seen || !valid_sep) &&                              \
+	    separator_diag_issued_for != curr_char_loc + (N)) {               \
+	  error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc + (N)); \
+	  err = TRUE;                                                         \
+	  separator_diag_issued_for = curr_char_loc + (N);                    \
+	}  /* if */                                                           \
+	/* Skip over the apostrophe. */                                       \
+	++curr_char_loc;                                                      \
+      }  /* if */                                                             \
+    }  /* if*/                                                                \
   }  /* if */
 
   macro_line_loc_to_source_pos(curr_char_loc, start_pos);
@@ -8956,6 +8980,7 @@ character to be tested is at curr_char_loc or the following position.
     if ((ch = *(curr_char_loc+1)) == 'x' || ch == 'X') {
       /* 0x... or 0X..., hexadecimal. */
       kind = k_hex;
+      valid_chars = fetch_pp_tokens ? dig_or_nondig : hex_dig;
       /* The hex constant stops on a non-hex digit. */
       curr_char_loc++;
       skip_digit_separator(1);
@@ -8979,15 +9004,12 @@ character to be tested is at curr_char_loc or the following position.
         } else {
           warning_at_line_pos(ec_bad_hex_digit, start_of_curr_token);
         }  /* if */
-      } else if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
-        /* A digit separator is not allowed following the last digit. */
-        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
-        err = TRUE;
       }  /* if */
     } else if (binary_literals_allowed && (ch == 'b' || ch == 'B')) {
       /* A binary literal. */
       a_boolean	any_digits = FALSE;
       kind = k_binary;
+      valid_chars = fetch_pp_tokens ? dig_or_nondig : binary_dig;
       curr_char_loc++;
       /* Scan any digits.  If a digit is not "0" or "1", an error will
          be issued later. */
@@ -9000,10 +9022,6 @@ character to be tested is at curr_char_loc or the following position.
       if (!any_digits && !fetch_pp_tokens) {
         /* No digits were found after the "0b" or "0B". */
         error_at_line_pos(ec_bad_binary_digit, start_of_curr_token);
-        err = TRUE;
-      } else if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
-        /* A digit separator is not allowed following the last digit. */
-        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
         err = TRUE;
       }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -9028,11 +9046,6 @@ character to be tested is at curr_char_loc or the following position.
       do {
         skip_digit_separator(1);
       } while (isdigit((unsigned char)*(++curr_char_loc)));
-      if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
-        /* A digit separator is not allowed following the last digit. */
-        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
-        err = TRUE;
-      }  /* if */
       /* Check for floating point. */
       if ((ch = *curr_char_loc) == '.') goto float_accum_1;
       if (ch == 'e' || ch == 'E')       goto float_accum_2;
@@ -9057,11 +9070,6 @@ character to be tested is at curr_char_loc or the following position.
     do {
       skip_digit_separator(1);
     } while (isdigit((unsigned char)*(++curr_char_loc)));
-    if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
-      /* A digit separator is not allowed following the last digit. */
-      error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
-      err = TRUE;
-    }  /* if */
     /* A ".", "e", or "E" now indicates a floating-point constant. */
     if ((ch = *curr_char_loc) == '.') goto float_accum_1;
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
@@ -9152,10 +9160,6 @@ float_accum_1:
       /* No hex digits were specified.  Something like "0x.". */
       error_at_line_pos(ec_bad_float_constant, curr_char_loc);
       any_hex_digits = TRUE;
-    } else if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
-      /* A digit separator is not allowed following the last digit. */
-      error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
-      err = TRUE;
     }  /* if */
   } else {
     do {
@@ -9258,11 +9262,6 @@ float_accum_2:
     skip_digit_separator(1);
     first_digit_seen = TRUE;
   } while (isdigit((unsigned char)*(++curr_char_loc)));
-  if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
-    /* A digit separator is not allowed following the last digit. */
-    error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
-    err = TRUE;
-  }  /* if */
 end_float_accum:
   is_hex_fp_value = kind == k_hex;
   kind = k_float;
