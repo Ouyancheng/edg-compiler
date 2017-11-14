@@ -30685,7 +30685,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       /* Make all calls dependent in certain decltype contexts. */
       force_indefinite_function = TRUE;
       rep = NULL;
-    } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&
+    } else if (symbol_is(sym_ptr, sk_routine) &&
                !C_mode() && arg_dependent_lookup_enabled &&
 #if BUILTIN_FUNCTIONS_ENABLED
                /* Argument-dependent lookup should never apply to calls of
@@ -42245,6 +42245,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
   } else if (expr_stack->any_suppressed_error) {
     rcblock->error_detected = TRUE;
   } else if (constexpr_enabled && !is_constant_operand(result) &&
+             !is_a_function_designator(result) &&
+             !is_indefinite_function_operand(result) &&
              curr_expr_kind_is(ek_integral_constant)) {
     /* The rescanned expression appears in a constant-expression context.
        Perform any needed constant processing.  The is_array_bound and is_enum
@@ -42253,8 +42255,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
     a_constant_ptr  con = local_constant();
     an_operand      orig_result;
     copy_operand(result, &orig_result);
-    if (is_unknown_template_param_type(orig_expr_type) &&
-        !is_indefinite_function_operand(result)) {
+    if (is_unknown_template_param_type(orig_expr_type)) {
       /* An expression like X<T>::K may have an unknown type associated with it
          (such types cannot be substituted).  Do not attempt to force the
          result type to be unknown after folding. */
