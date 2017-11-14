@@ -59,6 +59,7 @@ those being set.
 #if CHECKING
   il_header_has_been_read = FALSE;
 #endif /* CHECKING */
+  host_envir_early_init();
   target_early_init();
   error_early_init();
 }  /* standalone_utility_early_init */
