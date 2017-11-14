@@ -772,6 +772,21 @@ Return an expression for "(void)0", a zero constant cast to void.
 }  /* zero_cast_to_void */
 
 
+static an_expr_node_ptr make_expr_for_zero_of_proper_type(a_type_ptr type)
+/*
+Return an expression whose value is zero and has the specified type.
+*/
+{
+  an_expr_node_ptr expr;
+  a_constant_ptr   zero_con = local_constant();
+
+  make_zero_of_proper_type(type, zero_con);
+  expr = alloc_node_for_constant(zero_con);
+  release_local_constant(&zero_con);
+  return expr;
+}  /* make_expr_for_zero_of_proper_type */
+
+
 static void insert_if_statement(an_expr_node_ptr       test_expr,
                                 a_boolean              is_initialization_guard,
                                 an_insert_location_ptr insert_location,
@@ -3019,21 +3034,18 @@ expression that is a null function pointer and return that.
 
 #if IA64_ABI
 
-static an_expr_node_ptr get_array_new_padding(a_type_ptr    type,
-                                              a_routine_ptr new_routine,
-                                              a_boolean     even_if_zero)
+static a_targ_size_t get_array_new_padding_size(a_type_ptr    type,
+                                                a_routine_ptr new_routine)
 /*
-Return the amount of extra padding required for a dynamically
-allocated array whose elements are of the indicated type.  If no padding
-is required, return NULL (instead of an expression for zero) unless
-even_if_zero is TRUE.  If new_routine is non-NULL, it is the placement new
-routine that is being called to allocate the memory.  This is used
-for the IA-64 ABI (see "Array operator new cookies", section 2.7).
+Return the amount of extra padding required for a dynamically allocated array
+whose elements are of the indicated type.  If no padding is required, return
+zero.  If new_routine is non-NULL, it is the placement new routine that is
+being called to allocate the memory.  This is used for the IA-64 ABI (see
+"Array operator new cookies", section 2.7).
 */
 {
   a_targ_size_t                 padding_size = 0;
   a_boolean                     need_padding = TRUE;
-  an_expr_node_ptr              padding_node = NULL;
 
   /* Check to see if this type needs padding. */
   if (is_array_type(type)) {
@@ -3068,7 +3080,27 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
         padding_size = alignment;
       }  /* if */
     }
-  } /* if */
+  }  /* if */
+  return padding_size;
+}  /* get_array_new_padding_size */
+
+
+static an_expr_node_ptr get_array_new_padding(a_type_ptr    type,
+                                              a_routine_ptr new_routine,
+                                              a_boolean     even_if_zero)
+/*
+Return an expression for the amount of extra padding required for a dynamically
+allocated array whose elements are of the indicated type.  If no padding
+is required, return NULL (instead of an expression for zero) unless
+even_if_zero is TRUE.  If new_routine is non-NULL, it is the placement new
+routine that is being called to allocate the memory.  This is used
+for the IA-64 ABI (see "Array operator new cookies", section 2.7).
+*/
+{
+  a_targ_size_t     padding_size;
+  an_expr_node_ptr  padding_node = NULL;
+
+  padding_size = get_array_new_padding_size(type, new_routine);
   if (padding_size != 0 || even_if_zero) {
     /* Make the expression. */
     padding_node = node_for_integer_constant((long)padding_size, 
@@ -3088,7 +3120,6 @@ static a_variable_ptr
 		array_new_prefix_size_var;
 
 #endif /* !IA64_ABI */
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- elem_type, new_routine are not used in that case. */
@@ -3122,7 +3153,83 @@ placement new routine that is being called to allocate the memory.
   return prefix_size_node;
 }  /* get_prefix_size_node */
 
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+
+static an_expr_node_ptr expr_for_num_elements_in_cookie(an_expr_node_ptr ptr)
+/*
+Returns an expression that, when evaluated at run time, returns the number
+of array elements in the dynamically-allocated array pointed to by ptr.
+This information is stored in the "cookie" that is prepended to the array
+(when the array is allocated by the run time library).  This routine must
+match the behavior of the run time library.
+
+This routine assumes that the run time library is configured with
+USE_PREFIX_FOR_ARRAY_ALLOC_INFO set to TRUE.
+*/
+{
+  an_expr_node_ptr expr, reusable_ptr, offset_node;
+  a_type_ptr       elem_type, targ_size_t_type;
+
+  reusable_ptr = make_reusable_copy(ptr, /*vars_can_change=*/TRUE);
+  elem_type = new_delete_base_type_from_operation_type(
+                                                   type_pointed_to(ptr->type));
+  targ_size_t_type = integer_type((an_integer_kind)targ_size_t_int_kind);
+#if IA64_ABI
+  /* The IA-64 ABI dictates that "The cookie will be stored in the
+     sizeof(size_t) bytes immediately preceding the array data."  When
+     IA64_ABI_USE_VARIANT_ARRAY_COOKIES is TRUE, the cookie contains two
+     fields, each of sizeof(size_t) bytes. */
+  if (get_array_new_padding_size(elem_type, (a_routine_ptr)NULL) != 0) {
+    a_targ_size_t cookie_offset;
+    /* A cookie is being used for this type. */
+    cookie_offset = targ_size_t_type->size;
+#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+    /* The variant cookie is a struct containing two size_t fields. */
+    cookie_offset *= 2;
+#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+    offset_node = node_for_integer_constant((long)cookie_offset,
+                                            targ_size_t_int_kind);
+
+  } else {
+    /* Not all arrays have cookies, but assume if we get there that the
+       array should have a cookie. */
+    unexpected_condition();
+  }  /* if */
+#else /* !IA64_ABI */
+  /* The Cfront ABI uses a prefix, stored at negative offset
+     __array_new_prefix_size from start of the array, that has this layout:
+
+       struct an_alloc_prefix {
+         size_t size;   // The size of the array, in bytes.
+         size_t encoded_number_of_elements;
+                        // The number of elements in the array.  This value
+                           is encoded so that a zero value is not represented
+                           as a zero.  This is done to help detect situations
+                           in which the prefix has been overwritten.
+      };
+    Create an expression that returns ~encoded_number_of_elements. */
+  offset_node = get_prefix_size_node(elem_type, (a_routine_ptr)NULL);
+  offset_node->next = node_for_integer_constant((long)targ_size_t_type->size,
+                                                targ_size_t_int_kind);
+  offset_node = make_operator_node((an_expr_operator_kind)eok_subtract,
+                                   targ_size_t_type, offset_node);
+#endif /* IA64_ABI */
+  /* Create: *((size_t *)((char *)ptr - offset)) */
+  expr = add_cast(reusable_ptr, char_star_type());
+  expr->next = offset_node;
+  expr = make_operator_node((an_expr_operator_kind)eok_psubtract,
+                            char_star_type(), expr);
+  expr = add_cast(expr, make_pointer_type(targ_size_t_type));
+  expr = make_operator_node((an_expr_operator_kind)eok_indirect,
+                            targ_size_t_type, expr);
+#if !IA64_ABI
+  /* In the Cfront ABI, the encoded_number_of_elements field stores the
+     complement of the actual value. */
+  expr = make_operator_node((an_expr_operator_kind)eok_complement,
+                            targ_size_t_type, expr);
+#endif /* !IA64_ABI */
+  return expr;
+}  /* expr_for_num_elements_in_cookie */
+
 
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- zero_storage is not used in that case. */
@@ -11091,7 +11198,7 @@ i.e., arrays with class elements.
   a_routine_ptr               dtor_routine;
   an_expr_node_ptr            ptr_node = ndsp->arg, vec_delete_node;
   an_expr_node_ptr            dtor_addr_node, assign_node = NULL;
-  an_expr_node_ptr            ptr_node_test = NULL;
+  an_expr_node_ptr            ptr_node_test = NULL, ptr_temp;
   a_variable_ptr              vtbl_temp_var;
 
   /* Lower "arg". */
@@ -11112,21 +11219,45 @@ i.e., arrays with class elements.
          sizes of the base and derived classes are not the same. */
       /* Dispatch through the virtual function table requires a
          null-pointer test.  Force use of a temporary which will be used
-         later in the null-pointer test. */
+         later in the null-pointer test.  Make sure the ptr_node_test
+         expression is evaluated before ptr_temp (so the temporary will be
+         set properly). */
+      an_expr_node_ptr  num_elem_node;
+      ptr_temp = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
       ptr_node_test = ptr_node;
-      ptr_node = make_reusable_copy(ptr_node, /*vars_can_change=*/FALSE);
       /* Cast the expression to a pointer-to-element type (it typically
          already is, but may be a pointer-to-array type in some non-standard
          cases). */
-      ptr_node = add_cast_if_necessary(ptr_node, make_pointer_type(
+      ptr_temp = add_cast_if_necessary(ptr_temp, make_pointer_type(
                                       new_delete_base_type_from_operation_type(
-                                            type_pointed_to(ptr_node->type))));
+                                            type_pointed_to(ptr_temp->type))));
       dtor_addr_node = get_virtual_function_address(
                                         function_addr_expr(dtor_routine),
-                                        &ptr_node,
+                                        &ptr_temp,
                                         /*object_node_has_side_effects=*/FALSE,
                                         &vtbl_temp_var,
                                         &assign_node);
+      if (assign_node != NULL) {
+        /* If an assignment to a temporary was necessary, create a comma node
+           to perform the assignment before the temporary is used. */
+        dtor_addr_node = make_comma_node(assign_node, dtor_addr_node);
+      }  /* if */
+      /* The expression in dtor_addr_node dereferences _vptr to get to the
+         virtual destructor, but in cases where the number of elements in the
+         array is zero, the _vptr field has never been set.  Generate code to
+         inspect the number of elements (stored in a cookie before the
+         allocated array) at run time whether this is the case to avoid the
+         dereference.  The code looks like:
+             (num_elements != 0) ? dtor_addr_node : NULL
+         Note that having a NULL destructor is okay because there are no
+         elements to destroy. */
+      num_elem_node = expr_for_num_elements_in_cookie(ptr_temp);
+      num_elem_node = boolean_controlling_expr(num_elem_node);
+      num_elem_node->next = dtor_addr_node;
+      num_elem_node->next->next =
+                       make_expr_for_zero_of_proper_type(dtor_addr_node->type);
+      dtor_addr_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                          dtor_addr_node->type, num_elem_node);
     } else {
       /* Build an expression for the address of the destructor. */
       dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
@@ -11136,17 +11267,13 @@ i.e., arrays with class elements.
        done along with the deallocation. */
     dtor_addr_node = expr_for_pointer_to_destructor(NULL);
   }  /* if */
-  vec_delete_node = make_vec_delete_call(ptr_node,
+  vec_delete_node = make_vec_delete_call(ptr_node_test == NULL ? ptr_node :
+                                                                 ptr_temp,
                                          /*num_elem_node=*/
                                                         (an_expr_node_ptr)NULL,
                                          dtor_addr_node,
                                          delete_routine,
                                          /*free_storage=*/TRUE);
-  if (assign_node != NULL) {
-    /* If an assignment to a temporary was necessary, create a comma node
-       to perform the assignment before the temporary is used. */
-    vec_delete_node = make_comma_node(assign_node, vec_delete_node);
-  }  /* if */
   if (ptr_node_test != NULL) {
     /* Add a null pointer test, producing
          ptr_node ? vec_delete(...) : (void)0

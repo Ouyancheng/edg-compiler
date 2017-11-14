@@ -1,5 +1,24 @@
 Version 4.15
 
+11/15/17 [EDGcpfe/17932,EDGcpfe/18938]
+Incorrect code generated for array delete of zero elements when the element
+type is a class with a virtual destructor
+
+In GCC and Microsoft emulation modes, an array delete of an entity whose
+element type has a virtual destructor invokes the virtual destructor (see the
+changes for EDGcpfe/10873).  In cases where the array has zero elements,
+the code that had been generated incorrectly dereferenced the _vptr pointer,
+resulting in an abort at run time.  A change has been made to suppress this
+dereference (by generating code that does a run time check of the number
+of elements in the array).  For example (with --g++):
+
+  struct S { virtual ~S() {} };
+  int main() {
+    S *p = new S[0];
+    delete[] p;
+  }
+
+
 11/14/17 [EDGcpfe/18928]
 Failure to handle brace-notation cast failure as SFINAE
 
