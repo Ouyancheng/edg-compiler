@@ -10283,33 +10283,46 @@ the value representation of the integer value.
                                ips, diff_con, result_storage, result_storage);
                 }  /* if */
                 release_local_constant(&diff_con);
-              } else if (is_array_element(addr1) && is_array_element(addr2) &&
-                         get_base_address(addr1) == get_base_address(addr2)) {
+              } else {
                 a_type_ptr    etp = opnd1_type->variant.pointer.type;
-                a_byte_count  elem_size = value_bytes_for_type(
-                                                           ips, etp, &result);
-                if (!result) {
-                  /* Nothing more to do. */
-                } else if (elem_size == 0) {
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_divide_by_zero, &expr->position, ips);
-                } else {
-                  set_integer_value(
+                a_byte_count  elem_size;
+                etp = skip_typerefs(etp);
+                elem_size = value_bytes_for_type(ips, etp, &result);
+                if (!result) break;
+                if (is_array_element(addr1) && is_array_element(addr2) &&
+                    get_base_address(addr1) == get_base_address(addr2)) {
+                  if (elem_size == 0) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_divide_by_zero, &expr->position, ips);
+                  } else {
+                    set_integer_value(
                        (an_integer_value*)result_storage,
                        (a_host_large_integer)(addr1->address - addr2->address)
                           / (a_host_large_integer)elem_size);
-                  int_kind = tp->variant.integer.int_kind;
-                  is_signed = int_kind_is_signed[int_kind];
-                  ovfl = FALSE;
-                  CHECK_int_range((an_integer_value*)result_storage, tp);
+                    int_kind = tp->variant.integer.int_kind;
+                    is_signed = int_kind_is_signed[int_kind];
+                    ovfl = FALSE;
+                    CHECK_int_range((an_integer_value*)result_storage, tp);
+                  }  /* if */
+                } else if (addr1->address == addr2->address) {
+                  /* Subtracting two equal pointers produces zero (also true
+                     for NULL pointers). */
+                  *(an_integer_value *)result_storage = zero_int;
+                } else if (cannot_dereference(addr1) &&
+                           addr1->address-elem_size == addr2->address) {
+                  /* Something like (&x+1) - &x for a non-array variable x. */
+                  set_integer_value((an_integer_value*)result_storage,
+                                    (a_host_large_integer)1);
+                } else if (cannot_dereference(addr2) &&
+                           addr2->address-elem_size == addr1->address) {
+                  /* Something like &x - &(x+1) for a non-array variable x. */
+                  set_integer_value((an_integer_value*)result_storage,
+                                    (a_host_large_integer)-1);
+                } else {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
+                                &expr->position, ips);
                 }  /* if */
-              } else if (addr1->address == NULL && addr2->address == NULL) {
-                /* Subtracting two null pointers produces zero. */
-                *(an_integer_value *)result_storage = zero_int;
-              } else {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
-                              &expr->position, ips);
               }  /* if */
             }
             break;

@@ -1,5 +1,21 @@
 Version 4.15
 
+11/14/17 [EDGcpfe/18937]
+Interpretation of eok_pdiff operator
+
+The constexpr interpreter previously did not correctly handle certain pointer
+differences with operands are not array element addresses.  For example:
+
+  constexpr int f(int x) {
+    int *p1 = &x+1;
+    int *p2 = &x;
+    return p1 - p2;
+  }
+  constexpr int d = f(4);  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 11/13/17 [EDGcpfe/18682]
 Abort in scan_template_argument_constant_expression
 
