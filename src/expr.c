@@ -40977,9 +40977,12 @@ memory region).  If param_type is NULL, the parameter type is not known.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
-  check_assertion_or_expect_error(
-                  constant->expr == NULL || relaxed_ms_case ||
-                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
+  if (constant->expr != NULL &&
+      !curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+    /* Discard the backing expression since it can arbitrarily change from
+       one point of instantiation to the next. */
+    constant->expr = NULL;
+  }  /* if */
   wrap_up_constant_full_expression(constant);
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
