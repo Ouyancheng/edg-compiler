@@ -11242,12 +11242,13 @@ i.e., arrays with class elements.
            to perform the assignment before the temporary is used. */
         dtor_addr_node = make_comma_node(assign_node, dtor_addr_node);
       }  /* if */
-      /* The expression in dtor_addr_node dereferences _vptr to get to the
-         virtual destructor, but in cases where the number of elements in the
-         array is zero, the _vptr field has never been initialized.  Generate
-         code to inspect the number of elements (stored in a cookie before the
-         allocated array) at run time to determine whether this is the case and
-         avoid the dereference.  The code looks like:
+      /* The expression in dtor_addr_node dereferences the first element's
+         _vptr to get to the virtual destructor, but in cases where the number
+         of elements in the array is zero, there is no _vptr field (because
+         there is no "first element").  Generate code to inspect the number of
+         elements (stored in a cookie before the allocated array) at run time
+         to determine whether this is the case and avoid the dereference.  The
+         code looks like:
              (num_elements != 0) ? dtor_addr_node : NULL
          Note that having a NULL destructor is okay because there are no
          elements to destroy. */
