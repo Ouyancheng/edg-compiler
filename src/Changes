@@ -1,5 +1,18 @@
 Version 4.15
 
+11/15/17 [EDGcpfe/18916]
+Variable template partial specializations declared outside of the class
+
+Variable template partial specializations declared outside of the enclosing
+class template did not work properly in some cases.  Now fixed.
+
+  template<typename T> struct A {
+    template<typename U> static const int v;
+  };
+  template<typename T> template<typename U> const int A<T>::v<U*> = 1;
+  int arr[A<int>::v<int*>];  // Formerly: cannot be used as a constant
+
+
 11/14/17 [EDGcpfe/18730]
 Digit separators in invalid locations
 

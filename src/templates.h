@@ -99,6 +99,9 @@ typedef struct a_tmpl_decl_state {
 			   specialization of a class that is a member of
 			   a class template, and the declaration appears
 			   outside of the parent class. */
+  a_boolean	out_of_class_instantiation;
+			/* TRUE if this is the instantiation of an out-of-class
+			   declaration of a partial specialization. */
   a_boolean	is_template_template_param;
 			/* TRUE when scanning the template parameter clauses
 			   of a template template declaration. */
@@ -250,6 +253,17 @@ typedef struct a_tmpl_decl_state {
 			/* For a function template declaration, points to the
 			   list of prototype scope symbols from the
 			   func_info_block. */
+  a_symbol_ptr	bad_partial_spec_parent_class_sym;
+			/* If the declaration is for an out-of-class
+			   partial specialization, and the specialization
+			   is invalid because of an incorrect parent class,
+			   this points to the symbol of the parent class
+			   (to be used for error reporting purposes. */
+  a_symbol_ptr	out_of_class_prototype_sym;
+			/* For an out-of-class instantiation of a partial
+			   specialization, this points to the symbol created
+			   for the partial specialization in the primary
+			   template */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		definition_range;

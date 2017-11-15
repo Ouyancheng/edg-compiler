@@ -506,6 +506,7 @@ Initialize a template declaration state block.
   tdsp->friend_depth = 0;
   tdsp->export_present = FALSE;
   tdsp->partial_spec_outside_of_class_template = FALSE;
+  tdsp->out_of_class_instantiation = FALSE;
   tdsp->is_template_template_param = FALSE;
   tdsp->is_template_template_param_rescan = FALSE;
   /* Because the __bases and __direct_bases use the variadic mechanism,
@@ -546,6 +547,8 @@ Initialize a template declaration state block.
   clear_decl_pos_block(&tdsp->decl_pos_block);
   tdsp->new_alias_symbol = NULL;
   tdsp->prototype_scope_symbols = NULL;
+  tdsp->bad_partial_spec_parent_class_sym = NULL;
+  tdsp->out_of_class_prototype_sym = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1256,8 +1259,9 @@ itself recursively to process classes nested within this class.
     var = class_type->variant.class_struct_union.extra_info->
 							assoc_scope->variables;
     for (; var != NULL; var = var->next) {
-      /* Don't process prototype instantiations of variable templates. */
-      if (var->is_prototype_instantiation) continue;
+      /* Don't process prototype or nonreal instantiations of variable
+         templates. */
+      if (var->is_prototype_instantiation || var->is_nonreal) continue;
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
       tip = sym->variant.static_data_member.instance_ptr;
       /* We make sure tip is non-NULL to guard against potential error
@@ -3608,6 +3612,10 @@ static void class_template_declaration(
 		         a_boolean             *resolution,
 			 a_boolean	       out_of_class_partial_spec);
 
+static a_symbol_ptr instantiate_out_of_class_variable_template_decl(
+                                  a_tmpl_decl_state_ptr            decl_state,
+                                  a_template_symbol_supplement_ptr *p_tssp);
+
 static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                 a_symbol_ptr           sym);
@@ -3653,21 +3661,23 @@ by "decl_info".
 
 
 static void create_decl_state_for_partial_spec_rescan(
-                                a_tmpl_decl_state_ptr		tdsp,
-                                a_tmpl_decl_state_ptr		orig_tdsp,
-				a_template_decl_info_ptr	decl_info,
-				a_type_ptr			class_type)
+			a_tmpl_decl_state_ptr			tdsp,
+			an_out_of_class_partial_spec_ptr	oocpsp,
+			a_template_decl_info_ptr		decl_info,
+			a_type_ptr				class_type)
 /*
 We are about to rescan the declaration of a partial specialization that
 was declared outside of the class template of which it is a member.
 
 Construct a template declaration state block that can be used for this
-rescan.  "tdsp" is the declaration state being created.  "orig_tdsp" is
-a copy of the declaration state made when the original declaration
-was scanned.  "decl_info" is the template declaration information of the
-partial specialization.  "class_type" is the parent class. type.
+rescan.  "tdsp" is the declaration state being created.  "oocpsp" is the
+entry created to describe this out-of-class specialization.  "decl_info"
+is the template declaration information of the partial specialization.
+"class_type" is the parent class type.
 */
 {
+  a_tmpl_decl_state_ptr	orig_tdsp = oocpsp->tmpl_decl_state;
+
   init_templ_decl_state(tdsp);
   tdsp->is_member_decl = TRUE;
   tdsp->nesting_depth = orig_tdsp->nesting_depth;
@@ -3675,6 +3685,9 @@ partial specialization.  "class_type" is the parent class. type.
   tdsp->class_declared_in = class_type;
   tdsp->effective_decl_level = DEPTH_OF_FILE_SCOPE;
   tdsp->il_template_entry = make_il_template_entry(tdsp);
+  tdsp->out_of_class_instantiation = TRUE;
+  tdsp->out_of_class_prototype_sym = oocpsp->symbol;
+  tdsp->decl_token_cache = oocpsp->cache.tokens;
 }  /* create_decl_state_for_partial_spec_rescan */
 
 
@@ -3701,6 +3714,7 @@ with "instance_sym".
   a_boolean				resolution;
   a_symbol_ptr				new_sym;
   a_tmpl_decl_state			decl_state;
+  a_symbol_ptr				ooc_sym = oocpsp->symbol;
 
   ps_sym = oocpsp->symbol;
   ps_tssp = ps_sym->variant.template_info;
@@ -3720,15 +3734,20 @@ with "instance_sym".
   /* The rescan requires a template declaration state block.  Build
      one to represent the state in which the partial specialization
      is to be processed. */
-  create_decl_state_for_partial_spec_rescan(&decl_state,
-                                            oocpsp->tmpl_decl_state,
+  create_decl_state_for_partial_spec_rescan(&decl_state, oocpsp,
                                             decl_info, class_type);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(ps_tssp->pragmas_bound_to_template);
   rescan_reusable_cache(&oocpsp->cache.tokens);
-  class_template_declaration(&decl_state, &new_sym, &resolution,
-                             /*out_of_class_partial_spec=*/TRUE);
+  if (symbol_is(ooc_sym, sk_class_template) ||
+      is_class_struct_union_symbol(ooc_sym)) {
+    class_template_declaration(&decl_state, &new_sym, &resolution,
+                               /*out_of_class_partial_spec=*/TRUE);
+  } else {
+    new_sym = instantiate_out_of_class_variable_template_decl(&decl_state,
+                                                              &new_tssp);
+  }  /* if */
   end_deferral_of_access_checks();
   new_tssp = new_sym->variant.template_info;
   /* Process any pragmas that are to be bound to this instance. */
@@ -6397,8 +6416,8 @@ expression context) rather than a declaration.
     tssp_of_prototype = tssp;
     ps_options |= PS_IGNORE_CLASS_CONTEXT;
   }  /* if */
-  body_cache = cache_for_template(tssp_of_prototype);
-  decl_cache = decl_cache_for_variable_template(tssp_of_prototype);
+  body_cache = cache_for_template(tssp);
+  decl_cache = decl_cache_for_variable_template(tssp);
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
   if ((!is_var_templ_instance && !template_sym->defined) ||
@@ -20403,6 +20422,51 @@ given position.
 }  /* check_std_initializer_list_parameter */
 
 
+static void check_for_out_of_class_partial_spec(
+				         a_tmpl_decl_state_ptr	decl_state,
+					 a_symbol_ptr		primary_sym)
+/*
+This is the declaration of a partial specialization.  Determine whether
+this is an out-of-class partial specialization, which requires special
+processing.  primary_sym is the template symbol of which this is a partial
+specialization.
+*/
+{
+  if (primary_sym->is_class_member && decl_state->class_declared_in == NULL) {
+    /* A partial specialization declared outside of the class.  These
+       must be handled specially because the partial specialization
+       must be declared for each instance of the enclosing class (if
+       the enclosing class is a class template).  For a partial
+       specialization declared inside the class, this happens
+       automatically when the tokens are rescanned. */
+    a_symbol_ptr		parent_class_sym;
+    parent_class_sym = symbol_for(sym_parent_class(primary_sym));
+    if (primary_sym->variant.template_info->is_specific_definition) {
+      /* The primary template is specialized, so a partial specialization
+         declared outside requires no subsequent special processing. */
+    } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
+      /* The parent is a class template.  Further special processing
+         is required to evaluate this partial specialization for each
+         generated instance. */
+      decl_state->partial_spec_outside_of_class_template = TRUE;
+    } else if (!is_real_class_symbol(parent_class_sym)) {
+      /* The parent class is a nonreal class.  This occurs in an invalid
+         partial specialization declaration in which the parent class is
+         specified incorrectly.  The error is issued later so that other
+         partial specialization errors, if any, will be issued
+         instead. */
+      decl_state->bad_partial_spec_parent_class_sym = parent_class_sym;
+    } else {
+      /* The parent is not a prototype specialization.  This means the
+         parent is either a normal (non-template) class or is a
+         real class instance.  In either case, we can just add the
+         partial specialization to the class and no further processing is
+         needed. */
+    }  /* if */
+  }  /* if */
+}  /* check_for_out_of_class_partial_spec */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -20448,7 +20512,6 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
   a_token_sequence_number	    tsn_for_class_template =
                                                     curr_token_sequence_number;
-  a_symbol_ptr			    bad_partial_spec_parent_class_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_interface = FALSE;
@@ -20837,40 +20900,11 @@ friend_template_checks_done:
                   &locator.source_position);
         err = TRUE;
       } else {
-        if (sym->is_class_member && decl_state->class_declared_in == NULL) {
-          /* A partial specialization declared outside of the class.  These
-             must be handled specially because the partial specialization
-             must be declared for each instance of the enclosing class (if
-             the enclosing class is a class template).  For a partial
-             specialization declared inside the class, this happens
-             automatically when the tokens are rescanned. */
-          a_symbol_ptr	parent_class_sym;
-          partial_spec_outside_of_class = TRUE;
-          parent_class_sym = symbol_for(sym_parent_class(sym));
-          if (template_for_instance(sym)->
-                               variant.template_info->is_specific_definition) {
-            /* The primary template is specialized, so a partial specialization
-               declared outside requires no subsequent special processing. */
-          } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
-            /* The parent is a class template.  Further special processing
-               is required to evaluate this partial specialization for each
-               generated instance. */
-            decl_state->partial_spec_outside_of_class_template = TRUE;
-          } else if (!is_real_class_symbol(parent_class_sym)) {
-            /* The parent class is a nonreal class.  This occurs in an invalid
-               partial specialization declaration in which the parent class is
-               specified incorrectly.  The error is issued later so that other
-               partial specialization errors, if any, will be issued
-	       instead. */
-            bad_partial_spec_parent_class_sym = parent_class_sym;
-          } else {
-            /* The parent is not a prototype specialization.  This means the
-               parent is either a normal (non-template) class or is a
-               real class instance.  In either case, we can just add the
-               partial specialization to the class and no further processing is
-               needed. */
-          }  /* if */
-        }  /* if */
+        /* This is a partial specialization.  Check to see if it an
+           out-of-class partial specialization that requires special
+           processing. */
+        check_for_out_of_class_partial_spec(decl_state,
+                                            template_for_instance(sym));
         partial_spec_nonreal_sym = sym;
         sym = NULL;
       }  /* if */
@@ -21334,13 +21368,14 @@ friend_template_checks_done:
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
     if (!decl_state->decl_scope_err &&
-        bad_partial_spec_parent_class_sym != NULL) {
+        decl_state->bad_partial_spec_parent_class_sym != NULL) {
       /* The parent class of the partial specialization is invalid.  Issue
          that error now if no other errors have been diagnosed on this
          declaration. */
       pos_st_error(ec_name_must_be_prototype_instantiation, 
                    &locator.source_position,
-                   bad_partial_spec_parent_class_sym->header->identifier);
+                   decl_state->bad_partial_spec_parent_class_sym->
+                                                           header->identifier);
       decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
@@ -24045,6 +24080,15 @@ return NULL.
       tssp->primary_template_sym = primary_sym;
       ps_var = variable_for_symbol(ps_sym);
       vtip = ps_var->template_info;
+      /* Check to see if it an out-of-class partial specialization that
+         requires special processing. */
+      check_for_out_of_class_partial_spec(decl_state, primary_sym);
+      if (decl_state->partial_spec_outside_of_class_template ||
+          decl_state->out_of_class_instantiation) {
+        /* Copy the parent class information from the primary symbol. */
+        ps_sym->is_class_member = TRUE;
+        ps_sym->parent.class_type = primary_sym->parent.class_type;
+      }  /* if */
       /* The call to create_variable_template_symbol above created a
          template argument list based on the parameters of the partial
          specialization.  That should be used as the
@@ -24069,9 +24113,9 @@ return NULL.
 
 
 static a_symbol_ptr variable_template_declaration(
-                                  a_tmpl_decl_state_ptr            decl_state,
-                                  a_symbol_locator                 *locator,
-                                  a_template_symbol_supplement_ptr *p_tssp)
+			a_tmpl_decl_state_ptr			decl_state,
+			a_symbol_locator			*locator,
+			a_template_symbol_supplement_ptr	*p_tssp)
 /*
 Scan a variable template declaration or the definition of a static
 data member of a class template.  locator identifies the entity being
@@ -24256,6 +24300,13 @@ template symbol supplement for this template should be returned to the caller.
     sym = create_variable_template_symbol(decl_state, locator);
     decl_state->decl_scope_err = TRUE;
   }  /* if */
+  if (decl_state->out_of_class_instantiation) {
+    /* Get the cache that was saved during the out-of-class declaration. */
+    p_token_cache = &decl_state->out_of_class_prototype_sym->
+                                           variant.template_info->cache.tokens;
+    flush_past_token_cache_terminator();
+    rescan_reusable_cache(p_token_cache);
+  }  /* if */
   /* Scan the initializer expression, if any, and cache its tokens.
      The initializer may be of the form "= ...;", "(...);", or "{ ... };".
      Anything else will not get cached and an error will be generated
@@ -24277,30 +24328,37 @@ template symbol supplement for this template should be returned to the caller.
          to be redefined outside. */
       pos_sy_error(ec_already_initialized, &locator->source_position, sym);
     }  /* if */
-    if (curr_token != tok_semicolon) {
-      /* Cache the tokens of the initializer. */
-      a_token_set_array		stop_tokens;
-      clear_token_set_array(stop_tokens);
-      /* Only semicolon should be left on the list. */
-      incr_token_set_array_element(stop_tokens, tok_semicolon);
-      (void)get_token();
-      cache_token_stream((a_token_cache_ptr)NULL, stop_tokens);
+    if (decl_state->out_of_class_instantiation) {
+      /* For out-of-class instantiations the cache from the declaration is
+         used. */
+    } else {
+      /* The normal declaration case. */
+      if (curr_token != tok_semicolon) {
+        /* Cache the tokens of the initializer. */
+        a_token_set_array		stop_tokens;
+        clear_token_set_array(stop_tokens);
+        /* Only semicolon should be left on the list. */
+        incr_token_set_array_element(stop_tokens, tok_semicolon);
+        (void)get_token();
+        cache_token_stream((a_token_cache_ptr)NULL, stop_tokens);
+      }  /* if */
+      /* Stop the background caching and save the declaration up to this
+         point.  For an out-of-class instantiation, p_token_cache as set
+         above. */
+      make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
+                               /*include_last_token=*/FALSE);
+      /* Split the cache so that the initialization is removed from the
+         declaration cache and placed in the initializer cache. */
+      split_token_cache(decl_cache, &local_cache, split_location,
+                        /*include_prev_token=*/has_parenthesized_initializer,
+                        /*okay_if_not_found=*/has_parenthesized_initializer,
+                        /*update_cache_being_scanned=*/FALSE);
+      p_token_cache = &local_cache;
     }  /* if */
-    /* Stop the background caching and save the declaration up to this
-       point. */
-    make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
-                             /*include_last_token=*/FALSE);
-    /* Split the cache so that the initialization is removed from the
-       declaration cache and placed in the initializer cache. */
-    split_token_cache(decl_cache, &local_cache, split_location,
-                      /*include_prev_token=*/has_parenthesized_initializer,
-                      /*okay_if_not_found=*/has_parenthesized_initializer,
-                      /*update_cache_being_scanned=*/FALSE);
-    p_token_cache = &local_cache;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* To find the end position, scan the cache to find the token preceding
        the semicolon (or the end-of-source, if a semicolon was omitted). */
-    { a_cached_token_ptr  ctp = local_cache.first_token;
+    { a_cached_token_ptr  ctp = p_token_cache->first_token;
       a_token_kind        next_tok;
 
       for (;;) {
@@ -24322,8 +24380,10 @@ template symbol supplement for this template should be returned to the caller.
   } else {
     /* There is no initializer.  Stop the background caching and save
        the declaration up to this point. */
-    make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
-                             /*include_last_token=*/FALSE);
+    if (!decl_state->out_of_class_instantiation) {
+      make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
+                               /*include_last_token=*/FALSE);
+    }  /* if */
   } /* if */
   if (is_variable_template && tssp != NULL) {
     /* Make sure that the default arguments for the template parameters
@@ -24425,6 +24485,50 @@ template symbol supplement for this template should be returned to the caller.
   *p_tssp = tssp;
   return sym;
 }  /* variable_template_declaration */
+
+
+static a_symbol_ptr instantiate_out_of_class_variable_template_decl(
+                                  a_tmpl_decl_state_ptr            decl_state,
+                                  a_template_symbol_supplement_ptr *p_tssp)
+/*
+Rescan the tokens of an out-of-class variable template declaration to
+create the declaration in an instantiated enclosing class.  The context
+for the rescan was pushed by the caller.  Return the symbol for the
+new declaration and set *p_tssp to the new template symbol supplement.
+*/
+{
+  a_symbol_locator			locator;
+  a_func_info_block			func_info;
+  a_symbol_ptr				loc_sym;
+  a_decl_parse_state			*dps = &decl_state->decl_parse;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  /* Scan the decl. specifiers and the declaration. */
+  clear_func_info(&func_info);
+  scan_template_declaration(dps, /*is_initial_decl=*/TRUE,
+                            decl_state->is_member_decl,
+                            (a_symbol_ptr)NULL,
+                            decl_state->class_declared_in,
+                            decl_state->decl_scope_err,
+                            decl_state->is_specialization,
+                            &locator, &func_info, (a_routine_ptr)NULL,
+                            (a_template_instance_ptr)NULL,
+                            &decl_state->decl_pos_block);
+  /* If an error occurred scanning the declarator, set the flag to
+     suppress subsequent errors. */
+  if (decl_state->decl_scope_err) {
+    set_to_named_error_locator(locator);
+  }  /* if */
+  loc_sym = locator.specific_symbol;
+  check_assertion(loc_sym != NULL &&
+                  (symbol_is(loc_sym, sk_static_data_member) ||
+                   symbol_is(loc_sym, sk_variable_template) ||
+                   symbol_is(loc_sym, sk_variable)));
+  sym = variable_template_declaration(decl_state, &locator, &tssp);
+  *p_tssp = tssp;
+  return sym;
+}  /* instantiate_out_of_class_variable_template_decl */
 
 
 static void check_function_template_param_usage(
@@ -26622,6 +26726,21 @@ any non-empty template parameter lists that were scanned.
     /* A template definition of an enum declared in a class template.
        The prototype instantiation is done while scanning the enum
        declaration. */
+  } else if (sym != NULL &&
+             (symbol_is(sym, sk_static_data_member) ||
+              symbol_is(sym, sk_variable_template))) {
+    if (nonclass_prototype_instantiations || tssp->is_variadic) {
+      if (!decl_state->decl_scope_err) {
+        variable_template_prototype_instantiation(decl_state, sym);
+      }  /* if */
+    }  /* if */
+    /* If this is an out-of-class declaration of a partial specialization,
+       create a special entry used to instantiate declarations of this
+       partial specialization. */
+    if (decl_state->partial_spec_outside_of_class_template &&
+        !decl_state->decl_scope_err) {
+      create_out_of_class_entry_for_partial_spec(decl_state, sym);
+    }  /* if */
   } else if (sym != NULL) {
     if (is_function_or_template_symbol(sym) &&
         prototype_instantiation_should_be_done_for_function(sym)) {
@@ -26636,12 +26755,6 @@ any non-empty template parameter lists that were scanned.
              are handled elsewhere. */
           function_prototype_instantiation(sym);
         }  /* if */
-      }  /* if */
-    } else if (nonclass_prototype_instantiations || tssp->is_variadic) {
-      check_assertion(symbol_is(sym, sk_static_data_member) ||
-                      symbol_is(sym, sk_variable_template));
-      if (!decl_state->decl_scope_err) {
-        variable_template_prototype_instantiation(decl_state, sym);
       }  /* if */
     }  /* if */
   }  /* if */
