@@ -3225,7 +3225,9 @@ default mode (e.g., exception handling).
   right_shift_can_be_angle_brackets = value;
   extended_friends_enabled = value;
   mixed_string_concat_enabled = value;
-  long_long_is_standard = value;
+  if (!option_kind_used[(int)optk_long_long]) {
+    long_long_is_standard = value;
+  }  /* if */
   long_long_promotion_allowed = value;
   if (!option_kind_used[(int)optk_variadic_macros]) {
     variadic_macros_allowed = value;

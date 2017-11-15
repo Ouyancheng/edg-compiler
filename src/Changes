@@ -1,5 +1,12 @@
 Version 4.15
 
+11/15/17 [EDGcpfe/18943]
+Using the --long_long command-line option in strict mode
+
+The use of --long_long command-line option to enable the "long long" type
+didn't work in some cases (e.g., with --strict --c++03) and is now fixed.
+
+
 11/15/17 [EDGcpfe/18916]
 Variable template partial specializations declared outside of the class
 
