@@ -11246,8 +11246,8 @@ i.e., arrays with class elements.
          virtual destructor, but in cases where the number of elements in the
          array is zero, the _vptr field has never been initialized.  Generate
          code to inspect the number of elements (stored in a cookie before the
-         allocated array) at run time whether this is the case to avoid the
-         dereference.  The code looks like:
+         allocated array) at run time to determine whether this is the case and
+         avoid the dereference.  The code looks like:
              (num_elements != 0) ? dtor_addr_node : NULL
          Note that having a NULL destructor is okay because there are no
          elements to destroy. */
