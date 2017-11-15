@@ -8943,8 +8943,8 @@ following position.
       valid_sep = (strchr(valid_chars, *(curr_char_loc + (N) + 1)) != NULL);  \
       if (!valid_sep && fetch_pp_tokens) {                                    \
         /* End the token, i.e., don't skip the apostrophe: the following */   \
-	/* character does not satisfy the pp-number syntax, but that is */    \
-	/* not necessarily an error. */                                       \
+        /* character does not satisfy the pp-number syntax, but that is */    \
+        /* not necessarily an error. */                                       \
       } else {                                                                \
 	number_contains_digit_separator = TRUE;                               \
 	if ((!first_digit_seen || !valid_sep) &&                              \
