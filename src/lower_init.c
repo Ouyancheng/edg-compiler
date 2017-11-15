@@ -3163,7 +3163,9 @@ This information is stored in the "cookie" that is prepended to the array
 match the behavior of the run time library.
 
 This routine assumes that the run time library is configured with
-USE_PREFIX_FOR_ARRAY_ALLOC_INFO set to TRUE.
+USE_PREFIX_FOR_ARRAY_ALLOC_INFO set to TRUE.  This function should only be
+called for an array that has a cookie (not all arrays have cookies in the
+IA-64 ABI).
 */
 {
   an_expr_node_ptr expr, reusable_ptr, offset_node;
@@ -3190,8 +3192,6 @@ USE_PREFIX_FOR_ARRAY_ALLOC_INFO set to TRUE.
                                             targ_size_t_int_kind);
 
   } else {
-    /* Not all arrays have cookies, but assume if we get there that the
-       array should have a cookie. */
     unexpected_condition();
   }  /* if */
 #else /* !IA64_ABI */
@@ -11244,8 +11244,8 @@ i.e., arrays with class elements.
       }  /* if */
       /* The expression in dtor_addr_node dereferences _vptr to get to the
          virtual destructor, but in cases where the number of elements in the
-         array is zero, the _vptr field has never been set.  Generate code to
-         inspect the number of elements (stored in a cookie before the
+         array is zero, the _vptr field has never been initialized.  Generate
+         code to inspect the number of elements (stored in a cookie before the
          allocated array) at run time whether this is the case to avoid the
          dereference.  The code looks like:
              (num_elements != 0) ? dtor_addr_node : NULL
