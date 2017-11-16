@@ -20457,7 +20457,7 @@ specialization.
          instead. */
       decl_state->bad_partial_spec_parent_class_sym = parent_class_sym;
     } else {
-      /* The parent is not a prototype specialization.  This means the
+      /* The parent is not a prototype instantiation.  This means the
          parent is either a normal (non-template) class or is a
          real class instance.  In either case, we can just add the
          partial specialization to the class and no further processing is
