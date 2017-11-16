@@ -1,5 +1,17 @@
 Version 4.15
 
+11/16/17 [EDGcpfe/18947]
+C++-generating back end: line break in #pragma
+
+A change in 4.14 (see EDGcpfe/18667) could cause a line break to appear in
+the middle of a #pragma directive that is output by the C++-generating
+back end.  Now fixed.
+
+  template <typename T> void f() {
+    #pragma diag_suppress 1107
+  }
+
+
 11/15/17 [EDGcpfe/18943]
 Using the --long_long command-line option in strict mode
 

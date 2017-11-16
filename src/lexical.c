@@ -22007,11 +22007,18 @@ encountered, whatever their other characteristics, are included.
 
   db_enter(5, "add_pragmas_to_string");
   for (ppp = pragmas; ppp != NULL; ppp = ppp->next) {
+    a_boolean	is_pragma_directive;
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
-    if (!is_pseudo_pragma && !ppp->is_microsoft_pragma_operator) {
-      /* Make sure a #pragma starts on new line. */
-      seq_incr = 1;
-      column_incr = 0;
+    is_pragma_directive = !is_pseudo_pragma &&
+                          !ppp->is_microsoft_pragma_operator;
+    if (ppp->pragma_position.seq >= curr_seq || is_pragma_directive) {
+      /* We have moved to a new line, or we are generating a #pragma (which
+         must begin on a new line).  Compute the indentation. */
+      column_incr = ppp->pragma_position.column - 1;
+      /* Compute the number of line feed characters to add. */
+      seq_incr =  ppp->pragma_position.seq - curr_seq;
+      /* Reset the current line. */
+      curr_seq = ppp->pragma_position.seq;
     } else if (ppp->pragma_position.seq <= curr_seq) {
       /* We're on the same line as the previous token processed, so just add
          a space (in most cases) to separate the tokens.  (Note: the line for
@@ -22021,12 +22028,6 @@ encountered, whatever their other characteristics, are included.
       /* Don't add a line feed. */
       seq_incr = 0;
     } else {
-      /* We've moved to a new line.  Compute the indentation. */
-      column_incr = ppp->pragma_position.column - 1;
-      /* Compute the number of line feed characters to add. */
-      seq_incr =  ppp->pragma_position.seq - curr_seq;
-      /* Reset the current line. */
-      curr_seq = ppp->pragma_position.seq;
     }  /* if */
     /* Add any spaces and line feeds that might be required. */
     if (seq_incr > 0 || column_incr > 0) {
