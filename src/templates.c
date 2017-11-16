@@ -24499,7 +24499,6 @@ new declaration and set *p_tssp to the new template symbol supplement.
 {
   a_symbol_locator			locator;
   a_func_info_block			func_info;
-  a_symbol_ptr				loc_sym;
   a_decl_parse_state			*dps = &decl_state->decl_parse;
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
@@ -24520,11 +24519,15 @@ new declaration and set *p_tssp to the new template symbol supplement.
   if (decl_state->decl_scope_err) {
     set_to_named_error_locator(locator);
   }  /* if */
-  loc_sym = locator.specific_symbol;
-  check_assertion(loc_sym != NULL &&
-                  (symbol_is(loc_sym, sk_static_data_member) ||
-                   symbol_is(loc_sym, sk_variable_template) ||
-                   symbol_is(loc_sym, sk_variable)));
+#if CHECKING
+  { a_symbol_ptr loc_sym;
+    loc_sym = locator.specific_symbol;
+    check_assertion(loc_sym != NULL &&
+                    (symbol_is(loc_sym, sk_static_data_member) ||
+                     symbol_is(loc_sym, sk_variable_template) ||
+                     symbol_is(loc_sym, sk_variable)));
+  }
+#endif /* CHECKING */
   sym = variable_template_declaration(decl_state, &locator, &tssp);
   *p_tssp = tssp;
   return sym;
