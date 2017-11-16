@@ -258,12 +258,12 @@ typedef struct a_tmpl_decl_state {
 			   partial specialization, and the specialization
 			   is invalid because of an incorrect parent class,
 			   this points to the symbol of the parent class
-			   (to be used for error reporting purposes. */
+			   (to be used for error reporting purposes). */
   a_symbol_ptr	out_of_class_prototype_sym;
 			/* For an out-of-class instantiation of a partial
 			   specialization, this points to the symbol created
 			   for the partial specialization in the primary
-			   template */
+			   template. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		definition_range;
