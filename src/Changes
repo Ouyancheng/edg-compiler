@@ -1,5 +1,16 @@
 Version 4.15
 
+11/16/17 [EDGcpfe/18930]
+IA64-ABI: Function signature for thunks of virtual destructors
+
+In IA-64 ABI configurations where IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+is TRUE, complete (i.e., "D1") destructors return "void *" and deleting
+destructors return "void".  In some cases, involving virtual destructors and
+virtual base classes, the function signature for a deleting destructor had
+been given a "void" return type -- potentially causing conflicts for a linker
+or even causing undefined behavior at run time.  This is now fixed.
+
+
 11/16/17 [EDGcpfe/18947]
 C++-generating back end: line break in #pragma
 

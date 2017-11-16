@@ -7520,9 +7520,15 @@ table.
           }  /* if */
 #if IA64_ABI
           if (second_func_to_call != NULL) {
+            /* Use the alternate entry point for the primary routine as the
+               overridden function for the deleting destructor. */
+            a_routine_ptr arouto = alternate_entry_point(
+                                           override_list->primary_function,
+                                           second_func_to_call->ctor_dtor_kind,
+                                           /*define_now=*/FALSE);
             second_func_to_call = make_wrapper_routine(second_func_to_call,
-                                              override_list->primary_function,
-                                              rabcp, delta, vcall_index);
+                                                       arouto, rabcp, delta,
+                                                       vcall_index);
           }  /* if */
           /* The function called adjusts "this" so we do not have to do it. */
           delta = 0;
