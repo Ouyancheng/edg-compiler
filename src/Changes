@@ -1,6 +1,6 @@
 Version 4.15
 
-111/17/17 [EDGcpfe/18948]
+11/17/17 [EDGcpfe/18948]
 C++-generating back end: redundant #pragma pack directives
 
 The changes for EDGcpfe/18626 caused a regression (in version 4.14) in
