@@ -1499,6 +1499,9 @@ is the destination of an initialization operation.
     if (result_is_lvalue) {
       entity_node = add_indirection_to_node(entity_node);
     }  /* if */
+    /* Add modifiers, if any. */
+    entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
+                                          using_as_dest, /*is_vla=*/FALSE);
   } else
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Do not insert code here; this is the else of the above if. */

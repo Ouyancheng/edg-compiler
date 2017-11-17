@@ -1,5 +1,25 @@
 Version 4.15
 
+11/17/17  [EDGcpfe/18935]
+Lowered throw expression is incorrect
+
+In configurations that use lowering, but where DO_FULL_PORTABLE_EH_LOWERING is
+FALSE, the expression generated for a leck_thrown_object_address had not
+properly incorporated any modifiers into the thrown expression.  That omission
+resulted in an attempt to assign the value of "x" to the
+leck_thrown_object_address itself, rather than trying to assign it to the "m"
+field of the object pointed to by leck_thrown_object_address in the example
+below (with --c++11):
+
+  struct A {
+    int m;
+  };
+  void f() {
+    int x = 0;
+    throw A{x};
+  }
+
+
 11/17/17 [EDGcpfe/18948]
 C++-generating back end: redundant #pragma pack directives
 
