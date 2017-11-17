@@ -14392,6 +14392,9 @@ is the one associated with the pragma.
       gen_pragma_start(pp);
       write_str(pp->pragma_text);
       gen_pragma_end(pp);
+      if (pp->kind == (a_pragma_kind)pk_pack) {
+        curr_pack_alignment = pp->variant.alignment;
+      }  /* if */
     }  /* if */
     octl.suppress_line_breaking = saved_suppress_line_breaking;
   }  /* if */

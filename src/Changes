@@ -1,5 +1,18 @@
 Version 4.15
 
+111/17/17 [EDGcpfe/18948]
+C++-generating back end: redundant #pragma pack directives
+
+The changes for EDGcpfe/18626 caused a regression (in version 4.14) in
+the output of the C++-generating back end, causing each #pragma pack
+directive in the source to be represented by two redundant #pragma pack
+directives in the generated code.  This is now fixed.  For example,
+
+  #pragma pack(push, 1)   // Previously generated an additional pack(1)
+  typedef struct S { char c1; } packed;
+  #pragma pack(pop)       // Previously generated an additional pack()
+
+
 11/16/17 [EDGcpfe/18930]
 IA64-ABI: Function signature for thunks of virtual destructors
 
