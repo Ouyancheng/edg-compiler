@@ -23095,8 +23095,10 @@ declaration from a using-declaration.)
   a_symbol_ptr         sym, declared_sym = NULL;
   a_symbol_ptr         other_sym, fund_sym;
   a_base_class_ptr     bcp = NULL;
+  a_pack_expansion_stack_entry_ptr
+                       pesep;
   a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
-  a_boolean            is_overloaded;
+  a_boolean            check_for_packs = FALSE, is_overloaded, any_more;
   a_symbol_locator     locator;
   a_using_decl_ptr     prev_udp = NULL;
   a_source_position    decl_pos, using_pos, end_of_using_pos;
@@ -23122,6 +23124,11 @@ declaration from a using-declaration.)
     end_of_using_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
+    if (variadic_using_decls_enabled) {
+      any_more = begin_potential_pack_expansion_context(&pesep);
+      check_for_packs = TRUE;
+      add_stop_token(tok_comma);
+    }  /* if */
     if (alias_declarations_enabled &&
         is_generalized_identifier_start(GID_NO_OPTIONS) &&
         ((next_tok = next_token()) == tok_assign ||
@@ -23129,6 +23136,9 @@ declaration from a using-declaration.)
       /* An identifier followed by a "=" or a bracket (presumably the start of
          C++11-style attributes): This looks like an alias declaration. */
       a_decl_parse_state  dps;
+      if (check_for_packs) {
+        abandon_potential_pack_expansion_context(pesep);
+      }  /* if */
       init_decl_parse_state(&dps);
       dps.in_class_scope = TRUE;
       dps.start_pos = using_pos;
@@ -23143,6 +23153,9 @@ declaration from a using-declaration.)
     if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
       syntax_error(ec_exp_identifier);
       discard_curr_construct_pragmas();
+      if (check_for_packs) {
+        abandon_potential_pack_expansion_context(pesep);
+      }  /* if */
       goto done;
     }  /* if */
   } else {
@@ -23155,285 +23168,312 @@ declaration from a using-declaration.)
     pos_error(ec_using_or_access_declaration_in_managed_class, &using_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Coalesce the identifier, which should be a qualified name with a class
-     qualifier where the class is a base class of the current class (as
-     indicated by class_type). */
-  if (curr_token == tok_typename) {
-    /* If typename appears in the using declaration, the lookup is a bit
-       different, and there are some additional error checks.  If an error
-       type is returned, an error was reported in the subroutine. */
-    a_type_ptr   tp;
-    a_symbol_ptr type_sym;
+  while (!check_for_packs || any_more) {
+    a_pack_expansion_descr_ptr  pedep;
+    a_using_decl_ptr            rep_udp = NULL;
+    /* Coalesce the identifier, which should be a qualified name with a class
+       qualifier where the class is a base class of the current class (as
+       indicated by class_type). */
+    if (curr_token == tok_typename) {
+      /* If typename appears in the using declaration, the lookup is a bit
+         different, and there are some additional error checks.  If an error
+         type is returned, an error was reported in the subroutine. */
+      a_type_ptr   tp;
+      a_symbol_ptr type_sym;
 
-    typename_specifier(&tp, &type_sym, /*within_using_decl=*/TRUE,
-                       /*is_decl_specifier=*/FALSE,
-                       (a_decl_pos_block_ptr)NULL);
-    if (is_error_type(tp)) {
-      err = TRUE;
+      typename_specifier(&tp, &type_sym, /*within_using_decl=*/TRUE,
+                         /*is_decl_specifier=*/FALSE,
+                         (a_decl_pos_block_ptr)NULL);
+      if (is_error_type(tp)) {
+        err = TRUE;
 #if CHECKING
-    } else {
-      sym = locator_for_curr_id.specific_symbol;
-      if (sym != NULL && sym->is_class_member &&
-          is_template_dependent_type(sym_parent_class(sym))) {
-        /* The using-declaration was for a member of a dependent class type.
-           Normally this should be a base class type, but we may also end
-           up here with the following invalid code:
-             template<typename T> struct B { typedef int I; };
-             template<typename T> struct D: B<T> {
-               using D::I;  // Error (issued later on).
-             };
-           Because of the latter possibility, we must ensure we must consider
-           the possibility of sym being a projection symbol.  (GNU and
-           Microsoft compilers accept almost any form in templates.) */
-        sym = fundamental_symbol_of(sym);
-        check_assertion_or_expect_error(gpp_mode || microsoft_mode ||
+      } else {
+        sym = locator_for_curr_id.specific_symbol;
+        if (sym != NULL && sym->is_class_member &&
+            is_template_dependent_type(sym_parent_class(sym))) {
+          /* The using-declaration was for a member of a dependent class type.
+             Normally this should be a base class type, but we may also end
+             up here with the following invalid code:
+               template<typename T> struct B { typedef int I; };
+               template<typename T> struct D: B<T> {
+                 using D::I;  // Error (issued later on).
+               };
+             Because of the latter possibility, we must ensure we must consider
+             the possibility of sym being a projection symbol.  (GNU and
+             Microsoft compilers accept almost any form in templates.) */
+          sym = fundamental_symbol_of(sym);
+          check_assertion_or_expect_error(
+                                        gpp_mode || microsoft_mode ||
                                         is_type_template_param_symbol(sym) ||
                                         is_nonreal_instance_class_symbol(sym));
-      }  /* if */
+        }  /* if */
 #endif /* CHECKING */
-    }  /* if */
-  } else {
-    /* Not "using typename ...". */
-    (void)coalesce_and_lookup_generalized_identifier(
+      }  /* if */
+    } else {
+      /* Not "using typename ...". */
+      (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
-  }  /* if */
-  if (!err && is_union_type(class_type)) {
-    pos_error(ec_no_access_or_using_decl_in_union, &using_pos);
-    err = TRUE;
-  }  /* if */
-  if (!err) {
-    decl_pos = locator_for_curr_id.source_position;
-    /* The identifier should be a qualified name, with the qualifier a base
-       class of the current class. */
-    declared_sym = locator_for_curr_id.specific_symbol;
-    fund_sym = (declared_sym == NULL) ? NULL
-                                      : fundamental_symbol_of(declared_sym);
-    if (!locator_for_curr_id.is_class_member) {
-      pos_error(ec_class_qualified_name_required, &error_position);
+    }  /* if */
+    if (!err && is_union_type(class_type)) {
+      pos_error(ec_no_access_or_using_decl_in_union, &using_pos);
       err = TRUE;
-#if CHECKING
-    } else if (declared_sym == NULL) {
-      internal_error("member_using_decl: NULL symbol ptr");
-#endif /* CHECKING */
-    } else if (cli_or_cx_enabled && is_finalizer_symbol(declared_sym)) {
-      /* A using-declaration may not specify a finalizer. */
-      pos_error(ec_no_finalizer_using_declaration, &decl_pos);
-      err = TRUE;
-    } else if (declared_sym->ambiguous) {
-      /* declared_sym must be a projection symbol -- and it is ambiguous. */
-      sym_error(ec_ambiguous_name, declared_sym);
-      err = TRUE;
-    } else if (locator_for_curr_id.is_template_id) {
-      /* A template-id (that is, template-name<template-args>) is not allowed
-         here. */
-      pos_error(ec_template_id_not_allowed, &error_position);
-      err = TRUE;
-    } else {
-      /* Check for the form "using B::B;" where B is a base class type.  That
-         denotes inheriting constructors. */
-      a_boolean  is_ctor =  is_constructor_symbol(declared_sym);
-      if (inheriting_constructors_enabled &&
-          (is_ctor || locator_for_curr_id.is_inheriting_ctor ||
-           is_injected_class_symbol(declared_sym))) {
-        /* A using-declaration for inheriting constructors. */
-        record_inheriting_ctor_using_decl(cdsp, &using_pos);
-        goto done;
-      } else if (is_ctor || is_destructor_symbol(declared_sym)) {
-        /* A using-declaration may not specify a constructor or destructor. */
-        an_error_severity  sev = microsoft_mode ? es_warning :
-                                 strict_ansi_mode ? es_error :
-                                                    es_discretionary_error;
-        an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
-        pos_diagnostic(sev, ec, &decl_pos);
-        if (is_effective_error(ec, sev)) {
-          err = TRUE;
-        } else {
-          /* Continue validity checks, but do not generate IL. */
-          no_il_entry = TRUE;
-        }  /* if */
-      }  /* if */
     }  /* if */
     if (!err) {
-      a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
-      if ((could_be_dependent_class_type(parent_class) ||
-           has_dependent_base_class(class_type)) &&
-          (!parent_class->incomplete || gpp_mode || microsoft_mode) &&
-          !same_entities(class_type, parent_class)) {
-        /* The qualifier is a dependent class or the enclosing class has a
-           dependent base class.  Either way, we cannot in general determine
-           which base class the using-declaration refers to.  Suppress the
-           base class check and create a dummy base class. */
-        if (!no_il_entry) {
-          bcp_is_dummy = TRUE;
-          bcp = alloc_base_class();
-          bcp->type = sym_parent_class(declared_sym);
-          bcp->derived_class = class_type;
-        }  /* if */
+      decl_pos = locator_for_curr_id.source_position;
+      /* The identifier should be a qualified name, with the qualifier a base
+         class of the current class. */
+      declared_sym = locator_for_curr_id.specific_symbol;
+      fund_sym = (declared_sym == NULL) ? NULL
+                                        : fundamental_symbol_of(declared_sym);
+      if (!locator_for_curr_id.is_class_member) {
+        pos_error(ec_class_qualified_name_required, &error_position);
+        err = TRUE;
+#if CHECKING
+      } else if (declared_sym == NULL) {
+        internal_error("member_using_decl: NULL symbol ptr");
+#endif /* CHECKING */
+      } else if (cli_or_cx_enabled && is_finalizer_symbol(declared_sym)) {
+        /* A using-declaration may not specify a finalizer. */
+        pos_error(ec_no_finalizer_using_declaration, &decl_pos);
+        err = TRUE;
+      } else if (declared_sym->ambiguous) {
+        /* declared_sym must be a projection symbol -- and it is ambiguous. */
+        sym_error(ec_ambiguous_name, declared_sym);
+        err = TRUE;
+      } else if (locator_for_curr_id.is_template_id) {
+        /* A template-id (that is, template-name<template-args>) is not allowed
+           here. */
+        pos_error(ec_template_id_not_allowed, &error_position);
+        err = TRUE;
       } else {
-        bcp = find_base_class_of(class_type, parent_class);
-        if (bcp == NULL) {
-          pos_error(ec_bad_base_class, &error_position);
-          err = TRUE;
-        } else if (bcp->ambiguous) {
-          /* The base class is ambiguous, but only issue an error if the member
-             itself is ambiguous -- that is, the member must be either a field
-             or a nonstatic member function or an overload set containing at
-             least one nonstatic member function. */
-          sym = fund_sym;
-          if (sym->kind == (a_symbol_kind)sk_field) {
-            /* A field in an ambiguous base class is ambiguous. */
+        /* Check for the form "using B::B;" where B is a base class type.  That
+           denotes inheriting constructors. */
+        a_boolean  is_ctor =  is_constructor_symbol(declared_sym);
+        if (inheriting_constructors_enabled &&
+            (is_ctor || locator_for_curr_id.is_inheriting_ctor ||
+             is_injected_class_symbol(declared_sym))) {
+          /* A using-declaration for inheriting constructors. */
+          record_inheriting_ctor_using_decl(cdsp, &using_pos);
+          goto next_using_declarator_if_any;
+        } else if (is_ctor || is_destructor_symbol(declared_sym)) {
+          /* A using-declaration may not specify a constructor or
+             destructor. */
+          an_error_severity  sev = microsoft_mode ? es_warning :
+                                   strict_ansi_mode ? es_error :
+                                                      es_discretionary_error;
+          an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
+          pos_diagnostic(sev, ec, &decl_pos);
+          if (is_effective_error(ec, sev)) {
             err = TRUE;
           } else {
-            if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-              if (sym->variant.overloaded_function.mixed_static_nonstatic) {
-                /* There must be at least one nonstatic member function in this
-                   overload set. */
+            /* Continue validity checks, but do not generate IL. */
+            no_il_entry = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!err) {
+        a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
+        if ((could_be_dependent_class_type(parent_class) ||
+             has_dependent_base_class(class_type)) &&
+            (!parent_class->incomplete || gpp_mode || microsoft_mode) &&
+            !same_entities(class_type, parent_class)) {
+          /* The qualifier is a dependent class or the enclosing class has a
+             dependent base class.  Either way, we cannot in general determine
+             which base class the using-declaration refers to.  Suppress the
+             base class check and create a dummy base class. */
+          if (!no_il_entry) {
+            bcp_is_dummy = TRUE;
+            bcp = alloc_base_class();
+            bcp->type = sym_parent_class(declared_sym);
+            bcp->derived_class = class_type;
+          }  /* if */
+        } else {
+          bcp = find_base_class_of(class_type, parent_class);
+          if (bcp == NULL) {
+            pos_error(ec_bad_base_class, &error_position);
+            err = TRUE;
+          } else if (bcp->ambiguous) {
+            /* The base class is ambiguous, but only issue an error if the
+               member itself is ambiguous -- that is, the member must be
+               either a field or a nonstatic member function or an overload
+               set containing at least one nonstatic member function. */
+            sym = fund_sym;
+            if (sym->kind == (a_symbol_kind)sk_field) {
+              /* A field in an ambiguous base class is ambiguous. */
+              err = TRUE;
+            } else {
+              if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+                if (sym->variant.overloaded_function.mixed_static_nonstatic) {
+                  /* There must be at least one nonstatic member function in
+                     this overload set. */
+                  err = TRUE;
+                } else {
+                  /* Either all are static or all are nonstatic.  Decide which
+                     by looking at the first in the list. */
+                  sym = sym->variant.overloaded_function.symbols;
+                  sym = fundamental_symbol_of(sym);
+                }  /* if */
+              }  /* if */
+              if (sym->kind == (a_symbol_kind)sk_member_function &&
+                  routine_type_is_nonstatic_member_function(
+                                                  routine_symbol_type(sym))) {
+                /* A nonstatic member function in an ambiguous base classes is
+                   ambiguous. */
                 err = TRUE;
-              } else {
-                /* Either all are static or all are nonstatic.  Decide which
-                   by looking at the first in the list. */
-                sym = sym->variant.overloaded_function.symbols;
-                sym = fundamental_symbol_of(sym);
               }  /* if */
             }  /* if */
-            if (sym->kind == (a_symbol_kind)sk_member_function &&
-                routine_type_is_nonstatic_member_function(
-                                                  routine_symbol_type(sym))) {
-              /* A nonstatic member function in an ambiguous base classes is
-                 ambiguous. */
-              err = TRUE;
-            }  /* if */
+            if (err) sym_error(ec_ambiguous_name, declared_sym);
+          } else if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
+                       (microsoft_mode && microsoft_version > 1200))) {
+            /* Base class members designated in a using-declaration must be
+               visible in the scope of at least one direct base class. */
+            check_member_using_visibility(class_type, fund_sym, &err);
           }  /* if */
-          if (err) sym_error(ec_ambiguous_name, declared_sym);
-        } else if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
-                     (microsoft_mode && microsoft_version > 1200))) {
-          /* Base class members designated in a using-declaration must be
-             visible in the scope of at least one direct base class. */
-          check_member_using_visibility(class_type, fund_sym, &err);
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (!err && !no_il_entry) {
-      a_symbol_ptr  existing_sym;
-      /* Look up the name in the scope of the current class. */
-      clear_locator(&locator, &decl_pos);
-      locator.symbol_header = locator_for_curr_id.symbol_header;
-      (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-      existing_sym = locator.specific_symbol;
-      if (existing_sym != NULL) {
-        reduce_projection_symbol_to_fundamental_symbol(existing_sym);
-      }  /* if */
-      if (existing_sym != NULL && existing_sym != fund_sym &&
-          !is_injected_class_symbol(existing_sym) &&
-          is_tag_symbol(fund_sym) == is_tag_symbol(existing_sym)) {
-        /* Except to introduce function names into an overload set, a using
-           declaration cannot usually coexist with another declaration with
-           the same name.  One exception is that a tag name can coexist with
-           a nontag name (i.e., something like "struct X" can coexist with
-           something like "int X();"). */
-        if (is_function_or_template_symbol(fund_sym)) {
-          /* Okay. */
-        } else if (is_nontype_template_param_symbol(fund_sym)) {
-          /* Might be a function symbol, so it's okay. */
-        } else {
-          err = TRUE;
+      if (!err && !no_il_entry) {
+        a_symbol_ptr  existing_sym;
+        /* Look up the name in the scope of the current class. */
+        clear_locator(&locator, &decl_pos);
+        locator.symbol_header = locator_for_curr_id.symbol_header;
+        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+        existing_sym = locator.specific_symbol;
+        if (existing_sym != NULL) {
+          reduce_projection_symbol_to_fundamental_symbol(existing_sym);
         }  /* if */
-        if (!err) {
-          if (is_function_or_template_symbol(existing_sym)) {
+        if (existing_sym != NULL && existing_sym != fund_sym &&
+            !is_injected_class_symbol(existing_sym) &&
+            is_tag_symbol(fund_sym) == is_tag_symbol(existing_sym)) {
+          /* Except to introduce function names into an overload set, a using
+             declaration cannot usually coexist with another declaration with
+             the same name.  One exception is that a tag name can coexist with
+             a nontag name (i.e., something like "struct X" can coexist with
+             something like "int X();"). */
+          if (is_function_or_template_symbol(fund_sym)) {
             /* Okay. */
-          } else if (is_nontype_template_param_symbol(existing_sym)) {
+          } else if (is_nontype_template_param_symbol(fund_sym)) {
             /* Might be a function symbol, so it's okay. */
           } else {
             err = TRUE;
           }  /* if */
+          if (!err) {
+            if (is_function_or_template_symbol(existing_sym)) {
+              /* Okay. */
+            } else if (is_nontype_template_param_symbol(existing_sym)) {
+              /* Might be a function symbol, so it's okay. */
+            } else {
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+          if (err) {
+            /* Name has already been declared. */
+            pos_st_error(ec_id_already_declared, &decl_pos,
+                         locator_for_curr_id.symbol_header->identifier);
+          }  /* if */
         }  /* if */
-        if (err) {
-          /* Name has already been declared. */
-          pos_st_error(ec_id_already_declared, &decl_pos,
-                       locator_for_curr_id.symbol_header->identifier);
-        }  /* if */
-      }  /* if */
-      if (!err) {
-        /* Issue an error if a using-declaration introduces a name that is
-           the same as the current class name. */
-        a_symbol_ptr  class_sym = symbol_for(class_type);
-        if (locator.symbol_header == class_sym->header) {
-          pos_error(ec_class_and_member_name_conflict, &decl_pos);
-          err = TRUE;
+        if (!err) {
+          /* Issue an error if a using-declaration introduces a name that is
+             the same as the current class name. */
+          a_symbol_ptr  class_sym = symbol_for(class_type);
+          if (locator.symbol_header == class_sym->header) {
+            pos_error(ec_class_and_member_name_conflict, &decl_pos);
+            err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (!err) {
-    /* Issue diagnostics on pragmas that are trying to bind to a using
-       declaration or an access declaration. */
-    cannot_bind_to_curr_construct();
-  } else {
-    discard_curr_construct_pragmas();
-  }  /* if */
-  if (!err && !no_il_entry &&
-      !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
-    /* No error so far, so enter the using-declaration symbol. */
-    other_sym = NULL;
-    sym = declared_sym;
-    fund_sym = fundamental_symbol_of(sym);
-    is_overloaded = FALSE;
-    /* See if the using declaration refers to a function or overload set. */
-    if (is_function_or_template_symbol(fund_sym)) {
-      /* Member function or member function template. */
-      /* If other_sym is non-NULL, there is already a function declaration by
-         this name in the current class: we will add the declared symbol or
-         symbols to an overload set of the current class. */
-      other_sym = locator.specific_symbol;
-      if (other_sym == NULL) {
-        /* Nothing to do. */
-      } else if (is_nontype_template_param_symbol(other_sym)) {
-        /* We're treating the template param symbol as if it were a function
-           but we don't want it to be in the overload set. */
-        other_sym = NULL;
-      } else if (is_tag_symbol(other_sym)) {
-        /* Tags and nontags coexist, but don't form overload sets. */
-        other_sym = NULL;
-      }  /* if */
-      if (symbol_is(fund_sym, sk_overloaded_function)) {
-        /* The using-declaration specifies a base-class member function
-           overload set. */
-        is_overloaded = TRUE;
-        sym = fund_sym->variant.overloaded_function.symbols;
-      }  /* if */
+    if (!err) {
+      /* Issue diagnostics on pragmas that are trying to bind to a using
+         declaration or an access declaration. */
+      cannot_bind_to_curr_construct();
+    } else {
+      discard_curr_construct_pragmas();
     }  /* if */
-    /* This is a loop in case the using-declaration specifies an overload
-       set -- each member of the overload set is projected independently. */
-    if (!(is_template_dependent_context() || is_tag_symbol(sym))) {
-      /* Check if we missed a tag symbol; it should be imported too.
-         A dummy overload_sym is used, because tag names are not overloaded. */
-      a_symbol_ptr      tag_sym, overload_sym = NULL;
-      locator = locator_for_curr_id;
-      clear_specific_symbol(locator);
-      tag_sym = class_qualified_id_lookup(&locator, bcp->type,
-                                          IDL_MUST_BE_TAG |
-                                            IDL_DIRECT_CLASS_MEMBERS_ONLY);
-      if (tag_sym != NULL && !is_class_template_symbol(tag_sym) &&
-          tag_sym->kind != (a_symbol_kind)sk_type) {
-        /* In some modes, "must be tag" lookups can find typedefs.  Ignore
-           such symbols. */
-        create_member_using_declaration(tag_sym, tag_sym, &overload_sym, bcp,
+    if (!err && !no_il_entry &&
+        !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
+      /* No error so far, so enter the using-declaration symbol. */
+      other_sym = NULL;
+      sym = declared_sym;
+      fund_sym = fundamental_symbol_of(sym);
+      is_overloaded = FALSE;
+      /* See if the using declaration refers to a function or overload set. */
+      if (is_function_or_template_symbol(fund_sym)) {
+        /* Member function or member function template. */
+        /* If other_sym is non-NULL, there is already a function declaration by
+           this name in the current class: we will add the declared symbol or
+           symbols to an overload set of the current class. */
+        other_sym = locator.specific_symbol;
+        if (other_sym == NULL) {
+          /* Nothing to do. */
+        } else if (is_nontype_template_param_symbol(other_sym)) {
+          /* We're treating the template param symbol as if it were a function
+             but we don't want it to be in the overload set. */
+          other_sym = NULL;
+        } else if (is_tag_symbol(other_sym)) {
+          /* Tags and nontags coexist, but don't form overload sets. */
+          other_sym = NULL;
+        }  /* if */
+        if (symbol_is(fund_sym, sk_overloaded_function)) {
+          /* The using-declaration specifies a base-class member function
+             overload set. */
+          is_overloaded = TRUE;
+          sym = fund_sym->variant.overloaded_function.symbols;
+        }  /* if */
+      }  /* if */
+      /* This is a loop in case the using-declaration specifies an overload
+         set -- each member of the overload set is projected independently. */
+      if (!(is_template_dependent_context() || is_tag_symbol(sym))) {
+        /* Check if we missed a tag symbol; it should be imported too.  A dummy
+           overload_sym is used, because tag names are not overloaded. */
+        a_symbol_ptr      tag_sym, overload_sym = NULL;
+        locator = locator_for_curr_id;
+        clear_specific_symbol(locator);
+        tag_sym = class_qualified_id_lookup(&locator, bcp->type,
+                                            IDL_MUST_BE_TAG |
+                                              IDL_DIRECT_CLASS_MEMBERS_ONLY);
+        if (tag_sym != NULL && !is_class_template_symbol(tag_sym) &&
+            tag_sym->kind != (a_symbol_kind)sk_type) {
+          /* In some modes, "must be tag" lookups can find typedefs.  Ignore
+             such symbols. */
+          create_member_using_declaration(tag_sym, tag_sym, &overload_sym, bcp,
+                                          bcp_is_dummy, class_type, &prev_udp,
+                                          access);
+          if (rep_udp == NULL) rep_udp = prev_udp;
+        }  /* if */
+      }  /* if */
+      for (;;) {
+        create_member_using_declaration(sym, declared_sym, &other_sym, bcp,
                                         bcp_is_dummy, class_type, &prev_udp,
                                         access);
+        if (rep_udp == NULL) rep_udp = prev_udp;
+        if (!is_overloaded) break;
+        if ((sym = sym->next) == NULL) break;
+      }  /* for */
+      if (rep_udp != NULL) rep_udp->is_representative = TRUE;
+    }  /* if */
+    /* Bypass the identifier. */
+    (void)get_token();
+next_using_declarator_if_any:
+    if (!check_for_packs) break;
+    pedep = end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+    if (pedep != NULL && prev_udp != NULL) {
+      prev_udp->is_pack_expansion = TRUE;
+    }  /* if */
+    any_more = advance_to_next_pack_element(pesep);
+    if (!any_more) {
+      /* Check for an explicit comma, indicating more using-declarators were
+         specified. */
+      if (loop_token(tok_comma)) {
+        any_more = begin_potential_pack_expansion_context(&pesep);
       }  /* if */
     }  /* if */
-    for (;;) {
-      create_member_using_declaration(sym, declared_sym, &other_sym, bcp,
-                                      bcp_is_dummy, class_type, &prev_udp,
-                                      access);
-      if (!is_overloaded) break;
-      if ((sym = sym->next) == NULL) break;
-    }  /* for */
+  }  /* while */
+done:
+  if (check_for_packs) {
+    remove_stop_token(tok_comma);
   }  /* if */
-  /* Bypass the identifier. */
-  (void)get_token();
-done:;
   /* Restore the name reference recording information to its previous state. */
   scope_stack_top().record_form_of_name_reference =
                                            saved_record_form_of_name_reference;

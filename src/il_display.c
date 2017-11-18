@@ -6429,6 +6429,12 @@ Display the indicated using-directive entry.
   if (ptr->strong) {
     disp_boolean("strong", ptr->strong);
   }  /* if */
+  if (ptr->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", ptr->is_pack_expansion);
+  }  /* if */
+  if (ptr->is_representative) {
+    disp_boolean("is_representative", ptr->is_representative);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);

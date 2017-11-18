@@ -1375,6 +1375,11 @@ EXTERN a_boolean
 			   construct) are accepted. */
 
 EXTERN a_boolean
+		variadic_using_decls_enabled;
+			/* TRUE if C++17 variadic using-declarations are
+			   accepted. */
+
+EXTERN a_boolean
 		gnu_bases_operators_enabled;
 			/* TRUE if the g++ __bases and __direct_bases operators
 			   are accepted. */

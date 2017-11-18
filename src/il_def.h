@@ -3366,6 +3366,17 @@ typedef struct a_using_decl {
   a_bit_field	strong:1;
 			/* TRUE if this was made an inline namespace through
 			   use of the g++ strong attribute. */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if this using-declaration is of the form
+			     using Q::N...;
+			   Only valid when is_class_member is TRUE (a C++17
+			   feature). */ 
+  a_bit_field	is_representative:1;
+			/* TRUE for a using-declaration entry that is the
+			   "representative" for potentially multiple entries
+			   created for a using-declaration (because an overload
+			   set is referred to).  This is useful for the
+			   C++-generating back end. */
   an_access_specifier
                 access;
 			/* For class member using-declarations only, the

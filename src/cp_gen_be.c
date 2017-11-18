@@ -14945,74 +14945,98 @@ Generate code for a class member or nonmember using-declaration.
   a_source_correspondence  *scp = NULL;
   an_il_entry_kind         entry_kind;
   a_namespace_ptr          nsp;
-  a_boolean                used_generated_typedef = FALSE;
+  a_boolean                used_generated_typedef = FALSE, emit_using = TRUE;
 
   /* Advance past the source sequence entry for the "using" directive. */
   adv_curr_source_sequence_entry();
-  /* Position the output file to the "using" position. */
-  set_output_position(&udp->position);
-  /* Get the source correspondence entry for the entity. */
-  entry_kind = (an_il_entry_kind)udp->entity.kind;
-  scp = source_corresp_for_il_entry(udp->entity.ptr, entry_kind);
-  check_assertion(scp != NULL);
-  if (udp->is_class_member) {
-    /* A class member using-declaration. */
-    a_type_ptr class_type = udp->qualifier.class_type;
-    /* Put out an access specifier if necessary to change the current
-       access.  Note that this is done based on the current name context
-       and not based on the is_class_member flag of the using-declaration
-       because in Microsoft bugs mode a nonmember using-declaration can refer
-       to a class member. */
-    if (curr_name_context_is_a_class()) {
-      an_access_specifier  assembly_access = (an_access_specifier)as_public;
+  for (;;) {
+    /* Position the output file to the "using" position. */
+    set_output_position(&udp->position);
+    /* Get the source correspondence entry for the entity. */
+    entry_kind = (an_il_entry_kind)udp->entity.kind;
+    scp = source_corresp_for_il_entry(udp->entity.ptr, entry_kind);
+    check_assertion(scp != NULL);
+    if (udp->is_class_member) {
+      /* A class member using-declaration. */
+      a_type_ptr class_type = udp->qualifier.class_type;
+      /* Put out an access specifier if necessary to change the current
+         access.  Note that this is done based on the current name context
+         and not based on the is_class_member flag of the using-declaration
+         because in Microsoft bugs mode a nonmember using-declaration can refer
+         to a class member. */
+      if (curr_name_context_is_a_class()) {
+        an_access_specifier  assembly_access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      assembly_access = (an_access_specifier)scp->assembly_access;
+        assembly_access = (an_access_specifier)scp->assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      gen_member_access_specifier(udp->access, assembly_access);
-    }  /* if */
-    if (msvc_is_generated_code_target &&
-        msvc_target_version_number == 1200 &&
-        curr_name_context_is_a_class() &&
-        is_namespace_member(class_type) &&
-        class_type_supp(class_type)->template_arg_list != NULL) {
-      /* MSVC++ 6.0 cannot handle a qualifier of the form NS::cls<arg>::...
-         Instead, we generate a typedef and use that. */
-      establish_replacement_typedef(class_type, /*set=*/TRUE);
-      used_generated_typedef = TRUE;
-    }  /* if */
+        gen_member_access_specifier(udp->access, assembly_access);
+      }  /* if */
+      if (msvc_is_generated_code_target &&
+          msvc_target_version_number == 1200 &&
+          curr_name_context_is_a_class() &&
+          is_namespace_member(class_type) &&
+          class_type_supp(class_type)->template_arg_list != NULL) {
+        /* MSVC++ 6.0 cannot handle a qualifier of the form NS::cls<arg>::...
+           Instead, we generate a typedef and use that. */
+        establish_replacement_typedef(class_type, /*set=*/TRUE);
+        used_generated_typedef = TRUE;
+      }  /* if */
 #if USING_DECLARATIONS_IN_GENERATED_CODE
-    /* Older compilers may not accept class member using-declarations and
-       will accept access declarations instead.  For such target compilers
-       USING_DECLARATIONS_IN_GENERATED_CODE should be set to FALSE. */
-    write_tok_str("using ");
+      /* Older compilers may not accept class member using-declarations and
+         will accept access declarations instead.  For such target compilers
+         USING_DECLARATIONS_IN_GENERATED_CODE should be set to FALSE.  For
+         C++17 using-declarations mentioning multiple names, don't emit "using"
+         for the secondary names (for which emit_using will be FALSE). */
+      if (emit_using) {
+        write_tok_str("using ");
+      }  /* if */
 #endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
-    /* Write the access declaration, which is just a qualified name. (Note:
-       although this is not a "bound member" access, names in
-       using-declarations are subject to the same restrictions on the form
-       of qualification as those of bound members.)  */
-    gen_class_qualifier(class_type, GN_BOUND_MEMBER, (a_boolean *)NULL);
-    if (used_generated_typedef) {
-      establish_replacement_typedef(class_type, /*set=*/FALSE);
-    }  /* if */
-  } else {
-    /* A nonmember using-declaration. */
-    write_tok_str("using ");
-    nsp = udp->qualifier.namespace_ptr;
-    if (nsp == NULL) {
-      write_tok_str("::");
+      /* Write the access declaration, which is just a qualified name. (Note:
+         although this is not a "bound member" access, names in
+         using-declarations are subject to the same restrictions on the form
+         of qualification as those of bound members.)  */
+      gen_class_qualifier(class_type, GN_BOUND_MEMBER, (a_boolean *)NULL);
+      if (used_generated_typedef) {
+        establish_replacement_typedef(class_type, /*set=*/FALSE);
+      }  /* if */
     } else {
-      gen_namespace_qualifier(nsp, GN_NO_OPTIONS, (a_boolean *)NULL);
+      /* A nonmember using-declaration. */
+      /* For C++17 using-declarations mentionining multiple names, don't emit
+         the secondary names (for which emit_using will be FALSE). */
+      if (emit_using) {
+        write_tok_str("using ");
+      }  /* if */
+      nsp = udp->qualifier.namespace_ptr;
+      if (nsp == NULL) {
+        write_tok_str("::");
+      } else {
+        gen_namespace_qualifier(nsp, GN_NO_OPTIONS, (a_boolean *)NULL);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (udp->is_inheriting_ctor) {
-    /* udp->entity.ptr points to the class type from which to "inherit" the
-       constructors, but for something like X<int>, the rendering should be
-       "using X<int>::X;" and not "using X<int>::X<int>;". */
-    gen_bare_name(scp, entry_kind);
-  } else {
-    gen_unqualified_name(scp, entry_kind);
-  }  /* if */
-  gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
+    if (udp->is_inheriting_ctor) {
+      /* udp->entity.ptr points to the class type from which to "inherit" the
+         constructors, but for something like X<int>, the rendering should be
+         "using X<int>::X;" and not "using X<int>::X<int>;". */
+      gen_bare_name(scp, entry_kind);
+    } else {
+      gen_unqualified_name(scp, entry_kind);
+    }  /* if */
+    gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
+    if (udp->is_pack_expansion) {
+      write_tok_str("...");
+    }  /* if */
+    while (udp->next_in_overload_set != NULL && !udp->is_representative) {
+      udp = udp->next_in_overload_set;
+    }  /* while */
+    udp = udp->next;
+    if (udp == NULL || udp->source_sequence_entry != NULL) {
+      /* We have reached the end of the list or an entry that represents
+         a separate using-declaration. */
+      break;
+    }  /* if */
+    write_tok_str(", ");
+    emit_using = FALSE;
+  }  /* for */
   write_tok_ch(';');
 }  /* gen_using_declaration */
 

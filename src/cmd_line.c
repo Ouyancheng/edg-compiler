@@ -3407,6 +3407,7 @@ default mode (e.g., exception handling).
       constexpr_lambdas_enabled = TRUE;
       capture_star_this_enabled = TRUE;
       fold_expressions_enabled = TRUE;
+      variadic_using_decls_enabled = TRUE;
       inline_variables_allowed = TRUE;
 #if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
       if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
@@ -11726,6 +11727,7 @@ variables declared in cmd_line.h.
   constexpr_lambdas_enabled = FALSE;
   capture_star_this_enabled = FALSE;
   fold_expressions_enabled = FALSE;
+  variadic_using_decls_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

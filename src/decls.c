@@ -15082,8 +15082,11 @@ current scope.
                              fund_other_decl;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
-  a_boolean                is_list = FALSE;
+  a_boolean                is_list = FALSE, check_for_packs = FALSE, any_more;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_pack_expansion_stack_entry_ptr
+                           pesep;
+  a_using_decl_ptr         prev_udp = NULL;
 
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
@@ -15091,186 +15094,221 @@ current scope.
                                           &dps->start_pos,
                                           ec_using_decl_in_embedded_cplusplus);
   add_stop_token(tok_semicolon);
-  if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
-    syntax_error(ec_exp_identifier);
-    /* Ignore pragma declarations. */
-    discard_curr_construct_pragmas();
-  } else {
-    if (curr_token == tok_typename) {
-      /* A "using typename ..." declaration.  Process the typename
-         specifier. */
-      a_type_ptr  tp;
-      typename_specifier(&tp, &sym, /*within_using_decl=*/TRUE,
-                         /*is_decl_specifier=*/FALSE,
-                         (a_decl_pos_block_ptr)NULL);
-      /* An error type will be returned if an error was detected by
-         typename_specifier. */
-      if (is_error_type(tp)) {
-        err = TRUE;
-      }  /* if */
-    } else {
-      sym = coalesce_and_lookup_generalized_identifier(
-                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-    }  /* if */
-    if (err) {
-      /* Diagnostic has already been issued. */
-    } else if (sym == NULL) {
-      str_error(ec_undefined_identifier,
-                locator_for_curr_id.symbol_header->identifier);
-      err = TRUE;
-    } else if (!locator_for_curr_id.is_qualified_name &&
-               !nonstandard_using_decl_allowed) {
-      /* An unqualified name is not allowed here.  This is optionally
-         permitted because the Sun 5.0 compiler accepts an unqualified
-         name in a using-declaration. */
-      pos_error(ec_namespace_qualified_name_required, &error_position);
-      err = TRUE;
-    } else if (locator_for_curr_id.is_class_member &&
-               !(microsoft_bugs && microsoft_version <= 1310 &&
-                 is_type_symbol(sym))) {
-      /* A class-qualified name is not allowed here.  Such a name is permitted
-         in Microsoft bugs mode (with microsoft_version <= 1310) if it refers
-         to a type.  The Microsoft compilers (through 7.1) permit such using-
-         declarations. */
-      pos_error(ec_class_qualified_name_not_allowed, &error_position);
-      err = TRUE;
-    } else if (locator_for_curr_id.is_template_id) {
-      /* A template-id (that is, template-name<template-args>) is not allowed
-         here. */
-      pos_error(ec_template_id_not_allowed, &error_position);
-      err = TRUE;
-    } else if (sym->kind == (a_symbol_kind)sk_namespace) {
-      pos_error(ec_namespace_name_not_allowed,
-                &locator_for_curr_id.source_position);
-      err = TRUE;
-    }  /* if */
-    if (err) {
+  if (variadic_using_decls_enabled) {
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    check_for_packs = TRUE;
+    add_stop_token(tok_comma);
+  }  /* if */
+  while (!check_for_packs || any_more) {
+    a_pack_expansion_descr_ptr  pedep;
+    if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
+      syntax_error(ec_exp_identifier);
       /* Ignore pragma declarations. */
       discard_curr_construct_pragmas();
+      if (check_for_packs) {
+        abandon_potential_pack_expansion_context(pesep);
+      }  /* if */
+      break;
     } else {
-      a_namespace_ptr  nsp;
-      a_type_ptr       class_type;
-      /* Pragmas cannot bind to a using declaration. */
-      cannot_bind_to_curr_construct();
-      nsp = qualifier_namespace_ptr(locator_for_curr_id);
-      class_type = qualifier_class_type(locator_for_curr_id);
-      if (nsp != NULL &&
-          ssep->il_scope != NULL &&
-          ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
-          ssep->il_scope->variant.assoc_namespace ==
-                                               skip_namespace_aliases(nsp)) {
-        /* Attempting a using-declaration with a namespace qualifier that is
-           the same as the current namespace:
-             namespace N { int i; using N::i; }
-           Issue a warning and ignore the using-declaration. */
-        pos_warning(ec_useless_using_declaration, &error_position);
-      } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL &&
-                 class_type == NULL) {
-        /* Attempting a using declaration at file scope with name already
-           declared in the file scope -- e.g.,
-             int i; using ::i;
-           Issue a warning and ignore the using-declaration.  When using the
-           g++ compatibility feature that treats "std" as a synonym for the
-           global namespace, suppress this processing. */
-        if (!ignore_std_namespace) {
-          check_assertion(locator_for_curr_id.is_global_qualified_name ||
-                          nonstandard_using_decl_allowed);
-          pos_warning(ec_useless_using_declaration, &error_position);
+      if (curr_token == tok_typename) {
+        /* A "using typename ..." declaration.  Process the typename
+           specifier. */
+        a_type_ptr  tp;
+        typename_specifier(&tp, &sym, /*within_using_decl=*/TRUE,
+                           /*is_decl_specifier=*/FALSE,
+                           (a_decl_pos_block_ptr)NULL);
+        /* An error type will be returned if an error was detected by
+           typename_specifier. */
+        if (is_error_type(tp)) {
+          err = TRUE;
         }  /* if */
       } else {
-        check_assertion(nsp != NULL ||
-                        class_type != NULL || 
-                        locator_for_curr_id.is_global_qualified_name ||
-                        nonstandard_using_decl_allowed ||
-                        ignore_std_namespace);
-        locator = locator_for_curr_id;
-        clear_specific_symbol(locator);
-        /* Look for a declaration of the same name in the current scope. */
-        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-        other_decl = locator.specific_symbol;
-        fund_other_decl = (other_decl == NULL) ?
-                                     NULL : fundamental_symbol_of(other_decl);
-        overload_sym = NULL;
-        if (is_function_symbol(sym) ||
-            sym->kind == (a_symbol_kind)sk_function_template) {
-          /* The specified name represents a function or function template (or
-             overload set thereof) so we need to create or add to an overload
-             set in the current scope, too. */
-          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            /* Using an overload set. */
-            is_list = TRUE;
-            sym = sym->variant.overloaded_function.symbols;
+        sym = coalesce_and_lookup_generalized_identifier(
+                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+      }  /* if */
+      if (err) {
+        /* Diagnostic has already been issued. */
+      } else if (sym == NULL) {
+        str_error(ec_undefined_identifier,
+                  locator_for_curr_id.symbol_header->identifier);
+        err = TRUE;
+      } else if (!locator_for_curr_id.is_qualified_name &&
+                 !nonstandard_using_decl_allowed) {
+        /* An unqualified name is not allowed here.  This is optionally
+           permitted because the Sun 5.0 compiler accepts an unqualified
+           name in a using-declaration. */
+        pos_error(ec_namespace_qualified_name_required, &error_position);
+        err = TRUE;
+      } else if (locator_for_curr_id.is_class_member &&
+                 !(microsoft_bugs && microsoft_version <= 1310 &&
+                   is_type_symbol(sym))) {
+        /* A class-qualified name is normally not allowed here, but it is
+           permitted in Microsoft bugs mode (with microsoft_version <= 1310)
+           if it refers to a type (because the Microsoft compilers (through
+           version 7.1) permit such using-declarations). */
+        pos_error(ec_class_qualified_name_not_allowed, &error_position);
+        err = TRUE;
+      } else if (locator_for_curr_id.is_template_id) {
+        /* A template-id (that is, template-name<template-args>) is not allowed
+           here. */
+        pos_error(ec_template_id_not_allowed, &error_position);
+        err = TRUE;
+      } else if (symbol_is(sym, sk_namespace)) {
+        pos_error(ec_namespace_name_not_allowed,
+                  &locator_for_curr_id.source_position);
+        err = TRUE;
+      }  /* if */
+      if (err) {
+        /* Ignore pragma declarations. */
+        discard_curr_construct_pragmas();
+      } else {
+        a_namespace_ptr  nsp;
+        a_type_ptr       class_type;
+        /* Pragmas cannot bind to a using declaration. */
+        cannot_bind_to_curr_construct();
+        nsp = qualifier_namespace_ptr(locator_for_curr_id);
+        class_type = qualifier_class_type(locator_for_curr_id);
+        if (nsp != NULL &&
+            ssep->il_scope != NULL &&
+            ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
+            ssep->il_scope->variant.assoc_namespace ==
+                                                 skip_namespace_aliases(nsp)) {
+          /* Attempting a using-declaration with a namespace qualifier that is
+             the same as the current namespace:
+               namespace N { int i; using N::i; }
+             Issue a warning and ignore the using-declaration. */
+          pos_warning(ec_useless_using_declaration, &error_position);
+        } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL &&
+                   class_type == NULL) {
+          /* Attempting a using declaration at file scope with name already
+             declared in the file scope -- e.g.,
+               int i; using ::i;
+             Issue a warning and ignore the using-declaration.  When using the
+             g++ compatibility feature that treats "std" as a synonym for the
+             global namespace, suppress this processing. */
+          if (!ignore_std_namespace) {
+            check_assertion(locator_for_curr_id.is_global_qualified_name ||
+                            nonstandard_using_decl_allowed);
+            pos_warning(ec_useless_using_declaration, &error_position);
           }  /* if */
-          if (other_decl != NULL) {
-            if (is_function_symbol(fund_other_decl) ||
-                fund_other_decl->kind == (a_symbol_kind)sk_function_template) {
-              /* Overloading is okay. */
-              overload_sym = other_decl;
-            } else {
-              /* There is no function symbol in the current scope with which
-                 the new symbol should be overloaded. */
+        } else {
+          check_assertion(nsp != NULL ||
+                          class_type != NULL || 
+                          locator_for_curr_id.is_global_qualified_name ||
+                          nonstandard_using_decl_allowed ||
+                          ignore_std_namespace);
+          locator = locator_for_curr_id;
+          clear_specific_symbol(locator);
+          /* Look for a declaration of the same name in the current scope. */
+          (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+          other_decl = locator.specific_symbol;
+          fund_other_decl = (other_decl == NULL) ?
+                                     NULL : fundamental_symbol_of(other_decl);
+          overload_sym = NULL;
+          if (is_function_symbol(sym) ||
+              symbol_is(sym, sk_function_template)) {
+            /* The specified name represents a function or function template
+               (or overload set thereof) so we need to create or add to an
+               overload set in the current scope, too. */
+            if (symbol_is(sym, sk_overloaded_function)) {
+              /* Using an overload set. */
+              is_list = TRUE;
+              sym = sym->variant.overloaded_function.symbols;
+            }  /* if */
+            if (other_decl != NULL) {
+              if (is_function_symbol(fund_other_decl) ||
+                  symbol_is(fund_other_decl, sk_function_template)) {
+                /* Overloading is okay. */
+                overload_sym = other_decl;
+              } else {
+                /* There is no function symbol in the current scope with which
+                   the new symbol should be overloaded. */
+              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        fund_sym = fundamental_symbol_of(sym);
-        if (other_decl != NULL && overload_sym == NULL &&
-            other_decl->decl_position.seq != 0 &&
-            is_file_or_namespace_scope(ssep) &&
-            symbols_are_lookup_equivalent(fund_sym, fund_other_decl,
-                                          /*merge_gpp_c_routines=*/FALSE,
-                                          IDL_NO_OPTIONS)) {
-          /* This is a duplicate using declaration of something other than a
-             function or function template.  7.3.3 [namespace.udecl] para 7
-             says duplicates are allowed in file or namespace scope, so ignore
-             the declaration.  (However, do not ignore the using declaration
-             if it duplicates a built-in declaration, i.e. seq == 0). */
-        } else {
-          a_using_decl_ptr  prev_udp = NULL;
-          a_boolean         suppress_redecl_error = FALSE;
-          /* Create the new sk_namespace_projection symbol(s). */
-          if (!is_tag_symbol(fund_sym)) {
-            /* Check if we missed a tag symbol; it should be imported too. */
-            import_any_hidden_tags(other_decl, nsp, &prev_udp,
+          fund_sym = fundamental_symbol_of(sym);
+          if (other_decl != NULL && overload_sym == NULL &&
+              other_decl->decl_position.seq != 0 &&
+              is_file_or_namespace_scope(ssep) &&
+              symbols_are_lookup_equivalent(fund_sym, fund_other_decl,
+                                            /*merge_gpp_c_routines=*/FALSE,
+                                            IDL_NO_OPTIONS)) {
+            /* This is a duplicate using declaration of something other than a
+               function or function template.  N4659 10.3.3 [namespace.udecl]
+               para 10 says duplicates are allowed in file or namespace scope,
+               so ignore the declaration.  (However, do not ignore the using
+               declaration if it duplicates a built-in declaration, i.e.
+               seq == 0). */
+          } else {
+            a_using_decl_ptr  rep_udp = NULL;
+            a_boolean         suppress_redecl_error = FALSE;
+            /* Create the new sk_namespace_projection symbol(s). */
+            if (!is_tag_symbol(fund_sym)) {
+              /* Check if we missed a tag symbol; it should be imported too. */
+              import_any_hidden_tags(other_decl, nsp, &prev_udp,
                                      &suppress_redecl_error);
-          }  /* if */
-          /* If we're importing a typedef that redeclares an existing type
-             to the same name, inhibit the declaration error. */
-          if (fund_other_decl != NULL &&
-              fund_sym->kind == (a_symbol_kind)sk_type) {
-            a_symbol_ptr  prev_tag_sym = NULL;
-            if (is_tag_symbol(fund_other_decl)) {
-              /* If the previous declaration was a tag name, and the new
-                 declaration is also a tag name, we should have caught the
-                 duplicate earlier. */
-              check_assertion(!is_tag_symbol(fund_sym));
-              prev_tag_sym = fund_other_decl;
-            } else {
-              /* Look up a tag in the current scope: */
-              clear_specific_symbol(locator);
-              prev_tag_sym = curr_scope_id_lookup(
+            }  /* if */
+            /* If we're importing a typedef that redeclares an existing type
+               to the same name, inhibit the declaration error. */
+            if (fund_other_decl != NULL && symbol_is(fund_sym, sk_type)) {
+              a_symbol_ptr  prev_tag_sym = NULL;
+              if (is_tag_symbol(fund_other_decl)) {
+                /* If the previous declaration was a tag name, and the new
+                   declaration is also a tag name, we should have caught the
+                   duplicate earlier. */
+                check_assertion(!is_tag_symbol(fund_sym));
+                prev_tag_sym = fund_other_decl;
+              } else {
+                /* Look up a tag in the current scope: */
+                clear_specific_symbol(locator);
+                prev_tag_sym = curr_scope_id_lookup(
                                    &locator,
                                    IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED);
+              }  /* if */
+              if (prev_tag_sym != NULL) {
+                /* There was a previous tag.  If the newly imported type is
+                   identical to the tagged type, suppress the redeclaration
+                   error. */
+                a_type_ptr  tp1 = type_symbol_type(prev_tag_sym);
+                a_type_ptr  tp2 = type_symbol_type(fund_sym);
+                if (identical_types(tp1, tp2)) {
+                  suppress_redecl_error = TRUE;
+                }  /* if */
+              }  /* if */
             }  /* if */
-            if (prev_tag_sym != NULL) {
-              /* There was a previous tag.  If the newly imported type is
-                 identical to the tagged type, suppress the redeclaration
-                 error. */
-              a_type_ptr  tp1 = type_symbol_type(prev_tag_sym);
-              a_type_ptr  tp2 = type_symbol_type(fund_sym);
-              if (identical_types(tp1, tp2)) { suppress_redecl_error = TRUE; }
-            }  /* if */
+            for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+              create_nonmember_using_declaration(sym, &overload_sym,
+                                                 other_decl, nsp, class_type,
+                                                 &prev_udp, is_list,
+                                                 suppress_redecl_error);
+              if (rep_udp == NULL && prev_udp != NULL) {
+                rep_udp = prev_udp;
+                rep_udp->is_representative = TRUE;
+              }  /* if */
+            }  /* for */
           }  /* if */
-          for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-            create_nonmember_using_declaration(sym, &overload_sym, other_decl,
-                                               nsp, class_type,
-                                               &prev_udp, is_list,
-                                               suppress_redecl_error);
-          }  /* for */
         }  /* if */
       }  /* if */
+      /* Bypass the identifier. */
+      (void)get_token();
     }  /* if */
-    /* Bypass the identifier. */
-    (void)get_token();
+    if (!check_for_packs) break;
+    pedep = end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+    if (pedep != NULL && prev_udp != NULL) {
+      prev_udp->is_pack_expansion = TRUE;
+    }  /* if */
+    any_more = advance_to_next_pack_element(pesep);
+    if (!any_more) {
+      /* Check for an explicit comma, indicating more using-declarators were
+         specified. */
+      if (loop_token(tok_comma)) {
+        any_more = begin_potential_pack_expansion_context(&pesep);
+      }  /* if */
+    }  /* if */
+  }  /* while */
+  if (check_for_packs) {
+    remove_stop_token(tok_comma);
   }  /* if */
   remove_stop_token(tok_semicolon);
   /* Check for final semicolon in the caller. */
