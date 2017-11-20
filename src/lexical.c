@@ -22027,7 +22027,6 @@ encountered, whatever their other characteristics, are included.
       column_incr = 1;
       /* Don't add a line feed. */
       seq_incr = 0;
-    } else {
     }  /* if */
     /* Add any spaces and line feeds that might be required. */
     if (seq_incr > 0 || column_incr > 0) {
