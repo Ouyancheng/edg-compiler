@@ -23198,9 +23198,9 @@ declaration from a using-declaration.)
                template<typename T> struct D: B<T> {
                  using D::I;  // Error (issued later on).
                };
-             Because of the latter possibility, we must ensure we must consider
-             the possibility of sym being a projection symbol.  (GNU and
-             Microsoft compilers accept almost any form in templates.) */
+             Because of the latter possibility, we must consider the
+             possibility of sym being a projection symbol.  (GNU and Microsoft
+             compilers accept almost any form in templates.) */
           sym = fundamental_symbol_of(sym);
           check_assertion_or_expect_error(
                                         gpp_mode || microsoft_mode ||

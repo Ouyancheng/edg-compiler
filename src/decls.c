@@ -15180,7 +15180,7 @@ current scope.
           pos_warning(ec_useless_using_declaration, &error_position);
         } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL &&
                    class_type == NULL) {
-          /* Attempting a using declaration at file scope with name already
+          /* Attempting a using declaration at file scope with a name already
              declared in the file scope -- e.g.,
                int i; using ::i;
              Issue a warning and ignore the using-declaration.  When using the
@@ -15266,7 +15266,7 @@ current scope.
                                    IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED);
               }  /* if */
               if (prev_tag_sym != NULL) {
-                /* There was a previous tag.  If the newly imported type is
+                /* There was a previous tag.  If the newly-imported type is
                    identical to the tagged type, suppress the redeclaration
                    error. */
                 a_type_ptr  tp1 = type_symbol_type(prev_tag_sym);
