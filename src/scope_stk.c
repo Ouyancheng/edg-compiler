@@ -2816,6 +2816,7 @@ the scope being pushed.
   ssep->make_access_errors_warnings = FALSE;
   ssep->treat_as_specialization = FALSE;
   ssep->in_discarded_statement = FALSE;
+  ssep->is_generic_lambda = (options & PS_IS_GENERIC_LAMBDA) != 0;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
@@ -5069,6 +5070,7 @@ class to be defined.
       use_existing_context = TRUE;
     }  /* if */
     is_real_lambda_instantiation = TRUE;
+    options |= PS_IS_GENERIC_LAMBDA;
   }  /* if */
   if (!use_existing_context) {
     /* If the template was defined in a namespace, reactivate the namespace
@@ -5084,7 +5086,6 @@ class to be defined.
     }  /* if */
     reference_nsp = referencing_namespace_for_instance(instance_sym,
                                                        is_lambda_body);
-    if (is_lambda_body) options |= PS_IS_GENERIC_LAMBDA;
     push_instantiation_context(enclosing_tdip,
                                parent_nsp, parent_class,
                                reference_nsp, &common_depth, &definition_depth,
@@ -11461,6 +11462,73 @@ the values returned by the begin_prescan_context call.
 }  /* end_prescan_context */
 
 
+static a_boolean is_generic_lambda_in_instantiation(void)
+/*
+Return TRUE if we are in the definition of a generic lambda that is nested
+inside a real instantiation.
+*/
+{
+  a_boolean			result = FALSE;
+  a_boolean			lambda_found = FALSE;
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    /* Look for a generic lambda prototype instantiation and, if found, look
+       for an enclosing instantiation scope. */
+    if (scope_is(ssep, sck_template_instantiation)) {
+      if (lambda_found) {
+        result = !ssep->in_prototype_instantiation;
+        break;
+      } else if (ssep->is_generic_lambda && ssep->in_prototype_instantiation) {
+        lambda_found = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_generic_lambda_in_instantiation */
+
+
+static a_boolean is_pack_instantiation_context(
+				a_pack_expansion_descr_ptr	*p_pedp)
+/*
+Determine if we are in a context where a pack instantiation could be done.
+Also determine whether there is pack expansion at the current position.
+
+Something is treated as an instantiation context if:
+  - We are in a real instantiation context.
+  - We are in a prototype instantiation context for an expansion that
+    only uses enclosing packs (e.g., the declaration of a member template
+    in the instantiation of an enclosing class template).
+  - We are in a generic lambda prototype instantiation inside some real
+    enclosing instantiation.
+
+In such contexts, return TRUE.  If we found a pack expansion, set *p_pedp
+to the pack expansion descriptor for the pack being instantiated.  Note
+that *p_pedp is set even when FALSE is returned.
+*/
+{
+  a_pack_expansion_descr_ptr	pedp;
+  a_boolean			result = FALSE;
+  a_boolean			in_generic_lambda_definition;
+  a_boolean			in_prototype_inst;
+
+  pedp = get_pack_expansion_for_curr_context();
+  *p_pedp = pedp;
+  in_generic_lambda_definition = is_generic_lambda_in_instantiation();
+  in_prototype_inst = is_prototype_instantiation_context();
+  if (pedp != NULL) {
+    if (is_real_instantiation_context() ||
+        !in_prototype_inst || in_generic_lambda_definition) {
+      if (pedp->uses_only_enclosing_packs ||
+          !in_prototype_inst || in_generic_lambda_definition) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_pack_instantiation_context */
+
+
 a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
 		a_pack_expansion_descr_ptr		*p_pedp,
@@ -11553,43 +11621,34 @@ suppression is on the stack.
     pesep = pack_expansion_stack;
     pedp = pesep->expansion_descr;
     any_args = TRUE;
-  } else if ((pedp = get_pack_expansion_for_curr_context()),
-             (is_real_instantiation_context() ||
-              !is_prototype_instantiation_context()) &&
-             (pedp != NULL &&
-              (pedp->uses_only_enclosing_packs ||
-               !is_prototype_instantiation_context()))) {
+  } else if (is_pack_instantiation_context(&pedp)) {
     /* This is a real instantiation.  See if there is a corresponding
-       parameter pack from the template definition.  In a prototype
-       instantiation context we want to treat this as a real instantiation
-       if it uses only enclosing packs. */
-    if (pedp != NULL) {
-      /* Get the template parameter list and template argument associated with
-         the current instantiation. */
-      a_template_param_ptr	templ_param_list;
-      a_template_arg_ptr	templ_arg_list;
-      a_boolean			err;
-      get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
-      pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
-                                      /*is_rescan=*/FALSE,
-                                      /*is_deduction=*/FALSE,
-                                      (a_ctws_state_ptr)NULL, &err);
-      increment_variadic_rescans_for_reusable_cache();
-      if (pesep != NULL) {
-        check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
-        pesep->first_token_handle = curr_cached_token_handle;
-        check_assertion(curr_token_sequence_number == pedp->first_token);
-        /* Mark that the current reusable cache is being used for rescan
-           purposes. */
-        if (is_lookahead) pesep->is_lookahead = TRUE;
-      } else {
-        /* There are no arguments to be expanded.  Advance to the token
-           after the end of the expansion.  Don't advance when is_lookahead
-           is TRUE because we want to return the same result (i.e., FALSE)
-           when this routine is called again. */
-        decrement_variadic_rescans_for_reusable_cache();
-        if (!is_lookahead) skip_pack_expansion_tokens(pedp);
-      }  /* if */
+       parameter pack from the template definition.  Get the template
+       parameter list and template argument associated with the current
+       instantiation. */
+    a_template_param_ptr	templ_param_list;
+    a_template_arg_ptr		templ_arg_list;
+    a_boolean			err;
+    get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
+    pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
+                                    /*is_rescan=*/FALSE,
+                                    /*is_deduction=*/FALSE,
+                                    (a_ctws_state_ptr)NULL, &err);
+    increment_variadic_rescans_for_reusable_cache();
+    if (pesep != NULL) {
+      check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
+      pesep->first_token_handle = curr_cached_token_handle;
+      check_assertion(curr_token_sequence_number == pedp->first_token);
+      /* Mark that the current reusable cache is being used for rescan
+         purposes. */
+      if (is_lookahead) pesep->is_lookahead = TRUE;
+    } else {
+      /* There are no arguments to be expanded.  Advance to the token
+         after the end of the expansion.  Don't advance when is_lookahead
+         is TRUE because we want to return the same result (i.e., FALSE)
+         when this routine is called again. */
+      decrement_variadic_rescans_for_reusable_cache();
+      if (!is_lookahead) skip_pack_expansion_tokens(pedp);
     }  /* if */
     any_args = pesep != NULL;
   } else if (is_prototype_instantiation_context()) {
@@ -12322,6 +12381,11 @@ form.
         if (kind == prk_variable) {
           prp->param_num = pack_symbol->variant.variable.ptr
                                       ->variant.assoc_param_type->param_num;
+          if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
+              pack_symbol->decl_scope !=
+                          scope_stack[depth_innermost_function_scope].number) {
+            prp->uses_enclosing_pack = TRUE;
+          }  /* if */
         } else if (kind == prk_parameter) {
           a_param_id_ptr  pip = pack_symbol->variant.param_id;
           prp->param_num = pip->param_num;

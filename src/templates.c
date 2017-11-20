@@ -5182,6 +5182,7 @@ user later during real instantiations.
   a_boolean			    instantiation_scope_needed;
   a_scope_stack_entry_ptr	    ssep;
   a_boolean			    scope_pushed = FALSE;
+  a_boolean                         is_lambda_body;
 
   db_enter(3, "function_prototype_instantiation");
   tssp = template_supplement_for_symbol(template_sym);
@@ -5199,6 +5200,7 @@ user later during real instantiations.
   tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
   tip->referencing_namespace = parent_namespace_for_symbol(rout_sym);
+  is_lambda_body = tssp->variant.function.routine->is_lambda_body;
   /* If this is a friend template declared in a class template, make sure the
      prototype instantiation was done for the original declaration, and don't
      do one for this one that occurs in an instantiation of the class
@@ -5255,6 +5257,9 @@ user later during real instantiations.
     }  /* if */
     if (tssp->is_specific_definition) {
       ps_options |= PS_IS_SPECIALIZATION;
+    }  /* if */
+    if (is_lambda_body) {
+      ps_options |= PS_IS_GENERIC_LAMBDA;
     }  /* if */
     /* Push the template instantiation scope. */
     tcp = cache_for_template(tssp);
@@ -29512,6 +29517,9 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
   /* Save a pointer to the template declaration information in the scope stack
      entry. */
   scope_stack_top().tmpl_decl_state = templ_state;
+  /* Mark the template declaration scope as being associated with a generic
+     lambda. */
+  scope_stack_top().is_generic_lambda = TRUE;
   for (; apdp != NULL; apdp = apdp->next, ++param_pos) {
     a_symbol_locator  param_loc;
     a_decl_pos_block  decl_pos_block;

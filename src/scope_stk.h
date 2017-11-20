@@ -1026,6 +1026,12 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_discarded_statement:1;
 			/* TRUE if we are in the discarded branch of a
 			   constexpr if that is not in a template context. */
+  a_bit_field	is_generic_lambda:1;
+			/* TRUE for the sck_template_instantiation scope
+			   pushed for the instantiation (including the
+			   prototype instantiation) of a generic lambda,
+			   and for the template declaration scope for the
+			   template parameters of a generic lambda. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
