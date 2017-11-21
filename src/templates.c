@@ -5182,7 +5182,7 @@ user later during real instantiations.
   a_boolean			    instantiation_scope_needed;
   a_scope_stack_entry_ptr	    ssep;
   a_boolean			    scope_pushed = FALSE;
-  a_boolean                         is_lambda_body;
+  a_boolean			    is_lambda_body;
 
   db_enter(3, "function_prototype_instantiation");
   tssp = template_supplement_for_symbol(template_sym);
