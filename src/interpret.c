@@ -30,6 +30,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "folding.h"
 
+#include "lower_il.h"
+
 #include "templates.h"
 
 /*
