@@ -43,7 +43,7 @@ with --clang:
   int j = __is_identifier(abc);  // Expands to 1
 
 
-11/20/17  [EDGcpfe/16172,EDGcpfe/18602,EDGcpfe/18635,EDGcpfe/18781]
+11/20/17 [EDGcpfe/16172,EDGcpfe/18602,EDGcpfe/18635,EDGcpfe/18781]
 Pack expansion issues with generic lambdas
 
 Spurious errors and/or an abort (in make_field_for_lambda_capture) could
