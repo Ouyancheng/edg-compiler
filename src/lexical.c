@@ -22008,10 +22008,10 @@ encountered, whatever their other characteristics, are included.
   db_enter(5, "add_pragmas_to_string");
   for (ppp = pragmas; ppp != NULL; ppp = ppp->next) {
     a_boolean	is_pragma_directive;
+    a_boolean	new_seq = ppp->pragma_position.seq >= curr_seq;
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
     is_pragma_directive = !is_pseudo_pragma &&
                           !ppp->is_microsoft_pragma_operator;
-    a_boolean new_seq = ppp->pragma_position.seq >= curr_seq;
     if (new_seq || is_pragma_directive) {
       /* We have moved to a new line, or we are generating a #pragma (which
          must begin on a new line).  Compute the indentation. */
