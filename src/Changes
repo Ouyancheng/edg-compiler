@@ -1,5 +1,17 @@
 Version 4.15
 
+11/21/17 [EDGcpfe/18958]
+Clear bits in internal floating-point representation
+
+In some cases (mostly involving NaNs), the internal representation of
+floating-point constants could vary based on the contents of the stack at the
+time a floating-point constant was loaded or stored.  These bits are now
+zeroed.  This example (with --g++ -d-folded_builtin) had produced different
+output as a result of unrelated changes:
+
+  constexpr long double ld1 = __builtin_nanl("0");
+
+
 11/21/16 [EDGcpfe/18553]
 Qualification conversions
 

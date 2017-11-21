@@ -691,9 +691,14 @@ Set "err" if the conversion would result in overflow or underflow.  If the
 conversion can be done, return the result in "result".
 */
 {
-  long double      ldbl_val = (long double)val;
-  a_host_fp_value  round_trip_val = ldbl_val;
+  long double      ldbl_val;
+  a_host_fp_value  round_trip_val;
 
+  /* Zero all bits (the assignment that follows does not always set every
+     bit in the destination). */
+  memzero((char *)&ldbl_val, sizeof(ldbl_val));
+  ldbl_val = (long double)val;
+  round_trip_val = ldbl_val;
   if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
     *err = TRUE;
   } else {
@@ -772,6 +777,9 @@ Fetch the value from float_value (of kind kind) and return it.
 {
   a_host_fp_value	temp;
 
+  /* Zero all bits in result (the assignments that follow may not set all
+     bits in some cases). */
+  memzero((char *)&temp, sizeof(temp));
   if (kind == (a_float_kind)fk_float) {
     float	float_temp;
     /* Convert from float to a_host_fp_value. */
