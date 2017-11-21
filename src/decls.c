@@ -15082,7 +15082,7 @@ current scope.
                              fund_other_decl;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
-  a_boolean                is_list = FALSE, check_for_packs = FALSE, any_more;
+  a_boolean                check_for_packs = FALSE, any_more = TRUE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_pack_expansion_stack_entry_ptr
                            pesep;
@@ -15192,6 +15192,7 @@ current scope.
             pos_warning(ec_useless_using_declaration, &error_position);
           }  /* if */
         } else {
+          a_boolean  is_list = FALSE;
           check_assertion(nsp != NULL ||
                           class_type != NULL || 
                           locator_for_curr_id.is_global_qualified_name ||

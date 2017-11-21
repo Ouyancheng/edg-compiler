@@ -4448,6 +4448,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->inline_namespace      = FALSE;
   udp->strong                = FALSE;
   udp->is_pack_expansion     = FALSE;
+  udp->is_representative     = FALSE;
   udp->access                = (an_access_specifier)as_public;
   udp->qualifier.namespace_ptr
                              = NULL;

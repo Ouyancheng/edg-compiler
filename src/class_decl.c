@@ -23098,7 +23098,7 @@ declaration from a using-declaration.)
   a_pack_expansion_stack_entry_ptr
                        pesep;
   a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
-  a_boolean            check_for_packs = FALSE, is_overloaded, any_more;
+  a_boolean            check_for_packs = FALSE, any_more = TRUE;
   a_symbol_locator     locator;
   a_using_decl_ptr     prev_udp = NULL;
   a_source_position    decl_pos, using_pos, end_of_using_pos;
@@ -23393,10 +23393,10 @@ declaration from a using-declaration.)
     if (!err && !no_il_entry &&
         !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
       /* No error so far, so enter the using-declaration symbol. */
+      a_boolean  is_overloaded = FALSE;
       other_sym = NULL;
       sym = declared_sym;
       fund_sym = fundamental_symbol_of(sym);
-      is_overloaded = FALSE;
       /* See if the using declaration refers to a function or overload set. */
       if (is_function_or_template_symbol(fund_sym)) {
         /* Member function or member function template. */
