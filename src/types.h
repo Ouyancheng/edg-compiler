@@ -1052,6 +1052,9 @@ a_boolean cast_removes_qualifiers(a_type_ptr    source_type,
                                   a_type_ptr    dest_type,
                                   an_error_code *warning_suggested);
 
+extern a_boolean types_are_similar(a_type_ptr  tp1,
+                                   a_type_ptr  tp2);
+
 /*
 Description of a standard conversion (implicit or explicit), or at least
 of information relating to such a conversion that's non-trivial to compute.

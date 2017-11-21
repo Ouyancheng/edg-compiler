@@ -8352,11 +8352,28 @@ the __unaligned and __restrict qualifiers).
         /* Continue at the next level for pointers and handles. */
         dest_type = type_pointed_to(dest_type);
 	source_type = type_pointed_to(source_type);
-      } else if (is_ptr_to_member_type(dest_type) &&
-		 is_ptr_to_member_type(source_type)) {
+      } else if (is_ptr_to_member(dest_type) &&
+		 is_ptr_to_member(source_type)) {
         /* Continue at the next level for pointers to members. */
-	dest_type = pm_member_type(dest_type);
-	source_type = pm_member_type(source_type);
+        a_type_ptr  src_class = pm_class_type(source_type),
+                    dst_class = pm_class_type(dest_type);
+        if (!identical_types(src_class, dst_class)) {
+          same = FALSE;
+          break;
+        }  /* if */
+        dest_type = pm_member_type(dest_type);
+        source_type = pm_member_type(source_type);
+      } else if (!gpp_mode && !clang_mode &&
+                 is_array(source_type) && is_array(dest_type)) {
+        /* N4261 reworked qualification conversions to include arrays (thereby
+           resolving Core issue 330).  GCC and Clang do not appear to implement
+           that yet. */
+        if (!identical_array_type_level(source_type, dest_type)) {
+          same = FALSE;
+          break;
+        }  /* if */
+	dest_type = dest_type->variant.array.element_type;
+	source_type = source_type->variant.array.element_type;
       } else {
         if (ignore_underlying_type) {
           /* We've reached the underlying type of one or the other of
@@ -8469,6 +8486,62 @@ cast away const, and this routine returns FALSE) but is suspect, return
   }  /* if */
   return result;
 }  /* cast_removes_qualifiers */
+
+
+a_boolean types_are_similar(a_type_ptr  tp1,
+                            a_type_ptr  tp2)
+/*
+Return TRUE if the given types are of the form:
+
+  cv0 P0 cv1 P1 .. cv(n-1) P(n-1) cvn U
+
+where Pk represents "pointer to", "pointer to member of class Ck", "array of Nk
+elements", or "array of unknown bound", the types are identical or they only
+differ in the const/volatile qualifiers cvk, and n >= 1.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (;;) {
+    tp1 = skip_typerefs(tp1);
+    tp2 = skip_typerefs(tp2);
+    if (tp1->kind != tp2->kind) {
+      result = FALSE;
+      break;
+    }  /* if */
+    if (tp1->kind == (a_type_kind)tk_pointer &&
+        !tp1->variant.pointer.is_reference &&
+        !tp2->variant.pointer.is_reference) {
+      result = TRUE;
+      tp1 = tp1->variant.pointer.type;
+      tp2 = tp2->variant.pointer.type;
+    } else if (tp1->kind == (a_type_kind)tk_ptr_to_member) {
+      a_type_ptr  class1 = pm_class_type(tp1),
+                  class2 = pm_class_type(tp2);
+      if (!identical_types(class1, class2)) {
+        result = FALSE;
+        break;
+      }  /* if */
+      result = TRUE;
+      tp1 = pm_member_type(tp1);
+      tp2 = pm_member_type(tp2);
+    } else if (tp1->kind == (a_type_kind)tk_array) {
+      if (!identical_array_type_level(tp1, tp2)) {
+        result = FALSE;
+        break;
+      }  /* if */
+      result = TRUE;
+      tp1 = tp1->variant.array.element_type;
+      tp2 = tp2->variant.array.element_type;
+    } else {
+      if (!identical_types(tp1, tp2)) {
+        result = FALSE;
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* types_are_similar */
 
 #if UPC_EXTENSIONS_ALLOWED
 

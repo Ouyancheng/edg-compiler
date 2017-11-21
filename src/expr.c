@@ -22202,6 +22202,7 @@ indication in *rcblock).
         expr_pos_error(ec_bad_const_cast_type, &type_position);
       }  /* if */
     } else {
+      a_boolean  similar_types = FALSE;
       /* The type cast to is okay. */
       if (is_template_dependent_context() && !template_param_case &&
           is_template_dependent_type(underlying_cast_type)) {
@@ -22232,28 +22233,40 @@ indication in *rcblock).
                  is_template_dependent_type(operand_type)) {
         /* An operand of unknown type in a prototype instantiation. */
         template_param_case = TRUE;
-      } else if (reference_case) {
-        /* Cast to reference type. */
-        if (rvalue_reference_case) {
-          /* Cast to an rvalue reference type.  The source expression
-             must be a glvalue or a class prvalue. */
-          if (is_a_glvalue(&operand) ||
-              (is_a_prvalue(&operand) &&
-               is_class_struct_union_type(operand.type))) {
-            /* Okay. */
-          } else {
-            err = TRUE;
-            expr_pos_error(ec_bad_rvalue_ref_const_cast_operand,
-                           &operand.position);
+      } else {
+        if (!gpp_mode && !clang_mode && !microsoft_mode) {
+          a_type_ptr  dest_type =  reference_case ? type_pointed_to(cast_type)
+                                                  : cast_type;
+          if (types_are_similar(operand_type, dest_type)) {
+            /* N4261 introduced the notion of "similar types" and specifies
+               that const_cast can convert between similar types. */
+            similar_types = TRUE;
           }  /* if */
-        } else {
-          /* Cast to lvalue reference.  (Or tracking reference, in C++/CLI.) */
-          /* The source operand must be an lvalue. */
-          if (is_an_lvalue(&operand)) {
-            /* Okay. */
+        }  /* if */
+        if (!similar_types && reference_case) {
+          /* Cast to reference type. */
+          if (rvalue_reference_case) {
+            /* Cast to an rvalue reference type.  The source expression
+               must be a glvalue or a class prvalue. */
+            if (is_a_glvalue(&operand) ||
+                (is_a_prvalue(&operand) &&
+                 is_class_struct_union_type(operand.type))) {
+              /* Okay. */
+            } else {
+              err = TRUE;
+              expr_pos_error(ec_bad_rvalue_ref_const_cast_operand,
+                             &operand.position);
+            }  /* if */
           } else {
-            err = TRUE;
-            expr_pos_error(ec_expr_not_an_lvalue, &operand.position);
+            /* Cast to lvalue reference.  (Or tracking reference, in
+               C++/CLI.) */
+            /* The source operand must be an lvalue. */
+            if (is_an_lvalue(&operand)) {
+              /* Okay. */
+            } else {
+              err = TRUE;
+              expr_pos_error(ec_expr_not_an_lvalue, &operand.position);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -22261,9 +22274,11 @@ indication in *rcblock).
         /* Check that the cast just changes qualifiers (or makes no change). */
         /* Note that this comparison considers error types equal to any
            other types. */
-        if (!same_type_with_added_qualifiers(operand_type, operation_type,
-                                             /*ignore_qualifiers=*/TRUE,
-                                             (a_boolean *)NULL)) {
+        if (similar_types) {
+          /* Nothing more to be checked. */
+        } else if (!same_type_with_added_qualifiers(
+                             operand_type, operation_type,
+                             /*ignore_qualifiers=*/TRUE, (a_boolean *)NULL)) {
           err = TRUE;
           expr_pos_error(ec_bad_const_cast, &operand.position);
 #if MICROSOFT_EXTENSIONS_ALLOWED

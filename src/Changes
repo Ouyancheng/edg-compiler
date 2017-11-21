@@ -1,5 +1,24 @@
 Version 4.15
 
+11/21/16 [EDGcpfe/18553]
+Qualification conversions
+
+The C++ standardization committee's paper N4261 made some changes to the rules
+regarding conversions involving const/volatile qualifiers, particularly when
+array types are involved.  The front end now implements these changes (in
+default and strict modes, but not in GNU, Clang, or Microsoft modes since the
+corresponding compilers do not yet implement the new rules).  For example:
+
+  void g(double *pa[2][3]) {
+    double * (*p1)[3] = pa;            // Previously valid.  Still valid.
+    double *const (*p2)[3] = p1;       // Previously valid.  Still valid.
+    double const *const (*p3)[3] = p2; // Previously invalid.  Now valid.
+  }
+
+Some explicit conversions (using const_cast) are also affected by these
+changes.
+
+
 11/21/16 [EDGcpfe/18950]
 clang compatibility: __is_identifier
 

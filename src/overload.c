@@ -21117,14 +21117,21 @@ direct binding is "possible" and not whether it is "valid".
   unqual_source_type = skip_typerefs(source_type);
   unqual_dest_type = skip_typerefs(base_dest_type);
   /* See if the types are correct without conversion. */
-  type_is_correct_or_derived = FALSE;
-  if (f_types_are_compatible(unqual_source_type, unqual_dest_type,
-                             TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                             TCF_IMPLICIT_CONVERSION |
-                             TCF_IGNORE_TYPE_QUALIFIERS)) {
-    /* The type is correct, ignoring (first-level) qualifiers.
-       Note that this handles qualified array cases. */
-    type_is_correct_or_derived = TRUE;
+  if (!gpp_mode && !clang_mode) {
+    type_is_correct_or_derived =
+       qualification_conversion_possible(unqual_source_type, unqual_dest_type,
+                                         /*p_qualifiers_added=*/NULL,
+                                         /*warning_suggested=*/NULL,
+                                         /*ignore_undelying_type=*/FALSE);
+  } else {
+    type_is_correct_or_derived =
+              f_types_are_compatible(unqual_source_type, unqual_dest_type,
+                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                     TCF_IMPLICIT_CONVERSION |
+                                     TCF_IGNORE_TYPE_QUALIFIERS);
+  }  /* if */
+  if (type_is_correct_or_derived) {
+    /* No other matches need to be checked for. */
   } else if (is_template_dependent_context() &&
              (is_template_dependent_type(unqual_dest_type) ||
               is_template_dependent_type(unqual_source_type))) {
