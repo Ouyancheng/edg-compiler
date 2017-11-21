@@ -12,7 +12,7 @@ output as a result of unrelated changes:
   constexpr long double ld1 = __builtin_nanl("0");
 
 
-11/21/16 [EDGcpfe/18553]
+11/21/17 [EDGcpfe/18553]
 Qualification conversions
 
 The C++ standardization committee's paper N4261 made some changes to the rules
