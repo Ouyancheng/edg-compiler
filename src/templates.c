@@ -505,6 +505,7 @@ Initialize a template declaration state block.
   tdsp->nesting_depth_err = FALSE;
   tdsp->friend_depth = 0;
   tdsp->export_present = FALSE;
+  tdsp->partial_spec_outside_of_class = FALSE;
   tdsp->partial_spec_outside_of_class_template = FALSE;
   tdsp->out_of_class_instantiation = FALSE;
   tdsp->is_template_template_param = FALSE;
@@ -20444,9 +20445,11 @@ specialization.
        the enclosing class is a class template).  For a partial
        specialization declared inside the class, this happens
        automatically when the tokens are rescanned. */
-    a_symbol_ptr		parent_class_sym;
+    a_symbol_ptr			parent_class_sym;
+    a_template_symbol_supplement_ptr	tssp;
     parent_class_sym = symbol_for(sym_parent_class(primary_sym));
-    if (primary_sym->variant.template_info->is_specific_definition) {
+    tssp = template_supplement_for_symbol(parent_class_sym);
+    if (tssp != NULL && tssp->is_specific_definition) {
       /* The primary template is specialized, so a partial specialization
          declared outside requires no subsequent special processing. */
     } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
@@ -20454,6 +20457,7 @@ specialization.
          is required to evaluate this partial specialization for each
          generated instance. */
       decl_state->partial_spec_outside_of_class_template = TRUE;
+      decl_state->partial_spec_outside_of_class = TRUE;
     } else if (!is_real_class_symbol(parent_class_sym)) {
       /* The parent class is a nonreal class.  This occurs in an invalid
          partial specialization declaration in which the parent class is
@@ -20467,6 +20471,7 @@ specialization.
          real class instance.  In either case, we can just add the
          partial specialization to the class and no further processing is
          needed. */
+      decl_state->partial_spec_outside_of_class = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_for_out_of_class_partial_spec */
@@ -24088,7 +24093,7 @@ return NULL.
       /* Check to see if it an out-of-class partial specialization that
          requires special processing. */
       check_for_out_of_class_partial_spec(decl_state, primary_sym);
-      if (decl_state->partial_spec_outside_of_class_template ||
+      if (decl_state->partial_spec_outside_of_class ||
           decl_state->out_of_class_instantiation) {
         /* Copy the parent class information from the primary symbol. */
         ps_sym->is_class_member = TRUE;

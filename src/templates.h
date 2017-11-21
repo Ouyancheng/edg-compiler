@@ -94,11 +94,16 @@ typedef struct a_tmpl_decl_state {
   a_boolean	export_present;
 			/* TRUE if the "export" keyword was used on the
 			   declaration. */
+  a_boolean	partial_spec_outside_of_class;
+			/* TRUE if this is the declaration of a partial
+			   specialization that is a member of a class
+			   or class template, and the declaration appears
+			   outside of the parent class. */
   a_boolean	partial_spec_outside_of_class_template;
 			/* TRUE if this is the declaration of a partial
-			   specialization of a class that is a member of
-			   a class template, and the declaration appears
-			   outside of the parent class. */
+			   specialization that is a member of a class
+			   template, and the declaration appears outside of
+			   the parent class. */
   a_boolean	out_of_class_instantiation;
 			/* TRUE if this is the instantiation of an out-of-class
 			   declaration of a partial specialization. */
