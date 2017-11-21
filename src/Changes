@@ -31,7 +31,7 @@ Some explicit conversions (using const_cast) are also affected by these
 changes.
 
 
-11/21/16 [EDGcpfe/18950]
+11/21/17 [EDGcpfe/18950]
 clang compatibility: __is_identifier
 
 The front end now supports the clang __is_identifier feature-test macro.
