@@ -60,7 +60,7 @@ a function template.  Now fixed.
   }
 
 
-11/17/17  [EDGcpfe/18638]
+11/17/17 [EDGcpfe/18638]
 C++17: Pack expansions in using-declarations
 
 In C++17 mode, the front end now accepts pack expansions in using-declarations
