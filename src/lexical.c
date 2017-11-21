@@ -22011,12 +22011,17 @@ encountered, whatever their other characteristics, are included.
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
     is_pragma_directive = !is_pseudo_pragma &&
                           !ppp->is_microsoft_pragma_operator;
-    if (ppp->pragma_position.seq >= curr_seq || is_pragma_directive) {
+    a_boolean new_seq = ppp->pragma_position.seq >= curr_seq;
+    if (new_seq || is_pragma_directive) {
       /* We have moved to a new line, or we are generating a #pragma (which
          must begin on a new line).  Compute the indentation. */
       column_incr = ppp->pragma_position.column - 1;
       /* Compute the number of line feed characters to add. */
-      seq_incr =  ppp->pragma_position.seq - curr_seq;
+      if (new_seq) {
+        seq_incr = ppp->pragma_position.seq - curr_seq;
+      } else if (is_pragma_directive) {
+        seq_incr = 1;
+      }  /* if */
       /* Reset the current line. */
       curr_seq = ppp->pragma_position.seq;
     } else if (ppp->pragma_position.seq <= curr_seq) {
