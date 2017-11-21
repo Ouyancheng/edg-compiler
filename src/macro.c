@@ -275,6 +275,12 @@ static a_symbol_ptr
 			   macro "__has_builtin", which is used in clang
 			   mode. */
 
+static a_symbol_ptr
+		clang_is_identifier_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__is_identifer", which is used in clang
+			   mode. */
+
 static a_boolean
 		use_raw_version_of_arg;
 			/* TRUE if the raw version of a macro argument
@@ -5412,6 +5418,30 @@ make_inert_macro:
           --macro_depth;
           strcpy(repl_text, file_found ? "1" : "0");
         }  /* if */
+      } else if (macro_symbol == clang_is_identifier_symbol) {
+        /* The clang __is_identifier macro.  Takes one argument and has the
+           value 1 if it is an identifier, 0 if it's anything else (e.g., a
+           reserved word). */
+        a_boolean saved_fetch_pp_tokens = fetch_pp_tokens;
+        a_boolean is_identifier;
+        if (get_token() != tok_lparen) {
+          /* Unlike normal function-style macros, clang always treats
+             __is_identifier as a macro even when not followed by a left
+             parenthesis, giving it the value "0" and reporting an
+             error. */
+          pos_error(ec_exp_lparen, &pos_curr_token);
+          is_identifier = FALSE;
+        } else {
+          expand_macros = FALSE;
+          fetch_pp_tokens = FALSE;
+          is_identifier = (get_token() == tok_identifier);
+          fetch_pp_tokens = saved_fetch_pp_tokens;
+          if (get_token() != tok_rparen) {
+            pos_error(ec_exp_rparen, &pos_curr_token);
+            flush_to_closing_paren();
+          }  /* if */
+        }  /* if */
+        strcpy(repl_text, is_identifier ? "1" : "0");
       } else {
         unexpected_condition_str(
                          "macro_invocation: unknown special predefined macro");
@@ -10608,6 +10638,13 @@ command line -D options.
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+    /* Similarly, __is_identifier expects exactly one token that either is
+       or is not an identifier, so normal macro argument processing is also
+       not appropriate. */
+    clang_is_identifier_symbol = enter_predef_macro(
+                                            (char *)NULL, "__is_identifier",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   } else if (C_dialect == C_dialect_cplusplus &&
              (define_portable_feature_test_macros || cpp17_mode)) {
     /* __has_include is a WG21 SG10 recommendation and is part of standard
@@ -10769,6 +10806,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(clang_has_include_next_symbol),
       pch_saved_var_array_elem(clang_has_attribute_symbol),
       pch_saved_var_array_elem(clang_has_builtin_symbol),
+      pch_saved_var_array_elem(clang_is_identifier_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(assert_predicates),
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -10807,6 +10845,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(clang_has_include_next_symbol);
   register_trans_unit_variable(clang_has_attribute_symbol);
   register_trans_unit_variable(clang_has_builtin_symbol);
+  register_trans_unit_variable(clang_is_identifier_symbol);
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   register_trans_unit_variable(assert_predicates);
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -10849,6 +10888,7 @@ after this function.
   clang_has_include_next_symbol = NULL;
   clang_has_attribute_symbol = NULL;
   clang_has_builtin_symbol = NULL;
+  clang_is_identifier_symbol = NULL;
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   assert_predicates = NULL;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */

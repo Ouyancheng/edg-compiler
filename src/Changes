@@ -1,5 +1,17 @@
 Version 4.15
 
+11/21/16 [EDGcpfe/18950]
+clang compatibility: __is_identifier
+
+The front end now supports the clang __is_identifier feature-test macro.
+It takes a single token as an argument and has the value 1 if the token is
+an identifier and 0 if it is anything else (e.g., a keyword).  For example,
+with --clang:
+
+  int i = __is_identifier(int);  // Expands to 0
+  int j = __is_identifier(abc);  // Expands to 1
+
+
 11/20/17  [EDGcpfe/16172,EDGcpfe/18602,EDGcpfe/18635,EDGcpfe/18781]
 Pack expansion issues with generic lambdas
 
