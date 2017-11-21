@@ -1495,10 +1495,9 @@ is the destination of an initialization operation.
     entity_node = make_thrown_object_address_node();
     entity_node = add_cast_if_necessary(entity_node,
                                         make_pointer_type(ipdp->base_type));
-    check_assertion(!is_const_qualified_type(ipdp->base_type));
-    if (result_is_lvalue) {
-      entity_node = add_indirection_to_node(entity_node);
-    }  /* if */
+    check_assertion(!is_const_qualified_type(ipdp->base_type) &&
+                    result_is_lvalue);
+    entity_node = add_indirection_to_node(entity_node);
     /* Add modifiers, if any. */
     entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
                                           using_as_dest, /*is_vla=*/FALSE);
