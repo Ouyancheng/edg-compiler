@@ -1035,6 +1035,7 @@ extern a_boolean qualification_conversion_possible_full(
                                         a_type_ptr    dest_type,
                                         a_boolean     *p_qualifiers_added,
                                         a_boolean     ignore_underlying_type,
+                                        a_boolean     qual_pattern_only,
                                         an_error_code *warning_suggested,
                                         a_type_ptr    *underlying_source_type,
                                         a_type_ptr    *underlying_dest_type);

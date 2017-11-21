@@ -8234,19 +8234,20 @@ a_boolean qualification_conversion_possible_full(
                                         a_type_ptr    dest_type,
                                         a_boolean     *p_qualifiers_added,
                                         a_boolean     ignore_underlying_type,
+                                        a_boolean     qual_pattern_only,
                                         an_error_code *warning_suggested,
                                         a_type_ptr    *underlying_source_type,
                                         a_type_ptr    *underlying_dest_type)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
-dest_type may have some additional type qualifiers at some level(s).
-This is used to determine whether a qualification conversion (as
-described in 4.4 [conv.qual] in the Working Paper) may be applied.
-This conversion is used for conversions such as T** to T const * const *.
-Note that the types passed in to this routine are the types under the
-first level pointers, e.g., T* and T const * const in the example given.
+dest_type may have some additional type qualifiers at some level(s).  This is
+used to determine whether a qualification conversion (as described in
+[conv.qual] in N4700) may be applied.  This conversion is used for conversions
+such as T** to T const * const *.  Note that the types passed in to this
+routine are the types under the first level pointers, e.g., T* and
+T const * const in the example given.
 
-The conversion specified in the WP permits the conversion of
+The conversion permits the conversion of
 
     T cv1,n * ... cv1,1 * cv1,0
 to
@@ -8259,6 +8260,9 @@ provided that:
 - if cv2,x contains additional qualifiers, all previous qualifiers
   (cv2,1 through cv2,x-1) must contain a const qualifier.
 
+The "*" constructs (indicating pointer types) may be replaced by X::* or
+array declarator constructs (clarified by N4261).
+
 If any qualifiers are added, the flag pointed to by p_qualifiers_added
 is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
 can be NULL if the caller does not need this flag returned.
@@ -8267,10 +8271,12 @@ If ignore_underlying_type is TRUE, return TRUE once we've reached the
 underlying type of either source_type or dest_type and return the types
 that were reached in underlying_source_type and underlying_dest_type if
 requested to do so by the caller by providing non-NULL values for those
-parameters.  If warning_suggested is non-NULL, it will be set to any
-warning suggested for the conversion, or to ec_no_error if no warning
-is needed (this is useful for some weird Microsoft-mode handling of
-the __unaligned and __restrict qualifiers).
+parameters.  If qual_pattern_only is TRUE, differences in the pattern of
+pointer/pointer-to-member/array constructs are ignored (this is used to
+determine whether a cast "casts away constness").  If warning_suggested
+is non-NULL, it will be set to any warning suggested for the conversion,
+or to ec_no_error if no warning is needed (this is useful for some weird
+Microsoft-mode handling of the __unaligned and __restrict qualifiers).
 */
 {
   a_boolean     same;
@@ -8338,7 +8344,23 @@ the __unaligned and __restrict qualifiers).
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (types_are_both_pointers_or_both_handles(dest_type, source_type)) {
+      if (qual_pattern_only &&
+          (is_pointer(source_type) || is_ptr_to_member(source_type) ||
+           is_array(source_type)) &&
+          (is_pointer(dest_type) || is_ptr_to_member(dest_type) ||
+           is_array(dest_type))) {
+        dest_type = is_pointer(dest_type) ?
+                           dest_type->variant.pointer.type :
+                      is_array(dest_type) ?
+                           dest_type->variant.array.element_type :
+                           pm_member_type(dest_type);
+        source_type = is_pointer(source_type) ?
+                           source_type->variant.pointer.type :
+                      is_array(source_type) ?
+                           source_type->variant.array.element_type :
+                           pm_member_type(source_type);
+      } else if (types_are_both_pointers_or_both_handles(
+                                                    dest_type, source_type)) {
         if (dest_type->size != source_type->size
 #ifdef pointer_types_have_same_repr
             || !pointer_types_have_same_repr(source_type, dest_type)
@@ -8424,8 +8446,8 @@ values for the underlying source and destination return values.
 {
   return qualification_conversion_possible_full(
                  source_type, dest_type, p_qualifiers_added,
-                 ignore_underlying_type, warning_suggested,
-                 (a_type_ptr*)NULL, (a_type_ptr*)NULL);
+                 ignore_underlying_type, /*qual_pattern_only=*/FALSE,
+                 warning_suggested, (a_type_ptr*)NULL, (a_type_ptr*)NULL);
 }  /* qualification_conversion_possible */
 
 
@@ -8477,10 +8499,10 @@ cast away const, and this routine returns FALSE) but is suspect, return
     /* There must be an implicit conversion from the source_type to the
        dest_type (according to the description above), otherwise we
        are casting away constness. */
-    if (!qualification_conversion_possible(source_type, dest_type,
-                                           &qualifiers_added,
-                                           warning_suggested,
-                                           /*ignore_underlying_type=*/TRUE)) {
+    if (!qualification_conversion_possible_full(
+                source_type, dest_type, &qualifiers_added,
+                /*ignore_underlying_type=*/TRUE, /*qual_pattern_only=*/TRUE,
+                warning_suggested, (a_type_ptr*)NULL, (a_type_ptr*)NULL)) {
       result = TRUE;
     }  /* if */
   }  /* if */
