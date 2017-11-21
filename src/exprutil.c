@@ -15135,6 +15135,7 @@ be returned for a C mode const variable.
     check_assertion(init_kind == (an_init_kind)initk_static);
     con_val = init->constant;
   } else if (microsoft_bugs && var->source_corresp.is_class_member &&
+             !var->is_constexpr &&
              !var->is_member_constant && var->is_template_variable &&
              !(cpp11_mode && !implicit_microsoft_cpp11_mode)) {
     /* The variable is a static data member but it's not initialized within
@@ -15142,7 +15143,11 @@ be returned for a C mode const variable.
        (which retroactively applies to C++03) clarified that the use of such
        a variable in a constant expression is permitted (if it meets the other
        requirements), but Microsoft compilers still disallow it for template
-       static data member instantiations (as of MSVC 19.00.23008). */
+       static data member instantiations (as of MSVC 19.12.25715.).
+       The Microsoft compiler does accept constexpr out-of-class partial
+       specializations (but not out-of-class definitions) so to more
+       closely match their behavior we accept out-of-class definitions if
+       they are constexpr. */
   } else if ((!C_mode() || allow_C_mode_const_var) &&
               is_potentially_constant_valued_variable(var)) {
     if (var->source_corresp.is_class_member &&
