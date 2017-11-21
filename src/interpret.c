@@ -13264,6 +13264,14 @@ expressions").
     /* The expression is already a constant. */
     goto done;
   }  /* if */
+  if (!in_front_end
+#if DO_IL_LOWERING
+      || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                             ) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
@@ -13325,6 +13333,14 @@ FALSE, and record diagnostic info in *diag_list.
                                CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
       goto done;
     }  /* if */
+  }  /* if */
+  if (!in_front_end
+#if DO_IL_LOWERING
+      || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                             ) {
+    result = FALSE;
+    goto done;
   }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
@@ -13417,6 +13433,14 @@ return FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type = skip_typerefs(call_expr->type);
 
+  if (!in_front_end
+#if DO_IL_LOWERING
+      || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                             ) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
@@ -13456,6 +13480,7 @@ return FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
+done:
   return result;
 }  /* interpret_constexpr_call */
 
@@ -13477,6 +13502,14 @@ source position of the initialization.
   a_byte                *result_storage;
   a_byte_count          n_bytes;
 
+  if (!in_front_end
+#if DO_IL_LOWERING
+      || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                             ) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
@@ -13541,6 +13574,7 @@ source position of the initialization.
   }  /* if */
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
+done:
   return result;
 }  /* interpret_dynamic_init */
 
@@ -13561,6 +13595,14 @@ return FALSE, and record diagnostic info in *diag_list.
   a_byte_count          n_bytes;
   a_type_ptr            result_type;
 
+  if (!in_front_end
+#if DO_IL_LOWERING
+      || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                             ) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;

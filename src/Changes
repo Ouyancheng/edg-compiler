@@ -1,5 +1,15 @@
 Version 4.15
 
+11/21/17 [EDGcpfe/18897]
+Calling the interpreter outside the front end
+
+Previously, calling the interpreter (e.g., through interpret_expr, which may
+be indirectly invoked through functions like node_has_side_effects) from a
+back end resulted in a crash due to missing front end memory structures.
+That is now fixed (attempting to interpret a nonconstant construct always
+fails outside the front end, but it no longer aborts).
+
+
 11/21/17 [EDGcpfe/18958]
 Clear bits in internal floating-point representation
 
