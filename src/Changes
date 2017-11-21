@@ -63,7 +63,7 @@ In C++17 mode, the front end now accepts pack expansions in using-declarations
   int r = d.f(42);  // Calls B2::f(int).
 
 
-11/17/17  [EDGcpfe/18935]
+11/17/17 [EDGcpfe/18935]
 Lowered throw expression is incorrect
 
 In configurations that use lowering, but where DO_FULL_PORTABLE_EH_LOWERING is
