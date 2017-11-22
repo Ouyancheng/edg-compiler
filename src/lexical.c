@@ -22002,7 +22002,7 @@ encountered, whatever their other characteristics, are included.
 {
   a_pending_pragma_ptr  ppp;
   a_boolean             is_pseudo_pragma;
-  a_seq_number          seq_incr;
+  a_seq_number          seq_incr = 0;
   a_column_number       column_incr;
 
   db_enter(5, "add_pragmas_to_string");
