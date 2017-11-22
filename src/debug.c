@@ -245,11 +245,13 @@ Returns TRUE if there was an error during parsing of the debug option.
           /* Set the specified debug flag to TRUE. */
           action = da_set_flag;
           curr_char++;
+          if (*curr_char == ' ') curr_char++;
         } else if (*curr_char == '#') {
           /* Clear the specified debug flag. */
           action = da_set_flag;
           remove_flag = TRUE;
           curr_char++;
+          if (*curr_char == ' ') curr_char++;
         } else {
           /* The first thing must be the name of the routine. */
           if (!isalpha((unsigned char)*curr_char)) {
