@@ -30,7 +30,9 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "folding.h"
 
+#if DO_IL_LOWERING
 #include "lower_il.h"
+#endif /* DO_IL_LOWERING */
 
 #include "templates.h"
 
