@@ -15248,6 +15248,10 @@ current scope.
               /* Check if we missed a tag symbol; it should be imported too. */
               import_any_hidden_tags(other_decl, nsp, &prev_udp,
                                      &suppress_redecl_error);
+              if (prev_udp != NULL) {
+                rep_udp = prev_udp;
+                rep_udp->is_representative = TRUE;
+              }  /* if */
             }  /* if */
             /* If we're importing a typedef that redeclares an existing type
                to the same name, inhibit the declaration error. */
