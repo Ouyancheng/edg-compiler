@@ -5423,6 +5423,8 @@ make_inert_macro:
            value 1 if it is an identifier, 0 if it's anything else (e.g., a
            reserved word). */
         a_boolean saved_fetch_pp_tokens = fetch_pp_tokens;
+        a_boolean saved_in_preprocessing_directive =
+                                                    in_preprocessing_directive;
         a_boolean is_identifier;
         if (get_token() != tok_lparen) {
           /* Unlike normal function-style macros, clang always treats
@@ -5434,7 +5436,9 @@ make_inert_macro:
         } else {
           expand_macros = FALSE;
           fetch_pp_tokens = FALSE;
+          in_preprocessing_directive = FALSE;
           is_identifier = (get_token() == tok_identifier);
+          in_preprocessing_directive = saved_in_preprocessing_directive;
           fetch_pp_tokens = saved_fetch_pp_tokens;
           if (get_token() != tok_rparen) {
             pos_error(ec_exp_rparen, &pos_curr_token);
