@@ -5939,7 +5939,11 @@ pos.
           type = error_type();
         }  /* if */
 #if !FLOAT80_ENABLING_POSSIBLE
-      } else if (fkind == float_kind_for_float80) {
+      } else if (fkind == float_kind_for_float80
+#if FLOAT128_ENABLING_POSSIBLE
+                 && fkind != float_kind_for_float128
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+                                                    ) {
         pos_error(ec_no_float80, pos);
         type = error_type();
 #endif /* !FLOAT80_ENABLING_POSSIBLE */
