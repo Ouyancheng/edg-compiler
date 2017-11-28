@@ -1,5 +1,15 @@
 Version 4.15
 
+11/28/17 [EDGcpfe/18977]
+Addition of custom name linkage code in routine_linkages_are_identical
+
+A change has been made to routine_linkages_are_identical to handle a common
+case that occurs when the front end is configured with custom name linkages.
+Customers who use custom name linkages may still need to configure
+routine_linkages_are_identical and routine_linkages_are_compatible to suit
+their environment.
+
+
 11/28/17 [EDGcpfe/17688]
 C++17: Aggregates and base classes
 

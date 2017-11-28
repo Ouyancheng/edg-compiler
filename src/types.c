@@ -5553,13 +5553,28 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 (defined in il_def.h).
 */
 {
+  a_boolean identical;
+
   check_assertion_str2(is_name_linkage_kind_for_rout_type(nlk1) &&
                        is_name_linkage_kind_for_rout_type(nlk2),
                        "routine_linkages_are_identical:",
                        "unexpected linkage for routine type");
-  /* Unless c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
-     nlk_cplusplus_external are treated as identical. */
-  return (c_and_cpp_function_types_are_distinct ? (nlk1 == nlk2) : TRUE);
+#ifdef is_custom_name_linkage_kind_for_rout_type
+  if (is_custom_name_linkage_kind_for_rout_type(nlk1) ||
+      is_custom_name_linkage_kind_for_rout_type(nlk2)) {
+    /* Custom code may be added here to specify identity involving
+       implementation-defined name linkages.  By default, assume no
+       identity if the linkages are not identical. */
+    identical = (nlk1 == nlk2);
+  } else
+#endif /* ifdef is_custom_name_linkage_kind_for_rout_type */
+  /* Do not insert code here. */
+  {
+    /* Unless c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
+       nlk_cplusplus_external are treated as identical. */
+    identical = c_and_cpp_function_types_are_distinct ? (nlk1 == nlk2) : TRUE;
+  }  /* if */
+  return identical;
 }  /* routine_linkages_are_identical */
 
 #if !STANDALONE_UTILITY_PROGRAM
