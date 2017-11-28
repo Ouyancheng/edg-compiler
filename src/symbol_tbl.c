@@ -1753,6 +1753,53 @@ template symbol.
 }  /* overload_set_contains_template */
 
 
+a_boolean sym_may_include_nonstatic_member_function(a_symbol_ptr  sym)
+/*
+If sym potentially represents at least one nonstatic member function, return
+TRUE.  Otherwise, return FALSE.  sym may represent an overload set or a single
+entity.
+*/
+{
+  a_boolean  result = FALSE;
+
+  sym = fundamental_symbol_of(sym);
+  if (symbol_is(sym, sk_member_function)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    if (routine_type_is_nonstatic_member_function(rp->type)) {
+      result = TRUE;
+    }  /* if */
+  } else if (symbol_is(sym, sk_function_template)) {
+    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
+    if (routine_type_is_nonstatic_member_function(rp->type)) {
+      result = TRUE;
+    }  /* if */
+  } else if (symbol_is(sym, sk_overloaded_function)) {
+    sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = sym->next) {
+      a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+      if (sym_may_include_nonstatic_member_function(fund_sym)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  } else if (symbol_is(sym, sk_constant)) {
+    a_constant_ptr  cp = sym->variant.constant;
+    if (constant_is(cp, ck_template_param)) {
+      if (tpck_is(cp, tpck_address)) {
+        cp = cp->variant.template_param.variant.constant;
+      }  /* if */
+      if (tpck_is(cp, tpck_member) ||
+          tpck_is(cp, tpck_unknown_function) ||
+          tpck_is(cp, tpck_template_ref) ||
+          tpck_is(cp, tpck_destructor)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* sym_may_include_nonstatic_member_function */
+
+
 a_boolean is_proxy_member_symbol(a_symbol_ptr  sym)
 /*
 Return TRUE if the symbol sym refers to a hypothetical member of a proxy

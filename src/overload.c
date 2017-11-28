@@ -13287,7 +13287,9 @@ by this routine.
                                                     selector_is_object_pointer,
                                            function_operand);
       } else if (in_lambda_body() &&
-                 overloaded_function_symbol->is_class_member) {
+                 overloaded_function_symbol->is_class_member &&
+                 sym_may_include_nonstatic_member_function(
+                                                overloaded_function_symbol)) {
         /* Check if "this" should be captured.  We could end up here with a
            generic lambda in a context that's otherwise nondependent.  In that
            case we must make sure "this" is captured while performing the

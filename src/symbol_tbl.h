@@ -5875,6 +5875,8 @@ extern a_boolean class_sym_is_for_closure_class(a_symbol_ptr  sym);
 
 extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 
+extern a_boolean sym_may_include_nonstatic_member_function(a_symbol_ptr sym);
+
 /* Return TRUE if a symbol is an sk_type symbol that points to a
    tk_template_param type, or a typeref to such a type.
 */
