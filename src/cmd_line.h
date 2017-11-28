@@ -1342,17 +1342,22 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		always_delay_field_initializer_processing;
+			/* When TRUE, field initializers are not parsed until
+			   needed even when they appear in nontemplate
+			   classes. */
+
+EXTERN a_boolean
 		aggregate_classes_can_have_field_initializers;
 			/* When TRUE, an aggregate class type can have a field
 			   initializer (this is a C++14 feature; in C++11, a
 			   field initializer make a class a non-aggregate). */
 
 EXTERN a_boolean
-		always_delay_field_initializer_processing;
-			/* When TRUE, field initializers are not parsed until
-			   needed even when they appear in nontemplate
-			   classes. */
-
+		aggregate_classes_can_have_bases;
+			/* When TRUE, an aggregate class type can have public,
+			   non-virtual base classes (this is a C++17
+			   feature). */
 EXTERN a_boolean
 		selection_from_prvalue_is_xvalue;
 			/* TRUE if the C++14 rule that a field selection on a

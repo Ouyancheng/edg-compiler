@@ -1578,6 +1578,15 @@ Return TRUE if the given type is:
             break;
           }  /* if */
         }  /* for */
+        if (aggregate_classes_can_have_bases) {
+          a_base_class_ptr  bcp = base_classes_of(tp);
+          for (; bcp != NULL; bcp = bcp->next) {
+            if (bcp->direct && implicit_init_involves_ref_init(bcp->type)) {
+              result = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2484,32 +2493,44 @@ initialization of as[1]).
 }  /* try_whole_aggr_class_init */
 
 
-static a_boolean has_initializable_field(a_type_ptr  class_type)
+static a_boolean has_initializable_subobject(a_type_ptr  class_type)
 /*
-Return TRUE if the given class type has an initializable field.
+Return TRUE if the given class type has an initializable field or base.
 */
 {
+  a_boolean    result = FALSE;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
-  return next_initializable_field(fp) != NULL;
-}  /* has_initializable_field */
+  if (next_initializable_field(fp) != NULL) {
+    result = TRUE;
+  } else {
+    a_base_class_ptr  bcp = base_classes_of(class_type);
+    if (next_direct_base(bcp) != NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* has_initializable_subobject */
 
 
 static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
                                                 a_type_ptr         aggr_type,
                                                 a_field_ptr        next_field,
+                                                a_base_class_ptr   next_bcp,
                                                 an_init_state      *is,
                                                 a_source_position  *diag_pos)
 /*
 We have processed an aggregate initializer for the given type, but it does not
-explicitly initialize the given field nor any subsequent fields.  Append any
-needed constants to the list embedded in aggr_con if the no_diagnostics flag
-is FALSE (if it is TRUE, aggr_con will be NULL).
+explicitly initialize all its subobjects.  The first uninitialized subobject
+is either the base class next_bcp, or, if that is NULL, the field next_field.
+Append any needed constants to the list embedded in aggr_con if the
+no_diagnostics flag is FALSE (if it is TRUE, aggr_con will be NULL).
 *is describes the initialization as a whole, and diag_pos indicates the
 position for which diagnostics should be issued.
 */
 {
   a_field_ptr           fp, last_dyn_field = NULL;
+  a_base_class_ptr      bcp;
   an_aggr_init_con_elem aggr_init_con;
   a_boolean             union_case = aggr_type->kind == (a_type_kind)tk_union;
 
@@ -2519,6 +2540,43 @@ position for which diagnostics should be issued.
      that stands for the current aggregate, and this call enables that
      association to be made. */
   push_aggr_init_constant(aggr_con, &aggr_init_con);
+  /* Produce constants for any remaining base classes (even if their
+     initialization is trivial). */
+  if (next_bcp != NULL) {
+    check_assertion(aggregate_classes_can_have_bases && next_bcp->direct);
+    for (bcp = next_bcp; bcp != NULL; bcp = next_direct_base(bcp->next)) {
+      a_type_ptr      btp = bcp->type;
+      a_constant_ptr  init_con = NULL;
+      a_class_symbol_supplement_ptr
+                      cssp = symbol_supplement_for_class(btp);
+      if (!has_trivial_default_constructor(cssp) ||
+          (exceptions_enabled && !cssp->has_trivial_destructor)) {
+        /* Nontrivial initialization/destruction. */
+        init_con = default_nontrivial_init_constant_for_aggr_member(
+                                                           btp, is, diag_pos);
+      } else {
+        if (implicit_init_involves_ref_init(btp)) {
+          /* An uninitialized reference will result in a diagnostic. */
+          is->any_uninitialized_const_or_ref_member = TRUE;
+        }  /* if */
+        if (!is->check_validity_only) {
+        init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          if (!has_initializable_subobject(btp)) {
+            /* Unless it is for an empty class, an empty aggregate constant
+               does not cover all the elements of the destination base type. */
+            is->partial_initializer = TRUE;
+            init_con->partial_aggr_value = TRUE;
+            init_con->is_partially_initialized = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!is->check_validity_only) {
+        /* Add the constant entry to the list of constants. */
+        init_con->implicit_aggr_element = TRUE;
+        add_constant_to_aggregate(init_con, aggr_con);
+      }  /* if */
+    }  /* for */
+  }  /* if */
   next_field = next_initializable_field(next_field);
   /* Run a first pass through the remaining fields to see if any requires
      nontrivial default initialization.  Keep track of the last such field. */
@@ -2634,7 +2692,7 @@ position for which diagnostics should be issued.
           } else {
             init_con->type = (atp == NULL) ? ftp : atp;
             if (!(is_immediate_class_type(ftp) &&
-                  has_initializable_field(ftp)) &&
+                  has_initializable_subobject(ftp)) &&
                 !(atp != NULL && has_any_zero_bound(atp))) {
               /* Other than for empty classes and zero-length arrays, an empty
                  aggregate constant does not cover all the elements of the
@@ -3013,6 +3071,41 @@ done:
 }  /* aggr_init_field_designator */
 
 
+static void aggr_init_base(an_init_component_ptr  *p_icp,
+                           a_base_class_ptr       *p_bcp,
+                           an_init_state          *is,
+                           a_constant_ptr         aggr_con,
+                           a_source_position      *diag_pos)
+/*
+*p_icp is non-NULL and describes an initializer for *p_bcp (also non-NULL).
+Append a constant representing this initializer to the given aggregate constant
+(aggr_con).  *is tracks state information for the complete initializer and
+diag_pos is the position to use for diagnostics by default (if no more specific
+position is available).
+*/
+{
+  a_base_class_ptr       bcp = *p_bcp;
+  a_type_ptr             dtype = bcp->type;
+  a_constant_ptr         elem_con;
+
+  check_assertion(bcp->direct && !bcp->is_virtual);
+  if (is->pack_expansion_handled) {
+    /* If a pack expansion has been seen, we cannot match up types anymore.
+       Change the destination type to "the unknown type". */
+    dtype = type_of_unknown_templ_param_nontype;
+  }  /* if */
+  aggr_init_element_full(p_icp, dtype, (a_field_ptr)NULL, is, diag_pos,
+                         &elem_con);
+  if (!is->check_validity_only && elem_con != NULL) {
+    elem_con->constant_for_base_class = TRUE;
+    add_constant_to_aggregate(elem_con, aggr_con);
+  }  /* if */
+  if (!is->pack_expansion_handled) {
+    *p_bcp = next_direct_base(bcp->next);
+  }  /* if */
+}  /* aggr_init_base */
+
+
 static void aggr_init_class(an_init_component_ptr  *p_icp,
                             a_type_ptr             class_type,
                             an_init_state          *is,
@@ -3045,12 +3138,18 @@ issued if no more specific position is available.
     a_boolean    braced = is_braced_init_component(icp),
                  saved_pack_expansion_handled = FALSE;
     a_type_ptr   saved_class_to_look_in = is->class_to_look_in;
+    a_base_class_ptr
+                 bcp = NULL;
     if (!class_type
                  ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
       is->class_to_look_in = class_type;
     }  /* if */
     /* Skip unnamed bit fields. */ 
     fp = next_initializable_field(fp);
+    if (aggregate_classes_can_have_bases) {
+      bcp = base_classes_of(class_type);
+      bcp = next_direct_base(bcp);
+    }  /* if */
     if (is->check_validity_only) {
       *init_con = NULL;
     } else {
@@ -3079,8 +3178,9 @@ issued if no more specific position is available.
       /* Save the pack-expansion-handled state: Any expansions seen have an
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
-    } else if (fp == NULL) {
-      /* No braces and no fields, but another initializer: This is an error.
+    } else if (fp == NULL && bcp == NULL) {
+      /* No braces and no remaining elements to initialize, but another
+         initializer: This is an error.
          E.g.:
            struct E {};
            struct A { E e; int x; } a{ 1 };  // Error: a.e uninitialized.
@@ -3125,6 +3225,9 @@ issued if no more specific position is available.
           aggr_init_field_designator(&icp, class_type, is, &fp, *init_con,
                                      diag_pos);
         }  /* if */
+      } else if (bcp != NULL) {
+        /* A base is available for the next initializer component. */
+        aggr_init_base(&icp, &bcp, is, *init_con, diag_pos);
       } else if (fp != NULL) {
         /* A field is available for the next initializer component. */
         aggr_init_field(&icp, &fp, is, *init_con, diag_pos);
@@ -3133,10 +3236,10 @@ issued if no more specific position is available.
         break;
       }  /* if */
     }  /* while */
-    if (fp != NULL && !is->pack_expansion_handled) {
-      /* Not all class fields are explicitly initialized: Append entries to
-         initialize remaining fields if appropriate. */
-      aggr_init_class_remainder_if_needed(*init_con, class_type, fp, is,
+    if ((fp != NULL || bcp != NULL) && !is->pack_expansion_handled) {
+      /* Not all subobjects are explicitly initialized: Append entries to
+         initialize the remaining subobjects if appropriate. */
+      aggr_init_class_remainder_if_needed(*init_con, class_type, fp, bcp, is,
                                           diag_pos);
     }  /* if */
     if (braced) {
@@ -3144,8 +3247,8 @@ issued if no more specific position is available.
          list (if any). */
       *p_icp = next_elem(*p_icp);
       if (icp != NULL) {
-        /* Initializers remain at this level, but no fields. */
-        check_assertion(fp == NULL);
+        /* Initializers remain at this level, but no subobjects. */
+        check_assertion(fp == NULL && bcp == NULL);
         if (is->no_diagnostics) {
           is->init_error = !gcc_mode;
         } else if (gcc_mode) {
@@ -4759,8 +4862,8 @@ returned set to TRUE.
     if (curr_token == tok_lbrace && !cssp->is_class_aggregate &&
         !dps->has_direct_initializer && !list_init_enabled) {
       /* This is an attempt to do C-style aggregate initialization on a class
-         object for which there is a constructor, nonpublic members, base
-         classes, or virtual functions.  In such cases a constructor must be
+         object that is not an aggregate (e.g., it has a constructor, nonpublic
+         members, or virtual functions).  In such cases a constructor must be
          used. */
       type_error(ec_brace_initialization_not_allowed, vp_type);
       init_err = TRUE;

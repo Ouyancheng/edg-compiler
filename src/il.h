@@ -1704,6 +1704,8 @@ extern void add_temporary_to_front_of_variables_list(a_variable_ptr temp,
 extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
                                                a_boolean  force_static);
 
+extern a_base_class_ptr next_direct_base(a_base_class_ptr  bcp);
+
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

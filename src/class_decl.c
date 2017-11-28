@@ -8904,9 +8904,16 @@ to FALSE before returning).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
-    /* A class with base classes is neither an "aggregate" nor a POD.
+    /* A class with base classes is neither an "aggregate" nor a POD, except
+       that C++17 permits a public, non-virtual base class for an aggregate.
        (C++/CLI value class types are the exception.) */
-    class_state->class_aggregate_ruled_out = TRUE;
+    if (aggregate_classes_can_have_bases && !is_virtual &&
+        access == (an_access_specifier)as_public) {
+      /* In this mode, a direct nonvirtual base is permitted for a class
+         aggregate. */
+    } else {
+      class_state->class_aggregate_ruled_out = TRUE;
+    }  /* if */
     class_state->cpp03_POD_ruled_out = TRUE;
   }  /* if */
   /* The implied default constructor of the current class will be

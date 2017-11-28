@@ -5735,9 +5735,10 @@ C extension); in this case, the braces are also suppressed, as is the
 field designator.
 */
 {
-  a_constant_ptr sub_con;
-  a_type_ptr     sub_type = NULL;
-  a_field_ptr    field = NULL;
+  a_constant_ptr    sub_con;
+  a_type_ptr        sub_type = NULL;
+  a_field_ptr       field = NULL;
+  a_base_class_ptr  bcp = NULL;
 
   if (constant_should_be_put_out_as_expr(constant)) {
     /* The constant resulted from a recorded constant-expression: Render it in
@@ -5846,7 +5847,9 @@ field designator.
       check_assertion_str(is_class_type_kind(type->kind),
                           "gen_initializer_constant: bad aggregate type");
       /* A class, struct, or union.  The constants will fill nonstatic data
-         members of the class. */
+         members of the class, or, possibly, direct base classes. */
+      bcp = base_classes_of(type);
+      bcp = next_direct_base(bcp);
       field = next_initializable_field(
                                   type->variant.class_struct_union.field_list);
     }  /* if */
@@ -5856,7 +5859,7 @@ field designator.
     for (sub_con = first_con;
          sub_con != NULL &&
                        sub_con->constant_for_base_class_from_constexpr_folding;
-         sub_con = sub_con-> next) {}
+         sub_con = sub_con->next) {}
     if (sub_con != NULL &&
         (sub_con->implicit_aggr_element ||
          (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
@@ -5901,10 +5904,15 @@ field designator.
              a prototype instantiation.) */
           sub_type = eff_sub_con->type;
         } else if (!array_case) {
-          check_assertion_str(field != NULL,
-                              "gen_initializer_constant: ran out of fields");
-          sub_type = field->type;
-          field = next_initializable_field(field->next);
+          if (bcp != NULL) {
+            sub_type = bcp->type;
+            bcp = next_direct_base(bcp->next);
+          } else {
+            check_assertion_str(field != NULL,
+                                "gen_initializer_constant: ran out of fields");
+            sub_type = field->type;
+            field = next_initializable_field(field->next);
+          }  /* if */
         }  /* if */
         if (eff_sub_con->is_pack_expansion &&
             eff_sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
@@ -5935,7 +5943,7 @@ field designator.
         sub_con = sub_con->next;
         /* Stop after the last constant. */
         if (sub_con == NULL) break;
-        /* Stop on default initialization of trailing fields. */
+        /* Stop on default initialization of trailing elements. */
         if (sub_con->implicit_aggr_element ||
             (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
              is_default_dynamic_init(sub_con->variant.dynamic_init))) {

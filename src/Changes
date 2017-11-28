@@ -1,5 +1,31 @@
 Version 4.15
 
+11/28/17 [EDGcpfe/17688]
+C++17: Aggregates and base classes
+
+C++17 extended the definition of "aggregate" to include class types with
+public, nonvirtual bases.  Those bases can be initialized using aggregate
+initialization syntax.  E.g.:
+
+  template<typename ... BTs> struct D: BTs... { int d; };
+  struct B1 { int b1; };
+  struct B2 { int b2; };
+  D<B1, B2> d = { {1}, {2}, 3 };  // Now accepted in C++17 mode.
+
+The front end now implements those extensions.  Note that this may break
+existing code.  For example:
+
+  class B {
+    friend struct D;
+    B();
+  };
+  struct D: B {};
+  D d1;    // Okay in all modes.
+  D d2{};  // Error in C++17 mode (invalid aggregate initializer).
+           // Okay in C++14 mode (default initializer, but not aggregate
+           // initializer).
+
+
 11/21/17 [EDGcpfe/18897]
 Calling the interpreter outside the front end
 

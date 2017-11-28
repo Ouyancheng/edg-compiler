@@ -3421,6 +3421,7 @@ default mode (e.g., exception handling).
       if (!option_kind_used[(int)optk_trigraphs]) {
         trigraphs_allowed = FALSE;
       }  /* if */
+      aggregate_classes_can_have_bases = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11403,6 +11404,7 @@ variables declared in cmd_line.h.
   list_init_enabled = FALSE;
   field_initializers_enabled = FALSE;
   aggregate_classes_can_have_field_initializers = FALSE;
+  aggregate_classes_can_have_bases = FALSE;
   selection_from_prvalue_is_xvalue = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;

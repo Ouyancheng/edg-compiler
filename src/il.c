@@ -8403,6 +8403,7 @@ which case the resulting constant is an empty aggregate.
             return_value = FALSE;
             break;
           }  /* if */
+          base_con->constant_for_base_class = TRUE;
           base_con->constant_for_base_class_from_constexpr_folding = TRUE;
           add_constant_to_aggregate(base_con, con);
         } /* if */
@@ -14228,6 +14229,17 @@ needs to generate an explicit temporary.
 }  /* alloc_temporary_variable */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_base_class_ptr next_direct_base(a_base_class_ptr  bcp)
+/*
+If bcp is a direct base, return it.  Otherwise, return the next direct base on
+the list formed by the "next" links, or NULL if there is no such base.
+*/
+{
+  while (bcp != NULL && !bcp->direct) bcp = bcp->next;
+  return bcp;
+}  /* next_direct_base */
+
 
 a_field_ptr next_initializable_field(a_field_ptr field)
 /*

@@ -13108,6 +13108,7 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
+          cp->constant_for_base_class = TRUE;
           cp->constant_for_base_class_from_constexpr_folding = TRUE;
           add_constant_to_aggregate(cp, con);
         }  /* for */
