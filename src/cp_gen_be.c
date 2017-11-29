@@ -17510,7 +17510,8 @@ this one is such a continuation.
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
-                                     has_name_before_mangling(var) ?
+                                     (has_name_before_mangling(var) ||
+                                      var->is_struct_binding_container) ?
                                                      &var->source_corresp :
                                                      NULL,
                                      iek_variable,

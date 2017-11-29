@@ -1,5 +1,21 @@
 Version 4.15
 
+11/29/17 [EDGcpfe/18973]
+C++-generating back end: Structured bindings not rendered
+
+In some cases, the C++-generating back end failed to correctly render
+structured bindings.  For example, given the following input:
+
+  struct S { int x, y; }
+  S f();
+  void g() {
+    const auto [a, b] = f();
+  }
+
+the C++generating back end previously failed to render the "[a, b]" part of
+the structured binding declaration.  That is now fixed.
+
+
 11/29/17 [EDGcpfe/18981]
 Spurious constexpr evaluation failure on aggregate-initialized variable
 
