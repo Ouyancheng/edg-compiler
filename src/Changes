@@ -10,7 +10,7 @@ Consider:
   constexpr S id(S const &s) { return s; }
   struct X {
     S s;
-    constexpr X(int p): s{is(make_S(p))} {}
+    constexpr X(int p): s{id(make_S(p))} {}
   };
   constexpr X x{0}; // Previously an error.  Now okay.
 
