@@ -6359,7 +6359,12 @@ mode; *optional will be set as usual.
       /* The typeinfo variable is referenced, and this ABI couples the
          typeinfo and vtable generation even when the vtable is optional,
          so we need the virtual table. */
-    } else if (!vtbl_var->source_corresp.referenced) {
+    } else if (!vtbl_var->source_corresp.referenced &&
+               class_type->source_corresp.name_linkage ==
+                                 (a_name_linkage_kind)nlk_cplusplus_external) {
+      /* Don't suppress virtual function tables for local classes even if
+         currently unreferenced; these are lowered early in the process and
+         may be referenced later. */
       defined_here = FALSE;
     }  /* if */
   }  /* if */
