@@ -1,5 +1,32 @@
 Version 4.15
 
+11/28/17 [EDGcpfe/18934]
+Virtual function tables for local class types
+
+In some cases where a local class of a member function is virtual, the virtual
+function table that was emitted in the translation unit had not been statically
+initialized.  That had resulted in a run time error and is now fixed.  The bug
+had affected both Cfront and IA-64 ABIs.  For example (with --c++11):
+
+  template <class T> T *newT() { return new T; }
+  struct A {
+    virtual void f() = 0;
+  };
+  struct D {
+    void g() {
+      struct B : A {
+        void f() {}
+      };
+      A *a = newT<B>();
+      a->f();   // Had called through a NULL virtual function pointer.
+    }
+  } d;
+  int main() {
+    d.g();
+    return 0;
+  }
+
+
 11/28/17 [EDGcpfe/18969]
 Calls to static members in lambdas
 
