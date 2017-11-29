@@ -5062,6 +5062,7 @@ Evaluate the given dynamic initialization for the given storage.
         }  /* if */
         result = copy_val_from_constant(ips, dip->variant.constant,
                                         result_storage, complete_object);
+        mark_subobject_initialized(result_storage, complete_object);
         if (this_bytes != NULL) {
           unmap_stack_bytes(ips, &ips->curr_call_frame);
         }  /* if */
@@ -5070,6 +5071,7 @@ Evaluate the given dynamic initialization for the given storage.
     case dik_constant:
       result = copy_val_from_constant(ips, dip->variant.constant,
                                       result_storage, complete_object);
+      mark_subobject_initialized(result_storage, complete_object);
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
