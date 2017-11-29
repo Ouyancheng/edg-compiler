@@ -20040,10 +20040,12 @@ of dllexported class types).
 }  /* mark_special_member_suppressed */
 
 
-static a_boolean type_is_constexpr_default_constructible(a_type_ptr  type)
+static a_boolean type_is_constexpr_default_constructible(a_type_ptr  type,
+                                                         a_type_ptr  context)
 /*
-Return TRUE if the given type is a class type with an unambiguous constexpr
-default constructor, or an array thereof.
+Return TRUE if "type" is a class type with an accessible, unambiguous constexpr
+default constructor, or an array thereof.  For access checking, use "context"
+as the class type from which the constructor is selected.
 */
 {
   a_boolean      result = FALSE, error_detected, err;
@@ -20055,11 +20057,11 @@ default constructor, or an array thereof.
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
     default_ctor = select_default_constructor_full(
-                                                 type, &error_position, type,
-                                                 /*declarative_context=*/TRUE,
-                                                 /*evaluated=*/TRUE,
-                                                 /*check_access=*/TRUE,
-                                                 &error_detected, &err);
+                                               type, &error_position, context,
+                                               /*declarative_context=*/TRUE,
+                                               /*evaluated=*/TRUE,
+                                               /*check_access=*/TRUE,
+                                               &error_detected, &err);
     if (default_ctor != NULL) {
       result = default_ctor->is_constexpr ||
                default_ctor->is_declared_constexpr;
@@ -20179,7 +20181,8 @@ to return FALSE unless limited_check is TRUE.
         }  /* if */
       } else {
         member_initialized = fp->has_initializer ||
-                             type_is_constexpr_default_constructible(fp->type);
+                             type_is_constexpr_default_constructible(
+                                                        fp->type, class_type);
       }  /* if */
       if (is_union) {
         /* Unions must have exactly one initialized member. */
@@ -20257,7 +20260,8 @@ class type is constexpr (and unambiguous).
   a_base_class_ptr  bcp;
 
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !type_is_constexpr_default_constructible(bcp->type)) {
+    if (bcp->direct &&
+        !type_is_constexpr_default_constructible(bcp->type, class_type)) {
       result = FALSE;
       break;
     }  /* if */

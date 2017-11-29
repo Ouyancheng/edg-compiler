@@ -1,5 +1,23 @@
 Version 4.15
 
+11/29/17 [EDGcpfe/18980]
+Spurious error on defaulted constexpr constructor with protected base member
+
+Consider:
+
+  struct B {
+  protected:
+    B() = default;
+  };
+  struct D: B {
+    constexpr D() = default;  // Previously an error.  Now okay.
+  };
+
+Previously, the front end issued a spurious error on the defaulted definition
+of D::D() because it erroneously considered B::B() inaccessible from that
+context.  That is now fixed.
+
+
 11/28/17 [EDGcpfe/18934]
 Virtual function tables for local class types
 
