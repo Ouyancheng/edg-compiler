@@ -5847,7 +5847,7 @@ field designator.
       check_assertion_str(is_class_type_kind(type->kind),
                           "gen_initializer_constant: bad aggregate type");
       /* A class, struct, or union.  The constants will fill nonstatic data
-         members of the class, or, possibly, direct base classes. */
+         members of the class, and, possibly, direct base classes. */
       bcp = base_classes_of(type);
       bcp = next_direct_base(bcp);
       field = next_initializable_field(

@@ -8904,9 +8904,9 @@ to FALSE before returning).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
-    /* A class with base classes is neither an "aggregate" nor a POD, except
-       that C++17 permits a public, non-virtual base class for an aggregate.
-       (C++/CLI value class types are the exception.) */
+    /* Except for C++/CLI value class types, a class with base classes is
+       generally neither an aggregate nor a POD, although C++17 permits
+       public, nonvirtual base classes for aggregates. */
     if (aggregate_classes_can_have_bases && !is_virtual &&
         access == (an_access_specifier)as_public) {
       /* In this mode, a direct nonvirtual base is permitted for a class
