@@ -2042,17 +2042,21 @@ preserved in the substituted type.
 }  /* restore_default_template_param */
 
 
-void restore_default_template_params(a_template_param_ptr  tpp)
+void restore_default_template_params(a_template_param_ptr  tpp,
+                                     a_boolean             packs_only)
 /*
 Update the symbol entries for the template parameter list specified by tpp
-to their "resting values".
+to their "resting values".  If packs_only is TRUE, only template parameters
+for parameter packs are reset.
 */
 {
   db_enter(4, "restore_default_template_params");
   /* Loop through the parameters and set them to the original dependent
      type, constant, or template value. */
   for (; tpp != NULL; tpp = tpp->next) {
-    restore_default_template_param(tpp);
+    if (!packs_only || tpp->is_pack) {
+      restore_default_template_param(tpp);
+    }  /* if */
   }  /* for */
   db_exit();
 }  /* restore_default_template_params */
@@ -2075,7 +2079,8 @@ for more information about when this is done.
        ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (scope_is(ssep, sck_template_instantiation) &&
         ssep->in_variadic_template) {
-      restore_default_template_params(ssep->template_decl_info->parameters);
+      restore_default_template_params(ssep->template_decl_info->parameters,
+                                      /*packs_only=*/TRUE);
     }  /* if */
   }  /* for */
 }  /* reset_enclosing_pack_values */
@@ -9231,7 +9236,8 @@ being popped.
     }  /* for */
     if (prev_depth == NO_SCOPE_DEPTH) {
       /* Restore the default values of the parameters. */
-      restore_default_template_params(template_decl_info->parameters);
+      restore_default_template_params(template_decl_info->parameters,
+                                      /*packs_only=*/FALSE);
     } else {
       /* Restore the parameter values from the previous instantiation. */
       update_template_param_symbols(template_decl_info->parameters,

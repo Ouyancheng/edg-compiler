@@ -1,5 +1,29 @@
 Version 4.15
 
+11/30/17 [EDGcpfe/18344,EDGcpfe/18962]
+Substitution failure in default argument of variadic function template
+
+When a variadic function template had a default template argument containing
+a pack expansion that made use of an enclosing non-variadic parameter, a
+substitution failure could result.  Now fixed.
+
+  struct C {};
+  template <typename... Ts> struct A;
+  template<typename, typename> struct B {
+    static constexpr bool v = false;
+  };
+  template<bool... T> struct F;
+  template <bool... Bs> using E = B< F<Bs...>, F<Bs...> >;
+  template<typename T, typename... _Us> struct D {
+    static constexpr bool v = true;
+  };
+  template<typename Ts, typename ...> struct H {
+    template<typename... Us, bool b =  E<D<Ts, Us>::v...>::v> H(Us&&... us);
+  };
+  // Formerly "no instance of constructor ... matches the argument list"
+  H<A<C(int)>> h{1};
+
+
 11/30/17 [EDGcpfe/18953]
 Default-const-constructible types
 

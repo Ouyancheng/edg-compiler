@@ -22183,7 +22183,7 @@ templates from that base template.
          temporarily point to concrete types.  Undo this before copying the
          template parameter list.  The concrete types will be restored by the
          call to update_template_param_symbols_for_param_list below. */
-      restore_default_template_params(btpl);
+      restore_default_template_params(btpl, /*packs_only=*/FALSE);
       push_template_declaration_scope(
                                   templ_decl_state.decl_info,
                                   /*is_template_template_param_rescan*/FALSE);

@@ -2327,7 +2327,8 @@ extern
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position);
 
-extern void restore_default_template_params(a_template_param_ptr  tpp);
+extern void restore_default_template_params(a_template_param_ptr  tpp,
+                                            a_boolean             packs_only);
 
 extern
 void update_template_param_symbols_for_param_list(a_template_param_ptr	tpp);
