@@ -1987,6 +1987,66 @@ Return TRUE if the given type is trivially copyable.
 }  /* is_trivially_copyable_type */
 
 
+a_boolean is_const_default_constructible(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a const-default-constructible class type or an
+array thereof.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_array_types(tp);
+  tp = skip_typerefs(tp);
+  if (!is_immediate_class_type(tp)) {
+    result = FALSE;
+  } else if (type_has_user_provided_default_constructor(tp)) {
+    result = TRUE;
+  } else {
+    a_class_symbol_supplement_ptr
+                      cssp = class_symbol_supp(symbol_for(tp));
+    result = TRUE;
+    if (cssp->any_nonstatic_data_members) {
+      a_base_class_ptr  bcp = base_classes_of(tp);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual && tp->variant.class_struct_union.abstract) {
+          /* Only consider potentially constructed bases.  That excludes
+             virtual bases of abstract classes. */
+          continue;
+        }  /* if */
+        if (bcp->direct && !is_const_default_constructible(bcp->type)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (result) {
+        a_field_ptr  fp = tp->variant.class_struct_union.field_list;
+        if (tp->kind != (a_type_kind)tk_union) {
+          /* For a non-union class, check that every (non-generated) field
+             has an initializer or is const-default-constructible. */
+          for (; fp != NULL; fp = fp->next) {
+            if (!fp->has_initializer && !fp->compiler_generated &&
+                !is_const_default_constructible(fp->type)) {
+              result = FALSE;
+              break;
+            }  /* if */
+          }  /* for */
+        } else {
+          /* For a union, check for any field with an initializer. */
+          result = FALSE;
+          for (; fp != NULL; fp = fp->next) {
+            if (fp->has_initializer) {
+              result = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_const_default_constructible */
+
+
 a_boolean is_pod_class(a_type_ptr  tp)
 /*
 Return TRUE if the given class type is a POD class type.  The definition of

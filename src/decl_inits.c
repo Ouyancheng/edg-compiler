@@ -9239,19 +9239,20 @@ declaration that has internal linkage because of the explicit presence of a
             sym->kind == (a_symbol_kind)sk_static_data_member) {
           /* In C++ const qualified variables that are internally linked
              must be initialized (ARM 7.1.6). */
-          if (is_empty_POD_class && !strict_ansi_mode &&
-              !is_incomplete_array) {
-            /* Except in strict mode, don't bother issuing a diagnostic on
-               something like "const struct S { } s;". */
-          } else if (!could_be_dependent_class_type(type)) {
+          if (could_be_dependent_class_type(type)) {
             /* If the type is dependent and could end up being a class type
                after substitution no diagnostic should be issued since the
                substituting class type may have a default constructor. */
+          } else if (is_const_default_constructible(type)) {
+            /* The resolution of Core issue 253 (via paper P0490R0) defined
+               const-default-constructible types, which do not require an
+               initializer in these cases.  Although originally described as
+               a defect against C++14, it is universal practice to apply the
+               revised rules in all modes. */
+          } else {
             /* By default, the diagnostic is an error. */
             severity = es_error;
-            if (is_empty_POD_class && !is_incomplete_array) {
-              severity = strict_ansi_error_severity;
-            } else if (microsoft_mode) {
+            if (microsoft_mode) {
               if (is_class_struct_union_type(type) || is_enum_type(type)) {
                 /* MSVC++ does not require an initializer for a const class or
                    enum variable with no default constructor. */
@@ -9265,8 +9266,7 @@ declaration that has internal linkage because of the explicit presence of a
                 severity = es_warning;
               }  /* if */
             }  /* if */
-            if (gpp_mode &&
-                sym->kind == (a_symbol_kind)sk_static_data_member &&
+            if (gpp_mode && symbol_is(sym, sk_static_data_member) &&
                 is_prototype_instantiation_context()) {
               /* g++ fails to diagnose a missing initializer for a static
                  data member at template definition time.  An error is
@@ -9300,11 +9300,15 @@ declaration that has internal linkage because of the explicit presence of a
          The case of a const temporary, as in:
            typedef X const CX; CX().f();
          also comes here (when X has no explicit default constructor). */
-      if (any_cfront_mode() || microsoft_mode ||
-          (is_empty_POD_class && !strict_ansi_mode)) {
-        /* No diagnostic required. (The "empty const object" case parallels
-           the case where such an object is a named variable (see above).
-           It is diagnosed in strict mode only.) */
+      if (is_const_default_constructible(type) ||
+          any_cfront_mode() || microsoft_mode) {
+          /* The resolution of Core issue 253 (via paper P0490R0) defined
+             const-default-constructible types, which do not require an
+             initializer in these cases.  Although originally described as
+             a defect against C++14, it is universal practice to apply the
+             revised rules in all modes. */
+          /* Microsoft and Cfront do not diagnose these cases even if the
+             type is not const-default-constructible. */
       } else {
         /* Issue a discretionary error. */
         if (is_class_struct_union_type(type)) {

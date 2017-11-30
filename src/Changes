@@ -1,5 +1,20 @@
 Version 4.15
 
+11/30/17 [EDGcpfe/18953]
+Default-const-constructible types
+
+The front end now implements the resolution of Core issue 253 (via paper
+P0490R0), which introduces the notion of default-const-constructible types:
+Objects of such types can be default initialized even when const-qualified.
+For example:
+
+  struct B {};
+  struct D: B {};  // D and B and default-const-constructible.
+  D const cd;      // Previously an error in strict mode because of a missing
+                   // initializer.  Now okay (there aren't any members to
+                   // initialize).
+
+
 11/29/17 [EDGcpfe/18973]
 C++-generating back end: Structured bindings not rendered
 
