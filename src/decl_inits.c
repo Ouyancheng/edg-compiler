@@ -9175,7 +9175,6 @@ declaration that has internal linkage because of the explicit presence of a
   a_variable_ptr       vp;
   a_boolean            init_required;
   a_base_class_ptr     bcp;
-  a_boolean            is_empty_POD_class = FALSE;
   an_error_severity    severity;
   a_boolean            is_incomplete_array = FALSE;
 
@@ -9203,20 +9202,6 @@ declaration that has internal linkage because of the explicit presence of a
     if (is_array_type(type)) {
       if (is_incomplete_type(type)) is_incomplete_array = TRUE;
       type = underlying_array_element_type(type);
-    }  /* if */
-    if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(type)) {
-      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
-      if (!cssp->any_nonstatic_data_members &&
-          (cssp->is_cpp03_POD || any_cfront_mode() || microsoft_mode)) {
-        /* Uninitialized const object that is an "empty" POD class (i.e.,
-           one with no nonstatic data members).  The WP probably requires
-           initialization of const objects even when they are empty.  Other
-           C++ compilers don't enforce such a restriction, however. */
-        /* In cfront and Microsoft modes treat a non-POD empty class as
-           though it were a POD. */
-        is_empty_POD_class = TRUE;
-      }  /* if */
     }  /* if */
     if (vp != NULL) {
       /* Uninitialized const variable.  In C++ this is permitted only for
