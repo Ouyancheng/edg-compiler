@@ -22019,8 +22019,9 @@ encountered, whatever their other characteristics, are included.
       /* Compute the number of line feed characters to add. */
       if (new_seq) {
         seq_incr = ppp->pragma_position.seq - curr_seq;
-      } else if (is_pragma_directive) {
-        seq_incr = 1;
+      }  /* if */
+      if (is_pragma_directive) {
+        if (seq_incr == 0) seq_incr = 1;
       }  /* if */
       /* Reset the current line. */
       curr_seq = ppp->pragma_position.seq;
