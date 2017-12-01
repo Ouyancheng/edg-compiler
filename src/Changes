@@ -1,6 +1,21 @@
 Version 4.15
 
 12/1/17  [EDGcpfe/18991]
+C++-generating back end: Initializers for static data member template
+
+The C++-generating back end previously did not always correctly render an
+initializer for a static data member template.  For example, in C++14 mode:
+
+  struct S {
+    template<int I>
+      static constexpr int X[10] = { I };
+  };
+
+Previously, the in-class initializer for S::X was not rendered by the
+C++-generating back end.  That is now fixed.
+
+
+12/1/17  [EDGcpfe/18991]
 Pack expansion in initializer for variadic static data member
 
 The front end previously did not correctly parse a pack expansion in an

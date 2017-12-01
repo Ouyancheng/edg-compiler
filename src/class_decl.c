@@ -16490,6 +16490,7 @@ template declaration and is NULL otherwise.
     }  /* if */
     if (decl_info->is_member_template) {
       /* Don't process the initializer of a variable template. */
+      srk_flags |= SRK_DEFINITION;
     } else if (delay_initializer_scan) {
       record_inclass_initializer_fixup(class_state, decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
@@ -16622,10 +16623,12 @@ template declaration and is NULL otherwise.
       /* The template entry has its own source sequence entry.  Discard the
          one created for the variable declarator. */
       remove_declarator_sse(decl_state, depth_scope_stack);
-      /* Turn the source sequence entry for the a_template entry into a
-         secondary source sequence entry. */
-      sssdp = secondary_src_seq_for_template(il_template_entry);
-      sssdp->declared_type = declared_type;
+      if (!(srk_flags & SRK_DEFINITION)) {
+        /* Turn the source sequence entry for the a_template entry into a
+           secondary source sequence entry. */
+        sssdp = secondary_src_seq_for_template(il_template_entry);
+        sssdp->declared_type = declared_type;
+      }  /* if */
       decl_state->source_sequence_entry =
                       il_template_entry->source_corresp.source_sequence_entry;
       if (srk_flags & SRK_DEFINITION) {
