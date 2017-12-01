@@ -16628,6 +16628,10 @@ template declaration and is NULL otherwise.
       sssdp->declared_type = declared_type;
       decl_state->source_sequence_entry =
                       il_template_entry->source_corresp.source_sequence_entry;
+      if (srk_flags & SRK_DEFINITION) {
+        var->declared_type = declared_type;
+        var->declared_storage_class = decl_state->declared_storage_class;
+      }  /* if */
     } else if (!(srk_flags & SRK_DEFINITION)) {
       an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
@@ -16715,6 +16719,9 @@ template declaration and is NULL otherwise.
           templ->prototype_instantiation.variable = var;
         }  /* if */
         templ->canonical_template = templ;
+        if (srk_flags & SRK_DEFINITION) {
+          templ->definition_template = templ;
+        }  /* if */
         tssp->token_sequence_number = start_tsn;
       } else {
         /* We must be in the midst of a template class instantiation.  We need

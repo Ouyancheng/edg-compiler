@@ -23946,7 +23946,13 @@ variable template specified by locator.  Return the symbol.
   }  /* if */
   set_membership_of_template(decl_state, sym);
   tssp = sym->variant.template_info;
+  tssp->is_variadic = decl_state->is_variadic;
+  tssp->has_variadic_template_params =
+                                     decl_state->has_variadic_template_params;
   set_il_template_entry(decl_state, sym, tssp);
+  if (decl_state->is_var_templ_initial_decl) {
+    tssp->il_template_entry->canonical_template = tssp->il_template_entry;
+  }  /* if */
   create_prototype_variable(decl_state, sym);
   if (is_error_locator(*locator)) {
     decl_state->decl_scope_err = TRUE;
@@ -24009,11 +24015,6 @@ and returned.  Otherwise, NULL is returned.
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
     decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (sym != NULL && !symbol_is(sym, sk_variable_template)) {
-      /* The symbol found is not a variable template.  Ignore it and a
-         redeclaration error will be issued when the new symbol is
-         entered. */
-    }  /* if */
   }  /* if */
   if (sym != NULL && !symbol_is(sym, sk_variable_template)) {
     /* An invalid redeclaration of some other entity.  This will get an
@@ -24435,9 +24436,6 @@ template symbol supplement for this template should be returned to the caller.
     }  /* if */
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    tssp->is_variadic = decl_state->is_variadic;
-    tssp->has_variadic_template_params =
-                                      decl_state->has_variadic_template_params;
     /* Save the information needed to create an instantiation based
        on the definition of the template.  First, save the initializer
        expression.  For a static data member initialized in-class, don't
