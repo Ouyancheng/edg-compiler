@@ -10154,34 +10154,42 @@ See conversion_possible.
        vectors of the same size and "kind" (integer vs. float), regardless of
        the specific element type.  We emulate that behavior when
        permissive_gnu_vector_conversions_enabled is TRUE. */
-    if (identical_types(source_type, dest_type)) {
+    if (!is_vector_type(dest_type)) {
+      /* okay = FALSE; -- already set. */
+    } else if (identical_types(source_type, dest_type)) {
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (clang_mode && is_vector_type(dest_type) &&
-               num_vector_elements(source_type) ==
-                                             num_vector_elements(dest_type)) {
-      /* Clang appears to allow conversions between vectors of the same
-         length if the conversion on the underlying element type is
-         permitted. */
-      okay = impl_conversion_possible(source_type->variant.vector.element_type,
-                                      /*source_is_constant=*/FALSE,
-                                      source_is_string_literal,
-                                      source_is_function,
-                                      is_copy_initialization,
-                                      (a_constant_ptr)NULL,
-                                      dest_type->variant.vector.element_type,
-                                      /*singleton_braced_init=*/FALSE,
-                                      allow_qualifier_or_eh_mismatch,
-                                      suppress_extensions,
-                                      default_warning_code,
-                                      std_conv);
-    } else if (permissive_gnu_vector_conversions_enabled) {
-      if (is_vector_type(dest_type) &&
-          skip_typerefs(source_type->variant.vector.element_type)->kind ==
-                skip_typerefs(dest_type->variant.vector.element_type)->kind &&
-          source_type->size == dest_type->size) {
+    } else {
+      a_boolean   same_length = num_vector_elements(source_type) ==
+                                               num_vector_elements(dest_type);
+      a_type_ptr  src_etp = source_type->variant.vector.element_type,
+                  dst_etp = dest_type->variant.vector.element_type;
+      if (same_length && is_copy_initialization &&
+          identical_types_ignoring_qualifiers(src_etp, dst_etp)) {
         okay = TRUE;
-        std_conv->warning_suggested = ec_incompatible_vectors_conversion;
+        std_conv->nontrivial_conversion = FALSE;
+      } else if (clang_mode && same_length) {
+        /* Clang appears to allow conversions between vectors of the same
+           length if the conversion on the underlying element type is
+           permitted. */
+        okay = impl_conversion_possible(src_etp,
+                                        /*source_is_constant=*/FALSE,
+                                        source_is_string_literal,
+                                        source_is_function,
+                                        is_copy_initialization,
+                                        (a_constant_ptr)NULL,
+                                        dst_etp,
+                                        /*singleton_braced_init=*/FALSE,
+                                        allow_qualifier_or_eh_mismatch,
+                                        suppress_extensions,
+                                        default_warning_code,
+                                        std_conv);
+      } else if (permissive_gnu_vector_conversions_enabled) {
+        if (skip_typerefs(src_etp)->kind == skip_typerefs(dst_etp)->kind &&
+            source_type->size == dest_type->size) {
+          okay = TRUE;
+          std_conv->warning_suggested = ec_incompatible_vectors_conversion;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

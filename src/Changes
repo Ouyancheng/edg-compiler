@@ -1,5 +1,19 @@
 Version 4.15
 
+12/4/17  [EDGcpfe/18970]
+Spurious error on assignment of vectors in GNU C mode
+
+Consider:
+  void g(double __attribute((vector_size(8))) *dst,
+         double const __attribute((vector_size(8))) *src) {
+    *dst = *src;
+  }
+
+Previously, the assignment in that example triggered a spurious error in GNU C
+mode because the source operand includes an added type qualifier (const in this
+case, but a volatile qualifier has the same effect).  That is now fixed.
+
+
 12/4/17  [EDGcpfe/18982]
 Abort on derived-to-base cast folding of decayed array element
 
