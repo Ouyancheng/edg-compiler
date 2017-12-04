@@ -9076,6 +9076,7 @@ the value representation of the integer value.
                     /*is_object_pointer=*/(result_addr->length != 0) ||
                                           expr->variant.operation
                                                .implicit_in_member_naming,
+                    /*omit_back_expr=*/TRUE,
                     &nonconstant, &expr->position, &err_code);
                 addr_con->expr = backing_expr;
                 if (nonconstant || err_code != ec_no_error) {

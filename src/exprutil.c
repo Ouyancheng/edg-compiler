@@ -8771,10 +8771,9 @@ used only in C++ mode.
       if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
       fold_base_class_cast(&operand->variant.constant, bcp, qualifiers_model,
                            temp_con, check_cast_access,
-                           /*check_ambiguity=*/TRUE,
-                           is_implicit_cast,
-                           is_object_pointer, &did_not_fold,
-                           &orig_operand.position,
+                           /*check_ambiguity=*/TRUE, is_implicit_cast,
+                           is_object_pointer, /*omit_back_expr=*/FALSE,
+                           &did_not_fold, &orig_operand.position,
                            p_error_detected);
       if (error_detected != ec_no_error) record_suppressed_error();
     }  /* if */

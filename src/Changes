@@ -1,5 +1,23 @@
 Version 4.15
 
+12/4/17  [EDGcpfe/18982]
+Abort on derived-to-base cast folding of decayed array element
+
+Consider:
+
+  struct B {};
+  struct D: B {};
+  void f(B*);
+  void g() {
+    D da[1][1];
+    f(da[0]);  // Previously triggered an abort.  Now fixed.
+  }
+
+Version 4.13 introduced a regression (as part of the changes for EDGcpfe/17888)
+that causes the front end to abort while attempting to fold the implicit
+derived-to-base cast of the decayed value of da[0].  That is now fixed.
+
+
 12/1/17  [EDGcpfe/18991]
 C++-generating back end: Initializers for static data member template
 

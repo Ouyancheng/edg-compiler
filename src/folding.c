@@ -980,6 +980,7 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_boolean         check_ambiguity,
                           a_boolean         is_implicit_cast,
                           a_boolean         is_object_pointer,
+                          a_boolean         omit_backing_expr,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos,
                           an_error_code     *error_detected)
@@ -991,15 +992,15 @@ constant is returned in *result.  qualifiers_model is a class type whose
 cv-qualification indicates the cv-qualification desired on the result
 (i.e., the result type is the base class type of bcp and the cv-qualifiers
 of qualifiers_model).  result->type need not be set on entry.  Do access
-control on the cast if check_cast_access is TRUE.  Check for ambiguity on
-the cast if check_ambiguity is TRUE.  The cast is implicit if
-is_implicit_cast is TRUE.  The pointer is known to point to an object if
-is_object_pointer is TRUE.  If the operation cannot be folded,
-*did_not_fold is returned TRUE.  If there is an error, issue it at
-*err_pos.  If error_detected is non-NULL, set *error_detected to the code
-for any error detected, and do not issue the diagnostic, or set it to
-ec_no_error if there was no error.  An error constant is (successfully)
-folded to another error constant.
+control on the cast if check_cast_access is TRUE.  Check for ambiguity on the
+cast if check_ambiguity is TRUE.  The cast is implicit if is_implicit_cast is
+TRUE.  The pointer is known to point to an object if is_object_pointer is TRUE.
+If omit_backing_expr is TRUE, do not record a backing expression.  If the
+operation cannot be folded, *did_not_fold is returned TRUE.  If there is an
+error, issue it at *err_pos.  If error_detected is non-NULL, set
+*error_detected to the code for any error detected, and do not issue the
+diagnostic, or set it to ec_no_error if there was no error.  An error constant
+is (successfully) folded to another error constant.
 */
 {
   a_boolean             err;
@@ -1119,7 +1120,7 @@ folded to another error constant.
     /* Record the backing expression if the folding was successful. */
     if (*did_not_fold) {
       expr = NULL;
-    } else {
+    } else if (!omit_backing_expr) {
       if (expr == NULL && constant_is(constant_1, ck_address) &&
           constant_1->variant.address.kind ==
                                          (an_address_base_kind)abk_variable &&
@@ -1347,9 +1348,9 @@ type.
       fold_base_class_cast(old_constant, bcp, type_pointed_to(new_type),
                            new_constant,
                            check_cast_access, check_ambiguity,
-                           is_implicit_cast,
-                           is_object_pointer, did_not_fold, err_pos,
-                           p_err_code);
+                           is_implicit_cast, is_object_pointer,
+                           /*omit_back_expr=*/FALSE,
+                           did_not_fold, err_pos, p_err_code);
       if (p_err_code != NULL && *err_code != ec_no_error) {
         *err_severity = es_error;
       }  /* if */
@@ -6482,8 +6483,8 @@ handle_pm_field_selection:
                                      (a_boolean)expr->variant.operation.
                                                             compiler_generated,
                                      (options & CAO_IS_OBJECT_POINTER) != 0,
-                                     &did_not_fold,
-                                     &error_position,
+                                     /*omit_backing_expr=*/FALSE,
+                                     &did_not_fold, &error_position,
                                      &error_detected);
                 /* A cast to a virtual base class might not fold to a
                    constant even if the original pointer is a constant. */

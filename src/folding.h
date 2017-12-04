@@ -150,6 +150,7 @@ extern void fold_base_class_cast(a_constant        *constant_1,
                                  a_boolean         check_ambiguity,
                                  a_boolean         is_implicit_cast,
                                  a_boolean         is_object_pointer,
+                                 a_boolean         omit_back_expr,
                                  a_boolean         *did_not_fold,
                                  a_source_position *err_pos,
                                  an_error_code     *error_detected);
