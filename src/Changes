@@ -1704,8 +1704,8 @@ in the noexcept specifier did not find "x".  That is now fixed.
 10/3/17  [EDGcpfe/18834]
 Failure to fold initializer for static-lifetime variable
 
-In C++ modes, the front end sometimes failed failed to fold an initializer
-expression for a static-lifetime variable, thereby causing it to use dynamic
+In C++ modes, the front end sometimes failed to fold an initializer expression
+for a static-lifetime variable, thereby causing it to use dynamic
 initialization when static initialization is required.  For example:
 
   extern char const C = "x"[0];
