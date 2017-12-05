@@ -28,7 +28,7 @@ Consider:
   }
 
 Version 4.13 introduced a regression (as part of the changes for EDGcpfe/17888)
-that causes the front end to abort while attempting to fold the implicit
+that caused the front end to abort while attempting to fold the implicit
 derived-to-base cast of the decayed value of da[0].  That is now fixed.
 
 
