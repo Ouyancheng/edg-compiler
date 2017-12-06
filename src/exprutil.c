@@ -19755,6 +19755,7 @@ lvalue_adjust:
              Otherwise, it's rvalueable so we go to the general case. */
           if (allow_folding != NULL &&
               is_glvalue_node(op1) &&
+              !node->variant.operation.is_reinterpret_cast &&
               are_reference_related(node->type, op1->type)) {
             con_expr_value = constant_value_addressed_by_node(op1);
             if (con_expr_value != NULL) {

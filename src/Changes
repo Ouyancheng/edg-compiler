@@ -1,5 +1,22 @@
 Version 4.15
 
+12/6/17  [EDGcpfe/19005]
+Abort on reinterpret_cast in constexpr initializer
+
+Consider:
+
+  struct A { int x; };
+  struct B: A {
+    constexpr B(int i): A() { x = i; }
+  };
+  constexpr B b(29);
+  constexpr A a = reinterpret_cast<A const&>(b); 
+
+Previously, the front end aborted in type_change_constant_full attempting to
+evaluate the reinterpret_cast construct.  That is now fixed: An error is issued
+instead.
+
+
 12/4/17  [EDGcpfe/18970]
 Spurious error on assignment of vectors in GNU C mode
 
