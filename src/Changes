@@ -1,5 +1,18 @@
 Version 4.15
 
+12/6/17  [EDGcpfe/19001]
+Abort on invalid enumerator value
+
+In modes that support constexpr, the front end previously aborted with an
+internal error (in in_range_for_integer_kind) on certain invalid enumerator
+constant values.  For example:
+
+  using A = int[2];
+  enum E { e (unsigned)A{} };  // Previously triggered an internal error.
+
+That is now fixed.
+
+
 12/6/17  [EDGcpfe/18968,EDGcpfe/18961,EDGcpfe/18971,EDGcpfe/19006]
 C++-generating back end: invalid explicit specializations of templates
 

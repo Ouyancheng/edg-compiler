@@ -34848,6 +34848,14 @@ an enumerator.
     force_operand_to_constant_if_possible(operand);
   }  /* if */
   extract_constant_from_operand(operand, result_con);
+  if (is_enum && !constant_is(result_con, ck_integer) &&
+      !constant_is(result_con, ck_template_param) &&
+      !constant_is(result_con, ck_error)) {
+    /* An enumerator constant cannot, for example, be a ck_address entry cast
+       to an integer type. */
+    pos_error(ec_invalid_enumerator_value, &operand->position);
+    set_error_constant(result_con);
+  }  /* if */
 done:;
 }  /* process_converted_constant_expression */
 

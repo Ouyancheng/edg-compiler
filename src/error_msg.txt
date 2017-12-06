@@ -2950,6 +2950,7 @@ ec_inaccessible_rvalue_dtor;;"%nfd is inaccessible"
 ec_bad_enum_template_decl;;"invalid specifier in enum template declaration"
 ec_no_float80;;"80-bit floating-point types are not supported in this configuration"
 ec_no_float128;;"128-bit floating-point types are not supported in this configuration"
+ec_invalid_enumerator_value;;"invalid enumerator value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
