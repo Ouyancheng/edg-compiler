@@ -29456,14 +29456,15 @@ icp.
 */
 {
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
-  a_type_ptr           atype = dps->type, etype;
+  a_type_ptr           atype = dps->type, orig_atype = atype, etype;
   a_boolean            err = FALSE, bitwise_copy = FALSE;
   a_dynamic_init_ptr   dip, array_dip;
   an_operand           operand;
   a_routine_ptr        cctor = NULL, dtor = NULL;
   a_source_position    *pos = &dps->declarator_pos;
 
-  check_assertion(is_array_type(atype));
+  atype = skip_typerefs(atype);
+  check_assertion(atype->kind == (a_type_kind)tk_array);
   etype = underlying_array_element_type(atype);
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
@@ -29478,10 +29479,11 @@ icp.
   extract_operand_from_expression_component(icp, &operand, /*free_icp=*/FALSE);
   if (is_incomplete_type(etype) || is_incomplete_array_type(atype)) {
     /* An incomplete type cannot be copied. */
-    pos_ty_error(ec_struct_binding_incomplete_type, pos, atype);
+    pos_ty_error(ec_struct_binding_incomplete_type, pos, orig_atype);
     dps->type = error_type();
     err = TRUE;
-  } else if (is_class_struct_union_type(etype)) {
+  } else if (is_class_struct_union_type(etype) &&
+             !atype->variant.array.is_template_dependent_size_array) {
     /* Find the proper copy constructor for copying an element of an array
        of class objects. */
     a_type_ptr    tp = skip_typerefs(etype);
@@ -29548,7 +29550,8 @@ icp.
   } else {
     /* The copy uses a copy constructor.  Use a dik_constructor dynamic
        init entry with an implied source. */
-    dip = alloc_expr_ctor_dynamic_init(cctor, (an_expr_node_ptr)NULL, atype,
+    dip = alloc_expr_ctor_dynamic_init(cctor, (an_expr_node_ptr)NULL,
+                                       orig_atype,
                                        /*add_default_args=*/TRUE,
                                        /*implied_source=*/TRUE,
                                        /*value_init=*/FALSE,
@@ -29588,7 +29591,7 @@ icp.
     n_elems = num_array_elements(atype);
     array_dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-    repeat_nonconstant_init(dip, atype, etype, array_dip, n_elems);
+    repeat_nonconstant_init(dip, orig_atype, etype, array_dip, n_elems);
     dip = array_dip;
   }  /* if */
   if (dtor != NULL && !err) {

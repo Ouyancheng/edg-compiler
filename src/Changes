@@ -1,5 +1,20 @@
 Version 4.15
 
+12/6/17  [EDGcpfe/19003]
+Abort on structured binding of array with template-dependent bound
+
+The front end previously aborted with an internal error in num_array_elements
+when processing a structured binding of an array with nontrivial copy semantics
+and a template-dependent bound.  For example:
+
+  struct S { S(S const&); };
+  template<int N> void f(S (&sa)[N]) {
+    auto [x] = sa;  // Previously an internal error.  Now okay.
+  }
+
+This is now fixed.
+
+
 12/6/17  [EDGcpfe/19005]
 Abort on reinterpret_cast in constexpr initializer
 
