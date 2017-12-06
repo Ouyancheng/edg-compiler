@@ -8628,10 +8628,6 @@ typedef struct a_type {
 			/* On function types, TRUE if the type has been
 			   examined for prototype scopes, and the types
 			   in those scopes promoted out to the file scope. */
-  a_bit_field	has_been_defined:1;
-			/* Used for class/struct/union types: FALSE until
-			   the definition has been emitted, TRUE
-			   thereafter. */
   a_bit_field	typedef_pending:1;
 			/* For a typedef, a TRUE value indicates that the
 			   definition has been deferred from its position in
@@ -8649,6 +8645,10 @@ typedef struct a_type {
 			   generates the corresponding struct as empty.  See
 			   USE_EMPTY_STRUCT_IN_GENERATED_C for details. */
 #endif /* BACK_END_IS_C_GEN_BE */
+  a_bit_field	has_been_defined:1;
+			/* Used in the C- and C++-generating back ends for
+			   class/struct/union types: FALSE until the
+			   definition has been emitted, TRUE thereafter. */
   a_bit_field	typedef_definition_has_been_put_out:1;
 			/* TRUE if this type is a typedef and its definition
 			   has been put out.  Used only within the C- and

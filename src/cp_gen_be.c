@@ -8646,6 +8646,7 @@ is the one associated with the definition of the class.
   pop_name_context_if_member(&type->source_corresp);
   gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
                  /*primary_only=*/TRUE);
+  type->has_been_defined = TRUE;
 }  /* gen_class_definition */
 
 
@@ -9021,6 +9022,71 @@ flags on the classes found on an earlier call.
   return any_found;
 }  /* gen_typedefs_for_template_classes_in_specialization_arg_list */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+static a_boolean suppress_invalid_explicit_specialization(
+                                               a_source_correspondence_ptr scp,
+                                               a_template_arg_ptr          tap)
+/*
+Return TRUE if an explicit instantiation for the class, function, or
+variable template instance represented by scp, with the template argument
+list represented by tap, would be invalid (e.g., if the template arguments
+are inaccessible or members of a not-yet-defined class, or if the explicit
+specialization would be inside a class in a mode where explicit
+instantiations are only permitted in namespace scope).
+*/
+{
+  a_boolean  result = FALSE;
+  a_type_ptr containing_class = NULL;
+  if (curr_name_context_is_a_class()) {
+    /* We're inside a class definition. */
+    containing_class = curr_name_context->class_type;
+    if (microsoft_dialect_is_generated_code_target) {
+      /* Microsoft compilers accept in-class explicit specializations for
+         templates that are members of the same class. */
+      result = (!scp->is_class_member ||
+                scp_parent_class(scp) != containing_class);
+    } else {
+      /* Standard C++ does not allow an explicit specialization in a class
+         scope. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    /* Check template arguments for accessibility and visibility. */
+    begin_template_arg_list_traversal_simple(tap, &tap);
+    while (tap != NULL && !result) {
+      a_boolean for_all_scopes;
+      result = !template_arg_is_accessible(tap, /*ignore_context=*/FALSE,
+                                           &for_all_scopes);
+      if (!result) {
+        /* Check that the template argument is not a member of a
+           not-yet-defined class. */
+        a_source_correspondence_ptr arg_scp = NULL;
+        switch (tap->kind) {
+          case tak_type:
+            arg_scp = &tap->variant.type->source_corresp;
+            break;
+          case tak_nontype:
+            if (!tap->is_array_bound_of_unknown_type) {
+              arg_scp = &tap->variant.constant->source_corresp;
+            }  /* if */
+            break;
+          case tak_template:
+            arg_scp = &tap->variant.templ.ptr->source_corresp;
+            break;
+          case tak_start_of_pack_expansion:
+            break;
+        }  /* switch */
+        result = (arg_scp != NULL && arg_scp->is_class_member &&
+                  !scp_parent_class(arg_scp)->has_been_defined &&
+                  scp_parent_class(arg_scp) != containing_class);
+      }  /* if */
+      advance_to_next_template_arg_simple(&tap);
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* suppress_invalid_explicit_specialization */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void gen_type_decl(a_boolean suppress_specifiers,
                           a_boolean *another_decl_in_comma_list)
@@ -9124,6 +9190,32 @@ this one is such a continuation.
          anonymous unions associated with variables get this processing too. */
       skip_type_and_delay_definition(type, is_definition);
     }  /* if */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  } else if (is_immediate_class_type(type) &&
+             class_type_supp(type)->template_arg_list != NULL &&
+             !type->variant.class_struct_union.is_specialized &&
+             suppress_invalid_explicit_specialization(
+                                   &type->source_corresp,
+                                   class_type_supp(type)->template_arg_list)) {
+    /* This is an explicit specialization corresponding to an implicit
+       instantiation, and the explicit specialization cannot be validly
+       put out in this location.  Just discard the class definition. */
+    for (;;) {
+      if (ss_entry_kind(curr_source_sequence_entry) !=
+                                                iek_src_seq_end_of_construct) {
+        adv_curr_source_sequence_entry();
+      } else {
+        a_src_seq_end_of_construct_ptr ssecp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+        adv_curr_source_sequence_entry();
+        if (ss_entry_kind(ssecp) == iek_type &&
+            ss_entry_ptr(ssecp, a_type_ptr) == type) {
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   } else {
     /* Set the output position. */
     set_decl_position(&type->source_corresp, sec_decl);
@@ -14756,7 +14848,9 @@ is the one associated with the template.
        parameters, and those do not come through here. */
     check_assertion(!prototype_instantiations_in_il ||
                     (tp->canonical_template != NULL &&
-                     tp->canonical_template->definition_template == tp));
+                     (tp->canonical_template->definition_template == tp ||
+                      (tp->kind == (a_template_kind)templk_variable &&
+                       parent_class_or_null(tp) != NULL))));
     is_definition = TRUE;
   }  /* if */
   if (sec_decl != NULL && sec_decl->friend_decl &&
@@ -17306,6 +17400,16 @@ this one is such a continuation.
   }  /* if */
   check_assertion(!var->is_template_variable ||
                   var->template_info->assoc_template != NULL);
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (var->template_info != NULL &&
+      var->template_info->template_arg_list != NULL &&
+      !var->is_specialized &&
+      suppress_invalid_explicit_specialization(
+                                      &var->source_corresp,
+                                      var->template_info->template_arg_list)) {
+    goto end_of_routine;
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (template_decl != NULL) {
     a_type_ptr	parent_class;
     if (assoc_template->canonical_template->is_exported) gen_export();
@@ -17321,8 +17425,8 @@ this one is such a continuation.
                                               name_ref);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&var->source_corresp,
-                                       /*is_in_class_specialization=*/FALSE,
-                                       (a_template_arg_ptr)NULL);
+                                       curr_name_context_is_a_class(),
+                                       var->template_info->template_arg_list);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (var->is_initonly) write_tok_str("initonly ");
@@ -17615,6 +17719,9 @@ this one is such a continuation.
     }  /* if */
     write_tok_ch(';');
   }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+end_of_routine:;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 }  /* gen_variable_decl */
 
 
@@ -18387,6 +18494,19 @@ handle_as_definition:
        Older Microsoft compilers issue a spurious error on such explicit
        specializations.  Discard the declaration. */
     discard_declaration = TRUE;
+  }  /* if */
+  if (!discard_declaration && rout->template_arg_list != NULL &&
+      !rout->is_specialized) {
+    /* This is a generated instance of a function template.  Determine
+       whether to put out an explicit specialization for it. */
+    a_boolean for_all_scopes;
+    if (suppress_invalid_explicit_specialization(&rout->source_corresp,
+                                                 rout->template_arg_list) ||
+        !entity_name_is_accessible(&rout->type->source_corresp, iek_type,
+                                   /*ignore_context=*/FALSE,
+                                   &for_all_scopes)) {
+      discard_declaration = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (discard_declaration) {

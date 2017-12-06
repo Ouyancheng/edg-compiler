@@ -1,5 +1,36 @@
 Version 4.15
 
+12/6/17  [EDGcpfe/18968,EDGcpfe/18961,EDGcpfe/18971,EDGcpfe/19006]
+C++-generating back end: invalid explicit specializations of templates
+
+When the front end is configured with
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and/or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+C++-generating back end attempts to generate an explicit specialization
+corresponding to each implicit instantiation of a template.  Unfortunately,
+not all implicit instantiations can be represented by valid explicit
+specializations in C++.  The C++-generating back end has now been changed
+to detect several cases where an explicit specialization would be invalid
+and suppress them.  These cases include when the explicit specialization
+would require use of an inaccessible class member; when the point of
+instantiation of the template occurs before a class containing a member
+that would be required in the explicit specialization; and when the
+explicit specialization would appear in a non-namespace-scope context.
+(The last restriction is relaxed somewhat when
+microsoft_dialect_is_generated_code_target is TRUE; in that case, the
+explicit specialization is permitted when the template being specialized is
+a member of the class in which the explicit specialization would appear,
+since the Microsoft compiler accepts such explicit specializations.)  For
+example:
+
+  template <class T> struct A { };
+  struct Outer {
+    struct Inner { };
+    A<Inner> m;  // Previously generated template<> A<Inner> specialization
+                 // within Outer, now suppressed.
+  };
+
+
 12/6/17  [EDGcpfe/19003]
 Abort on structured binding of array with template-dependent bound
 
