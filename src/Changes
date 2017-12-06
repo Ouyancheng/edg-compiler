@@ -8,7 +8,7 @@ internal error (in in_range_for_integer_kind) on certain invalid enumerator
 constant values.  For example:
 
   using A = int[2];
-  enum E { e (unsigned)A{} };  // Previously triggered an internal error.
+  enum E { e = (unsigned)A{} };  // Previously triggered an internal error.
 
 That is now fixed.
 
