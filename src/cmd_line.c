@@ -3416,7 +3416,7 @@ default mode (e.g., exception handling).
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
       overaligned_allocation_enabled = TRUE;
       mandatory_copy_elision = TRUE;
-      generalized_nontype_arguments = TRUE;
+      generalized_nontype_arguments = FALSE; //TRUE;
       strict_cpp17_eval_order = TRUE;
       if (!option_kind_used[(int)optk_trigraphs]) {
         trigraphs_allowed = FALSE;

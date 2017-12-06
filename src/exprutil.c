@@ -12063,7 +12063,7 @@ expression (and the expression is evaluated).
 
   /* Constant expressions allow invalid operators/constructs in unevaluated
      subexpressions, including dead operands of "?", "&&", and "||". */
-  if (constexpr_enabled && !constexpr_lambdas_enabled &&
+  if (constexpr_enabled &&
       curr_expr_is_evaluated() &&
       !curr_expr_is_potentially_unevaluated()) {
     expr_stack->constant_expr_ruled_out = TRUE;

@@ -32622,10 +32622,11 @@ Scan a C++ lambda expression, e.g., something like
        context is evaluated (e.g., the operand of a typeid). */
     expr_stack->potentially_unevaluated_lambda_seen = TRUE;
     expr_stack->potentially_unevaluated_lambda_pos = start_pos;
-  } else if (construct_not_allowed_in_cpp11_constant_expr(
+  } else if (!constexpr_lambdas_enabled &&
+             construct_not_allowed_in_cpp11_constant_expr(
                                                         ec_bad_constant_lambda,
                                                         &start_pos)) {
-    /* Lambdas are not allowed in C++11 constant expressions. */
+    /* Lambdas are not allowed in C++11 and C++14 constant expressions. */
     err = TRUE;
   }  /* if */
   /* Push an entry on the expression stack so that we have our own

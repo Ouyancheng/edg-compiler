@@ -1,5 +1,23 @@
 Version 4.15
 
+12/6/17  [EDGcpfe/19002]
+Abort on certain invalid constant-expressions
+
+The changes that enabled lambdas in constant-expressions (in C++17 mode; see
+the entry for EDGcpfe/17690,EDGcpfe/17995) introduced a regression in version
+4.14 that caused certain invalid constant-expressions to trigger aborts.
+For example:
+
+  struct A { ~A() {} };
+  struct B {
+    A b; 
+    constexpr int f() { return 42; }
+  };
+  template <typename T> T x[B().f()];   // Previously triggered an abort.
+
+That is now fixed.
+
+
 12/6/17  [EDGcpfe/19001]
 Abort on invalid enumerator value
 
