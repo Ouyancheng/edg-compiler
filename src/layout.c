@@ -1966,8 +1966,8 @@ types).
            zero are considered for this kind of conflicts.  Virtual bases and
            bases of virtual bases aren't always considered. */
         if ((!in_field && identical_types(bcp->type, eb_type)) ||
-            gnu_conflict_found(bcp->type, ebcp,
-                               in_field, consider_virtual_bases)) {
+            (bcp->direct && gnu_conflict_found(bcp->type, ebcp, in_field,
+                                               consider_virtual_bases))) {
           result = TRUE;
           break;
         }  /* if */

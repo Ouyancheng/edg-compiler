@@ -1,5 +1,14 @@
 Version 4.15
 
+12/7/17  [EDGcpfe/19011]
+Excessive time spent on emulation of GNU ABI bug for complex class types
+
+In some cases, the front end's algorithm to emulate a class of GNU ABI bugs
+(specifically, function gnu_conflict_found in layout.c) spent excessive time
+on class types with very deep and complex inheritance structures.  The
+performance of such cases has been improved significantly.
+
+
 12/7/17  [EDGcpfe/18951]
 Local static default initialization with a constexpr constructor
 
