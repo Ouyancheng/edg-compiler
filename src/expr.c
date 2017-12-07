@@ -30265,7 +30265,7 @@ verification.
     check_assertion(curr_rout != NULL);
     if (curr_rout->is_inline &&
 #if GNU_EXTENSIONS_ALLOWED
-        !curr_rout->gnu_c89_inline &&
+        !(curr_rout->gnu_c89_inline || gnu_c89_inlining) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
         curr_rout->storage_class != (a_storage_class)sc_static) {
       /* The current routine is an inline function with external linkage. */
@@ -30854,7 +30854,7 @@ variable:
           } else {
             /* In C99 mode (except in GNU C mode) check that a variable
                referenced within an inline function is valid. */
-            if (c99_mode && !gcc_mode) {
+            if (c99_mode) {
               check_reference_from_inline_function(sym_ptr);
             }  /* if */
             if (var_ptr->is_template_variable &&

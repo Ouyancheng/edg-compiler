@@ -1,5 +1,20 @@
 Version 4.15
 
+12/7/17  [EDGcpfe/19009]
+Missing diagnostic on invalid references in GNU C99 inline functions
+
+In C99, an inline function with external linkage cannot refer to a variable
+with internal linkage.  However, the front end failed to emit the corresponding
+diagnostic in GNU (and Clang) C99 modes.  For example:
+
+  static int x = 0;
+  inline int g(void) {
+    return x;  // Invalid in C99 mode, but previously not diagnosed in
+  }            // GNU/Clang C99 modes.  Now an error in those modes.
+
+This is now fixed.
+
+
 12/7/17  [EDGcpfe/19011]
 Excessive time spent on emulation of GNU ABI bug for complex class types
 
