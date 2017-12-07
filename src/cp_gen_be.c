@@ -9074,7 +9074,7 @@ instantiations are only permitted in namespace scope).
           case tak_template:
             arg_scp = &tap->variant.templ.ptr->source_corresp;
             break;
-          case tak_start_of_pack_expansion:
+          default:
             break;
         }  /* switch */
         result = (arg_scp != NULL && arg_scp->is_class_member &&
@@ -9199,22 +9199,27 @@ this one is such a continuation.
                                    class_type_supp(type)->template_arg_list)) {
     /* This is an explicit specialization corresponding to an implicit
        instantiation, and the explicit specialization cannot be validly
-       put out in this location.  Just discard the class definition. */
-    for (;;) {
-      if (ss_entry_kind(curr_source_sequence_entry) !=
+       put out in this location.  Just discard the class definition, if
+       any. */
+    if (is_definition) {
+      for (;;) {
+        if (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
-        adv_curr_source_sequence_entry();
-      } else {
-        a_src_seq_end_of_construct_ptr ssecp =
+          adv_curr_source_sequence_entry();
+        } else {
+          a_src_seq_end_of_construct_ptr ssecp =
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-        adv_curr_source_sequence_entry();
-        if (ss_entry_kind(ssecp) == iek_type &&
-            ss_entry_ptr(ssecp, a_type_ptr) == type) {
-          break;
+          adv_curr_source_sequence_entry();
+          if (ss_entry_kind(ssecp) == iek_type &&
+              ss_entry_ptr(ssecp, a_type_ptr) == type) {
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    } else {
+      adv_curr_source_sequence_entry();
+    }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   } else {
     /* Set the output position. */
