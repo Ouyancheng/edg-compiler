@@ -6063,13 +6063,18 @@ FALSE is returned) for non-class objects.
                  initialization on top of the constant. */
               cp = repeat_constant_for_array_init(cp, var_type);
             }  /* if */
-            if (static_lifetime &&
-                depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-                !has_nontrivial_destructor(cssp)) {
+            if (static_lifetime && !has_nontrivial_destructor(cssp)) {
               /* A nonlocal static-lifetime variable initialized with a
                  constant value. */
               var->init_kind = (an_init_kind)initk_static;
-              var->initializer.constant = cp;
+              if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+                var->initializer.constant = cp;
+              } else {
+                (void)make_local_static_variable_init(
+                                                var, (a_scope_ptr)NULL,
+                                                (an_init_kind)initk_static,
+                                                cp, (a_dynamic_init_ptr)NULL);
+              }  /* if */
               init_dip = NULL;
             } else {
               /* A local variable with automatic storage duration or a variable

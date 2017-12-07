@@ -1,5 +1,24 @@
 Version 4.15
 
+12/7/17  [EDGcpfe/18951]
+Local static default initialization with a constexpr constructor
+
+The front end previously did not record as "static" the default-initialization
+of a local static variable when that initialization corresponded to a foldable
+constexpr constructor call.  For example:
+
+  struct S {
+    int i;
+    constexpr S(): i{42} {}
+  };
+  int g() {
+    static S s;  // Previously the initialization indicated initk_dynamic.
+    return s.i;  // Now it is initk_static.
+  }
+
+That is now fixed.
+
+
 12/7/17  [EDGcpfe/19014]
 Spurious errors on unevaluated non-constant-expression operators in C++14 mode
 
