@@ -21961,7 +21961,7 @@ indicates which.
                  to handle an offsetof macro implementation.) */
               make_template_param_expr_constant_operand(operand);
             }  /* if */
-            if (reinterpret_semantics &&
+            if (reinterpret_semantics && !relaxed_constexpr_enabled &&
                 !(cast_to_reference &&
                   (microsoft_mode || (gpp_mode && gnu_version >= 40600)))) {
               /* A reinterpret_cast is not allowed in C++11 constant
