@@ -5425,6 +5425,7 @@ make_inert_macro:
         a_boolean saved_fetch_pp_tokens = fetch_pp_tokens;
         a_boolean saved_in_preprocessing_directive =
                                                     in_preprocessing_directive;
+        a_boolean saved_in_pp_if = in_pp_if_expression;
         a_boolean is_identifier;
         if (get_token() != tok_lparen) {
           /* Unlike normal function-style macros, clang always treats
@@ -5437,9 +5438,11 @@ make_inert_macro:
           expand_macros = FALSE;
           fetch_pp_tokens = FALSE;
           in_preprocessing_directive = FALSE;
+          in_pp_if_expression = FALSE;
           is_identifier = (get_token() == tok_identifier);
           in_preprocessing_directive = saved_in_preprocessing_directive;
           fetch_pp_tokens = saved_fetch_pp_tokens;
+          in_pp_if_expression = saved_in_pp_if;
           if (get_token() != tok_rparen) {
             pos_error(ec_exp_rparen, &pos_curr_token);
             flush_to_closing_paren();
