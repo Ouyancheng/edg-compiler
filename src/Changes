@@ -1,5 +1,20 @@
 Version 4.15
 
+12/7/17  [EDGcpfe/19014]
+Spurious errors on unevaluated non-constant-expression operators in C++14 mode
+
+C++14 relaxed the rules for constant-expressions compared to C++11.  However,
+the front end still imposed some C++11 constraints in C++14 mode.  For example:
+
+  template<bool B, double (&RA)[B ? 42 : throw]> struct S;
+      // Previously an error in C++14 mode.  Now okay.
+
+In C++11, the expression "B ? 42 : throw" is never a constant-expression
+because of the "throw" expression, but in C++14 (and later) it is a constant-
+expression when B is true.  The front end previously spuriously issued a
+diagnostic in C++14 mode.  That is now fixed.
+
+
 12/6/17  [EDGcpfe/19002]
 Abort on certain invalid constant-expressions
 

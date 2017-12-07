@@ -12085,7 +12085,8 @@ and TRUE is returned, if we are currently inside a constant expression
 (and the expression is evaluated).
 */
 {
-  a_boolean err = construct_not_allowed_in_cpp11_constant_expr(
+  a_boolean err = !relaxed_constexpr_enabled &&
+                  construct_not_allowed_in_cpp11_constant_expr(
                                                 ec_bad_constant_operator, pos);
   return err;
 }  /* operator_not_allowed_in_cpp11_constant_expr */
