@@ -1,5 +1,25 @@
 Version 4.15
 
+12/8/17  [EDGcpfe/18015,EDGcpfe/18138]
+Declared type not set for variable template instantiations
+
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the
+declared_type field of an instantiation of a variable template was not set.
+This could cause an internal error in the C++-generating back end in
+configurations with NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE.  Now fixed.
+
+  template <typename T> constexpr T v = T(1);
+  template<typename T> T f(T r) {
+    return v<T> * r;
+  }
+  int main() {
+    double d;
+    d = f<double>(2);
+  }
+
+
+
 12/7/17  [EDGcpfe/19009]
 Missing diagnostic on invalid references in GNU C99 inline functions
 

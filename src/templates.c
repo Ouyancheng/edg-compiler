@@ -6505,6 +6505,14 @@ expression context) rather than a declaration.
     /* Copy the in-class initializer flag from the prototype instantiation. */
     var_ptr->initializer_in_class = proto_var->initializer_in_class;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (is_var_templ_instance && var_ptr->declared_type == NULL &&
+      dps.declared_type != NULL) {
+    /* For in-class definitions, the declared type is set in
+       decl_static_data_member. */
+    var_ptr->declared_type = dps.declared_type;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!template_sym->is_class_member &&
       is_const_qualified_type(var_ptr->type)) {
     var_ptr->storage_class = (a_storage_class)sc_static;
