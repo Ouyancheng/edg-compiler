@@ -1,5 +1,22 @@
 Version 4.15
 
+12/8/17  [EDGcpfe/19000]
+definition_needed not always set correctly in C++17
+
+When a function is needed only because it is used in a C++17-style selection
+statement with an initializer (see the entry for [EDGcpfe/17414,EDGcpfe/17706])
+the front end sometimes failed to set that function's definition_needed flag.
+For example, in C++17 mode with lowering disabled:
+
+  int g1();
+  int g2();
+  void f() {
+    if (int i = g1(); g2()) {}  // g2 previously had its definition_needed
+  }                             // set to TRUE, but g1 not.  Now both are set.
+
+This is now fixed.
+
+
 12/8/17  [EDGcpfe/18015,EDGcpfe/18138]
 Declared type not set for variable template instantiations
 

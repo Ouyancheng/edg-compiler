@@ -979,7 +979,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         conditionally_clear_fe_pointer(
                        eptr->orig_param_type_for_unevaluated_default_arg_expr);
-        walk_list(eptr->entities_defined_in_default_arg,
+        walk_list_not_needed(
+                  eptr->entities_defined_in_default_arg,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(eptr->decl_pos_info, a_decl_position_supplement_ptr,
@@ -3712,8 +3713,8 @@ after_entry_from_class:
 #define eptr ((an_il_entity_list_entry_ptr)entry_ptr)
         remap_next_ptr(eptr->next, an_il_entity_list_entry_ptr,
                        iek_il_entity_list_entry);
-        walk_ptr_not_needed(eptr->entity.ptr, a_char_ptr,
-                            (an_il_entry_kind)eptr->entity.kind);
+        walk_ptr(eptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)eptr->entity.kind);
 #undef eptr
       }
       break;
