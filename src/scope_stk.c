@@ -1267,10 +1267,15 @@ therefore called when the file scope is popped for the first time.)
   while (entry != NULL) {
     to_verify = entry;
     if (to_verify->routine->definition_for_inlining_only) {
-      an_error_severity  severity = strict_ansi_mode ?
-                                          strict_ansi_discretionary_severity :
-                                          es_discretionary_error;
+      an_error_severity  severity;
       an_error_code      code;
+      if (strict_ansi_mode) {
+        severity = strict_ansi_discretionary_severity;
+      } else if (gcc_mode || clang_mode) {
+        severity = es_warning;
+      } else {
+        severity = es_discretionary_error;
+      }  /* if */
       if (to_verify->static_variable_decl) {
         code = ec_static_variable_in_inline_function;
       } else {
