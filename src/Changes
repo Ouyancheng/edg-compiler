@@ -1,5 +1,20 @@
 Version 4.15
 
+12/10/17 [EDGcpfe/19019]
+Microsoft compatibility: internal error in hidden name processing
+
+When RECORD_HIDDEN_NAMES_IN_IL is TRUE, an internal error could occur
+(in inactive_scope_lookup) during hidden name processing in Microsoft
+mode.  Now fixed.
+
+  template<typename T1, int I1> struct S1;
+  template<typename T1> struct S1<T1, 0> { };
+  template<typename T1, int I1 = 1> struct S1 : public S1<T1, 0> {
+    template <typename T2, int I2> friend class S1;
+  };
+  class S2 : public S1<S2> { };
+
+
 12/10/17 [EDGcpfe/19016]
 Incorrect disambiguation of template argument list followed by ">>"
 
