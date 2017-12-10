@@ -1708,7 +1708,9 @@ types separated by commas (when single_type_required is FALSE).
       }  /* if */
     } else if (is_template_argument(flags)) {
       /* A template argument may be followed by a comma or a greater-than. */
-      if (curr_token != tok_comma && curr_token != tok_gt) {
+      if (curr_token != tok_comma && curr_token != tok_gt &&
+          (!scope_stack_top().in_template_arg_list ||
+           curr_token != tok_shift_right)) {
         state.may_be_decl = FALSE;
       }  /* if */
     } else {

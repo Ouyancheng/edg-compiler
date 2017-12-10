@@ -1,5 +1,17 @@
 Version 4.15
 
+12/10/17 [EDGcpfe/19016]
+Incorrect disambiguation of template argument list followed by ">>"
+
+Disambiguation is used to determine if a template argument to a nonreal
+template is a type or nontype.  This could produce an incorrect result
+when the template argument was followed by a ">>" that is intended to
+terminate two template argument lists.  Now fixed.
+
+  template <class T> struct A {};
+  template <class T> struct B : A<typename T::template C<typename T::X>> {};
+
+
 12/8/17  [EDGcpfe/19000]
 definition_needed not always set correctly in C++17
 
