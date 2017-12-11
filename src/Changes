@@ -1,5 +1,25 @@
 Version 4.15
 
+12/11/17 [EDGcpfe/19021]
+GNU C++ compatibility: Meaning of block-extern declarations in namespaces
+
+The changes made by EDGcpfe/9830 and EDGcpfe/10238 to emulate a GCC bug appear
+to have been fixed by GCC in version 4.6.0 and the conditions where these
+workarounds had been applied are now limited to GCC emulation mode (and not
+clang emulation mode) when gnu_version < 40600.  The change can have an
+effect on mangled names for variables and non-class-member functions, for
+example:
+
+  extern void g(char);
+  namespace N {
+    void f();
+  }
+  void N::f() {
+    extern char x;  // x is now mangled when gnu_version >= 40600
+    g(x);
+  }
+
+
 12/11/17 [EDGcpfe/19025]
 Abort on invalid constexpr variable initializer involving virtual destructor
 

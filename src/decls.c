@@ -2756,14 +2756,14 @@ an instantiation context (possibly with intervening namespace extensions).
 static a_scope_depth get_effective_depth_innermost_namespace(void)
 /*
 Return the "effective" innermost namespace scope depth.  Usually, this is just
-depth_innermost_namespace_scope.  In GNU C++ modes, however, namespace
-extensions that are implicitly pushed on the scope stack as part of a
+depth_innermost_namespace_scope.  In (pre-4.6.0) GNU C++ modes, however,
+namespace extensions that are implicitly pushed on the scope stack as part of a
 class or namespace reactivation are ignored (but reactivations for
 instantiations are treated as "explicit" in this context).  This is used to
 emulate GCC's behavior wrt. certain block extern declarations.  For example:
       namespace N { struct S { void f(); }; }
       void N::S::f() {
-        void g();  // ::g in g++ mode, N::g otherwise.
+        void g();  // ::g in pre-4.6.0 g++ mode, N::g otherwise.
       }
 */
 {
@@ -6730,12 +6730,12 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
   effective_decl_level = idlb.effective_decl_level;
   linkage = idlb.linkage;
-  if (gpp_mode && idlb.is_block_extern_decl &&
+  if (gpp_version_is(<40600) && idlb.is_block_extern_decl &&
       depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-    /* In GNU C++ mode, the "innermost namespace scope" considered for block-
-       extern declarations should ignore namespace extension scopes that don't
-       correspond to actual namespace extension declarations (instead, they
-       are the result of "reactivating" the namespace).  E.g.:
+    /* In pre-4.6.0 GNU C++ modes, the "innermost namespace scope" considered
+       for block-extern declarations should ignore namespace extension scopes
+       that don't correspond to actual namespace extension declarations
+       (instead, they are the result of "reactivating" the namespace).  E.g.:
           namespace N { struct S { void f(); }; }
           void N::S::f() {
             extern float g;  // ::g in g++ mode, N::g otherwise.
@@ -8414,12 +8414,12 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   }  /* if */
-  if (gpp_mode && idlb.is_block_extern_decl &&
+  if (gpp_version_is(<40600) && idlb.is_block_extern_decl &&
       depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-    /* In GNU C++ mode, the "innermost namespace scope" considered for block-
-       extern declarations should ignore namespace extension scopes that don't
-       correspond to actual namespace extension declarations (instead, they
-       are the result of "reactivating" the namespace).  E.g.:
+    /* In pre-4.6.0 GNU C++ modes, the "innermost namespace scope" considered
+       for block-extern declarations should ignore namespace extension scopes
+       that don't correspond to actual namespace extension declarations
+       (instead, they are the result of "reactivating" the namespace).  E.g.:
           namespace N { struct S { void f(); }; }
           void N::S::f() {
             void g();  // ::g in g++ mode, N::g otherwise.
