@@ -1,5 +1,22 @@
 Version 4.15
 
+12/11/17 [EDGcpfe/19025]
+Abort on invalid constexpr variable initializer involving virtual destructor
+
+Consider:
+
+  struct S { virtual ~S(); };
+  S* g() {
+    constexpr S *p = new S[42];
+    return p;
+  }
+
+Previously, this aborted (in unbundle_init_component_expressions in overload.c)
+because the front end failed to consider error cases that might generate
+unexpected object lifetime entries in constant-expression contexts.  That is
+now fixed: An ordinary error is issued.
+
+
 12/10/17 [EDGcpfe/19019]
 Microsoft compatibility: internal error in hidden name processing
 

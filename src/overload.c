@@ -23069,7 +23069,7 @@ object lifetime context.
                expression temporary lifetime in long lifetime temporaries
                mode.  Promote into the current lifetime, whatever it is,
                in that case. */
-            check_assertion(long_lifetime_temps);
+            check_assertion_or_expect_error(long_lifetime_temps);
             promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
             free_object_lifetime(wrap_lifetime);
           }  /* if */
