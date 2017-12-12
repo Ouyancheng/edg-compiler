@@ -12181,7 +12181,7 @@ parameters.
     new_const_type = NULL;
     if (have_params) {
       /* Substitute the type of the nontype parameter. */
-      const_type = tpp->param_symbol->variant.constant->type;
+      const_type = tpp->variant.constant.ptr->type;
       if (tpp->variant.constant.type_involves_template_param) {
         /* The type of the template parameter involves a template
            parameter.   Substitute the current set of template arguments
