@@ -11361,7 +11361,9 @@ position of the __if_exists or __if_not_exists token.
 */
 {
   a_boolean	result = FALSE;
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   a_boolean	is_this = FALSE;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   a_symbol_ptr	sym = NULL;
 
   check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
@@ -11369,7 +11371,9 @@ position of the __if_exists or __if_not_exists token.
   if (curr_token == tok_this) {
     /* "this" keyword.  See if we are in a context where the "this" keyword
         can be used. */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
     is_this = TRUE;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
     if (is_template_dependent_context()) {
       /* Don't attempt to check for validity in dependent contexts.  This
          allows the __if_exist to potentially be kept in the IL below. */
