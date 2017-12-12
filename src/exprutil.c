@@ -15674,6 +15674,7 @@ a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
                                      a_routine_ptr     ctor_routine,
                                      an_expr_node_ptr  args,
                                      a_type_ptr        dest_type,
+                                     a_boolean         static_temp,
                                      a_boolean         add_default_args,
                                      a_boolean         implied_source,
                                      a_boolean         value_init,
@@ -15684,18 +15685,19 @@ a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
 /*
 Allocate a dynamic initialization entry for a constructor call
 (dik_constructor), and return a pointer to it.  ctor_routine gives the
-constructor (NULL for a dependent case); args gives the constructor
-argument list; dest_type is the destination type, if there is one
-(e.g., for a cast), or NULL otherwise; add_default_args is TRUE if the
-expressions for any default arguments should be added to the end of
-the argument list; implied_source is TRUE if the call is a copy
-constructor call and the source for the copy is implied; value_init is
-TRUE if value-initialization is required; and sequenced_args is TRUE
-if the arguments must be evaluated left-to-right.  pos is the source
-position of the call (may be omitted if ctor_routine is NULL).
-Does not fill in the destructor information, if any.
+constructor (NULL for a dependent case).  args gives the constructor argument
+list.  dest_type is the destination type, if there is one (e.g., for a cast),
+or NULL otherwise.  static_temp is TRUE if the static_temp field of the
+generated entry should be set to TRUE.  add_default_args is TRUE if the
+expressions for any default arguments should be added to the end of the
+argument list.  implied_source is TRUE if the call is a copy constructor call
+and the source for the copy is implied.  value_init is TRUE if value-
+initialization is required.  sequenced_args is TRUE if the arguments must be
+evaluated left-to-right.  pos is the source position of the call (may be
+omitted if ctor_routine is NULL).  This function does not fill in the
+destructor information, if any.
 
-If constexpr is enabled, and fold_constexpr is TRUE, the construction may be
+If constexpr is enabled and fold_constexpr is TRUE the construction may be
 folded to a constant (a dik_constant dynamic init entry is returned).  If
 check_constexpr is also TRUE, diagnostics are emitted in contexts requiring
 successful folding.
@@ -15706,10 +15708,18 @@ successful folding.
                  alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
 
   dip->variant.constructor.ptr = ctor_routine;
-  dip->variant.constructor.is_copy_constructor_with_implied_source =
-                                                                implied_source;
-  dip->variant.constructor.value_initialization = value_init;
-  dip->variant.constructor.has_sequenced_arguments = sequenced_args;
+  if (static_temp) {
+    dip->static_temp = TRUE;
+  }  /* if */
+  if (implied_source) {
+    dip->variant.constructor.is_copy_constructor_with_implied_source = TRUE;
+  }  /* if */
+  if (value_init) {
+    dip->variant.constructor.value_initialization = TRUE;
+  }  /* if */
+  if (sequenced_args) {
+    dip->variant.constructor.has_sequenced_arguments = TRUE;
+  }  /* if */
   /* Add default arguments if any. */
   if (add_default_args) {
     a_param_type_ptr ptp;

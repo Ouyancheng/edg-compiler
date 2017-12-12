@@ -1,5 +1,19 @@
 Version 4.15
 
+12/12/17 [EDGcpfe/19037]
+std::initializer_list in local static initializers
+
+Consider the following example:
+
+  #include <initializer_list>
+  int main() {
+    static auto lst = { 1, 2, 3 };
+  }
+
+Previously, the initialization of lst was represented as a "dynamic" operation
+(initk_dynamic).  Now it is a "static" initialization (initk_static).
+
+
 12/12/17 [EDGcpfe/19028]
 Abort on user-defined literal in C++17 mode
 

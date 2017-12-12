@@ -2062,6 +2062,7 @@ extern a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
                                             a_routine_ptr     ctor_routine,
                                             an_expr_node_ptr  args,
                                             a_type_ptr        dest_type,
+                                            a_boolean         static_temp,
                                             a_boolean         add_default_args,
                                             a_boolean         implied_source,
                                             a_boolean         value_init,

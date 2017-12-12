@@ -19309,6 +19309,7 @@ an explicit cast.  *position gives the source position.
     dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                        arg_expr_list,
                                        temp_type,
+                                       /*static_temp=*/FALSE,
                                        /*add_default_args=*/FALSE,
                                        /*implied_source=*/FALSE,
                                        /*value_init=*/FALSE,
@@ -20354,6 +20355,7 @@ happen only in C++ mode.
     dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
                                        make_node_from_operand(source_operand),
                                        dest_type,
+                                       /*static_temp=*/FALSE,
                                        /*add_default_args=*/FALSE,
                                        /*implied_source=*/FALSE,
                                        /*value_init=*/FALSE,
@@ -20391,6 +20393,7 @@ happen only in C++ mode.
       dip = alloc_expr_ctor_dynamic_init(conversion_routine,
                                          arg_expr_list,
                                          dest_type,
+                                         /*static_temp=*/FALSE,
                                          /*add_default_args=*/FALSE,
                                          /*implied_source=*/FALSE,
                                          /*value_init=*/FALSE,
@@ -22376,6 +22379,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
         dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                            (an_expr_node_ptr)NULL,
                                            dest_type,
+                                           /*static_temp=*/FALSE,
                                            /*add_default_args=*/TRUE,
                                            /*implied_source=*/FALSE,
                                            /*value_init=*/TRUE,
@@ -22942,6 +22946,7 @@ be suppressed (i.e., SFINAE mode).
       dip = alloc_expr_ctor_dynamic_init(ctor,
                                          arg1,
                                          list_type,
+                                         static_lifetime,
                                          /*add_default_args=*/TRUE,
                                          /*implied_source=*/FALSE,
                                          /*value_init=*/FALSE,
@@ -22986,6 +22991,8 @@ be suppressed (i.e., SFINAE mode).
           }  /* if */
           make_expression_operand(expr, operand);
         }  /* if */
+      } else if (initializing_var) {
+        extend_temporary_lifetime(dip, static_lifetime);
       }  /* if */
     }  /* if */
     if (operand != NULL) {

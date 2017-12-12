@@ -856,6 +856,12 @@ typedef struct an_interpreter_state {
   a_bit_field
 		call_seen:1;
 			/* TRUE if a call was interpreted. */
+  a_bit_field
+		permit_address_of_local_temporary:1;
+			/* TRUE if copy_interpreter_object_to_constant should
+			   permit the creation of an address to a local
+			   temporary object (used for local static
+			   initializer_list objects). */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -2048,6 +2054,7 @@ Initialize the given interpreter state.
   ips->suspend_diag_list = FALSE;
   ips->input_error = FALSE;
   ips->call_seen = FALSE;
+  ips->permit_address_of_local_temporary = FALSE;
 }  /* init_interpreter_state */
 
 
@@ -12929,6 +12936,11 @@ diagnostic in *ips.
           a_byte          *mptr;
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
+          a_boolean       permit_local_temp;
+          permit_local_temp = ips->permit_address_of_local_temporary;
+          if (permit_local_temp) {
+            ips->permit_address_of_local_temporary = FALSE;
+          }  /* if */
           set_constant_kind(con, (a_constant_repr_kind)ck_address);
           get_stack_bytes(ips, cap->complete_object, mptr);
           if (mptr != NULL) {
@@ -13059,7 +13071,8 @@ diagnostic in *ips.
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
                     cap->alloc_seq_number == 0) ||
-                  depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+                  (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+                   !permit_local_temp)) {
                 /* The address of a temporary results in a dangling pointer. */
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_expiring_temporary,
@@ -13620,9 +13633,8 @@ return FALSE, and record diagnostic info in *diag_list.
   if (is_error_dynamic_init(dip)) {
     set_error_constant(result_con);
     goto done;
-  } else {
-    ctor = dip->variant.constructor.ptr;
   }  /* if */
+  ctor = dip->variant.constructor.ptr;
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   if (!result) {
@@ -13634,6 +13646,14 @@ return FALSE, and record diagnostic info in *diag_list.
     }  /* if */
     /* Nothing more to be done. */
   } else {
+    if (dip->static_temp &&
+        is_immediate_class_type(result_type) &&
+        class_type_supp(result_type)->is_initializer_list) {
+      /* When constructing a static std::initializer_list temporary object,
+         the embedded pointer can point to a temporary if it is "local"
+         (because it will be a static array). */
+      ips.permit_address_of_local_temporary = TRUE;
+    }  /* if */
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
                            result_storage, /*implied_src=*/NULL)) {
