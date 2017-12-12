@@ -11363,7 +11363,6 @@ position of the __if_exists or __if_not_exists token.
   a_boolean	result = FALSE;
   a_boolean	is_this = FALSE;
   a_symbol_ptr	sym = NULL;
-  a_boolean	err = FALSE;
 
   check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
   *is_dependent = FALSE;
@@ -11424,36 +11423,35 @@ position of the __if_exists or __if_not_exists token.
     (void)get_token();
   } else {
     pos_error(ec_exp_identifier, &error_position);
-    err = TRUE;
+    *is_dependent = FALSE;
   }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  if (!err) {
-    /* For a dependent identifier, create a source sequence entry to
-       mark the start of the __if_exists. */
-    if (*is_dependent && generate_microsoft_if_exists_entries()) {
-      an_ms_if_exists_ptr	msiep;
-      char			*entity;
-      an_il_entry_kind		kind;
-      msiep = alloc_ms_if_exists();
-      if (is_this) {
-        msiep->is_this = TRUE;
-      } else {     
-        entity = il_entry_for_symbol(sym, &kind);
-        msiep->entity.ptr = entity;
-        msiep->entity.kind = (a_byte_il_entry_kind)kind;
-        if (record_name_references_in_context()) {
-          msiep->name_reference = qualifiable_name_reference(
+  /* For a dependent identifier, create a source sequence entry to
+     mark the start of the __if_exists.  Note that *is_dependent will
+     always be FALSE for the error case above. */
+  if (*is_dependent && generate_microsoft_if_exists_entries()) {
+    an_ms_if_exists_ptr	msiep;
+    char			*entity;
+    an_il_entry_kind		kind;
+    msiep = alloc_ms_if_exists();
+    if (is_this) {
+      msiep->is_this = TRUE;
+    } else {     
+      entity = il_entry_for_symbol(sym, &kind);
+      msiep->entity.ptr = entity;
+      msiep->entity.kind = (a_byte_il_entry_kind)kind;
+      if (record_name_references_in_context()) {
+        msiep->name_reference = qualifiable_name_reference(
                                              &locator_for_curr_id,
                                              (a_source_correspondence*)entity);
-        }  /* if */
       }  /* if */
-      msiep->position = *start_pos;
-      msiep->is_if_exists = is_if_exists;
-      msiep->pending = TRUE;
-      add_to_ms_if_exists_list(msiep, decl_scope_level);
-      add_to_source_sequence_list((char *)msiep,
-                                  (an_il_entry_kind)iek_ms_if_exists);
     }  /* if */
+    msiep->position = *start_pos;
+    msiep->is_if_exists = is_if_exists;
+    msiep->pending = TRUE;
+    add_to_ms_if_exists_list(msiep, decl_scope_level);
+    add_to_source_sequence_list((char *)msiep,
+                                (an_il_entry_kind)iek_ms_if_exists);
   }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   return result;
