@@ -16808,7 +16808,7 @@ error cases.
   call_node->variant.operation.call_uses_operator_syntax =
                                                           uses_operator_syntax;
   if (strict_cpp17_eval_order) {
-    if (uses_operator_syntax) {
+    if (uses_operator_syntax && !special_kind_is(rout, sfk_udl_operator)) {
       check_assertion(rout != NULL && special_kind_is(rout, sfk_operator));
       switch (rout->variant.opname_kind) {
         case onk_assign:

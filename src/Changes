@@ -1,5 +1,20 @@
 Version 4.15
 
+12/12/17 [EDGcpfe/19028]
+Abort on user-defined literal in C++17 mode
+
+The changes implementing new C++17 rules for evaluation order (see the entry
+for EDGcpfe/17701) introduced a regression causing an internal error on the
+use of user-defined literals (UDLs).  For example:
+
+  unsigned int operator""_zu(unsigned long long value) noexcept {
+    return static_cast<unsigned int>(value);
+  }
+  int j = 4_zu;
+
+That is now fixed.
+
+
 12/12/17 [EDGcpfe/18810,EDGcpfe/19030]
 Microsoft compatibility: "this" in __if_exists
 
