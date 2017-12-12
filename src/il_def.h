@@ -2061,7 +2061,8 @@ typedef struct an_ms_if_exists {
 			   result in the creation of a nonreal member X of T,
 			   so an entity will be exist for this entry to point
 			   to in such cases.  This pointer will be NULL in the
-			   entry for the end of the block. */
+			   entry for the end of the block.  This is also NULL
+			   when the is_this flag is TRUE. */
   a_source_position
 		position;
 			/* The position of the start of the __if_exists
@@ -2069,7 +2070,8 @@ typedef struct an_ms_if_exists {
 			   this entry marks the end of the block. */
   a_name_reference_ptr
 		name_reference;
-			/* The form of the identifier used. */
+			/* The form of the identifier used.  NULL when
+			   is_this is TRUE. */
   a_byte_boolean
 		is_if_exists;
 			/* TRUE if this an __if_exists, FALSE if it is
@@ -2082,6 +2084,10 @@ typedef struct an_ms_if_exists {
 			   been encountered.  This is used by the front end,
 			   and is only used for entries for the start of a
 			   block. */
+  a_byte_boolean
+		is_this;
+			/* TRUE if the "this" keyword appeared instead of
+			   an identifier. */
 } an_ms_if_exists;
 
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */

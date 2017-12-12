@@ -15472,7 +15472,7 @@ the __if_exist appears between top-level declarations of the class.
 
   /* Advance past the source sequence entry for the __if_exists. */
   adv_curr_source_sequence_entry();
-  if (entity != NULL) {
+  if (entity != NULL || msiep->is_this) {
     /* A non-NULL entity pointer indicates that this is the start of the
        __if_exists block.  If we are in a class definition context, check
        if an access specifier must be emitted. */
@@ -15480,7 +15480,9 @@ the __if_exist appears between top-level declarations of the class.
     set_output_position(&msiep->position);
     write_tok_str((char *)(msiep->is_if_exists ? "__if_exists("
                                                : "__if_not_exists("));
-    if (gen_name_from_name_reference(msiep->name_reference,
+    if (msiep->is_this) {
+      write_tok_str("this");
+    } else if (gen_name_from_name_reference(msiep->name_reference,
                                      (a_source_correspondence*)entity,
                                      (an_il_entry_kind)msiep->entity.kind,
                                      /*is_declaration=*/FALSE,

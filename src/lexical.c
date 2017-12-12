@@ -11360,13 +11360,30 @@ the identifier refers to a template-dependent entity.  start_pos is the
 position of the __if_exists or __if_not_exists token.
 */
 {
-  a_boolean		result = FALSE;
+  a_boolean	result = FALSE;
+  a_boolean	is_this = FALSE;
+  a_symbol_ptr	sym = NULL;
+  a_boolean	err = FALSE;
 
   check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
   *is_dependent = FALSE;
-  if (is_generalized_identifier_start(GID_IN_IF_EXISTS)) {
+  if (curr_token == tok_this) {
+    /* "this" keyword.  See if we are in a context where the "this" keyword
+        can be used. */
+    is_this = TRUE;
+    if (is_template_dependent_context()) {
+      /* Don't attempt to check for validity in dependent contexts.  This
+         allows the __if_exist to potentially be kept in the IL below. */
+      *is_dependent = TRUE;
+      result = TRUE;
+    } else {
+      result = variable_this_exists((a_variable_ptr*)NULL, (a_type_ptr*)NULL);
+      if (!is_if_exists) result = !result;
+    }  /* if */
+    /* Bypass the keyword. */
+    (void)get_token();
+  } else if (is_generalized_identifier_start(GID_IN_IF_EXISTS)) {
     a_boolean		err;
-    a_symbol_ptr	sym;
     sym = coalesce_and_lookup_generalized_identifier(
                                  GID_IN_IF_EXISTS, ilm_normal, &err);
     /* Determine whether the symbol refers to a dependent entity.  If the
@@ -11403,35 +11420,42 @@ position of the __if_exists or __if_not_exists token.
       }  /* if */
       result = is_if_exists == exists;
     }  /* if */
+    /* Bypass the identifier. */
+    (void)get_token();
+  } else {
+    pos_error(ec_exp_identifier, &error_position);
+    err = TRUE;
+  }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  if (!err) {
     /* For a dependent identifier, create a source sequence entry to
        mark the start of the __if_exists. */
     if (*is_dependent && generate_microsoft_if_exists_entries()) {
       an_ms_if_exists_ptr	msiep;
       char			*entity;
       an_il_entry_kind		kind;
-      entity = il_entry_for_symbol(sym, &kind);
       msiep = alloc_ms_if_exists();
-      msiep->entity.ptr = entity;
-      msiep->entity.kind = (a_byte_il_entry_kind)kind;
+      if (is_this) {
+        msiep->is_this = TRUE;
+      } else {     
+        entity = il_entry_for_symbol(sym, &kind);
+        msiep->entity.ptr = entity;
+        msiep->entity.kind = (a_byte_il_entry_kind)kind;
+        if (record_name_references_in_context()) {
+          msiep->name_reference = qualifiable_name_reference(
+                                             &locator_for_curr_id,
+                                             (a_source_correspondence*)entity);
+        }  /* if */
+      }  /* if */
       msiep->position = *start_pos;
       msiep->is_if_exists = is_if_exists;
       msiep->pending = TRUE;
-      if (record_name_references_in_context()) {
-        msiep->name_reference = qualifiable_name_reference(
-                                             &locator_for_curr_id,
-                                             (a_source_correspondence*)entity);
-      }  /* if */
       add_to_ms_if_exists_list(msiep, decl_scope_level);
       add_to_source_sequence_list((char *)msiep,
                                   (an_il_entry_kind)iek_ms_if_exists);
     }  /* if */
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-    /* Bypass the identifier. */
-    (void)get_token();
-  } else {
-    pos_error(ec_exp_identifier, &error_position);
   }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   return result;
 }  /* scan_if_exists_identifier */
 

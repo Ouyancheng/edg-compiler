@@ -5158,6 +5158,7 @@ and return a pointer to it.
   msiep->name_reference = NULL;
   msiep->is_if_exists = FALSE;
   msiep->pending = FALSE;
+  msiep->is_this = FALSE;
   return msiep;
 }  /* alloc_ms_if_exists */
 

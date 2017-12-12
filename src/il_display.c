@@ -6043,6 +6043,7 @@ Display the indicated Microsoft __if_exists entry.
              iek_name_reference);
   }  /* if */
   if (ptr->pending) disp_boolean("pending", (a_boolean)ptr->pending);
+  if (ptr->is_this) disp_boolean("is_this", (a_boolean)ptr->is_this);
 }  /* disp_ms_if_exists */
 
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
