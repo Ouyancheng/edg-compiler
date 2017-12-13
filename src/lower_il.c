@@ -12744,15 +12744,8 @@ detached from the IL tree; otherwise it is set to FALSE.
          to
               (func(&temp), temp)
       */
-      a_variable_ptr   temp_var;
-      check_assertion(!rtsp->value_returned_by_cctor);
-      temp_var = make_lowered_temporary(original_return_type(rout_type));
-      temp_node = var_addr_expr(temp_var);
-      call_expr = copy_node(expr);
-      call_expr->type = void_type();
-      call_expr->next = var_rvalue_expr(temp_var);
-      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        call_expr->next->type, /*is_lvalue=*/FALSE, call_expr);
+      /* Code to perform this transformation must be added by the customer. */
+      unexpected_condition();
     } else {
       /* This only happens under a dik_class_result_via_ctor dynamic
          initialization entry. */
