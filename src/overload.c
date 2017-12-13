@@ -13776,13 +13776,15 @@ not_direct_binding_case:
                                                            (an_operand *)NULL);
           unqual_return_type = return_type;
         }  /* if */
-        /* g++ uses old [temp.deduct.conv] rules predating core issue 976
-           and therefore doesn't drop the cv-qualifiers on P when A is not
-           a reference (because at that point in the old rules, P had not
-           been changed to the underlying type if it was a reference).
-           Checked in 4.4. */
+        /* g++ uses old [temp.deduct.conv] rules predating core issue 976 and
+           therefore doesn't drop the cv-qualifiers on P when A is not a
+           reference (because at that point in the old rules, P had not been
+           changed to the underlying type if it was a reference), but it only
+           behaves that way if P is actually dependent.  Checked in GCC 7.2
+           and earlier. */
         if (gpp_mode &&
-            is_reference_type(il_return_type_of(conv_routine_type))) {
+            is_reference_type(il_return_type_of(conv_routine_type)) &&
+            is_template_dependent_type(return_type)) {
           weird_gpp_case = TRUE;
         }  /* if */
       }  /* if */

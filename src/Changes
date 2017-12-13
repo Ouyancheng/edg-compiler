@@ -1,5 +1,24 @@
 Version 4.15
 
+12/13/17 [EDGcpfe/18555]
+GNU C++ mode: Deduction of conversion function template returning reference
+
+The changes for EDGcpfe/10521 (see entry of 3/10/10) described an odd behavior
+of the GCC compiler when deducing conversion function templates that return
+reference types.  It turns out that that behavior only occurred for
+conversion function templates where the returned type is template-dependent.
+For example:
+
+  struct S {
+    template <bool = true> operator unsigned const&() const;
+  };
+  unsigned size = S();  // Previously an error in GNU C++11 mode.  Now okay.
+
+This example is accepted by GCC because the destination type of the conversion
+operator template is not dependent on a template parameters of that template.
+The front ends behavior has been adjusted to match GCC's behavior.
+
+
 12/12/17 [EDGcpfe/18113,EDGcpfe/19032]
 Incorrect type used for type of nontype template parameter
 
@@ -56448,6 +56467,7 @@ reference to a cv-qualified type has been adjusted to match g++ in
 GNU C++ mode.  g++ appears to use the rules in [temp.deduct.conv] of the
 standard before they were corrected by core issue 976.
 
+  template<typename>
   struct C {
     C();
     template <class U> C(const C<U>&);
