@@ -859,7 +859,7 @@ typedef struct an_interpreter_state {
   a_bit_field
 		permit_address_of_local_temporary:1;
 			/* TRUE if copy_interpreter_object_to_constant should
-			   permit the creation of an address to a local
+			   permit the creation of an address of a local
 			   temporary object (used for local static
 			   initializer_list objects). */
   a_storage_stack_state
