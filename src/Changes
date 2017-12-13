@@ -1,5 +1,14 @@
 Version 4.15
 
+12/13/17 [EDGcpfe/18929]
+Spurious error on use of generic lambda parameter in return type
+
+In some fairly complex cases the front end issued a spurious error in strict
+mode on generic lambdas whose return type is expressed in terms of a parameter
+of that lambda (e.g., "decltype(p)" where p is a parameter of the lambda).
+That is now fixed.
+
+
 12/13/17 [EDGcpfe/18555]
 GNU C++ mode: Deduction of conversion function template returning reference
 

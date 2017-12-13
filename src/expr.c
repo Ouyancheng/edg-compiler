@@ -29713,12 +29713,14 @@ Return TRUE if we are currently in the header (not the body) of a lambda.
   if (scope_is(ssep, sck_func_prototype)) {
     ssep -= 1;
   }  /* if */
-  if (scope_is(ssep, sck_template_declaration)) {
-    /* In the case of a generic lambda, we may be in a template declaration
-       scope. */
+  if (scope_is(ssep, sck_template_declaration) ||
+      scope_is(ssep, sck_template_instantiation)) {
+    /* In the case of a generic lambda, we may be in a template declaration or
+       template instantiation scope. */
     ssep -= 1;
   }  /* if */
-  if (scope_is(ssep, sck_class_struct_union) &&
+  if ((scope_is(ssep, sck_class_struct_union) ||
+       scope_is(ssep, sck_class_reactivation)) &&
       type_is_lambda_closure(ssep->assoc_type)) {
     /* We're in a lambda declarator (if a function prototype scope was not
        skipped above, this is presumably a prescan). */
