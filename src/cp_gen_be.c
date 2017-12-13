@@ -9064,7 +9064,7 @@ instantiations are only permitted in namespace scope).
         a_source_correspondence_ptr arg_scp = NULL;
         switch (tap->kind) {
           case tak_type:
-            arg_scp = &tap->variant.type->source_corresp;
+            arg_scp = &skip_typerefs(tap->variant.type)->source_corresp;
             break;
           case tak_nontype:
             if (!tap->is_array_bound_of_unknown_type) {
@@ -9191,8 +9191,7 @@ this one is such a continuation.
       skip_type_and_delay_definition(type, is_definition);
     }  /* if */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  } else if (is_immediate_class_type(type) &&
-             class_type_supp(type)->template_arg_list != NULL &&
+  } else if (is_immediate_class_type(type) && is_specialization &&
              !type->variant.class_struct_union.is_specialized &&
              suppress_invalid_explicit_specialization(
                                    &type->source_corresp,
@@ -18506,13 +18505,37 @@ handle_as_definition:
       !rout->is_specialized) {
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
-    a_boolean for_all_scopes;
     if (suppress_invalid_explicit_specialization(&rout->source_corresp,
-                                                 rout->template_arg_list) ||
-        !entity_name_is_accessible(&rout->type->source_corresp, iek_type,
-                                   /*ignore_context=*/FALSE,
-                                   &for_all_scopes)) {
+                                                 rout->template_arg_list)) {
       discard_declaration = TRUE;
+    } else {
+      /* Check whether the various types used in the declaration are
+         accessible. */
+      a_type_ptr       ret_type;
+      a_param_type_ptr ptp;
+      a_boolean        for_all_scopes;
+      ret_type = unqual_rout_type->variant.routine.return_type;
+      if (ret_type->kind == (a_type_kind)tk_typeref &&
+          typeref_is_type_operator(ret_type)) {
+        /* Rather than attempting to deal with all the complexities of a
+           full expression operand, entity_name_is_accessible assumes that
+           all type operators are inaccessible.  That eliminates too many
+           potential explicit specializations, though, so we make the
+           opposite assumption here. */
+      } else {
+        discard_declaration =
+                 !entity_name_is_accessible(&ret_type->source_corresp,
+                                            iek_type, /*ignore_context=*/FALSE,
+                                            &for_all_scopes);
+      }  /* if */
+      /* Check the parameter types as well. */
+      for (ptp = rtsp->param_type_list; !discard_declaration && ptp != NULL;
+           ptp = ptp->next) {
+        discard_declaration =
+                 !entity_name_is_accessible(&ptp->type->source_corresp,
+                                            iek_type, /*ignore_context=*/FALSE,
+                                            &for_all_scopes);
+      }  /* for */
     }  /* if */
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
