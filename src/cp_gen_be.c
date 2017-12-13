@@ -9192,6 +9192,7 @@ this one is such a continuation.
     }  /* if */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   } else if (is_immediate_class_type(type) && is_specialization &&
+             class_type_supp(type)->template_arg_list != NULL &&
              !type->variant.class_struct_union.is_specialized &&
              suppress_invalid_explicit_specialization(
                                    &type->source_corresp,
