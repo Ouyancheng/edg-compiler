@@ -14213,6 +14213,66 @@ needed) and adjusts conv_func_type accordingly (i.e., eliminating the
 }  /* complete_closure_conversion_template_type_deduction */
 
 
+static void complete_closure_entry_point_deduction(
+				           a_symbol_ptr        templ_sym,
+				           a_template_arg_ptr  templ_arg_list,
+				           a_type_ptr          entry_type)
+/*
+templ_sym is the alternate entry point template of a generic lambda (for the
+call operator), and entry_type is the deduced type for that entry point so far
+(with templ_arg_list the corresponding template argument list).  However, that
+deduced type may still contain an "auto" type that hasn't been deduced yet.
+For example:
+
+	auto lambda = [](auto a) { return a+1; };
+	int (*pf)(int) = lambda;
+
+The ordinary deduction process will deduce a conversion function type as
+follows: function() returning pointer to function(int) returning "auto-type".
+
+For cases like that, this function instantiates the lambda call operator (if
+needed) and adjusts entry_type accordingly (i.e., eliminating the
+"auto-type").
+*/
+{
+  a_type_ptr     closure_class = sym_parent_class(templ_sym);
+  a_routine_ptr  proto_call_rp = lambda_body_for_closure(closure_class);
+
+  if (proto_call_rp == NULL) {
+    expect_error();
+  } else if (proto_call_rp->has_deducible_return_type) {
+    /* The prototype instance has a deducible return type.  Instantiate the
+       associated template if needed. */
+    a_symbol_ptr   call_op_template_sym =
+                                    symbol_for(proto_call_rp->assoc_template);
+    a_symbol_ptr   instance_sym;
+    a_routine_ptr  instance_rp;
+    /* Copy the template argument list for the new instantiation (the copied
+       list will be freed by find_template_function if a matching instance
+       already exists). */
+    templ_arg_list = copy_template_arg_list(templ_arg_list);
+    instance_sym = find_template_function(call_op_template_sym,
+                                          &templ_arg_list,
+                                          /*explicit_arg_list_present=*/FALSE,
+                                          &error_position);
+    instance_rp = instance_sym->variant.routine.ptr;
+    if (instance_rp->has_deducible_return_type) {
+      finalize_deduced_return_type(instance_rp, &error_position);
+      if (instance_rp->type->kind == (a_type_kind)tk_routine) {
+        check_assertion(entry_type->kind == (a_type_kind)tk_routine);
+        entry_type->variant.routine.return_type = 
+                               instance_rp->type->variant.routine.return_type;
+        set_routine_calling_method_flag(entry_type, &null_source_position);
+      } else {
+        expect_error();
+      }  /* if */
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
+}  /* complete_closure_entry_point_deduction */
+
+
 a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
@@ -14311,15 +14371,24 @@ during wrapup processing by compare_function_templates.
                                                &copy_error, &ctws_state);
       }  /* if */
       if (copy_error) templ_rout_type = NULL;
-      if (generic_lambdas_enabled && templ_rout_type != NULL &&
-          special_kind_is(tssp->variant.function.routine, sfk_conversion) &&
-          class_type_supp(sym_parent_class(templ_sym))
+      if (generic_lambdas_enabled && templ_rout_type != NULL) {
+        a_routine_ptr  templ_rout = tssp->variant.function.routine;
+        if (special_kind_is(templ_rout, sfk_conversion)) {
+          if (class_type_supp(sym_parent_class(templ_sym))
                                                   ->is_lambda_closure_class) {
-        /* We are deducing a conversion function template for a generic lambda.
-           This may require an additional step to complete deduction. */
-        complete_closure_conversion_template_type_deduction(templ_sym,
-                                                            templ_arg_list,
-                                                            templ_rout_type);
+            /* We are deducing a conversion function template for a generic
+               lambda.  This may require an additional step to complete
+               deduction. */
+            complete_closure_conversion_template_type_deduction(
+                                  templ_sym, templ_arg_list, templ_rout_type);
+          }  /* if */
+        } else if (special_kind_is(templ_rout, sfk_lambda_entry_point)) {
+          /* Similarly, a deduced return type on the alternate entry point
+             for a lambda call operator (used by the closure's conversion
+             function) must also be determined from the call operator. */
+          complete_closure_entry_point_deduction(
+                                  templ_sym, templ_arg_list, templ_rout_type);
+        }  /* if */
       }  /* if */
       if (templ_rout_type != NULL) {
         /* Reset the flags in the param type entry to reflect whether the
@@ -16162,15 +16231,21 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                                   &templ_sym->decl_position,
                                                   CTWS_NO_OPTIONS, &copy_error,
                                                   &ctws_state);
-          if (special_kind_is(templ_rout, sfk_conversion) &&
-              class_type_supp(parent_class)->is_lambda_closure_class) {
-            /* Substitution is not always sufficient for the conversion
-               function template of a generic lambda: If a deduced return
-               type is involved, that has to be determined from the call
-               operator. */
-            complete_closure_conversion_template_type_deduction(templ_sym,
-                                                                templ_arg_list,
-                                                                rout_type);
+          if (special_kind_is(templ_rout, sfk_conversion)) {
+            if (class_type_supp(parent_class)->is_lambda_closure_class) {
+              /* Substitution is not always sufficient for the conversion
+                 function template of a generic lambda: If a deduced return
+                 type is involved, that has to be determined from the call
+                 operator. */
+              complete_closure_conversion_template_type_deduction(
+                                        templ_sym, templ_arg_list, rout_type);
+            }  /* if */
+          } else if (special_kind_is(templ_rout, sfk_lambda_entry_point)) {
+            /* Similarly, a deduced return type on the alternate entry point
+               for a lambda call operator (used by the closure's conversion
+               function) must also be determined from the call operator. */
+            complete_closure_entry_point_deduction(
+                                        templ_sym, templ_arg_list, rout_type);
           }  /* if */
         }  /* if */
       } else {
