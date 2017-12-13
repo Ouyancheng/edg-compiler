@@ -2414,6 +2414,7 @@ routine.
   mark_routine_referenced(static_entry_pt);
   block_stmt = alloc_statement((a_statement_kind)stmk_block);
   block_stmt->variant.block.statements = return_stmt;
+  block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
   fn_scope->assoc_block = block_stmt;
   pop_scope();
   check_assertion(conv_op->is_inline);

@@ -14202,6 +14202,7 @@ needed) and adjusts conv_func_type accordingly (i.e., eliminating the
         check_assertion(dest_func_type->kind == (a_type_kind)tk_routine);
         dest_func_type->variant.routine.return_type = 
                                instance_rp->type->variant.routine.return_type;
+        set_routine_calling_method_flag(dest_func_type, &null_source_position);
       } else {
         expect_error();
       }  /* if */
