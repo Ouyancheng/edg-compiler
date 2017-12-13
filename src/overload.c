@@ -22954,6 +22954,15 @@ be suppressed (i.e., SFINAE mode).
                                          /*fold_constexpr=*/TRUE,
                                          /*check_constexpr=*/FALSE,
                                          pos);
+      if (is_error_dynamic_init(dip)) {
+        /* dip will not have the structure of an initializer_list construction.
+           Skip the remainder. */
+        if (p_dip != NULL) *p_dip = dip;
+        if (operand != NULL) {
+          make_error_operand(operand);
+        }  /* if */
+        goto done;
+      }  /* if */
       dip->is_creation_of_initializer_list_object = TRUE;
       dip->is_explicit_cast = is_cast;
       if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
@@ -22995,6 +23004,7 @@ be suppressed (i.e., SFINAE mode).
         extend_temporary_lifetime(dip, static_lifetime);
       }  /* if */
     }  /* if */
+done:
     if (operand != NULL) {
       operand->position = *pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
