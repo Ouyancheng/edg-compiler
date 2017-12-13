@@ -1,5 +1,28 @@
 Version 4.15
 
+12/12/17 [EDGcpfe/18113,EDGcpfe/19032]
+Incorrect type used for type of nontype template parameter
+
+A change made in version 4.12 (see EDGcpfe/17039) could cause a template
+parameter whose type depends on another template parameter of the same
+declaration to be considered to have the incorrect type during substitution.
+Now fixed.
+
+  class A {};
+  template<typename T, T t> class B {
+    template<typename U, U u> friend A& operator<<(A&, B<U, u>&);
+  };
+  class X {
+    B<unsigned int, 0> x;
+  };
+  int main() {
+    A a;
+    B<int, 0> b;
+    // Overload resolution fails because the "u" in B<U, u> has wrong type
+    a << b;
+ }
+
+
 12/12/17 [EDGcpfe/18957]
 Conversion function of generic lambdas
 
