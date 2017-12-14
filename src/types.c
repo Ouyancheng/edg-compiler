@@ -5855,11 +5855,11 @@ top_of_loop:
           a_compare_constants_options_set cc_options =
                                          CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
           /* When this routine is called with the "exact template param" flag
-             set, pass the corresponding flag to the constant comparison
+             set, pass the corresponding flags to the constant comparison
              routine. */
           if (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) {
-            cc_options |= CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
-            cc_options |= CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED;
+            cc_options |= (CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED |
+                           CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED);
           }  /* if */
           result = !compare_expressions(expr1, expr2, cc_options);
         }  /* if */
