@@ -4641,14 +4641,18 @@ operator of a no-capture lambda.
     }  /* if */
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
-    /* The routine types must be similar.  They may differ in the number
-       of parameters, but the return types and whether or not they return
-       their return value as a parameter should be identical. */
-    check_assertion(il_identical_types(lowered_return_type_of(routine->type),
-                                       lowered_return_type_of(
-                                                         new_routine->type)) &&
-                    rtsp->value_returned_as_parameter ==
+#if CHECKING
+    {
+      /* The routine types must be similar.  They may differ in the number
+         of parameters, but the return types and whether or not they return
+         their return value as a parameter should be identical. */
+      a_type_ptr orig_return_type = lowered_return_type_of(routine->type);
+      a_type_ptr new_return_type = lowered_return_type_of(new_routine->type);
+      check_assertion(il_identical_types(orig_return_type, new_return_type) &&
+                      rtsp->value_returned_as_parameter ==
                                         new_rtsp->value_returned_as_parameter);
+    }
+#endif /* CHECKING */
     is_lambda_entry_point = new_routine->special_kind ==
                                (a_special_function_kind)sfk_lambda_entry_point;
     if (is_lambda_entry_point) {
