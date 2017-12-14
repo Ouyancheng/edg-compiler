@@ -4644,9 +4644,9 @@ operator of a no-capture lambda.
     /* The routine types must be similar.  They may differ in the number
        of parameters, but the return types and whether or not they return
        their return value as a parameter should be identical. */
-    check_assertion(il_identical_types(
-                             routine->type->variant.routine.return_type,
-                             new_routine->type->variant.routine.return_type) &&
+    check_assertion(il_identical_types(lowered_return_type_of(routine->type),
+                                       lowered_return_type_of(
+                                                         new_routine->type)) &&
                     rtsp->value_returned_as_parameter ==
                                         new_rtsp->value_returned_as_parameter);
     is_lambda_entry_point = new_routine->special_kind ==
