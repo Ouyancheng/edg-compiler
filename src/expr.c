@@ -39681,10 +39681,6 @@ type with the type of return_op.
     topts |= (TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
   }  /* if */
-  /* Check the return expression for validity and, for non-reference return
-     types, make sure array-to-pointer and function-to-pointer decay are
-     done before we use the type as the return type. */
-  do_operand_transformations(return_op, topts);
   if (first_deduction) {
     /* If an error was detected, processing the erroneous operand will have
        changed the function return type to an error type. */
@@ -39695,6 +39691,15 @@ type with the type of return_op.
                      orig_type->variant.template_param.extra_info
                               ->coordinates.position ==
                                                      DECLTYPE_AUTO_POS_NUMBER;
+  if (is_decltype_auto) {
+    topts |= (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
+  }  /* if */
+  /* Check the return expression for validity and, for non-reference "auto"
+     return types, make sure array-to-pointer and function-to-pointer decay
+     are done before we use the type as the return type. */
+  do_operand_transformations(return_op, topts);
   if (is_error_type(auto_type)) {
     /* Something went wrong upstream.  Proceed with an error type. */
     expect_error();

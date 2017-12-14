@@ -1635,7 +1635,12 @@ Dump the contents of the indicated type entry, for debug purposes.
                      (a_template_param_type_kind)tptk_param) {
             if (tp->variant.template_param.extra_info->coordinates.depth ==
                                                      AUTO_TYPE_NESTING_DEPTH) {
-              fprintf(f_debug, " auto");
+              if (tp->variant.template_param.extra_info->coordinates.position
+                                               == PLAIN_AUTO_TYPE_POS_NUMBER) {
+                fprintf(f_debug, " auto");
+              } else {
+                fprintf(f_debug, " decltype(auto)");
+              }  /* if */
             } else {
               fprintf(f_debug, "#(%lu,%lu) ",
                       (unsigned long)tp->variant.
