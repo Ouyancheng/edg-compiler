@@ -12745,6 +12745,7 @@ detached from the IL tree; otherwise it is set to FALSE.
               (func(&temp), temp)
       */
       /* Code to perform this transformation must be added by the customer. */
+      temp_node = NULL;
       unexpected_condition();
     } else {
       /* This only happens under a dik_class_result_via_ctor dynamic
