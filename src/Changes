@@ -24,8 +24,8 @@ For example:
   unsigned size = S();  // Previously an error in GNU C++11 mode.  Now okay.
 
 This example is accepted by GCC because the destination type of the conversion
-operator template is not dependent on a template parameters of that template.
-The front ends behavior has been adjusted to match GCC's behavior.
+operator template is not dependent on a template parameter of that template.
+The front end's behavior has been adjusted to match GCC's behavior.
 
 
 12/12/17 [EDGcpfe/18113,EDGcpfe/19032]
