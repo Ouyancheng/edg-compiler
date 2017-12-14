@@ -1,5 +1,27 @@
 Version 4.15
 
+12/13/17 [EDGcpfe/19035]
+Spurious errors on use of dependent pointer-to-member constants
+
+Consider:
+
+  struct S { void m() {} };
+  template<typename> struct X {};
+  template<typename T> struct N {
+    using A = X<decltype(&T::m)>;  // (1)
+  };
+  template <typename T> X<decltype(&T::m)> g();  // (2)
+  decltype(g<S>()) x;
+
+The construct X<decltype(&T::m)> looks identical in (1) and (2), and the front
+end previously reused the representation in (1) for the appearance in (2).
+However, that is not valid: (2) needs a richer representation to handle SFINAE
+(i.e., rescanning information is needed in (2), and that is not available in
+(1)).  As result of the missing rescanning information, the front end produced
+a spurious error on the declaration of x.  That is now fixed: (1) and (2) now
+use distinct representations for the nonreal type X<decltype(&T::m))>.
+
+
 12/13/17 [EDGcpfe/18929]
 Spurious error on use of generic lambda parameter in return type
 

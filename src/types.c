@@ -5859,6 +5859,7 @@ top_of_loop:
              routine. */
           if (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) {
             cc_options |= CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+            cc_options |= CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED;
           }  /* if */
           result = !compare_expressions(expr1, expr2, cc_options);
         }  /* if */
