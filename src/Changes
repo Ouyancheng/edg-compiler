@@ -103,7 +103,7 @@ Consider:
 
 This example triggers the instantiation of the conversion function template of
 the generic lambda.  That conversion template instance produces a pointer to
-function type, but the function type previous did not reflect the fact that
+function type, but the function type previously did not reflect the fact that
 its return type (S) is returned "by copy constructor" (indicated by the flag
 value_returned_by_cctor in the associated routine type supplement).  A similar
 problem existed with the alternate entry point for the call operator (which
