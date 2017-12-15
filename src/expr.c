@@ -39681,11 +39681,6 @@ type with the type of return_op.
     topts |= (TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
   }  /* if */
-  if (first_deduction) {
-    /* If an error was detected, processing the erroneous operand will have
-       changed the function return type to an error type. */
-    orig_type = rout_type->variant.routine.return_type;
-  }  /* if */
   auto_type = find_bottom_of_type(orig_type);
   is_decltype_auto = is_auto_type(orig_type) &&
                      orig_type->variant.template_param.extra_info
@@ -39700,6 +39695,11 @@ type with the type of return_op.
      return types, make sure array-to-pointer and function-to-pointer decay
      are done before we use the type as the return type. */
   do_operand_transformations(return_op, topts);
+  if (first_deduction) {
+    /* If an error was detected, processing the erroneous operand will have
+       changed the function return type to an error type. */
+    orig_type = rout_type->variant.routine.return_type;
+  }  /* if */
   if (is_error_type(auto_type)) {
     /* Something went wrong upstream.  Proceed with an error type. */
     expect_error();
