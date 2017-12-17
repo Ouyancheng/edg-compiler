@@ -11987,10 +11987,19 @@ Issue diagnostics for each element of the pack reference list pointed to
 by prp.
 */
 {
-  for (; prp != NULL; prp = prp->next) {
-    pos_st_error(ec_pack_not_expanded, &prp->position,
-                 prp->symbol->header->identifier);
-  }  /* for */
+  if (is_generic_lambda_in_instantiation()) {
+    /* When a generic lambda appears in an instantiation, a new prototype
+       instantiation is done.  The pack processing in such cases is a
+       hybrid of a normal prototype instantiation and an actual instantiation.
+       Any actual missing expansions will have been diagnosed in the original
+       prototype instantiations, so avoid issuing any potentially incorrect
+       diagnostics here. */
+  } else {
+    for (; prp != NULL; prp = prp->next) {
+      pos_st_error(ec_pack_not_expanded, &prp->position,
+                   prp->symbol->header->identifier);
+    }  /* for */
+  }  /* if */
 }  /* issue_pack_not_expanded_diagnostics */
 
 
