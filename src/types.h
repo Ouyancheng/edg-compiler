@@ -726,10 +726,13 @@ typedef unsigned int an_itf_flag_set;
 			/* TRUE if top-level qualifiers do not have to
 			   match.  (In the case of arrays in C++, the top-level
 			   qualifiers are those on the element type.) */
-#define ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x40
-			/* TRUE if, when comparing template parameters of
-			   tptk_param kind, the type pointers must match,
-			   not just the coordinates. */
+#define ITF_EXACT_EQUIVALENCE 0x40
+			/* TRUE if the compared types should be fully
+			   equivalent.  In particular, when comparing template
+			   parameters of tptk_param kind, the type pointers
+			   must match, not just the coordinates.  Also,
+			   embedded constants and expressions must be compared
+			   with CC_EXACT_EQUIVALENCE. */
 #define ITF_CHECKING_DEDUCTION_RESULT 0x80
 			/* We are comparing two types to make sure deduction
 			   worked right and we didn't get a function type where

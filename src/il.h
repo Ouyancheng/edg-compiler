@@ -1538,10 +1538,13 @@ typedef int a_compare_constants_options_set;
 			   stripped from the constant type before they
 			   are compared; otherwise, a "const int 5" and
 			   an "int 5" are treated as nonidentical. */
-#define CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x2
-			/* TRUE if, when comparing template parameters of
-			   tpck_param kind, the constant pointers must
-			   match, not just the coordinates. */
+#define CC_EXACT_EQUIVALENCE 0x2
+			/* TRUE if the compared constants should be fully
+			   equivalent.  In particular, when comparing template
+			   parameters of tpck_param kind, the constant pointers
+			   must match, not just the coordinates.  Also, rescan
+			   information (in underlying expressions) must be
+			   equivalent. */
 #define CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x4
 			/* TRUE if, when checking that the types of expressions
 			   match, one should check for an exact match of the
@@ -1551,10 +1554,7 @@ typedef int a_compare_constants_options_set;
 			   tpck_param kind, the coordinates are not
 			   required to match and certain type mismatches
 			   are allowed. */
-#define CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED 0x10
-			/* TRUE if, when comparing template constant
-			   identities, they must match exactly. */
-#define CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON 0x20
+#define CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON 0x10
 			/* TRUE if abk_constant entries compare equal if they
 			   point to constants that compare equal (instead of
 			   pointing to the same constant entry). */

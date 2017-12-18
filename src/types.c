@@ -5857,9 +5857,8 @@ top_of_loop:
           /* When this routine is called with the "exact template param" flag
              set, pass the corresponding flags to the constant comparison
              routine. */
-          if (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) {
-            cc_options |= (CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED |
-                           CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED);
+          if (itf_flags & ITF_EXACT_EQUIVALENCE) {
+            cc_options |= CC_EXACT_EQUIVALENCE;
           }  /* if */
           result = !compare_expressions(expr1, expr2, cc_options);
         }  /* if */
@@ -6246,7 +6245,7 @@ check_typerefs:
           if (parametered &&  /* For speed. */
               equiv_class_types(
                      type_1, type_2, /*error_matches_anything=*/FALSE,
-                     (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0,
+                     (flags & ITF_EXACT_EQUIVALENCE) != 0,
                      (flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0,
                      (flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0)) {
             identical = TRUE;
@@ -6402,7 +6401,7 @@ check_typerefs:
                                   type_2->variant.template_param.kind &&
             type_1->variant.template_param.is_generic_param ==
                             type_2->variant.template_param.is_generic_param &&
-            (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
+            (flags & ITF_EXACT_EQUIVALENCE) == 0) {
           a_template_param_type_supplement_ptr	tptsp_1, tptsp_2;
           tptsp_1 = type_1->variant.template_param.extra_info;
           tptsp_2 = type_2->variant.template_param.extra_info;

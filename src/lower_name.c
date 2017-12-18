@@ -1670,7 +1670,7 @@ whether a substitution is available; do not put it out.
          as a "fix" for an alias template issue, but that resulted in
          incorrect substitutions and the alias template issue has been
          fixed elsewhere. */
-      opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+      opts |= ITF_EXACT_EQUIVALENCE;
 #endif /* ABI_COMPATIBILITY_VERSION >= 406 && ABI_COMPATIBILITY_VERSION < 413*/
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
       opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;

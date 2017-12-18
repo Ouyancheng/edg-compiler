@@ -6638,9 +6638,9 @@ constant comparison options.
 */
 {
   an_itf_flag_set itf_options = ITF_NO_FLAGS;
-  if ((options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0 ||
+  if ((options & CC_EXACT_EQUIVALENCE) != 0 ||
       (options & CC_STRICTLY_IDENTICAL) != 0) {
-    itf_options |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+    itf_options |= ITF_EXACT_EQUIVALENCE;
   }  /* if */
   if (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
     itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
@@ -6658,7 +6658,7 @@ of constant comparison options.
 {
   an_equiv_templ_arg_options_set eta_options = ETA_NO_OPTIONS;
 
-  if ((options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0 ||
+  if ((options & CC_EXACT_EQUIVALENCE) != 0 ||
       (options & CC_STRICTLY_IDENTICAL) != 0) {
     eta_options |= ETA_EXACT_MATCH_REQUIRED;
   }  /* if */
@@ -6994,6 +6994,17 @@ are done.
     if (eq && do_type_comparison) {
       if (!identical_types_full(node1->type, node2->type, itf_options)) {
         eq = FALSE;
+      } else if ((options & CC_EXACT_EQUIVALENCE) &&
+                 (node1->rescan_info != NULL) !=
+                                               (node2->rescan_info != NULL)) {
+        /* The two expressions are equivalent, but one has associated rescan
+           information and the other not.  With the given option, the two
+           should not be considered equivalent because it could cause the
+           version with rescan information to be replaced by the other version,
+           thereby causing spurious rescan failures.  (If the two nodes have
+           associated rescan information, that information can be assumed to
+           be equivalent since the expressions are equivalent.) */
+        eq = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7067,8 +7078,7 @@ definition of the CC flags in il.h for more information.
   a_boolean  same_types = FALSE;
   a_boolean  strictly_identical = (options & CC_STRICTLY_IDENTICAL) != 0;
   a_boolean  strict_template_constant_identity =
-           strictly_identical ||
-           (options & CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED) != 0;
+                  strictly_identical || (options & CC_EXACT_EQUIVALENCE) != 0;
   an_itf_flag_set itf_options;
 
   itf_options = itf_flags_for_cc_options(options);
@@ -7360,7 +7370,7 @@ definition of the CC flags in il.h for more information.
             /* Don't compare coordinates when CC_TEMPLATE_TEMPLATE_PARAM
                is specified. */
             case tpck_param:
-              eq = (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
+              eq = (options & CC_EXACT_EQUIVALENCE) == 0 &&
                    ((options & CC_TEMPLATE_TEMPLATE_PARAM) != 0 ||
                     (cp1->
                          variant.template_param.variant.coordinates.position ==

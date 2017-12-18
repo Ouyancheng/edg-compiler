@@ -6886,13 +6886,12 @@ the same constant.
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
   is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
   exact_match_required = (options & ETA_EXACT_MATCH_REQUIRED) != 0;
-  itf_options = exact_match_required ? (ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED|
+  itf_options = exact_match_required ? (ITF_EXACT_EQUIVALENCE |
                                         ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
                                      : ITF_NO_FLAGS;
   cc_options = exact_match_required
-                         ? (CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED |
-                            CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED |
-                            CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED)
+                         ? (CC_EXACT_EQUIVALENCE |
+                            CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
                          : CC_NO_OPTIONS;
   if (options & ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
     itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
