@@ -1,5 +1,20 @@
 Version 4.15
 
+12/18/17 [EDGcpfe/19049]
+Address type mismatches between arguments and parameters when calling run-time
+library routines
+
+A change has been made to add a cast to the proper type for the first argument
+to __throw_alloc, __throw_setup_dtor, and __throw_setup.  The declarations of
+these same routines have had the type of the third argument (flags) changed
+from a tk_int to a targ_ets_flag_type_int_kind integer (see EDGcpfe/18732) to
+match the signature of the run-time library.
+
+Additionally, a cast has been added to the dynamic type and static type
+expressions in calls to __dynamic_cast and __dynamic_cast_ref to match the
+signature in the run-time library.
+
+
 12/14/17 [EDGcpfe/19043]
 Incorrect deduction of decltype(auto) return type
 

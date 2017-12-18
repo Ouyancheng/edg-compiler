@@ -11258,6 +11258,8 @@ has already been lowered.
                                     /*set_address_taken_flag=*/TRUE);
     }  /* if */
     desired_type_node = alloc_node_for_constant(constant);
+    desired_type_node = add_cast(desired_type_node,
+                                 make_runtime_typeinfo_type());
 #if ABI_COMPATIBILITY_VERSION >= 241
 #if !IA64_ABI
     /* Make the pointer to the original source.  This may differ from the
@@ -11270,6 +11272,8 @@ has already been lowered.
                                   constant,
                                   /*set_address_taken_flag=*/TRUE);
     static_type_node = alloc_node_for_constant(constant);
+    static_type_node = add_cast(static_type_node,
+                                make_runtime_typeinfo_type());
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 #if IA64_ABI
     /* Make the hint argument.  We use -1 as the hint value, which is

@@ -6102,6 +6102,8 @@ Lower an enk_throw expression node.
                                          &ptr_flags_var);
     /* Make the arguments for the __throw_setup call. */
     typeinfo_node = var_addr_expr(typeinfo_var);
+    typeinfo_node = add_cast_if_necessary(typeinfo_node,
+                                          make_runtime_typeinfo_type());
     size_node = node_for_host_large_integer(
                  (a_host_large_integer)throw_type->size, targ_size_t_int_kind);
     typeinfo_node->next = size_node;
@@ -6136,13 +6138,12 @@ Lower an enk_throw expression node.
 #if !ABI_CHANGES_FOR_RTTI
     /* Old interface */
     call_node = make_prototyped_runtime_call_full("__throw_alloc",
-                                         &throw_setup_routine,
-                                         void_star_type(),
-                                         make_runtime_typeinfo_type(),
-                                         size_t_type,
-                                         integer_type((an_integer_kind)ik_int),
-                                         char_star_type(), NULL, NULL, NULL,
-                                         typeinfo_node);
+                                     &throw_setup_routine, void_star_type(),
+                                     make_runtime_typeinfo_type(),
+                                     size_t_type,
+                                     integer_type(targ_ets_flag_type_int_kind),
+                                     char_star_type(), NULL, NULL, NULL,
+                                     typeinfo_node);
 #else /* ABI_CHANGES_FOR_RTTI */
 #if PASS_DTOR_POINTER_TO_THROW
     if (tsp->destructor != NULL) {
@@ -6158,13 +6159,13 @@ Lower an enk_throw expression node.
       flags_node->next = add_cast(function_addr_expr(destructor),
                                   make_dtor_type());
       call_node = make_prototyped_runtime_call_full("__throw_setup_dtor",
-                                         &throw_setup_dtor_routine,
-                                         void_star_type(),
-                                         make_runtime_typeinfo_type(),
-                                         size_t_type,
-                                         integer_type((an_integer_kind)ik_int),
-                                         make_dtor_type(), NULL, NULL, NULL,
-                                         typeinfo_node);
+                                     &throw_setup_dtor_routine,
+                                     void_star_type(),
+                                     make_runtime_typeinfo_type(),
+                                     size_t_type,
+                                     integer_type(targ_ets_flag_type_int_kind),
+                                     make_dtor_type(), NULL, NULL, NULL,
+                                     typeinfo_node);
     } else
 #endif /* PASS_DTOR_POINTER_TO_THROW */
     /* Do not insert code here; this is the "else" of an "if". */
@@ -6179,13 +6180,11 @@ Lower an enk_throw expression node.
       } else {
         /* Not a multi_level pointer. */
         call_node = make_prototyped_runtime_call_full("__throw_setup",
-                                         &throw_setup_routine,
-                                         void_star_type(),
-                                         make_runtime_typeinfo_type(),
-                                         size_t_type,
-                                         integer_type((an_integer_kind)ik_int),
-                                         NULL, NULL, NULL, NULL,
-                                         typeinfo_node);
+                                     &throw_setup_routine, void_star_type(),
+                                     make_runtime_typeinfo_type(),
+                                     size_t_type,
+                                     integer_type(targ_ets_flag_type_int_kind),
+                                     NULL, NULL, NULL, NULL, typeinfo_node);
       }  /* if */
     }  /* if */
 #endif /* !ABI_CHANGES_FOR_RTTI */
