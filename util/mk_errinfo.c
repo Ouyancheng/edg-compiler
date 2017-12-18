@@ -72,7 +72,7 @@ static a_const_char *message_prefix = "mk_errinfo";
 
 
 
-void me_internal_error(a_const_char* error_string)
+static void me_internal_error(a_const_char* error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
@@ -115,7 +115,7 @@ allocation and generates a catastrophic error.
 }  /* me_malloc_with_check */
 
 
-a_boolean me_read_input_line(FILE* input_file)
+static a_boolean me_read_input_line(FILE* input_file)
 /*
 Reads a line of input from input_file.  Returns TRUE if a line of
 input is being returned.  Returns FALSE at end-of-file.  Sets "line_size"
@@ -528,6 +528,7 @@ should be used to determine the length.
       case fk_tt: start_string = "{\\tt "; break;
       case fk_em: start_string = "{\\em "; break;
       case fk_none: break;
+      default: me_internal_error("unexpected font");
     }  /* switch */
     fprintf(doc_output_file, "%s", start_string);
     curr_font = font;
@@ -573,6 +574,7 @@ should be used to determine the length.
       case fk_tt: start_string = "<tt>"; break;
       case fk_em: start_string = "<em>"; break;
       case fk_none: break;
+      default: me_internal_error("unexpected font");
     }  /* switch */
     fprintf(doc_output_file, "%s", start_string);
     curr_font = font;
