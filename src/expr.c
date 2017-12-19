@@ -4896,9 +4896,9 @@ indicated type.
       /* Find or create the concrete routine to dispatch the operation to. */
       a_symbol_ptr      sym;
       an_operand        orig_operand;
-      a_name_reference  *nrp = alloc_name_reference();;
       sizeof_t          name_len =
                 strlen(unmangled_or_fabricated_name_of(&rout->source_corresp));
+      a_name_reference  *nrp = alloc_name_reference();;
       if (bcap->replace_routine_type) {
         /* The type of the builtin is dynamic and depends on the "dispatch
            type" .  Most of the cases here are currently for the __c11_atomic_*
@@ -4924,7 +4924,7 @@ indicated type.
             C_type = dispatch_type;
             M_type = is_integral_type(C_type) ? C_type :
                                          integer_type(targ_ptrdiff_t_int_kind);
-            MO_type = integer_type(ik_int);
+            MO_type = integer_type((an_integer_kind)ik_int);
           } else {
             /* First argument type is not Atomic-qualified. */
             expr_pos_error(ec_must_be_atomic_qualified_type, &first_arg_pos);
@@ -4993,7 +4993,7 @@ indicated type.
                                            rout->variant.builtin_function_kind;
         clear_locator(&loc, &null_source_position);
         (void)find_symbol(rout->source_corresp.name, name_len, &loc);
-        sym = alloc_symbol(sk_routine, loc.symbol_header,
+        sym = alloc_symbol((a_symbol_kind)sk_routine, loc.symbol_header,
                            &loc.source_position);
         sym->variant.routine.ptr = new_rout;
         sym->is_invisible = TRUE;

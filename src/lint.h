@@ -1365,6 +1365,7 @@ extern int fileno(FILE *);
 #else /* !BUILTIN_FUNCTIONS_ENABLED */
 /*lint -esym(769,ec_constexpr_string_not_null_terminated)*/
 /*lint -esym(769,ec_attempt_to_read_past_end_of_object)*/
+/*lint -esym(769,ec_must_be_atomic_qualified_type)*/
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(755,gnu_routine_supp)*/
