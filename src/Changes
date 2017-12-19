@@ -1,5 +1,33 @@
 Version 4.15
 
+12/19/17 [EDGcpfe/16735,EDGcpfe/17501,EDGcpfe/18076,EDGcpfe/18599,
+          EDGcpfe/18926,EDGcpfe/18988,EDGcpfe/19013,EDGcpfe/19041]
+Clang compatibility: better support for certain clang builtins
+
+There are a set of clang builtins (__builtin_nontemporal_store,
+__builtin_nontemporal_load, __c11_atomic_init, __c11_atomic_load,
+__c11_atomic_store, __c11_atomic_exchange,
+__c11_atomic_compare_exchange_strong, __c11_atomic_compare_exchange_weak,
+__c11_atomic_fetch_add, __c11_atomic_fetch_sub, __c11_atomic_fetch_and,
+__c11_atomic_fetch_or, __c11_atomic_fetch_xor, and __sync_swap) where
+the builtin type can vary from one invocation of the builtin to another.
+A change has been made to handle these cases (and restructure the way
+the front end currently handles __sync_* and __atomic_* cases to make
+it easier to handle other cases like this).
+
+A consequence of this change is that a back end may now see multiple routines
+with the same name and different types.  For example, with --clang:
+
+  int f(_Atomic(char) *pac, char c,
+        _Atomic(int)  *pai, int  i) {
+  return __c11_atomic_load(pac, c) +
+         __c11_atomic_load(pai, i);
+  }
+
+In this case there will be two __c11_atomic_load a_routine entries in the
+IL, with different types.
+
+
 12/18/17 [EDGcpfe/19049]
 Address type mismatches between arguments and parameters when calling run-time
 library routines

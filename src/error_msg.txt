@@ -2951,6 +2951,7 @@ ec_bad_enum_template_decl;;"invalid specifier in enum template declaration"
 ec_no_float80;;"80-bit floating-point types are not supported in this configuration"
 ec_no_float128;;"128-bit floating-point types are not supported in this configuration"
 ec_invalid_enumerator_value;;"invalid enumerator value"
+ec_must_be_atomic_qualified_type;;"must be an _Atomic qualified type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
