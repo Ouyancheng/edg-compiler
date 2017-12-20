@@ -4907,7 +4907,8 @@ indicated type.
            arguments. */
         a_routine_ptr     new_rout, save_next;
         a_symbol_locator  loc;
-        a_type_ptr        rout_type, pA_type, C_type, M_type, MO_type;
+        a_type_ptr        rout_type, pA_type = NULL, C_type = NULL;
+        a_type_ptr        M_type = NULL, MO_type = NULL;
         if (bcap->is_c11_atomic) {
           if (is_c11_atomic_qualified_type(orig_dispatch_type)) {
             /* Clang implements builtins for the (_explicit) versions of the
@@ -5302,7 +5303,7 @@ are expected to be NULL in that case.
   a_boolean         call_folded_to_constant = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
   a_builtin_call_adjustment
-                    bca;
+                    bca, *bcap = NULL;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
@@ -5792,6 +5793,7 @@ are expected to be NULL in that case.
        not be known until after the arguments are scanned. */
     if (builtin_call_needs_adjustment(routine, &bca)) {
       builtin_needs_adjustment = TRUE;
+      bcap = &bca;
       routine_type = NULL;
       routine = NULL;
     }  /* if */
@@ -5830,7 +5832,7 @@ are expected to be NULL in that case.
        determine the concrete routine being called, based on the argument
        types. */
     routine = adjust_builtin_call(operand, arg_list, &closing_paren_position,
-                                  &bca, &argument_list);
+                                  bcap, &argument_list);
     routine_type = routine->type;
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -6026,10 +6028,10 @@ are expected to be NULL in that case.
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (builtin_needs_adjustment && bca.result_type != NULL) {
+  if (bcap != NULL && bcap->result_type != NULL) {
     /* Cast the call result to the right type for certain builtin function
        calls. */
-    cast_operand(bca.result_type, result, /*is_implicit_cast=*/TRUE);
+    cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
   }  /* if */
 done:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
