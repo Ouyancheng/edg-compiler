@@ -4903,10 +4903,9 @@ indicated type.
         /* The type of the builtin is dynamic and depends on the "dispatch
            type" .  Most of the cases here are currently for the __c11_atomic_*
            builtins.  Based on the dispatch type, create a new routine (with a
-           new type) and use that when validating arguments.  The new routine
-           is given an invisible symbol so that it will not be found on
-           subsequent lookups. */
-        a_routine_ptr     new_rout;
+           new type) if one doesn't already exist and use that when validating
+           arguments. */
+        a_routine_ptr     new_rout, save_next;
         a_symbol_locator  loc;
         a_type_ptr        rout_type, pA_type, C_type, M_type, MO_type;
         if (bcap->is_c11_atomic) {
@@ -4979,25 +4978,37 @@ indicated type.
           default:
             unexpected_condition();
         }  /* switch */
-        /* Create a new routine with the type as determined above and the same
-           name for the concrete routine to use for this call.  Back ends will
-           need to deal with multiple routines with the same name and different
-           types.  Create an invisible symbol for the new routine (so it won't
-           be found on subsequent lookups). */
-        new_rout = make_routine(rout_type, (a_storage_class)sc_extern,
-                                DEPTH_OF_FILE_SCOPE);
-        new_rout->source_corresp.name = rout->source_corresp.name;
-        new_rout->source_corresp.name_linkage =
-                                             rout->source_corresp.name_linkage;
-        new_rout->variant.builtin_function_kind =
-                                           rout->variant.builtin_function_kind;
+        /* See if a version of this routine with the specified type has
+           already been created; if so, reuse that routine. */
         clear_locator(&loc, &null_source_position);
         (void)find_symbol(rout->source_corresp.name, name_len, &loc);
-        sym = alloc_symbol((a_symbol_kind)sk_routine, loc.symbol_header,
-                           &loc.source_position);
-        sym->variant.routine.ptr = new_rout;
-        sym->is_invisible = TRUE;
-        new_rout->source_corresp.assoc_info = (char*)sym;
+        for (sym = loc.symbol_header->symbol; sym != NULL; sym = sym->next) {
+          if (sym->kind == (a_symbol_kind)sk_routine &&
+              sym->is_invisible &&
+              identical_types(rout_type, sym->variant.routine.ptr->type)) {
+            break;
+          }  /* if */
+        }  /* for */
+        if (sym == NULL) {
+          /* Create a new routine with the type as determined above and the
+             same name for the concrete routine to use for this call.  Back
+             ends will need to deal with multiple routines with the same name
+             and different types.  Create an invisible symbol for the new
+             routine (so it won't be found on subsequent lookups). */
+          new_rout = make_routine(rout_type, (a_storage_class)sc_extern,
+                                  DEPTH_OF_FILE_SCOPE);
+          save_next = new_rout->next;
+          *new_rout = *rout;
+          new_rout->type = rout_type;
+          new_rout->next = save_next;
+          sym = alloc_symbol((a_symbol_kind)sk_routine, loc.symbol_header,
+                             &loc.source_position);
+          sym->variant.routine.ptr = new_rout;
+          sym->is_invisible = TRUE;
+          new_rout->source_corresp.assoc_info = (char*)sym;
+          add_symbol_to_symbol_table(sym, DEPTH_OF_FILE_SCOPE,
+                                     /*suppress_error=*/TRUE);
+        }  /* if */
       } else {
         /* For __sync_* and __atomic_* builtins, construct the concrete
            routine's name by appending the proper suffix and then look for that
