@@ -4901,13 +4901,13 @@ indicated type.
       a_name_reference  *nrp = alloc_name_reference();;
       if (bcap->replace_routine_type) {
         /* The type of the builtin is dynamic and depends on the "dispatch
-           type" .  Most of the cases here are currently for the __c11_atomic_*
+           type".  Most of the cases here are currently for the __c11_atomic_*
            builtins.  Based on the dispatch type, create a new routine (with a
            new type) if one doesn't already exist and use that when validating
            arguments. */
         a_routine_ptr     new_rout, save_next;
         a_symbol_locator  loc;
-        a_type_ptr        rout_type, pA_type = NULL, C_type = NULL;
+        a_type_ptr        rout_type = NULL, pA_type = NULL, C_type = NULL;
         a_type_ptr        M_type = NULL, MO_type = NULL;
         if (bcap->is_c11_atomic) {
           if (is_c11_atomic_qualified_type(orig_dispatch_type)) {
