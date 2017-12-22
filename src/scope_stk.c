@@ -2741,19 +2741,9 @@ the scope being pushed.
       sp->depth_in_scope_stack = depth_scope_stack;
       break;
     case sck_template_declaration:
-      /* When prototype instantiations are recorded in the IL, IL scopes
-         exist for template declarations.  Only template declaration scopes
-         from the original source are included.  Scopes pushed for the
-         rescan of dependent template template parameters do not have IL
-         scopes. */
-      if (prototype_instantiations_in_il &&
-          (options & PS_IS_TEMPLATE_PARAM_RESCAN) == 0) {
-        /* Template declaration scopes always have parameter declarations, so
-           we know a scope is required.  The scope will always be in the file
-           scope memory region except for error cases. */
-        sp = alloc_scope((a_scope_kind)sck_template_declaration, ssep->number,
-                         (a_routine_ptr)NULL);
-      }  /* if */
+      /* For template declaration scopes, a scope will be created when a
+         template parameter declaration is created. */
+      sp = NULL;
       /* Use the enclosing memory region. */
       ssep->il_memory_region = (ssep-1)->il_memory_region;
       break;

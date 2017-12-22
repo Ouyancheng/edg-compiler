@@ -954,8 +954,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
                                   "walk_entry_and_subtree: bad constant kind");
         }  /* switch */
         walk_source_corresp_full(eptr->source_corresp,
-                                 (constant_is(eptr, ck_template_param) ||
-                                  eptr->is_named_constant_definition));
+                                 eptr->is_named_constant_definition);
 #undef eptr
       }
       break;
@@ -1035,11 +1034,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
     case iek_type:
       {
 #define eptr ((a_type_ptr)entry_ptr)
-        /* Template parameter scopes are not linked into the IL, so for
-           those we walk instead of remap the parent scope pointer. */
-        walk_source_corresp_full(eptr->source_corresp,
-                                (eptr->kind ==
-                                              (a_type_kind)tk_template_param));
+        walk_source_corresp(eptr->source_corresp);
         remap_next_ptr(eptr->next, a_type_ptr, iek_type);
 #if NEEDED_FLAG_WALK
         /* When walking to set "needed" flags, the based types list in
@@ -2298,11 +2293,7 @@ do_set_proper_definition_needed_flag:
     case iek_template:
       {
 #define eptr ((a_template_ptr)entry_ptr)
-        /* Template template parameters have a parent scope that is in the
-           template declaration scope, so they require a walk_ptr for the
-           parent. */
-        walk_source_corresp_full(eptr->source_corresp,
-              (eptr->kind == (a_template_kind)templk_template_template_param));
+        walk_source_corresp(eptr->source_corresp);
         remap_next_ptr(eptr->next, a_template_ptr, iek_template);
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(eptr->text, iek_other_text, 0);
