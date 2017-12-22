@@ -5341,8 +5341,8 @@ final search path will include, in this order:
   - .NET system directory (if we haven't seen --no_using_framework_directory)
   - Directories specified from the --using_directory option
   - Directories from the environment variable LIBPATH
-  - CPPCLI_PORTABLE_ASSEMBLY_PATH (in some configurations)
   - EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH environment variable (in some configs)
+  - CPPCLI_PORTABLE_ASSEMBLY_PATH (in some configurations)
 */
 {
   char       *libpath;
@@ -5788,8 +5788,14 @@ is done after command line processing.
   if (cppcx_enabled) {
     /* When using C++/CX, the vccorlib.h file is preincluded, and on
        non-Windows systems it won't be picked up in the default search path.
-       This provides a hook to add the directory where vccorlib.h can be
-       found. */
+       This provides two hooks to add the directory where vccorlib.h can be
+       found (specified at run time by the EDG_CPPCX_INCLUDE_PATH environment
+       variable or at compile time by the CPPCX_INCLUDE_PATH configuration
+       macro). */
+    char *pa_path = getenv("EDG_CPPCX_INCLUDE_PATH");
+    if (pa_path != NULL) {
+      add_to_include_search_path(pa_path, /*system_include_dir=*/FALSE);
+    }  /* if */
     add_to_include_search_path(CPPCX_INCLUDE_PATH,
                                /*system_include_dir=*/FALSE);
   }  /* if */
