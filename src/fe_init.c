@@ -746,6 +746,7 @@ modes.
   enter_keyword((a_token_kind)tok_is_final, "__is_final");
   enter_keyword((a_token_kind)tok_has_unique_object_representations,
                 "__has_unique_object_representations");
+  enter_keyword((a_token_kind)tok_is_aggregate, "__is_aggregate");
 }  /* enter_type_traits_helpers */
 
 

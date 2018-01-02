@@ -23088,6 +23088,7 @@ declared).
                                   (an_il_entry_kind)iek_using_decl);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       cdsp->has_inheriting_constructors = TRUE;
+      cdsp->class_aggregate_ruled_out = TRUE;
       cannot_bind_to_curr_construct();
       report_gnu_cpp11_extension_if_needed(
                                      pos, ec_inheriting_constructor_is_cpp11);

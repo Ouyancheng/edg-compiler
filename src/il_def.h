@@ -1293,6 +1293,7 @@ typedef enum /*a_token_kind*/ {
   tok_edg_internal_opnd,
   tok_clang_version,
   tok_has_unique_object_representations,
+  tok_is_aggregate,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1480,6 +1481,7 @@ EXTERN a_const_char
    "__edg_opnd__",
    "clang version",
    "__has_unique_object_representations",
+   "__is_aggregate",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -12792,6 +12794,7 @@ typedef enum a_builtin_operation_kind_tag {
   bok_has_unique_object_representations,
 			/* __has_unique_object_representations.  One type
 			   operand. */
+  bok_is_aggregate,	/* __is_aggregate.  One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -17052,6 +17055,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_trivially_copy_assignable",
   "__builtin_addressof",
   "__has_unique_object_representations",
+  "__is_aggregate",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

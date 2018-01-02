@@ -2952,6 +2952,7 @@ ec_no_float80;;"80-bit floating-point types are not supported in this configurat
 ec_no_float128;;"128-bit floating-point types are not supported in this configuration"
 ec_invalid_enumerator_value;;"invalid enumerator value"
 ec_must_be_atomic_qualified_type;;"must be an _Atomic qualified type"
+ec_element_type_incomplete;;"type of array element must be complete"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

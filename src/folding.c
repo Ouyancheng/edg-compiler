@@ -8352,6 +8352,29 @@ and, if pos is not NULL, an error will be reported.
           result = type_has_unique_object_representations(
                                                   skip_array_types(orig_type));
           break;
+        case bok_is_aggregate:
+          if (type->kind == (a_type_kind)tk_array) {
+            if (is_incomplete_type(array_element_type(type))) {
+              /* An array type with an incomplete element type can be
+                 declared, but using such a type with is_aggregate violates
+                 the "shall" requirement in [meta.unary.prop]. */
+              incomplete_class_error = TRUE;
+            } else {
+              result = TRUE;
+            }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+          } else if (is_vector_type(type)) {
+            /* g++ treats vector types as aggregates. */
+            result = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          } else if (is_complex_type(type)) {
+            /* Complex types should be treated as aggregates. */
+            result = TRUE;
+          } else {
+            /* Non-class, non-array types are not aggregates. */
+            result = FALSE;
+          }  /* if */
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -8599,14 +8622,20 @@ and, if pos is not NULL, an error will be reported.
       case bok_has_unique_object_representations:
         result = type_has_unique_object_representations(type);
         break;
+      case bok_is_aggregate:
+        result = class_symbol_supp(symbol_for(type))->is_class_aggregate;
+        break;
       default:
         unexpected_condition();
-    }  /* if */
+    }  /* switch */
 result_known:
     if (incomplete_class_error) {
       clear_constant(constant, (a_constant_repr_kind)ck_error);
       if (pos != NULL) {
-        pos_error(ec_incomplete_class_type, pos);
+        pos_error((kind == (a_builtin_operation_kind)bok_is_aggregate
+                                                  ? ec_element_type_incomplete
+                                                  : ec_incomplete_class_type),
+                  pos);
       }  /* if */
     } else {
       clear_constant(constant, (a_constant_repr_kind)ck_integer);
@@ -8755,6 +8784,7 @@ constant is set as well.
       case bok_is_final:
       case bok_is_trivially_copy_assignable:
       case bok_has_unique_object_representations:
+      case bok_is_aggregate:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

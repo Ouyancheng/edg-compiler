@@ -12725,6 +12725,7 @@ indication in *rcblock).
                                         bok =
                                          bok_has_unique_object_representations;
                                         break;
+      case tok_is_aggregate:            bok = bok_is_aggregate; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -33854,6 +33855,7 @@ handle_coroutine_yield:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_is_final:
     case tok_has_unique_object_representations:
+    case tok_is_aggregate:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

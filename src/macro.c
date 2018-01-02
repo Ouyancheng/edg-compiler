@@ -4519,6 +4519,7 @@ static a_const_char *clang_type_traits_helpers[] = {
   "has_trivial_destructor",
   "has_virtual_destructor",
   "is_abstract",
+  "is_aggregate",
   "is_base_of",
   "is_class",
   "is_convertible_to",
