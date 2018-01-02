@@ -8693,6 +8693,13 @@ typedef struct a_type {
 			   class declaration.  Set and used only within the
 			   C++-generating back end. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_bit_field	explicit_specialization_suppressed:1;
+			/* Set to TRUE by the C++-generating back end if
+			   the explicit specialization corresponding to
+			   this class template instance was suppressed
+			   because it would have been invalid. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it

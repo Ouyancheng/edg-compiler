@@ -402,7 +402,9 @@ explicit specialization would appear in a non-namespace-scope context.
 microsoft_dialect_is_generated_code_target is TRUE; in that case, the
 explicit specialization is permitted when the template being specialized is
 a member of the class in which the explicit specialization would appear,
-since the Microsoft compiler accepts such explicit specializations.)  For
+since the Microsoft compiler accepts such explicit specializations.)  If
+the explicit specialization corresponding to a class template instance is
+suppressed, the definitions of its members are also suppressed.  For
 example:
 
   template <class T> struct A { };

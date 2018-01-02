@@ -2192,6 +2192,9 @@ variant fields to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pte->emit_microsoft_class_decl_modifiers = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  pte->explicit_specialization_suppressed = FALSE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   pte->alignment_set_explicitly = FALSE;
 #if GNU_EXTENSIONS_ALLOWED

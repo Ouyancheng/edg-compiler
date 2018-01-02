@@ -9086,6 +9086,23 @@ instantiations are only permitted in namespace scope).
   }  /* if */
   return result;
 }  /* suppress_invalid_explicit_specialization */
+
+
+static a_boolean has_suppressed_parent(a_source_correspondence_ptr scp)
+/*
+Return TRUE if the entity specified by scp is a member of a template class
+whose explicit specialization was suppressed because it would have been
+invalid.
+*/
+{
+  a_boolean  result = FALSE;
+  a_type_ptr parent = scp->is_class_member ? scp_parent_class(scp) : NULL;
+
+  for (; parent != NULL && !result; parent = parent_class_or_null(parent)) {
+    result = parent->explicit_specialization_suppressed;
+  }  /* for */
+  return result;
+}  /* has_suppressed_parent */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void gen_type_decl(a_boolean suppress_specifiers,
@@ -9220,6 +9237,7 @@ this one is such a continuation.
     } else {
       adv_curr_source_sequence_entry();
     }  /* if */
+    type->explicit_specialization_suppressed = TRUE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   } else {
     /* Set the output position. */
@@ -17416,6 +17434,9 @@ this one is such a continuation.
                                       var->template_info->template_arg_list)) {
     goto end_of_routine;
   }  /* if */
+  if (has_suppressed_parent(&var->source_corresp)) {
+    goto end_of_routine;
+  }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (template_decl != NULL) {
     a_type_ptr	parent_class;
@@ -18538,6 +18559,9 @@ handle_as_definition:
                                             &for_all_scopes);
       }  /* for */
     }  /* if */
+  }  /* if */
+  if (!discard_declaration && has_suppressed_parent(&rout->source_corresp)) {
+    discard_declaration = TRUE;
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (discard_declaration) {
