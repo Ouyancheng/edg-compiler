@@ -9086,8 +9086,9 @@ instantiations are only permitted in namespace scope).
   }  /* if */
   return result;
 }  /* suppress_invalid_explicit_specialization */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
-
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 static a_boolean has_suppressed_parent(a_source_correspondence_ptr scp)
 /*
 Return TRUE if the entity specified by scp is a member of a template class
@@ -9103,7 +9104,7 @@ invalid.
   }  /* for */
   return result;
 }  /* has_suppressed_parent */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void gen_type_decl(a_boolean suppress_specifiers,
                           a_boolean *another_decl_in_comma_list)
