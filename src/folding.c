@@ -8367,9 +8367,11 @@ and, if pos is not NULL, an error will be reported.
             /* g++ treats vector types as aggregates. */
             result = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
           } else if (is_complex_type(type)) {
             /* Complex types should be treated as aggregates. */
             result = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           } else {
             /* Non-class, non-array types are not aggregates. */
             result = FALSE;
