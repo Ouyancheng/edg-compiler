@@ -1,5 +1,12 @@
 Version 4.15
 
+1/3/18   [EDGcpfe/19085]
+Clang compatibility: remove builtin for version 5.0.1
+
+The only change in builtins between clang version 5.0.0 and 5.0.1 is the
+removal of __builtin_ia32_pbroadcastq512_mem_mask.
+
+
 1/2/18   [EDGcpfe/18312,EDGcpfe/18347,EDGcpfe/19018]
 C++17 compatibility: __is_aggregate type traits helper
 
