@@ -1052,9 +1052,11 @@ is used for allocation of general front end memory (i.e., not IL).
      set when command line processing is done. */
   allocated_in_region[region_number] += (unsigned long)size;
 #endif /* DEBUG */
+#if !STANDALONE_UTILITY_PROGRAM
 #ifdef TRACE_ALLOC
   trace_alloc_check(temp_ptr);
 #endif /* TRACE_ALLOC */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   return temp_ptr;
 }  /* alloc_in_region */
 
