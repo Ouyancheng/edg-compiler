@@ -1360,9 +1360,10 @@ is within a function body.
       *is_local_to_function = TRUE;
     }  /* if */
     scope_depth = decl_scope_level;
-  } else if (is_template_instance_class_symbol(sym)) {
-    /* Template classes can be created at arbitrary times and so the
-       scope stack cannot be used to determine the scope depth. */
+  } else if (is_template_instance_class_symbol(sym) ||
+             is_template_alias_instance_symbol(sym)) {
+    /* Template classes and aliases can be created at arbitrary times and so
+       the scope stack cannot be used to determine the scope depth. */
     scope_depth = NO_SCOPE_DEPTH;
   } else {
     /* In certain unusual cases (e.g., when an entity is first seen in a

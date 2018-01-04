@@ -9041,12 +9041,12 @@ and global namespaces.
     va_list_typedef->is_builtin_va_list = TRUE;
     va_list_typedef->is_builtin_va_list_from_cstdarg = is_cstdarg;
     add_to_types_list(va_list_typedef, DEPTH_OF_FILE_SCOPE);
-    set_source_corresp(&va_list_typedef->source_corresp, sym);
-    va_list_typedef->source_corresp.decl_position = null_source_position;
     /* Note that we update a pre-existing symbol to point to the typedef.
        this is necessary so that the needed and referenced flags will be
        set appropriately on uses of va_list after this point. */
     sym->variant.type.ptr = va_list_typedef;
+    set_source_corresp(&va_list_typedef->source_corresp, sym);
+    va_list_typedef->source_corresp.decl_position = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Put out a source sequence entry for the type. */
     add_to_source_sequence_list((char *)va_list_typedef,

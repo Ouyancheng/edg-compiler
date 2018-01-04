@@ -6091,6 +6091,12 @@ class definition.
    (sym)->variant.class_struct_union.type->				\
                    variant.class_struct_union.is_template_class)
 
+/* Return TRUE if the symbol is a template alias symbol for an alias
+   template. */
+#define is_template_alias_instance_symbol(sym)				\
+  (symbol_is((sym), sk_type) &&						\
+   (sym)->variant.type.ptr->variant.typeref.is_template_alias)
+
 /* Return TRUE if the symbol is a template class symbol for a real or
    nonreal class template instance or a class nested within a class
    template. */
