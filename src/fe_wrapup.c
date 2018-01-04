@@ -703,12 +703,6 @@ Complete the file scope of each of the translation units.
   }  /* if */
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
-  /* Remove the definitions of any functions instantiated only to determine
-     their return types or static data members instantiated only to
-     determine their size. */
-  if (instantiation_mode != tim_all) {
-    remove_unneeded_instantiations();
-  }  /* if */
   /* Finish processing on function bodies moved to the primary IL,
      including IL lowering if appropriate.  Do this also on any
      function bodies in the primary IL whose lowering was delayed.
@@ -717,6 +711,12 @@ Complete the file scope of each of the translation units.
      can rewrite any references to secondary translation unit entities
      before the lowering is done. */
   finish_processing_for_function_bodies();
+  /* Remove the definitions of any functions instantiated only to determine
+     their return types or static data members instantiated only to
+     determine their size. */
+  if (instantiation_mode != tim_all) {
+    remove_unneeded_instantiations();
+  }  /* if */
   /* Process the primary translation unit. */
   file_scope_il_wrapup_part_3();
   /* Free the secondary IL file-scope memory regions. */
