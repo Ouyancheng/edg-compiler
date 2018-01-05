@@ -36287,6 +36287,7 @@ Initializations for template.
   pending_templ_templ_param_instantiations = 0;
   pending_type_param_instantiations = 0;
   additional_instantiation_wrapup_required = FALSE;
+  initializer_list_sym_hdr = NULL;
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   local_type_used_as_template_type_argument = FALSE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
