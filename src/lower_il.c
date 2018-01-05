@@ -4773,48 +4773,60 @@ If the type of the aggregate constant is one where lowering has re-ordered
 the base classes such that the base class order is different than the
 canonical ordering, re-arrange the initializers in the aggregate constant
 to match the layout ordering (the front end uses canonical ordering when
-creating an aggregate constant).  This routine only affects ordering in the
-top level of the aggregate constant (i.e., it's not recursive).
+creating an aggregate constant).  This routine recursively processes
+the aggregate constant.
 This processing isn't necessary in the Cfront ABI.
 */
 {
-  a_type_ptr                  class_type = skip_typerefs(aggr_con->type);
+  a_type_ptr                  aggr_type = skip_typerefs(aggr_con->type);
   a_class_type_supplement_ptr ctsp;
   a_constant_ptr              cp, prev = NULL;
 
-  check_assertion(is_immediate_class_type(class_type));
-  ctsp = class_type_supp(class_type);
-  if (ctsp->primary_base_class != NULL &&
-      ctsp->primary_base_class != ctsp->base_classes) {
-    /* In this case, lowering has placed the primary base class at offset
-       zero, which means that the ordering of constants in the aggregate
-       does not match the ordering of the fields that is returned
-       by next_initializable_field.  Find the initializer for the
-       primary base class and move it to the beginning of the aggregate
-       so it'll match the layout order. */
+  /* Recurse to handle nested aggregates. */
+  for (cp = aggr_con->variant.aggregate.first_constant;
+       cp != NULL;
+       cp = cp->next) {
+    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+      arrange_aggregate_constant_in_layout_order(cp);
+    }  /* if */
+  }  /* for */
+  if (is_immediate_class_type(aggr_type)) {
+    /* For aggregates that correspond to class types, see if the layout
+       has been changed from the canonical form. */
+    prelower_class_type(aggr_type);
+    ctsp = class_type_supp(aggr_type);
+    if (ctsp->primary_base_class != NULL &&
+        ctsp->primary_base_class != ctsp->base_classes) {
+      /* In this case, lowering has placed the primary base class at offset
+         zero, which means that the ordering of constants in the aggregate
+         does not match the ordering of the fields that is returned
+         by next_initializable_field.  Find the initializer for the
+         primary base class and move it to the beginning of the aggregate
+         so it'll match the layout order. */
 #if CHECKING
-      a_boolean found = FALSE;
+        a_boolean found = FALSE;
 #endif /* CHECKING */
-    for (cp = aggr_con->variant.aggregate.first_constant;
-         cp != NULL;
-         cp = cp->next) {
-      if (identical_types(cp->type, ctsp->primary_base_class->type)) {
-        if (prev != NULL) {
-          prev->next = cp->next;
-          cp->next = aggr_con->variant.aggregate.first_constant;
-          aggr_con->variant.aggregate.first_constant = cp;
-          if (aggr_con->variant.aggregate.last_constant == cp) {
-            aggr_con->variant.aggregate.last_constant = prev;
+      for (cp = aggr_con->variant.aggregate.first_constant;
+           cp != NULL;
+           cp = cp->next) {
+        if (identical_types(cp->type, ctsp->primary_base_class->type)) {
+          if (prev != NULL) {
+            prev->next = cp->next;
+            cp->next = aggr_con->variant.aggregate.first_constant;
+            aggr_con->variant.aggregate.first_constant = cp;
+            if (aggr_con->variant.aggregate.last_constant == cp) {
+              aggr_con->variant.aggregate.last_constant = prev;
+            }  /* if */
           }  /* if */
-        }  /* if */
 #if CHECKING
-        found = TRUE;
+          found = TRUE;
 #endif /* CHECKING */
-        break;
-      }  /* if */
-      prev = cp;
-    }  /* for */
-    check_assertion(found || aggr_con->partial_aggr_value);
+          break;
+        }  /* if */
+        prev = cp;
+      }  /* for */
+      check_assertion(found || aggr_con->partial_aggr_value);
+    }  /* if */
   }  /* if */
 }  /* arrange_aggregate_constant_in_layout_order */
 
@@ -4846,11 +4858,6 @@ in the constants that they've previously processed.
       /* Remove any initializers that the front end may have added for
          empty base classes.  Do this before vptrs are inserted below. */
       remove_initializers_for_empty_base_classes(constant);
-#if IA64_ABI
-      /* If necessary, re-arrange the initializers in the aggregate constant
-         to match the layout order. */
-      arrange_aggregate_constant_in_layout_order(constant);
-#endif /* IA64_ABI */
       if (constant->is_result_of_constexpr_call &&
           !constant->vptr_has_been_lowered) {
         /* Initialize any __vptr fields if they exist in the aggregate.  This
@@ -4881,6 +4888,11 @@ if the constant has already been pre-lowered or in C mode).
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
   if (!C_mode() && !constant->has_been_prelowered) {
+#if IA64_ABI
+    /* If necessary, re-arrange the initializers in the aggregate constant
+       to match the layout order. */
+    arrange_aggregate_constant_in_layout_order(constant);
+#endif /* IA64_ABI */
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_constant = prelower_class_in_aggregate;
     traverse_constant(constant, &tblock);
