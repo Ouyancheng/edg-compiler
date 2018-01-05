@@ -13159,7 +13159,9 @@ instantiation-dependent.
   a_boolean  result = FALSE;
 
   check_assertion(!esp->arg_cached);
-  if (esp->is_noexcept) {
+  if (esp->copy_from_prototype) {
+    result = TRUE;
+  } else if (esp->is_noexcept) {
     a_constant_ptr  cp = esp->variant.noexcept_arg;
     if (cp != NULL && constant_is(cp, ck_template_param)) {
       result = TRUE;

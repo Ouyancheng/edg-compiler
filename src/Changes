@@ -1,5 +1,23 @@
 Version 4.15
 
+1/5/18   [EDGcpfe/19031]
+Incorrect substitution of C++17 exception specification
+
+In some C++17 cases involving default template arguments, the front end did not
+correctly substitute the exception specification of a member template during
+the deduction process for that member template.  This could result in spurious
+errors later on.  For example:
+
+  template<typename T> struct X {
+    template<typename U = T> X() noexcept(__is_nothrow_constructible(U)) {}
+  };
+  static_assert(__is_nothrow_constructible(X<int>));
+    // Previously, this static_assert failed because the noexcept specifier
+    // for the constructor template was not correctly substituted.
+
+This is now fixed.
+
+
 1/4/18   [EDGcpfe/19040]
 Premature removal of unneeded instantiations leads to assertion failure
 
