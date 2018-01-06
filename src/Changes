@@ -17,7 +17,7 @@ example:
 1/5/18   [EDGcpfe/19015]
 IA-64 ABI: Assertion failure in initialize_vptr
 
-An assertion (in initialize_vptr) could occur in cases where an aggregate
+A failed assertion (in initialize_vptr) could occur in cases where an aggregate
 constant is being used to initialize an object of class type where the IA-64
 ABI layout rules dictate that the object layout be changed to accommodate
 sharing of a vptr.  Now fixed.  For example (with --c++11):

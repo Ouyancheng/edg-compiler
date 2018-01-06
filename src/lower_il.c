@@ -4771,7 +4771,7 @@ static void arrange_aggregate_constant_in_layout_order(a_constant_ptr aggr_con)
 /*
 If the type of the aggregate constant is one where lowering has re-ordered
 the base classes such that the base class order is different than the
-canonical ordering, re-arrange the initializers in the aggregate constant
+canonical ordering, rearrange the initializers in the aggregate constant
 to match the layout ordering (the front end uses canonical ordering when
 creating an aggregate constant).  This routine recursively processes
 the aggregate constant.
@@ -4889,7 +4889,7 @@ if the constant has already been pre-lowered or in C mode).
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
   if (!C_mode() && !constant->has_been_prelowered) {
 #if IA64_ABI
-    /* If necessary, re-arrange the initializers in the aggregate constant
+    /* If necessary, rearrange the initializers in the aggregate constant
        to match the layout order. */
     arrange_aggregate_constant_in_layout_order(constant);
 #endif /* IA64_ABI */
