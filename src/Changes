@@ -1,5 +1,19 @@
 Version 4.15
 
+1/5/18   [EDGcpfe/19038]
+C++-generating back end: partial specializations of variable templates
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end failed to add the
+template argument list when generating the declaration of a partial
+specialization of a variable template.  This has now been fixed.  For
+example:
+
+  template<typename T, typename U> constexpr bool same = false;
+  template<typename T> constexpr bool same<T, T> = true; // Previously
+                                                         // omitted <T, T>
+
+
 1/5/18   [EDGcpfe/19015]
 IA-64 ABI: Assertion failure in initialize_vptr
 

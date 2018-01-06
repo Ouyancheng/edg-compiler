@@ -5479,6 +5479,15 @@ a definition.
       options |= GN_PARENS_IF_GLOBAL_QUALIFIER;
     }  /* if */
     gen_name(scp, entry_kind, options, &need_closing_paren);
+    if (entry_kind == iek_variable) {
+      a_variable_ptr var = (a_variable_ptr)scp;
+      if (var->template_info != NULL && var->is_prototype_instantiation &&
+          var->template_info->partial_spec_template_arg_list != NULL) {
+        /* This is a partial specialization of a variable template.  Put
+           out its template argument list. */
+        form_template_args(var->template_info->template_arg_list, &octl);
+      }  /* if */
+    }  /* if */
     if (need_closing_paren) write_tok_ch(')');
   }  /* if */
 }  /* gen_decl_name */
@@ -17635,9 +17644,12 @@ this one is such a continuation.
          !scope_is_in_name_context_stack(
                               parent_namespace_of(var)->variant.assoc_scope));
   /* Ensure that no template argument list is put out on a declaration of a
-     variable template, unless it's a specialization. */
+     variable template, unless it's a specialization or partial
+     specialization. */
   saved_template_info = var->template_info;
-  if (!var->is_specialized) {
+  if (!var->is_specialized &&
+      !(var->template_info != NULL && var->is_prototype_instantiation &&
+        var->template_info->partial_spec_template_arg_list != NULL)) {
     var->template_info = NULL;
   }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
