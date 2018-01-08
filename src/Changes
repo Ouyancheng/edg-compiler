@@ -1,5 +1,14 @@
 Version 4.15
 
+1/8/18   [EDGcpfe/19090]
+Microsoft compatibility: Static data member types and instantiation
+
+Previously, the front end always instantiated a class template instance used
+as the type of a static data member in Microsoft bugs mode (see the entry of
+10/16/02).  Now that behavior is limited to Microsoft bugs modes with
+microsoft_version < 1900.
+
+
 1/8/18   [EDGcpfe/10945]
 Representation of array objects in exception handling array table
 

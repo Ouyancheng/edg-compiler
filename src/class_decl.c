@@ -16245,9 +16245,11 @@ template declaration and is NULL otherwise.
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               member_type, &locator->source_position);
   }  /* if */
-  /* The Microsoft compiler instantiates a template class used as the type
-     of a static data member. */
-  if (microsoft_bugs) complete_type_is_needed(member_type);
+  if (microsoft_bugs && microsoft_version < 1900) {
+    /* Early versions of the Microsoft compiler instantiate a template class
+       used as the type of a static data member. */
+    complete_type_is_needed(member_type);
+  }  /* if */
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
     pos_error(ec_static_data_member_not_allowed, start_pos);
