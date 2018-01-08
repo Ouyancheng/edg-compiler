@@ -21962,7 +21962,9 @@ additional position information about the components of the declaration.
   }  /* if */
   *param_type_ptr = state.type;
   run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
+#if MAINTAIN_NEEDED_FLAGS
   mark_as_needed((char*)state.type, (an_il_entry_kind)iek_type);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* scan_a_template_parameter_declaration */
 
 
