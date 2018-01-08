@@ -1,5 +1,30 @@
 Version 4.15
 
+1/8/18   [EDGcpfe/10945]
+Representation of array objects in exception handling array table
+
+In configurations where GENERATE_EH_TABLES is TRUE but
+DO_FULL_PORTABLE_EH_LOWERING is FALSE, the "handle" field in the array table of
+the exception handling tables had neglected to include any needed offset in the
+case where the destroyed object has static storage duration.  That had
+resulted, for example, in code that would attempt to do partial aggregate
+destructions of the same object in the code below (because all of the array
+table elements pointed to the same -- zeroth -- element):
+
+  struct A {
+    A();
+    ~A();
+    A(char *);
+  };
+  struct B {
+    A a[2];
+  } b[] = {
+    { {""} },
+    { {"foo"} },
+    { {"bar"} },
+  };
+
+
 1/5/18   [EDGcpfe/19038]
 C++-generating back end: partial specializations of variable templates
 

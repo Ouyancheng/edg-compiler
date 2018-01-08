@@ -3226,7 +3226,7 @@ static void make_handle_for_entity(an_init_pos_descr_ptr ipdp,
 Return the handle (identifier to be used in the region table) for the
 entity indicated by ipdp.  The handle is placed in *handle.  If any code
 needs to be generated to establish that handle, insert the code at
-*insert_Location.
+*insert_location.
 */
 {
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -3292,6 +3292,7 @@ a variable) and return a pointer to the constant.
       handle_con = alloc_constant((a_constant_repr_kind)ck_address);
       set_variable_address_constant(var, handle_con,
                                     /*set_address_taken_flag=*/TRUE);
+      handle_con->variant.address.offset = handle->offset;
       implicit_cast(handle_con, var_handle_type);
     } else {
       /* Normal case (auto variable). */
