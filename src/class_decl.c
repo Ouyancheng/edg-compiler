@@ -3790,13 +3790,17 @@ constant-expression.
       a_source_sequence_entry_ptr  sse, sse_next;
       check_assertion(last_ssep != NULL);
       sse = var->source_corresp.source_sequence_entry;
-      sse_next = sse->next;
-      sse->next = last_ssep->next;
-      sse->next->prev = sse;
-      scope_stack_top().end_of_source_sequence_list->next = sse_next;
-      sse_next->prev = scope_stack_top().end_of_source_sequence_list;
-      scope_stack_top().end_of_source_sequence_list = last_ssep;
-      last_ssep->next = NULL;
+      if (sse != last_ssep) {
+        /* Move the sequence sse->next ... last_ssep to after
+           scope_stack_top().end_of_source_sequence_list. */
+        sse_next = sse->next;
+        sse->next = last_ssep->next;
+        sse->next->prev = sse;
+        scope_stack_top().end_of_source_sequence_list->next = sse_next;
+        sse_next->prev = scope_stack_top().end_of_source_sequence_list;
+        scope_stack_top().end_of_source_sequence_list = last_ssep;
+        last_ssep->next = NULL;
+      }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
