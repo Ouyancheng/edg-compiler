@@ -1,5 +1,29 @@
 Version 4.15
 
+1/9/18   [EDGcpfe/18352,EDGcpfe/19078]
+Corrupt source sequence list for instantiation of GNU in-class initializer
+
+The changes for EDGcpfe/16403,EDGcpfe/16644 introduced a bug in configurations
+with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE:
+Specifically, the source sequence entries list associated with the in-class
+initializer for a static data member of a class template instance in GNU C++
+mode was corrupted: The forward and backward traversal of the source sequence
+list became inconsistent.  This could result in internal errors.  For example:
+
+  template<bool> struct B;
+  template<typename> struct C {
+    struct D {
+        template<typename> void f();
+    };
+    static const bool value = sizeof(D);
+    typedef B <value> type;
+  };
+  long N = C<int>::value;
+
+This example previously triggered an internal error in GNU C++ mode, during the
+execution of function inline_function_fixup_for_class.  That is now fixed.
+
+
 1/8/18   [EDGcpfe/19090]
 Microsoft compatibility: Static data member types and instantiation
 

@@ -3787,11 +3787,14 @@ constant-expression.
     if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
       /* The initializer created source sequence entries.  Move them to
          follow the entry for the variable. */
-      a_source_sequence_entry_ptr  var_next;
+      a_source_sequence_entry_ptr  sse, sse_next;
       check_assertion(last_ssep != NULL);
-      var_next = var->source_corresp.source_sequence_entry->next;
-      var->source_corresp.source_sequence_entry->next = last_ssep->next;
-      scope_stack_top().end_of_source_sequence_list->next = var_next;
+      sse = var->source_corresp.source_sequence_entry;
+      sse_next = sse->next;
+      sse->next = last_ssep->next;
+      sse->next->prev = sse;
+      scope_stack_top().end_of_source_sequence_list->next = sse_next;
+      sse_next->prev = scope_stack_top().end_of_source_sequence_list;
       scope_stack_top().end_of_source_sequence_list = last_ssep;
       last_ssep->next = NULL;
     }  /* if */
