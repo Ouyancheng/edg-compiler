@@ -370,6 +370,10 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   }  /* if */
 }  /* db_source_sequence_entry */
 
+static unsigned ss_list_count;
+		/* Variable used to count the number of entries output by
+		   db_ss_list (to limit the output in case of loops). */
+
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 static a_boolean is_ss_entry_for_class_template_definition(
@@ -409,6 +413,7 @@ source-sequence entry by "indent" spaces.
   for (; ssep != NULL; ssep = ssep->next) {
     for (i = 0; i < indent; i++) fputc(' ', f_debug);
     db_source_sequence_entry(ssep);
+    if (ss_list_count++ > 1000) break;
     /* If ssep represents a class template definition, put out the
        associated source sequence entries at this point. */
     if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template) {
@@ -433,9 +438,11 @@ Display the list of source-sequence entries pointed to by ssep, for debugging
 purposes.
 */
 {
+  ss_list_count = 0;
   for (; ssep != NULL; ssep = ssep->next) {
     fputs("  ", f_debug);
     db_source_sequence_entry(ssep);
+    if (ss_list_count++ > 1000) break;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* If ssep represents a class template definition, put out the
        associated source sequence entries at this point. */

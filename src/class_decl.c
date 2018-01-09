@@ -3786,21 +3786,20 @@ constant-expression.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
       /* The initializer created source sequence entries.  Move them to
-         follow the entry for the variable. */
-      a_source_sequence_entry_ptr  sse, sse_next;
+         precede the entry for the variable (this ensures that nested
+         class template instantiations are visible to the initializer
+         in the output produced by the C++-generating back end. */
+      a_source_sequence_entry_ptr  sse, prev_sse;
       check_assertion(last_ssep != NULL);
       sse = var->source_corresp.source_sequence_entry;
-      if (sse != last_ssep) {
-        /* Move the sequence sse->next ... last_ssep to after
-           scope_stack_top().end_of_source_sequence_list. */
-        sse_next = sse->next;
-        sse->next = last_ssep->next;
-        sse->next->prev = sse;
-        scope_stack_top().end_of_source_sequence_list->next = sse_next;
-        sse_next->prev = scope_stack_top().end_of_source_sequence_list;
-        scope_stack_top().end_of_source_sequence_list = last_ssep;
-        last_ssep->next = NULL;
-      }  /* if */
+      prev_sse = sse->prev;
+      check_assertion(prev_sse != NULL);
+      prev_sse->next = last_ssep->next;
+      prev_sse->next->prev = prev_sse;
+      scope_stack_top().end_of_source_sequence_list->next = sse;
+      sse->prev = scope_stack_top().end_of_source_sequence_list;
+      scope_stack_top().end_of_source_sequence_list = sse;
+      last_ssep->next = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
