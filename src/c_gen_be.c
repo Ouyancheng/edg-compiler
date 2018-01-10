@@ -2871,8 +2871,11 @@ if output_final_semi is TRUE.
     set_output_position(&enum_con->source_corresp.decl_position);
     /* Output the constant's name. */
     dump_constant_name(enum_con);
-    /* Output the value if it's not the next value in sequence. */
-    if (cmp_integer_constants(enum_con, next_enum_value) != 0) {
+    /* Output the value if it's not the next value in sequence or if it
+       appeared explicitly in the source as a hexadecimal or octal
+       literal. */
+    if (enum_con->non_arithmetic ||
+        cmp_integer_constants(enum_con, next_enum_value) != 0) {
       write_tok_str(" = ");
       /* We use form_integer_constant because we want to handle the
          -INT_MAX-1 case, and we don't use gen_constant/form_constant

@@ -1,5 +1,23 @@
 Version 4.15
 
+1/10/17  [EDGcpfe/19105]
+C-generating back end: overflow in enumerator constants
+
+The C-generating back end only put out an explicit constant for an
+enumerator in an enumeration definition if that value was other than that
+of the preceding enumerator plus one.  This caused problems in a case like
+the following (assuming 32-bit integers):
+
+  enum E : unsigned { a = 0x7fffffff, b = 0x80000000 };
+
+In this case, the value for b was omitted, potentially resulting in an
+error complaining of integer overflow in the calculation of the implicit
+value of b when the generated code was compiled.  This has now been
+addressed by putting out any explicit constant that is explicitly specified
+in the source using a hexadecimal or octal literal, regardless of the value
+of the preceding enumerator.
+
+
 1/9/18   [EDGcpfe/18352,EDGcpfe/19078]
 Corrupt source sequence list for instantiation of GNU in-class initializer
 
