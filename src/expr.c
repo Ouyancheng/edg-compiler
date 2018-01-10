@@ -4786,6 +4786,7 @@ indicated type.
   a_boolean                err = FALSE, template_case = FALSE;
   a_boolean                is_sync_or_atomic =
                                               bcap->is_sync || bcap->is_atomic;
+  a_boolean                skip_arg_prep = FALSE;
 
   *arg_list = NULL;
   rout = routine_from_function_operand(target);
@@ -4861,7 +4862,7 @@ indicated type.
       /* An error has already been issued. */
       expr_expect_error();
       err = TRUE;
-    } else if (is_sync_or_atomic &&
+    } else if (is_sync_or_atomic && !bcap->is_generic &&
                !is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
       /* For the __sync_* and __atomic_* builtins, the first argument must be a
@@ -4882,7 +4883,9 @@ indicated type.
         goto done;
       }  /* if */
       /* In the "generic" case, we do not have to map "rout" onto a more
-         concrete implementation. */
+         concrete implementation (but skip argument prep so a back end can
+         see the original types being used). */
+      skip_arg_prep = TRUE;
     } else if (is_sync_or_atomic &&
                (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                 dispatch_type->size != 4 && dispatch_type->size != 8
@@ -5100,7 +5103,6 @@ indicated type.
         operand = operand_of_arg_list_elem(ap);
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
         if (!template_case) {
-          a_boolean  skip_arg_prep = FALSE;
           check_assertion(ptp != NULL);
           if (is_pointer_type(operand->type) &&
               is_integral_type(ptp->type) &&
