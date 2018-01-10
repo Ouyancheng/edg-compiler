@@ -21,12 +21,13 @@ of the preceding enumerator.
 1/9/18   [EDGcpfe/18352,EDGcpfe/19078]
 Corrupt source sequence list for instantiation of GNU in-class initializer
 
-The changes for EDGcpfe/16403,EDGcpfe/16644 introduced a bug in configurations
-with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE:
-Specifically, the source sequence entries list associated with the in-class
-initializer for a static data member of a class template instance in GNU C++
-mode was corrupted: The forward and backward traversal of the source sequence
-list became inconsistent.  This could result in internal errors.  For example:
+The changes for EDGcpfe/16403,EDGcpfe/16644 introduced a bug (in version 4.12)
+in configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE.  Specifically, the source sequence entries list associated with
+the in-class initializer for a static data member of a class template instance
+in GNU C++ mode was corrupted: The forward and backward traversal of the
+source sequence list became inconsistent.  This could result in internal
+errors.  For example:
 
   template<bool> struct B;
   template<typename> struct C {
