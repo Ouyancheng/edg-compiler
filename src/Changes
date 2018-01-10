@@ -1,5 +1,26 @@
 Version 4.15
 
+1/10/18  [EDGcpfe/19110]
+C-generating back end: always_inline attribute and setjmp
+
+During the lowering of certain constructs related to new/delete, lowering
+may insert calls to setjmp.  When that happens in a function that has the
+GNU always_inline attribute, the generated C code can't be compiled by a
+back end GCC compiler (an error is issued indicating that an always_inline
+function can never be inlined).  A change has been made to remove the
+always_inline attribute and issue a remark in such cases.  For example:
+
+  struct A {
+    int m;
+  };
+  __attribute((__always_inline__)) inline void f() {
+    new A[4] {1, 2};
+  }
+  int main() {
+    f();
+  }
+
+
 1/10/18  [EDGcpfe/19105]
 C-generating back end: overflow in enumerator constants
 

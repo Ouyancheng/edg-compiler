@@ -5479,6 +5479,31 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   *setjmp_compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                             setjmp_call->type, setjmp_call);
   release_local_constant(&null_constant);
+#if BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET
+  check_assertion(innermost_function_scope != NULL);
+  if (innermost_function_scope->variant.routine.ptr->always_inline) {
+    /* This function has the GCC always_inline attribute and we've just added
+       a call to setjmp in the lowered code.  A back end GCC will fail to
+       compile this code as the presence of setjmp prohibits inlining.
+       Remove the always_inline attribute (and issue a remark). */
+    an_attribute_ptr ap, prev = NULL;
+    a_routine_ptr    rp = innermost_function_scope->variant.routine.ptr;
+    for (ap = rp->source_corresp.attributes;
+         ap != NULL;
+         ap = ap->next) {
+      if (ap->kind == (an_attribute_kind)ak_always_inline) {
+        rp->always_inline = FALSE;
+        pos_remark(ec_always_inline_suppressed, &ap->position);
+        if (prev == NULL) {
+          rp->source_corresp.attributes = ap->next;
+        } else {
+          prev->next = ap->next;
+        }  /* if */
+      }  /* if */
+      prev = ap;
+    }  /* for */
+  }  /* if */
+#endif /* BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET */
 }  /* initialize_eh_stack_entry_for_try */
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
