@@ -1,6 +1,6 @@
 Version 4.15
 
-1/10/17  [EDGcpfe/19105]
+1/10/18  [EDGcpfe/19105]
 C-generating back end: overflow in enumerator constants
 
 The C-generating back end only put out an explicit constant for an
