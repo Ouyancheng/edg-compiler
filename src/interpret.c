@@ -13131,7 +13131,8 @@ diagnostic in *ips.
         if (!result) break;
         /* Now add the constants for initializable fields. */
         is_static_init_list = class_type_supp(type)->is_initializer_list &&
-                              innermost_function_scope == NULL &&
+                              (innermost_function_scope == NULL ||
+                               ips->permit_address_of_local_temporary) &&
                               !scope_stack_top().in_field_initializer;
         fp = next_alloc_field(fp);
         for (; fp != NULL; fp = next_alloc_field(fp->next)) {
@@ -13154,6 +13155,12 @@ diagnostic in *ips.
                array is treated as having a static lifetime also. */
             ((a_constexpr_address*)(object+offset))->flags |=
                                                          CA_LIFETIME_EXTENDED;
+            /* The call to copy_interpreter_object below will clear the
+               permit_address_of_local_temporary flag.  However, if this is
+               the second field of an initializer list (which may be a pointer
+               in some implementation, like Microsoft's), the flag should be
+               true for that field too. */
+            ips->permit_address_of_local_temporary = TRUE;
           }  /* if */
           cp = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
