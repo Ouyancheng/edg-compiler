@@ -18375,10 +18375,10 @@ can match zero or more parameters from new_list.
        is_templ_templ_param_match && new_tpp->is_pack)) {
     /* When matching template parameters, an additional pack parameter is
        allowed. */
-   } else if (new_tpp != NULL &&
-              is_templ_templ_param_match &&
-              gnu_mode && gnu_version < 40200 &&
-              new_tpp->has_default_arg) {
+  } else if (new_tpp != NULL &&
+             is_templ_templ_param_match &&
+             gnu_mode && gnu_version < 40200 &&
+             new_tpp->has_default_arg) {
     /* When matching a template template argument with extraneous default
        template arguments, they are ignored in some GNU C++ modes. */
   } else if (old_tpp != NULL || new_tpp != NULL) {
