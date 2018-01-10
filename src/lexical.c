@@ -15973,8 +15973,10 @@ it is used.
        parameter. */
     a_template_symbol_supplement_ptr	tssp1;
     a_template_symbol_supplement_ptr	tssp2;
+    a_template_ptr			arg_template;
     tssp1 = template_supplement_for_template(param_template);
     tssp2 = sym->variant.template_info;
+    arg_template = tssp2->il_template_entry;
     if (tssp1->is_nonreal_member || tssp2->is_nonreal_member) {
       /* Nonreal members have no template parameter lists.  The comparison
          will be done again later when a real member is available. */
@@ -15985,11 +15987,37 @@ it is used.
          template template argument until that argument is actually used. */
       tssp1->variant.class_template.def_templ_templ_arg_check_delayed = TRUE;
     } else {
-      if (!equiv_template_param_lists(tssp1->cache.decl_info->parameters,
-                                      tssp2->cache.decl_info->parameters,
-		 		      /*issue_errors=*/FALSE,
-                                      ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-				      (a_source_position*)NULL, es_error)) {
+      a_boolean	do_old_style_check;
+      a_boolean	old_style_match = FALSE;
+      a_boolean	match = FALSE;
+      do_old_style_check = !generalized_template_template_matching ||
+                           EXPENSIVE_CHECKING;
+      /* The checking of template template argument compatibility was changed
+         in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used
+         and the new checking is being done, we also do the old checking to
+         make sure the new processing is a superset of the old. */
+      if (do_old_style_check) {
+        if (equiv_template_param_lists(tssp1->cache.decl_info->parameters,
+                                       tssp2->cache.decl_info->parameters,
+                                       /*issue_errors=*/FALSE,
+                                       ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+				       (a_source_position*)NULL, es_error)) {
+          match = TRUE;
+          old_style_match = TRUE;
+        }  /* if */
+      }  /* if */
+      if (generalized_template_template_matching) {
+        match = FALSE;
+        if (template_template_arg_is_compatible_with_param(
+                                               arg_template, param_template)) {
+          match = TRUE;
+        }  /* if */
+        /* In EXPENSIVE_CHECKING configurations we make sure the new checking
+           is a superset of the old. */
+        check_assertion_or_expect_error(!do_old_style_check ||
+                                        (old_style_match ? match : TRUE));
+      }  /* if */
+      if (!match) {
         pos_sy2_error(ec_not_compatible_with_templ_templ_param, err_pos, sym, 
                       symbol_for(param_template));
         any_errors = TRUE;
@@ -16527,14 +16555,15 @@ all arguments were explicit.
   }  /* if */
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
-  if (gpp_mode && gnu_version < 40200 &&
+  if ((generalized_template_template_matching ||
+       (gpp_mode && gnu_version < 40200)) &&
       orig_param_ptr == NULL && param_ptr != NULL) {
-    /* In g++ mode, a template with more parameters can be passed to
-       a template template parameter with fewer parameters if the
-       argument template has default arguments for the additional
-       parameters.  In that case, we will have exhausted the list of
-       original parameters.  Use the remaining elements from the
-       argument template. */
+    /* With C++17-style template template argument matching, and in g++ mode,
+       a template with more parameters can be passed to a template template
+       parameter with fewer parameters if the argument template has default
+       arguments for the additional parameters.  In that case, we will have
+       exhausted the list of original parameters.  Use the remaining
+       elements from the argument template. */
     check_assertion(tssp->variant.class_template.template_template_param);
     orig_param_ptr = param_ptr;
   }  /* if */

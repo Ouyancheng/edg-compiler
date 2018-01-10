@@ -7840,6 +7840,7 @@ other.  Return
     cmp = compare_function_templates(cfp1->function_symbol,
                                      cfp2->function_symbol,
                                      /*entire_type=*/FALSE,
+                                     /*is_templ_templ_param_check=*/FALSE,
                                      maxn);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled &&
@@ -9035,6 +9036,7 @@ source position for errors.
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   (void)create_initial_template_arg_list(templ_param_list,
                                          template_arg_list,
+                                         /*is_templ_templ_param_check=*/FALSE,
                                          pos);
 }  /* evaluate_unused_template_arguments */
 

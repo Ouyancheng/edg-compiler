@@ -51,6 +51,10 @@ static a_symbol_header
 		*initializer_list_sym_hdr;
 			/* Symbol header for "initializer_list". */
 
+static a_symbol_header
+		*invented_template_sym_hdr;
+			/* Symbol header for "<invented>". */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 typedef struct an_instance_lookup_entry *an_instance_lookup_entry_ptr;
 typedef struct an_instance_lookup_entry {
@@ -1854,11 +1858,12 @@ static void substitute_template_argument(
 
 
 static a_boolean all_templ_params_have_values(
-		a_template_arg_ptr			templ_arg_list,
-		a_template_param_ptr			templ_param_list,
-		a_boolean				is_partial_order_check,
-		a_symbol_ptr				template_sym,
-		a_template_symbol_supplement_ptr	tssp)
+	a_template_arg_ptr			templ_arg_list,
+	a_template_param_ptr			templ_param_list,
+	a_boolean				is_partial_order_check,
+	a_boolean				is_templ_templ_param_check,
+	a_symbol_ptr				template_sym,
+	a_template_symbol_supplement_ptr	tssp)
 /*
 This routine is used after doing argument deduction for a template
 argument list.  Its purpose is to make sure that a value has been deduced
@@ -1867,7 +1872,10 @@ for each parameter.
 is_partial_order_check is TRUE when this function is called (indirectly)
 during wrapup processing by compare_function_templates.  template_sym is
 the symbol of the template being checked.  tssp is the associated template
-symbol supplement.
+symbol supplement.  is_templ_templ_param_check is TRUE if this routine
+is being called to (possibly) supply default template argument values as
+part of template template parameter compatibility checking when doing
+C++17-style template template argument matching.
 */
 {
   a_boolean		result = TRUE;
@@ -1875,7 +1883,11 @@ symbol supplement.
   a_template_arg_ptr	tap;
   a_type_ptr		rout_type = NULL;
   a_boolean		is_conversion_operator = FALSE;
+  a_boolean		default_allowed;
+  a_template_arg_ptr	prev_tap = NULL;
 
+  default_allowed = (function_template_default_args_allowed &&
+                     !is_partial_order_check) || is_templ_templ_param_check;
   if (is_partial_order_check) {
     /* The routine type of the prototype instantiation of the template
        is only needed below when doing the partial ordering check. */
@@ -1884,10 +1896,15 @@ symbol supplement.
   }  /* if */
   begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
                                     &tpp, &tap);
-  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+  for (; tap != NULL;
+       prev_tap = tap, advance_to_next_template_arg(&tpp, &tap)) {
     a_boolean	has_value = template_arg_has_value(tap);
-    if (function_template_default_args_allowed && !has_value &&
-        !is_partial_order_check) {
+    if (tpp == NULL) {
+      check_assertion(is_templ_templ_param_check);
+      if (!tap->is_pack_element) result = FALSE;
+      break;
+    }  /* if */
+    if (default_allowed && !has_value) {
       /* See if the template parameter has a default value that can be used. */
       get_template_arg_value_from_default(template_sym, tap, tpp,
                                           templ_param_list);
@@ -1906,7 +1923,8 @@ symbol supplement.
                                      CTWS_NO_OPTIONS,
                                      /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
-        if (copy_error || template_arg_is_dependent(tap)) {
+        if (copy_error ||
+            (template_arg_is_dependent(tap) && !is_templ_templ_param_check)) {
           /* If the copy failed, or resulted in an argument that is still
              dependent, don't use the resulting value. */
           result = FALSE;
@@ -1916,7 +1934,12 @@ symbol supplement.
     }  /* if */
     if (!has_value) {
       a_boolean	okay_if_no_value = FALSE;
-      if (is_partial_order_check) {
+      if (is_templ_templ_param_check) {
+        if (prev_tap != NULL && prev_tap->is_pack_element) {
+          okay_if_no_value = TRUE;
+          prev_tap->next = tap->next;
+        }  /* if */
+      } else if (is_partial_order_check) {
         /* We are doing a check during the wrapup processing for partial
            ordering of function templates.  A parameter can remain without
            a value provided it is not used in the types being used for the
@@ -1946,6 +1969,185 @@ symbol supplement.
 }  /* all_templ_params_have_values */
 
 
+static a_symbol_header_ptr make_symbol_header_for_invented_template(void)
+/*
+Create a symbol header for an invented template used in template template
+argument checking.
+*/
+{
+  if (invented_template_sym_hdr == NULL) {
+    a_symbol_locator  locator;
+    clear_locator(&locator, &null_source_position);
+    invented_template_sym_hdr = find_symbol_header("<invented>",
+                                                  sizeof("<invented>")-1,
+                                                   &locator);
+  }  /* if */
+  return invented_template_sym_hdr;
+}  /* make_symbol_header_for_invented_template */
+
+
+static a_symbol_ptr make_invented_class_template(
+				a_template_param_ptr	templ_param_list)
+/*
+Create a class template based on the template parameter list specified
+by templ_param_list.  This is used for template template argument
+compatibility checking.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  sym = alloc_symbol((a_symbol_kind)sk_class_template,
+                     make_symbol_header_for_invented_template(),
+                     &null_source_position);
+  sym->decl_scope = il_header.primary_scope->number;
+  tssp = sym->variant.template_info;
+  tdip = alloc_template_decl_info();
+  tssp->cache.decl_info = tdip;
+  tssp->variant.class_template.initial_decl_cache.decl_info = tdip;
+  tdip->parameters = templ_param_list;
+  tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
+  tssp->variant.class_template.invented_template = TRUE;
+  return sym;
+}  /* make_invented_class_template */
+
+
+static a_symbol_ptr make_invented_function_template(
+				a_template_param_ptr	templ_param_list,
+				a_type_ptr		param_type)
+/*
+Create a function template based on the template parameter list specified
+by templ_param_list with a single function parameter whose type is
+specified by param_type.  This is used for template template argument
+compatibility checking.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_routine_ptr				rout;
+  a_routine_type_supplement_ptr		rtsp;
+  a_type_ptr				rout_type;
+  a_param_type_ptr			ptp;
+
+  sym = alloc_symbol((a_symbol_kind)sk_function_template,
+                     make_symbol_header_for_invented_template(),
+                     &null_source_position);
+  sym->decl_scope = il_header.primary_scope->number;
+  tssp = sym->variant.template_info;
+  tdip = alloc_template_decl_info();
+  tssp->cache.decl_info = tdip;
+  tssp->variant.function.decl_cache.decl_info = tdip;
+  tdip->parameters = templ_param_list;
+  rout = alloc_routine();
+  rout_type = alloc_type((a_type_kind)tk_routine);
+  rout->type = rout_type;
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->prototyped = TRUE;
+  rout_type->variant.routine.return_type = void_type();
+  ptp = alloc_param_type(param_type);
+  ptp->param_num = 1;
+  rtsp->param_type_list = ptp;
+  tssp->variant.function.routine = rout;
+  return sym;
+}  /* make_invented_function_template */
+
+
+a_boolean template_template_arg_is_compatible_with_param(
+					a_template_ptr		arg_template,
+					a_template_ptr		param_template)
+/*
+Return TRUE if the template template argument specified by arg_template can
+be used as an argument to the template template parameter specified by
+param_template.
+
+This routine does the C++17 "at least as specialized" checking.
+*/
+{
+  a_template_param_ptr			param_list_for_param;
+  a_template_param_ptr			param_list_for_arg;
+  a_template_symbol_supplement_ptr	param_tssp;
+  a_template_symbol_supplement_ptr	arg_tssp;
+  a_boolean				match = FALSE;
+  a_symbol_ptr				arg_templ_sym;
+
+  /* Compare the parameter list of the (potentially) rescanned template
+     template parameter with the template supplied as an argument.  Don't
+     do this if the argument template is nonreal (because it won't have
+     a template parameter list). */
+  param_tssp = template_supplement_for_template(param_template);
+  param_list_for_param = param_tssp->cache.decl_info->parameters;
+  arg_tssp = template_supplement_for_template(arg_template);
+  arg_templ_sym = symbol_for(arg_template);
+  if (arg_tssp->is_nonreal_member) {
+    match = TRUE;
+  } else {
+    /* For a template template argument based on a template
+         template <arg_param_list> struct A;
+       And a template template parameter
+         <template <param_param_list> class P;
+       The processing creates the following declarations:
+         template <arg_param_list> class invented;
+         template <arg_param_list> void f1(invented<arg_template_args>);
+         template <arg_param_list> void f2(invented<param_template_args>);
+      The function partial ordering (compare_function_templates) is used
+      to see if f2 is at least as specialized as f1.  If so, the match is
+      successful. */
+    a_symbol_ptr		invented_templ_sym;
+    a_symbol_ptr		arg_sym;
+    a_symbol_ptr		param_sym = NULL;
+    a_template_arg_ptr		arg_tap;
+    a_template_arg_ptr		param_tap;
+    /* Create an invented class template based on the template parameters
+       of the argument template. */
+    param_list_for_arg = arg_tssp->cache.decl_info->parameters;
+    invented_templ_sym = make_invented_class_template(param_list_for_arg);
+    /* A rescan context is needed because nonreal types will be created
+       below. */
+    push_instantiation_scope_for_rescan(invented_templ_sym);
+    /* Create an argument list corresponding to the template parameters
+       of the argument template. */
+    arg_tap = create_prototype_arg_list((a_symbol_ptr)NULL,
+                                        param_list_for_arg);
+    /* Instantiate the invented class template on that argument list. */
+    arg_sym = find_class_template_instance(invented_templ_sym, &arg_tap);
+    /* Repeat this process for the parameter template.  Note that
+       create_initial_template_arg_list is used to adjust the argument
+       list (including possibly filling in defaults) based on the
+       argument template parameter list. */
+    param_tap = create_prototype_arg_list((a_symbol_ptr)NULL,
+                                          param_list_for_param);
+    param_tap = create_initial_template_arg_list(
+                                           param_list_for_arg, param_tap,
+                                           /*is_templ_templ_param_check=*/TRUE,
+                                           &arg_templ_sym->decl_position);
+    if (param_tap != NULL) {
+        param_sym = find_class_template_instance(invented_templ_sym,
+                                                 &param_tap);
+    }  /* if */
+    pop_instantiation_scope_for_rescan();
+    if (param_sym != NULL) {
+      a_symbol_ptr	ft1;
+      a_symbol_ptr	ft2;
+      int		compare_result;
+      /* Create the two function templates and perform the ordering. */
+      ft1 = make_invented_function_template(param_list_for_arg,
+                                            type_symbol_type(arg_sym));
+      ft2 = make_invented_function_template(param_list_for_param,
+                                            type_symbol_type(param_sym));
+      compare_result = compare_function_templates(
+                                           ft1, ft2, /*entire_type=*/FALSE,
+                                           /*is_templ_templ_param_check=*/TRUE,
+                                           /*param_count=*/1);
+      /* A result less than zero indicates success for our purposes. */
+      match = compare_result < 0;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* template_template_arg_is_compatible_with_param */
+
+
 static a_boolean template_template_arg_matches_param(
 				a_template_arg_ptr	tap,
 				a_template_param_ptr	tpp,
@@ -1966,12 +2168,15 @@ Return TRUE if there is a match, FALSE otherwise.
 */
 {
   a_template_ptr			param_template;
-  a_template_param_ptr			param_list_for_param;
-  a_template_param_ptr			param_list_for_arg;
-  a_template_symbol_supplement_ptr	arg_template;
-  a_template_symbol_supplement_ptr	param_tssp;
   a_boolean				match = TRUE;
+  a_boolean				substitution_okay = TRUE;
+  a_boolean				old_style_match = FALSE;
+  a_boolean				do_old_style_check;
 
+  /* When EXPENSIVE_CHECKING is TRUE we do the comparison in the old and
+     new way and make sure the new results are a superset of the old. */
+  do_old_style_check = !generalized_template_template_matching ||
+                       EXPENSIVE_CHECKING;
   param_template = tpp->variant.templ->il_template_entry;
   if (tpp->variant.templ->variant.class_template.involves_template_param) {
     /* The template template parameter depends on another template
@@ -1988,25 +2193,51 @@ Return TRUE if there is a match, FALSE otherwise.
                                                 CTWS_NO_OPTIONS, &copy_error,
                                                 &ctws_state);
     tap->variant.templ.substituted_param_template = param_template;
-    if (copy_error) match = FALSE;
+    if (copy_error) substitution_okay = FALSE;
   }  /* if */
-  /* Compare the parameter list of the (potentially) rescanned template
-     template parameter with the template supplied as an argument.  Don't
-     do this if the argument template is nonreal (because it won't have
-     a template parameter list). */
-  param_tssp = template_supplement_for_template(param_template);
-  param_list_for_param = param_tssp->cache.decl_info->parameters;
-  arg_template = template_supplement_for_template(tap->variant.templ.ptr);
-  if (!arg_template->is_nonreal_member) {
-    param_list_for_arg = arg_template->cache.decl_info->parameters;
-    if (!equiv_template_param_lists(param_list_for_param,
-                                    param_list_for_arg,
-                                    /*issue_errors=*/FALSE,
-                                    ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-                                    (a_source_position*)NULL,
-                                    es_error)) {
-      match = FALSE;
+  /* The checking of template template argument compatibility was changed
+     in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used and
+     the new checking is being done, we also do the old checking to make
+     sure the new processing is a superset of the old. */
+  if (substitution_okay && do_old_style_check) {
+    /* Compare the parameter list of the (potentially) rescanned template
+       template parameter with the template supplied as an argument.  Don't
+       do this if the argument template is nonreal (because it won't have
+       a template parameter list). */
+    a_template_param_ptr		param_list_for_param;
+    a_template_param_ptr		param_list_for_arg;
+    a_template_symbol_supplement_ptr	param_tssp;
+    a_template_symbol_supplement_ptr	arg_template;
+    param_tssp = template_supplement_for_template(param_template);
+    param_list_for_param = param_tssp->cache.decl_info->parameters;
+    arg_template = template_supplement_for_template(tap->variant.templ.ptr);
+    if (!arg_template->is_nonreal_member) {
+      param_list_for_arg = arg_template->cache.decl_info->parameters;
+      if (!equiv_template_param_lists(param_list_for_param,
+                                      param_list_for_arg,
+                                      /*issue_errors=*/FALSE,
+                                      ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+                                      (a_source_position*)NULL,
+                                      es_error)) {
+        match = FALSE;
+      }  /* if */
     }  /* if */
+    old_style_match = match;
+  }  /* if */
+  /* Do the C++17 matching, if needed.  The new checking is also done in
+     some pre-C++17 modes. */
+  if (generalized_template_template_matching) {
+    a_template_ptr			arg_template;
+    arg_template = tap->variant.templ.ptr;
+    match = FALSE;
+    if (substitution_okay) {
+      match = template_template_arg_is_compatible_with_param(arg_template,
+                                                           param_template);
+    }  /* if */
+    /* In EXPENSIVE_CHECKING configurations we make sure the new checking
+       is a superset of the old. */
+    check_assertion(!do_old_style_check ||
+                    (old_style_match ? match : TRUE));
   }  /* if */
   return match;
 }  /* template_template_arg_matches_param */
@@ -2139,8 +2370,9 @@ during wrapup processing by compare_function_templates.
     match = FALSE;
   } else {
     match = all_templ_params_have_values(templ_arg_list, templ_param_list,
-                                         is_partial_order_check, template_sym,
-                                         tssp);
+                                         is_partial_order_check,
+                                         /*is_templ_templ_param_check=*/FALSE,
+                                         template_sym,tssp);
   }  /* if */
   if (match) {
     begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
@@ -2305,9 +2537,10 @@ compare_function_templates.
      (it can also occur in certain error cases). */
   if (*templ_arg_list == NULL) {
     *templ_arg_list = create_initial_template_arg_list(
-                                           templ_param_list,
-                                           (a_template_arg_ptr)NULL,
-                                           &rout_templ_sym->decl_position);
+                                          templ_param_list,
+                                          (a_template_arg_ptr)NULL,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          &rout_templ_sym->decl_position);
   }  /* if */
   if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
                                          templ_param_list,
@@ -2504,18 +2737,19 @@ specialized than templ_arg_list1, and return 0 if they are unordered.
 
 
 static void parameter_is_more_specialized(
-				a_type_ptr		param_type1,
-				a_type_ptr		param_type2,
-				a_template_arg_ptr	*templ_arg_list1,
-				a_template_arg_ptr	*templ_arg_list2,
-				a_template_param_ptr	templ_param_list1,
-				a_template_param_ptr	templ_param_list2,
-				a_boolean		is_pack1,
-				a_boolean		is_pack2,
-				a_boolean		entire_type,
-				a_boolean	        *match1,
-				a_boolean	        *match2,
-				uint32_t		param_count)
+			a_type_ptr		param_type1,
+			a_type_ptr		param_type2,
+			a_template_arg_ptr	*templ_arg_list1,
+			a_template_arg_ptr	*templ_arg_list2,
+			a_template_param_ptr	templ_param_list1,
+			a_template_param_ptr	templ_param_list2,
+			a_boolean		is_pack1,
+			a_boolean		is_pack2,
+			a_boolean		entire_type,
+			a_boolean		is_templ_templ_param_check,
+			a_boolean	        *match1,
+			a_boolean	        *match2,
+			uint32_t		param_count)
 /*
 This routine is used by compare_function_templates to call
 matches_template_type for each parameter of a function template.
@@ -2532,6 +2766,9 @@ entire_type is TRUE if this call is part of a check of the entire routine
 type (as is done in declarative contexts and when taking the address of an
 overloaded function).
 
+is_templ_templ_param_check is TRUE when compare_function_templates is
+called to do C++17-style template template parameter matching.
+
 param_count provides the count of parameters to be compared when
 entire_type is FALSE.
 */
@@ -2544,10 +2781,12 @@ entire_type is FALSE.
   a_boolean	qualifiers_dropped2 = FALSE;
   a_boolean	type_under_ref_is_function = FALSE;
   a_boolean	do_ref_vs_ptr_check;
-  a_boolean	local_match1;
+  a_boolean	local_match1 = FALSE;
   a_boolean	local_match2;
   a_boolean	type_1_function_pointer_dropped = FALSE;
   a_boolean	type_2_function_pointer_dropped = FALSE;
+  an_mtt_flag_set
+		mtt_flags = MTT_NO_FLAGS;
 
   /* Microsoft and g++ consider a reference to function to match a
      pointer to function for partial ordering. */
@@ -2632,12 +2871,18 @@ entire_type is FALSE.
     param_type1 = skip_typerefs(param_type1);
     param_type2 = skip_typerefs(param_type2);
   }  /* if */
-  local_match1 = matches_template_type(param_type1, param_type2,
-                                       templ_arg_list1, templ_param_list1,
-                                       MTT_NO_FLAGS);
+  /* For C++17-style template template argument matching, the comparison is
+     only done in one direction. */
+  if (!is_templ_templ_param_check) {
+    local_match1 = matches_template_type(param_type1, param_type2,
+                                         templ_arg_list1, templ_param_list1,
+                                         MTT_NO_FLAGS);
+  } else {
+    mtt_flags = MTT_TEMPL_TEMPL_MATCH;
+  }  /* if */
   local_match2 = matches_template_type(param_type2, param_type1,
                                        templ_arg_list2, templ_param_list2,
-                                       MTT_NO_FLAGS);
+                                       mtt_flags);
   if (!local_match1 || !local_match2) {
     /* There was only a match in one direction.  Update the caller's flags
        with the status. */
@@ -2784,10 +3029,12 @@ is put at the start of either ptp1 or ptp2.
 
 
 
-int compare_function_templates(a_symbol_ptr 		templ_sym1,
-			       a_symbol_ptr		templ_sym2,
-			       a_boolean		entire_type,
-			       uint32_t			param_count)
+int compare_function_templates(
+			a_symbol_ptr 		templ_sym1,
+			a_symbol_ptr		templ_sym2,
+			a_boolean		entire_type,
+			a_boolean		is_templ_templ_param_check,
+			uint32_t		param_count)
 /*
 templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
 templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
@@ -2795,6 +3042,9 @@ more specialized than templ_sym1, and return 0 if they are unordered.
 entire_type is TRUE if the partial ordering is being done in a context in
 which the entire function type should be considered.  param_count provides
 the count of parameters to be compared when entire_type is FALSE.
+
+is_templ_templ_param_check is TRUE when doing C++17-style template template
+parameter matching.
 */
 {
   int					result;
@@ -2847,6 +3097,7 @@ the count of parameters to be compared when entire_type is FALSE.
                                   templ_param_list1, templ_param_list2,
                                   /*is_pack1=*/FALSE, /*is_pack2=*/FALSE,
                                   entire_type,
+                                  is_templ_templ_param_check,
                                   &match1, &match2, param_count);
   }  /* if */
   if (!is_conversion_operator) {
@@ -2876,6 +3127,7 @@ the count of parameters to be compared when entire_type is FALSE.
                                     ptp1->is_parameter_pack,
                                     ptp2->is_parameter_pack,
                                     entire_type,
+                                    is_templ_templ_param_check,
                                     &match1, &match2, param_count);
       if (!match1 && !match2) {
         /* Stop when a mismatch is found. */
@@ -2897,7 +3149,8 @@ the count of parameters to be compared when entire_type is FALSE.
   if (match2) {
     /* Do the wrapup processing for the second argument list. */
     match2 = FALSE;
-    if (wrapup_function_template_argument_deduction(
+    if (is_templ_templ_param_check ||
+        wrapup_function_template_argument_deduction(
                &dummy_arg_list2, templ_sym1, templ_param_list2,
                /*is_partial_order_check=*/TRUE) != NULL) {
       match2 = TRUE;
@@ -3108,7 +3361,8 @@ static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
 				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list);
+				a_template_param_ptr	templ_param_list,
+				an_mtt_flag_set		flags);
 
 static a_boolean matches_partial_specialization(
 				a_symbol_ptr		template_sym,
@@ -3165,13 +3419,14 @@ in ps_arg_list.
     local_arg_list = NULL;
     local_arg_list_used = TRUE;
   }  /* if */
-  *ps_arg_list = create_initial_template_arg_list(templ_param_list,
-                                                  *ps_arg_list,
-                                                  &null_source_position);
+  *ps_arg_list = create_initial_template_arg_list(
+                                          templ_param_list, *ps_arg_list,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          &null_source_position);
   instance_tap = template_arg_list_for_symbol(instance_sym);
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
-                                templ_param_list)) {
+                                templ_param_list, MTT_NO_FLAGS)) {
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
@@ -3335,9 +3590,9 @@ templates being ordered are class or variable template partial specializations.
     } else {
       check_assertion(fund_new_sym->kind ==
                                          (a_symbol_kind)sk_function_template);
-      result = compare_function_templates(fund_new_sym, fund_curr_sym,
-                                          /*entire_type=*/TRUE,
-                                          (uint32_t)0);
+      result = compare_function_templates(
+                           fund_new_sym, fund_curr_sym, /*entire_type=*/TRUE,
+                           /*is_templ_templ_param_check=*/FALSE, (uint32_t)0);
     }  /* if */
     new_is_more_specialized = result == 1;
     curr_is_more_specialized = result == -1;
@@ -7070,6 +7325,17 @@ the same constant.
        be the case for nonreal members. */
     if (arg1 != NULL || arg2 != NULL) equiv = FALSE;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("eta")) {
+    fprintf(f_debug, "equiv_template_arg_lists is %s for :\n",
+            equiv ? "TRUE" : "FALSE");
+    fprintf(f_debug, "  list1: ");
+    db_template_arg_list(list1);
+    fprintf(f_debug, "\n  list2: ");
+    db_template_arg_list(list2);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return equiv;
 }  /* equiv_template_arg_lists */
@@ -9667,17 +9933,21 @@ tak_start_of_pack_expansion delimiter entries).
   a_template_param_ptr  tpp;
   a_boolean             in_pack = FALSE;
   a_template_param_ptr	param_list;
+  a_template_symbol_supplement_ptr
+                        tssp = class_templ->variant.template_info;
+  a_boolean             tap_is_pack = FALSE;
 
-  tpp = class_templ->variant.template_info
-                   ->variant.class_template.initial_decl_cache.decl_info
-                   ->parameters;
+  tpp = tssp->variant.class_template.initial_decl_cache.decl_info->parameters;
   param_list = tpp;
   for (;;) {
+    if (*tap != NULL) {
+      if (is_start_of_pack_expansion_templ_arg(*tap)) tap_is_pack = TRUE;
+    }  /* if */
     if (tpp == NULL) {
       break;
     } if (!tpp->is_pack) {
       if (*tap == NULL) {
-        if (tpp->has_default_arg) {
+        if (tpp->has_default_arg && !tap_is_pack) {
           /* No argument is provided by the caller, the template parameter has
              a default. */
           a_templ_arg_kind  arg_kind;
@@ -9970,9 +10240,10 @@ parameters are not checked at this point.
 
 
 a_template_arg_ptr create_initial_template_arg_list(
-			a_template_param_ptr		templ_param_list,
-			a_template_arg_ptr		partial_arg_list,
-			a_source_position		*source_pos)
+		a_template_param_ptr		templ_param_list,
+		a_template_arg_ptr		partial_arg_list,
+		a_boolean			is_templ_templ_param_check,
+		a_source_position		*source_pos)
 /*
 Create a template argument list that corresponds in kind with the template
 parameter list specified by templ_param_list.  Each template argument in the
@@ -9987,7 +10258,8 @@ new argument list is created and a NULL pointer is returned.  source_pos is
 only supplied when a partial_arg_list is provided.  source_pos is a
 position passed to copy_type_with_substitution, which is called when
 an explicitly specified template argument has a type that depends on
-another template parameter.
+another template parameter.  is_templ_templ_param_check is TRUE when
+doing C++17-style template template parameter matching.
 */
 {
   a_template_arg_ptr	tap;
@@ -9999,6 +10271,7 @@ another template parameter.
     /* An explicit template argument list was supplied.  Do some initial
        tests to see if this template is a viable match for the specific
        arguments. */
+    a_boolean	tap_is_pack = FALSE;
     for (tpp = templ_param_list, tap = partial_arg_list;
          tpp != NULL && tap != NULL;
          tpp = tpp->is_pack ? tpp : tpp->next,
@@ -10006,6 +10279,7 @@ another template parameter.
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       /* Skip any pack expansion placeholders. */
       while (tap != NULL && is_start_of_pack_expansion_templ_arg(tap)) {
+        tap_is_pack = TRUE;
         tap = tap->next;
       }  /* while */
       if (tap != NULL &&
@@ -10016,8 +10290,12 @@ another template parameter.
     }  /* for */
     if (!arg_kind_mismatch && tap != NULL && tpp == NULL) {
       /* There were more arguments specified than there are parameters.
-         This can't be a match. */
-      arg_kind_mismatch = TRUE;
+         This can't be a match except when doing template template parameter
+         checking. */
+      if (tap != NULL && is_start_of_pack_expansion_templ_arg(tap)) {
+        tap_is_pack = TRUE;
+      }  /* if */
+      arg_kind_mismatch = !is_templ_templ_param_check || !tap_is_pack;
     }  /* if */
   }  /* if */
   if (!arg_kind_mismatch) {
@@ -10038,6 +10316,11 @@ another template parameter.
                                  : (is_parameter_pack = FALSE, tpp->next)) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       a_templ_arg_kind		arg_kind;
+      if (specified_tap == NULL && is_templ_templ_param_check) {
+        /* If we run out of arguments when doing a template template parameter
+           check, exit the loop. */
+        break;
+      }  /* if */
       if (specified_tap != NULL &&
           is_start_of_pack_expansion_templ_arg(specified_tap)) {
         /* If we encounter a placeholder, set the pack flag. */
@@ -10069,8 +10352,12 @@ another template parameter.
       } else {
         arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
         tap = alloc_template_arg(arg_kind);
-        check_assertion(specified_tap == NULL ||
-                        specified_tap->kind == arg_kind);
+        if (specified_tap != NULL && specified_tap->kind != arg_kind) {
+          /* This should only occur in error cases. */
+          expect_error();
+          arg_kind_mismatch = TRUE;
+          break;
+        }  /* if */
       }  /* if */
       if (specified_tap != NULL &&
           !is_start_of_pack_expansion_templ_arg(specified_tap)) {
@@ -10088,12 +10375,28 @@ another template parameter.
              fully check the template parameter lists for compatibility.  This
              check will be done later. */
           a_template_symbol_supplement_ptr	arg_template;
+          a_template_param_ptr			list1;
+          a_template_param_ptr			list2;
           arg_template = template_supplement_for_template(
                                              specified_tap->variant.templ.ptr);
+          /* tentatively_matching_template_param_lists calls
+             equiv_template_param_lists.  Special treatment is given to
+             the first template parameter list in template template parameter
+             matching.  is_templ_templ_param_check is only used for the
+             new (C++17-style) checking and because of a different path
+             taken to reach this point, the list that should be considered
+             the first list is different in that case. */
+          list1 = tpp->variant.templ->cache.decl_info->parameters,
+          list2 = arg_template->cache.decl_info->parameters;
+          if (is_templ_templ_param_check) {
+            a_template_param_ptr hold_tpp;
+            hold_tpp = list1;
+            list1 = list2;
+            list2 = hold_tpp;
+          }  /* if */
           if (tentatively_matching_template_param_lists(
-                           tpp->variant.templ->cache.decl_info->parameters,
-                           arg_template->cache.decl_info->parameters,
-                           (a_boolean)tpp->variant.templ->
+                       list1, list2,
+                       (a_boolean)tpp->variant.templ->
                              variant.class_template.involves_template_param)) {
             tap->variant.templ = specified_tap->variant.templ;
           } else {
@@ -10108,7 +10411,6 @@ another template parameter.
           a_boolean		copy_error = FALSE;
           a_ctws_state		ctws_state;
           init_ctws_state(&ctws_state);
-          check_assertion(specified_tap->arg_operand != NULL);
           constant = fs_constant((a_constant_repr_kind)ck_error);
           constant_type = tpp->param_symbol->variant.constant->type;
           constant_type = copy_type_with_substitution(
@@ -10121,26 +10423,36 @@ another template parameter.
             arg_kind_mismatch = TRUE;
             break;
           }  /* if */
-          /* Verify that the constant value can be converted to the type of the
-             corresponding template parameter. */
-          if (!nontype_template_arg_is_compatible_with_param_type(
+          if (is_templ_templ_param_check) {
+            /* For a template template parameter check, consider this a match
+               at this point.  This will be checked later in deduction. */
+            a_constant_ptr	cp = specified_tap->variant.constant;
+            check_assertion(specified_tap->arg_operand == NULL);
+            check_assertion(cp != NULL);
+            tap->variant.constant = cp;
+          } else {
+            /* Verify that the constant value can be converted to the type of
+               the corresponding template parameter. */
+            check_assertion(specified_tap->arg_operand != NULL);
+            if (!nontype_template_arg_is_compatible_with_param_type(
                                   specified_tap->arg_operand, constant_type)) {
-            arg_kind_mismatch = TRUE;
-            break;
-          }  /* if */
-          conv_nontype_template_arg_to_param_type(
+              arg_kind_mismatch = TRUE;
+              break;
+            }  /* if */
+            conv_nontype_template_arg_to_param_type(
                           specified_tap->arg_operand, constant_type, constant);
-          if (is_error_constant(constant)) {
-            /* The conversion resulted in an error constant.  The presence of
-               an error type can sometimes cause the compatibility check above
-               to succeed even when the actual conversion will produce an error
-               type.   If the conversion resulted in an error constant, treat
-               this as mismatch. */
-            arg_kind_mismatch = TRUE;
-            break;
+            if (is_error_constant(constant)) {
+              /* The conversion resulted in an error constant.  The presence of
+                 an error type can sometimes cause the compatibility check
+                 above to succeed even when the actual conversion will produce
+                 an error type.   If the conversion resulted in an error
+                 constant, treat this as mismatch. */
+              arg_kind_mismatch = TRUE;
+              break;
+            }  /* if */
+            tap->arg_operand = NULL;
+            tap->variant.constant = constant;
           }  /* if */
-          tap->arg_operand = NULL;
-          tap->variant.constant = constant;
         }  /* if */
       }  /* if */
       if (prev_tap == NULL) {
@@ -10189,6 +10501,7 @@ context.
        argument list with NULL type/constant pointers. */
     *templ_arg_list = create_initial_template_arg_list(
 				templ_param_list, (a_template_arg_ptr)NULL,
+                                /*is_templ_templ_param_check=*/FALSE,
                                 (a_source_position*)NULL);
   }  /* if */
   begin_special_variadic_template_arg_list_traversal(templ_param_list,
@@ -10227,7 +10540,8 @@ static a_boolean matches_template_template_param(
 		a_template_ptr				templ,
 		a_template_ptr				templ_templ,
 		a_template_arg_ptr			*templ_arg_list,
-		a_template_param_ptr			templ_param_list)
+		a_template_param_ptr			templ_param_list,
+		an_mtt_flag_set				flags)
 /*
 Determine whether the template specified by "templ" matches the template
 template parameter specified by "templ_templ".  Return TRUE if a
@@ -10265,10 +10579,27 @@ match is found.
         }  /* if */
       }  /* if */
     } else if (templ_tssp->variant.class_template.template_template_param) {
+      a_template_param_ptr	list1;
+      a_template_param_ptr	list2;
       param_list_for_templ = templ_tssp->cache.decl_info->parameters;
       param_list = tssp->cache.decl_info->parameters;
+      /* tentatively_matching_template_param_lists calls
+         equiv_template_param_lists.  Special treatment is given to
+         the first template parameter list in template template parameter
+         matching.  MTT_TEMPL_TEMPL_MATCH is only used for the
+         new (C++17-style) checking and because of the path taken to
+         reach this point, the order of the lists must be reversed. */
+      list1 = param_list;
+      list2 = param_list_for_templ;
+      if ((flags & MTT_TEMPL_TEMPL_MATCH) != 0) {
+        list1 = param_list;
+        list2 = param_list_for_templ;
+      } else {
+        list1 = param_list_for_templ;
+        list2 = param_list;
+      }  /* if */
       if (tentatively_matching_template_param_lists(
-                 param_list_for_templ, param_list,
+                 list1, list2,
                  (a_boolean)templ_tssp->
                              variant.class_template.involves_template_param)) {
         /* The actual template is tentatively compatible with the template
@@ -10330,7 +10661,8 @@ static a_boolean class_matches_template_template_param(
 		a_type_ptr				type,
 		a_symbol_ptr				sym_for_templ,
 		a_template_arg_ptr			*templ_arg_list,
-		a_template_param_ptr			templ_param_list)
+		a_template_param_ptr			templ_param_list,
+		an_mtt_flag_set				flags)
 /*
 Determine whether the type specified by "type" is based on a template
 that matches the template template parameter specified by sym_for_templ.
@@ -10354,7 +10686,7 @@ that matches the template template parameter specified by sym_for_templ.
     templ = templ_for_type->variant.template_info->il_template_entry;
     templ_templ = sym_for_templ->variant.template_info->il_template_entry;
     match = matches_template_template_param(templ, templ_templ, templ_arg_list,
-                                            templ_param_list);
+                                            templ_param_list, flags);
   }  /* if */
   return match;
 }  /* class_matches_template_template_param */
@@ -10855,7 +11187,8 @@ static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
 				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list)
+				a_template_param_ptr	templ_param_list,
+				an_mtt_flag_set		flags)
 /* This routine has a forward declaration earlier in this file. */
 /*
 Called by matches_template_type_for_class to determine whether a given
@@ -10868,10 +11201,15 @@ partial specialization.
   a_boolean				match = FALSE;
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
   a_template_arg_ptr			prev_templ_tap = NULL;
+  a_boolean				tap_is_pack = FALSE;
 
-  begin_template_arg_list_traversal_simple(tap, &tap);
   begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
-  for (match = TRUE; match && tap != NULL && templ_tap != NULL; ) {
+  for (match = TRUE; match && tap != NULL && templ_tap != NULL;) {
+    tap_is_pack = is_start_of_pack_expansion_templ_arg(tap);
+    if (tap_is_pack) {
+      skip_start_of_pack_placeholders_simple(&tap);
+      if (tap == NULL) break;
+    }  /* if */
     prev_templ_tap = templ_tap;
     if (pesep == NULL && templ_tap->pack_expansion_descr != NULL) {
       /* The argument from the template is of the form "T...".  This
@@ -10902,17 +11240,20 @@ partial specialization.
       match = matches_template_template_param(tap->variant.templ.ptr,
                                               templ_tap->variant.templ.ptr,
 					      templ_arg_list,
-					      templ_param_list);
+					      templ_param_list, flags);
     } else {
       unexpected_condition();
     }  /* if */
-    advance_to_next_template_arg_simple(&tap);
+    tap = tap->next;
     if (pesep != NULL) {
       /* If this is a pack deduction, indicate we are starting the deduction
          of a (potential) new element. */ 
       advance_to_next_deduced_element(pesep);
     } else {
       advance_to_next_template_arg_simple(&templ_tap);
+      if (templ_tap == NULL && tap != NULL) {
+        tap_is_pack = is_start_of_pack_expansion_templ_arg(tap);
+      }  /* if */
     }  /* if */
   }  /* for */
   if (pesep != NULL) {
@@ -10930,6 +11271,9 @@ partial specialization.
       is_start_of_pack_expansion_templ_arg(prev_templ_tap)) {
     /* There are more real arguments and the template argument is a pack
        placeholder.  Consider that a match. */
+  } else if (tap_is_pack) {
+    /* In partial ordering, it is possible for tap to be a pack expansion.
+       In such cases, allow templ_tap to have more arguments. */
   } else if ((tap == NULL) !=
       (templ_tap == NULL ||
        templ_tap->pack_expansion_descr != NULL)) {
@@ -10946,7 +11290,8 @@ static a_boolean matches_template_type_for_class_type
                                    (a_type_ptr           type,
                                     a_type_ptr           templ_type,
                                     a_template_arg_ptr   *templ_arg_list,
-                                    a_template_param_ptr templ_param_list)
+                                    a_template_param_ptr templ_param_list,
+                                    an_mtt_flag_set      flags)
 /*
 Called by matches_template_type to determine whether a given class type
 matches a class type from the parameter list of a template function.
@@ -10994,7 +11339,7 @@ matches a class type from the parameter list of a template function.
          for now. */
       match = TRUE;
     } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                         templ_param_list)) {
+                                         templ_param_list, flags)) {
       match = TRUE;
     }  /* if */
   } else if (templ_primary_template != NULL &&
@@ -11003,7 +11348,7 @@ matches a class type from the parameter list of a template function.
     /* A class based on a template template parameter. */
     if (class_matches_template_template_param(type, templ_primary_template,
                                               templ_arg_list,
-                                              templ_param_list)) {
+                                              templ_param_list, flags)) {
       a_template_arg_ptr  tap, templ_tap;
       tap = type->variant.class_struct_union.extra_info->
                                                      template_arg_list;
@@ -11014,7 +11359,7 @@ matches a class type from the parameter list of a template function.
            for now. */
         match = TRUE;
       } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                           templ_param_list)) {
+                                           templ_param_list, flags)) {
         match = TRUE;
       }  /* if */
     }  /* if */
@@ -11249,8 +11594,8 @@ points to the template parameter list.
 #endif /* DEBUG */
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown this class
-     type checks. */
-  new_flags = MTT_NO_FLAGS;
+     type checks.  Use a mask of flags allowed to be passed down. */
+  new_flags = (flags & MTT_TEMPL_TEMPL_MATCH);
   templ_type = skip_typedefs_not_dependent_decltypes(templ_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_handle_ptr(templ_type) &&
@@ -11263,7 +11608,7 @@ points to the template parameter list.
      flag down to the next level. */
   if (cli_or_cx_enabled && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0 &&
       is_handle_type(templ_type) && is_handle_type(type)) {
-    new_flags = MTT_ALLOW_INEXACT_DEDUCTION;
+    new_flags |= MTT_ALLOW_INEXACT_DEDUCTION;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the types are the same, don't check further.  This is more than
@@ -11504,7 +11849,8 @@ points to the template parameter list.
         case tk_union:
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
-                                                       templ_param_list);
+                                                       templ_param_list,
+                                                       new_flags);
           if (!match && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0) {
             a_base_class_ptr	bcp;
             a_type_ptr		matching_base_class = NULL;
@@ -11521,7 +11867,8 @@ points to the template parameter list.
               match = matches_template_type_for_class_type(bcp->type,
                                                            templ_type,
                                                            &dummy_arg_list,
-                                                           templ_param_list);
+                                                           templ_param_list,
+                                                           new_flags);
               if (dummy_arg_list != NULL) {
                 free_template_arg_list(dummy_arg_list);
               }  /* if */
@@ -11560,7 +11907,8 @@ points to the template parameter list.
               match = matches_template_type_for_class_type(matching_base_class,
                                                            templ_type,
                                                            templ_arg_list,
-                                                           templ_param_list);
+                                                           templ_param_list,
+                                                           new_flags);
             }  /* if */
           }  /* if */
           break;
@@ -14325,8 +14673,9 @@ during wrapup processing by compare_function_templates.
        match the template parameter list, so no further processing of this
        template should be done. */
     templ_arg_list = create_initial_template_arg_list(
-                                           templ_param_list, templ_arg_list,
-                                           &templ_sym->decl_position);
+                                          templ_param_list, templ_arg_list,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
     if (tssp->is_variadic) {
       /* This is a preliminary substitution.   Keep any deduced packs for which
@@ -15256,9 +15605,10 @@ created.
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   /* Create an appropriate argument list with empty argument values. */
   rout->template_arg_list = create_initial_template_arg_list(
-                                           templ_param_list,
-                                           (a_template_arg_ptr)NULL,
-                                           (a_source_position_ptr)NULL);
+                                          templ_param_list,
+                                          (a_template_arg_ptr)NULL,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          (a_source_position_ptr)NULL);
   /* Fill in the template argument list with error values. */
   begin_template_arg_list_traversal_simple(rout->template_arg_list, &tap);
   for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
@@ -16974,14 +17324,16 @@ matches, a new argument list is returned in *new_arg_list.
   tssp = template_supplement_for_symbol(template_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   *new_arg_list = create_initial_template_arg_list(
-                                           templ_param_list, templ_arg_list,
-                                           &template_sym->decl_position);
+                                          templ_param_list, templ_arg_list,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          &template_sym->decl_position);
   /* Start by making sure all of the template parameters have values.  This
      will fill in default values, if needed. */
   push_instantiation_scope_for_rescan(template_sym);
   if (*new_arg_list != NULL &&
       all_templ_params_have_values(*new_arg_list, templ_param_list,
                                    /*is_partial_order_check=*/FALSE,
+                                   /*is_templ_templ_param_check=*/FALSE,
                                    template_sym, tssp)) {
     /* Create a substituted type based on the template arguments. */
     result_type = substitute_template_arguments(
@@ -18018,15 +18370,19 @@ can match zero or more parameters from new_list.
     new_tpp = new_tpp->next;
   }  /* while */
   if ((old_tpp != NULL &&
-       !(is_templ_templ_param_match && old_tpp->is_pack)) ||
+       is_templ_templ_param_match && old_tpp->is_pack) ||
       (new_tpp != NULL &&
-        !(is_templ_templ_param_match && gnu_mode && gnu_version < 40200 &&
-          new_tpp->has_default_arg))) {
-    /* The lists differ in the number of parameters.  If we're matching a
-       template template parameter that just has an extra parameter pack, it
-       can be ignored.  Also, if we're matching a template template argument
-       with extraneous default template arguments, they are also ignored in
-       some GNU C++ modes. */
+       is_templ_templ_param_match && new_tpp->is_pack)) {
+    /* When matching template parameters, an additional pack parameter is
+       allowed. */
+   } else if (new_tpp != NULL &&
+              is_templ_templ_param_match &&
+              gnu_mode && gnu_version < 40200 &&
+              new_tpp->has_default_arg) {
+    /* When matching a template template argument with extraneous default
+       template arguments, they are ignored in some GNU C++ modes. */
+  } else if (old_tpp != NULL || new_tpp != NULL) {
+    /* The lists differ in the number of parameters. */
     any_errors = TRUE;
     if (issue_errors) {
       /* The number of template parameters does not match the previous
@@ -18998,7 +19354,7 @@ the template (template_sym) in the IL entry for any type parameters.
     }  /* if */
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
-      a_type_ptr	tp = param_sym->variant.type.ptr;
+      a_type_ptr	tp = tpp->variant.type;
       tap = alloc_template_arg((a_templ_arg_kind)tak_type);
       tap->variant.type = tp;
       tp = generic_param_if_generic_definition_argument(tp);
@@ -19006,13 +19362,12 @@ the template (template_sym) in the IL entry for any type parameters.
       tp->variant.template_param.extra_info->template_symbol = template_sym;
     } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
-      tap->variant.constant = param_sym->variant.constant;
+      tap->variant.constant = tpp->variant.constant.ptr;
     } else {
       /* A template template parameter. */
       check_assertion(param_sym->kind == (a_symbol_kind)sk_class_template);
       tap = alloc_template_arg((a_templ_arg_kind)tak_template);
-      tap->variant.templ.ptr = param_sym->
-                                      variant.template_info->il_template_entry;
+      tap->variant.templ.ptr = tpp->variant.templ->il_template_entry;
     }  /* if */
     tap->is_pack = tpp->is_pack;
     tap->is_pack_element = tpp->is_pack;
@@ -36222,6 +36577,7 @@ One-time initialization for templates.c static variables.
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 #endif /* DEBUG */
       pch_saved_var_array_elem(initializer_list_sym_hdr),
+      pch_saved_var_array_elem(invented_template_sym_hdr),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -36293,6 +36649,7 @@ Initializations for template.
   pending_type_param_instantiations = 0;
   additional_instantiation_wrapup_required = FALSE;
   initializer_list_sym_hdr = NULL;
+  invented_template_sym_hdr = NULL;
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   local_type_used_as_template_type_argument = FALSE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */

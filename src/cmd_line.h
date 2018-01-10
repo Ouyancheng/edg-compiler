@@ -563,6 +563,13 @@ EXTERN a_boolean
 			   initializer (a C++17 feature). */
 
 EXTERN a_boolean
+		generalized_template_template_matching;
+			/* TRUE if the more general template template argument
+			   matching rules of C++17 should be used.  These
+			   were actually added as a C++14 defect report, so
+			   the feature is also enabled in some older modes. */
+
+EXTERN a_boolean
 		mangle_had_been_implicitly_const;
 			/* When TRUE, non-static member functions that had
 			   been implicitly const in C++11 but not C++14 are

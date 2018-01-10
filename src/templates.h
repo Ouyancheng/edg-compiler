@@ -516,9 +516,10 @@ extern void make_template_decl_cache(
 extern void set_template_arg_to_error(a_template_arg_ptr	tap);
 
 extern a_template_arg_ptr create_initial_template_arg_list(
-			a_template_param_ptr		templ_param_list,
-			a_template_arg_ptr		partial_arg_list,
-			a_source_position		*source_pos);
+		a_template_param_ptr		templ_param_list,
+		a_template_arg_ptr		partial_arg_list,
+		a_boolean			is_templ_templ_param_check,
+		a_source_position		*source_pos);
 
 extern a_template_arg_ptr get_template_arg_for_coordinates(
 		        a_template_param_coordinate_ptr	coordinates,
@@ -605,6 +606,9 @@ typedef unsigned int an_mtt_flag_set;
                              int (*fp)() noexcept(false) = &f;
 			   Note that MTT_ALLOW_INEXACT_DEDUCTION permits the
 			   relaxation in the other direction. */
+#define	MTT_TEMPL_TEMPL_MATCH 0x80
+			/* TRUE when doing partial ordering as part of
+			   C++17-style template template argument matching. */
 
 
 extern a_boolean matches_template_type_with_qualification_conversion(
@@ -705,10 +709,11 @@ extern a_symbol_ptr find_matching_template_instance(
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern int compare_function_templates(
-				a_symbol_ptr 		templ_sym1,
-				a_symbol_ptr		templ_sym2,
-			        a_boolean		entire_type,
-			        uint32_t		param_count);
+			a_symbol_ptr 		templ_sym1,
+			a_symbol_ptr		templ_sym2,
+			a_boolean		entire_type,
+			a_boolean		is_templ_templ_param_check,
+			uint32_t		param_count);
 
 extern void record_predeclared_template_function(
                                        a_symbol_ptr         templ_sym,
@@ -802,6 +807,10 @@ extern a_boolean equiv_templates_and_arg_lists(
 		a_boolean			error_matches_anything,
 		a_boolean			exact_templ_arg_match_required,
 		a_boolean			exact_decltype_exprs_required);
+
+extern a_boolean template_template_arg_is_compatible_with_param(
+				a_template_ptr		arg_template,
+				a_template_ptr		param_template);
 
 extern a_boolean equiv_template_param_lists(
 		a_template_param_ptr			old_list,

@@ -3422,6 +3422,7 @@ default mode (e.g., exception handling).
         trigraphs_allowed = FALSE;
       }  /* if */
       aggregate_classes_can_have_bases = TRUE;
+      generalized_template_template_matching = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11405,6 +11406,7 @@ variables declared in cmd_line.h.
   field_initializers_enabled = FALSE;
   aggregate_classes_can_have_field_initializers = FALSE;
   aggregate_classes_can_have_bases = FALSE;
+  generalized_template_template_matching = FALSE;
   selection_from_prvalue_is_xvalue = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;

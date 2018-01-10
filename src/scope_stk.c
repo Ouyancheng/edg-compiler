@@ -11786,6 +11786,7 @@ entry and returns a pointer to that entry in *p_pesep.
        list without any values filled in. */
     *templ_arg_list = create_initial_template_arg_list(
 				templ_param_list, (a_template_arg_ptr)NULL,
+                                /*is_templ_templ_param_check=*/FALSE,
                                 (a_source_position*)NULL);
   }  /* if */
   pesep = push_pack_instantiation(pedp, templ_param_list, *templ_arg_list,

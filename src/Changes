@@ -1,5 +1,22 @@
 Version 4.15
 
+1/10/18  [EDGcpfe/18746]
+C++17: Matching of template template arguments
+
+The process for matching template template arguments with template
+template parameters has been revised to allow a wider variety of
+template template arguments to match a template template parameter.
+For example, in the case below, B now matches the template template
+parameter of X because the presence of the default argument is considered.
+Although this is generally considered a C++17 feature, it was actually
+approved as a defect report on C++14, so it the processing is also
+enabled in C++14 mode.  This also resolves core issue 150.
+
+  template <class T, class U = T> class B {};
+  template <template <class> class P> class X {};
+  X<B> xb;
+
+
 1/10/18  [EDGcpfe/19110]
 C-generating back end: always_inline attribute and setjmp
 

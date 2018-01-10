@@ -3574,6 +3574,7 @@ and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      tssp->variant.class_template.invented_template = FALSE;
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
       clear_template_cache(&tssp->variant.class_template.initial_decl_cache,

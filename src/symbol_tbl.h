@@ -2855,6 +2855,11 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this template has any instantiations that
 			   are Microsoft mode instantiated nonreal classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_bit_field
+		invented_template:1;
+			/* TRUE if this is a template "invented" for the
+			   checking of template template argument
+			   compatibility. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
