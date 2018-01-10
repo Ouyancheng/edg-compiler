@@ -5479,7 +5479,8 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   *setjmp_compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                             setjmp_call->type, setjmp_call);
   release_local_constant(&null_constant);
-#if BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET
+#if GNU_EXTENSIONS_ALLOWED && BACK_END_IS_C_GEN_BE && \
+    GCC_IS_GENERATED_CODE_TARGET
   check_assertion(innermost_function_scope != NULL);
   if (innermost_function_scope->variant.routine.ptr->always_inline) {
     /* This function has the GCC always_inline attribute and we've just added
@@ -5503,7 +5504,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
       prev = ap;
     }  /* for */
   }  /* if */
-#endif /* BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_EXTENSIONS_ALLOWED && BACK_END_IS_C_GEN_BE && GCC_IS_... */
 }  /* initialize_eh_stack_entry_for_try */
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
