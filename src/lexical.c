@@ -16002,12 +16002,10 @@ it is used.
                                        /*issue_errors=*/FALSE,
                                        ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
 				       (a_source_position*)NULL, es_error)) {
-          match = TRUE;
           old_style_match = TRUE;
         }  /* if */
       }  /* if */
       if (generalized_template_template_matching) {
-        match = FALSE;
         if (template_template_arg_is_compatible_with_param(
                                                arg_template, param_template)) {
           match = TRUE;
@@ -16016,6 +16014,8 @@ it is used.
            is a superset of the old. */
         check_assertion_or_expect_error(!do_old_style_check ||
                                         (old_style_match ? match : TRUE));
+      } else {
+        match = old_style_match;
       }  /* if */
       if (!match) {
         pos_sy2_error(ec_not_compatible_with_templ_templ_param, err_pos, sym, 

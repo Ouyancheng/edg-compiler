@@ -2238,6 +2238,8 @@ Return TRUE if there is a match, FALSE otherwise.
        is a superset of the old. */
     check_assertion(!do_old_style_check ||
                     (old_style_match ? match : TRUE));
+  } else {
+    match = old_style_match;
   }  /* if */
   return match;
 }  /* template_template_arg_matches_param */
