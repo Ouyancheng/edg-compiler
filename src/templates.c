@@ -1979,7 +1979,7 @@ argument checking.
     a_symbol_locator  locator;
     clear_locator(&locator, &null_source_position);
     invented_template_sym_hdr = find_symbol_header("<invented>",
-                                                  sizeof("<invented>")-1,
+                                                   sizeof("<invented>")-1,
                                                    &locator);
   }  /* if */
   return invented_template_sym_hdr;

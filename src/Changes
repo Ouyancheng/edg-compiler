@@ -20,7 +20,7 @@ template template arguments to match a template template parameter.
 For example, in the case below, B now matches the template template
 parameter of X because the presence of the default argument is considered.
 Although this is generally considered a C++17 feature, it was actually
-approved as a defect report on C++14, so it the processing is also
+approved as a defect report on C++14, so the processing is also
 enabled in C++14 mode.  This also resolves core issue 150.
 
   template <class T, class U = T> class B {};
