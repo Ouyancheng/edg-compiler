@@ -3383,6 +3383,8 @@ default mode (e.g., exception handling).
       constexpr_implies_const = FALSE;
     }  /* if */
     variable_templates_enabled = TRUE;
+    /* This was added as a DR to C++14. */
+    generalized_template_template_matching = TRUE;
     if (cpp17_mode) {
       /* Features enabled in C++17 mode. */
       namespace_attributes_enabled = TRUE;
