@@ -1,5 +1,16 @@
 Version 4.15
 
+1/11/18  [EDGcpfe/18945]
+GCC/Clang compatibility: generic builtin atomics
+
+A change has been made to suppress casts on generic atomic builtins (which
+had cast the arguments to void * types, making it difficult for a back end
+to deal with).  For example (with --clang):
+
+  struct S { int i; } a, b, c;
+  void f(void) { __atomic_exchange(&a, &b, &c, 0); }
+
+
 1/10/18  [EDGcpfe/18746]
 C++17: Matching of template template arguments
 
