@@ -11206,6 +11206,11 @@ partial specialization.
   a_boolean				tap_is_pack = FALSE;
 
   begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
+  if (templ_tap == NULL && tap != NULL) {
+    /* If the templ_tap contained only placeholders, make sure that if
+       tap is only placeholders, they are skipped. */
+    skip_start_of_pack_placeholders_simple(&tap);
+  }  /* if */
   for (match = TRUE; match && tap != NULL && templ_tap != NULL;) {
     tap_is_pack = is_start_of_pack_expansion_templ_arg(tap);
     if (tap_is_pack) {
