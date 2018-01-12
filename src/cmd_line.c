@@ -2149,6 +2149,9 @@ option values if they were not already set by a command line option.
   floating_point_template_parameters_allowed = microsoft_version <= 1300;
   equiv_typedefs_are_lookup_equivalent = FALSE;
   null_chars_allowed_in_source = TRUE;
+  /* This will be enabled below in some cases.  Note: Microsoft does not
+     support this in C++14 mode. */
+  generalized_template_template_matching = FALSE;
   if (!(option_kind_used[(int)optk_trigraphs])) {
     /* Early versions of Microsoft have trigraphs enabled by default. */
     trigraphs_allowed = microsoft_version < 1600;
@@ -2619,6 +2622,13 @@ option values if they were not already set by a command line option.
           overaligned_allocation_enabled = TRUE;
           generalized_nontype_arguments = TRUE;
           hex_floating_point_constants_allowed = TRUE;
+          generalized_template_template_matching = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1913) {
+        /* Visual Studio 2017 version 15.6. */
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
+          mandatory_copy_elision = TRUE;
         }  /* if */
       }  /* if */
     } else {
