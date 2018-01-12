@@ -10551,8 +10551,7 @@ static a_boolean class_matches_template_template_param(
 		a_type_ptr				type,
 		a_symbol_ptr				sym_for_templ,
 		a_template_arg_ptr			*templ_arg_list,
-		a_template_param_ptr			templ_param_list,
-		an_mtt_flag_set				flags)
+		a_template_param_ptr			templ_param_list)
 /*
 Determine whether the type specified by "type" is based on a template
 that matches the template template parameter specified by sym_for_templ.
@@ -11243,7 +11242,7 @@ matches a class type from the parameter list of a template function.
     /* A class based on a template template parameter. */
     if (class_matches_template_template_param(type, templ_primary_template,
                                               templ_arg_list,
-                                              templ_param_list, flags)) {
+                                              templ_param_list)) {
       a_template_arg_ptr  tap, templ_tap;
       tap = type->variant.class_struct_union.extra_info->
                                                      template_arg_list;
