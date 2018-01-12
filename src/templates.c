@@ -10463,8 +10463,7 @@ static a_boolean matches_template_template_param(
 		a_template_ptr				templ,
 		a_template_ptr				templ_templ,
 		a_template_arg_ptr			*templ_arg_list,
-		a_template_param_ptr			templ_param_list,
-		an_mtt_flag_set				flags)
+		a_template_param_ptr			templ_param_list)
 /*
 Determine whether the template specified by "templ" matches the template
 template parameter specified by "templ_templ".  Return TRUE if a
@@ -10577,7 +10576,7 @@ that matches the template template parameter specified by sym_for_templ.
     templ = templ_for_type->variant.template_info->il_template_entry;
     templ_templ = sym_for_templ->variant.template_info->il_template_entry;
     match = matches_template_template_param(templ, templ_templ, templ_arg_list,
-                                            templ_param_list, flags);
+                                            templ_param_list);
   }  /* if */
   return match;
 }  /* class_matches_template_template_param */
@@ -11136,7 +11135,7 @@ partial specialization.
       match = matches_template_template_param(tap->variant.templ.ptr,
                                               templ_tap->variant.templ.ptr,
 					      templ_arg_list,
-					      templ_param_list, flags);
+					      templ_param_list);
     } else {
       unexpected_condition();
     }  /* if */
