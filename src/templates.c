@@ -3363,8 +3363,7 @@ static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
 				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list,
-				an_mtt_flag_set		flags);
+				a_template_param_ptr	templ_param_list);
 
 static a_boolean matches_partial_specialization(
 				a_symbol_ptr		template_sym,
@@ -3428,7 +3427,7 @@ in ps_arg_list.
   instance_tap = template_arg_list_for_symbol(instance_sym);
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
-                                templ_param_list, MTT_NO_FLAGS)) {
+                                templ_param_list)) {
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
@@ -11076,8 +11075,7 @@ static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
 				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list,
-				an_mtt_flag_set		flags)
+				a_template_param_ptr	templ_param_list)
 /* This routine has a forward declaration earlier in this file. */
 /*
 Called by matches_template_type_for_class to determine whether a given
@@ -11184,8 +11182,7 @@ static a_boolean matches_template_type_for_class_type
                                    (a_type_ptr           type,
                                     a_type_ptr           templ_type,
                                     a_template_arg_ptr   *templ_arg_list,
-                                    a_template_param_ptr templ_param_list,
-                                    an_mtt_flag_set      flags)
+                                    a_template_param_ptr templ_param_list)
 /*
 Called by matches_template_type to determine whether a given class type
 matches a class type from the parameter list of a template function.
@@ -11233,7 +11230,7 @@ matches a class type from the parameter list of a template function.
          for now. */
       match = TRUE;
     } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                         templ_param_list, flags)) {
+                                         templ_param_list)) {
       match = TRUE;
     }  /* if */
   } else if (templ_primary_template != NULL &&
@@ -11253,7 +11250,7 @@ matches a class type from the parameter list of a template function.
            for now. */
         match = TRUE;
       } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                           templ_param_list, flags)) {
+                                           templ_param_list)) {
         match = TRUE;
       }  /* if */
     }  /* if */
@@ -11743,8 +11740,7 @@ points to the template parameter list.
         case tk_union:
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
-                                                       templ_param_list,
-                                                       new_flags);
+                                                       templ_param_list);
           if (!match && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0) {
             a_base_class_ptr	bcp;
             a_type_ptr		matching_base_class = NULL;
@@ -11761,8 +11757,7 @@ points to the template parameter list.
               match = matches_template_type_for_class_type(bcp->type,
                                                            templ_type,
                                                            &dummy_arg_list,
-                                                           templ_param_list,
-                                                           new_flags);
+                                                           templ_param_list);
               if (dummy_arg_list != NULL) {
                 free_template_arg_list(dummy_arg_list);
               }  /* if */
@@ -11801,8 +11796,7 @@ points to the template parameter list.
               match = matches_template_type_for_class_type(matching_base_class,
                                                            templ_type,
                                                            templ_arg_list,
-                                                           templ_param_list,
-                                                           new_flags);
+                                                           templ_param_list);
             }  /* if */
           }  /* if */
           break;
