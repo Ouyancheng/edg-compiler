@@ -10196,51 +10196,6 @@ use of the argument list in case it has been freed.
 }  /* find_template_variable */
 
 
-static a_boolean tentatively_matching_template_param_lists(
-			a_template_param_ptr	list1,
-			a_template_param_ptr	list2,
-			a_boolean		involves_template_param)
-/*
-Compare the two template parameter lists to see if they match.  When
-involves_template_param is FALSE, the parameter lists can be compared
-fully.  When involves_template_param is TRUE, one of the parameter lists
-includes a type that depends on a prior template parameter, and the full
-comparison cannot be done until the template argument values are known.  In
-that case we compare the two template parameter lists to see if they have
-the same number of parameters, and that the parameters are of matching kinds.
-The types of nontype parameters, and the parameter lists of template template
-parameters are not checked at this point.
-*/
-{
-  a_template_param_ptr	tpp1;
-  a_template_param_ptr	tpp2;
-  a_boolean		result = TRUE;
-
-  if (!involves_template_param) {
-    /* Not a dependent template -- do the full comparison. */
-    result = equiv_template_param_lists(list1, list2, 
-                                       /*issue_errors=*/FALSE,
- 				       ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-                                       (a_source_position*)NULL, es_error);
-  } else {
-    /* A dependent template -- just compare the number and kind of
-       parameters. */
-    for (tpp1 = list1, tpp2 = list2; tpp2 != NULL && tpp1 != NULL;
-         tpp1 = tpp1->next, tpp2 = tpp2->next) {
-      a_symbol_ptr	sym1 = tpp1->param_symbol;
-      a_symbol_ptr	sym2 = tpp2->param_symbol;
-      if (sym1->kind != sym2->kind) {
-        result = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
-    /* Make sure we are at the end of both lists. */
-    if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
-  }  /* if */
-  return result;
-}  /* tentatively_matching_template_param_lists */
-
-
 a_template_arg_ptr create_initial_template_arg_list(
 		a_template_param_ptr		templ_param_list,
 		a_template_arg_ptr		partial_arg_list,
@@ -10370,41 +10325,7 @@ doing C++17-style template template parameter matching.
         if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
-          /* A template template argument can only be used if its parameter
-             list is compatible with that of the template template
-             parameter. In cases where the template template parameter
-             of templ_templ depends on another template parameter, we can't
-             fully check the template parameter lists for compatibility.  This
-             check will be done later. */
-          a_template_symbol_supplement_ptr	arg_template;
-          a_template_param_ptr			list1;
-          a_template_param_ptr			list2;
-          arg_template = template_supplement_for_template(
-                                             specified_tap->variant.templ.ptr);
-          /* tentatively_matching_template_param_lists calls
-             equiv_template_param_lists.  Special treatment is given to
-             the first template parameter list in template template parameter
-             matching.  is_templ_templ_param_check is only used for the
-             new (C++17-style) checking and because of a different path
-             taken to reach this point, the list that should be considered
-             the first list is different in that case. */
-          list1 = tpp->variant.templ->cache.decl_info->parameters,
-          list2 = arg_template->cache.decl_info->parameters;
-          if (is_templ_templ_param_check) {
-            a_template_param_ptr hold_tpp;
-            hold_tpp = list1;
-            list1 = list2;
-            list2 = hold_tpp;
-          }  /* if */
-          if (tentatively_matching_template_param_lists(
-                       list1, list2,
-                       (a_boolean)tpp->variant.templ->
-                             variant.class_template.involves_template_param)) {
-            tap->variant.templ = specified_tap->variant.templ;
-          } else {
-            arg_kind_mismatch = TRUE;
-            break;
-          }  /* if */
+          tap->variant.templ = specified_tap->variant.templ;
         } else {
           /* Convert the constant value to the type of the template
              parameter. */
@@ -10550,8 +10471,6 @@ template parameter specified by "templ_templ".  Return TRUE if a
 match is found.
 */
 {
-  a_template_param_ptr			param_list_for_templ;
-  a_template_param_ptr			param_list;
   a_boolean				match = FALSE;
   a_template_symbol_supplement_ptr	templ_tssp;
   a_template_symbol_supplement_ptr	tssp;
@@ -10581,70 +10500,40 @@ match is found.
         }  /* if */
       }  /* if */
     } else if (templ_tssp->variant.class_template.template_template_param) {
-      a_template_param_ptr	list1;
-      a_template_param_ptr	list2;
-      param_list_for_templ = templ_tssp->cache.decl_info->parameters;
-      param_list = tssp->cache.decl_info->parameters;
-      /* tentatively_matching_template_param_lists calls
-         equiv_template_param_lists.  Special treatment is given to
-         the first template parameter list in template template parameter
-         matching.  MTT_TEMPL_TEMPL_MATCH is only used for the
-         new (C++17-style) checking and because of the path taken to
-         reach this point, the order of the lists must be reversed. */
-      list1 = param_list;
-      list2 = param_list_for_templ;
-      if ((flags & MTT_TEMPL_TEMPL_MATCH) != 0) {
-        list1 = param_list;
-        list2 = param_list_for_templ;
-      } else {
-        list1 = param_list_for_templ;
-        list2 = param_list;
-      }  /* if */
-      if (tentatively_matching_template_param_lists(
-                 list1, list2,
-                 (a_boolean)templ_tssp->
-                             variant.class_template.involves_template_param)) {
-        /* The actual template is tentatively compatible with the template
-           template parameter.  See if it is compatible with any previously
-           deduced value.  In cases where the template template parameter
-           of templ_templ depends on another template parameter, we can't
-           fully check the template parameter lists for compatibility.  This
-           check will be done later as part of the deduction wrapup process. */
-        /* Get the template nesting depth as indicated by the first template
-           parameter.  Any template parameters found in templ_type must be at
-           the same level to participate in deduction. */
-        a_template_nesting_depth	depth_of_template;
-        depth_of_template = nesting_depth_of_template_param(templ_param_list);
-        if (depth_of_template ==
+      /* Get the template nesting depth as indicated by the first template
+         parameter.  Any template parameters found in templ_type must be at
+         the same level to participate in deduction. */
+      a_template_nesting_depth	depth_of_template;
+      depth_of_template = nesting_depth_of_template_param(templ_param_list);
+      if (depth_of_template ==
                         templ_tssp->il_template_entry->coordinates.depth) {
-          /* The depths match. */
-          a_template_param_coordinate_ptr	coordinates;
-          a_template_ptr			templ_ptr;
-          a_template_arg_ptr			tap;
-          /* Get the template argument that corresponds with this parameter. */
-          coordinates = &templ_tssp->il_template_entry->coordinates;
-          tap = get_template_arg_by_list_pos(templ_param_list,
-                                             templ_arg_list,
-                                             coordinates,
-                                             /*is_rescan=*/FALSE);
-          check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
-          templ_ptr = tssp->il_template_entry;
-          if (tap->variant.templ.ptr == NULL) {
-            /* No template has been bound to this template argument yet, so
-               just the current template. */
-            tap->variant.templ.ptr = templ_ptr;
-            tap->is_pack = templ_ptr->is_pack;
+        /* The depths match. */
+        a_template_param_coordinate_ptr	coordinates;
+        a_template_ptr			templ_ptr;
+        a_template_arg_ptr			tap;
+        /* Get the template argument that corresponds with this parameter. */
+        coordinates = &templ_tssp->il_template_entry->coordinates;
+        tap = get_template_arg_by_list_pos(templ_param_list,
+                                           templ_arg_list,
+                                           coordinates,
+                                           /*is_rescan=*/FALSE);
+        check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
+        templ_ptr = tssp->il_template_entry;
+        if (tap->variant.templ.ptr == NULL) {
+          /* No template has been bound to this template argument yet, so
+             just the current template. */
+          tap->variant.templ.ptr = templ_ptr;
+          tap->is_pack = templ_ptr->is_pack;
+          match = TRUE;
+        } else {
+          /* A template was already bound to this template argument.  We
+             have a match if and only if the new one is the same as the
+             old one. */
+          if (tap->variant.templ.ptr == templ_ptr) {
+            /* Okay. */
             match = TRUE;
           } else {
-            /* A template was already bound to this template argument.  We
-               have a match if and only if the new one is the same as the
-               old one. */
-            if (tap->variant.templ.ptr == templ_ptr) {
-              /* Okay. */
-              match = TRUE;
-            } else {
-              /* Not a match.  Return FALSE. */
-            }  /* if */
+            /* Not a match.  Return FALSE. */
           }  /* if */
         }  /* if */
       }  /* if */
