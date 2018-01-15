@@ -10484,7 +10484,8 @@ if this routine has a body (dump nothing if it has no body).
        or defined. */
 #endif /* SGIC */
 #if BUILTIN_FUNCTIONS_ENABLED
-  } else if (is_gnu_builtin_function(rout)
+  } else if (is_gnu_builtin_function(rout) &&
+             rout->source_corresp.attributes == NULL
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
              /* When complex types are lowered, builtin functions using
                 complex types are incompatible with the lowered types and

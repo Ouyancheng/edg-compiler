@@ -1,5 +1,19 @@
 Version 4.15
 
+1/15/18  [EDGcpfe/18100]
+C generating back end: declaration of builtin with attributes
+
+Typically the C generating back end suppresses declarations for builtin
+functions but a change has been made not to suppress declarations for builtin
+functions that have attributes.  For example (with --gcc):
+
+  void foo(void)  {}
+  void __builtin_abort(void) __attribute((alias("foo")));
+  void f() {
+    __builtin_abort();
+  }
+
+
 1/15/18  [EDGcpfe/18983]
 Underlying type of scoped enumerator
 
