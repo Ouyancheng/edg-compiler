@@ -1,5 +1,17 @@
 Version 4.15
 
+1/15/18  [EDGcpfe/18983]
+Underlying type of scoped enumerator
+
+If unspecified, the underlying type of a scoped enumerator is supposed to
+be "int".  That was not always true in configurations where
+enum_types_can_be_smaller_than_int is TRUE.  Now fixed.  For example (with
+--c++17):
+
+  enum class X;
+  static_assert(sizeof(X) == sizeof(int));
+
+
 1/12/18  [EDGcpfe/19130]
 Microsoft compatibility: update to C++17 features enabled
 

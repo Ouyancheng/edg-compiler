@@ -5082,6 +5082,9 @@ base specifier.
   }  /* if */
   if (explicit_base_kind != (an_integer_kind)ik_none) {
     /* The underlying type is already determined: Nothing to be done. */
+  } else if (enum_type->variant.integer.is_scoped_enum) {
+    /* The underlying type for a scoped enum is "int" (unless explicitly
+       specified). */
   } else if (enum_types_can_be_smaller_than_int 
 #if GNU_EXTENSIONS_ALLOWED
              || (enum_type->variant.integer.packed && gnu_version >= 40000)
