@@ -10519,7 +10519,7 @@ match is found.
         templ_ptr = tssp->il_template_entry;
         if (tap->variant.templ.ptr == NULL) {
           /* No template has been bound to this template argument yet, so
-             just the current template. */
+             just use the current template. */
           tap->variant.templ.ptr = templ_ptr;
           tap->is_pack = templ_ptr->is_pack;
           match = TRUE;
