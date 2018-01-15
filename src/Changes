@@ -3,10 +3,10 @@ Version 4.15
 1/12/18  [EDGcpfe/19130]
 Microsoft compatibility: update to C++17 features enabled
 
-The new matching of template template arguments is now enabled when
-microsoft_version >= 1912 and --ms_c++latest or --ms_c++17 is specified.
-Note that while this is enabled in default C++14 mode (because it is
-defect report) it is not enabled in --ms_c++14 mode.  Mandatory copy
+The new matching of template template arguments (see EDGcpfe/18746) is now
+enabled when microsoft_version >= 1912 and --ms_c++latest or --ms_c++17 is
+specified.  Note that while this is enabled in default C++14 mode (because it
+is a defect report) it is not enabled in --ms_c++14 mode.  Mandatory copy
 elision is now enabled when microsoft_version >= 1913 and --ms_c++latest
 or --ms_c++17 is specified.
 
