@@ -5927,10 +5927,26 @@ copy_constant_full should be called to start a copy.
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
         /* Do not insert code here. */
         {
-          new_constant->variant.address.variant.constant =
+          /* See if we've already made a copy of the underlying constant
+             before. */
+          char *copy = find_copy_remap_address((char *)old_constant_pointed_to,
+                                               cblock);
+          if (copy != NULL) {
+            /* The underlying constant has already been copied; use that
+               copy. */
+            new_constant->variant.address.variant.constant = (a_constant*)copy;
+          } else {
+            new_constant->variant.address.variant.constant =
                                   i_copy_constant_full(old_constant_pointed_to,
                                                        (a_constant *)NULL,
                                                        options, cblock);
+            /* Save this constant off to the side in case it is referred to
+               later in the copy. */
+            add_copy_remap_entry((char *)old_constant_pointed_to,
+                                 (char *)new_constant->
+                                              variant.address.variant.constant,
+                                 cblock);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

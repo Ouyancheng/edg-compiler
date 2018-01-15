@@ -1,5 +1,34 @@
 Version 4.15
 
+1/15/18  [EDGcpfe/19136]
+Copying an aggregate constant with multiple references to the same
+abk_temporary constant
+
+The copy_constant utility is used to copy all manners of constants, but
+in the case where an aggregate constant with multiple references to the same
+abk_temporary constant is copied, the resulting aggregate constant no longer
+maintained the identity link between the abk_temporary constants.  Now fixed.
+This manifested itself in the following example in configurations that do
+lowering and have the fix for EDGcpfe/19037 (with the Microsoft version of
+<initializer_list>) with --c++11:
+
+  #include <initializer_list>
+  extern "C" int printf(const char *,...);
+  void f(std::initializer_list<int> in) {
+    for (auto x : in) {
+      printf("%d ", x);
+    }
+    printf("\n");
+  }
+  int main() {
+    static auto v = {10, 20, 30};
+    f(v);
+    return 0;
+  }
+
+This had printed "10 20 30 10 20 30" and now prints "10 20 30".
+
+
 1/15/18  [EDGcpfe/18100]
 C generating back end: declaration of builtin with attributes
 
