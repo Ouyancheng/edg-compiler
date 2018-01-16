@@ -1,5 +1,19 @@
 Version 4.15
 
+1/16/18  [EDGcpfe/17984,EDGcpfe/19141]
+GNU C++ compatibility: abort on use of member variable template
+
+An abort (in ensure_inclass_static_member_constant_initializer_is_scanned)
+could occur in g++ mode on the use of a class member variable template
+that is const or constexpr and is initialized in-class.  Now fixed.
+
+  template <int I> struct B { };
+  template <typename T> struct A {
+    template <typename U> static constexpr int s = 1;
+    template <typename U> using X = B<s<U>>;
+  };
+
+
 1/16/18  [EDGcpfe/19147]
 Variable template access checking and lookup context in declarator
 

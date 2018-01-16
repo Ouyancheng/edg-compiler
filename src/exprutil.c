@@ -15109,9 +15109,11 @@ be returned for a C mode const variable.
       var->init_kind == (an_init_kind)initk_none &&
       is_potentially_constant_valued_variable(var)) {
     /* In some modes, in-class initializers for static data members are not
-       scanned immediately. */
+       scanned immediately.  This is not done for variable template
+       instances (i.e., when template_arg_list is non-NULL). */
     if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
         var->is_template_variable &&
+        var->template_info->template_arg_list == NULL &&
         !var->is_prototype_instantiation) {
       ensure_inclass_static_member_constant_initializer_is_scanned(var);
 #if MICROSOFT_EXTENSIONS_ALLOWED
