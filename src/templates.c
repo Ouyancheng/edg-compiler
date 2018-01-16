@@ -28313,7 +28313,12 @@ that follows.
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        set_inline_flag(rp, (a_boolean)func_info.is_inline);
+        if (!rp->is_specialized || !rp->is_inline) {
+          /* If this is the first specialization, or if a previous
+             declaration of the specialization was not inline, set the
+             inline flag. */
+          set_inline_flag(rp, (a_boolean)func_info.is_inline);
+        }  /* if */
         if (!rp->is_specialized) {
           /* This is the first specialization: Set the is_constexpr flag
              depending on the presence of the "constexpr" keyword (it is

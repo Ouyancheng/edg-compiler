@@ -1,5 +1,17 @@
 Version 4.15
 
+1/16/18  [EDGcpfe/19142]
+Incorrect value of inline flag for redeclaration of explicit specialization
+
+If an explicit specialization was declared inline and then redeclared
+or defined later without the inline flag, the flag was erroneously cleared.
+Now fixed.
+
+  template<typename T> inline void f();
+  template<> inline void f<void>();
+  template<> void f<void>() {}  // Formerly not inline
+
+
 1/15/18  [EDGcpfe/19136]
 Copying an aggregate constant with multiple abk_temporary constants referring
 to the same constant
