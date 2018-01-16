@@ -1,16 +1,16 @@
 Version 4.15
 
 1/15/18  [EDGcpfe/19136]
-Copying an aggregate constant with multiple references to the same
-abk_temporary constant
+Copying an aggregate constant with multiple abk_temporary constants referring
+to the same constant
 
-The copy_constant utility is used to copy all manners of constants, but
-in the case where an aggregate constant with multiple references to the same
-abk_temporary constant is copied, the resulting aggregate constant no longer
-maintained the identity link between the abk_temporary constants.  Now fixed.
-This manifested itself in the following example in configurations that do
-lowering and have the fix for EDGcpfe/19037 (with the Microsoft version of
-<initializer_list>) with --c++11:
+The copy_constant utility is used to copy all manners of constants, but in the
+case of an aggregate constant containing multiple abk_temporary constants
+referring to the same constant, each abk_temporary constant in the resulting
+copy referred to a separate copy of the base constant and no longer to a single
+constant.  Now fixed.  This manifested itself in the following example in
+configurations that do lowering and have the fix for EDGcpfe/19037 (with the
+Microsoft version of <initializer_list>) with --c++11:
 
   #include <initializer_list>
   extern "C" int printf(const char *,...);
