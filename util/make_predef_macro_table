@@ -157,6 +157,9 @@ delete_unneeded_entries()
     sed -e "/:$name:/ d" output.tmp >$$
     mv -f $$ output.tmp
   done
+  # Delete all feature test macros (i.e., __cpp_*):
+  sed -e "/:__cpp_/ d" output.tmp >$$
+  mv -f $$ output.tmp
 }
 
 common_tag=gnu

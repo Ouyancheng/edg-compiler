@@ -1,5 +1,13 @@
 Version 4.15
 
+1/16/18  [EDGcpfe/19144]
+Suppress feature test macros in make_predef_macro_table output
+
+Feature test macros (i.e., __cpp_*) are now suppressed when running
+make_predef_macro_table (so these don't end up in a predefined_macros.txt
+file).
+
+
 11/6/17  [EDGcpfe/18923]
 Undefined behavior when demangling IA-64 user-defined operator name
 
