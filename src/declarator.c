@@ -6104,9 +6104,12 @@ declared entity is known to not be a function.
               *is_static_constructor = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
-          } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-            /* The dimensions of static data members (if any) are scanned
-               with the original class reactivated. */
+          } else if ((sym->kind == (a_symbol_kind)sk_static_data_member ||
+                      sym->kind == (a_symbol_kind)sk_variable) &&
+                      sym->is_class_member) {
+            /* The dimensions (if any) of variable template instances and
+               static data members are scanned with the original class
+               reactivated. */
             reactivate_scope = TRUE;
             *not_a_function_declarator = TRUE;
             if (is_nonspecialized_instantiation_context()) {

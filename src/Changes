@@ -1,5 +1,21 @@
 Version 4.15
 
+1/16/18  [EDGcpfe/19147]
+Variable template access checking and lookup context in declarator
+
+When scanning an explicit specialization of a class member variable template,
+a spurious access error could be issued on the declarator.  In addition,
+names from the class scope that should be visible in the declarator, were
+not.  Now fixed.
+
+  class A {
+    template <typename T> static const T arr[];
+    static const int q = 2;
+  };
+  // Formerly A::arr was not accessible and q was considered undefined
+  template <> const int A::arr<int>[q];
+
+
 1/16/18  [EDGcpfe/19142]
 Incorrect value of inline flag for redeclaration of explicit specialization
 
