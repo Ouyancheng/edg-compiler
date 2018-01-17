@@ -41981,6 +41981,7 @@ set accordingly.
           operator_token = tok_noexcept;
           *unary = TRUE;
           break;
+        case tpck_integer_pack: /* Not handled at this level. */
         case tpck_uuidof: /* Not handled at this level; see "*" operator. */
         default:
           break;

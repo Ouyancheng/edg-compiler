@@ -1294,6 +1294,7 @@ typedef enum /*a_token_kind*/ {
   tok_clang_version,
   tok_has_unique_object_representations,
   tok_is_aggregate,
+  tok_integer_pack,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1482,6 +1483,7 @@ EXTERN a_const_char
    "clang version",
    "__has_unique_object_representations",
    "__is_aggregate",
+   "__integer_pack",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -3925,6 +3927,8 @@ enum a_template_param_constant_kind_tag {
 			   represents an rvalue for the function, which has
 			   unknown type and might therefore be a pointer or a
 			   pointer to member. */
+  tpck_integer_pack,	/* The template param constant represents a dependent
+			   "__integer_pack(N)..." construct. */
   tpck_destructor	/* The template param constant represents a destructor
 			   of a nonreal class. */
 };
@@ -4711,6 +4715,11 @@ typedef struct a_constant {
 			/* TRUE if the destructor was named without a qualifier
 			   (e.g., TRUE in p->~T(), but not in p->~T::T()). */
         } destructor;
+        /* When template param constant kind == tpck_integer_pack: */
+        a_constant_ptr
+		bound;
+			/* The dependent bound specified in a construct of the
+			   form "__integer_pack(N)...". */
       } variant;
     } template_param;
     /* When kind == ck_designator: */
@@ -6799,6 +6808,9 @@ typedef struct a_template_arg {
 			   some alias-in-template-declaration cases where
 			   setting is_pack is not desired because it has
 			   other implications in the front end. */
+  a_bit_field	is_integer_pack:1;
+			/* TRUE for a dependent nontype template argument of
+   			   the form "__integer_pack(expr)...". */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */

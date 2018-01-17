@@ -31,6 +31,8 @@ and parsing of them into tokens.
 #include "class_decl.h"
 #include "decls.h"
 #include "disambig.h"
+#include "exprutil.h"
+#include "folding.h"
 #include "fe_init.h"
 #include "literals.h"
 #include "macro.h"
@@ -43,10 +45,6 @@ and parsing of them into tokens.
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #include "func_def.h"
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#ifdef lint
-/* Include the definition of an_arg_operand to suppress lint errors. */
-#include "exprutil.h"
-#endif /* ifdef lint */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16038,6 +16036,103 @@ it is used.
 }  /* scan_template_template_argument */
 
 
+static a_template_arg_ptr scan_integer_pack(a_boolean  record_operands)
+/*
+Scan a template argument of the form
+  __integer_pack ( <integer-constant> ) ...
+and return a representation of it to the caller.  If the integer-constant is
+dependent, the representation is a single nontype template argument marked as
+being an "integer_pack" argument.  Otherwise, it is a possibly-empty list of
+(integer) nontype template arguments of values 0, 1, ... N-1 where N is the
+value of the integer-constant.
+
+If record_operands is TRUE, record the values as an_arg_operand entries instead
+of a_constant entries.
+*/
+{
+  a_constant_ptr      bound = fs_constant((a_constant_repr_kind)ck_error);
+  a_template_arg_ptr  args = NULL;
+  a_source_position   bound_pos;
+  a_boolean           err = FALSE;
+
+  check_assertion(curr_token == tok_integer_pack);
+  (void)get_token();
+  add_stop_token(tok_ellipsis);
+  add_stop_token(tok_rparen);
+  if (curr_token == tok_lparen) {
+    (void)get_token();
+  } else {
+    pos_error(ec_exp_lparen, &pos_curr_token);
+  }  /* if */
+  bound_pos = pos_curr_token;
+  scan_integral_constant_expression(bound);
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  (void)required_token(tok_ellipsis, ec_exp_ellipsis);
+  remove_stop_token(tok_rparen);
+  remove_stop_token(tok_ellipsis);
+  if (is_error_constant(bound)) {
+    err = TRUE;
+  } else if (constant_is(bound, ck_template_param)) {
+    /* The bound is dependent.  Represent it using a tpck_integer_pack
+       constant. */
+    a_constant_ptr  cp = fs_constant((a_constant_repr_kind)ck_template_param);
+    cp->type = bound->type;
+    set_template_param_constant_kind(
+                       cp, (a_template_param_constant_kind)tpck_integer_pack);
+    cp->variant.template_param.variant.bound = bound;
+    args = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+    args->is_integer_pack = TRUE;
+    args->variant.constant = cp;
+  } else if (constant_is(bound, ck_integer)) {
+    /* The bound is non-dependent.  Expand the construct immediately. */
+    a_boolean   ovflo = FALSE;
+    a_type_ptr  bound_type = skip_typerefs(bound->type);
+    a_host_large_integer
+                bound_val = value_of_integer_constant(bound, &ovflo);
+    if (bound_type->kind != (a_type_kind)tk_integer) {
+      err = TRUE;
+      pos_error(ec_exp_int_constant, &bound_pos);
+    } else if (ovflo) {
+      err = TRUE;
+      pos_error(ec_integer_overflow, &bound_pos);
+    } else if (bound_val < 0) {
+      err = TRUE;
+      pos_error(ec_negative_value, &bound_pos);
+    } else {
+      a_host_large_integer  val;
+      a_template_arg_ptr    *p_arg = &args;
+      an_integer_kind       ikind = bound_type->variant.integer.int_kind;
+      for (val = 0; val < bound_val; ++val) {
+        a_constant_ptr  cp = fs_constant((a_constant_repr_kind)ck_integer);
+        *p_arg = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+        set_integer_constant(cp, val, ikind);
+        (*p_arg)->variant.constant = cp;
+        p_arg = &(*p_arg)->next;
+      }  /* for */
+    }  /* if */
+  } else {
+    /* The type of the bound is a known, non-integral type: Issue an error. */
+    err = TRUE;
+    pos_error(ec_exp_int_constant, &bound_pos);
+  }  /* if */
+  if (err) {
+    check_assertion(total_errors != 0);
+    args = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+    args->variant.constant = bound;
+  }  /* if */
+  if (record_operands) {
+    /* The caller requested that the template argument values be represented
+       using an_arg_operand entries. */
+    a_template_arg_ptr  arg;
+    for (arg = args; arg != NULL; arg = arg->next) {
+      arg->arg_operand = arg_operand_for_constant(arg->variant.constant);
+      arg->variant.constant = NULL;
+    }  /* for */
+  }  /* if */
+  return args;
+}  /* scan_integer_pack */
+
+
 static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal,
                                                          a_boolean *p_err)
 /*
@@ -16062,6 +16157,7 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
   a_template_arg_ptr              arg_ptr;
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
+  a_template_arg_ptr              integer_pack_elems = NULL;
   a_boolean                       is_type_param;
   a_templ_arg_kind		  arg_kind;
   a_constant_ptr                  constant;
@@ -16089,7 +16185,8 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                     /*is_lookahead=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
     while (any_args) {
-      if (curr_token == tok_gt) {
+      a_boolean  is_secondary_integer_pack_elem = FALSE;
+      if (curr_token == tok_gt && integer_pack_elems == NULL) {
         if (arg_list != NULL) {
           pos_error(ec_expected_template_arg, &error_position);
         }  /* if */
@@ -16097,6 +16194,29 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
         break;
       }  /* if */
       add_stop_token(tok_comma);
+      if (curr_token == tok_integer_pack) {
+        /* An "__integer_pack(...)" construct can generate zero or more
+           template arguments. */
+        a_template_arg_ptr  args = scan_integer_pack(!is_nonreal);
+        if (args == NULL) {
+          /* No arguments were produced. */
+          (void)end_potential_pack_expansion_context(
+                                            pesep, /*is_declarator=*/FALSE);
+          any_args = advance_to_next_pack_element(pesep);
+          remove_stop_token(tok_comma);
+          continue;
+        }  /* if */
+        integer_pack_elems = args->next;
+        arg_ptr = args;
+        arg_ptr->next = NULL;
+        goto arg_produced;
+      } else if (integer_pack_elems != NULL) {
+        arg_ptr = integer_pack_elems;
+        integer_pack_elems = arg_ptr->next;
+        arg_ptr->next = NULL;
+        is_secondary_integer_pack_elem = TRUE;
+        goto arg_produced;
+      }  /* if */
       sym = NULL;
       /* Determine the kind of template argument. */
       if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
@@ -16116,9 +16236,6 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                  : (a_templ_arg_kind)tak_nontype;
       }  /* if */
       arg_ptr = alloc_template_arg(arg_kind);
-      /* When is_nonreal is FALSE, we are scanning an explicit function
-         template argument list. */
-      arg_ptr->explicitly_specified = !is_nonreal;
       if (is_type_templ_arg(arg_ptr)) {
         arg_ptr->variant.type = scan_template_type_argument();
       } else if (is_nontype_templ_arg(arg_ptr)) {
@@ -16166,14 +16283,21 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                                  /*dependent_default=*/FALSE);
         arg_ptr->variant.templ.ptr = templ_ptr;
       }  /* if */
+arg_produced:
+      /* When is_nonreal is FALSE, we are scanning an explicit function
+         template argument list. */
+      arg_ptr->explicitly_specified = !is_nonreal;
       /* Link this entry on to the argument list. */
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
-      arg_ptr->pack_expansion_descr =
+      if (!is_secondary_integer_pack_elem) {
+        arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
-      if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
-      any_args = advance_to_next_pack_element(pesep);
+        if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
+      }  /* if */
+      any_args = integer_pack_elems != NULL ||
+                 advance_to_next_pack_element(pesep);
       remove_stop_token(tok_comma);
     }  /* while */
   } while (loop_token(tok_comma));
@@ -16260,6 +16384,7 @@ all arguments were explicit.
   a_template_arg_ptr               arg_ptr = NULL;
   a_template_arg_ptr               arg_list = NULL;
   a_template_arg_ptr               last_arg = NULL;
+  a_template_arg_ptr               integer_pack_elems = NULL;
   a_templ_arg_kind		   arg_kind;
   a_template_decl_info_ptr	   decl_info;
   a_template_symbol_supplement_ptr tssp;
@@ -16358,6 +16483,7 @@ all arguments were explicit.
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
+next_integer_pack_element:
     /* If we have run out of parameters but there are more arguments, exit
        the loop.  This test is done here so that a construct like
        "A<X, args...>" will be accepted when args is an empty pack. */
@@ -16369,29 +16495,33 @@ all arguments were explicit.
       break;
     }  /* if */
     while (any_args) {
-      if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
-        /* Create a start of parameter pack placeholder. */
-        arg_ptr =
+      a_boolean  is_secondary_integer_pack_elem = FALSE;
+      if (integer_pack_elems == NULL) {
+        if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
+          /* Create a start of parameter pack placeholder. */
+          arg_ptr =
              alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-        /* Link this entry on to the argument list. */
-        if (arg_list == NULL) arg_list = arg_ptr;
-        if (last_arg != NULL) last_arg->next = arg_ptr;
-        last_arg = arg_ptr;
-        in_pack = TRUE;
+          /* Link this entry on to the argument list. */
+          if (arg_list == NULL) arg_list = arg_ptr;
+          if (last_arg != NULL) last_arg->next = arg_ptr;
+          last_arg = arg_ptr;
+          in_pack = TRUE;
+        }  /* if */
+        if (curr_token == tok_shift_right &&
+            right_shift_can_be_angle_brackets) {
+          /* Check for the case where a "right shift" could be interpreted as
+             two consecutive closing angle brackets. */
+          replace_right_shift_by_two_closing_angle_brackets();
+        }  /* if */
+        /* If the current token is a ">", and this is the first argument,
+           then exit the loop (an empty argument list). */
+        if (curr_token == tok_gt &&
+            (arg_list == NULL || (in_pack && arg_ptr == last_arg))) {
+          abandon_potential_pack_expansion_context(pesep);
+          break;
+        }  /* if */
+        arg_pos = pos_curr_token;
       }  /* if */
-      if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
-        /* Check for the case where a "right shift" could be interpreted as two
-           consecutive closing angle brackets. */
-        replace_right_shift_by_two_closing_angle_brackets();
-      }  /* if */
-      /* If the current token is a ">", and this is the first argument,
-         then exit the loop (an empty argument list). */
-      if (curr_token == tok_gt &&
-          (arg_list == NULL || (in_pack && arg_ptr == last_arg))) {
-        abandon_potential_pack_expansion_context(pesep);
-        break;
-      }  /* if */
-      arg_pos = pos_curr_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (internal_templates_enabled) {
         if (arg_number == 1) {
@@ -16412,7 +16542,15 @@ all arguments were explicit.
       if (is_type_templ_arg(arg_ptr)) {
         a_boolean	is_unnamed, is_local, is_vla, is_generic;
         a_boolean	is_invalid = FALSE;
-        argument_type = scan_template_type_argument();
+        if (integer_pack_elems != NULL) {
+          /* There are pending arguments from an __integer_pack(N) construct.
+             Those cannot match a type parameter. */
+          pos_sy_error(ec_integer_pack_element_for_type, &arg_pos, sym);
+          integer_pack_elems = NULL;
+          argument_type = error_type();
+        } else {
+          argument_type = scan_template_type_argument();
+        }  /* if */
         /* In standard C++98/C++03, template type arguments must have linkage,
            and therefore cannot be based on local or unnamed classes/enums.  In
            Microsoft and C++11 modes, local class types are acceptable even
@@ -16456,15 +16594,56 @@ all arguments were explicit.
                               template_sym, sym, param_ptr, arg_list,
                               /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
         }  /* if */
-        constant = fs_constant((a_constant_repr_kind)ck_error);
-        scan_template_argument_constant_expression(constant_type, constant);
-        /* Make sure the constant does not use a local or nonexternal
-           variable, etc. */
-        if (nontype_templ_arg_constant_involves_invalid_linkage(constant)) {
-          pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
-          set_error_constant(constant);
+        if (curr_token == tok_integer_pack) {
+          /* An "__integer_pack(...)" construct can generate zero or more
+             template arguments. */
+          a_template_arg_ptr  args;
+          args = scan_integer_pack(/*record_operands=*/FALSE);
+          if (args == NULL) {
+            /* No arguments were produced. */
+            (void)end_potential_pack_expansion_context(
+                                              pesep, /*is_declarator=*/FALSE);
+            any_args = advance_to_next_pack_element(pesep);
+            remove_stop_token(tok_comma);
+            continue;
+          }  /* if */
+          integer_pack_elems = args->next;
+          arg_ptr = args;
+          arg_ptr->next = NULL;
+          if (constant_is(arg_ptr->variant.constant, ck_integer)) {
+            /* Adjust the type of the constant to that expected by the
+               parameter. */
+            a_boolean  did_not_fold;
+            type_change_constant(arg_ptr->variant.constant, constant_type,
+                                 /*is_implicit_cast=*/TRUE,
+                                 /*maintain_expression=*/FALSE,
+                                 &did_not_fold, &arg_pos);
+          }  /* if */
+        } else if (integer_pack_elems != NULL) {
+          arg_ptr = integer_pack_elems;
+          integer_pack_elems = arg_ptr->next;
+          arg_ptr->next = NULL;
+          is_secondary_integer_pack_elem = TRUE;
+          if (constant_is(arg_ptr->variant.constant, ck_integer)) {
+            /* Adjust the type of the constant to that expected by the
+               parameter. */
+            a_boolean  did_not_fold;
+            type_change_constant(arg_ptr->variant.constant, constant_type,
+                                 /*is_implicit_cast=*/TRUE,
+                                 /*maintain_expression=*/FALSE,
+                                 &did_not_fold, &arg_pos);
+          }  /* if */
+        } else {
+          constant = fs_constant((a_constant_repr_kind)ck_error);
+          scan_template_argument_constant_expression(constant_type, constant);
+          /* Make sure the constant does not use a local or nonexternal
+             variable, etc. */
+          if (nontype_templ_arg_constant_involves_invalid_linkage(constant)) {
+            pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
+            set_error_constant(constant);
+          }  /* if */
+          arg_ptr->variant.constant = constant;
         }  /* if */
-        arg_ptr->variant.constant = constant;
       } else {
         /* A template template argument. */
         a_template_ptr		templ;
@@ -16484,9 +16663,19 @@ all arguments were explicit.
                                          template_sym, param_ptr, arg_list);
           arg_ptr->variant.templ.substituted_param_template = param_template;
         }  /* if */
-        templ = scan_template_template_argument(param_template, &arg_pos,
-                                                /*is_default=*/FALSE,
-                                                /*dependent_default=*/FALSE);
+        if (integer_pack_elems != NULL) {
+          /* There are pending arguments from an __integer_pack(N) construct.
+             Those cannot match a type parameter. */
+          a_symbol_ptr  error_sym;
+          pos_sy_error(ec_integer_pack_element_for_template, &arg_pos, sym);
+          integer_pack_elems = NULL;
+          error_sym = error_class_template();
+          templ = error_sym->variant.template_info->il_template_entry;
+        } else {
+          templ = scan_template_template_argument(param_template, &arg_pos,
+                                                  /*is_default=*/FALSE,
+                                                  /*dependent_default=*/FALSE);
+        }  /* if */
         arg_ptr->variant.templ.ptr = templ;
       }  /* if */
       /* Link this entry on to the argument list. */
@@ -16495,13 +16684,16 @@ all arguments were explicit.
       last_arg = arg_ptr;
       remove_stop_token(tok_comma);
       ++arg_number;
-      arg_ptr->pack_expansion_descr =
+      if (!is_secondary_integer_pack_elem) {
+        arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
-      if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
-      any_args = advance_to_next_pack_element(pesep);
-      if (arg_ptr->pack_expansion_descr != NULL && first_pack == NULL) {
-        first_pack = arg_ptr;
+        if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
+        if (arg_ptr->pack_expansion_descr != NULL && first_pack == NULL) {
+          first_pack = arg_ptr;
+        }  /* if */
       }  /* if */
+      any_args = (integer_pack_elems != NULL && param_ptr->is_pack) ||
+                 advance_to_next_pack_element(pesep);
       /* Record whether, for a pack expansion in an instantiation, the
          argument was part of a pack expansion.  This is needed for
          C++-generating back end cases where pack_expansion_descr is NULL
@@ -16545,6 +16737,16 @@ all arguments were explicit.
         }  /* if */
       }  /* if */
     }  /* while */
+    if (integer_pack_elems != NULL) {
+      /* Iterate of __integer_pack(N) elements, unless we ran out of
+         parameters. */
+      if (param_ptr == NULL) {
+        too_many_args = TRUE;
+        break;
+      } else {
+        goto next_integer_pack_element;
+      }  /* if */
+    }  /* if */
   } while (loop_token(tok_comma));
   /* If we were processing arguments associated with a parameter pack,
      advance past the parameter pack now that we have reached the end
@@ -16736,7 +16938,7 @@ all arguments were explicit.
       break;
     }  /* if */
   }  /* for */
-  if (too_many_args && curr_token != tok_gt) {
+  if (too_many_args && (curr_token != tok_gt || integer_pack_elems != NULL)) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_sym);

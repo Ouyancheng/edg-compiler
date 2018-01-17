@@ -2830,6 +2830,10 @@ it's the initializer for an aggregate.
                                variant.template_param.variant.template_ref.con,
                               tblock);
             break;
+          case tpck_integer_pack:
+            traverse_constant(constant->variant.template_param.variant.bound,
+                              tblock);
+            break;
           case tpck_param:
           case tpck_member:
           case tpck_unknown_function:

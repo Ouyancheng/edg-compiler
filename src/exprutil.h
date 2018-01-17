@@ -1422,6 +1422,8 @@ extern void reattach_ref_entries_to_curr_expr(an_operand *operand);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
+extern an_arg_operand_ptr arg_operand_for_constant(a_constant_ptr  cp);
+
 extern void free_attachments_to_operand(an_operand *operand);
 
 extern an_init_component_ptr alloc_init_component(an_init_component_kind kind);

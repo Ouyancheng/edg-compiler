@@ -940,6 +940,10 @@ debug builds) don't recognize that these variables are mutually-exclusive.
                                                          template_ref.arg_list,
                           a_template_arg_ptr, iek_template_arg);
                 break;
+              case tpck_integer_pack:
+                walk_ptr(eptr->variant.template_param.variant.bound,
+                         a_constant_ptr, iek_constant);
+                break;
               case tpck_destructor:
                 walk_ptr(eptr->variant.template_param.variant.destructor.type,
                          a_type_ptr, iek_type);

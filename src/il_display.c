@@ -1064,6 +1064,11 @@ do_sizeof_cases:
                              ptr->variant.template_param.variant.
                                                         template_ref.arg_list);
       break;
+    case tpck_integer_pack:
+      (void)printf("tpck_integer_pack\n");
+      disp_ptr("bound", (char *)ptr->variant.template_param.variant.bound,
+               iek_constant);
+      break;
     case tpck_destructor:
       (void)printf("tpck_destructor\n");
       disp_ptr("destructor",

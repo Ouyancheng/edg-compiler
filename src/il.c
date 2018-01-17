@@ -6042,6 +6042,12 @@ copy_constant_full should be called to start a copy.
             copy_template_arg_list(old_constant->variant.template_param.
                                                 variant.template_ref.arg_list);
         break;
+      case tpck_integer_pack:
+        new_constant->variant.template_param.variant.bound =
+               i_copy_constant_full(
+                          old_constant->variant.template_param.variant.bound,
+                          (a_constant_ptr)NULL, options, cblock);
+        break;
       default:
         unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
@@ -7486,6 +7492,11 @@ definition of the CC flags in il.h for more information.
                                       (ETA_IS_NONREAL_MEMBER |
                                        eta_flags_for_cc_options(options)));
               break;
+            case tpck_integer_pack:
+              eq = compare_constants(cp1->variant.template_param.variant.bound,
+                                     cp2->variant.template_param.variant.bound,
+                                     options);
+              break;
             case tpck_destructor:
               eq = identical_types_full(
                          cp1->variant.template_param.variant.destructor.type,
@@ -7812,6 +7823,10 @@ at the file scope (it would contain a pointer down into a function scope).
                           cp->variant.template_param.variant.templ_sizeof.expr;
             if (expr != NULL) has_nfs_ref = !in_file_scope(expr);
           }
+          break;
+        case tpck_integer_pack:
+          has_nfs_ref =
+              has_non_file_scope_ref(cp->variant.template_param.variant.bound);
           break;
         default:
           unexpected_condition_str(
@@ -18041,6 +18056,24 @@ name lookup options.
             } else {
               *copy_error = TRUE;
             }  /* if */
+          }  /* if */
+        }
+        break;
+      case tpck_integer_pack:
+        /* Process the underlying constant with the explicit arguments. */
+        { a_constant_ptr  bound = con->variant.template_param.variant.bound,
+                          bound_copy;
+
+          bound_copy = copy_template_param_con(
+                                 bound, template_arg_list, template_param_list,
+                                 guide_type, source_pos, options, copy_error,
+                                 ctws_state, constant);
+          if (!*copy_error) {
+            con_copy = fs_constant((a_constant_repr_kind)ck_template_param);
+            set_template_param_constant_kind(
+                  con_copy, (a_template_param_constant_kind)tpck_integer_pack);
+            con_copy->type = bound_copy->type;
+            con_copy->variant.template_param.variant.bound = bound_copy;
           }  /* if */
         }
         break;

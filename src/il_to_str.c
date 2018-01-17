@@ -5868,6 +5868,12 @@ do_sizeof_cases:
           form_typeid_reference(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;
+        case tpck_integer_pack:
+          octl->output_str("__integer_pack(", octl);
+          form_constant(constant->variant.template_param.variant.bound,
+                        /*need_parens=*/FALSE, octl);
+          octl->output_str(")", octl);
+          break;
         case tpck_destructor:
           { a_type_ptr dtor_type =
                      constant->variant.template_param.variant.destructor.type;

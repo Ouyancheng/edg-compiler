@@ -1081,6 +1081,9 @@ Install the keywords in the symbol table.
         enter_keyword((a_token_kind)tok_final, "__final");
       }  /* if */
     }  /* if */
+    if (gpp_version_is(>= 80000)) {
+      enter_keyword((a_token_kind)tok_integer_pack, "__integer_pack");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_inline, "__inline");

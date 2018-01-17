@@ -786,6 +786,9 @@ ck_template_param constant.
       cp->variant.template_param.variant.template_ref.con = NULL;
       cp->variant.template_param.variant.template_ref.arg_list = NULL;
       break;
+    case tpck_integer_pack:
+      cp->variant.template_param.variant.bound = NULL;
+      break;
     case tpck_destructor:
       cp->variant.template_param.variant.destructor.type = NULL;
       cp->variant.template_param.variant.destructor.unqualified = FALSE;
@@ -1309,6 +1312,7 @@ allocated.
   tap->is_pack_element = FALSE;
   tap->is_pack = FALSE;
   tap->has_pack_ellipsis = FALSE;
+  tap->is_integer_pack = FALSE;
 #if CENTERLINE_CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

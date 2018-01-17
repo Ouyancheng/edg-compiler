@@ -12510,6 +12510,75 @@ parameters.
 }  /* substitute_template_argument */
 
 
+static void expand_integer_pack(a_template_arg_ptr  *p_args,
+                                a_boolean           *copy_error)
+/*
+*p_args is a template parameter representing a GCC __integer_pack(N)...
+construct.  If N is a concrete integer value (as opposed to a dependent
+expression), replace *p_args by a list of entries <0, 1, ..., N-1>, where the
+first element (zero) is represented in the given *p_args entry.  If N is zero,
+free *p_args and set *p_args to NULL.  Set *copy_error to TRUE if errors are
+encountered.
+*/
+{
+  a_constant_ptr        bound = (*p_args)->variant.constant;
+  a_boolean             ovflo = FALSE, is_explicit_cast;
+  a_type_ptr            bound_type = skip_typerefs(bound->type);
+  a_host_large_integer
+                        bound_val, val;
+  a_template_arg_ptr    *p_arg;
+  an_integer_kind       ikind;
+
+  if (bound_type->kind == (a_type_kind)tk_template_param) {
+    goto done;
+  } else if (bound_type->kind != (a_type_kind)tk_integer) {
+    *copy_error = TRUE;
+    goto done;
+  }  /* if */
+  while (is_template_param_cast_constant(bound, &bound, &is_explicit_cast)) {
+    /* Nothing more to do. */
+  }  /* while */
+  if (constant_is(bound, ck_template_param) &&
+      tpck_is(bound, tpck_integer_pack)) {
+    bound = bound->variant.template_param.variant.bound;
+  }  /* if */
+  if (!constant_is(bound, ck_integer)) {
+    *copy_error = TRUE;
+    goto done;
+  }  /* if */
+  bound_val = value_of_integer_constant(bound, &ovflo);
+  if (ovflo || bound_val < 0) {
+    *copy_error = TRUE;
+    goto done;
+  } else if (bound_val == 0) {
+    /* An empty expansion. */
+    free_template_arg_list(*p_args);
+    *p_args = NULL;
+    goto done;
+  }  /* if */
+  ikind = bound_type->variant.integer.int_kind;
+  p_arg = p_args;
+  for (val = 0; val < bound_val; ++val) {
+    a_constant_ptr  cp;
+    if (*p_arg != NULL) {
+      /* Reuse the existing entry. */
+      (*p_arg)->is_integer_pack = FALSE;
+      cp = (*p_arg)->variant.constant;
+    } else {
+      *p_arg = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+      cp = NULL;
+    }  /* if */
+    if (cp == NULL) {
+      cp = fs_constant((a_constant_repr_kind)ck_integer);
+    }  /* if */
+    set_integer_constant(cp, val, ikind);
+    (*p_arg)->variant.constant = cp;
+    p_arg = &(*p_arg)->next;
+  }  /* for */
+done:;
+}  /* expand_integer_pack */
+
+
 a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_symbol_ptr		template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
@@ -12717,6 +12786,9 @@ If there is an error in the copying, set *copy_error to TRUE.
          break;
         case tak_nontype:
           new_tap->variant.constant = tap->variant.constant;
+          if (tap->is_integer_pack) {
+            new_tap->is_integer_pack = TRUE;
+          }  /* if */
           break;
         case tak_start_of_pack_expansion:
           /* Clear the flag on the placeholder, if set above. */
@@ -12727,6 +12799,7 @@ If there is an error in the copying, set *copy_error to TRUE.
           unexpected_condition();
           break;
       }  /* switch */
+do_substitution:
       /* Do the substitution on the argument. */
       if (!is_start_of_pack_expansion_templ_arg(tap)) {
         substitute_template_argument(new_tap, tpp, arg_list_to_copy,
@@ -12736,6 +12809,13 @@ If there is an error in the copying, set *copy_error to TRUE.
                                      options,
                                      is_generic,
                                      copy_error, ctws_state);
+        if (new_tap->is_integer_pack && !*copy_error) {
+          expand_integer_pack(&new_tap, copy_error);
+          if (new_tap == NULL) {
+            /* The expansion produced an empty list.  End the loop. */
+            goto end_of_loop;
+          }  /* if */
+        }  /* if */
         if (copy_arg_operands && !*copy_error) {
           transfer_arg_operand_for_template_arg(new_tap, tap);
         }  /* if */
@@ -12752,6 +12832,16 @@ If there is an error in the copying, set *copy_error to TRUE.
           !is_start_of_pack_expansion_templ_arg(tap)) {
         tpp = tpp->next;
         ttp_tpp = ttp_tpp != NULL ? ttp_tpp->next : NULL;
+      }  /* if */
+      if (new_tap->next != NULL) {
+        /* An  __integer_pack expansion produced multiple arguments.  Move on
+           to the next one and process it. */
+        new_tap = new_tap->next;
+        /* Repeat the substitution.  This will not actually replace template
+           parameters (since they were already substituted just prior to the
+           expansion), but it will match the expanded argument to the next
+           template parameter. */
+        goto do_substitution;
       }  /* if */
 end_of_loop:
       (void)end_potential_pack_expansion_context(

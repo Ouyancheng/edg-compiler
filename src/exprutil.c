@@ -887,6 +887,19 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
+an_arg_operand_ptr arg_operand_for_constant(a_constant_ptr  cp)
+/*
+Allocate and return an entry of type an_arg_operand initialized with the
+given constant.
+*/
+{
+  an_arg_operand_ptr  aop = alloc_arg_operand();
+
+  make_constant_operand(cp, &aop->operand);
+  return aop;
+}  /* arg_operand_for_constant */
+
+
 /*ARGSUSED*/  /* <-- operand is not used. */
 void free_attachments_to_operand(an_operand *operand)
 /*

@@ -4232,6 +4232,25 @@ do_unknown_function:
                          (an_expr_node_ptr)NULL,
                          mctl);
           break;
+        case tpck_integer_pack:
+          /* GCC models "__integer_pack(<expr>)..." as the pack expansions of
+             a function call. */
+#if !IA64_ABI
+          add_str_to_mangled_name("Osp_1_cl_1_14__integer_pack", mctl);
+#else /* IA64_ABI */
+          add_str_to_mangled_name("spclL_Z14__integer_packE", mctl);
+#endif /* IA64_ABI */
+          literal_representation(con->variant.template_param.variant.bound,
+                                 old_form,
+                                 /*in_dependent_expr=*/TRUE,
+                                 /*suppress_address_of=*/FALSE,
+                                 mctl);
+#if !IA64_ABI
+          add_to_mangled_name('O', mctl);
+#else /* IA64_ABI */
+          add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+          break;
         case tpck_destructor:
         default:
           unexpected_condition_str(
