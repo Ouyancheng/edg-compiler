@@ -25477,7 +25477,7 @@ eliminated, if appropriate.
            reference to it somewhere that causes it to be written, clear its
            pointers so they can't be walked. */
         tp->variant.class_struct_union.field_list = NULL;
-        tp->variant.class_struct_union.extra_info = NULL;
+        clear_class_type_supplement(tp->variant.class_struct_union.extra_info);
       }  /* if */
     } else {
       /* The type is being kept.  Check for nested classes. */

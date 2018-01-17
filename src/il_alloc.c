@@ -1775,7 +1775,7 @@ Initialize the given Microsoft attribute usage descriptor.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)
+void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)
 /*
 Give an pointer to a class-type-supplement entry, initialize its fields.
 */

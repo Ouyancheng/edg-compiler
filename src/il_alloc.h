@@ -114,6 +114,8 @@ extern a_based_type_list_member_ptr alloc_based_type_list_member(
 
 extern void clear_class_type_definition_fields(a_type_ptr  class_type);
 
+extern void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp);
+
 extern void set_type_kind(a_type_ptr  pte,
                           a_type_kind kind);
 
