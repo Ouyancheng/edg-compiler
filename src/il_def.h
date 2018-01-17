@@ -1278,8 +1278,8 @@ typedef enum /*a_token_kind*/ {
   tok_coroutine_yield,
   tok_coroutine_return,
   tok_coroutine_await,
-#if MICROSOFT_EXTENSIONS_ALLOWED
   tok_is_assignable,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   tok_is_trivially_copy_assignable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_builtin_addressof,
@@ -1467,8 +1467,8 @@ EXTERN a_const_char
    "_Nonnull",
    "_Null_unspecified",
    "co_yield", "co_return", "co_await",
-#if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_assignable",
+#if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_trivially_copy_assignable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__builtin_addressof",
