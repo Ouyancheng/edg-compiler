@@ -33916,13 +33916,11 @@ handle_coroutine_yield:
       scan_is_assignable(bok_is_trivially_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_is_assignable:
       /* __is_assignable/__is_trivially_copy_assignable construct: */
       scan_is_assignable(bok_is_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     case tok_is_valid_winrt_type:
       /* __is_valid_winrt_type construct: */
@@ -42422,12 +42420,10 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_builtin_complex(rcblock, result);
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_is_assignable:
         /* __is_assignable/__is_trivially_copy_assignable construct: */
         scan_is_assignable(bok_is_assignable, rcblock, result);
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
