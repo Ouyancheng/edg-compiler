@@ -1,5 +1,29 @@
 Version 4.15
 
+1/16/18  [EDGcpfe/19148]
+Segfault in IL display program
+
+In certain configurations, the edgcpdisp IL display program could
+dereference a NULL pointer (in scp_is_lambda_closure_class in il_to_str.c)
+on the IL from some translation units.  This is now fixed.  For example,
+using the sample Linux configuration with the --g++ option, the following
+source code triggered the failure:
+
+  namespace N {
+    class B {};
+    typedef B T;
+    template<typename _Tp> inline void f(_Tp *p) { p->~_Tp(); }
+  }
+
+  struct G {
+    void g() { N::f<int *>(0); }
+  };
+
+  int main() {
+    N::T a;
+  }
+
+
 1/16/18  [EDGcpfe/17984,EDGcpfe/19141]
 GNU C++ compatibility: abort on use of member variable template
 

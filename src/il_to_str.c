@@ -530,7 +530,7 @@ for a lambda closure class.
 
   if (entry_kind == iek_type) {
     a_type_ptr	type = (a_type_ptr)scp;
-    if (is_immediate_class_type(type) &&
+    if (is_immediate_class_type(type) && class_type_supp(type) != NULL &&
         class_type_supp(type)->is_lambda_closure_class) {
       result = TRUE;
     }  /* if */
