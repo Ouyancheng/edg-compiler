@@ -29,18 +29,18 @@ but it supports the use cases intended by the GCC feature.
 Segfault in IL display program
 
 Previously, in configurations in which unneeded entries are removed from
-the IL, removing a class type resulted in setting its
+the IL, removing a class type entry resulted in setting its
 variant.class_struct_union.extra_info field to NULL, to ensure that if the
 entry did somehow end up in the IL, the pointers in its class type
-supplement could not be walked. This approach violated an intended
+supplement could not be walked.  This approach violated an intended
 invariant, however, that every class type should have an associated class
 type supplement, which could result in dereferencing a NULL pointer in
-scp_is_lambda_closure_class in the edgcpdisp IL display program.. The
-function eliminate_unneeded_il_entries has now been changed to clear the
-associated class type supplement for a class type being removed instead of
-setting its extra_info field to NULL.  For example, using the sample Linux
-configuration with the --g++ option, the following source code triggered
-the segfault and no longer does so:
+scp_is_lambda_closure_class in the edgcpdisp IL display program.  Instead
+of setting the extra_info field of a removed class type entry to NULL, the
+associated class type supplement is now cleared and a flag set to indicate
+the removal.  For example, using the sample Linux configuration with the
+--g++ option, the following source code triggered the segfault and no
+longer does so:
 
   namespace N {
     class B {};
