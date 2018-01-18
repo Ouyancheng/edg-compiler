@@ -1,5 +1,14 @@
 Version 4.15
 
+1/18/18  [EDGcpfe/18942]
+Spurious errors in complex multi-translation-unit cases
+
+A bug in the front end caused it to incorrectly determine the equivalence of
+certain template-dependent constants when multiple translation units are
+simultaneously compiled.  This could lead to spurious errors of various kinds.
+This problem, only observed in complex situations so far, is now fixed.
+
+
 1/18/18  [EDGcpfe/19127]
 Clang compatibility: __builtin_*_overflow builtins
 
