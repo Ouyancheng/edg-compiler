@@ -1,5 +1,28 @@
 Version 4.15
 
+1/18/18  [EDGcpfe/18024]
+Incorrect handling of sizeof... in dependent alias template instantiation
+
+If an alias template was instantiated with a dependent template argument
+list, it was incorrectly represented in the IL.  This could result in
+incorrect code being generated in the C++-generating back end.  Now fixed.
+
+  template <typename> struct A;
+  template <bool> struct B;
+  template <bool, typename...> struct C {
+    template <typename... Ts> static bool f() { A<Ts...> a; return true; }
+  };
+  template <typename... Ts> struct C<false, Ts...>;
+  template <typename... Ts1> struct D {
+    template <typename... Ts2>
+    using T = C<sizeof...(Ts1) == sizeof...(Ts2)>;
+    template <typename... Ts2, typename B<T<Ts2...>::f()>::type = true>
+      D(Ts2 &&...);
+  };
+  D<> f();
+  auto c = f();
+
+
 1/18/18  [EDGcpfe/17663]
 C++-generating back end: explicit instantiations of variable templates
 

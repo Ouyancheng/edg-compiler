@@ -1847,6 +1847,22 @@ instantiation.
     scope_stack[depth_scope_stack].in_nonreal_instantiation))
 
 /*
+TRUE if the innermost instantiation scope is an alias template being
+instantiated with dependent template arguments in a template declaration
+scope.
+*/
+#define is_alias_in_template_decl_context()				\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   scope_stack[depth_innermost_instantiation_scope].alias_in_template_decl)
+
+/*
+TRUE if the enclosing scope is a prototype instantiation context.
+*/
+#define enclosing_scope_is_prototype_instantiation_context()		\
+  ((depth_scope_stack != NO_SCOPE_DEPTH && depth_scope_stack > 0) &&	\
+   scope_stack[depth_scope_stack-1].in_prototype_instantiation)
+
+/*
 TRUE if we are in the instantiation of a template in a translation unit
 loaded for the purpose of instantiating exported templates.  Note that
 this will be FALSE for an instantiation performed during the initial scan

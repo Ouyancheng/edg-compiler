@@ -10961,11 +10961,16 @@ indication in *rcblock).
   if (err) {
     /* Some previous error. */
     make_error_operand(result);
-  } else if (rcblock == NULL && pedep != NULL &&
-             is_template_dependent_context()) {
+  } else if (rcblock == NULL &&
+             ((is_alias_in_template_decl_context() &&
+               enclosing_scope_is_prototype_instantiation_context()) ||
+              (pedep != NULL && is_template_dependent_context()))) {
     /* For the prototype instantiation, return an enk_sizeof_pack
        expression as a template constant.  When pedep is NULL, this is
-       a nondependent expansion in a prototype instantiation context. */
+       a nondependent expansion in a prototype instantiation context.
+       If an alias template is instantiated in a template declaration
+       scope, we need to preserve a dependent sizeof... if the enclosing
+       context is a prototype instantiation. */
     an_expr_node_ptr       expr;
     if (symbol_is(sym, sk_variable)) {
       a_variable_ptr  vp = sym->variant.variable.ptr;
@@ -11009,7 +11014,7 @@ indication in *rcblock).
                                              make_node_from_operand(&operand);
     }  /* if */
     make_expression_operand(expr, result);
-    mark_operand_as_pack_expansion(result, pedep);
+    if (pedep != NULL) mark_operand_as_pack_expansion(result, pedep);
     /* Wrap the enk_sizeof_pack expression in a template parameter constant
        so we produce a constant result. */
     make_template_param_expr_constant_operand(result);
