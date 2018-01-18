@@ -1,5 +1,18 @@
 Version 4.15
 
+1/18/18  [EDGcpfe/19155]
+Assertion failure with attribute with no name
+
+In error cases where an attribute has not been given a name, error reporting
+mechanisms had aborted (in process_fill_in) when attempting to produce
+an error.  Now fixed.  For example (with --c++11):
+
+  struct A {};
+  struct B {
+    friend struct [[]] A;
+  };
+
+
 1/17/18  [EDGcpfe/18391,EDGcpfe/18783]
 __is_assignable
 

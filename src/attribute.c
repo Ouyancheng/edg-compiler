@@ -935,6 +935,11 @@ in diagnostic messages that may be delayed).
                                                        buffer,
                                                        (size_t)ret);
   }  /* if */
+  if (result == NULL) {
+    /* The attribute has no name.  This routine is often used to display
+       an error string, so use a dummy string to keep those routines happy. */
+    result = "";
+  }  /* if */
   return result;
 }  /* attribute_display_name */
 
