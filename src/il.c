@@ -7035,17 +7035,14 @@ are done.
 
 
 static a_boolean equiv_template_constant_identity(
-                            a_constant                      *cp1,
-                            a_constant                      *cp2,
-                            a_compare_constants_options_set options,
-                            a_boolean                       strictly_identical)
+                                      a_constant                      *cp1,
+                                      a_constant                      *cp2,
+                                      a_compare_constants_options_set options)
 /*
-Compare two ck_template_param constants that represent dependent entities
-to see if they have the same name and parent ("identity") information.
-Return TRUE if so.  If strictly_identical is TRUE, the identity information
-has to be identical, not just equivalent.  options is a set of flags that
-control the way in which certain comparisons are done.
-
+Compare two ck_template_param constants that represent dependent entities to
+see if they have the same name and parent ("identity") information.  Return
+TRUE if so.  options is a set of flags that control the way in which certain
+comparisons are done.
 */
 {
   a_boolean eq;
@@ -7057,7 +7054,7 @@ control the way in which certain comparisons are done.
                                         cp2->source_corresp.is_class_member &&
       cp1->source_corresp.member_of_unknown_base ==
                                  cp2->source_corresp.member_of_unknown_base &&
-      (!strictly_identical ||
+      (!(options & (CC_STRICTLY_IDENTICAL | CC_EXACT_EQUIVALENCE)) ||
        cp1->source_corresp.qualified_unknown_base_member ==
                          cp2->source_corresp.qualified_unknown_base_member)) {
     if (cp1->variant.template_param.kind == 
@@ -7071,11 +7068,8 @@ control the way in which certain comparisons are done.
       an_itf_flag_set itf_options;
       itf_options = itf_flags_for_cc_options(options);
       eq = (cp1->source_corresp.is_class_member ?
-             (strictly_identical ? corresponding_types(parent_class_of(cp1),
-                                                       parent_class_of(cp2)) :
-                                   identical_types_full(parent_class_of(cp1),
-                                                        parent_class_of(cp2),
-                                                        itf_options)) :
+              identical_types_full(parent_class_of(cp1), parent_class_of(cp2),
+                                   itf_options) :
               corresponding_namespaces(parent_namespace_or_null(cp1),
                                        parent_namespace_or_null(cp2)));
     }  /* if */
@@ -7095,15 +7089,11 @@ that control the way in which certain comparisons are done.  See the
 definition of the CC flags in il.h for more information.
 */
 {
-  a_boolean  eq = FALSE;
-  a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
-  a_boolean  same_types = FALSE;
-  a_boolean  strictly_identical = (options & CC_STRICTLY_IDENTICAL) != 0;
-  a_boolean  strict_template_constant_identity =
-                  strictly_identical || (options & CC_EXACT_EQUIVALENCE) != 0;
-  an_itf_flag_set itf_options;
+  a_boolean        eq = FALSE;
+  a_type_ptr       cp1_type = cp1->type, cp2_type = cp2->type;
+  a_boolean        same_types = FALSE, strictly_identical;
+  an_itf_flag_set  itf_options;
 
-  itf_options = itf_flags_for_cc_options(options);
   if (cp1 == cp2) {
     eq = TRUE;
     goto end_of_routine;
@@ -7111,6 +7101,8 @@ definition of the CC flags in il.h for more information.
     /* eq = FALSE; */
     goto end_of_routine;
   }  /* if */
+  strictly_identical = (options & CC_STRICTLY_IDENTICAL) != 0;
+  itf_options = itf_flags_for_cc_options(options);
   if (cp1_type == NULL || cp2_type == NULL) {
     /* Some constant kinds have null types (e.g., ck_init_repeat). */
     same_types = (cp1_type == cp2_type);
@@ -7408,14 +7400,10 @@ definition of the CC flags in il.h for more information.
                                        options);
               break;
             case tpck_member:
-              eq = equiv_template_constant_identity(
-                                            cp1, cp2, options,
-                                            strict_template_constant_identity);
+              eq = equiv_template_constant_identity(cp1, cp2, options);
               break;
             case tpck_unknown_function:
-              if (equiv_template_constant_identity(
-                                          cp1, cp2, options,
-                                          strict_template_constant_identity) &&
+              if (equiv_template_constant_identity(cp1, cp2, options) &&
                   (!strictly_identical ||
                    (cp1->variant.template_param.variant.
                                                    unknown_function.symbol ==
