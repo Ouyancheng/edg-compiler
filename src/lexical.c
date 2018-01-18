@@ -16738,7 +16738,7 @@ next_integer_pack_element:
       }  /* if */
     }  /* while */
     if (integer_pack_elems != NULL) {
-      /* Iterate of __integer_pack(N) elements, unless we ran out of
+      /* Iterate over __integer_pack(N) elements, unless we ran out of
          parameters. */
       if (param_ptr == NULL) {
         too_many_args = TRUE;
