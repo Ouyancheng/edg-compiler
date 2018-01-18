@@ -24506,9 +24506,8 @@ cleared.
   while (ctsp->friend_classes != NULL) {
     friend_class = ctsp->friend_classes->class_type;
     friend_ctsp = friend_class->variant.class_struct_union.extra_info;
-    if (friend_ctsp == NULL) {
-      /* This class must have been removed from the IL already (the extra_info
-         pointer is cleared when that happens). */
+    if (friend_ctsp->removed_from_il) {
+      /* This class was removed from the IL already. */
       check_assertion(!il_entry_prefix_of(friend_class).keep_in_il);
 #if DEBUG
       if (debug_level >= 4 || db_trace("dump_elim", friend_class, iek_type)) {
@@ -25478,6 +25477,7 @@ eliminated, if appropriate.
            pointers so they can't be walked. */
         tp->variant.class_struct_union.field_list = NULL;
         clear_class_type_supplement(tp->variant.class_struct_union.extra_info);
+        tp->variant.class_struct_union.extra_info->removed_from_il = TRUE;
       }  /* if */
     } else {
       /* The type is being kept.  Check for nested classes. */

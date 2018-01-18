@@ -7996,6 +7996,9 @@ typedef struct a_class_type_supplement {
   a_bit_field	has_nodiscard_attribute:1;
 			/* TRUE if the class has the "nodiscard" standard
 			   attribute applied to it. */
+  a_bit_field	removed_from_il:1;
+			/* TRUE if the associated class type entry has been
+			   removed from the IL because it was unneeded. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

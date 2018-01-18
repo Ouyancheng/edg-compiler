@@ -1702,6 +1702,7 @@ class is available.
   ctsp->is_va_list_tag                    = FALSE;
   ctsp->defined_in_parent_class           = FALSE;
   ctsp->has_nodiscard_attribute           = FALSE;
+  ctsp->removed_from_il                   = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->friend_routines                   = NULL;

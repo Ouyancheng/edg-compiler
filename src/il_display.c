@@ -6952,6 +6952,9 @@ Display the indicated class type supplement entry.
   if (ptr->has_nodiscard_attribute) {
     disp_boolean("has_nodiscard_attribute", TRUE);
   }  /* if */
+  if (ptr->removed_from_il) {
+    disp_boolean("removed_from_il", TRUE);
+  }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
