@@ -1,5 +1,16 @@
 Version 4.15
 
+1/18/18  [EDGcpfe/17663]
+C++-generating back end: explicit instantiations of variable templates
+
+The C++-generating back end previously failed to put out the template
+argument list on an explicit instantiation directive for a variable
+template.  This is now fixed.  For example:
+
+  template <typename T> T h;
+  template int h<int>;   // Previously omitted "<int>"
+
+
 1/18/18  [EDGcpfe/19155]
 Assertion failure with attribute with no name
 

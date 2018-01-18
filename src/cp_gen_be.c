@@ -5481,10 +5481,10 @@ a definition.
     gen_name(scp, entry_kind, options, &need_closing_paren);
     if (entry_kind == iek_variable) {
       a_variable_ptr var = (a_variable_ptr)scp;
-      if (var->template_info != NULL && var->is_prototype_instantiation &&
-          var->template_info->partial_spec_template_arg_list != NULL) {
-        /* This is a partial specialization of a variable template.  Put
-           out its template argument list. */
+      if (var->template_info != NULL &&
+          var->template_info->template_arg_list != NULL) {
+        /* This is an explicit instantiation or partial specialization of a
+           variable template.  Put out its template argument list. */
         form_template_args(var->template_info->template_arg_list, &octl);
       }  /* if */
     }  /* if */
