@@ -1,5 +1,13 @@
 Version 4.15
 
+1/19/18  [EDGcpfe/19161]
+Abort after interpretation of eok_derived_class_cast node
+
+The interpretation of eok_derived_class_cast contained a bug that resulted in
+corrupt result addresses.  Using such an address later on could trigger various
+kinds of aborts in the interpreter.
+
+
 1/18/18  [EDGcpfe/18942,EDGcpfe/18180]
 Spurious errors in complex multi-translation-unit cases
 

@@ -9149,7 +9149,7 @@ the value representation of the integer value.
                   a_byte_count  offset;
                   get_mapped_byte_count(&persistent_map, bcp, offset);
                   src->address -= offset;
-                  SET_result_val_from_operand_address(src);
+                  *(a_constexpr_address*)result_storage = *src;
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos_type(ec_constexpr_bad_derived_class_cast,
