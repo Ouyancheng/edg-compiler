@@ -352,12 +352,6 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_cpu_is", "Lx", "int (const char*)", bfk_cpu_is },
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
 
-  /* Clang defines these generic builtins as having void return type but
-     their return type is always bool. */
-  { "__builtin_add_overflow", "Lx", "__edg_bool_type__ (...)", bfk_add_overflow },
-  { "__builtin_mul_overflow", "Lx", "__edg_bool_type__ (...)", bfk_mul_overflow },
-  { "__builtin_sub_overflow", "Lx", "__edg_bool_type__ (...)", bfk_sub_overflow },
-
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
 }
 #endif /* VAR_INITIALIZERS */

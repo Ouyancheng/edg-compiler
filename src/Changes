@@ -9,25 +9,6 @@ simultaneously compiled.  This could lead to spurious errors of various kinds.
 This problem, only observed in complex situations so far, is now fixed.
 
 
-1/18/18  [EDGcpfe/19127]
-Clang compatibility: __builtin_*_overflow builtins
-
-The clang versions of __builtin_add_overflow, __builtin_mul_overflow, and
-__builtin_sub_overflow are "generic" in that they accept three arguments of
-various types and require the compiler to validate the argument types.  The
-(dummy) signature for these builtins (as reported by clang) is "void (...)" and
-has now been changed to "__edg_bool_type__ (...)" so the return type is
-correct.  For example (with --clang):
-
-  void f() {
-    unsigned long result;
-    if (__builtin_add_overflow(1, 1, &result) ||
-        __builtin_mul_overflow(1, 1, &result) ||
-        __builtin_sub_overflow(1, 1, &result)) {
-    }
-  }
-
-
 1/18/18  [EDGcpfe/18024]
 Incorrect handling of sizeof... in dependent alias template instantiation
 
