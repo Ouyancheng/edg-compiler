@@ -9149,7 +9149,13 @@ the value representation of the integer value.
                   a_byte_count  offset;
                   get_mapped_byte_count(&persistent_map, bcp, offset);
                   src->address -= offset;
-                  *(a_constexpr_address*)result_storage = *src;
+                  if (opnd1->is_lvalue || opnd1->is_xvalue) {
+                    /* Presumably a cast to a reference. */
+                    SET_result_val_from_operand_address(src);
+                  } else {
+                    /* A pointer-to-pointer cast. */
+                    *(a_constexpr_address*)result_storage = *src;
+                  }  /* if */
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos_type(ec_constexpr_bad_derived_class_cast,
