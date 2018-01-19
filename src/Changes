@@ -67,7 +67,7 @@ an error.  Now fixed.  For example (with --c++11):
 1/17/18  [EDGcpfe/18391,EDGcpfe/18783]
 __is_assignable
 
-The type trait help[er __is_assignable is now enabled in all modes and
+The type trait helper __is_assignable is now enabled in all modes and
 configurations that support type traits helpers.  (Previously, it was treated
 as a Microsoft-mode-specific helper; see the entry for EDGcpfe/16544.)
 
