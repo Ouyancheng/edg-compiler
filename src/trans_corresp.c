@@ -3390,12 +3390,24 @@ Return TRUE if the given using declarations refer to corresponding entities.
   } else if (ud1->qualifier.class_type
                 ->variant.class_struct_union.is_nonreal_class) {
     /* The using-declaration refers to a dependent base class.  In this case
-       it is not sufficient to compare the canonical entries. */
-    check_assertion(ud1->entity.kind == (a_byte_il_entry_kind)iek_constant);
-    result = identical_types(ud1->qualifier.class_type,
-                             ud2->qualifier.class_type) &&
-             eq_constants((a_constant_ptr)ud1->entity.ptr, 
-                          (a_constant_ptr)ud2->entity.ptr);
+       it is usually not sufficient to compare the canonical entries. */
+    if (!identical_types(ud1->qualifier.class_type,
+                         ud2->qualifier.class_type)) {
+      /* If the qualifiers are not equivalent, there is no match. */
+      result = FALSE;
+    } else if ((char*)ud1->qualifier.class_type == ud1->entity.ptr &&
+               (char*)ud2->qualifier.class_type == ud2->entity.ptr) {
+      /* Using-declarations that represent inherited constructors. */
+      result = TRUE;
+    } else {
+      /* In all other dependent base class cases, the entity is represented
+         as a (nonreal) "constant". */
+      check_assertion(ud1->entity.kind == (a_byte_il_entry_kind)iek_constant);
+      result = identical_types(ud1->qualifier.class_type,
+                               ud2->qualifier.class_type) &&
+               eq_constants((a_constant_ptr)ud1->entity.ptr, 
+                            (a_constant_ptr)ud2->entity.ptr);
+    }  /* if */
   } else {
     /* Non-dependent case: check that the canonical entries match up. */
     result = canonical_il_entry_of(ud1->qualifier.class_type) ==

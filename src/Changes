@@ -1,5 +1,22 @@
 Version 4.15
 
+1/22/18  [EDGcpfe/19048]
+Abort on dependent inheriting constructor in multi-translation unit check
+
+When simultaneously compiling multiple translation units with corresponding
+template-dependent inheriting constructor declarations, the front end aborted
+in function equiv_base_using_decls (trans_corresp.c) in some configurations.
+For example:
+
+  template<typename> struct B;
+  template<typename T> struct D: B<T> { 
+    using B<T>::B;  // Dependent inheriting constructor.
+  };
+
+Compiling two identical files with the code above could result in an internal
+error.  That is now fixed.
+
+
 1/19/18  [EDGcpfe/19161]
 Abort after interpretation of eok_derived_class_cast node
 
