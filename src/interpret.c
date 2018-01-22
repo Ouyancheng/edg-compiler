@@ -12290,7 +12290,19 @@ the value representation of the integer value.
               a_field_ptr             field;
               a_byte_count            offset;
               a_constexpr_ptr_to_mem  *pm_value;
-              result_addr = *(a_constexpr_address*)opnd1_value;
+              if (opnd1->is_lvalue || opnd1->is_xvalue ||
+                  opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* The first operand is already an address. */
+                if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  opnd1_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                }  /* if */
+                result_addr = *(a_constexpr_address*)opnd1_value;
+              } else {
+                /* The first operand is a class rvalue: Create an address for
+                   it. */
+                mark_complete_object_initialized(opnd1_value);
+                clear_address(&result_addr, opnd1_value);
+              }  /* if */
               pm_value = (a_constexpr_ptr_to_mem*)opnd2_value;
               field = pm_value->variant.field;
               if (field == NULL) {

@@ -1,5 +1,24 @@
 Version 4.15
 
+1/22/18  [EDGcpfe/19184]
+Spurious constant-expression evaluation error on pointer-to-member selection
+on a temporary
+
+The constexpr interpreter previously did not correctly handle a pointer-to-
+member selection on a temporary (rvalue).  For example:
+
+  struct X {
+    int i = 42;
+  };
+  constexpr auto pdm = &X::i;
+  constexpr auto f() {
+    return X().*pdm;
+  }
+  constexpr int r = f();  // Previously an error.  Now okay.
+
+This is now fixed.
+
+
 1/22/18  [EDGcpfe/19048]
 Abort on dependent inheriting constructor in multi-translation unit check
 
