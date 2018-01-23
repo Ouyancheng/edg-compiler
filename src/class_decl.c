@@ -2330,7 +2330,8 @@ the fields implied by the lambda's capture list).
   }  /* if */
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
-  if (is_template_dependent_context()) {
+  if (scope_stack_top().in_prototype_instantiation ||
+      scope_stack_top().in_nonreal_instantiation) {
     /* If the lambda appears in a prototype instantiation context, mark it
        as a nonreal class.  Local classes in such contexts are not marked
        as prototype instantiations. */

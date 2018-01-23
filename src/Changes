@@ -1,5 +1,20 @@
 Version 4.15
 
+1/22/18  [EDGcpfe/19178]
+Abort in lowering on lambda in template parameter declaration
+
+In C++17 mode, lambdas can be part of constant-expressions and therefore can
+be evaluated as part of template parameter declarations.  However, doing do
+could previously result in aborts during lowering (in function type_pointed_to
+called from function lower_call).  For example:
+
+
+  template <int A[+[]{return [=]{ return 42;}(); }() ]> void f () {}
+    // Previously aborted during lowering.  Now okay.
+
+This problem is now fixed.
+
+
 1/22/18  [EDGcpfe/19184]
 Spurious constant-expression evaluation error on pointer-to-member selection
 on a temporary
