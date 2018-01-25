@@ -731,8 +731,7 @@ arg_list to error references.
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     if (is_expression_component(alep)) {
       change_operand_refs_to_error(operand_of_arg_list_elem(alep));
-    } else {
-      check_assertion(is_braced_init_component(alep));
+    } else if (is_braced_init_component(alep)) {
       change_arg_list_refs_to_error(alep->variant.braced.list);
     }  /* if */
   }  /* for */
