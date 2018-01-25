@@ -2561,6 +2561,7 @@ position for which diagnostics should be issued.
         }  /* if */
         if (!is->check_validity_only) {
           init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          init_con->type = btp;
           if (!has_initializable_subobject(btp)) {
             /* Unless it is for an empty class, an empty aggregate constant
                does not cover all the elements of the destination base type. */
