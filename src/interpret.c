@@ -13449,7 +13449,9 @@ FALSE, and record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
         do_constexpr_fail(result);
-      } else if (expr->next == NULL) {
+      } else if (expr->next == NULL &&
+                 (expr_stack == NULL ||
+                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
         /* If expr is part of an expression list and followed by other
            expressions, do not record it as the backing expression since
            it could cause IL traversal problems later on. */
@@ -13517,7 +13519,9 @@ return FALSE, and record diagnostic info in *diag_list.
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
       do_constexpr_fail(result);
-    } else if (call_expr->next == NULL) {
+    } else if (call_expr->next == NULL &&
+               (expr_stack == NULL ||
+                curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
       /* If call_expr is part of an expression list and followed by other
          expressions, do not record it as the backing expression since
          it could cause IL traversal problems later on. */

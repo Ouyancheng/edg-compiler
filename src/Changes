@@ -1,5 +1,17 @@
 Version 4.15
 
+1/25/18  [EDGcpfe/19216]
+Backing expressions in interpreter results
+
+The functions interpret_expr and interpret_constexpr_call no longer record a
+backing expression in the result constant (when interpretation is successful)
+if an expression stack is active for an expression where backing expressions
+are not recorded.  This avoids problems in code (such as the function
+do_binary_operation_full) that copies and updates a_constant entries assuming
+they have no backing expression in such situations (the unexpected backing
+expression then becomes invalid).
+
+
 1/24/18  [EDGcpfe/19218]
 Incorrect initializers for null_source_position and preinclude_source_position
 
