@@ -973,7 +973,7 @@ EXTERN a_source_position
 #if VAR_INITIALIZERS
                                      = { 0, SP_COL_UNKNOWN
 #if FULLY_RESOLVED_MACRO_POSITIONS
-                                         , 0, SP_COL_UNKNOWN
+                                         , SP_COL_UNKNOWN, 0
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if RECORD_MACRO_INVOCATIONS
                                          , NO_PARENT_MACRO_INVOCATION
@@ -988,7 +988,7 @@ EXTERN a_source_position
 #if VAR_INITIALIZERS
                                      = { 0, SP_PREINCLUDE
 #if FULLY_RESOLVED_MACRO_POSITIONS
-                                         , 0, SP_PREINCLUDE
+                                         , SP_PREINCLUDE, 0
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if RECORD_MACRO_INVOCATIONS
                                          , NO_PARENT_MACRO_INVOCATION

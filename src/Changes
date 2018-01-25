@@ -1,5 +1,14 @@
 Version 4.15
 
+1/24/18  [EDGcpfe/19218]
+Incorrect initializers for null_source_position and preinclude_source_position
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, the
+changes for EDGcpfe/14305 (in version 4.8) resulted in incorrect values
+for the orig_column and orig_seq fields of null_source_position and
+preinclude_source_position.  This is now fixed.
+
+
 1/22/18  [EDGcpfe/19178]
 Abort in lowering on lambda in template parameter declaration
 
