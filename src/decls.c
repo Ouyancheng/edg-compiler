@@ -10684,11 +10684,14 @@ the reconciliation process.
   if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (symbol_is(sym, sk_static_data_member)) {
-      /* Since this is the defining declaration of the static data member,
-         record the type.  Note that this has to be done before composite
-         type is called -- in case there's some modification. */
-      check_assertion(var->declared_type == NULL);
-      var->declared_type = type_ptr;
+      /* Record the declared type if it wasn't recorded earlier.  That is
+         usually the case, but in some modes the in-class declaration
+         determines the "declared type" if an in-class initializer is
+         present. Note that this has to be done before composite_type is
+         called -- in case there's some modification. */
+      if (var->declared_type == NULL) {
+        var->declared_type = type_ptr;
+      }  /* if */
     } else if (var->declared_type == NULL) {
       var->declared_type = type_ptr;
     }  /* if */
@@ -10792,10 +10795,11 @@ the symbol through dps->sym and its linkage (which is always "none") through
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     dps->sym = sym;
     var = sym->variant.static_data_member.variable;
-    if (inline_variables_allowed && var->is_constexpr) {
-      /* In C++17, a constexpr static data member outside of a class definition
-         is considered a redundant declaration -- not a definition.  Such
-         usage is deprecated. */
+    if (inline_variables_allowed && var->is_inline) {
+      /* In C++17, an inline static data member outside of a class definition
+         (this includes constexpr members, which are implicitly inline) is
+         considered a redundant declaration -- not a definition.  Such usage
+         is deprecated. */
       dps->is_definition = FALSE;
       srk_flags = SRK_DECLARATION;
     } else {
@@ -10866,11 +10870,25 @@ the symbol through dps->sym and its linkage (which is always "none") through
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 dps->source_sequence_entry);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (record_name_references_in_context()) {
-        a_name_reference_ptr  name_ref;
-        name_ref = qualifiable_name_reference(locator, &var->source_corresp);
-        name_ref->used_in_primary_declarator = TRUE;
-      }  /* if */
+      { a_name_reference_ptr  name_ref = NULL;
+        if (record_name_references_in_context()) {
+          name_ref = qualifiable_name_reference(locator, &var->source_corresp);
+          if (srk_flags & SRK_DEFINITION) {
+            name_ref->used_in_primary_declarator = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!(srk_flags & SRK_DEFINITION)) {
+          an_sssd_flag_set  sssd_flags = SSSD_NO_FLAGS;
+#if GNU_EXTENSIONS_ALLOWED
+          if (dps->marked_as_gnu_extension) {
+            sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          (void)update_src_seq_secondary_decl((char*)var, dps->declared_type,
+                                              name_ref, sssd_flags,
+                                              decl_pos_block);
+        }  /* if */
+      }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       attach_decl_attributes(dps, /*primary_decl=*/TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
