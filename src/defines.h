@@ -377,7 +377,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #if LINUX_TEST_VERSION
 
 /* Linux test version definitions. */
+#ifndef INCLUDE_EDG_TEST_PRAGMAS
 #define INCLUDE_EDG_TEST_PRAGMAS 1
+#endif /* ifndef INCLUDE_EDG_TEST_PRAGMAS */
 #define INCLUDE_EDG_TEST_ATTRIBUTES 1
 #ifndef _lint
 #endif /* ifndef _lint */
@@ -724,7 +726,9 @@ command-line when compiling system headers.
 #endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
+#ifndef INCLUDE_EDG_TEST_PRAGMAS
 #define INCLUDE_EDG_TEST_PRAGMAS 1
+#endif /* ifndef INCLUDE_EDG_TEST_PRAGMAS */
 #define RECORD_HIDDEN_NAMES_IN_IL 1
 #define ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING 1
 #define RECORD_TEMPLATE_STRINGS 1
@@ -893,7 +897,9 @@ command-line when compiling system headers.
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
+#ifndef INCLUDE_EDG_TEST_PRAGMAS
 #define INCLUDE_EDG_TEST_PRAGMAS 1
+#endif /* ifndef INCLUDE_EDG_TEST_PRAGMAS */
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
