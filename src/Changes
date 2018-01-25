@@ -1,5 +1,19 @@
 Version 4.15
 
+1/25/18  [EDGcpfe/19152]
+Abort on invalid use of designator in some C++ modes
+
+In C++ modes that accept both C++11-style initializer lists and C99-style
+designated initializers, the front end could abort on certain invalid uses of
+designators.  For example, in Clang C++11 mode:
+
+  void f() {
+    g({ .a = 0 });  // Previously triggered an internal error.
+  }
+
+This is now fixed: Ordinary errors are issued.
+
+
 1/25/18  [EDGcpfe/19214]
 Source sequence entries for constexpr static data members
 

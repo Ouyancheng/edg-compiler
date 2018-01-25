@@ -13975,6 +13975,11 @@ Make and return an expression for an argument in arg-list-element form.
     /* The argument is an expression. */
     eliminate_unusual_operand_kinds(operand_of_arg_list_elem(arg));
     expr = make_node_from_operand_for_expr_list(operand_of_arg_list_elem(arg));
+  } else if (is_designator_component(arg)) {
+    if (expr_error_should_be_issued()) {
+      pos_error(ec_unexpected_designator, init_component_pos(arg));
+    }  /* if */
+    expr = error_node();
   } else {
     /* The argument is a brace-enclosed list. */
     check_assertion(is_braced_init_component(arg));
