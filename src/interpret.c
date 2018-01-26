@@ -4646,7 +4646,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* while */
             if (bcp == NULL) break;
             get_mapped_byte_count(&persistent_map, bcp, offset);
-            if (elem_con != NULL) {
+            if (elem_con != NULL &&
+                elem_con->constant_for_base_class_from_constexpr_folding) {
               if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
                 do_constexpr_fail(result);
