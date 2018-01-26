@@ -8071,6 +8071,88 @@ storage at value and return TRUE.  Otherwise, return FALSE.
 }  /* get_value_from_address_constant */
 
 
+/*ARGSUSED*/  /* complete_object is not currently used. */
+static a_boolean do_constexpr_offsetof(an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+Evaluate, if possible, the given __builtin_offsetof expression (whose second
+operand should be a chain of subscript and field selection nodes applied to a
+constant null pointer.  If successful, return TRUE and store the result in
+*result_storage.  Otherwise, return FALSE and record a diagnostic in *ips.
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  an_integer_value  offset_val;
+  a_byte            *index_val = NULL;
+
+  set_integer_value(&offset_val, (a_host_large_integer)0);
+  while (!is_constant_node(arg2)) {
+    an_expr_node_ptr  opnd;
+    a_boolean         ovflo;
+    check_assertion(is_operation_node(arg2));
+    opnd = arg2->variant.operation.operands;
+    if (node_operator_is(arg2, eok_subscript)) {
+      /* A subscript: Add the index scaled by the element size. */
+      an_expr_node_ptr  index_expr = opnd->next;
+      a_type_ptr        etp = skip_typerefs(arg2->type);
+      an_integer_value  size_val;
+      if (index_val == NULL) {
+        a_type_ptr  itp = skip_typerefs(index_expr->type);
+        alloc_complete_object(ips, sizeof(an_integer_value), itp, index_val);
+      }  /* if */
+      if (!do_constexpr_expression(ips, index_expr, index_val, index_val)) {
+        do_constexpr_fail(result);
+        break;
+      }  /* if */
+      set_integer_value(&size_val, (a_host_large_integer)etp->size);
+      multiply_integer_values(&size_val, (an_integer_value*)index_val,
+                              /*is_signed=*/TRUE, &ovflo);
+      if (ovflo) {
+        do_constexpr_fail(result);
+        break;
+      }  /* if */
+      add_integer_values(&offset_val, (an_integer_value*)index_val,
+                         /*is_signed=*/TRUE, &ovflo);
+      if (ovflo) {
+        do_constexpr_fail(result);
+        break;
+      }  /* if */
+      arg2 = opnd;
+    } else if (node_operator_is(arg2, eok_dot_field)) {
+      /* A field selection: Add the field offset. */
+      an_expr_node_ptr  field_expr = opnd->next;
+      a_field_ptr       field = node_field(field_expr);
+      an_integer_value  field_val;
+      set_integer_value(&field_val, (a_host_large_integer)field->offset);
+      add_integer_values(&offset_val, &field_val, /*is_signed=*/TRUE, &ovflo);
+      if (ovflo) {
+        do_constexpr_fail(result);
+        break;
+      }  /* if */
+    } else if (node_operator_is(arg2, eok_array_to_pointer) ||
+               node_operator_is(arg2, eok_indirect)) {
+      /* These nodes are expected "glue" nodes. */
+    } else {
+      /* An unexpected node: Abandon evaluation. */
+      do_constexpr_fail(result);
+      break;
+    }  /* if */
+    arg2 = opnd;
+  }  /* while */
+  if (!result) {
+    info_with_pos(ec_cannot_evaluate_builtin_offsetof,
+                  &arg2->position, ips);
+  } else {
+    *(an_integer_value*)result_storage = offset_val;
+  }  /* if */
+  return result;
+}  /* do_constexpr_offsetof */
+
+
 static a_boolean do_constexpr_builtin_operation(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -8087,6 +8169,12 @@ storage within the given complete object).  Otherwise, return FALSE and update
   an_expr_node_ptr  expr = skip_parens(orig_expr);
 
   switch (expr->variant.builtin_operation.kind) {
+    case bok_offsetof:
+      if (!do_constexpr_offsetof(ips, expr,
+                                 result_storage, complete_object)) {
+        do_constexpr_fail(result);
+      }  /* if */
+      break;
     case bok_builtin_addressof:
       { an_expr_node_ptr  opnd1 = expr->variant.builtin_operation.operands;
         if (opnd1->is_lvalue || opnd1->is_xvalue) {

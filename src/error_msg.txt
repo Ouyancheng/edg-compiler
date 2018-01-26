@@ -2958,6 +2958,7 @@ ec_negative_value;;"a negative value is not permitted here"
 ec_integer_pack_element_for_type;;"an integer pack element cannot match %n"
 ec_integer_pack_element_for_template;;"an integer pack element cannot match %n"
 ec_unexpected_designator;;"unexpected designator"
+ec_cannot_evaluate_builtin_offsetof;;"cannot evaluate __builtin_offsetof"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

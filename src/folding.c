@@ -7229,9 +7229,9 @@ are issued at the position it indicates.
     }  /* if */
     if (maintain_expression) constant->expr = expr;
     constant->type = expr->type;
-  } else if (gpp_mode) {
-    /* GNU C++ (as opposed to GNU C) does not allow nonconstant
-       __builtin_offsetof operations. */
+  } else if (gpp_mode && gnu_version < 40600) {
+    /* Early versions of GNU C++ (as opposed to GNU C) do not allow
+       nonconstant __builtin_offsetof operations. */
     if (pos != NULL) {
       pos_diagnostic(es_discretionary_error, ec_nonconstant_offsetof, pos);
     }  /* if */
