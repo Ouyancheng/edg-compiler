@@ -1708,8 +1708,6 @@ extern a_base_class_ptr next_direct_base(a_base_class_ptr  bcp);
 
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 
-extern a_field_ptr next_proper_initializable_field(a_field_ptr field);
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Macros to examine property and event members (and their accessor functions).

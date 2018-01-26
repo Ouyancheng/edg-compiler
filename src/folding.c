@@ -9703,6 +9703,23 @@ catch the first point where folding fails.
 }  /* folding_result */
 
 
+static a_field_ptr next_non_generated_initializable_field(a_field_ptr field)
+/*
+Return a pointer to the first field at or after field that is
+initializable, skipping compiler-generated fields like virtual function
+table pointers.  This is a wrapper for next_initializable_field; see that
+function for additional information.
+*/
+{
+  field = next_initializable_field(field);
+  while (field != NULL && field->compiler_generated &&
+         !field->is_anonymous_parent_object) {
+    field = next_initializable_field(field->next);
+  }  /* while */
+  return field;
+}  /* next_non_generated_initializable_field */
+
+
 a_constant_ptr constant_value_at_address(a_constant_ptr  addr_con,
                                          a_constant_ptr  target_con)
 /*
@@ -9992,7 +10009,7 @@ allocated and returned.
               a_field_ptr curr_field;
               a_field_ptr possible_field = NULL;
               a_boolean   found_field = FALSE;
-              curr_field = next_proper_initializable_field(
+              curr_field = next_non_generated_initializable_field(
                              curr_type->variant.class_struct_union.field_list);
               while (!found_field &&
                                   (result_con != NULL || curr_field != NULL)) {
@@ -10023,7 +10040,7 @@ allocated and returned.
                     possible_result_con = result_con;
                     possible_field = curr_field;
                     curr_field =
-                      next_proper_initializable_field(curr_field->next);
+                      next_non_generated_initializable_field(curr_field->next);
                     if (result_con != NULL) {
                       result_con = result_con->next;
                     }  /* if */
@@ -10033,7 +10050,7 @@ allocated and returned.
                 } else {
                   /* This is not the field for the specified offset. */
                   curr_field =
-                      next_proper_initializable_field(curr_field->next);
+                      next_non_generated_initializable_field(curr_field->next);
                   if (result_con != NULL) {
                     result_con = result_con->next;
                   }  /* if */

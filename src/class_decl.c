@@ -20176,10 +20176,10 @@ to return FALSE unless limited_check is TRUE.
   if (!is_unspecialized_template_class(class_type)) {
     ensure_all_field_initializers_scanned(class_type);
   }  /* if */
-  fp = next_proper_initializable_field(fp);
+  fp = next_initializable_field(fp);
   if (fp != NULL) {
     a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
-    for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+    for (; fp != NULL; fp = next_initializable_field(fp->next)) {
       a_boolean  member_initialized;
       if (fp->has_nonconstant_initializer && !limited_check) {
         /* A nonconstant initializer is never okay. */
@@ -28928,8 +28928,8 @@ not a literal type.
   }  /* for */
   if (!result) {
     fp = class_type->variant.class_struct_union.field_list;
-    fp = next_proper_initializable_field(fp);
-    for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+    fp = next_initializable_field(fp);
+    for (; fp != NULL; fp = next_initializable_field(fp->next)) {
       if (!fp->compiler_generated && !could_be_literal_type(fp->type)) {
         result = TRUE;
         break;
