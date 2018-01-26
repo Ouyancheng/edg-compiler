@@ -12779,7 +12779,6 @@ If there is an error in the copying, set *copy_error to TRUE.
       switch (tap->kind) {
         case tak_type:
           new_tap->variant.type = tap->variant.type;
-          new_tap->is_pack = type_is_pack(tap->variant.type);
           break;
         case tak_template:
           /* A template template argument. */
