@@ -4736,7 +4736,8 @@ initializable fields and constants in the aggregate will work properly).
           a_boolean found = FALSE;
 #endif /* CHECKING */
           for (; cp != NULL; cp = cp->next) {
-            if (cp->constant_for_base_class_from_constexpr_folding &&
+            if ((aggregate_classes_can_have_bases ||
+                 cp->constant_for_base_class_from_constexpr_folding) &&
                 identical_types(cp->type, bcp->type)) {
               /* The type of the constant matches that of the optimized
                  empty base class; remove the constant from the aggregate
