@@ -8,8 +8,9 @@ data member template declared with an array type of unspecified bound.  For
 example:
 
   struct S {
-    template<typename T> T x[] = { 1, 2, 3 };  // Previously an error in
-  };                                           // C++17 mode.
+    template<typename T>
+      static constexpr T x[] = { 1, 2, 3 };  // Previously an error
+  };                                         // in C++17 mode.
 
 This is now fixed.
 
