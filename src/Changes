@@ -1,5 +1,19 @@
 Version 4.15
 
+1/28/18  [EDGcpfe/19131]
+Spurious C++17 error on static member template
+
+In C++17 mode, the front end previously issued a spurious error on a static
+data member template declared with an array type of unspecified bound.  For
+example:
+
+  struct S {
+    template<typename T> T x[] = { 1, 2, 3 };  // Previously an error in
+  };                                           // C++17 mode.
+
+This is now fixed.
+
+
 1/26/18  [EDGcpfe/19156]
 GNU compatibility:  __builtin_offsetof
 

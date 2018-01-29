@@ -16475,7 +16475,6 @@ template declaration and is NULL otherwise.
       a_token_cache  *token_cache;
       token_cache = cache_inclass_initializer(sym);
       initializer_cache = token_cache;
-      var->initializer_in_class = TRUE;
     } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
                constant_member && in_class_template_definition(class_state)) {
       /* GCC appears to instantiate the initializer on demand.  Cache and
@@ -16596,11 +16595,13 @@ template declaration and is NULL otherwise.
     if (var->is_inline) {
       /* Inline static data members are considered definitions. */
       srk_flags |= SRK_DEFINITION;
-      complete_type_is_needed(var->type);
-      if (is_incomplete_type(var->type)) {
-        /* As a definition, an inline static data member must have a
-           complete type. */
-        pos_error(incomplete_type_err_code(var->type), start_pos);
+      if (!decl_info->is_member_template) {
+        complete_type_is_needed(var->type);
+        if (is_incomplete_type(var->type)) {
+          /* As a definition, an inline static data member must have a
+             complete type. */
+          pos_error(incomplete_type_err_code(var->type), start_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
