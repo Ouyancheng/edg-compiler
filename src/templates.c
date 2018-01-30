@@ -12255,7 +12255,7 @@ Otherwise, return the original template.
       /* The type was specified as something like A<T>::B, but the
          substituted "A<T>" does not contain a B, or the B found is not
          a template. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       sym = error_class_template();
     }  /* if */
     templ = sym->variant.template_info->il_template_entry;
@@ -12383,7 +12383,7 @@ parameters.
     param_sym_kind = tpp->param_symbol->kind;
     if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
       /* The argument kinds do not match. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
     }  /* if */
   }  /* if */
   if (*copy_error) {
@@ -12403,7 +12403,7 @@ parameters.
                                       &is_generic)) {
       if (is_unnamed || is_local || is_vla ||
           (is_generic && !templ_is_generic)) {
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       }  /* if */
     }  /* if */
   } else if (is_nontype_templ_arg(tap)) {
@@ -12446,7 +12446,7 @@ parameters.
            (new_const_type->kind == (a_type_kind)tk_float &&
             !floating_point_template_parameters_allowed))) {
         new_const_type = error_type();
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       }  /* if */
     }  /* if */
     tap->variant.constant =
@@ -12467,7 +12467,7 @@ parameters.
       if (is_error_type(new_const_type)) {
         /* The substitution resulted in an error type.  Don't attempt a
            conversion. */
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       } else if (!f_identical_types(skip_typerefs(new_const_type),
                                     skip_typerefs(type_from_constant),
                                     ITF_NO_FLAGS)) {
@@ -12475,7 +12475,7 @@ parameters.
         if (!conv_nontype_arg_to_required_type(tap, new_const_type,
                                                source_pos)) {
           /* The conversion failed. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12503,7 +12503,7 @@ parameters.
                                     tap, tpp, arg_list_to_copy,
                                     param_list_for_copy,
                                     source_pos)) {
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12532,7 +12532,7 @@ encountered.
   if (bound_type->kind == (a_type_kind)tk_template_param) {
     goto done;
   } else if (bound_type->kind != (a_type_kind)tk_integer) {
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
     goto done;
   }  /* if */
   while (is_template_param_cast_constant(bound, &bound, &is_explicit_cast)) {
@@ -12543,12 +12543,12 @@ encountered.
     bound = bound->variant.template_param.variant.bound;
   }  /* if */
   if (!constant_is(bound, ck_integer)) {
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
     goto done;
   }  /* if */
   bound_val = value_of_integer_constant(bound, &ovflo);
   if (ovflo || bound_val < 0) {
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
     goto done;
   } else if (bound_val == 0) {
     /* An empty expansion. */
@@ -12678,7 +12678,7 @@ If there is an error in the copying, set *copy_error to TRUE.
        of expansion placeholder below. */
     if (have_params && tpp == NULL && !is_variadic && tap != NULL &&
         !is_start_of_pack_expansion_templ_arg(tap)) {
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       break;
     }  /* if */
     /* Exit the loop if we hit a start of pack expansion with no following
@@ -12697,7 +12697,7 @@ If there is an error in the copying, set *copy_error to TRUE.
       pack_tap = tap;
       /* Check if an error occurred (such as mismatched parameter pack
          lengths). */
-      if (err) *copy_error = TRUE;
+      if (err) subst_fail(*copy_error);
     }  /* if */
     if ((!any_more || tap == NULL) &&
         have_params && tpp != NULL && tpp->has_default_arg &&
@@ -12769,7 +12769,7 @@ If there is an error in the copying, set *copy_error to TRUE.
           goto end_of_loop;
         }  /* if */
         if (tpp == NULL) {
-          if (!preserve_packs) *copy_error = TRUE;
+          if (!preserve_packs) subst_fail(*copy_error);
           break;
         }  /* if */
       }  /* if */
@@ -12855,7 +12855,7 @@ end_of_loop:
   /* If there are too many parameters, the copy should fail. */
   if (have_params && tpp != NULL && (!tpp->is_pack || tpp->next != NULL) &&
       !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
   }  /* if */
   if (!*copy_error && pack_tap != NULL && preserve_packs) {
     /* When we are preserving deduced packs, append a template argument
@@ -12982,7 +12982,7 @@ to an alias template, the substituted type is returned in *new_type
                                                (a_source_position*)NULL)) {
       /* Some error with the template arguments to an internal template. */
       new_sym = NULL;
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
     }  /* if */
     if (!*copy_error) {
       new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
@@ -13133,7 +13133,7 @@ on the ck_template_param constant pointed to by the expression.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         is_incomplete_array_type(tp)) {
       /* The element type is invalid. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       new_type = NULL;
     } else {
       /* Create a new array type. */
@@ -13163,13 +13163,13 @@ on the ck_template_param constant pointed to by the expression.
           if (overflow ||
               new_array_type->variant.array.variant.number_of_elements == 0) {
             /* If the array size is negative or zero, indicate a type error. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           }  /* if */
         } else if (is_error_constant(new_cp)) {
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else if (new_cp->kind != (a_constant_repr_kind)ck_template_param) {
           /* The new array size has an invalid type. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else {
           /* The substituted value is still a ck_template_param
              constant. */
@@ -13185,7 +13185,7 @@ on the ck_template_param constant pointed to by the expression.
          number of elements. */
       if (!set_array_type_size(new_type, /*suppress_error=*/TRUE)) {
         /* The resulting array size is too large. */
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13245,7 +13245,7 @@ being looked up is known to be a type.
     if (!is_immediate_class_type(parent_type)) {
       /* If the parent is not a class type (e.g., an enum qualified name),
          this is an error. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
     } else {
       /* Look for a conversion function that converts to the new type. */
       new_sym = look_up_conversion_function(parent_type, conv_type,
@@ -13312,7 +13312,7 @@ being looked up is known to be a type.
           (new_sym != NULL && cpp11_sfinae_enabled &&
            !cpp11_sfinae_ignore_access &&
            !have_access_to_symbol(new_sym))) {
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13378,7 +13378,7 @@ is_type is TRUE if the child entity is known to be a type.
              !(enum_qualifiers_enabled && is_enum_type(parent_type))) {
     /* The new type is not a class type, a template parameter type or
        an enum type (in some modes), and so cannot be a parent. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
     goto done;
   } else {
     /* If the original parent type of "type" was A<T>, parent_type now
@@ -13400,7 +13400,7 @@ is_type is TRUE if the child entity is known to be a type.
         if (!is_any_template_instance_class_symbol(sym)) {
           /* The original symbol was not a template instance.  This is an
              error. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
           new_sym = NULL;
         } else {
           do_template_class_subst = TRUE;
@@ -13410,7 +13410,7 @@ is_type is TRUE if the child entity is known to be a type.
                  !is_class_template_symbol(fund_sym)) {
         /* The original symbol is an instance of a nonreal template but
 	   the new symbol is not a class template. */
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
         new_sym = NULL;
       } else if (is_template_param_type(orig_parent_type) &&
                  is_nonreal_instance_class_symbol(sym)) {
@@ -13422,7 +13422,7 @@ is_type is TRUE if the child entity is known to be a type.
         } else {
           /* The new symbol is not a class template, so the substitution
              cannot be done. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
           new_sym = NULL;
         }  /* if */
       }  /* if */
@@ -13468,7 +13468,7 @@ the appropriate error checks.  Return the (possibly) substituted type.
        array type, or a function returning an abstract class type. */
     if (is_array_type(new_type) || is_function_type(new_type) ||
         (!microsoft_mode && !gpp_mode && is_abstract_class_type(new_type))) {
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
     }  /* if */
   }  /* if */
   return new_type;
@@ -13638,7 +13638,7 @@ a pointer over a reference type or creating an array of references.
       /* The type was specified as something like A<T>::B, but the
          substituted "A<T>" does not contain a B, or the B found is not
          a type. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       type = error_type();
     } else {
       type = type_symbol_type(sym);
@@ -13695,14 +13695,14 @@ a pointer over a reference type or creating an array of references.
                                            type->variant.pointer.is_handle,
                                            (a_source_position*)NULL)) {
           /* A C++/CLI-specific substitution failure. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else if (is_qualified_function_type(tp)) {
           /* A reference to a qualified function type is not allowed. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else if (type->variant.pointer.is_reference) {
           if (is_void_type(tp)) {
             /* A reference to void would be invalid. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           } else if (is_any_reference_type(tp)) {
             /* A reference to reference.  We may have to merge qualifiers. */
             a_boolean  tracking_ref = FALSE;
@@ -13734,7 +13734,7 @@ a pointer over a reference type or creating an array of references.
               tp = new_tp;
               /* If the array is too large, set copy_error. */
               if (!set_array_type_size(tp, /*suppress_error=*/TRUE)) {
-                *copy_error = TRUE;
+                subst_fail(*copy_error);
               }  /* if */
             }  /* if */
             new_type = make_reference_type(tp);
@@ -13742,7 +13742,7 @@ a pointer over a reference type or creating an array of references.
         } else {
           if (is_any_reference_type(tp)) {
             /* A pointer or handle to reference would be invalid. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type->variant.pointer.is_handle) {
             new_type = make_handle_type(tp);
@@ -13788,11 +13788,11 @@ a pointer over a reference type or creating an array of references.
             new_type = integer_type(tp->variant.integer.int_kind);
           } else {
             /* __underlying_type doesn't apply to non-enum types. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           }  /* if */
         } else if (type->variant.typeref.is_bases) {
           /* Substitution of __bases and __direct_bases is not supported. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else {
           if (type->variant.typeref.is_template_alias) {
             if (type->variant.typeref.is_dependent) {
@@ -13849,7 +13849,7 @@ a pointer over a reference type or creating an array of references.
                    with a different element type, because the bound
                    expression evaluation is unique to the original
                    array type.) */
-                *copy_error = TRUE;
+                subst_fail(*copy_error);
               } else {
                 /* Restore the type qualifiers stripped off above. */
                 new_type = make_qualified_type(tp, qualifiers);
@@ -13881,12 +13881,12 @@ a pointer over a reference type or creating an array of references.
                !is_template_param_type(tp2)) ||
               is_void_type(tp) || is_any_reference_type(tp)) {
             /* The new type would be invalid. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
             new_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (cli_or_cx_enabled && is_managed_class_type(tp2)) {
             /* Pointer-to-member-of-managed-class types are not allowed. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
             new_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
@@ -13946,7 +13946,7 @@ a pointer over a reference type or creating an array of references.
           }  /* if */
           if (!is_immediate_class_type(new_this_class)) {
             /* The this class type must be a class type. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           }  /* if */
         }  /* if */
         if (new_this_class != this_class ||
@@ -14053,7 +14053,7 @@ make_new_type:
                                                      &pesep, ctws_state, &err);
           /* Check if an error occurred (such as mismatched parameter pack
              lengths). */
-          if (err) *copy_error = TRUE;
+          if (err) subst_fail(*copy_error);
           /* Loop through the pack elements. */
           while (any_more) {
             a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
@@ -14104,7 +14104,7 @@ make_new_type:
                    is_abstract_class_type(tp))) {
                 /* The result of the substitution is a void type or abstract
                    class type.  This is not allowed. */
-                *copy_error = TRUE;
+                subst_fail(*copy_error);
               }  /* if */
             }  /* if */
             /* Allocate the param type entry and copy default arg info. */
@@ -14134,7 +14134,7 @@ make_new_type:
                 !check_param_array_type(new_ptp, (a_source_position *)NULL)) {
               /* A C++/CLI parameter array, and the deduced type doesn't match
                  the requirements for a parameter array. */
-              *copy_error = TRUE;
+              subst_fail(*copy_error);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (ptp->has_default_arg) {
@@ -14274,7 +14274,7 @@ done_with_routine:
               /* The type was specified as something like A<T>::B, but the
                  substituted "A<T>" does not contain a B, or the B found is not
                  a type. */
-              *copy_error = TRUE;
+              subst_fail(*copy_error);
               new_type = error_type();
             } else {
               new_type = type_symbol_type(new_sym);
@@ -14288,7 +14288,7 @@ done_with_routine:
            current GNU versions (4.4.x and earlier) do not appear to support
            substitution of vector types. */
         if (vector_type_is_template_dependent(type)) {
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
           new_type = error_type();
         } else {
           /* There is nothing to substitute, so the current type can be
@@ -14429,7 +14429,7 @@ do not match, copy_error is set to TRUE.
                                              source_pos, copy_error,
                                              ctws_state)) {
       /* The template parameter list don't match.  Report a copy error. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       break;
     }  /* if */
   }  /* for */

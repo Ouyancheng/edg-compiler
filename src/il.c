@@ -445,6 +445,17 @@ entity is not from the primary translation unit.
 #if !STANDALONE_UTILITY_PROGRAM
 #if DEBUG
 
+void subst_fail_intercept(void)
+/*
+This function is called when type or expression substitution fails.  It exists
+primarily to provide a target for a debugger breakpoint to ease the tracking
+of substitution errors.  See also "record_suppressed_error" for expression
+contexts.
+*/
+{
+}  /* subst_fail_intercept */
+
+
 void db_scp(char  *entity)
 /*
 Output a brief description of the given entity (which is assumed to start with
@@ -15885,7 +15896,7 @@ to TRUE.  *source_pos gives the source position for errors.
   }  /* if */
   if (bad_types) {
     /* At least one of the operands has an invalid type.  Deduction fails. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
   } else if (!op_2_present) {
     /* One-operand operation. */
     /* Determine whether the integral promotions should be done for this
@@ -16253,7 +16264,7 @@ in these template-parameter-substitution routines.
   } else {
     /* The expression is an rvalue.  There's no way to convert it to an
        lvalue.  Fail. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
   }  /* if */
   if (*copy_error) {
     /* Return an error node on a copy error. */
@@ -16432,7 +16443,7 @@ expression.  See copy_template_param_expr for the parameter descriptions.
        copy_template_param_expr to set *copy_error to TRUE. */
     check_assertion(!not_a_constant);
     if (is_error_constant(constant)) {
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       expr_copy = NULL;
     } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
       /* The result is still dependent.  Just return the expression node. */
@@ -16523,20 +16534,20 @@ nullptr type, set *copy_error to TRUE.  (No checking is needed or done if
         if (!template_nullptr_operation_types_are_compatible(op1_type, op1_con,
                                                              op2_type,
                                                              op2_con)) {
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         }  /* if */
         break;
       case eok_question:
         if (!template_nullptr_operation_types_are_compatible(op2_type, op2_con,
                                                              op3_type,
                                                              op3_con)) {
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         }  /* if */
         break;
       default:
         /* All other operators are not permitted at all or are not permitted
            with an operand having a nullptr type. */
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
         break;
     }  /* switch */
   }  /* if */
@@ -16734,7 +16745,7 @@ options is a set of name lookup options.
                                               &rcblock, constant);
     if (rcblock.error_detected) {
       /* There was an error, so deduction fails. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
     }  /* if */
     /* Here, either expr_copy is non-NULL and points to the expression
        copy, or expr_copy is NULL and *constant has been set to the
@@ -16775,7 +16786,7 @@ options is a set of name lookup options.
            deduction.  Note that this implements old rules for deduction.
            When cpp11_sfinae_enabled is TRUE, a broader range of operators
            are rescanned at the expression level instead of here. */
-        *copy_error = TRUE;
+        subst_fail(*copy_error);
       } else {
         an_expr_node_ptr operand_1 = expr->variant.operation.operands;
         an_expr_node_ptr operand_2 = operand_1->next;
@@ -16943,7 +16954,7 @@ options is a set of name lookup options.
                                  source_pos);
                 check_assertion(!did_not_fold);
                 *alloc_con = NULL;
-                if (error_detected != ec_no_error) *copy_error = TRUE;
+                if (error_detected != ec_no_error) subst_fail(*copy_error);
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_cast) {
               a_boolean is_implicit_cast =
@@ -16952,7 +16963,7 @@ options is a set of name lookup options.
               if (!substituted_cast_is_valid(constant_1, operation_type,
                                              !is_implicit_cast,
                                              &is_reinterpret_cast)) {
-                *copy_error = TRUE;
+                subst_fail(*copy_error);
               } else {
                 is_reinterpret_cast =
                                    expr->variant.operation.is_reinterpret_cast;
@@ -16972,7 +16983,7 @@ options is a set of name lookup options.
                                           source_pos);
                 check_assertion(!did_not_fold);
                 *alloc_con = NULL;
-                if (error_detected != ec_no_error) *copy_error = TRUE;
+                if (error_detected != ec_no_error) subst_fail(*copy_error);
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_parens) {
               copy_constant(constant_1, constant);
@@ -16988,7 +16999,7 @@ options is a set of name lookup options.
                               source_pos);
               check_assertion(!did_not_fold);
               *alloc_con = NULL;
-              if (error_detected != ec_no_error) *copy_error = TRUE;
+              if (error_detected != ec_no_error) subst_fail(*copy_error);
             }  /* if */
           }  /* if */
         } else if (op == (an_expr_operator_kind)eok_address_of) {
@@ -17141,12 +17152,12 @@ options is a set of name lookup options.
           goto end_of_routine;
         }  /* if */
       }
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       break;
     case enk_reuse_value:
       /* This might come up because of the GNU two-operand "?".  If it does,
          just make sure we don't abort. */
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       break;
     case enk_type_operand:
       { a_type_ptr  new_type = copy_type_with_substitution(
@@ -17195,13 +17206,13 @@ options is a set of name lookup options.
       break;
     case enk_lambda:
     case enk_error:
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       break;
     default:
       /* Other kinds of expressions cannot come up in this context. */
       check_assertion_str(non_constant_expr,
                           "copy_template_param_expr: bad expression kind");
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
       break;
   }  /* switch */
 end_of_routine:
@@ -17247,7 +17258,7 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
                                                   ctws_state);
   } else {
     /* Pre-C++11 SFINAE rules apply, so deduction fails. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
   }  /* if */
   return new_type;
 }  /* type_of_decltype_expr_with_substitution */
@@ -17561,7 +17572,7 @@ name lookup options.
     /* The constant was specified as something like A<T>::B, but the
        substituted "A<T>" does not contain a B, or the B found is not
        a constant. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
     con_copy = alloc_error_constant();
   }  /* if */
   return con_copy;
@@ -17728,11 +17739,11 @@ copy_template_param_con for the meaning of the remaining parameters.
     /* One of the types is invalid for a template argument constant
        expression.  However, exempt the idiom where a constant is
        converted to its own type as a way of marking it as dependent. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
   } else if (!substituted_cast_is_valid(src_con, new_type, explicit_cast,
                                         &reinterpret_cast_needed)) {
     /* The cast is not valid. */
-    *copy_error = TRUE;
+    subst_fail(*copy_error);
   } else if (same_entities(new_type, con->type) && other_con == base_con) {
     /* No change in the type or constant. */
   } else {
@@ -17754,7 +17765,7 @@ copy_template_param_con for the meaning of the remaining parameters.
                               &error_detected,
                               source_pos);
     if (error_detected != ec_no_error || did_not_fold) {
-      *copy_error = TRUE;
+      subst_fail(*copy_error);
     } else {
       con_copy = NULL;
     }  /* if */
@@ -17961,7 +17972,7 @@ name lookup options.
               /* sizeof/alignof. */
               complete_type_is_needed(new_type);
               if (is_incomplete_type(new_type) || is_function_type(new_type)) {
-                *copy_error = TRUE;
+                subst_fail(*copy_error);
               } else {
                 a_boolean template_case, is_sizeof;
                 is_sizeof = (con->variant.template_param.kind ==
@@ -18068,7 +18079,7 @@ name lookup options.
                 con_copy = NULL;
               }  /* if */
             } else {
-              *copy_error = TRUE;
+              subst_fail(*copy_error);
             }  /* if */
           }  /* if */
         }
@@ -18152,16 +18163,16 @@ name lookup options.
         if (src_con == NULL) {
           /* X{} where X is the non-aggregate type represented by new_type. */
           if (!make_value_initialized_constant(new_type, constant)) {
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           }  /* if */
         } else if (src_con->next != NULL) {
           /* More than one constant being cast. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else if (!substituted_cast_is_valid(src_con, new_type,
                                               con->explicit_cast_applied,
                                               &reinterpret_cast_needed)) {
           /* The cast is not valid. */
-          *copy_error = TRUE;
+          subst_fail(*copy_error);
         } else {
           other_con = copy_template_param_con(
                              src_con, template_arg_list, template_param_list,
@@ -18184,7 +18195,7 @@ name lookup options.
                                     &error_detected,
                                     source_pos);
           if (error_detected != ec_no_error || did_not_fold) {
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           }  /* if */
         }  /* if */
       } else {
@@ -18278,7 +18289,7 @@ lookup options.
             constant->type = ref_type;
           } else {
             /* The lvalue address is not constant. */
-            *copy_error = TRUE;
+            subst_fail(*copy_error);
           }  /* if */
         } else {
           /* The expression node is not an lvalue. */

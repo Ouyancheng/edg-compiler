@@ -1917,7 +1917,7 @@ major expression.
   if (expr_stack->rcblock != NULL && expr_stack->any_suppressed_error) {
     /* If an error was detected in a rescan, record it in the rescan control
        block. */
-    expr_stack->rcblock->error_detected = TRUE;
+    subst_fail(expr_stack->rcblock->error_detected);
   }  /* if */
   new_top = expr_stack->prev;
   if (new_top != NULL) {
@@ -4348,7 +4348,7 @@ in *bound_function_selector.
                                          &alloc_con);
   }  /* if */
   if (copy_error) {
-    rcblock->error_detected = TRUE;
+    subst_fail(rcblock->error_detected);
     make_error_operand(operand);
     copy_operand_position(&eriep->saved_operand, operand);
   } else {
@@ -4679,7 +4679,7 @@ substituted type, or an error indication in rcblock.
                                          ctws_options,
                                          &copy_error, rcblock->ctws_state);
   if (copy_error) {
-    rcblock->error_detected = TRUE;
+    subst_fail(rcblock->error_detected);
   }  /* if */
   return new_type;
 }  /* do_type_substitution_for_rescan */
@@ -5131,7 +5131,7 @@ list, not an argument list, so it may include designators.
                                                  rcblock->ctws_state, &err);
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
-    if (err) rcblock->error_detected = TRUE;
+    if (err) subst_fail(rcblock->error_detected);
     while (any_more) {
       if (is_designator_component(icp)) {
         /* A designator just gets copied.  Because the field designation is

@@ -2198,7 +2198,7 @@ done.
                                                  &pesep,
                                                  rcblock->ctws_state, &err);
   /* Check if an error occurred (such as mismatched parameter pack lengths). */
-  if (err) rcblock->error_detected = TRUE;
+  if (err) subst_fail(rcblock->error_detected);
   while (any_more) {
     /* Rescan one iteration of the pack expansion and add the resulting
        expression to the list. */
@@ -2337,7 +2337,7 @@ provide some additional ones over the basic ones implied for this case.
                                                    rcblock->ctws_state, &err);
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
-    if (err) rcblock->error_detected = TRUE;
+    if (err) subst_fail(rcblock->error_detected);
     *expr_not_present = TRUE;
     while (any_more) {
       an_operand local_operand, local_bound_function_selector;
@@ -2352,7 +2352,7 @@ provide some additional ones over the basic ones implied for this case.
         *expr_not_present = FALSE;
       } else {
         /* More than one expression from a pack expansion. */
-        rcblock->error_detected = TRUE;
+        subst_fail(rcblock->error_detected);
         /* It seems safest to allow the loop to run to its normal end. */
       }  /* if */
       (void)end_potential_pack_expansion_context(pesep,
@@ -2782,7 +2782,7 @@ indication in *rcblock).
          non-rescan case). */
       if (rcblock->argument_list != NULL &&
           rcblock->argument_list->next != NULL) {
-        rcblock->error_detected = TRUE;
+        subst_fail(rcblock->error_detected);
       }  /* if */
     }  /* if */
     expr = make_node_from_operand_for_expr_list(&result);
@@ -7208,7 +7208,7 @@ a left parenthesis in the source.
       check_assertion(member_op->kind == (an_expr_node_kind)enk_field);
       if (is_error_operand(&eriep->saved_operand)) {
         *err = TRUE;
-        rcblock->error_detected = TRUE;
+        subst_fail(rcblock->error_detected);
         clear_locator(locator, qualified_member_position);
       } else {
         /* Get the symbol from the saved operand, because that's the projection
@@ -7386,7 +7386,7 @@ have_symbol:
         }  /* if */
       } else {
         *err = TRUE;
-        rcblock->error_detected = TRUE;
+        subst_fail(rcblock->error_detected);
         clear_locator(locator, qualified_member_position);
       }  /* if */
       break;
@@ -7975,7 +7975,7 @@ case).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (rcblock != NULL && is_simple_function_symbol(member_sym) &&
                member_sym->variant.routine.ptr->is_deleted) {
-      rcblock->error_detected = TRUE;
+      subst_fail(rcblock->error_detected);
       rep = NULL;
     } else {
       rep = ref_entry(member_sym, &member_position);
@@ -10949,7 +10949,7 @@ indication in *rcblock).
     }  /* if */
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
-    if (rescan_err) rcblock->error_detected = TRUE;
+    if (rescan_err) subst_fail(rcblock->error_detected);
     /* Again, we loop only to count the number of times around. */
     while (any_more) {
       result_count++;
@@ -12395,7 +12395,7 @@ indication in *rcblock).
     result->state = (an_operand_state)os_prvalue;
   } else {
     make_error_operand(result);
-    if (rcblock != NULL) rcblock->error_detected = TRUE;
+    if (rcblock != NULL) subst_fail(rcblock->error_detected);
   }  /* if */
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -12815,7 +12815,7 @@ TRUE.  Return in *dependent whether operand->type is template-dependent.
     if (rcblock == NULL) {
       pos_error(ec_operand_must_be_vector, &operand->position);
     } else {
-      rcblock->error_detected = TRUE;
+      subst_fail(rcblock->error_detected);
     }  /* if */
     *dependent = FALSE;
   } else {
@@ -13025,7 +13025,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
         pos_ty2_error(ec_incompatible_shuffle_source_operands,
                       &p_op1->position, p_op1->type, p_op2->type);
       } else {
-        rcblock->error_detected = TRUE;
+        subst_fail(rcblock->error_detected);
       }  /* if */
       result_type = error_type();
     } else if (!op2_is_vector && !op2_is_dependent) {
@@ -13079,7 +13079,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
                         &int_con->source_corresp.decl_position);
               result_type = error_type();
               if (rcblock != NULL) {
-                rcblock->error_detected = TRUE;
+                subst_fail(rcblock->error_detected);
               }  /* if */
             }  /* if */
           } else {
@@ -13111,7 +13111,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
           pos_ty_error(ec_nonintegral_shuffle_mask, &p_op3->position,
                        p_op3->type);
         } else {
-          rcblock->error_detected = TRUE;
+          subst_fail(rcblock->error_detected);
         }  /* if */
         if (result_type == NULL) result_type = error_type();
       }  /* if */
@@ -13123,7 +13123,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
           pos_ty2_error(ec_incompatible_shuffle_mask, &p_op3->position,
                         p_op3->type, p_op1->type);
         } else {
-          rcblock->error_detected = TRUE;
+          subst_fail(rcblock->error_detected);
         }  /* if */
         if (result_type == NULL) result_type = error_type();
       }  /* if */
@@ -13323,7 +13323,7 @@ operand->type is template-dependent.
       pos_ty_error(ec_operand_must_be_real_floating_value, &operand->position,
                    operand->type);
     } else {
-      rcblock->error_detected = TRUE;
+      subst_fail(rcblock->error_detected);
     }  /* if */
     *dependent = FALSE;
   } else {
@@ -13410,7 +13410,7 @@ __builtin_complex construct.
       pos_ty2_error(ec_incompatible_builtin_complex_types, &start_pos,
                     op1.type, op2.type);
     } else {
-      rcblock->error_detected = TRUE;
+      subst_fail(rcblock->error_detected);
     }  /* if */
     result_type = error_type();
   }  /* if */
@@ -18613,7 +18613,7 @@ expression, and return the result in *result (or an error indication in
       } else {
         /* Deduction failed. */
         new_type = error_type();
-        rcblock->error_detected = TRUE;
+        subst_fail(rcblock->error_detected);
       }  /* if */
       /* Save the expression in the cache so it will get picked up below,
          avoiding rescanning it again. */
@@ -19471,7 +19471,7 @@ expression, and return the result in *result (or an error indication in
                                            /*explicitly_internal=*/FALSE,
                                            p_err);
         if (err) {
-          expr_stack->any_suppressed_error = TRUE;
+          record_suppressed_error();
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -19529,7 +19529,7 @@ expression, and return the result in *result (or an error indication in
                           (an_arg_match_summary *)NULL);
     if (init_state.init_error) {
       err = TRUE;
-      if (rcblock != NULL) rcblock->error_detected = TRUE;
+      if (rcblock != NULL) subst_fail(rcblock->error_detected);
     } else {
       needs_initialization = TRUE;
       dip = init_state.init_dip;
@@ -23892,7 +23892,7 @@ indication in *rcblock).  rescan_icp is not freed.
   }  /* if */
   if (err) {
     make_error_operand(result);
-    if (rcblock != NULL) rcblock->error_detected = TRUE; 
+    if (rcblock != NULL) subst_fail(rcblock->error_detected); 
   } else if (is_static && dip->kind == (a_dynamic_init_kind)dik_constant) {
     /* Static case.  Allocate an unnamed static variable and initialize it
        with the compound literal. */
@@ -24445,7 +24445,7 @@ freed by this routine.
     scan_braced_init_list_cast(type_cast_to, csf_functional,
                                braced_init_list, result);
     if (rcblock != NULL && is_error_operand(result)) {
-      rcblock->error_detected = TRUE;
+      subst_fail(rcblock->error_detected);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (scanning_source) end_position = curr_construct_end_position;
@@ -24767,7 +24767,7 @@ empty_parentheses:
       } else if (rcblock != NULL) {
         if (rcblock->argument_list->next != NULL) {
           /* Multiple operand expressions in a cast that can only take one. */
-          rcblock->error_detected = TRUE;
+          subst_fail(rcblock->error_detected);
           make_error_operand(result);
         } else {
           /* Rescan the operand expression. */
@@ -31509,7 +31509,7 @@ overloaded_function:
             } else {
               /* The undefined symbol is not about to be called, so don't
                  allow an undefined symbol operand to escape. */
-              rcblock->error_detected = TRUE;
+              subst_fail(rcblock->error_detected);
               make_error_operand(result);
             }  /* if */
           }  /* if */
@@ -41578,7 +41578,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                   &rcblock->expr->position, rcblock->options,
                   &copy_error, rcblock->ctws_state);
           if (copy_error) {
-            rcblock->error_detected = TRUE;
+            subst_fail(rcblock->error_detected);
             make_error_operand(result);
             copy_operand_position(&eriep->saved_operand, result);
           } else {
@@ -41604,7 +41604,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                                                         &is_template_id,
                                                         &expl_templ_arg_list);
         if (sym == NULL) {
-          rcblock->error_detected = TRUE;
+          subst_fail(rcblock->error_detected);
           make_error_operand(result);
           copy_operand_position(&eriep->saved_operand, result);
         }  /* if */
@@ -42549,9 +42549,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
     conv_to_error_operand(result);
     result->bound_function = FALSE;
     operand_will_not_be_used_because_of_error(bound_function_selector);
-    rcblock->error_detected = TRUE;
+    subst_fail(rcblock->error_detected);
   } else if (expr_stack->any_suppressed_error) {
-    rcblock->error_detected = TRUE;
+    subst_fail(rcblock->error_detected);
   } else if (constexpr_enabled && !is_constant_operand(result) &&
              !is_a_function_designator(result) &&
              !is_indefinite_function_operand(result) &&
@@ -42678,7 +42678,7 @@ function or template.
   } else {
     /* Some other case, e.g., an overloaded function that isn't meeting a
        type that could disambiguate it. */
-    rcblock->error_detected = TRUE;
+    subst_fail(rcblock->error_detected);
     conv_to_error_operand(&result);
     expr = make_node_from_operand(&result);
   }  /* if */

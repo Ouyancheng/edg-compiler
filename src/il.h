@@ -2651,6 +2651,19 @@ extern void db_scheduled_routine_moves(void);
 
 extern void put_str_to_f_debug(a_const_char                          *str,
                                an_il_to_str_output_control_block_ptr octl);
+
+extern void subst_fail_intercept(void);
+#endif /* DEBUG */
+
+/*
+Macro to set a flag to TRUE to indicate a substitution failure.
+In DEBUG configurations, this also calls subst_fail_intercept, to ease tracking
+of substitution failures in a debugger.
+*/
+#if DEBUG
+#define subst_fail(x) (subst_fail_intercept(), (x) = TRUE) 
+#else /* !DEBUG */
+#define subst_fail(x) ((x) = TRUE)
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED
