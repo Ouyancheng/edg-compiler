@@ -3784,6 +3784,34 @@ address they were shallowly copied from.
 }  /* copy_address_structures */
 
 
+static a_boolean is_null_address(a_constexpr_address  *cap)
+/*
+Return TRUE if the given address represents a null address.  This checks for
+a "zero" address; not just for a "null pointer constant".
+*/
+{
+  a_boolean  result;
+
+  if (is_runtime_data_address(cap)) {
+    a_constant_ptr  cp = cap->variant.addr_con;
+    if (constant_is(cp, ck_integer) &&
+        cmp_integer_values(&cp->variant.integer_value,
+                           /*op_1_signed=*/FALSE,
+                           (an_integer_value *)&zero_int,
+                           /*op_2_signed=*/FALSE) == 0) {
+      result = TRUE;
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else if (is_function_address(cap)) {
+    result = cap->variant.routine == NULL;
+  } else {
+    result = cap->address == NULL;
+  }
+  return result;
+}  /* is_null_address */
+
+
 /*
 Macro to interpret a full-expression.
 */
@@ -9104,6 +9132,11 @@ the value representation of the integer value.
                                         zero_flt[(int)tp->variant.float_kind];
               cx_value(result_storage)->imag = *fp_value(opnd1_value);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            } else if (tp->kind == (a_type_kind)tk_integer &&
+                       opnd1_type->kind == (a_type_kind)tk_pointer &&
+                       ((gpp_mode && !clang_mode) || microsoft_mode) &&
+                       is_null_address((a_constexpr_address*)opnd1_value)) {
+              *(an_integer_value*)result_storage = zero_int;
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
