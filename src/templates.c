@@ -32246,8 +32246,10 @@ body.  If possible, instantiate the routine.
      if the routine is a member function for a class that is being defined. */
   set_instance_required(sym, FALSE, SIR_NONE);
   tip = sym->variant.routine.instance_ptr;
+  if (tip->master_instance == NULL) {
+    find_or_create_master_instance(tip);
+  }  /* if */
   mip = master_instance_of(tip);
-  check_assertion(mip != NULL);
   /* If the entity is not already instantiated and can be instantiated,
      generate the instantiation now.  Note that the instantiation required
      flag is not set.  It will be set if and when the routine is

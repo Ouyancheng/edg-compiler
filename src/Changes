@@ -1,5 +1,26 @@
 Version 4.15
 
+1/30/18  [EDGcpfe/19241]
+Abort on deduced return type in secondary translation unit
+
+In some cases, deducing a return type in a secondary translation unit could
+result in an internal error in force_instantiation_to_deduce_return_type (in
+templates.c).  For example, when using an empty file as a primary translation
+unit and the following as a secondary translation unit (C++14 mode):
+
+  // Secondary translation unit:
+  template<int> struct N;
+  struct P {
+    N<0> *operator->();
+  };
+  template<int> struct N {
+    auto f() { return 0; }  // Deduced return type sometimes triggered an
+  };                        // internal error.  Now okay.
+  auto x = P()->f();
+
+That is now fixed.
+
+
 1/28/18  [EDGcpfe/19131]
 Spurious C++17 error on static member template
 
