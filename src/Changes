@@ -1,5 +1,19 @@
 Version 4.15
 
+1/30/18  [EDGcpfe/19243]
+Spurious redefinition error on function templates with small type difference
+
+Consider the following example:
+
+  template <typename T> auto g(T&& t) -> decltype(f(&T::operator())) {}
+  template <typename T> auto g(T&& t) -> decltype(f(&T::N::operator())) {}
+
+The front end previously issued an error on the second definition because it
+mistakenly treated it as a redeclaration of the first template.  The underlying
+issue was that the front end failed to fully record the presence of an explicit
+name qualifier on "...::operator()".  That is now fixed.
+
+
 1/30/18  [EDGcpfe/19209,EDGcpfe/19233]
 Internal error on rescanning of generic cast
 

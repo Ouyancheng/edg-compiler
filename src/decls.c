@@ -3219,8 +3219,9 @@ when the declaration is a friend declaration within a class.
 	                                   ETP_NO_OPTIONS,
                                            (a_source_position*)NULL,
                                            es_error) &&
-                routine_types_are_redecl_compatible(rp->type, idlbp->type,
-                                                    TCF_NO_FLAGS)) {
+                routine_types_are_redecl_compatible(
+                                    rp->type, idlbp->type,
+                                    TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
               /* The other_decl template function matches the current
                  declaration. */
               idlbp->linked_symbol = fund_other_decl;
