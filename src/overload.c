@@ -19446,6 +19446,9 @@ the temporary.
        instantiation.  Render as a cast. */
     if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
     generic_cast_operand(operand, dest_type, csf_none, !is_explicit_cast);
+    record_cast_position_in_rescan_info(operand, (an_expr_node_ptr)NULL,
+                                        csf_none, &operand->position,
+                                        &operand->position, dest_type);
   } else if (conversion_routine == NULL) {
     /* A simple class object type adjustment without a call of a conversion
        routine. */

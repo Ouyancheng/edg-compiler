@@ -1,5 +1,21 @@
 Version 4.15
 
+1/30/18  [EDGcpfe/19209,EDGcpfe/19233]
+Internal error on rescanning of generic cast
+
+Consider the following example:
+
+  template<bool B> struct S {
+    template<typename T> int f(T) noexcept(T());
+  };
+  int r = S<true>().f(42);  // Previously triggered an internal error.
+                            // Now okay.
+
+The front end previously failed to record some information needed for SFINAE
+processing on the expression "T()".  In C++17 mode, this later triggered an
+internal error in make_cast_rescan_operands.  That is now fixed.
+
+
 1/30/18  [EDGcpfe/19241]
 Abort on deduced return type in secondary translation unit
 
