@@ -8079,7 +8079,7 @@ static a_boolean do_constexpr_offsetof(an_interpreter_state  *ips,
 /*
 Evaluate, if possible, the given __builtin_offsetof expression (whose second
 operand should be a chain of subscript and field selection nodes applied to a
-constant null pointer.  If successful, return TRUE and store the result in
+constant null pointer).  If successful, return TRUE and store the result in
 *result_storage.  Otherwise, return FALSE and record a diagnostic in *ips.
 */
 {

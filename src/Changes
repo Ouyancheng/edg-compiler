@@ -55,10 +55,10 @@ This is now fixed.
 1/26/18  [EDGcpfe/19156]
 GNU compatibility:  __builtin_offsetof
 
-Previously, the front end disallowed uses of __builtin_offsetof that do not
-produce a constant in all GNU C++ modes.  Now, such uses are permitted when
-gnu_version >= 40600.  Furthermore, the constexpr interpreter has been updated
-to fold the corresponding bok_offset entries.  For example:
+Previously, in all GNU C++ modes, the front end disallowed uses of
+__builtin_offsetof that do not produce a constant.  Now, such uses are
+permitted when gnu_version >= 40600.  Furthermore, the constexpr interpreter
+has been updated to fold the corresponding bok_offset entries.  For example:
 
   struct S { char buf[1]; };
   constexpr unsigned g(unsigned n) {
