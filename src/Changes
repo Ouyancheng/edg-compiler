@@ -1,5 +1,22 @@
 Version 4.15
 
+1/30/18  [EDGcpfe/19007]
+C++-generating back end: unnecessary qualification of anonymous union members
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end previously emitted
+references to members of anonymous union members of class templates using
+unnecessarily-qualified names.  This unnecessary qualification, although
+correct, triggered bugs when compiling the generated code with some C++
+compilers.  This is now fixed.  For example, with --strict:
+
+  template<typename T> struct S {
+    union { int i; };
+    int j;
+    S() : i(5), j(i) { }  // Previously generated as "j(::S<T>::i)"
+  };
+
+
 1/30/18  [EDGcpfe/19212]
 Microsoft/GNU compatibility: Cast of zero address in constant-expression
 
