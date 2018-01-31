@@ -16522,6 +16522,8 @@ template declaration and is NULL otherwise.
            having the call to "initializer" attempt to prescan the expression
            again. */
         decl_state->auto_type_specifier_seen = FALSE;
+        /* A complete type is needed with an initializer. */
+        complete_type_is_needed(var->type);
         initializer(decl_state, &locator->source_position, idl_external,
                     is_parenthesized_initializer,
                     &incomplete_type_error_reported,
