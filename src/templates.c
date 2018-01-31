@@ -28263,8 +28263,12 @@ that follows.
         check_assertion(vp != NULL);
         vp->is_specialized = TRUE;
         if (dso_flags & DSO_INLINE) {
-          /* Inline may not be specified. */
-          pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
+          if (inline_variables_allowed) {
+            vp->is_inline = TRUE;
+          } else {
+            /* Inline may not be specified. */
+            pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
+          }  /* if */
         }  /* if */
         attach_decl_attributes(dps, dps->is_definition);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
