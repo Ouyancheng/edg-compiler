@@ -8479,6 +8479,7 @@ interpreter context.
       if (ips->curr_call_frame == NULL) {
         cap->flags |= CA_LIFETIME_EXTENDED;
       }  /* if */
+      cap->flags &= ~CA_ARRAY_ELEMENT;
     }  /* if */
   }  /* if */
   return valid;
@@ -13525,7 +13526,6 @@ FALSE, and record diagnostic info in *diag_list.
     /* Nothing more to be done. */
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    result_con->type = result_type;
     if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
@@ -13535,6 +13535,7 @@ FALSE, and record diagnostic info in *diag_list.
         do_constexpr_fail(result);
       }  /* if */
     } else {
+      result_con->type = result_type;
       if (expr->is_lvalue || expr->is_xvalue) {
         a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
         if (force_prvalue) {
