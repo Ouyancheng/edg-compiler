@@ -35652,7 +35652,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
        left brace. */
     icp = alloc_init_component((an_init_component_kind)ick_braced);
     icp->bundled = bundle;
-    check_assertion(!cached_initializer_present());
+    check_assertion_or_expect_error(!cached_initializer_present());
     /* Advance past the opening brace. */
     check_assertion(curr_token == tok_lbrace);
     icp->variant.braced.start_pos = pos_curr_token;
@@ -45223,7 +45223,7 @@ This is used to implement the expansion of fold expressions
         scan_compound_assignment_operator(
                                         opnd1, (a_rescan_control_block *)NULL,
                                         &op2_was_braced_init_list, result);
-        check_assertion(!op2_was_braced_init_list);
+        check_assertion_or_expect_error(!op2_was_braced_init_list);
       }
       break;
     default:
