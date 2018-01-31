@@ -6662,16 +6662,18 @@ Returns the type of the operator() member function of the specified
 lambda closure type.
 */
 {
-  a_type_ptr      type = NULL;
-  a_symbol_ptr    sym = symbol_for(lambda);
+  a_type_ptr    type = NULL;
+  a_symbol_ptr  closure_sym = symbol_for(lambda), symbols, sym;
+  a_class_symbol_supplement_ptr
+                cssp;
 
   /* Search through the list of symbols on the lambda class' symbol list to
      find the operator() routine (the routine may have already been promoted
      but this search method will work in either case). */
-  check_assertion(type_is_lambda_closure(lambda) && sym != NULL);
-  for (sym = class_symbol_supp(sym)->symbols;
-       sym != NULL;
-       sym = sym->next_in_scope) {
+  check_assertion(type_is_lambda_closure(lambda) && closure_sym != NULL);
+  cssp = class_symbol_supp(closure_sym);
+  symbols = cssp->pointers_block.symbols;
+  for (sym = symbols; sym != NULL; sym = sym->next_in_scope) {
     a_routine_ptr  rp = NULL;
     if (symbol_is(sym, sk_member_function)) {
       rp = sym->variant.routine.ptr;
