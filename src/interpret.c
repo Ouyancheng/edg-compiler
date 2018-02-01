@@ -3949,9 +3949,15 @@ If con represents the address of a subobject, update *cap accordingly.
           if (fp == NULL) {
             a_base_class_ptr  bcp = base_classes_of(obj_type);
             for (; bcp != NULL; bcp = bcp->next) {
+              a_targ_ptrdiff_t  off;
               if (!bcp->direct || bcp->is_virtual) continue;
-              if (t_offset < (a_targ_ptrdiff_t)bcp->offset) continue;
-              if (t_offset < (a_targ_ptrdiff_t)(bcp->offset+bcp->type->size)) {
+              off = (a_targ_ptrdiff_t)bcp->offset;
+              if (t_offset < off) continue;
+              off += bcp->type->size;
+              if (t_offset < off ||
+                  (t_offset == off &&
+                   on_subobject_path((char*)fp,
+                                     con->variant.address.subobject_path))) {
                 if (bcp->is_optimized_empty_base &&
                     !identical_types(bcp->type, obj_type)) {
                   /* Empty base classes can overlap with other base classes.
