@@ -15037,13 +15037,14 @@ If we're in a non-constant aggregate initialization, search for that first.
     an_init_pos_descr_ptr ipdp;
     a_type_ptr            new_type, old_type = type_pointed_to(expr->type);
     for (ipdp = aggregate_this_stack; ipdp != NULL; ipdp = ipdp->next) {
+      a_type_ptr subobj_type;
       new_expr = make_address_of_init_entity_node(ipdp,
                                                   /*using_as_dest=*/FALSE);
       new_type = type_pointed_to(new_expr->type);
       if (identical_types_ignoring_qualifiers(new_type, old_type) ||
           (aggregate_classes_can_have_bases &&
-           identical_types_ignoring_qualifiers(new_type,
-                                             subobject_for_class(old_type)))) {
+           (subobj_type = subobject_for_class(old_type),
+            identical_types_ignoring_qualifiers(new_type, subobj_type)))) {
         found = TRUE;
         new_expr = add_cast_if_necessary(new_expr, expr->type);
         overwrite_node(expr, new_expr);
