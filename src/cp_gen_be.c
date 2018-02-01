@@ -9742,13 +9742,19 @@ the expression reflects an implicit member access ("this->y"), so the
       check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
       naming_class = parent_class_of(node_field(field_expr));
     }  /* if */
-    /* Remove any anonymous union parents, which do not affect the naming
-       of the member. */
+    /* Remove any anonymous union or nonstandard anonymous struct parents,
+       which do not affect the naming of the member. */
     while (class_type_supp(naming_class)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field ||
            naming_class->
-                   variant.class_struct_union.is_nonstd_anonymous_union_type) {
-      naming_class = parent_class_of(naming_class);
+                   variant.class_struct_union.is_nonstd_anonymous_union_type ||
+           !has_name_before_mangling(naming_class)) {
+      a_type_ptr new_naming_class = parent_class_of(naming_class);
+      if (selection_class == naming_class) {
+        /* Back out of descent into anonymous unions and structs. */
+        selection_class = new_naming_class;
+      }  /* if */
+      naming_class = new_naming_class;
     }  /* while */
   }  /* if */
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
