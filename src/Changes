@@ -1,7 +1,7 @@
 Version 4.15
 
 1/30/18  [EDGcpfe/19284]
-Spurious to fold certain pointer arithmetic cases
+Spurious failure to fold certain pointer arithmetic cases
 
 In some cases, the front end failed to correctly handle the folding of pointer
 arithmetic involving a pointer pointing one position past the end of an array.
