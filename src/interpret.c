@@ -3851,6 +3851,33 @@ static a_boolean do_constexpr_dynamic_init(
                                       a_byte                *complete_object);
 
 
+static a_boolean on_subobject_path(char                  *subobj,
+                                   a_subobject_path_ptr  path)
+/*
+Return TRUE if the given a_field or a_base_class entry is on the given
+subobject path.  Only iek_field and iek_base_class entries on the path are
+considered.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; path != NULL; path = path->next) {
+    if (path->kind == (an_il_entry_kind)iek_field) {
+      if (subobj == (char*)path->variant.field) {
+        result = TRUE;
+        break;
+      }  /* if */
+    } else if (path->kind == (an_il_entry_kind)iek_base_class) {
+      if (subobj == (char*)path->variant.base_class) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* on_subobject_path */
+
+
 static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
                                              a_constant_ptr        con,
                                              a_constexpr_address   *cap,
@@ -3903,10 +3930,15 @@ If con represents the address of a subobject, update *cap accordingly.
           a_field_ptr  fp = obj_type->variant.class_struct_union.field_list;
           fp = next_alloc_field(fp);
           for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-            a_type_ptr  ftp;
-            if (t_offset < (a_targ_ptrdiff_t)fp->offset) continue;
+            a_type_ptr        ftp;
+            a_targ_ptrdiff_t  off = (a_targ_ptrdiff_t)fp->offset;
+            if (t_offset < off) continue;
             ftp = skip_typerefs(fp->type);
-            if (t_offset < (a_targ_ptrdiff_t)(fp->offset+ftp->size)) {
+            off += ftp->size;
+            if (t_offset < off ||
+                (t_offset == off &&
+                 on_subobject_path((char*)fp,
+                                   con->variant.address.subobject_path))) {
               t_offset -= fp->offset;
               get_mapped_byte_count(&persistent_map, fp, i_offset);
               cap->address += i_offset;

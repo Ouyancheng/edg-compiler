@@ -1,5 +1,24 @@
 Version 4.15
 
+1/30/18  [EDGcpfe/19284]
+Spurious to fold certain pointer arithmetic cases
+
+In some cases, the front end failed to correctly handle the folding of pointer
+arithmetic involving a pointer pointing one position past the end of an array.
+For example:
+
+  constexpr int z(int const*) { return 0; }
+  struct S {
+    int x[1];
+    constexpr int const* e() const { return x+1; }
+  };
+  static constexpr S s = {};
+  static constexpr int r = z(s.e());  // Previously failed in some
+                                      // configurations.
+
+This is now fixed.
+
+
 1/30/18  [EDGcpfe/19075]
 Abort in lowering on use of __FUNCDNAME__ in generic lambda
 
