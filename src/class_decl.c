@@ -22796,8 +22796,8 @@ Return TRUE if the given class has a dependent base class.
   a_boolean  result = FALSE;
 
   class_type = skip_typerefs(class_type);
-  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
-    result = symbol_supplement_for_class(class_type)
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
+    result = class_symbol_supp(symbol_for(class_type))
                                                  ->any_dependent_base_classes;
   }  /* if */
   return result;

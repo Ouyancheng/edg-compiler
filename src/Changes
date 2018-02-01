@@ -1,5 +1,22 @@
 Version 4.15
 
+2/1/18   [EDGcpfe/19277]
+Spurious error on non-dependent using declaration in local dependent class
+
+Consider:
+
+  struct B { int x; };
+  template<typename T> void f() {
+    struct L: T {
+      using B::x;  // Previously an error.  Now okay.
+    };
+  };
+
+The front end previously emitted an error for the using-declaration because it
+failed to recognize the presence of a dependent base class that might match the
+class (B) named in the using-declaration.  That is now fixed.
+
+
 2/1/18   [EDGcpfe/19245]
 Spurious C++17 error on range-based-for loop in lambda
 
