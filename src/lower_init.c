@@ -5393,6 +5393,7 @@ routine will be the same as the one passed in.
                                       routine->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       new_routine->is_delegating_ctor = routine->is_delegating_ctor;
+      new_routine->explicit_instantiation = routine->explicit_instantiation;
       new_rtsp = new_routine->type->variant.routine.extra_info;
       new_rtsp->this_class = rtsp->this_class;
       mangle_alternate_entry_point_name(new_routine, routine);

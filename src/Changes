@@ -1,5 +1,12 @@
 Version 4.15
 
+2/2/18   [EDGcpfe/19235]
+IA-64 ABI: Setting of explicit_instantiation flag on alternate entry points
+
+Lowering now sets the explicit_instantiation on alternate entry points when
+the primary entry point has that flag set.
+
+
 2/2/18   [EDGcpfe/19288]
 Abort on use of attribute on decltype(auto)
 
