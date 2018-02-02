@@ -9421,71 +9421,82 @@ LOWER_INITIALIZER_LINKAGE void lower_initializer(
                                            an_initializer_ptr initializer)
 /*
 Lower an initializer, which might be in a variable or a
-local-variable-static-init entry.
+local-variable-static-init entry.  Note that *init_kind may be updated by the
+routine to reflect the lowered initialization (if any).
 */
 {
-  switch (*init_kind) {
-    case initk_zero:
+  if (variable->storage_class == (a_storage_class)sc_extern) {
+    /* In cases where a variable with external storage class has an
+       initialization, suppress the initialization (because the variable is not
+       defined in this translation unit).  This can happen in C++14, e.g.:
+         class A {
+           static constexpr volatile char m = 14;
+         }; */
+    *init_kind = (an_init_kind)initk_none;
+  } else {
+    switch (*init_kind) {
+      case initk_zero:
 #if IA64_ABI
-      if (contains_ptr_to_data_member(variable->type)) {
-        /* An entity that is or contains a pointer to data member cannot
-           simply be zeroed, because NULL for a pointer to data member is
-           represented as -1.  The initialization must be expanded to
-           a constant. */
-        a_constant_ptr         cp;
-        a_memory_region_number region_to_switch_back_to = NULL_region_number;
-        if (in_file_scope(variable)) {
-          /* Make sure any constant allocated is in the same region as
-             the variable. */
-          switch_to_file_scope_region(&region_to_switch_back_to);
-        }  /* if */
-        cp = lower_zero_initialization(variable->type);
-        switch_back_to_original_region(region_to_switch_back_to);
-        if (var_has_static_or_thread_storage_duration(variable)) {
-          *init_kind = (an_init_kind)initk_static;
-          initializer->constant = cp;
-        } else {
-          /* Automatic variable; use dynamic initialization to a constant. */
-          a_statement_ptr    stmk_init_stmt;
-          a_dynamic_init_ptr dip;
-          *init_kind = (an_init_kind)initk_dynamic;
-          initializer->dynamic = dip =
+        if (contains_ptr_to_data_member(variable->type)) {
+          /* An entity that is or contains a pointer to data member cannot
+             simply be zeroed, because NULL for a pointer to data member is
+             represented as -1.  The initialization must be expanded to
+             a constant. */
+          a_constant_ptr         cp;
+          a_memory_region_number region_to_switch_back_to = NULL_region_number;
+          if (in_file_scope(variable)) {
+            /* Make sure any constant allocated is in the same region as
+               the variable. */
+            switch_to_file_scope_region(&region_to_switch_back_to);
+          }  /* if */
+          cp = lower_zero_initialization(variable->type);
+          switch_back_to_original_region(region_to_switch_back_to);
+          if (var_has_static_or_thread_storage_duration(variable)) {
+            *init_kind = (an_init_kind)initk_static;
+            initializer->constant = cp;
+          } else {
+            /* Automatic variable; use dynamic initialization to a constant. */
+            a_statement_ptr    stmk_init_stmt;
+            a_dynamic_init_ptr dip;
+            *init_kind = (an_init_kind)initk_dynamic;
+            initializer->dynamic = dip =
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          dip->variant.constant = cp;
-          dip->variable = variable;
-          stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-          stmk_init_stmt->variant.dynamic_init = dip;
-          add_to_end_of_pending_stmk_init_statements_list(stmk_init_stmt);
+            dip->variant.constant = cp;
+            dip->variable = variable;
+            stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+            stmk_init_stmt->variant.dynamic_init = dip;
+            add_to_end_of_pending_stmk_init_statements_list(stmk_init_stmt);
+          }  /* if */
         }  /* if */
-      }  /* if */
-      break;
+        break;
 #endif /* IA64_ABI */
-    case initk_none:
-      break;
-    case initk_static:
-      lower_constant(initializer->constant);
-      break;
-    case initk_dynamic:
-      /* The dynamic init entry is either pointed to from a stmk_init
-         entry or appears on the file-scope dynamic inits list.  Handle
-         it when seen in one of those places. */
-      break;
-    case initk_function_local:
-      /* Initialization of a local static variable that is described
-         remotely by a local-static-variable-init.  Do nothing here;
-         the initialization is lowered from the function or block scope,
-         by scanning the local_static_variable_inits list.
-         That's necessary because the local static variable will be lowered
-         as part of the file scope, and the initialization (in the function
-         scope memory region) is gone by then. */
-      break;
-    case initk_binding:
-      /* The bound_expr is not lowered here; it is only lowered when actually
-         used. */
-      break;
-    default:
-      unexpected_condition_str("lower_initializer: bad kind");
-  }  /* switch */
+      case initk_none:
+        break;
+      case initk_static:
+        lower_constant(initializer->constant);
+        break;
+      case initk_dynamic:
+        /* The dynamic init entry is either pointed to from a stmk_init
+           entry or appears on the file-scope dynamic inits list.  Handle
+           it when seen in one of those places. */
+        break;
+      case initk_function_local:
+        /* Initialization of a local static variable that is described
+           remotely by a local-static-variable-init.  Do nothing here;
+           the initialization is lowered from the function or block scope,
+           by scanning the local_static_variable_inits list.
+           That's necessary because the local static variable will be lowered
+           as part of the file scope, and the initialization (in the function
+           scope memory region) is gone by then. */
+        break;
+      case initk_binding:
+        /* The bound_expr is not lowered here; it is only lowered when actually
+           used. */
+        break;
+      default:
+        unexpected_condition_str("lower_initializer: bad kind");
+    }  /* switch */
+  }  /* if */
 }  /* lower_initializer */
 
 

@@ -1,5 +1,23 @@
 Version 4.15
 
+2/2/18   [EDGcpfe/19234]
+Lowering of sc_extern variables with initializers
+
+It is possible in the IL to have a variable with sc_extern storage class that
+also has an initializer, as in this case (with --c++14):
+
+  struct A {
+    static constexpr volatile int m = 14;
+  };
+  int f() {
+    return A::m;
+  }
+
+Previously, in C-generating back ends, an initialization had been emitted
+on the declaration of the static data member, turning it into a definition.
+The initialization is now suppressed.
+
+
 2/2/18   [EDGcpfe/19235]
 IA-64 ABI: Setting of explicit_instantiation flag on alternate entry points
 
