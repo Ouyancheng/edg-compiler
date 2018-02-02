@@ -25973,6 +25973,138 @@ right pointer type).
 }  /* check_for_pointer_comparison_to_null_with_known_result */
 
 
+static void process_eq_opnds(an_operand               *operand_1,
+                             an_operand               *operand_2,
+                             a_token_kind             operator_token,
+                             a_token_sequence_number  operator_tok_seq_number,
+                             a_source_position        *operator_position,
+                             an_operand               *result)
+/*
+Apply a built-in == or != operator (as indicated by operator_token) to the
+given operands and place the result in *result.  operator_tok_seq_number and
+operator_position describe the location of the operator in the token stream.
+*/
+{
+  a_type_ptr             operation_type = operand_1->type;  /* Assume. */
+  a_type_ptr             result_type;
+  an_expr_operator_kind  op;
+  a_boolean              funny_unsigned_cmp = FALSE, second_opnd_is_constant;
+
+  /* Check the operand types for compatibility. */
+  if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
+    /* One or both of the operands has an error. */
+    operation_type = error_type();
+  } else if (is_scoped_enum_type(operand_1->type) ||
+             is_scoped_enum_type(operand_2->type)) {
+    /* In C++/CLI mode, scoped enumeration operands of the same type can be
+       compared.  No promotion is involved. */
+    check_binary_scoped_enum_operation(operand_1, operand_2, &operation_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_or_cx_enabled &&
+             (is_handle_type(operand_1->type) ||
+              is_handle_type(operand_2->type))) {
+    /* At least one of the operands has a C++/CLI handle type.
+       This has to be checked before the pointer case because we want
+       a comparison between a handle to System::String and a string
+       literal to be resolved by converting the string literal to
+       a System::String^. */
+    (void)check_compatibility_of_handle_operands(
+                         operand_1, operand_2, operator_position,
+                         &operation_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+    if (is_pointer_type(operand_1->type) ||
+        is_pointer_type(operand_2->type)) {
+      /* At least one of the operands is a pointer.  See if the operands are
+         compatible.  In C, the operands must be pointers to qualified or
+         unqualified versions of compatible types (i.e., object, incomplete,
+         or function types), and null pointer constants and "void *" pointers
+         are specially handled (ANSI C 3.3.9).  Ditto in C++. */
+      (void)check_compatibility_of_pointer_operands(
+                         operand_1, operand_2, operator_position,
+                         opname_kind_for_token[(int)operator_token],
+                         /*pointer_normalization_standard_in_C=*/TRUE,
+                         /*pointers_to_functions_standard_in_C=*/TRUE,
+                         /*pointers_to_incomplete_standard_in_C=*/TRUE,
+                         /*mixed_object_and_incomplete_standard_in_C=*/TRUE,
+                         &operation_type);
+    } else if (is_ptr_to_member_type(operand_1->type) ||
+               is_ptr_to_member_type(operand_2->type)) {
+      /* At least one operand is a pointer to member.  See if the operands
+         are compatible. */
+      (void)check_ptr_to_member_operands_for_compatibility(
+                         operand_1, operand_2, operator_position,
+                         &operation_type);
+    } else if (is_nullptr_type(operand_1->type) ||
+               is_nullptr_type(operand_2->type)) {
+      /* At least one of the operands has a nullptr type. */
+      (void)check_compatibility_of_nullptr_operands(operand_1, operand_2,
+                                                    operator_position,
+                                                    &operation_type);
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode &&
+               determine_vector_operation_type(operator_token, operand_1,
+                                               operand_2, operator_position,
+                                               &operation_type, &op)) {
+      /* A GNU vector operation; the appropriate result type is set below. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    } else {
+      /* Both operands should be arithmetic or enum (we have ruled out all
+         the pointer cases above).  We also know already that operand_1 is
+         arithmetic or enum. */
+      if (check_arithmetic_or_enum_operand(operand_2)) {
+        a_type_ptr type_1 = skip_typerefs(operand_1->type);
+        a_type_ptr type_2 = skip_typerefs(operand_2->type);
+        /* Check for comparisons like "unsignedvar == -1", which are true
+           only in surprising cases. */
+        funny_unsigned_cmp = is_comparison_of_unsigned_with_constant(
+                                                    operand_1, operand_2,
+                                                    &second_opnd_is_constant);
+        diagnose_comparison_if_different_enum_types(type_1, type_2,
+                                                    operator_position);
+      }  /* if */
+      operation_type = determine_arithmetic_conversions(operand_1, operand_2);
+    }  /* if */
+  }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (is_vector_type(operation_type)) {
+    /* The result of a vector comparison is a vector of integers with the
+       same number of elements as the operands. */
+    result_type = make_integer_vector_result_type(operation_type);
+    op = which_binary_operator(operator_token, operation_type);
+  } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  /* Do not insert code here. */
+  {
+    result_type = boolean_result_type();
+    op = which_binary_operator(operator_token, operation_type);
+    change_binary_operand_types(operation_type, operand_1, operand_2, op);
+    if (funny_unsigned_cmp) {
+      /* Check for pointless comparisons of unsigned integers against
+         negative constants:
+           u == -n   (always false)
+           u != -n   (always true)
+         The expression is not simplified.  Note that we check the
+         nonconstant operand type before any type promotions and the
+         constant value after any type change. */
+      int constant_sign;
+      if (get_sign_for_constant_in_unsigned_operation(operand_1, operand_2,
+                                                      second_opnd_is_constant,
+                                                      &constant_sign) &&
+          constant_sign < 0) {
+        /* Comparison of an unsigned value with a negative constant. */
+        expr_pos_warning(ec_unsigned_compare_with_negative,
+                         operator_position);
+      }  /* if */
+    }  /* if */
+    check_for_pointer_comparison_to_null_with_known_result(operand_1,
+                                                           operand_2);
+  }  /* if */
+  do_binary_operation(op, operand_1, operand_2, result_type, result,
+                      operator_position, operator_tok_seq_number);
+}  /* process_eq_opnds */
+
+
 static void scan_eq_operator(an_operand             *operand_1,
                              a_rescan_control_block *rcblock,
                              an_operand             *result)
@@ -25991,16 +26123,7 @@ that case.
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-  a_type_ptr            operation_type;
-  a_type_ptr            result_type;
-  an_expr_operator_kind op;
-  a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean             operand_1_is_handle = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean             operand_1_is_nullptr;
   a_boolean             processed = FALSE;
-  a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
   a_boolean             saved_allow_array_decay =
                                 expr_stack->allow_array_decay_in_constant_expr;
 
@@ -26067,8 +26190,6 @@ that case.
     /* Non-operator-function cases. */
     /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
-    operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -26077,132 +26198,15 @@ that case.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled && is_handle_type(operand_1->type)) {
-      operand_1_is_handle = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_nullptr_type(operand_1->type)) {
-      operand_1_is_nullptr = TRUE;
     } else if (is_ptr_to_member_type(operand_1->type)) {
-      operand_1_is_ptr_to_member = TRUE;
     } else if (check_pointer_operand(operand_1,
                                      expr_not_arithmetic_or_pointer_code())) {
-      operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    /* Check the operand types for compatibility. */
-    operation_type = operand_1->type;  /* Assume. */
-    if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
-      /* One or both of the operands has an error. */
-      operation_type = error_type();
-    } else if (is_scoped_enum_type(operand_1->type) ||
-               is_scoped_enum_type(operand_2.type)) {
-      /* In C++/CLI mode, scoped enumeration operands of the same type can be
-         compared.  No promotion is involved. */
-      check_binary_scoped_enum_operation(operand_1, &operand_2,
-                                         &operation_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (operand_1_is_handle || is_handle_type(operand_2.type)) {
-      /* At least one of the operands has a C++/CLI handle type.
-         This has to be checked before the pointer case because we want
-         a comparison between a handle to System::String and a string
-         literal to be resolved by converting the string literal to
-         a System::String^. */
-      (void)check_compatibility_of_handle_operands(
-                           operand_1, &operand_2, &operator_position,
-                           &operation_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else {
-      a_boolean  operand_2_is_pointer = is_pointer_type(operand_2.type);
-      if (operand_1_is_pointer || operand_2_is_pointer) {
-        /* At least one of the operands is a pointer.  See if the operands are
-           compatible.  In C, the operands must be pointers to qualified or
-           unqualified versions of compatible types (i.e., object, incomplete,
-           or function types), and null pointer constants and "void *" pointers
-           are specially handled (ANSI C 3.3.9).  Ditto in C++. */
-        (void)check_compatibility_of_pointer_operands(
-                           operand_1, &operand_2, &operator_position,
-                           opname_kind_for_token[(int)operator_token],
-                           /*pointer_normalization_standard_in_C=*/TRUE,
-                           /*pointers_to_functions_standard_in_C=*/TRUE,
-                           /*pointers_to_incomplete_standard_in_C=*/TRUE,
-                           /*mixed_object_and_incomplete_standard_in_C=*/TRUE,
-                           &operation_type);
-      } else if (operand_1_is_ptr_to_member ||
-                 is_ptr_to_member_type(operand_2.type)) {
-        /* At least one operand is a pointer to member.  See if the operands
-           are compatible. */
-        (void)check_ptr_to_member_operands_for_compatibility(
-                           operand_1, &operand_2, &operator_position,
-                           &operation_type);
-      } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
-        /* At least one of the operands has a nullptr type. */
-        (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
-                                                      &operator_position,
-                                                      &operation_type);
-#if GNU_VECTOR_TYPES_ALLOWED
-      } else if (gnu_mode &&
-                 determine_vector_operation_type(operator_token, operand_1,
-                                                 &operand_2,
-                                                 &operator_position,
-                                                 &operation_type, &op)) {
-        /* A GNU vector operation; the appropriate result type is set below. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-      } else {
-        /* Both operands should be arithmetic or enum (we have ruled out all
-           the pointer cases above).  We also know already that operand_1 is
-           arithmetic or enum. */
-        if (check_arithmetic_or_enum_operand(&operand_2)) {
-          a_type_ptr type_1 = skip_typerefs(operand_1->type);
-          a_type_ptr type_2 = skip_typerefs(operand_2.type);
-          /* Check for comparisons like "unsignedvar == -1", which are true
-             only in surprising cases. */
-          funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
-                                                          operand_1,
-                                                          &operand_2,
-                                                          &second_is_constant);
-          diagnose_comparison_if_different_enum_types(type_1, type_2,
-                                                      &operator_position);
-        }  /* if */
-        operation_type = determine_arithmetic_conversions(operand_1,
-                                                          &operand_2);
-      }  /* if */
-    }  /* if */
-
-#if GNU_VECTOR_TYPES_ALLOWED
-    if (is_vector_type(operation_type)) {
-      /* The result of a vector comparison is a vector of integers with the
-         same number of elements as the operands. */
-      result_type = make_integer_vector_result_type(operation_type);
-      op = which_binary_operator(operator_token, operation_type);
-    } else
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-    /* Do not insert code here. */
-    {
-      result_type = boolean_result_type();
-      op = which_binary_operator(operator_token, operation_type);
-      change_binary_operand_types(operation_type, operand_1, &operand_2, op);
-      if (funny_unsigned_comparison) {
-        /* Check for pointless comparisons of unsigned integers against
-           negative constants:
-             u == -n   (always false)
-             u != -n   (always true)
-           The expression is not simplified.  Note that we check the
-           nonconstant operand type before any type promotions and the
-           constant value after any type change. */
-        int constant_sign;
-        if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
-                                                        second_is_constant,
-                                                        &constant_sign) &&
-            constant_sign < 0) {
-          /* Comparison of an unsigned value with a negative constant. */
-          expr_pos_warning(ec_unsigned_compare_with_negative,
-                           &operator_position);
-        }  /* if */
-      }  /* if */
-      check_for_pointer_comparison_to_null_with_known_result(operand_1,
-                                                             &operand_2);
-    }  /* if */
-    do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position, operator_tok_seq_number);
+    process_eq_opnds(operand_1, &operand_2, operator_token,
+                     operator_tok_seq_number, &operator_position, result);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -37054,7 +37058,6 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   a_boolean           processed, passed = TRUE, has_predef_meaning = FALSE;
   an_expr_stack_entry expr_stack_entry;
   a_type_ptr          orig_op1_type, orig_op2_type;
-  a_boolean           via_udc = FALSE;
 
   *ne_call_expr = NULL;
   *incr_call_expr = NULL;
@@ -37090,6 +37093,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     /* An overloaded operator!= was used (or there was an error). */
   } else {
     /* Try a non-overloaded "!=" operator. */
+    a_boolean  via_udc = FALSE;
     if (orig_op1_type != operand1.type ||
         orig_op2_type != operand2.type) {
       /* The overload resolution process didn't find a matching user-defined
@@ -37100,6 +37104,9 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     }  /* if */
     if (!(via_udc || is_pointer_or_handle_type(orig_op1_type) ||
           is_enum_type(orig_op1_type))) {
+      /* The first type (the result of the "begin" iterator) must be a pointer
+         or enum type because the unary * operator has to apply to it (which
+         isn't possible for other non-class types). */
       pos_ty_error(is_for_each ? ec_missing_notequal_on_for_each_type :
                                  ec_missing_notequal_on_range_based_for_type,
                    expr_position, operand1.type);
@@ -37108,10 +37115,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
       /* Make the "!=" operator node. */
       conv_glvalue_to_prvalue(&operand1);
       conv_glvalue_to_prvalue(&operand2);
-      build_binary_result_operand(&operand1, &operand2,
-                                  (an_expr_operator_kind)eok_ne,
-                                  boolean_result_type(),
-                                  &operand);
+      process_eq_opnds(&operand1, &operand2, (a_token_kind)tok_ne,
+                       tok_seq_number, expr_position, &operand);
     }  /* if */
   }  /* if */
   if (passed) {
