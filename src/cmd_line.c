@@ -2623,6 +2623,7 @@ option values if they were not already set by a command line option.
           generalized_nontype_arguments = TRUE;
           hex_floating_point_constants_allowed = TRUE;
           generalized_template_template_matching = TRUE;
+          nested_namespace_definitions_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1913) {

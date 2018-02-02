@@ -1,5 +1,13 @@
 Version 4.15
 
+2/2/18   [EDGcpfe/19240]
+Microsoft compatibility: nested namespaces
+
+Nested namespaces (see the Changes for EDGcpfe/16712 et al.) had been enabled
+when microsoft_version >= 1912, but only with --ms_c++latest.  They are now
+also enabled with --ms_c++17.
+
+
 2/1/18   [EDGcpfe/19277]
 Spurious error on non-dependent using declaration in local dependent class
 
