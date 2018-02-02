@@ -37281,8 +37281,8 @@ FALSE otherwise.
                            &iter_var->source_corresp.decl_position, itp);
               iter_var->type = error_type();
             }  /* if */
+            rp->is_constexpr = FALSE;
           }  /* if */
-          rp->is_constexpr = FALSE;
         }  /* if */
         /* There may be an implicit conversion here, but
            prep_initializer_operand in set_variable_initializer will handle
