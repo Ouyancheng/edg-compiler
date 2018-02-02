@@ -9748,7 +9748,8 @@ the expression reflects an implicit member access ("this->y"), so the
                                           (an_anonymous_union_kind)auk_field ||
            naming_class->
                    variant.class_struct_union.is_nonstd_anonymous_union_type ||
-           !has_name_before_mangling(naming_class)) {
+           (!has_name_before_mangling(naming_class) &&
+            parent_class_or_null(naming_class) != NULL)) {
       a_type_ptr new_naming_class = parent_class_of(naming_class);
       if (selection_class == naming_class) {
         /* Back out of descent into anonymous unions and structs. */
