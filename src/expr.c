@@ -39951,8 +39951,8 @@ type with the type of return_op.
               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
   }  /* if */
   auto_type = find_bottom_of_type(orig_type);
-  is_decltype_auto = is_auto_type(orig_type) &&
-                     orig_type->variant.template_param.extra_info
+  is_decltype_auto = is_auto_type(auto_type) &&
+                     auto_type->variant.template_param.extra_info
                               ->coordinates.position ==
                                                      DECLTYPE_AUTO_POS_NUMBER;
   if (is_decltype_auto) {

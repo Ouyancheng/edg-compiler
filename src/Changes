@@ -1,5 +1,17 @@
 Version 4.15
 
+2/2/18   [EDGcpfe/19288]
+Abort on use of attribute on decltype(auto)
+
+Consider (in GNU C++14 mode):
+
+  auto f() -> __attribute((deprecated)) decltype(auto) { return 0; }
+
+This example previously aborted in get_template_arg_by_list_pos (templates.c)
+because the (inapplicable) attribute caused the front end to treat 
+"decltype(auto)" as if it were "auto" in some places.  That is now fixed.
+
+
 2/2/18   [EDGcpfe/19240]
 Microsoft compatibility: nested namespaces
 
