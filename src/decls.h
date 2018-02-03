@@ -703,6 +703,10 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this information block is one created for a
 			   call to type_name_full. */
   a_bit_field
+		is_conversion_type_id:1;
+			/* TRUE if this information block is one created for
+			   the type in a conversion function declaration. */
+  a_bit_field
 		is_alias_template_type:1;
 			/* TRUE if this information block is one created for a
 			   call to type_name_full for the (real or prototype)

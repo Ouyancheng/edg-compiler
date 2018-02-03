@@ -387,6 +387,8 @@ extern a_boolean check_param_array_type(a_param_type_ptr   ptp,
   /*lint --e(506)*/TRUE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void check_type_with_auto_specifier(a_decl_parse_state  *state);
+
 extern
 void report_incomplete_function_return_type(a_type_ptr         return_type,
                                             a_source_position  *pos,

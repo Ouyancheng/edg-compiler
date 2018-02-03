@@ -2131,7 +2131,7 @@ the parameter symbols in that scope to is_invisible.
 }  /* make_param_syms_invisible */
 
 
-static void check_type_with_auto_specifier(a_decl_parse_state  *state)
+void check_type_with_auto_specifier(a_decl_parse_state  *state)
 /*
 *state describes a declaration parsing state involving a complete declarator
 that builds a type on top of an "auto" or "decltype(auto)" type specifier.
@@ -2157,7 +2157,7 @@ a trailing return type.
        on top.   E.g., "decltype(auto)& g();" is invalid. */
     if (state->decltype_auto_specifier_seen &&
         ((is_function_declarator && !state->has_trailing_return_type) ||
-         state->is_trailing_return_type)) {
+         state->is_trailing_return_type || state->is_conversion_type_id)) {
       a_type_kind  ret_kind;
       if (is_function_declarator) {
         ret_kind = state->declared_type->variant.routine.return_type->kind;

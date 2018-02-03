@@ -158,6 +158,7 @@ be restored).
     dps->is_template_rescan = FALSE;
     dps->is_trailing_return_type = FALSE;
     dps->is_type_name = FALSE;
+    dps->is_conversion_type_id = FALSE;
     dps->is_alias_template_type = FALSE;
     dps->is_template_type_argument = FALSE;
     dps->is_param_decl = FALSE;
@@ -12616,6 +12617,7 @@ selection operation associated with this operator function reference.
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
     init_decl_parse_state(&state);
+    state.is_conversion_type_id = TRUE;
     clear_decl_pos_block(&decl_pos_block);
     input_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                   DSI_NO_REAL_DECLARATOR |
@@ -12646,6 +12648,14 @@ selection operation associated with this operator function reference.
                                        (a_type_qualifier_set *)NULL,
                                        &ptr_to_member_scanned,
                                        &decl_pos_block);
+    if (state.auto_type_specifier_seen) {
+      /* Diagnose something like "operator decltype(auto)&". */
+      state.type = state.declared_type = complete_type;
+      check_type_with_auto_specifier(&state);
+      if (!state.auto_type_specifier_seen) {
+        complete_type = error_type();
+      }  /* if */
+    }  /* if */
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
