@@ -68,7 +68,7 @@ also enabled with --ms_c++17.
 
 
 2/1/18   [EDGcpfe/19277]
-Spurious error on non-dependent using declaration in local dependent class
+Spurious error on non-dependent using-declaration in local dependent class
 
 Consider:
 
