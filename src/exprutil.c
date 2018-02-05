@@ -18921,7 +18921,8 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
                                 variant.class_struct_union.is_nonreal_class)) {
           a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
-          if (!cssp->construction_by_bitwise_copy_allowed) {
+          if (!cssp->construction_by_bitwise_copy_allowed &&
+              cssp->has_user_provided_copy_constructor) {
             /* Cases like this can come up when an implicitly-generated
                copy constructor is later defined explicitly outside the
                class. */
