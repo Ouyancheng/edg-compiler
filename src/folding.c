@@ -9326,7 +9326,7 @@ argument cannot be represented in a_host_large_unsigned.
     if (!err) {
       a_host_large_unsigned  result;
       switch (kind) {
-#define get_byte(val, b) (0xff & ((val) >> ((b) * 8)))
+#define get_byte(val, b) (0xff & ((val) >> ((b) * 8))/*lint --e(835)*/)
         case bfk_bswap16:
           result = get_byte(val, 0) << (1*8) |
                    get_byte(val, 1);
@@ -9342,10 +9342,10 @@ argument cannot be represented in a_host_large_unsigned.
                    get_byte(val, 1) << (6*8) |
                    get_byte(val, 2) << (5*8) |
                    get_byte(val, 3) << (4*8) |
-                   get_byte(val, 4) << (3*8) |
-                   get_byte(val, 5) << (2*8) |
-                   get_byte(val, 6) << (1*8) |
-                   get_byte(val, 7);
+                   get_byte(val, 4) << (3*8) /*lint -e(572)*/ |
+                   get_byte(val, 5) << (2*8) /*lint -e(572)*/ |
+                   get_byte(val, 6) << (1*8) /*lint -e(572)*/ |
+                   get_byte(val, 7)          /*lint -e(572)*/;
           break;
         default:
           unexpected_condition();
