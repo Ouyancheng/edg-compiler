@@ -9329,13 +9329,13 @@ argument cannot be represented in a_host_large_unsigned.
 #define get_byte(val, b) (0xff & ((val) >> ((b) * 8)))
         case bfk_bswap16:
           result = get_byte(val, 0) << (1*8) |
-                   get_byte(val, 1) << (0*8);
+                   get_byte(val, 1);
           break;
         case bfk_bswap32:
           result = get_byte(val, 0) << (3*8) |
                    get_byte(val, 1) << (2*8) |
                    get_byte(val, 2) << (1*8) |
-                   get_byte(val, 3) << (0*8);
+                   get_byte(val, 3);
           break;
         case bfk_bswap64:
           result = get_byte(val, 0) << (7*8) |
@@ -9345,7 +9345,7 @@ argument cannot be represented in a_host_large_unsigned.
                    get_byte(val, 4) << (3*8) |
                    get_byte(val, 5) << (2*8) |
                    get_byte(val, 6) << (1*8) |
-                   get_byte(val, 7) << (0*8);
+                   get_byte(val, 7);
           break;
         default:
           unexpected_condition();
