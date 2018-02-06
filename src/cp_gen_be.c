@@ -3891,6 +3891,45 @@ been defined.
 }  /* typedef_is_unusable */
 
 
+static a_boolean ttt_is_unnamed_tag_type(a_type_ptr type,
+                                         a_boolean  *end_traversal)
+/*
+This function is called via traverse_type_tree (from
+is_typedef_invisible_in_cp_gen_be) to determine whether a typedef involves
+use of an unnamed tag type and thus cannot be treated as "invisible".
+If type is an unnamed tag type, set *end_traversal to TRUE and return TRUE.
+*/
+{
+  a_boolean result = is_tag_type(type) && !has_name_before_mangling(type);
+  if (result) {
+    *end_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_is_unnamed_tag_type */
+
+
+static a_boolean typedef_uses_unnamed_tag(a_type_ptr type)
+/*
+Return TRUE if type, a typedef typeref, involves use of an unnamed tag
+type.  This is used to prevent treating a typedef like
+  typedef struct { } *S;
+from being treated as invisible in a template-id like
+  tmpl<S>
+*/
+{
+  a_type_tree_traversal_flag_set ttt_flags;
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref &&
+                  typeref_is_typedef(type));
+  ttt_flags = TTT_RETURN_TYPE |
+              TTT_PARAM_TYPES |
+              TTT_EXCEPTION_SPECS |
+              TTT_STOP_AT_TYPEDEFS;
+  return traverse_type_tree(type->variant.typeref.type,
+                            ttt_is_unnamed_tag_type, ttt_flags);
+}  /* typedef_uses_unnamed_tag */
+
+
 static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
 /*
 Called from the il_to_str routines.  Returns TRUE if the indicated typedef
@@ -3968,6 +4007,9 @@ is called.
       /* The typedef refers to a vector type and should be used. */
       invisible = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    } else if (typedef_uses_unnamed_tag(type)) {
+      /* We must preserve a typedef that refers to an unnamed tag type. */
+      invisible = FALSE;
     }  /* if */
   }  /* if */
   return invisible;

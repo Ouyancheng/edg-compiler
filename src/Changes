@@ -1,5 +1,19 @@
 Version 4.15
 
+2/6/18   [EDGcpfe/18979]
+C++-generating back end: typedef using unnamed tag type as template argument
+
+The C++-generating back end sometimes used an undeclared temporary type
+name (of the form __T12345678) in a template argument in the generated
+code when the original source is a typedef that refers to a class, struct,
+union, or enumeration type that has no name.  This is now fixed.  For
+example:
+
+  typedef struct { } *S1;
+  template<typename T> struct S2 { };
+  S2<S1> x;  // Previously generated as S2<__T12345678 *>"
+
+
 2/6/18   [EDGcpfe/19296]
 Microsoft compatibility: _MSVC_LANG
 
