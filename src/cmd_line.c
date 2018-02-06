@@ -2605,6 +2605,14 @@ option values if they were not already set by a command line option.
           direct_init_fixed_base_enum_enabled = TRUE;
           constexpr_if_enabled = TRUE;
           constexpr_lambdas_enabled = TRUE;
+          /* Note that msvc_lang has already been set above for the
+             ms_cpp14_mode case (to "201402L"). */
+          if (ms_cpp17_mode) {
+            msvc_lang = "201703L";
+          }  /* if */
+          if (ms_cpplatest_mode) {
+            msvc_lang = "201704L";
+          }  /* if */
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1912) {

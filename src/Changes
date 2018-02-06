@@ -1,5 +1,18 @@
 Version 4.15
 
+2/6/18   [EDGcpfe/19296]
+Microsoft compatibility: _MSVC_LANG
+
+The value of the predefined macro _MSVC_LANG has been updated to the following
+values (when microsoft_version >= 1911):
+
+  201402L when --ms_c++14 is specified
+  201703L when --ms_c++17 is specified
+  201704L when --ms_c++latest is specified
+
+The value of _MSVC_LANG is unchanged when microsoft_version < 1911.
+
+
 2/2/18   [EDGcpfe/19258]
 Relaxed range-based-for loop iterator requirements
 
