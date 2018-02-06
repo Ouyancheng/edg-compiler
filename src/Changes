@@ -1,5 +1,23 @@
 Version 4.15
 
+2/6/18   [EDGcpfe/19298]
+GNU and Microsoft compatibility: Deleted operator delete and new-expressions
+
+The GNU and Microsoft compilers fail to check that an "operator delete"
+corresponding to a new-expression is not "deleted" (i.e., defined with
+"= delete").  For example:
+
+  struct S {
+    ~S();
+    void operator delete(void*) = delete;
+  };
+  int main() {
+    S *p = new S;  //  Ordinarily an error, but now accepted in GNU
+  }                //  and Microsoft modes.
+
+The front end now emulates that behavior in GNU and Microsoft modes.
+
+
 2/6/18   [EDGcpfe/15362,EDGcpfe/15778,EDGcpfe/18542,EDGcpfe/19213]
 GNU compatibility: folding __builtin_bswap functions
 

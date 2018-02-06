@@ -17311,6 +17311,7 @@ the delete routine is ambiguous (an error will have been issued).
         delete_routine = NULL;
       }  /* if */
     } else {
+      a_boolean  restore_is_deleted = FALSE;
       if (delete_sym->is_class_member) {
         /* Check access and ambiguity for class member operator deletes. */
         a_symbol_locator locator_for_delete;
@@ -17320,8 +17321,15 @@ the delete routine is ambiguous (an error will have been issued).
                                                         overload_delete_sym);
       }  /* if */
       /* Mark the symbol referenced. */
+      if ((gpp_mode || microsoft_mode) && delete_routine->is_deleted) {
+        delete_routine->is_deleted = FALSE;
+        restore_is_deleted = TRUE;
+      }  /* if */
       record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
                               position, /*update_il_entry=*/FALSE);
+      if (restore_is_deleted) {
+        delete_routine->is_deleted = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return delete_routine;
