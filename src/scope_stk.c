@@ -8301,7 +8301,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        should only occur for constexpr functions or functions with deduced
        return types. */
     check_assertion_or_expect_error(routine->is_constexpr ||
-         //                           routine->is_declared_constexpr ||
+                                    routine->is_declared_constexpr ||
                                     routine->has_deducible_return_type);
     delay_lowering = TRUE;
   } else if (special_kind_is(routine, sfk_constructor) &&
