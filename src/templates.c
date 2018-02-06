@@ -25348,7 +25348,7 @@ instantiation.
        instantiation of the new defaults.  For declarations within classes
        this is done in class fixup processing. */
     if (nonclass_prototype_instantiations) {
-      if (decl_state->class_declared_in == NULL) {
+      if (decl_state->class_declared_in == NULL || decl_state->is_lambda) {
         /* Record the declaration sequence number for the default argument.
            This is done here because the value for the containing declaration
            has not been set yet. */
