@@ -12380,6 +12380,8 @@ the value representation of the integer value.
                    it. */
                 mark_complete_object_initialized(opnd1_value);
                 clear_address(&result_addr, opnd1_value);
+                result_addr.alloc_seq_number =
+                                          ips->storage_stack.alloc_seq_number;
               }  /* if */
               if (is_runtime_data_address(&result_addr)) {
                 /* Attempt to compute a new offset for a run-time address
@@ -12461,6 +12463,8 @@ the value representation of the integer value.
                    it. */
                 mark_complete_object_initialized(opnd1_value);
                 clear_address(&result_addr, opnd1_value);
+                result_addr.alloc_seq_number =
+                                          ips->storage_stack.alloc_seq_number;
               }  /* if */
               pm_value = (a_constexpr_ptr_to_mem*)opnd2_value;
               field = pm_value->variant.field;
