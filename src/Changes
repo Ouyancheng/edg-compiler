@@ -8,7 +8,7 @@ corresponding to a new-expression is not "deleted" (i.e., defined with
 "= delete").  For example:
 
   struct S {
-    ~S();
+    S();
     void operator delete(void*) = delete;
   };
   int main() {
