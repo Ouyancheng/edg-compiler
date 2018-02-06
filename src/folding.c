@@ -8924,6 +8924,9 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_signbitl:
       case bfk_atomic_always_lock_free:
       case bfk_atomic_is_lock_free:
+      case bfk_bswap16:
+      case bfk_bswap32:
+      case bfk_bswap64:
         result = TRUE;
         break;
       case bfk_assume_aligned:
@@ -9296,6 +9299,67 @@ either a ck_template_param constant or has a template-dependent type.
 }  /* is_dependent_list_of_constant_nodes */
 
 
+static a_boolean fold_bswap_operation_if_possible(
+                                           a_builtin_function_kind kind,
+                                           an_expr_node_ptr        arg,
+                                           a_type_ptr              result_type,
+                                           a_constant_ptr          result_con)
+/*
+kind represents a GNU builtin bswap function which is being applied to the
+given argument.  result_type is the return type of the builtin function.  If
+the argument is a constant integer, set result_con to the result of bswap and
+return TRUE.  Otherwise, return FALSE.
+
+This routine will fail to fold the operation (and return FALSE) if the
+argument cannot be represented in a_host_large_unsigned.
+*/
+{
+  a_boolean   folded = FALSE;
+
+  result_type = skip_typerefs(result_type);
+  check_assertion(result_type->kind == (a_type_kind)tk_integer);
+  if (is_constant_node(arg) &&
+      arg->variant.constant.ptr->kind == (a_constant_repr_kind)ck_integer) {
+    a_constant_ptr         cp = arg->variant.constant.ptr;
+    a_boolean              err;
+    a_host_large_unsigned  val = unsigned_value_of_integer_constant(cp, &err);
+    if (!err) {
+      a_host_large_unsigned  result;
+      switch (kind) {
+#define get_byte(val, b) (0xff & ((val) >> ((b) * 8)))
+        case bfk_bswap16:
+          result = get_byte(val, 0) << (1*8) |
+                   get_byte(val, 1) << (0*8);
+          break;
+        case bfk_bswap32:
+          result = get_byte(val, 0) << (3*8) |
+                   get_byte(val, 1) << (2*8) |
+                   get_byte(val, 2) << (1*8) |
+                   get_byte(val, 3) << (0*8);
+          break;
+        case bfk_bswap64:
+          result = get_byte(val, 0) << (7*8) |
+                   get_byte(val, 1) << (6*8) |
+                   get_byte(val, 2) << (5*8) |
+                   get_byte(val, 3) << (4*8) |
+                   get_byte(val, 4) << (3*8) |
+                   get_byte(val, 5) << (2*8) |
+                   get_byte(val, 6) << (1*8) |
+                   get_byte(val, 7) << (0*8);
+          break;
+        default:
+          unexpected_condition();
+#undef get_byte
+      }  /* switch */
+      set_unsigned_integer_constant(result_con, (a_host_large_unsigned)result,
+                                    result_type->variant.integer.int_kind);
+      folded = TRUE;
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* fold_bswap_operation_if_possible */
+
+
 a_boolean fold_gnu_builtin_function_call_if_possible(
                                                   a_routine_ptr    rp,
                                                   an_expr_node_ptr args,
@@ -9633,6 +9697,17 @@ the folding mechanism is used as a way to validate argument values.
           *err_code = ec_call_requires_string_literal;
         }  /* if */
         folded = FALSE;
+        break;
+      case bfk_bswap16:
+      case bfk_bswap32:
+      case bfk_bswap64:
+        /* Byte swap functions. */
+        if (args != NULL && args2 == NULL) {
+          folded = fold_bswap_operation_if_possible(
+                                            rp->variant.builtin_function_kind,
+                                            args, return_type_of(rp->type),
+                                            result);
+        }  /* if */
         break;
       default:
         /* Nothing to be done. */
