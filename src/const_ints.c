@@ -2113,6 +2113,7 @@ have_kind:;
 }  /* int_kind_for_bit_size */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
+#if BUILTIN_FUNCTIONS_ENABLED
 
 a_boolean swap_bytes_in_unsigned_integer(unsigned int     bytes,
                                          an_integer_value *value,
@@ -2149,6 +2150,7 @@ Assumes bytes are 8 bits.
   return result;
 }  /* swap_bytes_in_unsigned_integer */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
