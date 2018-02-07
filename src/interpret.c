@@ -12974,6 +12974,17 @@ same address.  Also record the associated subobject path.
     a_field_ptr           fp = NULL;
     a_base_class_ptr      bcp = NULL;
     a_subobject_path_ptr  path = NULL, *p_end_path = &path, path_entry;
+    if (cannot_dereference(cap)) {
+      a_boolean     result = TRUE;
+      a_byte_count  n_bytes = value_bytes_for_type(ips, type, &result);
+      check_assertion(result);
+      if ((a_byte_count)(address - parent_address) == n_bytes) {
+        /* The address points one position past the top-level variable and
+           therefore not "into" the variable. */
+        con->variant.address.offset = type->size;
+        goto done;
+      }  /* if */
+    }  /* if */
     do {
       a_byte_count  i_offset;  /* Local interpreter offset. */
       path_entry = alloc_subobject_path();
@@ -13024,6 +13035,7 @@ same address.  Also record the associated subobject path.
     con->variant.address.subobject_path = path;
     con->implicit_cast = TRUE;
   }  /* if */
+done:;
 }  /* translate_interpreter_offset */
 
 

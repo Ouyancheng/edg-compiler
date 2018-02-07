@@ -1,5 +1,20 @@
 Version 4.15
 
+2/7/18   [EDGcpfe/19246]
+Abort in find_subobject_for_interpreter_address
+
+Trying to access a member of a class through a pointer "one position past the
+end" of a variable could trigger an internal error in the interpreter (in
+function find_subobject_for_interpreter_address).  For example:
+
+  struct S { int x; } s;
+  constexpr S *p = &s+1;
+  int *q = &p->x;  // Previously triggered an assertion failure.
+                   // Now elicits a normal error.
+
+This is now fixed.
+
+
 2/7/18   [EDGcpfe/19300]
 Spurious error on braced base class initializer
 
