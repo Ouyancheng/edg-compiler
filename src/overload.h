@@ -53,8 +53,7 @@ typedef struct a_conv_descr {
 			   case it is the symbol for the routine, possibly
 			   a projection symbol.  Needed to check access on
 			   conversion function calls. */
-  a_byte_boolean
-		class_identity_or_bitwise_copy;
+  a_bit_field	class_identity_or_bitwise_copy:1;
 			/* If TRUE, the "conversion" for a class is a bitwise
 			   copy (possibly from a derived class to a base
 			   class).  If this is viewed as a conversion instead
@@ -66,8 +65,7 @@ typedef struct a_conv_descr {
 			   general type adjustments on class objects (see
 			   class_object_adjustment_required).  routine is
 			   always NULL when this flag is set. */
-  a_byte_boolean
-		result_is_a_glvalue;
+  a_bit_field	result_is_a_glvalue:1;
 			/* If TRUE, the function returns a reference and the
 			   reference should be left as a glvalue rather than
 			   converted to a prvalue.  If FALSE, the result is
@@ -75,12 +73,10 @@ typedef struct a_conv_descr {
 			   glvalue-->prvalue conversion).  Note that this
 			   is meaningful even when the entry indicates no
 			   conversion. */
-  a_byte_boolean
-		unusable;
+  a_bit_field	unusable:1;
 			/* If TRUE the conversion is unusable, e.g., it is
 			   ambiguous. */
-  a_byte_boolean
-		class_object_adjustment_required;
+  a_bit_field	class_object_adjustment_required:1;
 			/* If TRUE, a class object requires a type adjustment
 			   of cv-qualifiers or (when std.cast_base_class is
 			   non-NULL) to a base class.  The existing class
@@ -91,36 +87,34 @@ typedef struct a_conv_descr {
 			   The adjustment is similar to a standard conversion,
 			   but it isn't considered to be one: the standard
 			   views it as part of reference binding. */
-  a_byte_boolean
-		conversion_for_direct_reference_binding;
+  a_bit_field	conversion_for_direct_reference_binding:1;
 			/* If TRUE, the conversion indicated is one that
 			   converts an initializer using a conversion function
 			   that returns a reference in order to produce an
 			   lvalue that a reference can be directly bound to. */
-  a_byte_boolean
-		copy_initialization_done_as_direct;
+  a_bit_field	copy_initialization_done_as_direct:1;
 			/* If TRUE, the conversion is a copy initialization
 			   that, following the rules in [dcl.init] of the
 			   C++ standard, is done as if it were a direct
 			   initialization. */
-  a_byte_boolean
-		user_conversion_for_class_copy_must_be_determined;
+  a_bit_field	user_conversion_for_class_copy_must_be_determined:1;
 			/* If TRUE, this is a class value being passed to
 			   a parameter of the same type, or a base class type.
 			   This is seen as a standard conversion of sorts
 			   in overload resolution, but the constructor
 			   to be called must be determined once it's known
 			   that this conversion will be used. */
-  a_byte_boolean
-		unknown_dependent_conversion;
+  a_bit_field	unknown_dependent_conversion:1;
 			/* If TRUE, the conversion is from or to a template
 			   dependent type in a prototype instantiation, and
 			   therefore we cannot know the right constructor
 			   or conversion function to call. */
-  a_byte_boolean
-		is_explicit_cast;
+  a_bit_field	is_explicit_cast:1;
 			/* If TRUE, the conversion is being done as the
 			   result of an explicit cast. */
+  a_bit_field	is_base_init:1;
+			/* If TRUE, the conversion is being done as the result
+			   of a ctor-initializer for a base subobject. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
@@ -277,6 +271,9 @@ typedef int a_conv_context_set;
 #define CCO_SINGLETON_BRACED_INIT ((a_conv_context_set)0x100000)
 			/* Used when the conversion source is a single
 			   value enclosed in braces. */
+#define CCO_BASE_INIT ((a_conv_context_set)0x200000)
+			/* Used when the conversion is for a constructor
+			   initializer for a base subobject. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

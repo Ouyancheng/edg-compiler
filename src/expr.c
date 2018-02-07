@@ -36239,6 +36239,8 @@ dynamic init entry if one is created to represent this initializer
       conv_context |= CCO_INITIALIZING_VARIABLE;
       if (is->static_lifetime_init) conv_context |= CCO_STATIC_LIFETIME;
     }  /* if */
+  } else if (is->is_base_init) {
+    conv_context |= CCO_BASE_INIT;
   }  /* if */
   if (is->arg_match != NULL) {
     /* Keep track of the worst conversion on members of a given aggregate. */

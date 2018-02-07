@@ -1,5 +1,18 @@
 Version 4.15
 
+2/7/18   [EDGcpfe/19300]
+Spurious error on braced base class initializer
+
+Previously, the front end issue a spurious error on a braced initializer for
+a base class if the corresponding base class constructor is protected.  For
+example:
+
+  class B { protected: B(B const&); };
+  class D: B { D(D const &o): B{o} {} };  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 2/6/18   [EDGcpfe/19279]
 Default arguments of generic lambdas not prototype-instantiated
 

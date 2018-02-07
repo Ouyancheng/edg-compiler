@@ -7029,6 +7029,9 @@ given type, and record the initializer in *cip if cip is non-NULL.
   is.force_dynamic_init = TRUE;
   is.elements_are_full_expressions = TRUE;
   is.ctor_initializer = TRUE;
+  if (cip != NULL && cip->kind != (a_constructor_init_kind)cik_field) {
+    is.is_base_init = TRUE;
+  }  /* if */
   if (strict_ansi_mode) {
     is.error_on_narrowing = TRUE;
   } else {

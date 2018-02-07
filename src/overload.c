@@ -251,6 +251,7 @@ Clear a conversion description.
   conv->user_conversion_for_class_copy_must_be_determined = FALSE;
   conv->unknown_dependent_conversion   = FALSE;
   conv->is_explicit_cast               = FALSE;
+  conv->is_base_init                   = FALSE;
   clear_std_conv_descr(&conv->std);
 }  /* clear_conv_descr */
 
@@ -19177,6 +19178,7 @@ is used only in C++ mode.
 
 static void set_up_for_constructor_call(an_operand       *operand,
                                         a_routine_ptr    ctor_routine,
+                                        a_boolean        is_base_init,
                                         a_conv_descr     *ctor_arg_conversion,
                                         an_expr_node_ptr *arg_expr_list,
                                         a_boolean        *class_bitwise_copy)
@@ -19186,6 +19188,7 @@ a copy constructor or a constructor used as a conversion function),
 but do not actually create the call.  *operand is the argument for
 the call.  Check accessibility of the routine and adjust the
 operand type if necessary so that it will be appropriate for the call.
+is_base_init is TRUE if this call is for a base class ctor-initializer.
 If ctor_arg_conversion is non-NULL, it points to the conversion to be
 used for the constructor argument.  Return an argument list for the
 call in *arg_expr_list.  If the constructor being called is a trivial
@@ -19195,7 +19198,20 @@ is used only in C++ mode.
 */
 {
   a_type_ptr ctor_class = parent_class_of(ctor_routine);
+  a_type_ptr access_class;
 
+  if (is_base_init) {
+    /* This is a base class initializer.  Set access class to the enclosing
+       class of the derived class constructor to ensure "protected" access
+       is handled correctly.  E.g.:
+         class B { protected: B(B const&); };
+         class D: B { D(D const &o): B(o) {} };  // No error.
+    */
+    check_assertion(scope_is(&scope_stack_top(), sck_function));
+    access_class = parent_class_of(scope_stack_top().assoc_routine);
+  } else {
+    access_class = ctor_class;
+  }  /* if */
   *class_bitwise_copy = FALSE;
   if (ctor_routine->is_trivial_copy_function && !ctor_routine->is_deleted &&
       ((ctor_arg_conversion != NULL && conv_usable(ctor_arg_conversion)) ||
@@ -19205,7 +19221,7 @@ is used only in C++ mode.
     *class_bitwise_copy = TRUE;
     expr_reference_to_implicitly_invoked_function(symbol_for(ctor_routine),
                                                   &operand->position,
-                                                  ctor_class,
+                                                  access_class,
                                                   /*honor_virtual=*/FALSE);
     if (ctor_arg_conversion == NULL ||
         is_null_user_conv_descr(ctor_arg_conversion)) {
@@ -19235,7 +19251,7 @@ is used only in C++ mode.
     /* Check that the constructor is accessible and mark it as referenced. */
     expr_reference_to_implicitly_invoked_function(symbol_for(ctor_routine),
                                                   &operand->position,
-                                                  ctor_class,
+                                                  access_class,
                                                   /*honor_virtual=*/FALSE);
     /* Convert the argument to the right type.  We don't expect an error
        here, since presumably we've chosen the proper function to call
@@ -19548,6 +19564,7 @@ the temporary.
     /* Make a constructor dynamic init into a temporary, and an operand for
        the value it produces. */
     set_up_for_constructor_call(operand, conversion_routine,
+                                conversion->is_base_init,
                                 ctor_arg_conversion, &arg_expr_list,
                                 &class_bitwise_copy);
     if (class_bitwise_copy && !force_copy_to_temp) {
@@ -19699,6 +19716,9 @@ is_transparent.  conv_context describes the context of the conversion.
     /* The types are compatible.  Do the conversion. */
     if (conv_context & CCO_CAST) {
       conversion->is_explicit_cast = TRUE;
+    }  /* if */
+    if (conv_context & CCO_BASE_INIT) {
+      conversion->is_base_init = TRUE;
     }  /* if */
     if (conv_context & CCO_NONTYPE_TEMPLATE_ARG) {
       /* Some conversions are not allowed on a nontype template argument.
@@ -20373,6 +20393,7 @@ happen only in C++ mode.
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     set_up_for_constructor_call(source_operand, conversion_routine,
+                                conversion->is_base_init,
                                 ctor_arg_conversion, &arg_expr_list,
                                 &class_bitwise_copy);
     if (class_bitwise_copy) {
@@ -20645,6 +20666,7 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
         /* Make the dynamic init call the copy constructor. */
         cctor_case = TRUE;
         set_up_for_constructor_call(operand, cctor_routine,
+                                    /*is_base_init=*/FALSE,
                                     (a_conv_descr *)NULL, &cctor_arg,
                                     &class_bitwise_copy);
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
