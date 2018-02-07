@@ -73,7 +73,7 @@ example:
 
   typedef struct { } *S1;
   template<typename T> struct S2 { };
-  S2<S1> x;  // Previously generated as S2<__T12345678 *>"
+  S2<S1> x;  // Previously generated as "S2<__T12345678 *>"
 
 
 2/6/18   [EDGcpfe/19296]
