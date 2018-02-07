@@ -38,7 +38,12 @@ GNU compatibility: folding __builtin_bswap functions
 The __builtin_bswap{16,32,64} functions are now folded when called with
 constant arguments.  For example, with --gcc:
 
-unsigned short x = __builtin_bswap16(0x1234);   // x = 0x3421
+  unsigned short x = __builtin_bswap16(0x1234);   // x = 0x3412
+
+Also, these functions can now be used in constexpr functions, e.g.,
+(with --c++14 --g++):
+
+  static_assert(__builtin_bswap16(0x1122) == 0x2211, "");
 
 
 2/6/18   [EDGcpfe/19292]
