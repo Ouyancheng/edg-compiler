@@ -44,10 +44,10 @@ unsigned short x = __builtin_bswap16(0x1234);   // x = 0x3421
 2/6/18   [EDGcpfe/19292]
 Abort in should_delay_lowering_on_function in some Microsoft modes
 
-The changes for EDGcpfe/18142 introduced a regression in Microsoft mode on
-certain member functions declared "constexpr" but found not to be constexpr.
-This caused an assertion to fail in should_delay_lowering_on_function.
-For example, with microsoft_version=1900:
+The changes for EDGcpfe/18142 (in version 4.14) introduced a regression in
+Microsoft mode on certain member functions declared "constexpr" but found not
+to be constexpr.  This caused an assertion to fail in
+should_delay_lowering_on_function.  For example, with microsoft_version=1900:
 
   int g();
   template<typename T> struct S {
