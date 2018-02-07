@@ -2114,6 +2114,42 @@ have_kind:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
 
+a_boolean swap_bytes_in_unsigned_integer(unsigned int     bytes,
+                                         an_integer_value *value,
+                                         an_integer_value *swapped)
+/*
+Does a byte swapping operation on the unsigned integer "value", returning
+the result in "swapped".  "bytes" is the number of bytes to be swapped.
+Returns TRUE unless "bytes" is larger than the size of the largest integer.
+Assumes bytes are 8 bits.
+*/
+{
+  a_boolean             err, result = TRUE;
+  an_integer_value      copy_val, one_byte_val, one_byte_mask_val;
+
+  if (bytes > TARG_SIZEOF_LARGEST_INTEGER) {
+    /* Can't swap an integer larger than the largest. */
+    result = FALSE;
+  } else {
+    check_assertion(targ_char_bit == 8);
+    set_unsigned_integer_value(swapped, (a_host_large_unsigned)0);
+    copy_val = *value;
+    set_unsigned_integer_value(&one_byte_mask_val,
+                               (a_host_large_unsigned)0xFF);
+    while (bytes--) {
+      one_byte_val = one_byte_mask_val;
+      and_integer_values(&one_byte_val, &copy_val);
+      shift_left_integer_value(&one_byte_val, bytes * 8, &err);
+      check_assertion(!err);
+      or_integer_values(swapped, &one_byte_val);
+      shift_right_integer_value(&copy_val, 8, /*is_signed=*/FALSE,
+                                /*sign_extend=*/FALSE);
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* swap_bytes_in_unsigned_integer */
+
+
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
 Initialize the elements of min_integer_value_of_kind and

@@ -7099,6 +7099,43 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+    case bfk_bswap16:
+    case bfk_bswap32:
+    case bfk_bswap64:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL || targ_char_bit != 8) {
+          unexpected_condition();
+        } else {
+          unsigned int  bytes;
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          switch (callee->variant.builtin_function_kind) {
+            case bfk_bswap16:
+              bytes = 2;
+              break;
+            case bfk_bswap32:
+              bytes = 4;
+              break;
+            case bfk_bswap64:
+              bytes = 8;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          check_assertion(tp->size == bytes &&
+                          tp->kind == (a_type_kind)tk_integer);
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !swap_bytes_in_unsigned_integer(bytes,
+                                         (an_integer_value *)arg1_bytes,
+                                         (an_integer_value *)result_storage)) {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+      }
+      break;
     default:
       interpreted = FALSE;
   }  /* switch */

@@ -302,6 +302,10 @@ EXTERN an_integer_value
 		min_integer_value_of_kind[(int)ik_last],
 		max_integer_value_of_kind[(int)ik_last];
 
+extern a_boolean swap_bytes_in_unsigned_integer(unsigned int     bytes,
+                                                an_integer_value *value,
+                                                an_integer_value *swapped);
+
 #endif /* ifndef CONST_INTS_H */
 
 

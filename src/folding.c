@@ -9299,67 +9299,6 @@ either a ck_template_param constant or has a template-dependent type.
 }  /* is_dependent_list_of_constant_nodes */
 
 
-static a_boolean fold_bswap_operation_if_possible(
-                                           a_builtin_function_kind kind,
-                                           an_expr_node_ptr        arg,
-                                           a_type_ptr              result_type,
-                                           a_constant_ptr          result_con)
-/*
-kind represents a GNU builtin bswap function which is being applied to the
-given argument.  result_type is the return type of the builtin function.  If
-the argument is a constant integer, set result_con to the result of bswap and
-return TRUE.  Otherwise, return FALSE.
-
-This routine will fail to fold the operation (and return FALSE) if the
-argument cannot be represented in a_host_large_unsigned.
-*/
-{
-  a_boolean   folded = FALSE;
-
-  result_type = skip_typerefs(result_type);
-  check_assertion(result_type->kind == (a_type_kind)tk_integer);
-  if (is_constant_node(arg) &&
-      arg->variant.constant.ptr->kind == (a_constant_repr_kind)ck_integer) {
-    a_constant_ptr         cp = arg->variant.constant.ptr;
-    a_boolean              err;
-    a_host_large_unsigned  val = unsigned_value_of_integer_constant(cp, &err);
-    if (!err) {
-      a_host_large_unsigned  result;
-      switch (kind) {
-#define get_byte(val, b) /*lint --e(835)*/(0xff & ((val) >> ((b) * 8)))
-        case bfk_bswap16:
-          result = get_byte(val, 0) << (1*8) |
-                   get_byte(val, 1);
-          break;
-        case bfk_bswap32:
-          result = get_byte(val, 0) << (3*8) |
-                   get_byte(val, 1) << (2*8) |
-                   get_byte(val, 2) << (1*8) |
-                   get_byte(val, 3);
-          break;
-        case bfk_bswap64:
-          result = /*lint --e(572)*/ get_byte(val, 0) << (7*8) |
-                                     get_byte(val, 1) << (6*8) |
-                                     get_byte(val, 2) << (5*8) |
-                                     get_byte(val, 3) << (4*8) |
-                                     get_byte(val, 4) << (3*8) |
-                                     get_byte(val, 5) << (2*8) |
-                                     get_byte(val, 6) << (1*8) |
-                                     get_byte(val, 7);
-          break;
-        default:
-          unexpected_condition();
-#undef get_byte
-      }  /* switch */
-      set_unsigned_integer_constant(result_con, (a_host_large_unsigned)result,
-                                    result_type->variant.integer.int_kind);
-      folded = TRUE;
-    }  /* if */
-  }  /* if */
-  return folded;
-}  /* fold_bswap_operation_if_possible */
-
-
 a_boolean fold_gnu_builtin_function_call_if_possible(
                                                   a_routine_ptr    rp,
                                                   an_expr_node_ptr args,
@@ -9702,11 +9641,29 @@ the folding mechanism is used as a way to validate argument values.
       case bfk_bswap32:
       case bfk_bswap64:
         /* Byte swap functions. */
-        if (args != NULL && args2 == NULL) {
-          folded = fold_bswap_operation_if_possible(
-                                            rp->variant.builtin_function_kind,
-                                            args, return_type_of(rp->type),
-                                            result);
+        if (args != NULL && args2 == NULL &&
+            targ_char_bit == 8 &&
+            is_constant_node(args) &&
+            args->variant.constant.ptr->kind ==
+                                            (a_constant_repr_kind)ck_integer) {
+          unsigned int bytes;
+          check_assertion(result_type->kind == (a_type_kind)tk_integer);
+          switch (rp->variant.builtin_function_kind) {
+            case bfk_bswap16:
+              bytes = 2;
+              break;
+            case bfk_bswap32:
+              bytes = 4;
+              break;
+            case bfk_bswap64:
+              bytes = 8;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          folded = swap_bytes_in_unsigned_integer(bytes,
+                            &args->variant.constant.ptr->variant.integer_value,
+                            &result->variant.integer_value);
         }  /* if */
         break;
       default:
