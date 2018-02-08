@@ -19201,7 +19201,7 @@ is used only in C++ mode.
   a_type_ptr access_class;
 
   if (is_base_init) {
-    /* This is a base class initializer.  Set access class to the enclosing
+    /* This is a base class initializer.  Set access_class to the enclosing
        class of the derived class constructor to ensure "protected" access
        is handled correctly.  E.g.:
          class B { protected: B(B const&); };
