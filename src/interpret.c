@@ -12461,7 +12461,7 @@ the value representation of the integer value.
                   a_variable_ptr
                               vp = addr_con->variant.address.variant.variable;
                   if (addr_con->variant.address.offset >=
-                                              skip_typerefs(vp->type)->size) {
+                            (a_targ_ptrdiff_t)skip_typerefs(vp->type)->size) {
                     /* An attempt to select a field outside the variable. */
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_access_past_object,
@@ -12562,7 +12562,7 @@ the value representation of the integer value.
                   a_variable_ptr
                               vp = addr_con->variant.address.variant.variable;
                   if (addr_con->variant.address.offset >=
-                                              skip_typerefs(vp->type)->size) {
+                            (a_targ_ptrdiff_t)skip_typerefs(vp->type)->size) {
                     /* An attempt to select a field outside the variable. */
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_access_past_object,
