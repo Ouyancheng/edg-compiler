@@ -7118,7 +7118,7 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (args == NULL || args->next != NULL || targ_char_bit != 8) {
           unexpected_condition();
         } else {
-          unsigned int  bytes;
+          unsigned int  bytes = 0;
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
