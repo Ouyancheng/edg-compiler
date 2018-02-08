@@ -6221,10 +6221,9 @@ start_underlying_expression:
   if (constexpr_enabled && is_glvalue_node(expr) &&
       (is_operation_node(expr) ||
        expr->kind == (an_expr_node_kind)enk_builtin_operation) &&
-      fold_glvalue_expr(expr, con)) {
-    /* The operation could be folded to a constant address using the
-       interpreter. */
-    is_constant_addr = TRUE;
+      !is_template_dependent_context()) {
+    /* Use the interpreter to fold the expression. */
+    is_constant_addr = fold_glvalue_expr(expr, con);
     goto have_result;
   }  /* if */
   switch (expr->kind) {

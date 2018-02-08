@@ -2405,6 +2405,17 @@ redo:
       if (result == 0) {
         if (!tp->incomplete) {
           result = lay_out_class_type(ips, tp, p_result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (tp == type_of_guid) {
+          /* Although _GUID is a predefined incomplete type, some lvalues can
+             have a _GUID type and do_constexpr_expression therefore expects
+             to be able to determine its size.  Since _GUID is implemented as
+             four integer values of various sizes, we compute a matching
+             size. */
+          result = sizeof(a_type_ptr);
+          do_host_alignment(result);
+          result += 4*sizeof(an_integer_value);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           a_source_position  *pos = &tp->source_corresp.decl_position;
           info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
@@ -9222,22 +9233,42 @@ the value representation of the integer value.
           case eok_lvalue_cast:
           case eok_ref_cast:
           case eok_lvalue_adjust:
-            /* If the type (other than qualification) doesn't change, this is
-               is not a reinterpret-like cast and we can interpret the result.
-               In the case of casting a function lvalue to a reference to
-               function type, it is possible that the type of this node was
-               later "decayed" to a pointer-to-function type (to match the
-               expectations of a parent node); that case is valid, too. */
-            if (expr->variant.operation.is_reinterpret_cast ||
-                (!identical_types_ignoring_qualifiers(tp, opnd1_type) &&
-                 !acceptable_lvalue_conversion(
-                    ips, (a_constexpr_address*)opnd1_value, opnd1_type, tp))) {
-              info_with_pos_type2(ec_constexpr_invalid_type_conversion,
-                                  &expr->position, opnd1_type, tp, ips);
-              do_constexpr_fail(result);
-            } else {
-              SET_result_val_from_operand_address(opnd1_value);
-            }  /* if */
+            { a_boolean  valid_cast;
+              if (expr->variant.operation.is_reinterpret_cast) {
+                /* reinterpret_cast expressions are generally invalid, but GCC
+                   and MSVC appear to allow them on null-based addresses to
+                   permit traditional offsetof implementations. */
+                if (((gpp_mode && !clang_mode) || microsoft_mode) &&
+                    is_null_address((a_constexpr_address*)opnd1_value)) {
+                  valid_cast = TRUE;
+                } else {
+                  valid_cast = FALSE;
+                }  /* if */
+              } else {
+                /* If the type (other than qualification) doesn't change, this
+                   is not a reinterpret-like cast and we can interpret the
+                   result.  In the case of casting a function lvalue to a
+                   reference to function type, it is possible that the type of
+                   this node was later "decayed" to a pointer-to-function type
+                   (to match the expectations of a parent node); that case is
+                   valid, too. */
+                if (!identical_types_ignoring_qualifiers(tp, opnd1_type) &&
+                    !acceptable_lvalue_conversion(
+                                       ips, (a_constexpr_address*)opnd1_value,
+                                       opnd1_type, tp)) {
+                  valid_cast = FALSE;
+                } else {
+                  valid_cast = TRUE;
+                }  /* if */
+              }  /* fi */
+              if (valid_cast) {
+                SET_result_val_from_operand_address(opnd1_value);
+              } else {
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
+                do_constexpr_fail(result);
+              }  /* if */
+            }
             break;
           case eok_base_class_cast:
             if (tp->kind == (a_type_kind)tk_pointer ||
