@@ -12454,14 +12454,28 @@ the value representation of the integer value.
               if (is_runtime_data_address(&result_addr)) {
                 /* Attempt to compute a new offset for a run-time address
                    constant. */
+                a_constant_ptr  addr_con = result_addr.variant.addr_con;
+                if (constant_is(addr_con, ck_address) &&
+                    addr_con->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+                  a_variable_ptr
+                              vp = addr_con->variant.address.variant.variable;
+                  if (addr_con->variant.address.offset >=
+                                              skip_typerefs(vp->type)->size) {
+                    /* An attempt to select a field outside the variable. */
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_access_past_object,
+                                  &expr->position, ips);
+                    break;
+                  }  /* if */
+                }  /* if */
                 if (!(expr->is_lvalue || expr->is_xvalue) ||
                     field->is_bit_field) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
                                 &expr->position, ips);
                 } else {
-                  a_constant_ptr    new_con = local_constant(),
-                                    addr_con = result_addr.variant.addr_con;
+                  a_constant_ptr    new_con = local_constant();
                   an_expr_node_ptr  backing_expr = addr_con->expr;
                   /* Temporarily clear the backing expression to avoid
                      maintaining it at this stage. */
@@ -12541,13 +12555,27 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_null_ptr_to_member_data,
                               &expr->position, ips);
               } else if (is_runtime_data_address(&result_addr)) {
+                a_constant_ptr  addr_con = result_addr.variant.addr_con;
+                if (constant_is(addr_con, ck_address) &&
+                    addr_con->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+                  a_variable_ptr
+                              vp = addr_con->variant.address.variant.variable;
+                  if (addr_con->variant.address.offset >=
+                                              skip_typerefs(vp->type)->size) {
+                    /* An attempt to select a field outside the variable. */
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_access_past_object,
+                                  &expr->position, ips);
+                    break;
+                  }  /* if */
+                }  /* if */
                 if (!(expr->is_lvalue || expr->is_xvalue)) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
                                 &expr->position, ips);
                 } else {
-                  a_constant_ptr    new_con = local_constant(),
-                                    addr_con = result_addr.variant.addr_con;
+                  a_constant_ptr    new_con = local_constant();
                   /* Temporarily clear the backing expression to avoid
                      maintaining it at this stage. */
                   an_expr_node_ptr  backing_expr = addr_con->expr;
