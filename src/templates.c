@@ -6792,6 +6792,7 @@ expression context) rather than a declaration.
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
+    a_boolean	reset_auto_type_specifier_seen = FALSE;
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
     rescan_reusable_cache(&body_cache->tokens);
@@ -6821,6 +6822,7 @@ expression context) rather than a declaration.
        not a parenthesized initializer.   Initializers that begin with an
        invalid token will have already been discarded. */
     has_parenthesized_initializer = curr_token == tok_lparen;
+    dps.has_initializer = TRUE;
     /* Bypass the "=" or "(". */
     if (curr_token == tok_lbrace) {
       dps.has_direct_initializer = TRUE;
@@ -6834,6 +6836,15 @@ expression context) rather than a declaration.
     }  /* if */
     dps.sym = var_sym;
     dps.type = var_ptr->type;
+    if (dps.auto_type_specifier_seen) {
+      prescan_initializer_for_auto_type_deduction(
+                                         &dps, has_parenthesized_initializer);
+      /* Temporarily clear the "auto type specifier seen" flag to avoid
+         having the call to "initializer" attempt to prescan the expression
+         again. */
+      dps.auto_type_specifier_seen = FALSE;
+      reset_auto_type_specifier_seen = TRUE;
+    }  /* if */
     if (var_ptr->initializer_in_class &&
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
@@ -6855,6 +6866,9 @@ expression context) rather than a declaration.
         scan_member_constant_for_variable(&dps, var_ptr);
       }  /* if */
       check_constant_valued_variable(&dps);
+    }  /* if */
+    if (reset_auto_type_specifier_seen) {
+      dps.auto_type_specifier_seen = TRUE;
     }  /* if */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);

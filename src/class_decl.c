@@ -16460,7 +16460,13 @@ template declaration and is NULL otherwise.
       decl_state->has_direct_initializer = TRUE;
       decl_state->init_state.direct_init = TRUE;
     }  /* if */
-    if (decl_state->auto_type_specifier_seen && !is_error_type(member_type)) {
+    if (decl_info->is_member_template) {
+      /* A variable template with an in-class initializer. */
+      a_token_cache  *token_cache;
+      token_cache = cache_inclass_initializer(sym);
+      initializer_cache = token_cache;
+    } else if (decl_state->auto_type_specifier_seen &&
+               !is_error_type(member_type)) {
       if (delay_initializer_scan) {
         pos_error(ec_auto_not_allowed_here, &decl_state->auto_pos);
         member_type = decl_state->type = error_type();
@@ -16470,11 +16476,6 @@ template declaration and is NULL otherwise.
         member_type = decl_state->type;
         constant_member = is_const_qualified_type(member_type);
       }  /* if */
-    } else if (decl_info->is_member_template) {
-      /* A variable template with an in-class initializer. */
-      a_token_cache  *token_cache;
-      token_cache = cache_inclass_initializer(sym);
-      initializer_cache = token_cache;
     } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
                constant_member && in_class_template_definition(class_state)) {
       /* GCC appears to instantiate the initializer on demand.  Cache and
