@@ -13038,10 +13038,13 @@ same address.  Also record the associated subobject path.
       a_byte_count  n_bytes = value_bytes_for_type(ips, type, &result);
       check_assertion(result);
       if ((a_byte_count)(address - parent_address) == n_bytes) {
-        /* The address points one position past the top-level variable and
-           therefore not "into" the variable. */
-        con->variant.address.offset = type->size;
-        goto done;
+        a_type_ptr  tpt = type_pointed_to(con->type);
+        if (skip_typerefs(tpt) == type) {
+          /* The address points one position past the top-level variable and
+             therefore not "into" the variable. */
+          con->variant.address.offset = type->size;
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
     do {
