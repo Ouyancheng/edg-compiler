@@ -2574,6 +2574,7 @@ position for which diagnostics should be issued.
       if (!is->check_validity_only) {
         /* Add the constant entry to the list of constants. */
         init_con->implicit_aggr_element = TRUE;
+        init_con->constant_for_base_class = TRUE;
         add_constant_to_aggregate(init_con, aggr_con);
       }  /* if */
     }  /* for */
