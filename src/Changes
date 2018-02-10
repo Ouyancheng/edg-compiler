@@ -1,5 +1,24 @@
 Version 4.15
 
+2/10/18  [EDGcpfe/19234]
+C-generating back end: const volatile initialized static data members
+
+The C-generating back end previously put out both an extern declaration
+with no initializer and an extern declaration with an initializer for a
+static data member that is both const- and volatile-qualified and
+initialized in the class definition but is not defined in the translation
+unit.  The declaration with the initializer acts as a definition, which
+would result in a linker conflict if the static data member were actually
+defined in another translation unit.  This is now fixed, and the
+declaration with the initializer is now suppressed.  For example, with
+--c++14:
+
+  struct S {
+    static constexpr volatile char x = 'a';
+  };
+  char f() { return S::x; }
+
+
 2/9/18   [EDGcpfe/19307]
 Static data member template with "auto" type specifier
 
@@ -152,24 +171,6 @@ check the remaining constraints.  For example:
 
 This example previously failed to diagnose the fact that the begin() and end()
 iterators have types that cannot be compared.  This is now fixed.
-
-
-2/2/18   [EDGcpfe/19234]
-Lowering of sc_extern variables with initializers
-
-It is possible in the IL to have a variable with sc_extern storage class that
-also has an initializer, as in this case (with --c++14):
-
-  struct A {
-    static constexpr volatile int m = 14;
-  };
-  int f() {
-    return A::m;
-  }
-
-Previously, in C-generating back ends, an initialization had been emitted
-on the declaration of the static data member, turning it into a definition.
-The initialization is now suppressed.
 
 
 2/2/18   [EDGcpfe/19235]

@@ -8854,6 +8854,15 @@ interleaved with the variables.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA types should be lowered");
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    } else if (!dump_vars_without_initializers &&
+               var_ptr->storage_class == (a_storage_class)sc_extern) {
+      /* Do not put out a declaration with an initializer for a variable
+         that is not definition, which would be indicated by
+         sc_unspecified.  Some static data members with in-class
+         initializers can result in an sc_extern variable with an
+         initializer; putting out a declaration with an initializer would
+         be treated as a definition, which would conflict with a real
+         definition in another translation unit. */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
