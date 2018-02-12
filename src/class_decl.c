@@ -30586,6 +30586,7 @@ state block.
     dps->type = dps->specifiers_type;
   }  /* if */
   dps->declared_type = dps->type;
+  dps->has_deduced_type = TRUE;
   dps->auto_type_specifier_seen = TRUE;
   if (curr_token == tok_assign) {
     /* Skip the assignment token. */
