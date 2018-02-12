@@ -128,8 +128,6 @@ abstract or real declarator.
    (C_dialect == C_dialect_cplusplus &&                                  \
     is_ptr_to_member_declarator_start()))
 
-extern a_boolean is_func_declarator_start(void);
-
 
 /* Constants defining bits in the input bit vector used in calls to
    declarator. */
