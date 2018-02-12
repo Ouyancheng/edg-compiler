@@ -7135,8 +7135,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             default:
               unexpected_condition();
           }  /* switch */
-          check_assertion(tp->size == bytes &&
-                          tp->kind == (a_type_kind)tk_integer);
+          check_assertion(tp->kind == (a_type_kind)tk_integer);
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !swap_bytes_in_unsigned_integer(bytes,
