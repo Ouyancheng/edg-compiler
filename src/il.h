@@ -476,6 +476,12 @@ Return TRUE if cp is a ck_template_param/tpck_unknown_function constant.
         (a_template_param_constant_kind)tpck_unknown_function)
 
 /*
+Return TRUE if tp has the specified type kind.
+*/
+#define type_is(tp, type_kind)						\
+  ((tp)->kind == (a_type_kind)(type_kind))
+
+/*
 Return TRUE if tp is a template type parameter pack.
 */
 #define type_is_pack(tp)						\
@@ -2449,6 +2455,10 @@ a routine.
   ((con)->kind == (a_constant_repr_kind)ck_address &&                 \
    (con)->variant.address.kind == (an_address_base_kind)abk_routine &&\
    (con)->variant.address.offset == 0 && !(con)->implicit_cast)
+
+extern
+a_type_ptr make_class_template_placeholder(struct a_symbol   *class_template,
+                                           a_source_position *pos);
 
 extern a_type_ptr make_auto_type(a_source_position *pos,
                                  a_boolean         is_decltype_auto);

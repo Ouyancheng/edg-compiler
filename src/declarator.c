@@ -2233,7 +2233,7 @@ routine is also called for the trailing return type of a lambda declarator.
   a_boolean                      err = FALSE;
 
   check_assertion(curr_token == tok_arrow);
-  if (dps->is_lambda) {
+  if (dps->is_lambda || dps->has_deducible_class_templ_args) {
     /* No special syntax checks are needed. */
   } else if (!dps->auto_type_specifier_seen ||
              dps->decltype_auto_specifier_seen) {
@@ -2616,7 +2616,8 @@ this is a helper function.
      trailing return type follows. */
   attributes = composite_attributes(attributes, scan_attributes(al_post_func));
   if (curr_token == tok_arrow &&
-      (trailing_return_types_enabled || state->is_lambda)) {
+      (trailing_return_types_enabled || state->is_lambda ||
+       state->is_deduction_guide)) {
     /* A trailing return type. */
     scan_trailing_return_type(state, rout_type);
   } else {
@@ -2688,20 +2689,20 @@ known; otherwise it is NULL.
 }  /* report_incomplete_function_return_type */
 
 
-static void function_declarator(a_decl_parse_state  *state,
-                                a_decl_flag_set     di_flags,
-                                a_type_ptr          *new_type_ptr,
-                                a_func_info_block   *func_info,
-                                a_symbol_locator    *locator,
-                                a_type_ptr          parent_type,
-                                a_boolean           is_nonstatic_member,
-                                a_boolean           is_constructor,
-                                a_boolean           is_static_constructor,
-                                a_boolean           is_destructor,
-                                a_boolean           is_finalizer,
-                                a_boolean           disallow_default_args,
-                                a_boolean           disallow_exception_spec,
-                                a_decl_pos_block    *decl_pos_block)
+void function_declarator(a_decl_parse_state  *state,
+                         a_decl_flag_set     di_flags,
+                         a_type_ptr          *new_type_ptr,
+                         a_func_info_block   *func_info,
+                         a_symbol_locator    *locator,
+                         a_type_ptr          parent_type,
+                         a_boolean           is_nonstatic_member,
+                         a_boolean           is_constructor,
+                         a_boolean           is_static_constructor,
+                         a_boolean           is_destructor,
+                         a_boolean           is_finalizer,
+                         a_boolean           disallow_default_args,
+                         a_boolean           disallow_exception_spec,
+                         a_decl_pos_block    *decl_pos_block)
 /*
 Scan a function declarator, or an array declarator in an abstract declarator.
 Allocate and return in *new_type_ptr an appropriate function type.  The
@@ -7931,7 +7932,8 @@ the parameters.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
   check_assertion_str(!is_constructor || member_parent_type != NULL ||
-                      (input_flags & DI_IS_FRIEND_DECL),
+                      (input_flags & (DI_IS_FRIEND_DECL |
+                                      DI_IS_DEDUCTION_GUIDE)),
                       "declarator: parent class is NULL for ctor");
   state->declarator_start_pos = pos_curr_token;
   if (is_prototype_instantiation_context()) {

@@ -2359,6 +2359,9 @@ Display the indicated type entry.
       if (ptr->variant.typeref.is_deduced_auto) {
         disp_boolean("is_deduced_auto", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_deduced_class) {
+        disp_boolean("is_deduced_class", TRUE);
+      }  /* if */
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);
       }  /* if */

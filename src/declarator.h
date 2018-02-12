@@ -128,6 +128,9 @@ abstract or real declarator.
    (C_dialect == C_dialect_cplusplus &&                                  \
     is_ptr_to_member_declarator_start()))
 
+extern a_boolean is_func_declarator_start(void);
+
+
 /* Constants defining bits in the input bit vector used in calls to
    declarator. */
 #define DI_NO_INPUT_FLAGS ((a_decl_flag_set)0x0)
@@ -208,7 +211,10 @@ abstract or real declarator.
 			   list is allowed.  An explicit argument list might
 			   also be allowed as the result of other flags in
 			   some cases. */
-#define DI_LAST DI_EXPLICIT_TEMPLATE_ARGS_ALLOWED
+#define DI_IS_DEDUCTION_GUIDE ((a_decl_flag_set)0x100000)
+			/* If this bit is set the declaration is for a C++17
+			   deduction guide. */
+#define DI_LAST DI_IS_DEDUCTION_GUIDE;
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DI_LAST)*/
 /* Constants defining bits in the output bit vector used in calls to
@@ -297,6 +303,21 @@ Clear a calling convention description.
 #define clear_call_conv_descr(call_conv_descr)                        \
   ((call_conv_descr)->call_conv = (a_calling_convention)cc_default)
 
+
+extern void function_declarator(a_decl_parse_state  *state,
+                                a_decl_flag_set     di_flags,
+                                a_type_ptr          *new_type_ptr,
+                                a_func_info_block   *func_info,
+                                a_symbol_locator    *locator,
+                                a_type_ptr          parent_type,
+                                a_boolean           is_nonstatic_member,
+                                a_boolean           is_constructor,
+                                a_boolean           is_static_constructor,
+                                a_boolean           is_destructor,
+                                a_boolean           is_finalizer,
+                                a_boolean           disallow_default_args,
+                                a_boolean           disallow_exception_spec,
+                                a_decl_pos_block    *decl_pos_block);
 
 extern
 void declarator(a_decl_flag_set             input_flags,

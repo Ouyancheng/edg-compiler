@@ -1800,6 +1800,30 @@ routine to do lookahead, etc.
 }  /* is_decl_not_expr */
 
 
+a_boolean is_func_declarator_start(void)
+/*
+Return TRUE if what follows looks like the start of a function declarator.
+*/
+{
+  a_boolean  result;
+
+  if (curr_token != tok_lparen) {
+    result = FALSE;
+  } else {
+    a_disambig_state  state;
+    /* Initialize the disambiguation state block. */
+    init_disambig_state(&state, /*check_if_is_decl=*/TRUE,
+                        /*suppress_packs=*/TRUE,
+                        /*cache_tokens=*/TRUE);
+    get_token_and_coalesce_if_identifier(DFS_NO_FLAGS);
+    prescan_function_declarator(&state, DFS_NO_FLAGS);
+    result = state.may_be_decl;
+    wrapup_disambig_state(&state);
+  }  /* if */
+  return result;
+}  /* is_func_declarator_start */
+
+
 a_type_ptr prescan_and_find_declarator(a_boolean     *is_friend_decl)
 /*
 Scan the declaration that follows "template <...>" and find the

@@ -3574,9 +3574,12 @@ and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      tssp->variant.class_template.implicit_deduction_guides_added = FALSE;
+      tssp->variant.class_template.interim_implicit_deduction_guides = FALSE;
       tssp->variant.class_template.invented_template = FALSE;
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
+      tssp->variant.class_template.deduction_guides = NULL;
       clear_template_cache(&tssp->variant.class_template.initial_decl_cache,
                            /*reusable=*/TRUE);
 #if CENTERLINE_CHECKING 
@@ -6812,6 +6815,46 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   /* Return a pointer to the newly created symbol as well. */
   return sym_ptr;
 }  /* enter_overloaded_symbol */
+
+
+void add_deduction_guide(a_symbol_ptr  new_guide,
+                         a_symbol_ptr  *p_guide_set)
+/*
+*p_guide_set represents a set of deduction guides (possibly NULL for an empty
+set).  Add new_guide to this set.
+*/
+{
+  a_symbol_ptr  guide_set = *p_guide_set;
+
+  if (guide_set == NULL) {
+    *p_guide_set = new_guide;
+  } else if (symbol_is(guide_set, sk_overloaded_function)) {
+    /* Add new_guide to the existing set. */
+    new_guide->next = guide_set->variant.overloaded_function.symbols;
+    guide_set->variant.overloaded_function.symbols = new_guide;
+    new_guide->overload_set_member = TRUE;
+  } else {
+    /* Create an overload set. */
+    a_symbol_ptr  old_guide = guide_set;
+    guide_set = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                             old_guide->header, &old_guide->decl_position);
+    guide_set->decl_scope = old_guide->decl_scope;
+    guide_set->decl_seq = old_guide->decl_seq;
+    guide_set->potentially_overloaded = old_guide->potentially_overloaded;
+    /* If the symbol is a member of a class or namespace, set the membership
+       of the new symbol. */
+    if (old_guide->is_class_member) {
+      set_class_membership(guide_set, (a_source_correspondence *)NULL,
+                           sym_parent_class(old_guide));
+    } else if (sym_is_namespace_member(old_guide)) {
+      set_namespace_membership(guide_set,  (a_source_correspondence *)NULL,
+                               sym_parent_namespace(old_guide));
+    }  /* if */
+    new_guide->next = old_guide;
+    guide_set->variant.overloaded_function.symbols = new_guide;
+    *p_guide_set = guide_set;
+  }  /* if */
+}  /* add_deduction_guide */
 
 
 a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym)

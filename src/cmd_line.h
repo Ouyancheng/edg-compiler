@@ -662,6 +662,11 @@ EXTERN a_boolean
 			   arguments are in effect. */
 
 EXTERN a_boolean
+		class_template_arg_deduction_enabled;
+			/* TRUE if C++17 class template argument deduction
+			   is enabled. */
+
+EXTERN a_boolean
 		floating_point_template_parameters_allowed;
 			/* TRUE if template parameters of floating-point type
 			   are allowed (which is nonstandard). */

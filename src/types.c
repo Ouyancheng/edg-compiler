@@ -2632,6 +2632,26 @@ checking for that.
 }  /* is_auto_type */
 
 
+a_boolean is_class_template_placeholder_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a special template parameter type used to
+represent a class template that is being used for class template argument
+deduction.  No typerefs are stripped before checking for that.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_template_param(tp) &&
+      tp->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+      tp->variant.template_param.extra_info->coordinates.depth ==
+                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_class_template_placeholder_type */
+
+
 a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp)
 /*
 Returns TRUE if the given type is volatile-qualified, is a class/struct/union

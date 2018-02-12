@@ -3444,6 +3444,7 @@ default mode (e.g., exception handling).
       }  /* if */
       aggregate_classes_can_have_bases = TRUE;
       generalized_template_template_matching = TRUE;
+      class_template_arg_deduction_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11753,6 +11754,7 @@ variables declared in cmd_line.h.
   capture_star_this_enabled = FALSE;
   fold_expressions_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;
+  class_template_arg_deduction_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

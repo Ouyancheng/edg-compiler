@@ -305,6 +305,8 @@ static a_type_ptr decltype_from_operand(an_operand *operand,
 
 static a_boolean deduce_placeholder_type(
                                       a_boolean         is_decltype_auto,
+                                      a_boolean         is_class_template,
+                                      a_boolean         is_direct_init,
                                       a_type_ptr        orig_type,
                                       a_type_ptr        auto_type,
                                       a_boolean         keep_placeholder,
@@ -315,12 +317,15 @@ static a_boolean deduce_placeholder_type(
                                       a_type_ptr        *deduced_auto_type,
                                       a_boolean         *still_dependent)
 /*
-Do type deduction for a use of "auto" or "decltype(auto)" in a declaration or
-similar construct.  If the call is for a "decltype(auto)" construct, the flag
-is_decltype_auto is TRUE.  orig_type is the type of the declared entity, with
-"auto" embedded in it.  auto_type is the "auto" type that's embedded (a
-template parameter type); it can be NULL, in which case this routine will find
-it inside orig_type.  initializer_operand is the initializer, whose type is
+Do type deduction for a use of "auto", "decltype(auto)", or for deduction
+of class template arguments in a declaration or similar construct.  If the
+call is for a "decltype(auto)" construct, the flag is_decltype_auto is TRUE.
+If the call is for deduction of class template arguments, is_class_template
+is TRUE.  If this deduction is from a direct initializer, is_direct_init is
+TRUE.  orig_type is the type of the declared entity, with "auto" embedded
+in it.  auto_type is the "auto" type that's embedded (a template parameter
+type); it can be NULL, in which case this routine will find it inside
+orig_type.  initializer_operand is the initializer, whose type is
 used to do the deduction.  Alternatively, initializer_alep can be used to
 specify the initializer in init-component form; if it's non-NULL it is used
 instead of initializer_operand.  source_pos is the source position of the
@@ -335,7 +340,19 @@ was not attempted because the types involved are still dependent,
 {
   a_boolean  result;
 
-  if (!is_decltype_auto) {
+  if (is_class_template) {
+    /* This is a class template argument deduction case. */
+    result = TRUE;
+    *type_after_deduction = void_type();
+    *still_dependent = FALSE;
+    result = deduce_class_template_args(auto_type, is_direct_init,
+                                        keep_placeholder, initializer_alep,
+                                        source_pos, deduced_auto_type,
+                                        still_dependent);
+    if (result) {
+      *type_after_deduction = *deduced_auto_type;
+    }  /* if */
+  } else if (!is_decltype_auto) {
     result = deduce_auto_type(orig_type, auto_type, keep_placeholder,
                               initializer_operand, initializer_alep,
                               source_pos, type_after_deduction,
@@ -383,6 +400,23 @@ was not attempted because the types involved are still dependent,
 }  /* deduce_placeholder_type */ 
 
 
+static void scan_call_arguments(
+                           a_type_ptr               function_type,
+                           a_routine_ptr            routine,
+                           a_boolean                already_after_left_paren,
+                           an_expr_node_ptr         *p_argument_list,
+                           a_boolean                return_raw_arguments,
+                           a_boolean                unknown_dependent_function,
+                           a_boolean                args_will_be_discarded,
+                           a_boolean                is_custom_ms_attr_arg_list,
+                           a_rescan_control_block   *rcblock,
+                           a_boolean                arg_list_supplied,
+                           an_arg_list_elem_ptr     supplied_arg_list,
+                           an_arg_list_elem_ptr     *p_arg_list,
+                           an_operand               *single_operand,
+                           a_boolean                *single_operand_returned,
+                           a_source_position        *closing_paren_position);
+
 void prescan_initializer_for_auto_type_deduction(
                                          a_decl_parse_state *dps,
                                          a_boolean          parenthesized_init)
@@ -392,7 +426,7 @@ declaration and deduce the type of the variable.  The operand resulting from
 the scan is recorded in *dps for later consumption.  On return,
 dps->deduced_auto_type is the type to which the "auto"/"decltype(auto)" was
 deduced, and dps->type is the type of the entity to initialize.  
-dps->auto_type_specifier_seen (which must be TRUE on entry) is cleared to
+dps->has_deduced_type (which must be TRUE on entry) is cleared to
 FALSE if there was a deduction error, and dps->deduced_auto_type is returned
 NULL if deduction was not done because the type or initializer is still
 dependent.  The prescanned operand can later be accessed using
@@ -411,7 +445,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                        !dps->is_init_capture;
   a_decl_parse_state    *saved_decl_parse_state;
 
-  check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
+  check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
      or a lambda-capture is not a full expression and a stack entry will
@@ -438,16 +472,34 @@ swallowed); otherwise, it's "="-form or "{...}" form.
      implies. */
   check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
   if (parenthesized_init) {
-    /* In the parenthesized case, the expression is syntactically part
-       of an expression-list, even though there must be a single expression,
-       which means potentially it is a pack expansion. */
+    /* In the parenthesized case, the expression is syntactically part of an
+       expression-list, even though in many cases there must be a single
+       expression, which means potentially it is a pack expansion. */
     dps->initializer_is_expr_list = TRUE;
-    dps->initializer_is_single_expr = TRUE;
-    icp = scan_init_component_with_potential_pack_expansion(
+    if (dps->has_deducible_class_templ_args) {
+      /* In the case of a class template argument deduction, the parenthesized
+         case really amounts to scanning call arguments. */
+      an_expr_node_ptr  dummy_expr;
+      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                          /*already_after_left_paren=*/TRUE,
+                          &dummy_expr, /*return_raw_arguments=*/TRUE,
+                          /*unknown_dependent_function=*/FALSE,
+                          /*args_will_be_discarded=*/FALSE,
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
+                          (a_rescan_control_block *)NULL,
+                          /*arg_list_supplied=*/FALSE,
+                          (an_arg_list_elem *)NULL,
+                          &icp,
+                          (an_operand *)NULL, (a_boolean *)NULL,
+                          (a_source_position *)NULL);
+    } else {
+      dps->initializer_is_single_expr = TRUE;
+      icp = scan_init_component_with_potential_pack_expansion(
                                                        dps,
                                                        /*bundle=*/is_full_expr,
                                                        /*parenthesized=*/TRUE,
                                                        (a_boolean *)NULL);
+    }  /* if */
   } else {
     /* In the non-parenthesized case, it's a simple expression or
        a braced-init-list. */
@@ -485,6 +537,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
     if (is_braced_init_component(icp) && dps->has_direct_initializer &&
+        !dps->has_deducible_class_templ_args &&
         ((cpp14_mode && !(clang_mode ? clang_version < 30800 :
                           gpp_mode   ? gnu_version < 50000 : FALSE)) ||
          (microsoft_mode && microsoft_version >= 1900))) {
@@ -522,6 +575,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       dps->type = tp;
       dps->specifiers_type = tp;
     } else if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
+                                        dps->has_deducible_class_templ_args,
+                                        dps->init_state.direct_init,
                                         undeduced_type,
                                         dps->auto_type,
                                         /*keep_placeholder=*/FALSE,
@@ -543,6 +598,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                        &dps->auto_pos);
         dps->specifiers_type = dps->deduced_auto_type = dps->type =
                                                                  error_type();
+        dps->has_deduced_type = FALSE;
         dps->auto_type_specifier_seen = FALSE;
         dps->decltype_auto_specifier_seen = FALSE;
       }  /* if */
@@ -36621,6 +36677,8 @@ type of element_operand and sets the variable type to the deduced type.
     /* The iterator variable is declared with "auto".  Perform the type
        deduction. */
     if (deduce_placeholder_type(iterator->declared_with_decltype_auto,
+                                /*is_class_template=*/FALSE,
+                                /*is_direct_init=*/FALSE,
                                 iterator->type, /*auto_type=*/(a_type_ptr)NULL,
                                 /*keep_placeholder=*/FALSE,
                                 element_operand, (an_arg_list_elem_ptr)NULL,
@@ -39993,7 +40051,10 @@ type with the type of return_op.
     deduce_return_type_from_void_operand(curr_routine, keep_placeholder,
                                          &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
-  } else if (deduce_placeholder_type(is_decltype_auto, orig_type, auto_type,
+  } else if (deduce_placeholder_type(is_decltype_auto,
+                                     /*is_class_template=*/FALSE,
+                                     /*is_direct_init=*/FALSE,
+                                     orig_type, auto_type,
                                      keep_placeholder, return_op,
                                      /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,

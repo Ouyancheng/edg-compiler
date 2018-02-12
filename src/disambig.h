@@ -59,6 +59,8 @@ typedef uint16_t a_disambig_flag_set;
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
+extern a_boolean is_func_declarator_start(void);
+
 extern
 a_type_ptr prescan_and_find_declarator(a_boolean     *is_friend_decl);
 

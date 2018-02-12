@@ -889,6 +889,11 @@ extern void set_variable_instantiation_needed_bit_number(
                                                       a_variable_ptr variable);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+extern void scan_nested_deduction_guide_template(
+                                       a_tmpl_decl_state_ptr  decl_state,
+                                       a_type_ptr             parent_class,
+                                       a_decl_pos_block_ptr   decl_pos_block);
+
 extern void template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options,
@@ -1221,6 +1226,8 @@ extern void complete_generated_member_template(
                                             a_tmpl_decl_state_ptr  decl_state,
                                             a_func_info_block      *func_info,
                                             a_symbol_ptr           sym);
+
+extern void update_implicit_deduction_guides(a_symbol_ptr  ct_sym);
 
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);

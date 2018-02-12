@@ -15875,17 +15875,17 @@ static void scan_template_declaration(
                                 a_template_instance_ptr    tip,
                                 a_decl_pos_block_ptr       decl_pos_block)
 /*
-Calls decl_specifiers and declarator to scan a template declaration of
-a function or static data member.  is_initial_decl is TRUE if this
-is being called to scan the original declaration and is FALSE when
-rescanning the tokens to generate a type for a specific instance
-of a function template.  template_sym is the symbol of the template
-or NULL is_initial_decl is TRUE.  templ_rout points to the routine associated
-with the original declaration of a template and is only present
-(non-NULL) when is_initial_decl is FALSE.  tip points to the template
-instance and is also only present when is_initial_decl is FALSE.
-decl_pos_block points to entry used to record detailed source position
-information.
+Calls decl_specifiers and declarator to scan a template declaration in
+namespace scope (including the declaration of a templated entity, such as the
+out-of-class definition of a static data member of a class template).
+is_initial_decl is TRUE if this is being called to scan the original
+declaration and is FALSE when rescanning the tokens to generate a type for a
+specific instance of a function template.  template_sym is the symbol of the
+template or NULL is_initial_decl is TRUE.  templ_rout points to the routine
+associated with the original declaration of a template and is only present
+(non-NULL) when is_initial_decl is FALSE.  tip points to the template instance
+and is also only present when is_initial_decl is FALSE.  decl_pos_block points
+to entry used to record detailed source position information.
 */
 {
   a_decl_flag_set     dsi_flags = DSI_INLINE_ALLOWED |
@@ -15934,6 +15934,7 @@ information.
                                 DI_QUALIFIED_NAME_ALLOWED |
                                 DI_PARENTHESIZED_INITIALIZER_ALLOWED |
                                 DI_OPERATOR_NAME_ALLOWED;
+    a_boolean	     is_deduction_guide = FALSE;
     if (is_initial_decl) {
       di_flags |= DI_IS_TEMPLATE_DECLARATION;
       if (is_specialization) di_flags |= DI_IS_SPECIALIZATION;
@@ -15945,21 +15946,54 @@ information.
     }  /* if */
     if (is_member_decl && (state->dso_flags & DSO_CONSTRUCTOR) != 0) {
       di_flags |= DI_IS_CONSTRUCTOR;
+    } else if (state->has_deducible_class_templ_args) {
+      /* A C++17 deduction guide used for class template argument deduction. */
+      di_flags |= DI_IS_DEDUCTION_GUIDE;
+      is_deduction_guide = TRUE;
+      state->is_deduction_guide = TRUE;
     }  /* if */
     if (!(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
         state->qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, state, parent_class, locator, func_info,
-               decl_pos_block);
-    remove_declarator_sse(state, depth_scope_stack);
-    if (decl_scope_err) {
-      /* Just to be sure a template symbol doesn't get added to a scope that
-         is not equipped to handle it, create an error locator based on the
-         previously reported error. */
-      set_to_named_error_locator(*locator);
+    if (is_deduction_guide) {
+      a_type_ptr	new_type_ptr;
+      if (curr_token != tok_lparen) {
+        pos_error(ec_exp_lparen, &pos_curr_token);
+      } else {
+        (void)get_token();
+      }  /* if */
+      function_declarator(state, di_flags, &new_type_ptr, func_info,
+                          (a_symbol_locator*)NULL, parent_class,
+                          /*is_nonstatic_member=*/FALSE,
+                          /*is_constructor=*/FALSE,
+                          /*is_static_constructor=*/FALSE,
+                          /*is_destructor=*/FALSE,
+                          /*is_finalizer=*/FALSE,
+                          /*disallow_default_args=*/TRUE,
+                          /*disallow_exception_spec=*/FALSE,
+                          decl_pos_block);
+      /* The locator will be updated later on in
+         deduction_guide_template_declaration. */
+      clear_locator(locator, &null_source_position);
+      if (new_type_ptr->kind == (a_type_kind)tk_routine) {
+        new_type_ptr->variant.routine.return_type = state->specifiers_type;
+      } else {
+        expect_error();
+      }  /* if */
+      state->type = new_type_ptr;
+    } else {
+      declarator(di_flags, state, parent_class, locator, func_info,
+                 decl_pos_block);
+      if (decl_scope_err) {
+        /* Just to be sure a template symbol doesn't get added to a scope that
+           is not equipped to handle it, create an error locator based on the
+           previously reported error. */
+        set_to_named_error_locator(*locator);
+      }  /* if */
+      check_for_declaration_errors(state, locator);
     }  /* if */
-    check_for_declaration_errors(state, locator);
+    remove_declarator_sse(state, depth_scope_stack);
     func_info->is_inline = ((state->dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
@@ -15969,7 +16003,8 @@ information.
           is_possibly_qualified_typedef(state->type)) {
         func_info->function_type_from_typedef = TRUE;
       }  /* if */
-      if (parent_class == NULL && locator->is_class_member) {
+      if (parent_class == NULL && locator != NULL &&
+          locator->is_class_member) {
         /* This is a member template declaration outside the class definition,
            so a storage class may not be specified (as in the nontemplate
            case).  Microsoft compilers simply ignore the "static" keyword
@@ -16007,13 +16042,14 @@ information.
         report_exception_spec_errors(func_info);
       }  /* if */
     } else {
-      /* Static data member case. */
+      /* Static data member or variable template case. */
       if ((state->dso_flags & DSO_CONSTEXPR) != 0 &&
           !is_const_qualified_type(state->type)) {
-        /* constexpr static data members are implicitly const. */
+        /* constexpr variables and static data members are implicitly const. */
         state->type = make_qualified_type(state->type,
                                           (a_type_qualifier_set)TQ_CONST);
       }  /* if */
+      check_assertion(locator != NULL);
       if (locator->template_arg_list != NULL && !locator->is_template_id) {
         /* In Microsoft mode, scan_real_declarator_id allows explicit template
            arguments on non-member template declarations, but they shouldn't be
@@ -16047,7 +16083,8 @@ information.
          type.  If not all of the tokens were used, or if the type created
        is not a function type, issue a diagnostic. */
       check_for_invalid_instantiation(&state->type, templ_rout,
-                                      (a_boolean)is_error_locator(*locator),
+                                      locator != NULL &&
+                                                    is_error_locator(*locator),
                                       (a_type_ptr)NULL, tip);
     }  /* if */
     /* In the normal case the current token should be end_of_source,
@@ -25757,6 +25794,173 @@ caller.
 }  /* complete_function_template_decl */
 
 
+static a_symbol_ptr make_deduction_guide_template_symbol(
+                                            a_tmpl_decl_state_ptr  decl_state,
+                                            a_symbol_locator       *locator)
+/*
+Create and return the symbol for the deduction guide template described by
+decl_state and locator.
+*/
+{
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  sym = alloc_symbol((a_symbol_kind)sk_function_template,
+                     locator->symbol_header, &locator->source_position);
+  set_membership_of_template(decl_state, sym);
+  sym->decl_scope = scope_stack[decl_state->effective_decl_level].number;
+  tssp = template_supplement_for_symbol(sym);
+  tssp->is_variadic = decl_state->is_variadic;
+  tssp->has_variadic_template_params =
+                                      decl_state->has_variadic_template_params;
+  set_template_cache_info(&tssp->variant.function.decl_cache,
+                          (a_token_cache_ptr)NULL, decl_state->decl_info);
+  return sym;
+}  /* make_deduction_guide_template_symbol */
+
+
+static a_symbol_ptr deduction_guide_template_declaration(
+                                            a_tmpl_decl_state_ptr  decl_state,
+                                            a_symbol_locator       *locator,
+                                            a_func_info_block      *func_info)
+/*
+Process a C++17 deduction guide used for class template argument deduction.
+
+scan_template_declaration or scan_nested_deduction_guide will already have
+scanned the actual declaration, which is of the form:
+
+  template-name ( parameter-declaration-clause ) -> simple-template-id
+
+optionally prefixed with the keyword "explicit".
+*/
+{
+  a_boolean			defaulted;
+  a_decl_parse_state_ptr	dps = &decl_state->decl_parse;
+  a_symbol_ptr			sym, proto_sym;
+  a_template_ptr                templ = decl_state->il_template_entry;
+  a_routine_ptr			proto;
+  a_type_ptr                    placeholder_type = dps->auto_type;
+  a_symbol_ptr			ct_sym;
+  a_template_symbol_supplement_ptr
+				tssp;
+  a_template_symbol_supplement_ptr
+				ct_tssp;
+
+  /* A function body cannot be supplied for a deduction guide. */
+  if (curr_token == tok_lbrace || curr_token == tok_try ||
+      curr_token == tok_colon ||
+      (curr_token == tok_assign &&
+       deleted_or_defaulted_def_next(&defaulted))) {
+    pos_ty_error(ec_deduction_guide_def, &dps->specifiers_pos, dps->type);
+  }  /* if */
+  check_assertion(is_class_template_placeholder_type(placeholder_type));
+  ct_sym = placeholder_type->variant.template_param.extra_info
+                           ->class_template_symbol;
+  check_assertion(ct_sym != NULL);
+  make_locator_for_symbol(ct_sym, locator);
+  locator->source_position = dps->specifiers_pos;
+  if (ct_sym->decl_scope !=
+                        scope_stack[decl_state->effective_decl_level].number) {
+    pos_syty_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym,
+                   dps->type);
+  }  /* if */
+  /* A deduction guide is considered a definition. */
+  dps->is_definition = func_info->is_definition;
+  /* Set a flag in each param type entry whose associated type is or
+     contains a template parameter. */
+  set_parameter_list_template_param_flags(dps->type);
+  decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
+  sym = make_deduction_guide_template_symbol(decl_state, locator);
+  templ->canonical_template = templ;
+  templ->definition_template = templ;
+  tssp = sym->variant.template_info;
+  tssp->il_template_entry = templ;
+  set_source_corresp(&templ->source_corresp, sym);
+  set_membership_in_source_corresp(&templ->source_corresp, sym);
+  proto = alloc_routine();
+  proto->type = dps->type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  proto->declared_type = dps->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  set_routine_special_kind(proto,
+                           (a_special_function_kind)sfk_deduction_guide);
+  proto->variant.class_template = ct_sym->variant.template_info
+                                        ->il_template_entry;
+  proto->type->variant.routine.extra_info->assoc_routine = proto;
+  tssp->variant.function.routine = proto;
+  proto_sym = make_function_template_prototype_symbol(
+                               sym, proto, decl_state->decl_info->parameters);
+  set_source_corresp(&proto->source_corresp, proto_sym);
+  set_membership_in_source_corresp(&proto->source_corresp, proto_sym);
+  proto->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  /* Call a routine that manages the correspondence of entities between
+     translation units to notify it of the new instance. */
+  record_instantiation(proto_sym, tssp);
+  if (prototype_instantiations_in_il && !locator->is_error) {
+    add_to_routines_list(proto, NO_SCOPE_DEPTH);
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!source_sequence_entries_disallowed) {
+    dps->source_sequence_entry =
+          decl_state->il_template_entry->source_corresp.source_sequence_entry;
+    wrapup_sse_for_simple_decl(dps);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Add this to the list of guides for the class template. */
+  ct_tssp = template_supplement_for_symbol(ct_sym);
+  add_deduction_guide(sym, &ct_tssp->variant.class_template.deduction_guides);
+  return sym;
+}  /* deduction_guide_template_declaration */
+
+
+void scan_nested_deduction_guide_template(
+                                        a_tmpl_decl_state_ptr  decl_state,
+                                        a_type_ptr             parent_class,
+                                        a_decl_pos_block_ptr   decl_pos_block)
+/*
+Scan a deduction guide template appearing in the given parent class.
+decl_state tracks the state of the template declaration and decl_pos_block
+records additional position information.
+*/
+{
+  a_decl_parse_state  *dps = &decl_state->decl_parse;
+  a_type_ptr          new_type_ptr;
+  a_decl_flag_set     di_flags = DI_IS_TEMPLATE_DECLARATION |
+                                 DI_IS_DEDUCTION_GUIDE;
+  a_func_info_block   func_info;
+  a_symbol_locator    locator;
+
+  check_assertion(curr_token == tok_lparen &&
+                  dps->has_deducible_class_templ_args);
+  (void)get_token();
+  clear_func_info(&func_info);
+  function_declarator(dps, di_flags, &new_type_ptr, &func_info,
+                      (a_symbol_locator*)NULL, parent_class,
+                      /*is_nonstatic_member=*/FALSE,
+                      /*is_constructor=*/FALSE,
+                      /*is_static_constructor=*/FALSE,
+                      /*is_destructor=*/FALSE,
+                      /*is_finalizer=*/FALSE,
+                      /*disallow_default_args=*/TRUE,
+                      /*disallow_exception_spec=*/FALSE,
+                      decl_pos_block);
+  if (new_type_ptr->kind == (a_type_kind)tk_routine) {
+    new_type_ptr->variant.routine.return_type = dps->specifiers_type;
+  } else {
+    expect_error();
+  }  /* if */
+  dps->type = new_type_ptr;
+  remove_declarator_sse(dps, depth_scope_stack);
+  dps->sym = deduction_guide_template_declaration(
+                                            decl_state, &locator, &func_info);
+  /* Complete the a_template entry and link it into the list of templates
+     for the appropriate scope. */
+  complete_il_template_entry(decl_state, dps->sym);
+  done_with_func_info(func_info);
+}  /* scan_nested_deduction_guide */
+
+
 static a_symbol_ptr function_template_declaration(
                                             a_tmpl_decl_state_ptr  decl_state,
                                             a_symbol_locator       *locator,
@@ -26982,14 +27186,21 @@ any non-empty template parameter lists that were scanned.
           set_is_generic_function_param(decl_state);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        sym = function_template_declaration(decl_state, &locator, &func_info);
-        complete_function_template_decl(decl_state, sym, &func_info,
-                                        &tssp, &locator.source_position);
-        if (decl_state->defines_something) {
-          /* Save a pointer to the token cache for function body.  tssp may
-             be NULL in error cases. */
-          if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
-        } /* if */
+        if (!dps->is_deduction_guide) {
+          sym = function_template_declaration(decl_state, &locator,
+                                              &func_info);
+          complete_function_template_decl(decl_state, sym, &func_info,
+                                          &tssp, &locator.source_position);
+          if (decl_state->defines_something) {
+            /* Save a pointer to the token cache for function body.  tssp may
+               be NULL in error cases. */
+            if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
+          } /* if */
+        } else {
+          sym = deduction_guide_template_declaration(
+                                            decl_state, &locator, &func_info);
+          tssp = sym->variant.template_info;
+        }  /* if */
       } else {
         /* Error -- not a class template, a function template, nor a static
            data member template. */
@@ -36502,6 +36713,41 @@ the function template, and decl_state tracks its declaration.
   decl_state->il_template_entry->text = make_copy_of_token_string();
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
+
+
+void update_implicit_deduction_guides(a_symbol_ptr  ct_sym)
+/*
+ct_sym is a class template for which the set of deduction guides is needed.
+That set is obtained by generating function templates from the constructors
+of the class template and adding to them any explicitly-declared deduction
+guides.  The explicitly-declared are already recorded in the template symbol
+supplement associated with ct_sym.  The generated guides may or may not already
+be generated; if they are already generated, they may be out-of-date if the
+class template has been defined since the recorded guides were generated.
+
+This function ensures that the recorded generated deduction guides are
+up-to-date.
+*/
+{
+  a_template_symbol_supplement_ptr
+                ct_tssp = template_supplement_for_symbol(ct_sym);
+
+  if (ct_tssp->variant.class_template.implicit_deduction_guides_added &&
+      (!ct_sym->defined ||
+       !ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
+    /* Nothing to do. */
+  } else if (!ct_sym->defined) {
+    /* Generate "interim" guides. */
+    /* FIXME */
+  } else {
+    if (ct_tssp->variant.class_template.implicit_deduction_guides_added) {
+      /* Remove "interim guides". */
+      /* FIXME */
+    }  /* if */
+    /* Generate guides from constructors. */
+    /* FIXME */
+  }  /* if */
+}  /* update_implicit_deduction_guides */
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)

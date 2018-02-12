@@ -1649,9 +1649,17 @@ Dump the contents of the indicated type entry, for debug purposes.
               if (tp->variant.template_param.extra_info->coordinates.position
                                                == PLAIN_AUTO_TYPE_POS_NUMBER) {
                 fprintf(f_debug, " auto");
-              } else {
+              } else if (tp->variant.template_param.extra_info
+                           ->coordinates.position ==
+                                                    DECLTYPE_AUTO_POS_NUMBER) {
                 fprintf(f_debug, " decltype(auto)");
+              } else {
+                fprintf(f_debug, " INVALID AUTO PLACEHOLDER");
               }  /* if */
+            } else if (tp->variant.template_param.extra_info
+                         ->coordinates.depth ==
+                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+              fprintf(f_debug, " placeholder %s", tp->source_corresp.name);
             } else {
               fprintf(f_debug, "#(%lu,%lu) ",
                       (unsigned long)tp->variant.
@@ -8889,6 +8897,32 @@ elements of type element_type.
 }  /* make_vector_type */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+
+a_type_ptr make_class_template_placeholder(a_symbol_ptr      class_template,
+                                           a_source_position *pos)
+/*
+Create a type entry representing a class template used for C++ 17 class
+template argument deduction.  The result is a special kind of tk_template_param
+entry.  pos is used to establish the type entry's position information.
+*/
+{
+  a_symbol_ptr	sym;
+  a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
+  a_template_param_type_supplement_ptr
+		tptsp = type->variant.template_param.extra_info;
+  a_template_param_coordinate_ptr
+		tpcp = &tptsp->coordinates;
+
+  /* Use the class template name as the placeholder name. */
+  sym = alloc_symbol((a_symbol_kind)sk_type, class_template->header, pos);
+  sym->variant.type.ptr = type;
+  tpcp->depth = CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH;
+  tptsp->class_template_symbol = class_template;
+  set_type_size(type);
+  set_source_corresp(&type->source_corresp, sym);
+  return type;
+}  /* make_class_template_placeholder */
+
 
 a_type_ptr make_auto_type(a_source_position *pos,
                           a_boolean         is_decltype_auto)

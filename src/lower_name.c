@@ -11821,11 +11821,13 @@ mangled without parameter encoding.
     /* Compiler-generated routines have no name, and they are left alone.
        But all constructors (e.g., for unnamed classes) should get mangled
        names. */
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+    if (special_kind_is(routine, sfk_constructor)) {
       mangling_needed = TRUE;
     }  /* if */
   } else if (routine == il_header.main_routine) {
     /* Don't mangle "main" regardless of its linkage. */
+  } else if (special_kind_is(routine, sfk_deduction_guide)) {
+    /* Don't mangle deduction guides. */
   } else if (is_name_linkage_kind_subject_to_name_mangling(
                                        routine->source_corresp.name_linkage)) {
     /* Routines other than extern "C" routines need to be mangled. */

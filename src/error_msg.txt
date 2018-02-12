@@ -2959,6 +2959,10 @@ ec_integer_pack_element_for_type;;"an integer pack element cannot match %n"
 ec_integer_pack_element_for_template;;"an integer pack element cannot match %n"
 ec_unexpected_designator;;"unexpected designator"
 ec_cannot_evaluate_builtin_offsetof;;"cannot evaluate __builtin_offsetof"
+ec_deduction_guide_def;;"deduction guide %t cannot be defined"
+ec_member_deduction_guide;;"a deduction guide cannot be a class member"
+ec_bad_deduction_guide_scope;;"deduction guide %t must be declared in the same scope as %n"
+ec_invalid_specifier_for_deduction_guide;;"invalid specifier for deduction guide declaration (only \"explicit\" is permitted)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

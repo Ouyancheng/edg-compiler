@@ -786,6 +786,10 @@ typedef struct a_decl_parse_state {
 		auto_type_allowed:1;
 			/* TRUE in a declarative context in which "auto" may
 			   appear as a type specifier. */
+  a_bit_field	has_deduced_type:1;
+			/* TRUE if a "auto" or "decltype(auto)" appeared,
+			   or if C++17 class template argument deduction
+			   is being done. */
   a_bit_field
 		auto_type_specifier_seen:1;
 			/* TRUE if "auto" or "decltype(auto)" appeared as a
@@ -794,9 +798,20 @@ typedef struct a_decl_parse_state {
 		decltype_auto_specifier_seen:1;
 			/* TRUE if "decltype(auto)" appeared as a specifier. */
   a_bit_field
+		has_deducible_class_templ_args:1;
+			/* TRUE if the type specifier named a class template
+			   for which template argument deduction should be
+			   done. */
+  a_bit_field
 		has_deducible_return_type:1;
 			/* TRUE if this is a declaration of a function whose
 			   return type must be deduced. */
+  a_bit_field	is_deduction_guide:1;
+			/* TRUE if this is a C++17 deduction guide used for
+			   class template argument deduction.  This is usually
+			   the same as has_deductible_class_template_args,
+			   but this is indicates that the declaration that
+			   follow meets the criteria for a deduction guide. */
   a_bit_field
 		is_asm_function:1;
 			/* TRUE if the current declaration is for an asm
@@ -1062,7 +1077,10 @@ typedef struct a_decl_parse_state {
   a_type_ptr
 		auto_type;
 			/* The tk_template_param type used to represent the
-			   "auto" type specifier (if any). */
+			   deducible type specifier (if any).  This can be
+			   "auto", "decltype(auto)" (in C++14), or, in C++17,
+			   a placeholder type denoted by a class template
+			   name. */
   a_type_ptr
 		deduced_auto_type;
 			/* The type that "auto" was deduced to after scanning
@@ -1437,6 +1455,11 @@ extern void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps);
 
 extern void add_src_seq_end_of_routine_if_needed(a_decl_parse_state  *dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+extern void scan_deduction_guide(a_decl_parse_state    *dps,
+                                 a_func_info_block     *func_info,
+                                 a_symbol_locator      *locator,
+                                 a_decl_pos_block_ptr  decl_pos_block);
 
 extern void scan_nonmember_declaration(
                                  a_decl_parse_state  *dps,

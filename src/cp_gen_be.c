@@ -9074,6 +9074,7 @@ flags on the classes found on an earlier call.
 }  /* gen_typedefs_for_template_classes_in_specialization_arg_list */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
 static a_boolean suppress_invalid_explicit_specialization(
                                                a_source_correspondence_ptr scp,
                                                a_template_arg_ptr          tap)
@@ -9088,6 +9089,7 @@ instantiations are only permitted in namespace scope).
 {
   a_boolean  result = FALSE;
   a_type_ptr containing_class = NULL;
+
   if (curr_name_context_is_a_class()) {
     /* We're inside a class definition. */
     containing_class = curr_name_context->class_type;
@@ -9137,6 +9139,7 @@ instantiations are only permitted in namespace scope).
   }  /* if */
   return result;
 }  /* suppress_invalid_explicit_specialization */
+
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -14899,16 +14902,18 @@ instantiation is available; see gen_template_from_prototype_instantiation).
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (result && is_definition &&
       (tp->kind == (a_template_kind)templk_function ||
-       tp->kind == (a_template_kind)templk_member_function) &&
-      tp->prototype_instantiation.routine->function_def_number ==
-                                                    NULL_function_def_number) {
-    /* This is the definition of a function template or member function of
-       a class template, but its prototype instantiation has no scope.  This
-       indicates that the prototype instantiation was deferred and never
-       performed, so the definition must be generated from the string form
-       of the template. */
-    result = FALSE;
-  }
+       tp->kind == (a_template_kind)templk_member_function)) {
+    a_routine_ptr  proto = tp->prototype_instantiation.routine;
+    if (proto->function_def_number == NULL_function_def_number &&
+        !special_kind_is(proto, sfk_deduction_guide)) {
+      /* This is the definition of a function template or member function of
+         a class template, but its prototype instantiation has no scope.  This
+         indicates that the prototype instantiation was deferred and never
+         performed, so the definition must be generated from the string form
+         of the template. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
   return result;
 }  /* template_should_be_generated_from_prototype_instantiation */
 
@@ -18545,7 +18550,8 @@ handle_as_definition:
       check_assertion_str(rout->is_template_function ||
                           rout->routine_fixup != NULL ||
                           (rout->is_prototype_instantiation &&
-                           !nonclass_prototype_instantiations),
+                           !nonclass_prototype_instantiations) ||
+                          special_kind_is(rout, sfk_deduction_guide),
                           "gen_routine_decl: missing definition");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       is_definition = FALSE;
@@ -18597,7 +18603,8 @@ handle_as_definition:
       !rout->is_specialized) {
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
-    if (suppress_invalid_explicit_specialization(&rout->source_corresp,
+    if (!special_kind_is(rout, sfk_deduction_guide) &&
+        suppress_invalid_explicit_specialization(&rout->source_corresp,
                                                  rout->template_arg_list)) {
       discard_declaration = TRUE;
     } else {

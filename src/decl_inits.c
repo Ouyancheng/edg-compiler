@@ -4913,8 +4913,7 @@ returned set to TRUE.
     dps->init_state.initializer_must_be_constant = vp != NULL &&
                                                    vp->is_constexpr;
   }  /* if */
-  if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
-      !is_error_type(vp_type)) {
+  if (dps->has_deduced_type && !is_error_type(vp_type)) {
     /* An initializer for a variable declared with the "auto" type specifier
        (or, in GNU C mode, the "__auto_type" specifier). */
     if (first_token == tok_lbrace && !list_init_enabled) {
@@ -4923,6 +4922,7 @@ returned set to TRUE.
                 &error_position);
       vp->type = vp_type = error_type();
       invalidate_type(dps);
+      dps->has_deduced_type = FALSE;
       dps->auto_type_specifier_seen = FALSE;
       dps->auto_type = NULL;
     } else {

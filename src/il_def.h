@@ -2207,6 +2207,9 @@ enum a_special_function_kind_tag {
 			   fields.  (A pointer to this entry point is returned
 			   by the conversion function declared in such a
 			   lambda.) */
+  sfk_deduction_guide,
+			/* A routine entry representing a C++17 deduction
+			   guide. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sfk_static_constructor,
 			/* A C++/CLI static constructor. */
@@ -3954,6 +3957,10 @@ typedef int32_t a_template_nesting_depth;
 			/* Depth used to indicate that the template parameter
 			   really represents an "auto" or "decltype(auto) type
 			   specifier. */
+#define CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH	-2
+			/* Depth used to indicate that the template parameter
+			   represents a C++17 class template being used for
+			   class template argument deduction. */
 #define PLAIN_AUTO_TYPE_POS_NUMBER 1
 			/* When a template parameter nesting depth is
 			   AUTO_TYPE_NESTING_DEPTH, and its position number is
@@ -4029,7 +4036,7 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
 #if VAR_INITIALIZERS
 = {
    "none", "constructor", "destructor", "conversion", "literal operator",
-   "operator", "lambda entry point",
+   "operator", "lambda entry point", "deduction guide",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "static constructor", "finalizer",
    "IDisposable::Dispose implementation", "Dispose(bool)",
@@ -8325,6 +8332,14 @@ typedef struct a_template_param_type_supplement {
 		coordinates;
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
+  struct a_symbol
+		*class_template_symbol;
+			/* FIXME: Merge into template_symbol? */
+			/* For a tptk_param type used to represent a
+			   placeholder for C++17 class template argument
+			   deduction, this points to the class template
+			   that was specified.  NULL otherwise.  Used in
+			   the front end only; cannot be used in back ends. */
 } a_template_param_type_supplement;
 
 
@@ -9502,6 +9517,10 @@ typedef struct a_type {
 		is_deduced_auto:1;
 			/* The type resulted from deducing an "auto" type
 			   specifier. */
+      a_bit_field
+		is_deduced_class:1;
+			/* The type resulted from deducing class template
+			   arguments (a C++17 feature). */
       a_bit_field
 		decltype_expr_not_parenthesized:1;
 			/* This is a decltype entry and its argument
@@ -10927,6 +10946,11 @@ typedef struct a_routine {
 		lambda_call_operator;
 			/* The lambda call operator for which this entry is
 			   an alternate entry point. */
+    /* When special_kind == sfk_deduction_guide. */
+    a_template_ptr
+		class_template;
+			/* The class template for which this is a deduction
+			   guide. */
   } variant;
   a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
@@ -11041,9 +11065,10 @@ typedef struct a_routine {
 			   the routine was named in a call, although maybe
 			   an overriding routine might be called instead. */
   a_bit_field	is_explicit_constructor:1;
-			/* TRUE if this routine is a constructor (i.e., its
-			   special_kind is sfk_constructor) and the "explicit"
-			   keyword appeared in its declaration.  C++ only. */
+			/* TRUE if this routine is a constructor or deduction
+			   guide (i.e., its special_kind is sfk_constructor or
+			   sfk_deduction_guide) and the "explicit" keyword
+			   appeared in its declaration.  C++ only. */
   a_bit_field	is_explicit_conversion_function:1;
 			/* TRUE if this routine is a conversion function in
 			   C++/CLI mode and the "explicit" keyword appeared in

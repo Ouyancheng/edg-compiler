@@ -1311,15 +1311,20 @@ void add_init_component_to_initializer_cache(an_init_component_ptr icp,
                                              an_initializer_cache  *cache)
 /*
 Add the indicated initializer list component to the end of the queue of
-initializer components in the indicated initializer cache (or the front
-if to_front is TRUE).
+initializer components in the indicated initializer cache (or the front if
+to_front is TRUE).  When to_front is TRUE, icp may be a list of elements.
 */
 {
   if (to_front) {
     /* Add to the front of the queue. */
-    append_elem(icp, cache->first_init);
+    an_init_component_ptr  prev = cache->first_init;
     cache->first_init = icp;
-    if (is_last_elem(icp)) cache->last_init = icp;
+    while (icp->next != NULL) icp = icp->next;
+    if (cache->last_init == NULL) {
+      cache->last_init = icp;
+    } else {
+      append_elem(icp, prev);
+    }  /* if */
   } else {
     /* Add to the end of the queue. */
     if (cache->first_init == NULL) {

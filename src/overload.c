@@ -3917,10 +3917,11 @@ be used for routine_type.
     routine_type = rout->type;
   }  /* if */
   if (rout != NULL &&
-      (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-       rout->special_kind == (a_special_function_kind)sfk_destructor)) {
-    /* The routine is a constructor or destructor, so the check is
-       suppressed. */
+      (special_kind_is(rout, sfk_constructor) ||
+       special_kind_is(rout, sfk_destructor) ||
+       special_kind_is(rout, sfk_deduction_guide))) {
+    /* The routine is a constructor, destructor, or deduction guide, so the
+       check is suppressed. */
     clear_arg_match_summary(this_match_summary);
     this_match_summary->match_level = aml_exact;
     this_match_summary->is_match_for_this_param = TRUE;
@@ -6116,9 +6117,15 @@ retry:
   if (init_list_ctor_arg_list != NULL) {
     /* If the class has any initializer-list constructors, do a first pass
        to try to match them to the braced-init-list as a whole. */
-    a_type_ptr class_type = sym_parent_class(overloaded_function_symbol);
-    if (class_type_supp(class_type)->has_initializer_list_ctor) {
-      in_init_list_ctor_pass = TRUE;
+    a_symbol_ptr  rep_sym = overloaded_function_symbol;
+    if (symbol_is(rep_sym, sk_overloaded_function)) {
+      rep_sym = rep_sym->variant.overloaded_function.symbols;
+    }  /* if */
+    if (is_constructor_symbol(rep_sym)) {
+      a_type_ptr  class_type = sym_parent_class(overloaded_function_symbol);
+      if (class_type_supp(class_type)->has_initializer_list_ctor) {
+        in_init_list_ctor_pass = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 retry2:
@@ -26015,6 +26022,125 @@ next_function:;
   db_exit();
   return assign_sym;
 }  /* select_overloaded_assignment_operator */
+
+
+a_boolean deduce_class_template_args(a_type_ptr        placeholder_type,
+                                     a_boolean         is_direct_init,
+                                     a_boolean         keep_placeholder,
+                                     an_arg_list_elem  *initializer_alep,
+                                     a_source_position *source_pos,
+                                     a_type_ptr        *deduced_placeholder,
+                                     a_boolean         *still_dependent)
+/*
+Do type deduction for a use of a class template name as a placeholder type in
+a declaration or similar construct.  is_direct_init is TRUE if the deduction
+is for a "direct initialization" form.  placeholder_type represents the
+placeholder type.  initializer_alep describes the initializer in init-component
+form.  source_pos is the source position to use for the deduction.
+If the deduction succeeds, *deduced_placeholder is set to the deduced class
+template instance type and TRUE is returned.  In that case, if keep_placeholder
+is TRUE, a tk_typeref is added on top of *deduced_placeholder.  If an error is 
+detected, FALSE is returned (but no diagnostic is issued).  If the deduction
+was not completed because the types involved are still dependent,
+*still_dependent is set to TRUE and FALSE is returned.
+*/
+{
+/* FIXME  Handle keep_placeholder. */
+  a_boolean     result = TRUE;
+  a_symbol_ptr  ct_sym, guide_set, selected_sym;
+  a_template_symbol_supplement_ptr
+                ct_tssp;
+  an_arg_list_elem_ptr
+                init_list_ctor_arg_list = NULL;
+  an_arg_match_summary_ptr
+                arg_match_list = NULL;
+  a_boolean     unknown_dependent_ctor = FALSE, init_list_ctor_case = FALSE;
+
+  if (!is_class_template_placeholder_type(placeholder_type)) {
+    expect_error();
+    *deduced_placeholder = error_type();
+    *still_dependent = FALSE;
+    goto done;
+  }  /* if */
+  if (initializer_alep != NULL) {
+    if (is_braced_init_component(initializer_alep)) {
+      init_list_ctor_arg_list = initializer_alep;
+      initializer_alep = initializer_alep->variant.braced.list;
+    }  /* if */
+    if (initializer_alep != NULL && 
+        arg_list_is_dependent(initializer_alep)) {
+      /* The initializer is dependent. */
+      *still_dependent = TRUE;
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  ct_sym = placeholder_type->variant.template_param.extra_info
+                           ->class_template_symbol;
+  ct_tssp = template_supplement_for_symbol(ct_sym);
+  if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
+      (ct_sym->defined &&
+       ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
+    /* Either the implicit guides have not yet been generated, or they are
+       outdated because they were generated when the class template was not
+       defined, but now it is defined. */
+    update_implicit_deduction_guides(ct_sym);
+  }  /* if */
+  guide_set = ct_tssp->variant.class_template.deduction_guides;
+  selected_sym = select_overloaded_function(
+                                        guide_set,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/TRUE,
+                                        (an_operand *)NULL,
+                                        initializer_alep,
+                                        init_list_ctor_arg_list,
+                                        is_direct_init,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_pure_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        /*force_dependent=*/FALSE,
+                                        ec_no_matching_constructor,
+                                        ec_ambiguous_constructor,
+                                        ec_undefined_identifier,
+                                        source_pos,
+                                        (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
+                                        &init_list_ctor_case,
+                                        &unknown_dependent_ctor,
+                                        (a_boolean *)NULL,
+                                        (a_symbol_ptr *)NULL,
+                                        &arg_match_list);
+
+  if (selected_sym != NULL) {
+    /* A guide was unambiguously determined. */
+    a_routine_ptr  guide = selected_sym->variant.routine.ptr;
+    a_type_ptr     deduced_type = guide->type->variant.routine.return_type;
+    if (is_template_dependent_type(deduced_type)) {
+      /* We shouldn't get here since we checked for a dependent initializer
+         earlier on. */
+      unexpected_condition();
+    } else {
+      *deduced_placeholder = guide->type->variant.routine.return_type;
+      if (keep_placeholder) {
+        /* Add a tk_typeref on top of the deduced type so we can tell only
+           the class template name appeared originally. */
+        a_type_ptr  trp = alloc_type((a_type_kind)tk_typeref);
+        trp->variant.typeref.type = *deduced_placeholder;
+        trp->variant.typeref.is_deduced_class = TRUE;
+        *deduced_placeholder = trp;
+      }  /* if */
+      *still_dependent = FALSE;
+    }  /* if */
+  } else {
+    /* Something went wrong with deduction. */
+    expect_error();
+    *deduced_placeholder = error_type();
+    *still_dependent = FALSE;
+  }  /* if */
+done:
+  return result;
+}  /* deduce_class_template_args */
 
 
 a_boolean deduce_auto_type(a_type_ptr        orig_type,

@@ -1863,6 +1863,7 @@ created for this entity; otherwise, it is NULL.
         if (!scope_stack_top().inside_local_class &&
             !class_type->variant.class_struct_union.is_nonreal_class &&
             !rp->is_defaulted && !rp->is_deleted &&
+            !special_kind_is(rp, sfk_deduction_guide) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !(microsoft_mode &&
               microsoft_routine_def_is_unmovable(

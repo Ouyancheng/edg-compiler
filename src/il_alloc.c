@@ -1378,6 +1378,7 @@ and return a pointer to it.
   tptsp->generic_constraints = NULL;
   tptsp->generic_param_seq_number = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tptsp->class_template_symbol = NULL;
   return tptsp;
 }  /* alloc_template_param_type_supplement */
 
@@ -2089,6 +2090,7 @@ to default values.
       pte->variant.typeref.is_decltype = FALSE;
       pte->variant.typeref.is_deduced_decltype_auto = FALSE;
       pte->variant.typeref.is_deduced_auto = FALSE;
+      pte->variant.typeref.is_deduced_class = FALSE;
       pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
       pte->variant.typeref.is_underlying_type = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
@@ -2824,6 +2826,9 @@ value.  Also clear related variant fields to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case sfk_lambda_entry_point:
       rp->variant.lambda_call_operator = NULL;
+      break;
+    case sfk_deduction_guide:
+      rp->variant.class_template = NULL;
       break;
     default:
       unexpected_condition_str("set_routine_special_kind: bad kind");

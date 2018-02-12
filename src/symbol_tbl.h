@@ -2680,11 +2680,6 @@ typedef struct a_template_symbol_supplement {
 			   list are classes.  For alias templates, the
 			   symbols are types.  This is not used for
 			   enumerations. */
-      a_type_kind
-		type_kind;
-			/* The kind (tk_class, tk_struct, or tk_union) which
-			   the instantiated types will have.  Not used for
-			   alias templates. */
       a_symbol_ptr
 		prototype_instantiation;
 			/* Points to the symbol representing the prototype
@@ -2727,6 +2722,11 @@ typedef struct a_template_symbol_supplement {
 			   The rescanned version of the parameter list must
 			   be used when scanning template argument lists of
 			   the template template parameter. */
+      a_symbol_ptr
+		deduction_guides;
+			/* The C++17 deduction guides for a given primary class
+			   template.  Multiple guides are grouped in an
+			   overload set. */
       a_template_cache
 		initial_decl_cache;
 			/* For class templates, this represents the initial
@@ -2784,6 +2784,11 @@ typedef struct a_template_symbol_supplement {
 			   for real instantiations, but do not for nonreal
 			   instantiations. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_type_kind
+		type_kind;
+			/* The kind (tk_class, tk_struct, or tk_union) which
+			   the instantiated types will have.  Not used for
+			   alias templates. */
       a_bit_field
 		is_alias_template:1;
 			/* TRUE if this is an alias template. */
@@ -2860,6 +2865,15 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is a template "invented" for the
 			   checking of template template argument
 			   compatibility. */
+      a_bit_field
+		implicit_deduction_guides_added:1;
+			/* TRUE if deduction_guides includes generated
+			   deduction guides. */
+      a_bit_field
+		interim_implicit_deduction_guides:1;
+			/* TRUE if implicit_deduction_guides_added is TRUE but
+			   the generated guides were generated when the class
+			   template was not defined. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
@@ -4590,6 +4604,9 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_boolean        is_constructor,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
+
+extern void add_deduction_guide(a_symbol_ptr  new_guide,
+                                a_symbol_ptr  *p_guide_set);
 
 extern a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym);
 

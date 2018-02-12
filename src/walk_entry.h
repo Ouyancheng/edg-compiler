@@ -3304,6 +3304,7 @@ after_entry_from_class:
                    iek_generic_constraint);
         }  /*if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        conditionally_clear_fe_pointer(eptr->class_template_symbol);
 #undef eptr
       }
       break;

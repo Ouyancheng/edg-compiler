@@ -170,9 +170,12 @@ be restored).
     dps->disallow_variably_modified_type = FALSE;
     dps->unused_qualifiers = FALSE;
     dps->auto_type_allowed = FALSE;
+    dps->has_deduced_type = FALSE;
     dps->auto_type_specifier_seen = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
+    dps->has_deducible_class_templ_args = FALSE;
     dps->has_deducible_return_type = FALSE;
+    dps->is_deduction_guide = FALSE;
     dps->is_asm_function = FALSE;
     dps->function_definition_allowed = FALSE;
     dps->is_old_style_param_decl = FALSE;
@@ -901,7 +904,11 @@ from places such as is_type_start.
      be a different use of the name). */
   options = GID_NO_OPTIONS;
   if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
-  if (in_prescan) options |= GID_TEMPLATE_ARGS_OPTIONAL;
+  if (in_prescan || class_template_arg_deduction_enabled) {
+    /* When class template argument deduction is being done, a class
+       template name without an argument list is allowed. */
+    options |= GID_TEMPLATE_ARGS_OPTIONAL;
+  }  /* if */
   if (is_generalized_identifier_start(options)) {
     if (locator_for_curr_id.is_operator_name ||
         locator_for_curr_id.is_conversion_name) {
@@ -925,15 +932,26 @@ from places such as is_type_start.
       assoc_symbol =
           coalesce_and_lookup_generalized_identifier(options,
                                                      ilm_tentative_type, &err);
-      if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
-        /* Symbol was found, but it is not a type name symbol.  Return NULL,
-           clear the specific symbol (to avoid biasing future lookups), and
-           restore the symbol header (if a constructor was found, it may have
-           been changed to a special header that is not part of the main
-           symbol table). */
-        assoc_symbol = NULL;
-        clear_specific_symbol(locator_for_curr_id);
-        locator_for_curr_id.symbol_header = saved_header;
+      if (assoc_symbol != NULL) {
+        if (!in_prescan && class_template_arg_deduction_enabled &&
+            is_class_template_symbol(assoc_symbol)) {
+          /* We found a class template and we are doing class template
+             argument deduction.  Create a placeholder type to represent
+             the class template reference. */
+          a_type_ptr	placeholder =
+                           make_class_template_placeholder(assoc_symbol,
+                                                           &pos_curr_token);
+          assoc_symbol = symbol_for(placeholder);
+        } else if (!is_type_symbol(assoc_symbol)) {
+          /* Symbol was found, but it is not a type name symbol.  Return NULL,
+             clear the specific symbol (to avoid biasing future lookups), and
+             restore the symbol header (if a constructor was found, it may have
+             been changed to a special header that is not part of the main
+             symbol table). */
+          assoc_symbol = NULL;
+          clear_specific_symbol(locator_for_curr_id);
+          locator_for_curr_id.symbol_header = saved_header;
+        }  /* if */
       }  /* if */
       /* Check to see if this is a pack reference. */
       if (!in_prescan && !in_type_check && assoc_symbol != NULL) {
@@ -9915,9 +9933,7 @@ definition of a member function of a class template.
       }  /* if */
       sym = NULL;
       proxy_member_friend = TRUE;
-    } else if (sym->kind != (a_symbol_kind)sk_member_function &&
-               sym->kind != (a_symbol_kind)sk_function_template &&
-               sym->kind != (a_symbol_kind)sk_overloaded_function) {
+    } else if (!is_member_function_symbol(sym)) {
       /* We must have nonfunction class member.  This is an error, so set sym
          to NULL to force the creation of a fake member function symbol. */
       pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -18351,16 +18367,135 @@ based on the current mode and the given declaration parsing state.
 }  /* get_decl_specifiers_flags */
 
 
+void check_deduction_guide_specifiers(a_decl_parse_state  *dps,
+                                      a_routine_ptr       guide)
+/*
+This function is called after parsing a deduction guide (described by dps and
+guide) to diagnose the use of invalid specifiers and record the presence of
+"explicit".
+*/
+{
+  if (dps->dso_flags & DSO_EXPLICIT) {
+    guide->is_explicit_constructor = TRUE;
+  }  /* if */
+  if (dps->dso_flags & (DSO_INLINE | DSO_VIRTUAL | DSO_FRIEND | DSO_MUTABLE |
+                        DSO_TYPENAME | DSO_CONSTEXPR | DSO_THREAD_LOCAL)) {
+    pos_error(ec_invalid_specifier_for_deduction_guide, &dps->specifiers_pos);
+  }  /* if */
+  if (dps->qualifiers != TQ_NONE) {
+    pos_error(ec_type_qualifier_not_allowed, &dps->qualifiers_pos);
+  }  /* if */
+}  /* check_deduction_guide_specifiers */
+
+
+void scan_deduction_guide(a_decl_parse_state    *dps,
+                          a_func_info_block     *func_info,
+                          a_symbol_locator      *locator,
+                          a_decl_pos_block_ptr  decl_pos_block)
+/*
+The current token is the left parenthesis for a deduction guide declaration
+that is not part of a deduction guide template declaration.  Scan the
+declaration and record it.  *dps, *func_info, *locator, and *decl_pos_block
+describe the declaration (with dps->auto_type already pointing to the
+placeholder type corresponding to the template name that was just scanned).
+*/
+{
+  a_decl_flag_set          di_flags = DI_IS_DEDUCTION_GUIDE;
+  a_type_ptr               parent_class = NULL, new_type_ptr;
+  a_type_ptr               placeholder_type = dps->auto_type;
+  a_symbol_ptr             ct_sym, guide_sym;
+  a_template_symbol_supplement_ptr
+                           ct_tssp;
+  a_routine_ptr            guide;
+  a_scope_number           scope_num = scope_stack[decl_scope_level].number;
+
+  /* Parse the function declarator and return type first. */
+  check_assertion(curr_token == tok_lparen &&
+                  dps->has_deducible_class_templ_args);
+  dps->is_deduction_guide = TRUE;
+  (void)get_token();
+  clear_func_info(func_info);
+  function_declarator(dps, di_flags, &new_type_ptr, func_info,
+                      (a_symbol_locator*)NULL, parent_class,
+                      /*is_nonstatic_member=*/FALSE,
+                      /*is_constructor=*/FALSE,
+                      /*is_static_constructor=*/FALSE,
+                      /*is_destructor=*/FALSE,
+                      /*is_finalizer=*/FALSE,
+                      /*disallow_default_args=*/TRUE,
+                      /*disallow_exception_spec=*/TRUE,
+                      decl_pos_block);
+  if (new_type_ptr->kind == (a_type_kind)tk_routine) {
+    new_type_ptr->variant.routine.return_type = dps->specifiers_type;
+    new_type_ptr->variant.routine.extra_info->this_class = placeholder_type;
+  } else {
+    expect_error();
+  }  /* if */
+  dps->type = new_type_ptr;
+  /* A deduction guide is considered a definition. */
+  dps->is_definition = func_info->is_definition;
+  /* Check the scope implied by the placeholder. */
+  check_assertion(is_class_template_placeholder_type(placeholder_type));
+  ct_sym = placeholder_type->variant.template_param.extra_info
+                           ->class_template_symbol;
+  check_assertion(ct_sym != NULL);
+  make_locator_for_symbol(ct_sym, locator);
+  locator->source_position = dps->specifiers_pos;
+  if (ct_sym->decl_scope != scope_num) {
+    pos_syty_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym,
+                   dps->type);
+  }  /* if */
+  /* Allocate a symbol representing the guide. */
+  guide_sym = alloc_symbol((a_symbol_kind)sk_routine, locator->symbol_header,
+                           &locator->source_position);
+  dps->sym = guide_sym;
+  guide_sym->decl_scope = scope_num;
+  /* Create the IL for the guide. */
+  guide = alloc_routine();
+  guide->type = dps->type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  guide->declared_type = dps->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  set_routine_special_kind(guide,
+                           (a_special_function_kind)sfk_deduction_guide);
+  guide->variant.class_template = ct_sym->variant.template_info
+                                        ->il_template_entry;
+  guide->type->variant.routine.extra_info->assoc_routine = guide;
+  guide->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  update_decl_pos_info(&guide->source_corresp, decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  guide_sym->variant.routine.ptr = guide;
+  set_source_corresp(&guide->source_corresp, guide_sym);
+  set_membership_in_source_corresp(&guide->source_corresp, guide_sym);
+  add_to_routines_list(guide, NO_SCOPE_DEPTH);
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, guide_sym,
+                            &locator->source_position,
+                            dps->source_sequence_entry);
+  reload_source_sequence_entry(dps);
+  done_with_func_info(*func_info);
+  check_deduction_guide_specifiers(dps, guide);
+  /* Add this to the list of guides for the class template. */
+  ct_tssp = template_supplement_for_symbol(ct_sym);
+  add_deduction_guide(guide_sym,
+                      &ct_tssp->variant.class_template.deduction_guides);
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(guide_sym, (a_statement_ptr)NULL);
+}  /* scan_deduction_guide */
+
+
 static an_end_of_decl_action prep_for_declarator(
                                     a_decl_parse_state  *state,
                                     a_decl_flag_set     *p_di_flags)
 /*
-A helper routine for "declaration" (see below) that determines whether to scan
-declarators.  If they are to be scanned, set up the initial value for the
-input flags (pointed to by p_di_flags) in the call to "declarator".  state
-describes the declaration being processed.  This function is called from
-"declaration" and its return value indicates how processing should proceed
-after the call.
+A helper routine for "scan_nonmember_declaration" (see below) that determines
+whether to scan declarators.  If they are to be scanned, set up the initial
+value for the input flags (pointed to by p_di_flags) in the call to
+"declarator".  state describes the declaration being processed.  This function
+is called from "scan_nonmember_declaration" and its return value indicates how
+processing should proceed after the call.
 */
 {
   an_end_of_decl_action   end_of_decl_action = eoda_not_at_end;
@@ -18899,6 +19034,11 @@ parameters are scanned by scan_a_template_parameter_declaration.
     case eoda_deferred_actions:  goto deferred_fixups;
     default:                     unexpected_condition();
   }  /* switch */
+  if (dps->has_deducible_class_templ_args && is_func_declarator_start()) {
+    /* A C++17 deduction guide. */
+    scan_deduction_guide(dps, &func_info, &locator, &decl_pos_block);
+    goto advance_past_final_token;
+  }  /* if */
   /* Save some state that must be restored for each declarator. */
   saved_qualifiers = dps->qualifiers;
   saved_qualifiers_pos = dps->qualifiers_pos;

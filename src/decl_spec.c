@@ -8561,7 +8561,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
        next token is a left parenthesis; (5) the token following the
        left paren is a right paren or the start of a formal parameter
        declaration. */
-    if (is_member_decl && !result) {
+    if ((is_member_decl && !result) || dps->has_deducible_class_templ_args) {
       /* Permit specifiers that apply to member functions.  In some Clang and
          Microsoft modes cv-qualifiers are accepted too. */
       a_decl_specifiers_set  accepted_specifiers =
@@ -9162,6 +9162,7 @@ if an error is issued.
       *basic_type = bt_error;
       *type_ptr = error_type();
       *err = TRUE;
+      state->has_deduced_type = FALSE;
       state->auto_type_specifier_seen = FALSE;
       state->decltype_auto_specifier_seen = FALSE;
     } else {
@@ -9622,6 +9623,48 @@ parenthesis; on return, the current token is the right parenthesis.
 }  /* scan_c11_atomic_type_specifier */
 
 
+static void check_explicit_specifier(a_decl_parse_state  *dps)
+/*
+Check that the explicit specifier was permitted on this declaration.  Issue
+an error if appropriate.
+*/
+{
+  a_symbol_ptr  sym = dps->sym;
+
+  if (sym != NULL && symbol_is(sym, sk_routine) &&
+      special_kind_is(sym->variant.routine.ptr, sfk_deduction_guide)) {
+    /* "explicit" can appear on deduction guides. */
+  } else if (sym != NULL && sym->is_error) {
+    /* An error occurred.  An additional diagnostic is unlikely to be
+       helpful. */
+    expect_error();
+  } else {
+    pos_error(ec_explicit_not_allowed, &dps->specifiers_pos);
+  }  /* if */
+}  /* check_explicit_specifier */
+
+
+static void process_class_template_placeholder(a_decl_parse_state    *state,
+                                               a_type_ptr            type)
+/*
+Determine whether type is a class template placeholder used for C++17
+class template argument deduction, and if so, update state to record the
+placeholder.  type is known to be a tk_template_param type. *state describes
+the declaration that is being parsed.
+*/
+{
+  a_template_param_type_supplement_ptr	tptsp;
+
+  check_assertion(type_is(type, tk_template_param));
+  tptsp = type->variant.template_param.extra_info;
+  if (tptsp->coordinates.depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+    state->has_deduced_type = TRUE;
+    state->has_deducible_class_templ_args = TRUE;
+    state->auto_type = type;
+  }  /* if */
+}  /* process_class_template_placeholder */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -9751,11 +9794,13 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
              (generic) lambda parameter.  state->specifiers_type points to the
              corresponding type entry. */
           state->auto_pos = pos_curr_token;
+          state->has_deduced_type = TRUE;
           state->auto_type_specifier_seen = TRUE;
           basic_type = bt_typedef;
           decl_specifiers_seen |= DS_TYPE;
         } else {
           state->auto_pos = pos_curr_token;
+          state->has_deduced_type = TRUE;
           state->auto_type_specifier_seen = TRUE;
           /* Remember whether "auto" was the first specifier (ignoring inline
              and friend). */
@@ -9793,6 +9838,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           basic_type = bt_auto;
           decl_specifiers_seen |= DS_TYPE;
           state->auto_pos = pos_curr_token;
+          state->has_deduced_type = TRUE;
           state->auto_type_specifier_seen = TRUE;
           /* Allocate a separate tk_unknown entry, so it can be changed to
              another type (e.g., an error type) later on. */
@@ -10421,10 +10467,6 @@ storage_class_specifier:
               specification. */
           pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
-        } else if (!is_member_decl) {
-          /* It's only allowed inside a class definition. */
-          pos_error(ec_explicit_not_allowed, &error_position);
-          err = TRUE;
         } else if (decl_specifiers_seen & DS_EXPLICIT) {
           /* Disallow duplicates. */
           pos_error(ec_dupl_decl_specifier, &error_position);
@@ -10432,6 +10474,13 @@ storage_class_specifier:
         } else {
           decl_specifiers_seen |= DS_EXPLICIT;
           *output_flags |= DSO_EXPLICIT;
+          if (!is_member_decl) {
+            /* For non-member declarations, "explicit" can only appear on
+               deduction guides.  Since we cannot check this now, record an
+               end-of-parse action to check it later. */
+            add_end_of_parse_action(check_explicit_specifier, state,
+                                    /*secondary_decls=*/FALSE);
+          }  /* if */
         }  /* if */
         break;
       case tok_void:
@@ -10972,6 +11021,7 @@ process_enum_specifier:
           } else {
             auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
             state->auto_pos = pos_curr_token;
+            state->has_deduced_type = TRUE;
             state->auto_type_specifier_seen = TRUE;
             if (state->is_new_expr_type) {
               /* The grammar in the working paper for C++14 allows something
@@ -11245,10 +11295,15 @@ process_enum_specifier:
               } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               /* Do not insert code here. */
-              {
+              { a_type_ptr tp;
                 basic_type = bt_typedef;
-                *type_ptr = type_symbol_type(curr_token_type_symbol);
+                *type_ptr = tp = type_symbol_type(curr_token_type_symbol);
                 decl_specifiers_seen |= DS_TYPE;
+                if (class_template_arg_deduction_enabled &&
+                    type_is(tp, tk_template_param)) {
+                  /* Check for class template argument deduction. */
+                  process_class_template_placeholder(state, tp);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */

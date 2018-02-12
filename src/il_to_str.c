@@ -1977,6 +1977,13 @@ by octl.
         octl->output_str("decltype(auto)", octl);
       } else if (type->variant.typeref.is_deduced_auto) {
         octl->output_str("auto", octl);
+      } else if (type->variant.typeref.is_deduced_class) {
+        a_type_ptr      instance = type->variant.typeref.type;
+        a_template_ptr  templ;
+        check_assertion(instance != NULL && is_immediate_class_type(instance));
+        templ = class_type_supp(instance)->assoc_template;
+        check_assertion(templ != NULL);
+        form_name(&templ->source_corresp, iek_template, octl);
       } else {
         check_assertion_str(typeref_is_typedef(type),
                             "form_type_specifier: typeref is not typedef");
@@ -2461,20 +2468,27 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     a_boolean                  is_lambda = is_lambda_body_routine_type(type);
+    a_boolean                  is_deduction_guide = FALSE;
     a_routine_type_supplement  *rtsp = type->variant.routine.extra_info;
     /* A qualifier on a function type shouldn't be possible in compilable
        code without a typedef; however, it shouldn't be a fatal error in
        diagnostic or debugging output. */
     check_assertion_str(qualifiers == TQ_NONE || !octl->gen_compilable_code,
                         "form_type_first_part: qualifier on function type");
-    if ((rtsp->trailing_return_type || is_lambda) &&
+    if (rtsp->assoc_routine != NULL &&
+        special_kind_is(rtsp->assoc_routine, sfk_deduction_guide)) {
+      is_deduction_guide = TRUE;
+    }  /* if */
+    if ((rtsp->trailing_return_type || is_lambda || is_deduction_guide) &&
         !octl->c_generating_back_end) {
       /* For a routine type specified with a trailing return type, the 
          type specifiers are simply "auto", except for lambda expressions
          where the specifiers are omitted altogether.  (The C-generating back
          end does not attempt to render routine types with trailing return
-         types, since those are a C++ feature.)  */
-      if (!is_lambda && !(options & FTO_SUPPRESS_SPECIFIERS)) {
+         types, since those are a C++ feature.)   Deduction guides have
+         trailing return types, but don't use the "auto" keyword. */
+      if (!is_lambda && !is_deduction_guide &&
+          !(options & FTO_SUPPRESS_SPECIFIERS)) {
         octl->output_str("auto ", octl);
       }  /* if */
     } else {

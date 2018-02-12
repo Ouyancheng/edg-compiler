@@ -27202,8 +27202,19 @@ that is provided if this is a member template declaration.
     a_boolean                         is_function = FALSE;
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
-    if (!member_declarator(class_state, &decl_info, &locator, &func_info,
-                           &is_function, &is_typedef)) {
+    if (dps->has_deducible_class_templ_args && is_func_declarator_start()) {
+      /* A deduction guide for a nested class. */
+      if (templ_state == NULL) {
+        scan_deduction_guide(dps, &func_info, &locator, decl_pos_block_ptr);
+      } else {
+        /* A deduction guide template. */
+        templ_state->decl_parse = *dps;
+        scan_nested_deduction_guide_template(templ_state, class_type,
+                                             decl_pos_block_ptr);
+      }  /* if */
+      goto next_declaration;
+    } else if (!member_declarator(class_state, &decl_info, &locator,
+                                  &func_info,  &is_function, &is_typedef)) {
       /* A syntax error occurred: Proceed with the next declaration. */
       expect_error();
       *skip_semicolon_check = TRUE;
