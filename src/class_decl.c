@@ -16562,6 +16562,7 @@ template declaration and is NULL otherwise.
               (curr_token == tok_assign &&
                next_token() == tok_removed_expr))) {
     /* The initializer was extracted for "on-demand" instantiation. */
+    decl_state->has_initializer = TRUE;
     var->has_explicit_initializer = TRUE;
     var->initializer_in_class = TRUE;
     /* The "=" token is not part of the initializer, so it may still be
