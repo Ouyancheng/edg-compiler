@@ -4293,6 +4293,59 @@ Otherwise, return an error constant.
   return result;
 }  /* instantiate_member_constant */
 
+
+static a_byte* set_up_param_ref_for_this_ptr(
+                                       an_interpreter_state  *ips,
+                                       a_type_ptr            class_type,
+                                       a_byte                *object,
+                                       a_byte                *complete_object)
+/*
+Set up a "this" pointer (for the given class type) in case we run into
+enk_param_ref nodes.  It is associated with &ips->curr_call_frame.  The *this
+object is stored at the address indicated by object and complete_object.
+*/
+{
+  a_type_ptr     this_type = make_pointer_type(class_type);
+  a_byte         *this_bytes;
+  a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
+  a_byte_count   with_postfix_bytes;
+  a_var_postfix  *postfix;
+
+  do_host_alignment(this_n_bytes);
+  with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
+  alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
+  clear_address(this_bytes, object);
+  ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
+  ((a_constexpr_address *)this_bytes)->alloc_seq_number =
+                                                   ips->curr_alloc_seq_number;
+  mark_complete_object_initialized(this_bytes);
+  postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
+  postfix->alloc_seq_number = ips->curr_alloc_seq_number;
+  map_or_replace_ptr(&ips->map, &ips->curr_call_frame, this_bytes,
+                     postfix->prev_storage);
+  return this_bytes;
+}  /* set_up_param_ref_for_this_ptr */
+
+
+static void unmap_param_ref_for_this_ptr(an_interpreter_state  *ips,
+                                         a_byte                *this_bytes)
+/*
+Remove a binding of enk_param nodes for "this" pointers previously set up by a
+call to set_up_param_ref_for_this_ptr.  Restore any earlier binding if needed.
+*/
+{
+  a_var_postfix  *postfix;
+
+  postfix = (a_var_postfix*)(this_bytes+sizeof(a_constexpr_address));
+  if (postfix->prev_storage == NULL) {
+    unmap_ptr(&ips->map, &ips->curr_call_frame);
+  } else {
+    replace_mapped_ptr(&ips->map, &ips->curr_call_frame,
+                       postfix->prev_storage);
+  }  /* if */
+}  /* unmap_param_ref_for_this_ptr */
+
+
 /*
 Macro to set result_storage from the value of the specified constant.
 Duplicates some cases from extract_value_from_constant for performance
@@ -4714,6 +4767,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_field_ptr       fp = tp->variant.class_struct_union.field_list;
           a_base_class_ptr  bcp = base_classes_of(tp);
           a_constant_ptr    elem_con;
+          a_byte            *this_bytes = NULL;
+          if (con->variant.aggregate.has_dynamic_init_component) {
+            this_bytes = set_up_param_ref_for_this_ptr(ips, tp, value,
+                                                       complete_object);
+          }  /* if */
           elem_con = con->variant.aggregate.first_constant;
           /* Initialize base subobjects first. */
           for (;;) {
@@ -4779,6 +4837,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* if */
             fp = fp->next;
           }  /* for */
+          if (this_bytes != NULL) {
+            unmap_param_ref_for_this_ptr(ips, this_bytes);
+          }  /* if */
         } else if (tp->kind == (a_type_kind)tk_union) {
           /* Initialize the first field (unless another field is
              designated). */
@@ -5126,28 +5187,17 @@ Evaluate the given dynamic initialization for the given storage.
     case dik_nonconstant_aggregate:
       { a_constant_ptr  con = dip->variant.constant;
         a_type_ptr      con_type = skip_typerefs(con->type);
-        a_byte          *this_bytes;
+        a_byte          *this_bytes = NULL;
         if (is_immediate_class_type(con_type)) {
-          /* Set up a "this" pointer in case we run into enk_param_ref nodes.
-             It is associated with &ips->curr_call_frame. */
-          a_type_ptr      this_type = make_pointer_type(con_type);
-          alloc_complete_object(ips, sizeof(a_constexpr_address), this_type,
-                               this_bytes);
-          clear_address(this_bytes, result_storage);
-          ((a_constexpr_address *)this_bytes)->complete_object =
-                                                              complete_object;
-          ((a_constexpr_address *)this_bytes)->alloc_seq_number =
-                                                   ips->curr_alloc_seq_number;
-          mark_complete_object_initialized(this_bytes);
-          map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
-        } else {
-          this_bytes = NULL;
+          this_bytes = set_up_param_ref_for_this_ptr(ips, con_type,
+                                                     result_storage,
+                                                     complete_object);
         }  /* if */
         result = copy_val_from_constant(ips, dip->variant.constant,
                                         result_storage, complete_object);
         mark_subobject_initialized(result_storage, complete_object);
         if (this_bytes != NULL) {
-          unmap_stack_bytes(ips, &ips->curr_call_frame);
+          unmap_param_ref_for_this_ptr(ips, this_bytes);
         }  /* if */
       }
       break;
