@@ -4913,7 +4913,9 @@ returned set to TRUE.
     dps->init_state.initializer_must_be_constant = vp != NULL &&
                                                    vp->is_constexpr;
   }  /* if */
-  if (dps->has_deduced_type && !is_error_type(vp_type)) {
+  if (dps->has_deduced_type &&
+      !(vp != NULL && vp->initializer_in_class) &&
+      !is_error_type(vp_type)) {
     /* An initializer for a variable declared with the "auto" type specifier
        (or, in GNU C mode, the "__auto_type" specifier). */
     if (first_token == tok_lbrace && !list_init_enabled) {
