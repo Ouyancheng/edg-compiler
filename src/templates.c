@@ -5819,7 +5819,7 @@ user later during real instantiations.
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
-    a_boolean	saved_auto_type_specifier_seen = dps->auto_type_specifier_seen;
+    a_boolean	saved_has_deduced_type = dps->has_deduced_type;
     a_boolean	is_constant_member;
 
     is_constant_member = var_ptr->initializer_in_class &&
@@ -5852,15 +5852,14 @@ user later during real instantiations.
       scan_and_discard_init_component(dps);
     } else {
       if (!var_ptr->initializer_in_class || var_ptr->is_constexpr) {
-        /* Temporarily clear the "auto type specifier seen" flag to avoid
-           having the call to "initializer" attempt to prescan the expression
-           again. */
-        dps->auto_type_specifier_seen = FALSE;
+        /* Temporarily clear the has_deduced_type flag to avoid having the
+           call to "initializer" attempt to prescan the expression again. */
+        dps->has_deduced_type = FALSE;
         initializer(dps, &template_sym->decl_position, idl_external,
                     has_parenthesized_initializer,
                     &incomplete_type_error_reported,
                     (a_decl_pos_block_ptr)NULL);
-        dps->auto_type_specifier_seen = saved_auto_type_specifier_seen;
+        dps->has_deduced_type = saved_has_deduced_type;
       } else {
         /* Scan the constant expression. */
         scan_member_constant_for_variable(dps, var_ptr);

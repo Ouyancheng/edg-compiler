@@ -11149,6 +11149,7 @@ symbol entry, and return a pointer to it in state->sym.
     /* An "auto" type specifier is not allowed in a typedef declaration. */
     pos_error(ec_auto_not_allowed_here, &state->auto_pos);
     state->auto_type_specifier_seen = FALSE;
+    state->has_deduced_type = FALSE;
     state->auto_type = NULL;
     invalidate_type(state);
     type_ptr = error_type();
@@ -17421,6 +17422,7 @@ can be fully determined.
     pos_error(ec_exp_semicolon, &pos_curr_token);
     dps->specifiers_type = error_type();
     dps->auto_type_specifier_seen = FALSE;
+    dps->has_deduced_type = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
     dps->has_deducible_return_type = FALSE;
   }  /* if */
@@ -18704,6 +18706,7 @@ a diagnostic if that isn't the case.
   if (dps->prev_type != NULL) {
     if (!check_variable_redecl_compatible(dps)) {
       dps->auto_type_specifier_seen = FALSE;
+      dps->has_deduced_type = FALSE;
       dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
     }  /* if */
   }  /* if */
@@ -18771,6 +18774,7 @@ which are diagnosed elsewhere).
   }  /* if */
   if (err) {
     dps->auto_type_specifier_seen = FALSE;
+    dps->has_deduced_type = FALSE;
     dps->auto_type = NULL;
     invalidate_type(dps);
     if (dps->sym != NULL) {

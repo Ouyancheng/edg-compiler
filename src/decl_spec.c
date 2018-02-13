@@ -9162,8 +9162,8 @@ if an error is issued.
       *basic_type = bt_error;
       *type_ptr = error_type();
       *err = TRUE;
-      state->has_deduced_type = FALSE;
       state->auto_type_specifier_seen = FALSE;
+      state->has_deduced_type = FALSE;
       state->decltype_auto_specifier_seen = FALSE;
     } else {
       *basic_type = bt_auto;

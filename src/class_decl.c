@@ -3736,7 +3736,7 @@ constant-expression.
          necessarily required to be a constant. */
       a_boolean  incomplete_type_error_reported = FALSE;
       a_boolean  is_parenthesized_initializer = FALSE;
-      a_boolean  saved_auto_type_specifier_seen = dps.auto_type_specifier_seen;
+      a_boolean  saved_has_deduced_type = dps.has_deduced_type;
       a_source_position
                  var_pos;
       a_decl_pos_block
@@ -3751,14 +3751,13 @@ constant-expression.
         is_parenthesized_initializer = TRUE;
         (void)get_token();
       }  /* if */
-      /* Temporarily clear the "auto type specifier seen" flag to avoid
-         having the call to "initializer" attempt to prescan the expression
-         again. */
-      dps.auto_type_specifier_seen = FALSE;
+      /* Temporarily clear the has_deduced_type flag to avoid having the call
+         to "initializer" attempt to prescan the expression again. */
+      dps.has_deduced_type = FALSE;
       var_pos = var->source_corresp.decl_position;
       initializer(&dps, &var_pos, idl_external, is_parenthesized_initializer,
                   &incomplete_type_error_reported, &decl_pos_block);
-      dps.auto_type_specifier_seen = saved_auto_type_specifier_seen;
+      dps.has_deduced_type = saved_has_deduced_type;
     } else {
       a_constant_ptr  constant = local_constant();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16517,19 +16516,17 @@ template declaration and is NULL otherwise.
            function. */
         a_boolean  incomplete_type_error_reported = FALSE;
         a_boolean  is_parenthesized_initializer = FALSE;
-        a_boolean  saved_auto_type_specifier_seen =
-                                         decl_state->auto_type_specifier_seen;
-        /* Temporarily clear the "auto type specifier seen" flag to avoid
-           having the call to "initializer" attempt to prescan the expression
-           again. */
-        decl_state->auto_type_specifier_seen = FALSE;
+        a_boolean  saved_has_deduced_type = decl_state->has_deduced_type;
+        /* Temporarily clear the has_deduced_type flag to avoid having the
+           call to "initializer" attempt to prescan the expression again. */
+        decl_state->has_deduced_type = FALSE;
         /* A complete type is needed with an initializer. */
         complete_type_is_needed(var->type);
         initializer(decl_state, &locator->source_position, idl_external,
                     is_parenthesized_initializer,
                     &incomplete_type_error_reported,
                     &decl_info->decl_pos_block);
-        decl_state->auto_type_specifier_seen = saved_auto_type_specifier_seen;
+        decl_state->has_deduced_type = saved_has_deduced_type;
       } else {
         /* Scan the constant expression. */
         scan_member_constant_for_variable(decl_state, var);

@@ -2204,6 +2204,7 @@ a trailing return type.
     }  /* if */
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
+    state->has_deduced_type = FALSE;
     state->has_deducible_return_type = FALSE;
   } else if (state->secondary_declarator) {
     /* Check that "auto" is not used both to announce a trailing return type
@@ -2277,6 +2278,7 @@ routine is also called for the trailing return type of a lambda declarator.
   if (err) {
     dps->specifiers_type = dps->declared_type = dps->type = error_type();
     dps->auto_type_specifier_seen = FALSE;
+    dps->has_deduced_type = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
     dps->has_trailing_return_type = FALSE;
   } else {
