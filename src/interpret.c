@@ -12155,6 +12155,12 @@ the value representation of the integer value.
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
                 break;
+              } else if (is_runtime_data_address(opnd1_value)) {
+                /* Cannot modify the value of an object whose lifetime began
+                   outside the current evaluation. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
               } else if (is_const_storage(opnd1_value)) {
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
@@ -12187,12 +12193,6 @@ the value representation of the integer value.
                 a_type_ptr        elem_type;
                 elem_type = skip_typerefs(opnd1_type->variant.pointer.type);
                 *dst = *(a_constexpr_address*)opnd1_value;
-                if (is_runtime_data_address(dst)) {
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_access_to_runtime_storage,
-                                &expr->position, ips);
-                  break;
-                }  /* if */
                 get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
                 if (ovfl) {
                   do_constexpr_fail(result);

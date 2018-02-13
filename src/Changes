@@ -1,5 +1,20 @@
 Version 4.15
 
+2/13/18  [EDGcpfe/19325]
+Abort on interpretation of unusual eok_padd_assign
+
+In some cases, adding a pointer value to a boolean could result in an abort
+in conv_integer_value_to_host_large_integer (const_ints.c) during the
+interpretation of an eok_padd_assign node.  For example:
+
+  void f(bool b) {
+    int x[1];
+    constexpr auto z = ( b += x );  // Previously aborted.  Now okay.
+  }
+
+This is now fixed.
+
+
 2/13/18  [EDGcpfe/19339]
 Spurious error on generic lambda with array parameter declarator
 
