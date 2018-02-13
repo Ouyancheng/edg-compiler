@@ -9,7 +9,7 @@ interpretation of an eok_padd_assign node.  For example:
 
   void f(bool b) {
     int x[1];
-    constexpr auto z = ( b += x );  // Previously aborted.  Now okay.
+    constexpr auto z = ( b += x );  // Previously aborted.  Now an error.
   }
 
 This is now fixed.
