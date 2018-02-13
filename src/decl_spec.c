@@ -9175,6 +9175,7 @@ if an error is issued.
   } else {
     /* "auto" must be a storage class specifier. */
     state->auto_type_specifier_seen = FALSE;
+    state->has_deduced_type = FALSE;
     process_storage_class_specifier(
                                tok_auto, input_flags, state, decl_pos_block,
                                first_specifier, decl_specifiers_seen, err);
