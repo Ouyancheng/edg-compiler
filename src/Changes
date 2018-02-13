@@ -1,5 +1,18 @@
 Version 4.15
 
+2/13/18  [EDGcpfe/19339]
+Spurious error on generic lambda with array parameter declarator
+
+Consider:
+
+  int x = [](auto [3]) { return 42; }((int*)nullptr);
+
+The front end previously issued an error about the use of "auto" combined
+with an array type.  That error, however, does not apply for the "auto"
+parameters of a generic lambda.  The problem is now fixed and the example
+above is now accepted.
+
+
 2/13/18  [EDGcpfe/17895]
 C++-generating back end: incorrect qualification of otherwise-inaccessible
 base class members named in a using-declaration

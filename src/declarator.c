@@ -8015,7 +8015,7 @@ the parameters.
     (void)get_token();
   }  /* if */
   check_pending_qualifiers_used(state);
-  if (state->auto_type_specifier_seen) {
+  if (state->auto_type_specifier_seen && !state->is_param_decl) {
     check_type_with_auto_specifier(state);
   } else if (locator != NULL && locator->is_conversion_name) {
     /* Check if the conversion type involves "auto" or "decltype(auto)", and
