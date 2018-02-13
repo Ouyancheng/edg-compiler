@@ -446,11 +446,25 @@ name of an instance of a class template in Microsoft mode.
 {
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
+  a_boolean                is_hiding = TRUE;
 
   check_assertion(sp != NULL);
   if (hidden_by != NULL && symbols_are_equivalent(hidden_sym, hidden_by)) {
     /* A symbol does not hide itself. */
-  } else {
+    is_hiding = FALSE;
+  } else if (hidden_sym->kind == (a_symbol_kind)sk_member_function &&
+             hidden_by != NULL &&
+             hidden_by->kind == (a_symbol_kind)sk_overloaded_function) {
+    for (sym = hidden_by->variant.overloaded_function.symbols;
+         sym != NULL && is_hiding; sym = sym->next) {
+      if (symbols_are_equivalent(hidden_sym, sym)) {
+        /* A symbol is not hidden by a using-declaration that includes the
+           symbol in the resulting overload set. */
+        is_hiding = FALSE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (is_hiding) {
     switch (hidden_sym->kind) {
       case sk_label:
       case sk_keyword:
@@ -465,9 +479,26 @@ name of an instance of a class template in Microsoft mode.
         for (sym = hidden_sym->variant.overloaded_function.symbols;
              sym != NULL;
              sym = sym->next) {
-          record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member,
-                                        simulated_hiding, sp, hidden_by);
+          is_hiding = TRUE;
+          if (hidden_by != NULL &&
+              hidden_by->kind == (a_symbol_kind)sk_overloaded_function) {
+            a_symbol_ptr one_hiding_sym;
+            for (one_hiding_sym =
+                                hidden_by->variant.overloaded_function.symbols;
+                 one_hiding_sym != NULL && is_hiding;
+                 one_hiding_sym = one_hiding_sym->next) {
+              if (symbols_are_equivalent(sym, one_hiding_sym)) {
+                /* A member function is not hidden if it is part of an
+                   overload set resulting from a using-declaration. */
+                is_hiding = FALSE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          if (is_hiding) {
+            record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
+                                          hidden_class_or_namespace_member,
+                                          simulated_hiding, sp, hidden_by);
+          }  /* if */
         }  /* for */
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -972,7 +1003,24 @@ hidden name checking on its own members, too.
                                    &path, &access, &ambiguous,
                                    &any_using_decl,
                                    &unambiguous_injected_template) != NULL) {
-          if (ambiguous || access == (an_access_specifier)as_inaccessible) {
+          a_boolean found_using_decl = FALSE;
+          if (access == (an_access_specifier)as_inaccessible) {
+            /* Check to see if there's a using-declaration in this scope
+               that would make the inherited access irrelevant. */
+            a_using_decl_ptr udp;
+            for (udp = sp->using_decls; udp != NULL && !found_using_decl;
+                 udp = udp->next) {
+              a_source_correspondence *sdp =
+                                    (a_source_correspondence *)udp->entity.ptr;
+              if (((a_symbol_ptr)sdp->assoc_info)->header == sym_ptr->header &&
+                  udp->qualifier.class_type == class_type) {
+                found_using_decl = TRUE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          if (ambiguous ||
+              (access == (an_access_specifier)as_inaccessible &&
+               !found_using_decl)) {
             /* This symbol is either ambiguous or inaccessible in the class
                whose scope we are processing -- mark it as hidden to force
                references to it in this context to be generated as

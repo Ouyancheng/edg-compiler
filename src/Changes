@@ -1,5 +1,32 @@
 Version 4.15
 
+2/13/18  [EDGcpfe/17895]
+C++-generating back end: incorrect qualification of otherwise-inaccessible
+base class members named in a using-declaration
+
+The C++-generating back end incorrectly used a qualified-id to name an
+inaccessible base class member when the derived class has a using-declaration
+that makes the name accessible.  This is now fixed.  For example:
+
+  struct S1;
+  struct S2;
+
+  class S3 {
+    friend struct S1;
+    static void foo(S1&);
+    static void foo(S2&);
+  };
+
+  struct S1 : private S3 {
+    using S3::foo;
+  };
+
+  void bar() {
+    S1 s;
+    s.foo(s);  // Previously generated as s.S3::foo
+  }
+
+
 2/10/18  [EDGcpfe/19234]
 C-generating back end: const volatile initialized static data members
 
