@@ -679,7 +679,8 @@ N4582.)
   a_boolean  result = FALSE;
 
   if (list_init_enabled && is_braced_init_component(icp) &&
-      is_immediate_class_type(dtype)) {
+      is_immediate_class_type(dtype) &&
+      !class_symbol_supp(symbol_for(dtype))->is_class_aggregate) {
     an_init_component_ptr  list = icp->variant.braced.list;
     if (list != NULL && is_last_elem(list) && is_expression_component(list)) {
       a_type_ptr  etype = operand_of_arg_list_elem(list)->type;
