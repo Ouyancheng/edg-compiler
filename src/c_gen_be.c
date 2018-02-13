@@ -8857,7 +8857,7 @@ interleaved with the variables.
     } else if (!dump_vars_without_initializers &&
                var_ptr->storage_class == (a_storage_class)sc_extern) {
       /* Do not put out a declaration with an initializer for a variable
-         that is not definition, which would be indicated by
+         that is not a definition, which would be indicated by
          sc_unspecified.  Some static data members with in-class
          initializers can result in an sc_extern variable with an
          initializer; putting out a declaration with an initializer would
