@@ -28179,6 +28179,7 @@ that follows.
                   symbol_is(sym, sk_variable)) &&
                  template_instance_for_symbol(sym) != NULL) {
         a_variable_ptr	var = variable_for_symbol(sym);
+        var->initializer_in_class = FALSE;
         if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
             !is_const_qualified_type(dps->type)) {
           /* constexpr variables are implicitly const. */
