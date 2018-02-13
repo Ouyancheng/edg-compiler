@@ -28842,6 +28842,7 @@ that follows.
         }  /* if */
       }  /* if */
     }  /* if */
+    run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
     if (!keep_func_info) done_with_func_info(func_info);
     remove_stop_token(tok_semicolon);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
