@@ -1,5 +1,24 @@
 Version 4.15
 
+2/14/18  [EDGcpfe/18026]
+C++-generating back end: decltype-specifier as a nested-name-specifier
+
+When a decltype-specifier designating an unnamed class type is used as a
+nested-name-specifier, the resulting IL does not preserve sufficient
+information to retrieve the original source form of the name.  The
+C++-generating back end previously erroneously used an undeclared temporary
+name (of the form __T12345678) as the nested-name-specifier in such cases.
+This is now fixed by adding the temporary name in the generated code to the
+originally-unnamed class declarations.  For example, with --c++11:
+
+  struct {  // Now generated as "struct __T12345678 {"
+    int x;
+  } a;
+  struct : decltype(a) {
+    int x = decltype(a)::x;  // Generated as __T12345678::x
+  } b;
+
+
 2/14/18  [EDGcpfe/18127]
 C++-generating back end: clang and dependent friend declarations
 

@@ -8602,11 +8602,14 @@ is the one associated with the definition of the class.
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
   } else if (type->variant.class_struct_union.originally_unnamed) {
-    /* The type was unnamed, so suppress the name here.  This includes
-       the case where an unnamed class gets a name from a typedef.
-       For example:
+    /* The type was unnamed, so put out a temporary name here in case the
+       type is referred to later using a decltype-specifier that is not
+       preserved in the IL.  This includes the case where an unnamed class
+       gets a name from a typedef.  For example:
          typedef struct { int A; } A;
     */
+    gen_temp_name((char *)type);
+    write_space();
   } else {
     a_boolean  gen_sealed = FALSE;
     /* Put out the name. */
