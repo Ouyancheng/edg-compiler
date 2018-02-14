@@ -1,5 +1,27 @@
 Version 4.15
 
+2/14/18  [EDGcpfe/18127]
+C++-generating back end: clang and dependent friend declarations
+
+The C++-generating back end generally suppresses the argument list on a
+template name when it appears in the scope of that template and refers to
+the current instantiation.  In a friend function declaration, however, clang
+requires that the template argument list be supplied.  The C++-generating
+back end has now been modified to add the template argument list in such
+friend declarations when clang_is_generated_code_target is TRUE. For example,
+with --clang:
+
+  template <class T> struct S1;
+  struct S2 {
+    template <class T> int foo(S1<T>* p);
+  };
+  template <class T> struct S1 {
+    friend int S2::foo<T> (S1<T> * p);  // Parameter type previously generated
+                                        // as "S1", now "::S1<T>" with
+                                        // clang_is_generated_code_target
+  };
+
+
 2/14/18  [EDGcpfe/19334]
 Configurations with IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS set to FALSE
 

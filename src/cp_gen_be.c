@@ -6544,11 +6544,13 @@ A reference is not the definition.
         } else {
           need_qual = FALSE;
         }  /* if */
-        if (!need_qual) {
+        if (!need_qual &&
+            !(clang_is_generated_code_target && in_friend_declaration)) {
           /* This is the name of the current instantiation, and it is
              visible.  Just use the name of the type, rather than the
              qualified name of the template followed by the template
-             arguments. */
+             arguments.  For a friend function declaration, however, clang
+             requires the template arguments. */
           options |= GN_NO_TEMPLATE_ARGS;
         }  /* if */
       }  /* if */
