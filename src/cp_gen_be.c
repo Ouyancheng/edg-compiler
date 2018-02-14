@@ -3239,7 +3239,7 @@ a name.  Never generate a qualified name.
              ((a_variable_ptr)scp)->is_parameter) {
     gen_param_name((a_variable_ptr)scp);
   } else {
-    if (!cpp14_mode && entry_kind == iek_routine &&
+    if (entry_kind == iek_routine &&
         ((a_routine_ptr)scp)->special_kind ==
                                    (a_special_function_kind)sfk_udl_operator &&
         (clang_is_generated_code_target

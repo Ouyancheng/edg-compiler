@@ -1,5 +1,21 @@
 Version 4.15
 
+2/14/18  [EDGcpfe./18125]
+C++-generating back end: clang and user-defined literal operators
+
+The change for EDGcpfe/17988 (in version 4.13) used an incorrect test to
+determine when to put out a space before the literal suffix when declaring
+a user-defined literal operator.  In particular, clang always requires the
+space before the literal suffix, regardless of the C++ version being
+compiled.  The C++-generating back end has now been changed to add the space
+whenever clang_is_generated_code_target is TRUE.  For example, with --clang:
+
+  // Previously generated as operator ""LL, which clang rejects:
+  unsigned long long operator "" LL(unsigned long long a) {
+      return a+1;
+  }
+
+
 2/14/18  [EDGcpfe/19303]
 Attribute enable_if and using-declarations
 
