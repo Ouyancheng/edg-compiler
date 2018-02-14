@@ -672,15 +672,14 @@ tk_typeref entries on top), and (d) the type of the singleton expression is
 dtype or a type derived from dtype (ignoring type qualifiers).  Otherwise,
 return FALSE.
 
-(This is used to check the special case of bullet (3.1) in [decl.init.list],
-N4582.)
+(This is used to check the special case of bullet (3.2) in [dcl.init.list],
+N4713.)
 */
 {
   a_boolean  result = FALSE;
 
   if (list_init_enabled && is_braced_init_component(icp) &&
-      is_immediate_class_type(dtype) &&
-      !class_symbol_supp(symbol_for(dtype))->is_class_aggregate) {
+      is_immediate_class_type(dtype)) {
     an_init_component_ptr  list = icp->variant.braced.list;
     if (list != NULL && is_last_elem(list) && is_expression_component(list)) {
       a_type_ptr  etype = operand_of_arg_list_elem(list)->type;
@@ -712,19 +711,20 @@ The presence of a nonconstant initializer component is reflected in *is.
 
 remove_any_extraneous_braces:
   if (braced) {
-    if (is_reference_type(dest_type)) {
+    a_type_ptr dtype = skip_typerefs(dest_type);
+    if (is_reference_type(dtype)) {
       /* Braces are not necessarily redundant: Initializing a reference amounts
          to initializing a temporary bound to that reference.  If the temporary
          has an aggregate type, the braces are not redundant.  Either way, this
          will be handled at the time the temporary initialization is processed.
          */
-    } else if (is_class_struct_union_type(dest_type)) {
+    } else if (is_immediate_class_type(dtype)) {
       /* If we get here with a class type, it must be a non-aggregate or we are
          dealing with the singleton case of bullet (3.1) in [decl.init.list]
          (N4582).  Braced initializers for non-aggregates are only permitted
          when list initialization is enabled. */
-      if (is_aggregate_type(dest_type)) {
-        check_assertion(is_singleton_with_extraneous_braces(icp, dest_type));
+      if (class_symbol_supp(symbol_for(dtype))->is_class_aggregate) {
+        check_assertion(is_singleton_with_extraneous_braces(icp, dtype));
       } else if (!list_init_enabled) {
         pos_ty_error(ec_brace_initialization_not_allowed,
                      init_component_pos(icp), dest_type);
