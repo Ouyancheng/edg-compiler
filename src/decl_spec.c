@@ -8676,7 +8676,10 @@ otherwise.
 {
   a_symbol_ptr  sym = dps->sym;
 
-  if (sym == NULL) {
+  if ((dps->dso_flags & DSO_THREAD_LOCAL) == 0) {
+    /* Nothing to do.  This can occur in previous diagnostics "canceled" the
+       thread_local specifier. */
+  } else if (sym == NULL) {
     if (dps->type != NULL &&
         is_immediate_class_type(dps->type) &&
         dps->type->source_corresp.name == NULL) {

@@ -28166,11 +28166,6 @@ that follows.
                     &locator.source_position);
           sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if ((dps->dso_flags & DSO_THREAD_LOCAL) != 0) {
-          /* "thread_local" is allowed only on specializations of static data
-             members. */
-          pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
-          sym = NULL;
         } else {
           /* Okay. */
           is_instance = TRUE;
@@ -28212,6 +28207,7 @@ that follows.
                                      ec_thread_local_follows_non_thread_local,
                    &locator.source_position,
                    &var->source_corresp.decl_position);
+          dps->dso_flags &= ~DSO_THREAD_LOCAL;
           sym = NULL;
         }  /* if */
       } else if (microsoft_bugs && microsoft_version <= 1300) {
@@ -28842,7 +28838,6 @@ that follows.
         }  /* if */
       }  /* if */
     }  /* if */
-    run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
     if (!keep_func_info) done_with_func_info(func_info);
     remove_stop_token(tok_semicolon);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -28869,6 +28864,7 @@ that follows.
       pos_error(ec_bad_specifier_outside_class_decl, &dps->virtual_pos);
     }  /* if */
   }  /* if */
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   db_exit();
 }  /* full_specialization */
 
