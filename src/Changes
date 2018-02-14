@@ -1,5 +1,28 @@
 Version 4.15
 
+2/13/18  [EDGcpfe/16859]
+C++-generating back end: accessible typedefs for inaccessible class qualifiers
+
+The C++-generating back end failed to substitute an accessible typedef for
+an inaccessible qualifier in some qualified names, resulting in code that
+could not be compiled.  For example:
+
+  template<typename T> struct S1 { };
+  template <typename T> struct S2 {
+    typedef S1<T> type;
+  };
+  class C1 {
+    class C { };
+  public:
+    typedef S2<C> t;
+  };
+  struct S3 {
+    S3(const C1::t::type&) {  // Parameter type previously generated as
+                              // "const S1<C1::C>&", which is an access error
+    }
+  };
+
+
 2/13/18  [EDGcpfe/19325]
 Abort on interpretation of unusual eok_padd_assign
 

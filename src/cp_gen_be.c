@@ -2158,9 +2158,18 @@ names is not public, set *for_all_scopes to FALSE.
     if (is_accessible && parent_class != NULL) {
       /* Need to check as well for inaccessible template arguments on
          parent classes. */
-      is_accessible = entity_name_is_accessible(&parent_class->source_corresp,
-                                                iek_type, ignore_context,
+      a_source_correspondence *parent_scp = &parent_class->source_corresp;
+      is_accessible = entity_name_is_accessible(parent_scp, iek_type,
+                                                ignore_context,
                                                 &local_for_all_scopes);
+      if (!is_accessible) {
+        /* Check to see if there is an accessible typedef for the parent;
+           if so, treat the type as accessible. */
+        replace_inaccessible_type_with_accessible_typedef(&parent_scp);
+        if (parent_scp != &parent_class->source_corresp) {
+          is_accessible = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     cache_access_result_for(scp, is_accessible, local_for_all_scopes,
                             ignore_context);
