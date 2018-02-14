@@ -15396,7 +15396,7 @@ cast.  See lower_expr for typical invocation.
              implicit parameter through which the return address is passed by
              the caller. */
           a_boolean expr_is_lvalue = expr->is_lvalue;
-          check_assertion(is_effective_thread_local(var));
+          check_assertion(!is_effective_thread_local(var));
           operand_node = var_rvalue_expr(return_value_pointer_variable);
           /* Make sure the types are consistent (cv-qualification can
              be mismatched here). */

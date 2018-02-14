@@ -1385,6 +1385,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_user_function_kind_tag::bufk_last)*/
 /*lint -esym(552,targ_ssize_t_int_kind)*/
 /*lint -esym(769,ec_always_inline_suppressed)*/
+/*lint -esym(755,is_effective_thread_local)*/
 
 #endif /* ifndef LINT_H */
 
