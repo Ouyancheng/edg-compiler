@@ -971,7 +971,6 @@ associated variant fields to default values.
 #if DO_IL_LOWERING
   cp->has_been_prelowered = FALSE;
   cp->vptr_has_been_lowered = FALSE;
-  cp->empty_base_classes_have_been_removed = FALSE;
 #endif /* DO_IL_LOWERING */
   cp->constant_for_base_class = FALSE;
   cp->constant_for_base_class_from_constexpr_folding = FALSE;

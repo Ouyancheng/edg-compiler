@@ -4708,18 +4708,15 @@ initializable fields and constants in the aggregate will work properly).
 */
 {
   a_class_type_supplement_ptr ctsp;
-  a_base_class_ptr            bcp;
   a_type_ptr                  class_type = skip_typerefs(constant->type);
-  a_constant_ptr              cp, prev = NULL;
+  a_constant_ptr              cp, cp_next, prev = NULL;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!constant->empty_base_classes_have_been_removed &&
-      is_immediate_class_type(class_type)) {
+  if (is_immediate_class_type(class_type)) {
     prelower_class_type(class_type);
     /* Recurse for any sub-aggregates (needed because the routine that
        does the vptr insertion does a depth first traversal and all empty
        base classes must be removed before then). */
-    constant->empty_base_classes_have_been_removed = TRUE;
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
          cp = cp->next) {
@@ -4730,37 +4727,29 @@ initializable fields and constants in the aggregate will work properly).
     ctsp = class_type_supp(class_type);
     if (ctsp->base_classes != NULL) {
       cp = constant->variant.aggregate.first_constant;
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct && bcp->is_optimized_empty_base) {
-#if CHECKING
-          a_boolean found = FALSE;
-#endif /* CHECKING */
-          for (; cp != NULL; cp = cp->next) {
-            if ((aggregate_classes_can_have_bases ||
-                 cp->constant_for_base_class_from_constexpr_folding) &&
-                identical_types(cp->type, bcp->type)) {
-              /* The type of the constant matches that of the optimized
-                 empty base class; remove the constant from the aggregate
-                 list. */
-              check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate);
-#if CHECKING
-              found = TRUE;
-#endif /* CHECKING */
-              if (prev == NULL) {
-                constant->variant.aggregate.first_constant = cp->next;
-              } else {
-                prev->next = cp->next;
-              }  /* if */
-              if (constant->variant.aggregate.last_constant == cp) {
-                constant->variant.aggregate.last_constant = prev;
-              }  /* if */
-              cp = cp->next;
-              break;
+      for (; cp != NULL; cp = cp_next) {
+        cp_next = cp->next;
+        if (cp->constant_for_base_class) {
+          a_type_ptr  tp = skip_typerefs(cp->type);
+          check_assertion(is_immediate_class_type(tp));
+          if (tp->variant.class_struct_union.is_empty_class) {
+            /* This constant is initializing an empty base class (which will
+               be removed in the lowered class), so remove it from the
+               aggregate. */
+            check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate &&
+                            cp->variant.aggregate.first_constant == NULL);
+            if (prev == NULL) {
+              constant->variant.aggregate.first_constant = cp_next;
+            } else {
+              prev->next = cp_next;
             }  /* if */
-            prev = cp;
-          }  /* for */
-          check_assertion(found);
+            if (constant->variant.aggregate.last_constant == cp) {
+              constant->variant.aggregate.last_constant = prev;
+            }  /* if */
+            continue;
+          }  /* if */
         }  /* if */
+        prev = cp;
       }  /* for */
     }  /* if */
   }  /* if */
