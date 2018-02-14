@@ -1,5 +1,20 @@
 Version 4.15
 
+2/14/18  [EDGcpfe/19303]
+Attribute enable_if and using-declarations
+
+Consider the following example in Clang mode:
+
+  namespace N { extern void g(); }
+  using N::g;
+  __attribute((enable_if(true, ""))) void g() {}  // Previously an error.
+                                                  // Now okay.
+
+The front end previously issued an error in that example because if did not
+consider the enable_if attribute when looking for declaration conflicts with
+using-declarations.  That is now fixed.
+
+
 2/14/18  [EDGcpfe/19344]
 Partial ordering of member vs. non-member function templates
 

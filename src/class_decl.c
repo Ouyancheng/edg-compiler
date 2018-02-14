@@ -11481,6 +11481,8 @@ a diagnostic should be issued by the caller.
   a_type_ptr  tp1 = routine_symbol_type(decl_sym);
   a_type_ptr  tp2 = routine_symbol_type(using_sym);
 
+  tp1 = skip_typerefs(tp1);
+  tp2 = skip_typerefs(tp2);
   *err = FALSE;
   /* First compare param types and, if appropriate, implicit-this-param
      types. */
@@ -11489,7 +11491,14 @@ a diagnostic should be issued by the caller.
        this_param_types_correspond(tp1, tp2, /*check_as_conversion=*/FALSE,
                                    /*check_as_operands=*/FALSE))) {
     /* They are compatible so far. */
-    if (is_class_member) {
+    a_routine_type_supplement_ptr
+           rtsp1 = tp1->variant.routine.extra_info,
+           rtsp2 = tp2->variant.routine.extra_info;
+    if (rtsp1->has_enable_if_attribute != rtsp2->has_enable_if_attribute ||
+        (rtsp1->has_enable_if_attribute &&
+         !compatible_enable_if_attributes(tp1, tp2))) {
+      /* Clang enable_if attribute make these routine type incompatible. */
+    } else if (is_class_member) {
       /* No diagnostic for class members. */
       compat = TRUE;
     } else {
