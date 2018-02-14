@@ -1,5 +1,25 @@
 Version 4.15
 
+2/14/18  [EDGcpfe/19334]
+Configurations with IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS set to FALSE
+
+In configurations where IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is set to
+FALSE, some references to thread-specific run-time library calls had been
+generated during lowering.  In such configurations, for thread_local variables,
+the a_variable::is_thread_local flag is still set to TRUE in the IL, but
+lowering now uses a new macro, is_effective_thread_local, to determine if
+thread-specific treatment is required.  is_effective_thread_local always
+returns FALSE when IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is FALSE (and
+returns a_variable::is_thread_local in other configurations).  The following
+example had generated a reference to __cxa_thread_atexit (in IA-64 ABI
+configurations) with --c++14:
+
+  struct S {
+    ~S() {}
+  };
+  thread_local S s;
+
+
 2/13/18  [EDGcpfe/16859]
 C++-generating back end: accessible typedefs for inaccessible class qualifiers
 

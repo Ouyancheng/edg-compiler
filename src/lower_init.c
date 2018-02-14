@@ -7313,7 +7313,7 @@ code at *insert_location and update *insert_location accordingly.
      a thread_local variable isn't a constant at compile-time, so it's also
      considered "complex". */
   complex_address = ipdp->indirect_through_variable ||
-                    ipdp->variable->is_thread_local ||
+                    is_effective_thread_local(ipdp->variable) ||
                     ipdp->modifiers != NULL;
 #if !IA64_ABI
   /* Make an unnamed static variable for the descriptive structure. */
@@ -7388,7 +7388,7 @@ code at *insert_location and update *insert_location accordingly.
   object_node->next = dso_handle_node;
   /* Make a call of __cxa_atexit or __cxa_thread_atexit as appropriate.
      Their arguments are the expressions created above. */
-  if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
+  if (ipdp->variable != NULL && is_effective_thread_local(ipdp->variable)) {
     call_node = make_prototyped_runtime_call_full("__cxa_thread_atexit",
                                      &record_needed_thread_destruction_routine,
                                      integer_type((an_integer_kind)ik_int),
@@ -7433,7 +7433,7 @@ code at *insert_location and update *insert_location accordingly.
      __record_needed_thread_destruction as appropriate.  Their argument is the
      address of the structure variable created above. */
   addr_expr = var_addr_expr(var);
-  if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
+  if (ipdp->variable != NULL && is_effective_thread_local(ipdp->variable)) {
     call_node = make_prototyped_runtime_call(
                              "__record_needed_thread_destruction",
                              &record_needed_thread_destruction_routine,
@@ -7720,7 +7720,7 @@ location is the insert_location2 value (after the assignment statement).
                                         insert_location2);
 #else /* IA64_ABI */
 #if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-  if (guarded_var->is_thread_local) {
+  if (is_effective_thread_local(guarded_var)) {
     /* No need to worry about multi-threading (this variable is
        local to the thread, so a simple flag will ensure that the guarded
        initialization is performed only once in this thread). */
@@ -7782,7 +7782,7 @@ to indicate that the initialization is complete.  Insert the code at
 */
 {
 #if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-  if (!local_static_guard_var->is_thread_local) {
+  if (!is_effective_thread_local(local_static_guard_var)) {
     /* In non-thread-local cases, the call to __cxa_guard_release has already
        been emitted, so there's nothing to do here. */
   } else
@@ -17120,7 +17120,7 @@ storage class.
   a_routine_ptr wrapper_routine = var->init_routine.thread.wrapper;
   a_routine_ptr init_routine = var->init_routine.thread.init_routine;
 
-  check_assertion(var->is_thread_local &&
+  check_assertion(is_effective_thread_local(var) &&
                   wrapper_routine != NULL && init_routine != NULL);
   /* (Re-)set the storage class of the two thread_local-specific routines
      to the same storage class as the variable. */
@@ -17514,7 +17514,7 @@ enough to cause the back end to invoke the routine at initialization.
       }  /* if */
       /* Determine whether this variable initialization should be emitted
          in the current initialization routine. */
-      if (do_thread_local && !var->is_thread_local) {
+      if (do_thread_local && !is_effective_thread_local(var)) {
         /* If we're processing thread_local initializations and this isn't
            one of them, skip it. */
         process_dip = FALSE;
@@ -17704,7 +17704,7 @@ enough to cause the back end to invoke the routine at initialization.
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
       if (do_single_init) {
         a_routine_list_entry_ptr rlep;
-        check_assertion(dip_next == NULL && !var->is_thread_local);
+        check_assertion(dip_next == NULL && !is_effective_thread_local(var));
         /* Create an association between the variable being initialized and
            the initialization routine. */
         var->init_routine.dynamic_init_routine = init_rout;
@@ -17712,7 +17712,7 @@ enough to cause the back end to invoke the routine at initialization.
         rlep = alloc_list_entry_for_routine();
         rlep->routine = init_rout;
 #if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-        if (var->is_thread_local) {
+        if (is_effective_thread_local(var)) {
           /* Queue this routine on the list of thread_local routines. */
           if (thread_local_dynamic_init_routines_tail == NULL) {
             il_header.thread_local_dynamic_init_routines = rlep;
@@ -17735,7 +17735,7 @@ enough to cause the back end to invoke the routine at initialization.
       }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-      if (var->is_thread_local &&
+      if (is_effective_thread_local(var) &&
           var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
           (var->storage_class == (a_storage_class)sc_unspecified ||
            var->storage_class == (a_storage_class)sc_extern)) {

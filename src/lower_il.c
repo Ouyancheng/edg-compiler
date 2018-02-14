@@ -9590,7 +9590,7 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-    if (variable->is_thread_local &&
+    if (is_effective_thread_local(variable) &&
         variable->storage_class == (a_storage_class)sc_unspecified) {
       if (all_thread_locals_have_wrappers) {
         /* All thread_locals should have wrappers, ensure that one is created
@@ -15396,7 +15396,7 @@ cast.  See lower_expr for typical invocation.
              implicit parameter through which the return address is passed by
              the caller. */
           a_boolean expr_is_lvalue = expr->is_lvalue;
-          check_assertion(!var->is_thread_local);
+          check_assertion(is_effective_thread_local(var));
           operand_node = var_rvalue_expr(return_value_pointer_variable);
           /* Make sure the types are consistent (cv-qualification can
              be mismatched here). */
@@ -15427,7 +15427,7 @@ cast.  See lower_expr for typical invocation.
           expr->type = var->type;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-        } else if (var->is_thread_local) {
+        } else if (is_effective_thread_local(var)) {
           /* Determine if this thread_local variable needs to be rewritten
              to call a wrapper routine. */
           lower_thread_local_variable(expr);
