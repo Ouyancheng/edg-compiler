@@ -4759,7 +4759,7 @@ initializable fields and constants in the aggregate will work properly).
             }  /* if */
             prev = cp;
           }  /* for */
-          check_assertion(found);
+          check_assertion(found || aggregate_classes_can_have_bases);
         }  /* if */
       }  /* for */
     }  /* if */
