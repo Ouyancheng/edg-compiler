@@ -1,5 +1,24 @@
 Version 4.15
 
+2/14/18  [EDGcpfe/19344]
+Partial ordering of member vs. non-member function templates
+
+Our implementation of partial ordering of member vs. non-member function
+templates (core issue 532) could result in spurious ambiguity because the
+front end incorrectly applied the core issue 532 transformation when 
+comparing a non-static member function template and a static member
+function template.  Now fixed.
+
+  struct A {
+    template <typename T> static T* f(A*) { return nullptr; }
+    template <typename T, typename U> T* f(const U&) { return nullptr; }
+  };
+  int main() {
+    A x;
+    x.f<int>(&x);  // Formerly ambiguous
+  }
+
+
 2/14/18  [EDGcpfe/18026]
 C++-generating back end: decltype-specifier as a nested-name-specifier
 

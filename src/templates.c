@@ -2993,6 +2993,8 @@ partial ordering purposes, or return a previously created one.
 
 
 static void get_effective_param_type_list_for_templates(
+			a_symbol_ptr				templ_sym1,
+			a_symbol_ptr				templ_sym2,
 			a_routine_type_supplement_ptr		rtsp1,
 			a_routine_type_supplement_ptr		rtsp2,
 			a_template_symbol_supplement_ptr	tssp1,
@@ -3004,6 +3006,7 @@ In partial ordering, if one of the function templates is a non-static
 member and the other is a non-static or non-member, the non-static member
 has an invented parameter type entry for partial ordering purposes.  rtsp1
 and rtsp2 specify the type supplements for the routine types involved.
+templ_sym1 and templ_sym2 are the template symbols of the templates involved.
 tssp1 and tssp2 are the corresponding template symbol supplements.
 
 This routine creates such an entry if needed and returns ptp1 and ptp2 as
@@ -3022,9 +3025,14 @@ is put at the start of either ptp1 or ptp2.
   } else if (rout_1_is_nonstatic == rout_2_is_nonstatic) {
     /* They are both static/nonmember or nonstatic functions.  Nothing
        needs to be done. */
-  } else if (rout_1_is_nonstatic) {
+  } else if (rout_1_is_nonstatic && !templ_sym2->is_class_member) {
+    /* For this case, and the one below, the original wording of core issue
+       532 suggested that this transformation should be done when comparing
+       a non-static member with a static member, but this was incorrect.
+       This is only done when comparing a non-static member with a
+       non-member. */
     get_invented_partial_ordering_param(rtsp1, tssp1, ptp1);
-  } else if (rout_2_is_nonstatic) { 
+  } else if (rout_2_is_nonstatic && !templ_sym1->is_class_member) { 
     get_invented_partial_ordering_param(rtsp2, tssp2, ptp2);
   }  /* if */
 }  /* get_effective_param_type_list_for_templates */
@@ -3111,7 +3119,8 @@ parameter matching.
       /* For normal cases (not using the entire type) an invented parameter
          is added if we are comparing a nonstatic function with a
          static or nonmember function. */
-      get_effective_param_type_list_for_templates(rtsp1, rtsp2, tssp1,
+      get_effective_param_type_list_for_templates(templ_sym1, templ_sym2,
+                                                  rtsp1, rtsp2, tssp1,
                                                   tssp2, &ptp1, &ptp2);
     }  /* if */
     /* Do the argument deduction on each function parameter.  The loop will
