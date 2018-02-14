@@ -2148,8 +2148,15 @@ a trailing return type.
 
   check_assertion(state->auto_type_specifier_seen);
   if (is_array_type(state->declared_type)) {
-    pos_error(ec_auto_type_in_array_type, &state->auto_pos);
-    err = TRUE;
+    if (state->is_param_decl && state->is_lambda) {
+      /* In the context of generic lambda parameters, "auto" can be used to
+         create an array type.  For example: 
+                      [](auto (&p)[2]) { return p[1]; }
+      */
+    } else {
+      pos_error(ec_auto_type_in_array_type, &state->auto_pos);
+      err = TRUE;
+    }  /* if */
   } else {
     a_boolean  is_function_declarator =
                         state->declared_type->kind == (a_type_kind)tk_routine;
@@ -8017,8 +8024,7 @@ the parameters.
     (void)get_token();
   }  /* if */
   check_pending_qualifiers_used(state);
-  if (state->auto_type_specifier_seen &&
-      !(state->is_param_decl && state->is_lambda)) {
+  if (state->auto_type_specifier_seen) {
     check_type_with_auto_specifier(state);
   } else if (locator != NULL && locator->is_conversion_name) {
     /* Check if the conversion type involves "auto" or "decltype(auto)", and
