@@ -4897,17 +4897,20 @@ another use of the same constant.  The name of the constant, if any, is
 kept.
 */
 {
-  a_boolean break_instance = FALSE;
+  a_boolean  break_instance = FALSE;
 
   if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    a_template_param_constant_kind kind = cp->variant.template_param.kind;
+    /* For certain template constants, keep the information that
+       defines the identity of the constant. */
+    a_template_param_constant_kind  kind = cp->variant.template_param.kind;
     if (kind == (a_template_param_constant_kind)tpck_param ||
         kind == (a_template_param_constant_kind)tpck_member ||
         kind == (a_template_param_constant_kind)tpck_destructor ||
         kind == (a_template_param_constant_kind)tpck_unknown_function) {
-      /* For certain template constants, keep the information that
-         defines the identity of the constant. */
       break_instance = TRUE;
+      if (kind == (a_template_param_constant_kind)tpck_param) {
+        cp->source_corresp.parent_scope = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (break_instance) {
