@@ -26,7 +26,7 @@ Consider the following example in Clang mode:
   __attribute((enable_if(true, ""))) void g() {}  // Previously an error.
                                                   // Now okay.
 
-The front end previously issued an error in that example because if did not
+The front end previously issued an error in that example because it did not
 consider the enable_if attribute when looking for declaration conflicts with
 using-declarations.  That is now fixed.
 

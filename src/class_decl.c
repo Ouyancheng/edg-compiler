@@ -11497,7 +11497,7 @@ a diagnostic should be issued by the caller.
     if (rtsp1->has_enable_if_attribute != rtsp2->has_enable_if_attribute ||
         (rtsp1->has_enable_if_attribute &&
          !compatible_enable_if_attributes(tp1, tp2))) {
-      /* Clang enable_if attribute make these routine type incompatible. */
+      /* Clang enable_if attributes make these routine types incompatible. */
     } else if (is_class_member) {
       /* No diagnostic for class members. */
       compat = TRUE;
