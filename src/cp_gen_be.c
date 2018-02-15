@@ -531,6 +531,7 @@ static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        obj_expr_of_mfunc_operator);
 static void set_decl_position(a_source_correspondence      *scp,
                               a_src_seq_secondary_decl_ptr sec_decl);
+static void gen_variable_name(a_variable_ptr var);
 /* Interfaces to gen_expr for the usual cases. */
 /* Note that gen_expr_with_parens does not force parentheses around the
    expression; it puts them there if there's some possibility of
@@ -3569,6 +3570,57 @@ currently active selector class.
 }  /* is_direct_base_or_member_of_selector */
 
 
+/*
+Definitions for a linked list of variables that are defined with unnamed
+class types.  This is used so that an appropriate decltype specifier for
+the type can be synthesized if that type is used as a qualifier in a
+qualified name.  For example,
+
+    struct { static int f() { return 0; } } x;
+    int i = decltype(x)::f();
+
+Unless the form of the name reference was recorded, the IL for the call of
+f() gives no indication of the decltype-specifier used in the source, so
+this list allows the unnamed qualifier class to be generated in a
+compilable form rather than as an undeclared temporary name.
+
+This is a singly-linked list, but it is only searched for unnamed class
+qualifiers; those should be exceedingly rare, so performance should not be
+an issue.
+*/
+
+typedef struct a_var_for_decltype *a_var_for_decltype_ptr;
+typedef struct a_var_for_decltype {
+  a_var_for_decltype_ptr
+		next;	/* The next entry in the list, or NULL if none. */
+  a_variable_ptr
+		var;	/* Designates a variable that is declared with an
+			   unnamed class type and thus might be used in a
+			   decltype-specifier to refer to that type. */
+} a_var_for_decltype;
+
+/*
+A list of variables that can be used in decltype-specifiers to refer to
+unnamed class types.
+*/
+static a_var_for_decltype_ptr
+		vars_for_decltype;
+
+
+static void register_var_for_decltype(a_variable_ptr var)
+/*
+Create a new entry with var in the vars_for_decltype list.
+*/
+{
+  a_var_for_decltype_ptr new_entry;
+
+  new_entry = alloc_general_of_type(a_var_for_decltype);
+  new_entry->next = vars_for_decltype;
+  new_entry->var = var;
+  vars_for_decltype = new_entry;
+}  /* register_var_for_decltype */
+
+
 static void gen_class_qualifier(a_type_ptr             class_type,
                                 a_gen_name_options_set options,
                                 a_boolean              *need_closing_paren)
@@ -3663,9 +3715,24 @@ for the meaning of need_closing_paren.
          class X must be a direct base or member of the type of *this. */
       gen_unqualified_name(&class_type->source_corresp, iek_type);
     } else {
-      /* Use recursion to handle multiple levels of nesting. */
-      gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
-               need_closing_paren);
+      a_var_for_decltype_ptr vfdp = NULL;
+      if (!has_name_before_mangling(class_type)) {
+        /* See if there is a variable we can use to create a
+           decltype-specifier for the type. */
+        for (vfdp = vars_for_decltype;
+             vfdp != NULL && vfdp->var->type != class_type;
+             vfdp = vfdp->next) {}
+      }  /* if */
+      if (vfdp != NULL) {
+        /* Create a decltype-specifier. */
+        write_tok_str("decltype(");
+        gen_variable_name(vfdp->var);
+        write_tok_ch(')');
+      } else {
+        /* Use recursion to handle multiple levels of nesting. */
+        gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
+                 need_closing_paren);
+      }  /* if */
     }  /* if */
     write_tok_str("::");
   }  /* if */
@@ -4689,7 +4756,12 @@ put out nothing.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Do not insert code here. */
       {
-        gen_unqualified_name(scp, kind);
+        if (class_type->kind == (a_type_kind)tk_typeref &&
+            typeref_is_type_operator(class_type)) {
+          gen_type_operator(class_type);
+        } else {
+          gen_unqualified_name(scp, kind);
+        }  /* if */
       }  /* if */
     } else {
       /* A namespace qualifier. */
@@ -17832,6 +17904,9 @@ this one is such a continuation.
       unqual_var_type->has_been_declared = TRUE;
     }  /* if */
     write_tok_ch(';');
+  } else if (is_immediate_class_type(var_type) &&
+             !has_name_before_mangling(var_type)) {
+    register_var_for_decltype(var);
   }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 end_of_routine:;
@@ -19568,6 +19643,7 @@ Initialize for the C++/C-generating back end.
   in_parameter_pack_declaration = FALSE;
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
+  vars_for_decltype = NULL;
 }  /* init_cp_gen_be */
 
 

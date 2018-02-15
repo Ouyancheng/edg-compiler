@@ -1,5 +1,18 @@
 Version 4.15
 
+2/15/18  [EDGcpfe/18026]
+C++-generating back end: decltype-specifiers as nested-name-specifiers
+
+When the source code contains a decltype-specifier used as a
+nested-name-specifier in a qualified-id and the type designated by the
+specifier is an unnamed class type, the C++-generating back end put out
+an undeclared temporary name (of the form __T12345678) as the qualifier.
+This is now fixed.  For example:
+
+  struct { static int f() { return 0; } } x;
+  int i = decltype(x)::f();  // Previously generated as __T12345678::f
+
+
 2/15/18  [EDGcpfe/19262]
 IL write-read error on use of non-type template parameter in multi-TU mode
 
