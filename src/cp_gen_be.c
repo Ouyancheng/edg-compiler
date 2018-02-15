@@ -10665,6 +10665,7 @@ get to the expression that will appear, and return that.
            node_operator_is(node, eok_indirect) ||
            node_operator_is(node, eok_class_rvalue_adjust) ||
            node_operator_is(node, eok_unbox_lvalue) ||
+           node_operator_is(node, eok_array_to_pointer) ||
            (is_cast_operation_node(node) &&
             !node->keep_as_cast_for_cp_gen_be &&
             !is_const_string_literal_cast(node)))))) {

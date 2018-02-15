@@ -1,5 +1,22 @@
 Version 4.15
 
+2/15/18  [EDGcpfe/18123]
+C++-generating back end: array decay and parentheses
+
+The C++-generating back end unnecessarily parenthesized the name of an
+array used in such a way that the array lvalue is implicitly converted to
+a pointer to its first element.  In some contexts, some versions of g++
+issued spurious errors if an array name is parenthesized.  This has now
+been addressed and the C++-generating back end no longer adds parentheses
+in such cases.  For example:
+
+  template <bool> struct A {
+    static long a[];
+    void m_fn1() { a + x; }  // Previously generated as "(a) + x"
+    long x;
+  };
+
+
 2/15/18  [EDGcpfe/18026]
 C++-generating back end: decltype-specifiers as nested-name-specifiers
 
