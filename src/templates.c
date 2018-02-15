@@ -9939,6 +9939,31 @@ use the current global value of the template template parameter.
   return sym;
 }  /* find_template_class */
 
+#if 0
+
+/* FIXME: Remove if unused */
+
+static a_symbol_ptr find_template_class_simple(
+					a_symbol_ptr		template_sym,
+					a_template_arg_ptr	*arg_list)
+/*
+Interface to find_template_class that is used for cases where most of the
+arguments can use default values.
+*/
+{
+  a_symbol_ptr	sym;
+
+  sym = find_template_class(template_sym, arg_list,
+                             /*any_prototype_allowed=*/FALSE,
+                             /*specific_prototype_allowed=*/NULL,
+                             /*instantiate_nonreal=*/FALSE,
+                             /*do_not_create=*/FALSE,
+                             /*in_substitution=*/FALSE);
+  return sym;
+}  /* find_template_class_simple */
+
+#endif /* 0 */
+
 
 a_symbol_ptr find_class_template_instance(a_symbol_ptr        class_templ,
                                           a_template_arg_ptr  *arg_list)
@@ -16546,6 +16571,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     tcp = &tssp->variant.function.decl_cache;
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
+    /* Deduction guides are considered nonreal instantiations. */
+    if (templ_rout->special_kind ==
+                               (a_special_function_kind)sfk_deduction_guide) {
+      ps_options |= PS_NONREAL_INSTANTIATION;
+    }  /* if */
     /* If this is an in-class specialization and the enclosing class is
        a prototype instantiation, treat this as a prototype instantiation
        too. */
@@ -16598,6 +16628,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     } else if (parent_class != NULL) {
       if (templ_rout->compiler_generated &&
           (templ_rout->is_inheriting_ctor ||
+           special_kind_is(templ_rout, sfk_deduction_guide) ||
            (special_kind_is(templ_rout, sfk_conversion) &&
            class_type_supp(parent_class)->is_lambda_closure_class) ||
            special_kind_is(templ_rout, sfk_lambda_entry_point))) {
@@ -36720,6 +36751,126 @@ the function template, and decl_state tracks its declaration.
 }  /* complete_generated_member_template */
 
 
+static a_symbol_ptr make_simple_implicit_deduction_guide(
+			a_symbol_ptr				ct_sym,
+			a_template_symbol_supplement_ptr	ct_tssp,
+			a_type_ptr				proto_type,
+			a_symbol_ptr				ctor_sym)
+/*
+Create a function template to be used as a "simple" implicit deduction guide.
+A "simple" guide is one for a constructor that is not itself a function
+template.  This guide has the template parameter list of the enclosing
+class template (specified by ct_sym and ct_tssp) and the function parameter
+list of the constructor specified by ctor_sym.  proto_type is the prototype
+instantiation of ct_sym.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_routine_ptr				rout;
+  a_routine_ptr				ctor_rout;
+  a_routine_type_supplement_ptr		ctor_rtsp;
+  a_routine_type_supplement_ptr		rtsp;
+  a_type_ptr				rout_type;
+  a_template_cache_ptr			tcp;
+  a_template_param_ptr			templ_param_list;
+  a_class_type_supplement_ptr		proto_ctsp;
+  a_template_arg_ptr			templ_arg_list;
+
+  proto_ctsp = proto_type->variant.class_struct_union.extra_info;
+  ctor_rout = ctor_sym->variant.routine.ptr;
+  ctor_rtsp = ctor_rout->type->variant.routine.extra_info;
+  tcp = cache_for_template(ct_tssp);
+  templ_param_list = tcp->decl_info->parameters;
+  sym = alloc_symbol((a_symbol_kind)sk_function_template,
+                     ctor_sym->header,
+                     &null_source_position);
+  sym->decl_scope = ctor_sym->decl_scope;
+  tssp = sym->variant.template_info;
+  tdip = alloc_template_decl_info();
+  tssp->cache.decl_info = tdip;
+  tssp->variant.function.decl_cache.decl_info = tdip;
+  tdip->parameters = templ_param_list;
+  tdip->enclosing_scope = proto_ctsp->assoc_scope;
+  tdip->enclosing_template_decl = tcp->decl_info;
+  rout = alloc_routine();
+  rout_type = alloc_type((a_type_kind)tk_routine);
+  rout->type = rout_type;
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->prototyped = TRUE;
+  templ_arg_list = copy_template_arg_list(proto_ctsp->template_arg_list);
+  rout_type->variant.routine.return_type = proto_type;
+  rtsp->param_type_list = copy_param_type_list(ctor_rtsp->param_type_list,
+                                               /*copy_default_args=*/FALSE,
+                                               /*max_params=*/0);
+  tssp->variant.function.routine = rout;
+  set_class_membership(sym, &rout->source_corresp, proto_type);
+  set_routine_special_kind(rout,
+                           (a_special_function_kind)sfk_deduction_guide);
+  rout->variant.class_template = ct_tssp->il_template_entry;
+  rout->compiler_generated = TRUE;
+  /* FIXME: Other fields that need to be set? */
+  return sym;
+}  /* make_simple_implicit_deduction_guide */
+
+
+static void create_implicit_deduction_guide(
+			a_symbol_ptr				ct_sym,
+			a_template_symbol_supplement_ptr	ct_tssp,
+			a_type_ptr				proto_type,
+			a_symbol_ptr				ctor_sym)
+/*
+ctor_sym is a constructor of the class template specified by ct_sym and
+ct_tssp.  proto_type is the prototype instantiation of ct_sym.  Create an
+implicit deduction guide for that constructor.
+*/
+{
+  a_symbol_ptr	new_sym = NULL;
+
+  if (symbol_is(ctor_sym, sk_member_function)) {
+    new_sym = make_simple_implicit_deduction_guide(ct_sym, ct_tssp,
+                                                   proto_type, ctor_sym);
+  } else {
+    /* FIXME */
+    unexpected_condition();
+  }  /* if */
+  add_deduction_guide(new_sym,
+                      &ct_tssp->variant.class_template.deduction_guides);
+}  /* create_implicit_deduction_guide */
+
+
+static void create_implicit_deduction_guides(
+			a_symbol_ptr				ct_sym,
+			a_template_symbol_supplement_ptr	ct_tssp)
+/*
+Go through the constructors of the class template specified by ct_sym and
+ct_tssp and create implicit deduction guides for constructor.
+*/
+{
+  a_symbol_ptr			proto_sym;
+  a_class_symbol_supplement_ptr	proto_cssp;
+  a_type_ptr			proto_type;
+  a_symbol_ptr			ctor_set_sym;
+  a_symbol_ptr			ctor_sym;
+  a_boolean			is_list;
+
+  proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
+  proto_cssp = class_symbol_supp(proto_sym);
+  proto_type = type_symbol_type(proto_sym);
+  ctor_set_sym = proto_cssp->constructor;
+  if (symbol_is(ctor_set_sym, sk_overloaded_function)) {
+    is_list = TRUE;
+    ctor_sym = ctor_set_sym->variant.overloaded_function.symbols;
+  } else {
+    ctor_sym = ctor_set_sym;
+  }  /* if */
+  for (; ctor_sym != NULL; ctor_sym = is_list ? ctor_sym->next : NULL) {
+    create_implicit_deduction_guide(ct_sym, ct_tssp, proto_type, ctor_sym);
+  }  /* for */
+}  /* create_implicit_deduction_guides */
+
+
 void update_implicit_deduction_guides(a_symbol_ptr  ct_sym)
 /*
 ct_sym is a class template for which the set of deduction guides is needed.
@@ -36750,7 +36901,7 @@ up-to-date.
       /* FIXME */
     }  /* if */
     /* Generate guides from constructors. */
-    /* FIXME */
+    create_implicit_deduction_guides(ct_sym, ct_tssp);
   }  /* if */
 }  /* update_implicit_deduction_guides */
 
