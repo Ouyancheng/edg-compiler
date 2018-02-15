@@ -36750,7 +36750,8 @@ the function template, and decl_state tracks its declaration.
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
 
-
+/* FIXME: Get rid of ct_sym if not eventually used. */
+/*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_simple_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
