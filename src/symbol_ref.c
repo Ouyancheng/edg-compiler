@@ -369,6 +369,20 @@ a class template in Microsoft mode.
     hnp->entity.ptr = entity;
     hnp->entity.kind = (a_byte_il_entry_kind)kind;
     hnp->is_class_member = hidden_sym->is_class_member;
+    if (hidden_by != NULL) {
+      if (hidden_by->kind == (a_symbol_kind)sk_type &&
+          hidden_by->variant.type.is_injected_class_name &&
+          sp->kind == (a_scope_kind)sck_class_struct_union &&
+          sp->variant.assoc_type == hidden_by->variant.type.ptr) {
+        hnp->hidden_by_class_name = TRUE;
+      } else if (hidden_by->kind == (a_symbol_kind)sk_constant &&
+                 hidden_by->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                 hidden_by->variant.constant->variant.template_param.kind
+                               == (a_template_param_constant_kind)tpck_param) {
+        hnp->hidden_by_template_parameter = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Set the appropriate flag. */
   if (tag_hidden_by_nontag) {

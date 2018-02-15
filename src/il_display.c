@@ -5324,6 +5324,9 @@ Display the indicated hidden-name entry.
   disp_boolean("is_class_member", (a_boolean)ptr->is_class_member);
   disp_boolean("hidden_by_simulated_injected_class_name",
                (a_boolean)ptr->hidden_by_simulated_injected_class_name);
+  disp_boolean("hidden_by_class_name", (a_boolean)ptr->hidden_by_class_name);
+  disp_boolean("hidden_by_template_parameter",
+               (a_boolean)ptr->hidden_by_template_parameter);
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

@@ -4838,6 +4838,8 @@ fields, and return a pointer to it.
   hnp->is_class_member                  = FALSE;
   hnp->hidden_by_simulated_injected_class_name
                                         = FALSE;
+  hnp->hidden_by_class_name             = FALSE;
+  hnp->hidden_by_template_parameter     = FALSE;
 #if CENTERLINE_CHECKING
   hnp->avoid_codecenter_warnings        = 0;
 #endif /* CENTERLINE_CHECKING */

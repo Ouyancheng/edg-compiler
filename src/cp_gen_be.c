@@ -746,12 +746,19 @@ Free the hidden-name fixup entry given.
 }  /* free_hidden_name_fixup */
 
 
-static void push_scope_hidden_names(a_scope_ptr scope)
+static void push_scope_hidden_names(a_scope_ptr scope,
+                                    a_boolean   restrict_to_class_base_list,
+                                    a_boolean   restrict_to_class_body)
 /*
 Activate the hidden name information associated with the indicated scope,
 thereby marking some names as hidden while inside that scope.  This routine
 is called only for C++ (there are no source mechanisms for referring to
 hidden names in C, so there's no point in maintaining this information).
+If restrict_to_class_base_list is TRUE, only process entries that can
+affect the lookup for names used in the base class list of a class
+definition, i.e., ones for which the hidden_by_class_name or
+hidden_by_template_parameter flags are TRUE.  If restrict_to_class_body is
+TRUE, process all entries except those processed for the base class list.
 */
 {
   a_hidden_name_ptr hnp;
@@ -760,6 +767,18 @@ hidden names in C, so there's no point in maintaining this information).
     a_boolean               injection_entry = FALSE;
     a_source_correspondence *scp= (a_source_correspondence *)(hnp->entity.ptr);
     a_type_ptr              type = NULL;
+    if (restrict_to_class_base_list && !hnp->hidden_by_class_name &&
+        !hnp->hidden_by_template_parameter) {
+      /* Only the class name and template parameters can affect naming the
+         base classes in a class definition, so ignore all other entries. */
+      continue;
+    } else if (restrict_to_class_body &&
+               (hnp->hidden_by_class_name ||
+                hnp->hidden_by_template_parameter)) {
+      /* The class name and template parameter entries were already
+         processed for the base class list. */
+      continue;
+    }  /* if */
     if ((an_il_entry_kind)hnp->entity.kind == iek_type) {
       type = (a_type_ptr)(hnp->entity.ptr);
     }  /* if */
@@ -867,13 +886,16 @@ hidden names in C, so there's no point in maintaining this information).
 
 
 static void push_name_context_full(a_scope_ptr scope,
-                                   a_type_ptr  class_type)
+                                   a_type_ptr  class_type,
+                                   a_boolean   restrict_to_class_base_list)
 /*
 Push a new context entry onto the name context stack, and fill
 in that entry to indicate the given scope.  If class_type is non-NULL,
 it indicates a class type, and scope might be NULL.  The name context
 stack is used to avoid class qualifiers on names when inside those classes.
-This routine is called for both C and C++.
+This routine is called for both C and C++.  If restrict_to_class_base_list
+is TRUE, this is the initial call for a class definition and only the
+hidden name entries that apply to the base class list should be processed.
 */
 {
   a_name_context_ptr ncp;
@@ -909,7 +931,8 @@ This routine is called for both C and C++.
   if (il_header.source_language == sl_Cplusplus && scope != NULL) {
     /* Go through the hidden names list and mark the hidden entities so
        they will be accessed specially in this and inner scopes. */
-    push_scope_hidden_names(scope);
+    push_scope_hidden_names(scope, restrict_to_class_base_list,
+                            /*restrict_to_class_body=*/FALSE);
   }  /* if */
   if (class_type != NULL && target_compiler_searches_dep_bases() &&
       class_type->variant.class_struct_union.is_prototype_instantiation) {
@@ -940,7 +963,8 @@ This routine is called for both C and C++.
   if (scope->kind == (a_scope_kind)sck_class_struct_union) {
     class_type = scope->variant.assoc_type;
   }  /* if */
-  push_name_context_full(scope, class_type);
+  push_name_context_full(scope, class_type,
+                         /*restrict_to_class_base_list=*/FALSE);
 }  /* push_name_context */
 
 
@@ -961,7 +985,8 @@ This routine can be called for both C and C++.
     scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
     check_assertion(scope != NULL);
   }  /* if */
-  push_name_context_full(scope, class_type);
+  push_name_context_full(scope, class_type,
+                         /*restrict_to_class_base_list=*/FALSE);
 }  /* push_class_name_context */
 
 
@@ -8720,15 +8745,20 @@ is the one associated with the definition of the class.
   }  /* if */
   /* Put out the class definition. */
   push_name_context_if_member(&type->source_corresp);
-  if (il_header.source_language == sl_Cplusplus &&
-      ctsp->base_classes != NULL) {
-    /* Put out the base class list. */
-    gen_base_class_list(ctsp);
-    write_space();
+  if (il_header.source_language == sl_Cplusplus) {
+    push_name_context_full(ctsp->assoc_scope, type,
+                           /*restrict_to_class_base_list=*/TRUE);
+    if (ctsp->base_classes != NULL) {
+      /* Put out the base class list. */
+      gen_base_class_list(ctsp);
+      write_space();
+    }  /* if */
   }  /* if */
   write_tok_str("{ ");
   if (il_header.source_language == sl_Cplusplus) {
-    push_name_context(ctsp->assoc_scope);
+    push_scope_hidden_names(ctsp->assoc_scope,
+                            /*restrict_to_class_base_list=*/FALSE,
+                            /*restrict_to_class_body=*/TRUE);
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
     curr_name_context->access = (an_access_specifier)as_public;

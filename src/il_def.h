@@ -15162,6 +15162,15 @@ typedef struct a_hidden_name {
 			   C++-generating back end can then choose whether
 			   to honor or ignore the hiding, depending on the
 			   target for which code is being generated. */
+  a_bit_field	hidden_by_class_name:1;
+			/* TRUE if the hiding entity is the
+			   injected-class-name of the class associated with
+			   this scope.  In particular, this will be FALSE
+			   for entities hidden by the injected-class-names
+			   of base classes of this scope's class. */
+  a_bit_field	hidden_by_template_parameter:1;
+			/* TRUE if the hiding entity is a template
+			   parameter. */
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

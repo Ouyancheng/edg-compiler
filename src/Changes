@@ -1,5 +1,25 @@
 Version 4.15
 
+2/15/18  [EDGcpfe/19149]
+C++-generating back end: name hiding in class base list
+
+The C++-generating back end failed to account for the effect of template
+parameters and the class name on names mentioned in the base class list of
+a class definition.  As a result, necessary qualification for some such
+names was omitted, resulting in incorrect code.  This is now fixed.  For
+example:
+
+  template <typename... Ts> struct S1 { };
+  namespace ns {
+    template <int> struct S2 { };
+    template <unsigned int S2>
+      struct S3 : S1<ns::S2<S2>> {  // Previously omitted "ns::" because the
+                                    // template parameter S2 was not considered
+                                    // to hide class template S2's name
+      };
+  }
+
+
 2/15/18  [EDGcpfe/18123]
 C++-generating back end: array decay and parentheses
 
