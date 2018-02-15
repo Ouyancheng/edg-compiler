@@ -10415,10 +10415,9 @@ typedef struct a_variable {
 			   (or "_Thread_local in C mode) storage class (i.e.,
 			   variable has thread storage duration).  Not used for
 			   variables declared with "__thread" (see DM_THREAD).
-                           Configurations where
-			   IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS may be
-                           FALSE should use the is_effective_thread_local
-                           macro to access this value. */
+			   It is best to use the is_effective_thread_local
+			   macro (see below) rather than accessing this flag
+			   directly. */
   a_bit_field
 		extends_lifetime:1;
 			/* TRUE if this is a reference variable bound to a
@@ -10549,10 +10548,10 @@ typedef struct a_variable {
 } a_variable;
 
 /*
-Macro used in configurations where IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
-may be FALSE to test whether a variable should be treated as thread_local.
-In such configurations, the is_thread_local flag will be TRUE in the IL,
-but is_effective_thread_local will always return FALSE.
+Macro used to test whether a variable should be treated as thread_local.  In
+configurations where IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is FALSE, the
+is_thread_local flag will be TRUE in the IL, but is_effective_thread_local will
+always return FALSE.
 */
 #if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
 #define is_effective_thread_local(var) ((var)->is_thread_local)
