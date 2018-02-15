@@ -36776,7 +36776,6 @@ instantiation of ct_sym.
   a_template_cache_ptr			tcp;
   a_template_param_ptr			templ_param_list;
   a_class_type_supplement_ptr		proto_ctsp;
-  a_template_arg_ptr			templ_arg_list;
 
   proto_ctsp = proto_type->variant.class_struct_union.extra_info;
   ctor_rout = ctor_sym->variant.routine.ptr;
@@ -36799,7 +36798,6 @@ instantiation of ct_sym.
   rout->type = rout_type;
   rtsp = rout_type->variant.routine.extra_info;
   rtsp->prototyped = TRUE;
-  templ_arg_list = copy_template_arg_list(proto_ctsp->template_arg_list);
   rout_type->variant.routine.return_type = proto_type;
   rtsp->param_type_list = copy_param_type_list(ctor_rtsp->param_type_list,
                                                /*copy_default_args=*/FALSE,
