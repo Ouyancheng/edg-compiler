@@ -3597,7 +3597,7 @@ currently active selector class.
 
 /*
 Definitions for a linked list of variables that are defined with unnamed
-class types.  This is used so that an appropriate decltype specifier for
+class types.  This is used so that an appropriate decltype-specifier for
 the type can be synthesized if that type is used as a qualifier in a
 qualified name.  For example,
 
