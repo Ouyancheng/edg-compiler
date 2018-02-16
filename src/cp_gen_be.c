@@ -6287,8 +6287,10 @@ al_tag_name attributes (if any).
 {
   a_source_sequence_scan_state saved_state;
   a_boolean                    already_declared = type->has_been_declared;
+  a_type_ptr                   type_for_naming;
 
   type = orig_type_if_nonreal_prototype_type(type);
+  type_for_naming = type;
   if (type->definition_delayed) {
     /* Put out the definition if it is needed and was delayed because a
        non-autonomous definition appeared. */
@@ -6359,7 +6361,7 @@ al_tag_name attributes (if any).
              out the name so that parameter name substitution will occur,
              if necessary. */
           tag_kind_str = "";
-          type = proxy_type;
+          type_for_naming = proxy_type;
         } else if (proxy_type->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_member &&
                    parent_class_of(proxy_type)->
@@ -6465,7 +6467,8 @@ al_tag_name attributes (if any).
         /* No template arguments on a prototype instantiation. */
         options |= GN_NO_TEMPLATE_ARGS;
       }  /* if */
-      gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
+      gen_name(&type_for_naming->source_corresp, iek_type, options,
+               (a_boolean *)NULL);
     }  /* if */
     if (is_immediate_enum_type(type) &&
         ((options & GN_DECLARATION) != 0 || !already_declared) &&
