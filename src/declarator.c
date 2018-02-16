@@ -3369,7 +3369,7 @@ an error if a default argument expression is encountered.
           a_scope_stack_entry_ptr
                             parent_ssep;
           a_boolean         is_member_or_friend_function;
-          a_boolean         cache_default_arg;
+          a_boolean         cache_default_arg = FALSE;
           a_boolean         ignore_default_arg_expr;
           a_boolean         invalid_default_arg = FALSE;
           a_boolean         nontemplate_function_outside_of_class = FALSE;
@@ -3396,12 +3396,17 @@ an error if a default argument expression is encountered.
           /* Advance past the equal sign. */
           (void)get_token();
           last_default_arg_pos = pos_curr_token;
-          /* Check the scope immediately containing the current scope, which
-             is a function prototype scope.  We may have to cache the
-             default argument tokens and rescan them later.  If we are in
-             a pack where default arguments are not allowed, cache them
-             instead of evaluating them, which could lead to errors. */
-          cache_default_arg = pesep != NULL;
+          /* Check the scope immediately containing the current scope, which is
+             a function prototype scope.  We may have to cache the default
+             argument tokens and rescan them later. */
+          if (pesep != NULL && pesep->instantiation_descr != NULL) {
+            /* If we are in a pack where default arguments are not allowed,
+               cache them instead of evaluating them, which could lead to
+               errors (don't this inside prototype instantiations, since there
+               the representation should be recorded (e.g., for rendering by
+               the C++-generating back end). */
+            cache_default_arg = TRUE;
+          }  /* if */
           is_member_or_friend_function = FALSE;
           ignore_default_arg_expr = !default_arg_allowed_on_curr_param;
           parent_ssep = &scope_stack[depth_scope_stack-1];
