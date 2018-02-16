@@ -65,7 +65,7 @@ This is now fixed.  For example:
 
 
 2/15/18  [EDGcpfe/19262]
-IL write-read error on use of non-type template parameter in multi-TU mode
+IL write-read error on use of nontype template parameter in multi-TU mode
 
 When simultaneously compiling multiple translation units in a mode that defers
 prototype instantiations (i.e., default GNU or Clang mode), the front end
