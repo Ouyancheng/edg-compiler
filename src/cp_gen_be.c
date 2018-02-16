@@ -8755,11 +8755,21 @@ is the one associated with the definition of the class.
   /* Put out the class definition. */
   push_name_context_if_member(&type->source_corresp);
   if (il_header.source_language == sl_Cplusplus) {
+    /* Push the class scope onto the name context stack in order to get
+       the hiding effects of the class name and template parameters, if
+       any, but use the previous top-of-stack scope for 
+       lookups in the base class list. */
+    a_scope_ptr saved_scope = curr_name_context->assoc_scope;
+    a_type_ptr  saved_class_type = curr_name_context->class_type;
     push_name_context_full(ctsp->assoc_scope, type,
                            /*restrict_to_class_base_list=*/TRUE);
     if (ctsp->base_classes != NULL) {
       /* Put out the base class list. */
+      curr_name_context->assoc_scope = saved_scope;
+      curr_name_context->class_type = saved_class_type;
       gen_base_class_list(ctsp);
+      curr_name_context->assoc_scope = ctsp->assoc_scope;
+      curr_name_context->class_type = type;
       write_space();
     }  /* if */
   }  /* if */
