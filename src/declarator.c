@@ -3402,9 +3402,9 @@ an error if a default argument expression is encountered.
           if (pesep != NULL && pesep->instantiation_descr != NULL) {
             /* If we are in a pack where default arguments are not allowed,
                cache them instead of evaluating them, which could lead to
-               errors (don't this inside prototype instantiations, since there
-               the representation should be recorded (e.g., for rendering by
-               the C++-generating back end). */
+               errors (don't do this inside prototype instantiations, since
+               there the representation should be recorded (e.g., for rendering
+               by the C++-generating back end). */
             cache_default_arg = TRUE;
           }  /* if */
           is_member_or_friend_function = FALSE;

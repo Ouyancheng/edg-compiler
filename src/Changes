@@ -3,7 +3,7 @@ Version 4.15
 2/16/18  [EDGcpfe/18647]
 Default arguments of lambdas in variadic templates
 
-The front end previous did not record the default argument of a lambda during
+The front end previously did not record the default argument of a lambda during
 the prototype instantiation of a variadic template.  For example:
 
   template<typename ...> void g() {
