@@ -1,5 +1,19 @@
 Version 4.15
 
+2/15/18  [EDGcpfe/18586]
+C++-generating back end: befriending a template parameter
+
+The C++-generating back end sometimes erroneously prefixed the name of a
+template parameter in a friend declaration with the global scope operator
+"::".  This is now fixed.  For example, with --c++11:
+
+  namespace NS {
+  template <class T> class S {
+    friend T;  // Previously generated as "friend ::T"
+  };
+  }
+
+
 2/15/18  [EDGcpfe/19149]
 C++-generating back end: name hiding in class base list
 

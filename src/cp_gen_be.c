@@ -4344,6 +4344,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           !(assoc_template != NULL &&
             assoc_template->kind ==
                             (a_template_kind)templk_template_template_param) &&
+          !(tp->kind == (a_type_kind)tk_template_param &&
+            tp->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param) &&
           scp_parent_namespace_or_null(scp) !=
                                              innermost_enclosing_namespace()) {
           /* A friend declaration of a class that is not in the innermost
@@ -6352,8 +6355,11 @@ al_tag_name attributes (if any).
                                       (a_template_param_type_kind)tptk_param) {
           /* This is a proxy class for a template parameter.  Use the C++11
              feature of referring to a template parameter in a friend
-             declaration with no class keyword. */
+             declaration with no class keyword.  Use the proxy type to put
+             out the name so that parameter name substitution will occur,
+             if necessary. */
           tag_kind_str = "";
+          type = proxy_type;
         } else if (proxy_type->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_member &&
                    parent_class_of(proxy_type)->
