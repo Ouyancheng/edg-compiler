@@ -3840,66 +3840,79 @@ static void form_exception_specification_for_generated_function(
                                                          a_routine_ptr  rp,
                                                          a_symbol_ptr   bctor);
 
+
+static void complete_defaulted_member_decl(a_routine_ptr  rp)
+/*
+The given routine entry is a defaulted special member.  If needed, establish
+its exception specification.  If an exception specification was specified
+explicitly, verify that it matches that of a corresponding generated member
+and issue an error if it does not.
+*/
+{
+  if (exceptions_enabled) {
+    /* If a special member is defaulted inside the parent class, it
+       implicitly gets the exception specification that the corresponding
+       implicitly generated member would have had.  If an explicit
+       exception specification is provided, it must be equivalent to the
+       implicitly generated one. */
+    a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
+                                             ->variant.routine.extra_info;
+    /* Save any declared exception specification for later comparison to
+       the generated specification. */
+    an_exception_specification_ptr  declared_exception_spec
+                                          = rtsp->exception_specification;
+    if (declared_exception_spec != NULL &&
+        declared_exception_spec->compiler_generated) {
+      /* We already generated this one. */
+      goto done;
+    }  /* if */
+    rtsp->exception_specification = NULL;
+    form_exception_specification_for_generated_function(
+                                                  rp, (a_symbol_ptr)NULL);
+    if (declared_exception_spec != NULL) {
+      /* If an exception specification was specified at all, it must be
+         equivalent to the generated one.  The resolution of Core issue
+         1778 changed the non-equivalent cases to cause the defaulted
+         member to be deleted instead of ill-formed.  MSVC and GCC already
+         behaved that way for template instances.  Newer GCC versions
+         follow Core issue 1778 in C++11 mode too. */
+      if (exception_spec_is_less_restrictive(
+                declared_exception_spec, rtsp->exception_specification) ||
+          exception_spec_is_less_restrictive(
+                rtsp->exception_specification, declared_exception_spec)) {
+        if (cpp14_mode ||
+            ((gpp_mode && !clang_mode) && gnu_version >= 40900) ||
+            ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+             rp->is_template_function && !rp->is_specialized)) {
+          rp->is_deleted = TRUE;
+          rp->defined = TRUE;
+        } else {
+          pos_error(ec_invalid_explicit_exception_specification,
+                    &rp->source_corresp.decl_position);
+        }  /* if */
+      } else {
+        /* Record the declared form. */
+        rtsp->exception_specification = declared_exception_spec;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  done:;
+}  /* complete_defaulted_member_decl */
+
+
 static void complete_all_defaulted_member_decls(a_type_ptr  class_type)
 /*
 If needed, establish the exception specification of any special members of
 class_type defined with "= default".  If an exception specification was
 specified explicitly, verify that it matches that of a corresponding generated
 member and issue an error if it does not.
-Also, if the member is virtual, force its definition to be generated.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
 
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted && !rp->is_deleted) {
-      if (exceptions_enabled) {
-        /* If a special member is defaulted inside the parent class, it
-           implicitly gets the exception specification that the corresponding
-           implicitly generated member would have had.  If an explicit
-           exception specification is provided, it must be equivalent to the
-           implicitly generated one. */
-        a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
-                                                 ->variant.routine.extra_info;
-        /* Save any declared exception specification for later comparison to
-           the generated specification. */
-        an_exception_specification_ptr  declared_exception_spec
-                                              = rtsp->exception_specification;
-        if (declared_exception_spec != NULL &&
-            declared_exception_spec->compiler_generated) {
-          /* We already generated this one. */
-          continue;
-        }  /* if */
-        rtsp->exception_specification = NULL;
-        form_exception_specification_for_generated_function(
-                                                      rp, (a_symbol_ptr)NULL);
-        if (declared_exception_spec != NULL) {
-          /* If an exception specification was specified at all, it must be
-             equivalent to the generated one.  The resolution of Core issue
-             1778 changed the non-equivalent cases to cause the defaulted
-             member to be deleted instead of ill-formed.  MSVC and GCC already
-             behaved that way for template instances.  Newer GCC versions
-             follow Core issue 1778 in C++11 mode too. */
-          if (exception_spec_is_less_restrictive(
-                    declared_exception_spec, rtsp->exception_specification) ||
-              exception_spec_is_less_restrictive(
-                    rtsp->exception_specification, declared_exception_spec)) {
-            if (cpp14_mode ||
-                ((gpp_mode && !clang_mode) && gnu_version >= 40900) ||
-                ((microsoft_mode || (gpp_mode && !clang_mode)) &&
-                 rp->is_template_function && !rp->is_specialized)) {
-              rp->is_deleted = TRUE;
-              rp->defined = TRUE;
-            } else {
-              pos_error(ec_invalid_explicit_exception_specification,
-                        &rp->source_corresp.decl_position);
-            }  /* if */
-          } else {
-            /* Record the declared form. */
-            rtsp->exception_specification = declared_exception_spec;
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      complete_defaulted_member_decl(rp);
     }  /* if */
   }  /* for */
 }  /* complete_all_defaulted_member_decls */
@@ -20010,6 +20023,14 @@ indicates that they should be suppressed.
           if (gsfd->suppress_move_ctor) {
             rp->is_deleted = TRUE;
             rp->defined = TRUE;
+          } else {
+            /* gsfd->suppress_move_ctor will not be TRUE if the move
+               constructor should be suppressed only because of an
+               inconsistent exception specification.  That is true also for
+               other special members, but it must be established early for
+               move members because marking them as deleted takes them out
+               of the overload set. */
+            complete_defaulted_member_decl(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_operator) &&
@@ -20027,13 +20048,21 @@ indicates that they should be suppressed.
           if (gsfd->suppress_move_assign) {
             rp->is_deleted = TRUE;
             rp->defined = TRUE;
+          } else {
+            /* gsfd->suppress_move_assign will not be TRUE if the move
+               assignment operator should be suppressed only because of an
+               inconsistent exception specification.  That is true also for
+               other special members, but it must be established early for
+               move members because marking them as deleted takes them out
+               of the overload set. */
+            complete_defaulted_member_decl(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {
         if (gsfd->suppress_dtor) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
-          }  /* if */
+          rp->is_deleted = TRUE;
+          rp->defined = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
