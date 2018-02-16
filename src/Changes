@@ -70,7 +70,7 @@ IL write-read error on use of non-type template parameter in multi-TU mode
 When simultaneously compiling multiple translation units in a mode that defers
 prototype instantiations (i.e., default GNU or Clang mode), the front end
 sometimes aborted with an internal error ("IL entry write-read difference")
-when a member of a class template using a nontemplate parameter is
+when a member of a class template using a nontype template parameter is
 instantiated in a secondary translation while the primary translation unit
 does not instantiate the template at all.  For example:
 
