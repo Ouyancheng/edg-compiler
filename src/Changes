@@ -3,7 +3,7 @@ Version 4.15
 2/16/18  [EDGcpfe/18959]
 Defaulted moving functions and exception specifications
 
-Consider:
+Consider, in C++14 mode:
 
   struct W { W& operator=(W const&); };
   template<typename> struct B {
