@@ -24153,7 +24153,9 @@ just an expression in parentheses.  Return the scanned expression in
                                   EOPT_ALLOW_BOUND_FUNCTION |
                                   EOPT_PRESERVE_PROPERTY_REF;
       if (curr_token == tok_ellipsis) {
-        left_unary_fold_expr = TRUE;
+        if (fold_expressions_enabled) {
+          left_unary_fold_expr = TRUE;
+        }  /* if */
       } else {
         options |= EOPT_FOLD_EXPR_CONTEXT;
       }  /* if */

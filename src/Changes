@@ -1,5 +1,20 @@
 Version 4.15
 
+2/16/18  [EDGcpfe/19345]
+Abort on invalid sizeof construct
+
+Consider in a non-C++17 mode:
+
+  template<typename...> struct S {
+    int f() { return sizeof(...); }
+  };
+
+This previously caused the front end to access uninitialized memory because of
+changes for C++17 fold expressions (EDGcpfe/17691,EDGcpfe/18560), causing a
+subsequent abort in most cases.  This regression, introduced in version 4.14,
+is now fixed.
+
+
 2/16/18  [EDGcpfe/18675]
 C++-generating back end: linkage specifications on function definitions
 
