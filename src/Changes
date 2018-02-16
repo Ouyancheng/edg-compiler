@@ -1,5 +1,26 @@
 Version 4.15
 
+2/16/18  [EDGcpfe/18675]
+C++-generating back end: linkage specifications on function definitions
+
+The C++-generating back end previously added a linkage specification to a
+function definition whenever its language linkage does not match that of
+the context in which it appears, regardless of whether the definition has
+an explicit linkage specification in the original source or not.  This can
+result in incorrect code, however, because such a linkage specification
+affects the language linkage of declarations nested within the function
+body.  The C++-generating back end has now been modified to emit a linkage
+specification for a function definition only if one is present in the
+original source code.  For example:
+
+  extern "C" void foo();
+  void foo() {   // Previously generated with an explicit extern "C"
+    int bar ( int );
+    int bar ( int, int );  // Invalid overloading with explicit extern "C"
+                           // on the function definition
+  }
+
+
 2/16/18  [EDGcpfe/18959]
 Defaulted moving functions and exception specifications
 
