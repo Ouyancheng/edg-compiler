@@ -190,6 +190,11 @@ static a_boolean
 			/* TRUE if the name being generated appears within
 			   a friend declaration's parameter list. */
 static a_boolean
+		friend_is_class_member;
+			/* TRUE if the friend being declared is a class
+			   member function (only valid when
+			   in_friend_declaration is TRUE). */
+static a_boolean
 		in_ctor_default_argument;
 			/* TRUE if the expression being generated appears
 			   in the default argument of a constructor
@@ -6651,12 +6656,13 @@ A reference is not the definition.
           need_qual = FALSE;
         }  /* if */
         if (!need_qual &&
-            !(clang_is_generated_code_target && in_friend_declaration)) {
+            !(clang_is_generated_code_target && in_friend_declaration &&
+              friend_is_class_member)) {
           /* This is the name of the current instantiation, and it is
              visible.  Just use the name of the type, rather than the
              qualified name of the template followed by the template
-             arguments.  For a friend function declaration, however, clang
-             requires the template arguments. */
+             arguments.  For a friend member function declaration, however,
+             clang requires the template arguments. */
           options |= GN_NO_TEMPLATE_ARGS;
         }  /* if */
       }  /* if */
@@ -19151,6 +19157,7 @@ handle_as_definition:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   in_friend_declaration = friend_decl;
+  friend_is_class_member = rout->source_corresp.is_class_member;
   gen_routine_specifiers_and_declaration(rout, rout_type,
                                          is_definition,
                                          force_unqualified_name,
