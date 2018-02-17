@@ -1,5 +1,25 @@
 Version 4.15
 
+2/16/18  [EDGcpfe/18483]
+C++-generating back end: single-argument constructor call as initializer
+
+When an initializer consists of a constructor call with a single argument,
+the C++-generating back end generated the initializer as a C-style cast to
+the type of the object being initialized, including any const and/or
+volatile qualifiers.  The inclusion of the type qualifiers resulted in
+errors in the generated code, so the C++-generating back end has now been
+modified to cast to the class type rather than the type of the object.  For
+example:
+
+  struct S {
+    S(int);
+  };
+  void foo() {
+    volatile S t = S(0);  // Previously generated as ((volatile S)(0)), now
+                          // as ((S)(0))
+  }
+
+
 2/16/18  [EDGcpfe/18647]
 Default arguments of lambdas in variadic templates
 

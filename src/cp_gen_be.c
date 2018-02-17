@@ -16986,7 +16986,12 @@ output_functional_notation_cast_arguments:
       braced_init = FALSE;
       write_tok_ch('(');
       closing_parens_needed++;
-      gen_cast(init_entity_type);
+      if (dip->kind = (a_dynamic_init_kind)dik_constructor) {
+        /* Avoid type qualifiers, which would potentially cause problems. */
+        gen_cast(skip_typerefs(init_entity_type));
+      } else {
+        gen_cast(init_entity_type);
+      }  /* if */
       if (unnamed_type_case) {
         /* A cast to an unnamed type, with zero arguments or more than
            one argument.  (This case arises in template instances that
