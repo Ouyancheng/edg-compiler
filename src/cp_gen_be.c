@@ -16986,7 +16986,7 @@ output_functional_notation_cast_arguments:
       braced_init = FALSE;
       write_tok_ch('(');
       closing_parens_needed++;
-      if (dip->kind = (a_dynamic_init_kind)dik_constructor) {
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
         /* Avoid type qualifiers, which would potentially cause problems. */
         gen_cast(skip_typerefs(init_entity_type));
       } else {
