@@ -2713,7 +2713,6 @@ extern void flush_to_closing_paren(void);
 extern void flush_statement(void);
 extern void flush_tokens(void);
 extern void flush_tokens_without_warning(void);
-extern void flush_to_end_of_arg_list(void);
 
 /*
 Flush to the newline at the end of the current preprocessing directive.

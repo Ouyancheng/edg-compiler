@@ -15869,7 +15869,7 @@ These look like qualified names but aren't.
 }  /* is_global_new_or_delete */
 
 
-void flush_to_end_of_arg_list(void)
+static void flush_to_end_of_arg_list(void)
 /*
 Flush tokens in an argument list.
 */

@@ -1001,8 +1001,8 @@ extern an_expr_node_ptr process_boolean_attribute_expression(
 
 extern an_init_component_ptr cache_expression(void);
 
-extern
-void prescan_parenthesized_mem_init_expr(an_initializer_cache  *init_cache);
+extern void prescan_parenthesized_mem_init_expr(
+                                     struct an_initializer_cache  *init_cache);
 
 #endif /* ifndef EXPR_H */
 
