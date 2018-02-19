@@ -574,7 +574,8 @@ extern a_boolean fold_gnu_call_if_possible(an_operand_ptr   op,
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #if !STANDALONE_UTILITY_PROGRAM
-extern a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip);
+extern a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip,
+                                                     an_init_component   *icp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,
@@ -999,6 +1000,9 @@ extern an_expr_node_ptr process_boolean_attribute_expression(
                                                         an_expr_node_ptr expr);
 
 extern an_init_component_ptr cache_expression(void);
+
+extern
+void prescan_parenthesized_mem_init_expr(an_initializer_cache  *init_cache);
 
 #endif /* ifndef EXPR_H */
 

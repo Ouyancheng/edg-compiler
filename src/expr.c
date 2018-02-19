@@ -36049,27 +36049,25 @@ Return a special kind of operand representing the braced-init-list.
 
 
 static void scan_potential_pack_expansion_initializer_expr(
-                                                     a_decl_parse_state *dps,
-                                                     a_boolean          bundle)
+                                                 an_initializer_cache  *cache,
+                                                 a_boolean             bundle)
 /*
-Scan a single initializer expression in a context where, potentially,
-variadic template pack expansion might apply.  The context is assumed
-to be a comma-separated initializer expression list.  Push the
-expressions or braced-init-lists that result from the pack expansion
-into dps->prescanned_initializer_cache.  If the entity scanned is
-not a pack expansion, just push the one expression or braced-init-list
-into the cache.  Note that, with zero-length parameter packs, it is
-possible that the pack expansion will produce no expressions.  That
-just results in no expressions being pushed into the cache.
-bundle is TRUE if the expression should be "bundled," meaning packaged
-with related information so it can be saved off to the side (e.g., in
-an initializer cache) for later restoration and further processing.
+Scan a single initializer expression in a context where, potentially, variadic
+template pack expansion might apply.  The context is assumed to be a comma-
+separated initializer expression list.  Add the expressions or
+braced-init-lists that result from the pack expansion at the end of the given
+cache.  If the entity scanned is not a pack expansion, just push the one
+expression or braced-init-list into the cache.  Note that, with zero-length
+parameter packs, it is possible that the pack expansion will produce no
+expressions.  That just results in no expressions being pushed into the cache.
+bundle is TRUE if the expression should be "bundled," meaning packaged with
+related information so it can be saved off to the side (e.g., in an initializer
+cache) for later restoration and further processing.
 */
 {
   a_pack_expansion_stack_entry_ptr pesep;
   a_boolean                        any_more;
 
-  check_assertion(dps != NULL);
   if (cached_initializer_present()) {
     /* If there's already a cached expression, just return.  A cached
        expression is already on the other side of pack expansion and the
@@ -36077,7 +36075,6 @@ an initializer cache) for later restoration and further processing.
   } else {    
     /* Note that the code here is very similar to scan_expr_list and
        scan_expression_list_context_expr. */
-    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
       an_init_component_ptr      icp;
@@ -36086,10 +36083,7 @@ an initializer cache) for later restoration and further processing.
       /* Scan the initializer expression and put it into the cache. */
       icp = scan_expr_or_braced_init_list(bundle,
                                           /*always_allow_braced=*/FALSE);
-      add_init_component_to_initializer_cache(
-                                           icp,
-                                           /*to_front=*/FALSE,
-                                           &dps->prescanned_initializer_cache);
+      add_init_component_to_initializer_cache(icp, /*to_front=*/FALSE, cache);
       /* If this is a pack expansion, swallow the trailing "..." and
          loop for the next iteration of the expansion. */
       pedep = end_potential_pack_expansion_context(pesep,
@@ -36105,6 +36099,34 @@ an initializer cache) for later restoration and further processing.
     }  /* while */
   }  /* if */
 }  /* scan_potential_pack_expansion_initializer_expr */
+
+
+void prescan_parenthesized_mem_init_expr(an_initializer_cache  *init_cache)
+/*
+We are expecting a single expression for a parenthesized mem-initializer.
+However, the grammar may allow pack expansions in this context.  Scan a list
+of comma-separated expressions or braced initializers and store them in the
+given cache.
+*/
+{
+  clear_initializer_cache(init_cache);
+  if (curr_token != tok_rparen) {
+    an_expr_stack_entry  expr_stack_entry;
+    check_assertion(expr_stack == NULL);
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/TRUE,
+                    /*suppress_object_lifetime=*/FALSE);
+    add_matching_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    do {
+      scan_potential_pack_expansion_initializer_expr(
+                                                init_cache, /*bundle=*/TRUE);
+    } while (loop_token(tok_comma));
+    remove_stop_token(tok_comma);
+    remove_matching_stop_token(tok_rparen);
+    pop_expr_stack();
+  }  /* if */
+}  /* prescan_parenthesized_mem_init_expr */
 
 
 static
@@ -36158,7 +36180,8 @@ parenthesized initializer.
     start_pos = pos_curr_token;
     /* Do the scan.  The whole list of expressions goes into the initializer
        cache, and then we fetch the first one and return it. */
-    scan_potential_pack_expansion_initializer_expr(dps, bundle);
+    scan_potential_pack_expansion_initializer_expr(
+                                  &dps->prescanned_initializer_cache, bundle);
     if ((icp = fetch_init_component_from_initializer_cache(
                                 &dps->prescanned_initializer_cache)) == NULL) {
       /* The expression is missing, presumably because of a zero-trip
@@ -43013,43 +43036,46 @@ constants; assumes copy-initialization ("="-form).
 }  /* scan_constant_initializer_expression */
 
 
-a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip)
+a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip,
+                                              an_init_component   *icp)
 /*
 A mem-initializer for an array field has been encountered: It will be
-represented by the given entry.  The mem-initializer has a non-empty
-initializer (i.e., not just "()").  This is ordinarily an error, but GNU C++
-does allow it sometimes.  In the error cases, issue a diagnostic, skip over the
-initializer expression, and return a dik_none entry.  Otherwise, scan the
-expression, record it in *cip, and return a dynamic initialization entry that
-reflects the required array element initialization (or a dik_none entry in
-template-dependent cases).  The caller will add the destructor (if needed)
-and the array repetition.
+represented by *cip.  The mem-initializer has a non-empty initializer icp
+(i.e., not just "()").  This is ordinarily an error, but GNU C++ does allow it
+sometimes.  In the error cases, issue a diagnostic, skip over the initializer
+expression, and return NULL.  Otherwise, scan the expression, record it in
+*cip, and return a dynamic initialization entry that reflects the required
+array element initialization (or a dik_none entry in template-dependent cases).
+The caller will add the destructor (if needed) and the array repetition.
 */
 {
   a_dynamic_init_ptr  dip = NULL;
   a_symbol_ptr        field_sym;
 
-  check_assertion(cip != NULL &&
+  check_assertion(cip != NULL && icp != NULL &&
                   cip->kind == (a_constructor_init_kind)cik_field);
   field_sym = symbol_for(cip->variant.field);
+  
   if (!gpp_mode) {
     /* Normal modes -- a non-empty mem-initializer is not allowed for an
        array. */
     if (expr_error_should_be_issued()) {
-      sym_error(ec_array_member_initialization, field_sym);
+      pos_sy_error(ec_array_member_initialization, init_component_pos(icp),
+                   field_sym);
     }  /* if */
-    flush_to_end_of_arg_list();
+    free_init_component_list(icp);
   } else {
     /* Only GNU C++ (currently) allows explicit initializers for nonstatic
        array members.  However, there are some constraints: In particular,
        the underlying element type must be a class type with a nontrivial
        copy constructor, and the types of the source and destination must
        match (except for top-level qualifiers). */
-    an_expr_stack_entry  expr_stack_entry;
-    an_operand           operand;
-    a_type_ptr           src_type, dst_type = cip->variant.field->type;
-    a_type_ptr           el_type;
-    a_boolean            full_expr_wrapup_done = FALSE;
+    an_expr_stack_entry   expr_stack_entry;
+    an_initializer_cache  cache;
+    an_operand            operand;
+    a_type_ptr            src_type, dst_type = cip->variant.field->type;
+    a_type_ptr            el_type;
+    a_boolean             full_expr_wrapup_done = FALSE;
     check_assertion(is_array_type(dst_type));
     el_type = underlying_array_element_type(dst_type);
     el_type = skip_typerefs(el_type);
@@ -43057,6 +43083,9 @@ and the array repetition.
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                     /*force_object_lifetime=*/TRUE,
                     /*suppress_object_lifetime=*/FALSE);
+    expr_stack->initializer_cache = &cache;
+    add_init_component_to_initializer_cache(icp, /*to_front=*/TRUE,
+                                            expr_stack->initializer_cache);
     scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     src_type = operand.type;
     if (is_an_lvalue(&operand) && is_immediate_class_type(el_type) &&
@@ -43106,6 +43135,7 @@ and the array repetition.
         cip->source.expr = expr;
         full_expr_wrapup_done = TRUE;
       }  /* if */
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
     } else {
       if (!is_error_operand(&operand) &&
           expr_error_should_be_issued()) {
@@ -43114,11 +43144,6 @@ and the array repetition.
     }  /* if */
     if (!full_expr_wrapup_done) wrap_up_dynamic_init_full_expression(dip);
     pop_expr_stack();
-  }  /* if */
-  if (dip == NULL) {
-    /* No dynamic initialization has been recorded yet: Return one with no
-       effect. */
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
   }  /* if */
   return dip;
 }  /* scan_array_mem_initializer */

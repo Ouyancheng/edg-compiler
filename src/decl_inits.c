@@ -7018,7 +7018,8 @@ constructor.
 
 static void braced_mem_initializer(a_routine_ptr           ctor,
                                    a_type_ptr              dtype,
-                                   a_constructor_init_ptr  cip)
+                                   a_constructor_init_ptr  cip,
+                                   an_init_component_ptr   prescanned_icp)
 /*
 Scan a braced mem-initializer (of the given constructor) for a member of the
 given type, and record the initializer in *cip if cip is non-NULL.
@@ -7042,8 +7043,7 @@ given type, and record the initializer in *cip if cip is non-NULL.
     is.warning_on_narrowing = TRUE;
   }  /* if */
   /* Scan the initializer. */
-  braced_initializer(dtype, (an_init_component*)NULL, &is,
-                     (a_decl_parse_state*)NULL,
+  braced_initializer(dtype, prescanned_icp, &is, (a_decl_parse_state*)NULL,
                      /*fill_in_dtor=*/exceptions_enabled,
                      (an_init_component**)NULL, &lbrace_pos);
   check_constexpr_ctor_init(ctor, &is, &lbrace_pos);
@@ -7091,8 +7091,7 @@ cases, array_type is NULL).
   /* Skip the left parenthesis. */
   check_assertion(curr_token == tok_lparen);
   (void)get_token();
-  dependent_class_init = array_type == NULL &&
-                         could_be_dependent_class_type(init_type);
+  dependent_class_init = is_template_dependent_context();
   if (is_class_struct_union_type(init_type) &&
       (array_type == NULL || curr_token == tok_rparen)) {
     /* The type of the base or member is class or array-of-class -- the latter
@@ -7185,8 +7184,12 @@ cases, array_type is NULL).
     /* Bypass the right paren. */
     (void)get_token();
   } else {
-    /* A field whose initialization does not involve a constructor. */
-    if (curr_token == tok_rparen) {
+    /* A subobject whose initialization does not involve a constructor. */
+    an_initializer_cache   cache;
+    an_init_component_ptr  icp;
+    prescan_parenthesized_mem_init_expr(&cache);
+    icp = fetch_init_component_from_initializer_cache(&cache);
+    if (icp == NULL) {
       /* An empty initializer, "()", indicating value initialization. */
       if (is_any_reference_type(init_type)) {
         /* Error.  A reference type may not be default-initialized. */
@@ -7223,14 +7226,13 @@ cases, array_type is NULL).
       (void)get_token();
     } else {
       /* Not default-initialization. */
-      add_stop_token(tok_rparen);
       if (list_init_enabled && gpp_mode && array_type != NULL &&
           curr_token == tok_lbrace) {
         /* Something like "S(): array({ 1, 2 }) {}".  A list initializer in a
            parenthesized initializer for an array member is not actually valid
            per the C++11 standard, but GCC accepts it. */
         pos_warning(ec_braced_init_in_paren_init, &pos_curr_token);
-        braced_mem_initializer(ctor, array_type, cip);
+        braced_mem_initializer(ctor, array_type, cip, icp);
         dip = cip->initializer;
       } else {
         if (array_type != NULL && !is_string_type(array_type)) {
@@ -7240,12 +7242,22 @@ cases, array_type is NULL).
              more permissive and allows initialization with an expression of
              the same array type if the elements of the array have a nontrivial
              copy constructor. */
-          dip = scan_array_mem_initializer(cip);
+          dip = scan_array_mem_initializer(cip, icp);
+          if (dip == NULL) {
+            expect_error();
+            dip = make_error_constant_dynamic_init();
+            if (anything_cached(&cache)) {
+              /* Avoid further errors. */
+              flush_initializer_cache(&cache);
+            }  /* if */
+          }  /* if */
         } else {
           a_decl_parse_state  dps;
           init_decl_parse_state(&dps);
           dps.type = init_type;
           dps.init_state.force_dynamic_init = TRUE;
+          add_init_component_to_initializer_cache(
+                    icp, /*to_front=*/TRUE, &dps.prescanned_initializer_cache);
           expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
                                   /*fill_in_dtor=*/FALSE, &lparen_pos);
           check_constexpr_ctor_init(ctor, &dps.init_state, &lparen_pos);
@@ -7256,24 +7268,11 @@ cases, array_type is NULL).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (!required_token(tok_rparen, ec_exp_rparen)) {
-        /* Avoid poor error recovery in cases where a comma-list appears
-           between the parens in what is taken to be the initializer of a
-           simple object -- e.g.,
-               A::A(int i, int j) : x(i,j) { }
-           If there is no constructor for x then it is interpreted as a simple
-           object, only "i" is scanned, and an error is issued on the expected
-           ")".  After that we want to bypass the rest of the comma-list before
-           resuming scanning. */
-        if (curr_token == tok_comma) {
-          flush_to_end_of_arg_list();
-          if (curr_token == tok_rparen) {
-            /* We found the right parenthesis: Consume it. */
-            (void)get_token();
-          }  /* if */
-        }  /* if */
+      if (anything_cached(&cache)) {
+        pos_error(ec_exp_rparen, init_component_pos(cache.first_init));
+        flush_initializer_cache(&cache);
       }  /* if */
-      remove_stop_token(tok_rparen);
+      (void)required_token(tok_rparen, ec_exp_rparen);
     }  /* if */
   }  /* if */
   check_assertion(dip != NULL);
@@ -7327,7 +7326,7 @@ the mem-initializer.
   } else if (list_init_enabled && curr_token == tok_lbrace) {
     /* A braced (i.e., C++11-style) mem-initializer argument. */
     a_type_ptr  dtype = (array_type != NULL) ? array_type : init_type;
-    braced_mem_initializer(ctor, dtype, cip);
+    braced_mem_initializer(ctor, dtype, cip, (an_init_component*)NULL);
   } else {
     /* Neither brace nor parenthesis: A syntax error. */
     handle_missing_mem_init_args(cip);

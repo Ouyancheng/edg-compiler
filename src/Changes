@@ -1,5 +1,21 @@
 Version 4.15
 
+2/19/18  [EDGcpfe/19343]
+Pack expansion in scalar mem-initializers
+
+Consider:
+
+  struct S {
+    template<typename... Ts> S(Ts ...ps): m(0, ps...) {}
+    int m;
+  };
+  S s;
+
+Previously, this triggered an error because the front end did not consider
+the possibility of pack expansions in the mem-initializer for a scalar
+subobject.  That is now fixed.
+
+
 2/17/18  [EDGcpfe/18675]
 C++-generating back end: linkage specifications on function definitions
 
