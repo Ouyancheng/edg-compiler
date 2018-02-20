@@ -90,7 +90,7 @@ is now fixed.
 
 
 2/16/18  [EDGcpfe/18959]
-Defaulted moving functions and exception specifications
+Defaulted move functions and exception specifications
 
 Consider, in C++14 mode:
 
@@ -105,8 +105,8 @@ Consider, in C++14 mode:
   };
   C g() {
     C c;
-    c = g();  // Previously select C's move assignment operator, triggering
-  }           // an error.  Now the copy constructor is called.
+    c = g();  // Previously selected C's move assignment operator, triggering
+  }           // an error.  Now the copy assignment operator is called.
 
 Previously the generated move assignment operator of C called the move
 assignment operator of B<int>, which is implicitly deleted ("= delete").
