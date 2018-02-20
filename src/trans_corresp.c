@@ -3399,13 +3399,16 @@ Return TRUE if the given using declarations refer to corresponding entities.
                (char*)ud2->qualifier.class_type == ud2->entity.ptr) {
       /* Using-declarations that represent inherited constructors. */
       result = TRUE;
+    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      /* This can happen when the qualifier type is a Microsoft nonreal
+         instantiation. */
+      result = identical_types((a_type_ptr)ud1->entity.ptr,
+                               (a_type_ptr)ud2->entity.ptr);
     } else {
       /* In all other dependent base class cases, the entity is represented
          as a (nonreal) "constant". */
       check_assertion(ud1->entity.kind == (a_byte_il_entry_kind)iek_constant);
-      result = identical_types(ud1->qualifier.class_type,
-                               ud2->qualifier.class_type) &&
-               eq_constants((a_constant_ptr)ud1->entity.ptr, 
+      result = eq_constants((a_constant_ptr)ud1->entity.ptr, 
                             (a_constant_ptr)ud2->entity.ptr);
     }  /* if */
   } else {

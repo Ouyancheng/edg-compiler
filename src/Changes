@@ -1,5 +1,23 @@
 Version 4.15
 
+2/20/18  [EDGcpfe/19346]
+Abort on Microsoft-mode using-declaration in multi-translation unit check
+
+
+When simultaneously compiling multiple translation units with corresponding
+using-declarations, the front end sometimes aborted with an internal error
+in function equiv_base_using_decls (trans_corresp.c).  For example:
+
+  template<typename> struct B {};
+  template<typename T> struct D: B<T*> {
+    using typename B<T*>::Type;  // Correspondence checking did not expect
+  };                             // the Microsoft-mode representation of this
+                                 // using-declaration.
+
+Compiling two identical files with the code above previously result in an
+internal error.  That is now fixed.
+
+
 2/19/18  [EDGcpfe/19343]
 Pack expansion in scalar mem-initializers
 
