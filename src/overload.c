@@ -3222,7 +3222,7 @@ copy-initialization).
            arg_summary->match_level has been set appropriately. */
         arg_summary->conversion.std = std_conversion;
         /* The unknown dependent case should have been caught higher up. */
-        check_assertion(!unknown_dependent_function);
+        check_assertion_or_expect_error(!unknown_dependent_function);
         if (ambiguous) arg_summary->conversion.unusable = TRUE;
         if (chosen_function != NULL &&
             (chosen_function->kind == (a_symbol_kind)sk_routine ||
