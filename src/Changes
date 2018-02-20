@@ -1,5 +1,21 @@
 Version 4.15
 
+2/20/18  [EDGcpfe/19370]
+__is_standard_layout and duplicate base class types
+
+The C++ standard specifies that a class with two distinct base subobjects of
+the same type is not a standard-layout class (this was clarified by the
+resolution of Core issue 1813).  However, Clang and GCC appear not to implement
+that particular rule.  The front end now emulates that behavior in the
+corresponding modes.  For example:
+
+  struct B { };
+  struct C : B { };
+  struct D : B , C { char d; };
+  static_assert(!__is_standard_layout(D), "Nonstandard¿);
+    // Now fails in GNU and Clang modes.
+
+
 2/20/18  [EDGcpfe/19328]
 Mutable members and constant expressions
 
