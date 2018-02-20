@@ -2962,7 +2962,7 @@ ec_cannot_evaluate_builtin_offsetof;;"cannot evaluate __builtin_offsetof"
 ec_deduction_guide_def;;"deduction guide %t cannot be defined"
 ec_bad_deduction_guide_scope;;"deduction guide %t must be declared in the same scope as %n"
 ec_invalid_specifier_for_deduction_guide;;"invalid specifier for deduction guide declaration (only \"explicit\" is permitted)"
-ec_constexpr_mutable_read;;"mutable %n of a constant cannot be accessed in a constant expression"
+ec_constexpr_mutable_field_load;;"mutable %n of a constant cannot be accessed in a constant expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

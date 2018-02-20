@@ -862,6 +862,10 @@ typedef struct an_interpreter_state {
 			   permit the creation of an address of a local
 			   temporary object (used for local static
 			   initializer_list objects). */
+  a_bit_field
+		disallow_mutable_field_load:1;
+			/* TRUE if extract_value_from_constant should not
+			   permit access to a mutable field. */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -2055,6 +2059,7 @@ Initialize the given interpreter state.
   ips->input_error = FALSE;
   ips->call_seen = FALSE;
   ips->permit_address_of_local_temporary = FALSE;
+  ips->disallow_mutable_field_load = FALSE;
 }  /* init_interpreter_state */
 
 
@@ -4809,9 +4814,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               fp = fp->next;
               continue;
             }  /* if */
-            if (fp->is_mutable) {
-              info_with_pos_sym(ec_constexpr_mutable_read, &ips->position,
-                                symbol_for(fp), ips);
+            if (fp->is_mutable && ips->disallow_mutable_field_load) {
+              info_with_pos_sym(ec_constexpr_mutable_field_load,
+                                &ips->position, symbol_for(fp), ips);
               do_constexpr_fail(result);
               break;
             }  /* if */
@@ -12787,8 +12792,11 @@ the value representation of the integer value.
           } else {
             a_constant_ptr  con = var_constant_value(var);
             if (con != NULL) {
+              a_boolean  saved_flag = ips->disallow_mutable_field_load;
+              ips->disallow_mutable_field_load = TRUE;
               result = copy_val_from_constant(ips, con, result_storage,
                                               result_storage);
+              ips->disallow_mutable_field_load = saved_flag;
             } else {
               if (var->is_this_parameter) {
                 info_with_pos(ec_star_this_not_constant_valued,
@@ -12825,6 +12833,7 @@ the value representation of the integer value.
                but we cannot usually tell at this time. */
             a_constant_ptr  con;
             a_byte          *con_ptr;
+            a_boolean       saved_flag;
 #if GNU_EXTENSIONS_ALLOWED
             if (var->is_weak) {
               /* Weakly declared variables have no definite address (they
@@ -12850,8 +12859,11 @@ the value representation of the integer value.
               con->type = make_reference_type(var->type);
               map_ptr(&ips->map, &var->initializer, (a_byte*)con);
             }  /* if */
+            saved_flag = ips->disallow_mutable_field_load;
+            ips->disallow_mutable_field_load = TRUE;
             result = extract_value_from_constant(
                                     ips, con, result_storage, result_storage);
+            ips->disallow_mutable_field_load = saved_flag;
           }  /* if */
         }  /* if */
       }
