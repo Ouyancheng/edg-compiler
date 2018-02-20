@@ -43055,7 +43055,6 @@ The caller will add the destructor (if needed) and the array repetition.
   check_assertion(cip != NULL && icp != NULL &&
                   cip->kind == (a_constructor_init_kind)cik_field);
   field_sym = symbol_for(cip->variant.field);
-  
   if (!gpp_mode) {
     /* Normal modes -- a non-empty mem-initializer is not allowed for an
        array. */
@@ -43545,12 +43544,15 @@ inherits.
 }  /* forwarding_initializer_for_inheriting_constructor */
 
 
-void scan_dependent_type_parenthesized_initializer(an_init_state  *is)
+void scan_dependent_type_parenthesized_initializer(an_init_state     *is,
+                                                   an_arg_list_elem  *arg_list)
 /*
 Scan a parenthesized initializer that initializes an object of a template
 parameter type in a prototype instantiation.  If the initializer is for a
 variable declaration, *is->decl_parse_state describes that declaration.
 (is->decl_parse_state is NULL when the initializer is a ctor-initializer).
+The caller may have pre-scanned a non-empty parenthesized list of expressions:
+In that case arg_list represents that list; otherwise, arg_list is NULL.
 Create a dynamic initialization entry to describe the initialization and
 return a pointer to it in is->init_dip.  On entry, the current token is the
 one following the opening parenthesis.  On return, the current token is the
@@ -43570,11 +43572,9 @@ one following the closing parenthesis.
                                   is->decl_parse_state, is);
   scan_dependent_parenthesized_initializer(
                                          (a_rescan_control_block *)NULL,
-                                         /*arg_list_supplied=*/FALSE,
-                                         (an_arg_list_elem *)NULL,
+                                         arg_list != NULL, arg_list,
                                          /*is_custom_ms_attr_arg_list=*/FALSE,
-                                         (an_operand *)NULL,
-                                         &is->init_dip);
+                                         (an_operand *)NULL, &is->init_dip);
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */
   wrap_up_dynamic_init_full_expression(is->init_dip);

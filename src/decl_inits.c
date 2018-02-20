@@ -4960,7 +4960,8 @@ returned set to TRUE.
       /* Use the source position of the first argument as the call position. */
       pos = pos_first_token;
       if (dependent_class_type) {
-        scan_dependent_type_parenthesized_initializer(&dps->init_state);
+        scan_dependent_type_parenthesized_initializer(
+                                  &dps->init_state, (an_init_component*)NULL);
       } else {
         scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
                                              /*fill_in_dtor=*/TRUE,
@@ -7067,6 +7068,28 @@ given type, and record the initializer in *cip if cip is non-NULL.
   }  /* if */
 }  /* braced_mem_initializer */
 
+static a_boolean init_cache_is_variadic_and_short(an_initializer_cache  *cache)
+/*
+Return TRUE if the given initializer cache contains at least one pack
+expansion and the number of elements in the cache would be less than two if all
+the pack expansions were empty.
+*/
+{
+  an_init_component_ptr  icp = cache->first_init;
+  a_boolean              variadic = FALSE;
+  int                    count = 0;
+
+  for (; icp != NULL; icp = next_elem(icp)) {
+    if (!is_pack_expansion_component(icp)) {
+      ++count;
+      if (count >= 2) break;
+    } else {
+      variadic = TRUE;
+    }  /* if */
+  }  /* for */
+  return variadic && count < 2;
+}  /* init_cache_is_variadic_and_short */
+
 
 static void scan_parenthesized_mem_init_args(
                                            a_routine_ptr           ctor,
@@ -7091,7 +7114,8 @@ cases, array_type is NULL).
   /* Skip the left parenthesis. */
   check_assertion(curr_token == tok_lparen);
   (void)get_token();
-  dependent_class_init = is_template_dependent_context();
+  dependent_class_init = array_type == NULL &&
+                         could_be_dependent_class_type(init_type);
   if (is_class_struct_union_type(init_type) &&
       (array_type == NULL || curr_token == tok_rparen)) {
     /* The type of the base or member is class or array-of-class -- the latter
@@ -7112,7 +7136,8 @@ cases, array_type is NULL).
     is.force_dynamic_init = TRUE;
     is.ctor_initializer = TRUE;
     if (dependent_class_init) {
-      scan_dependent_type_parenthesized_initializer(&is);
+      scan_dependent_type_parenthesized_initializer(
+                                                &is, (an_init_component*)NULL);
     } else {
       a_type_ptr  object_class_type;
       /* If it is a base class, the object being constructed is the whole
@@ -7188,6 +7213,18 @@ cases, array_type is NULL).
     an_initializer_cache   cache;
     an_init_component_ptr  icp;
     prescan_parenthesized_mem_init_expr(&cache);
+    if (is_variadic_template_context() &&
+        init_cache_is_variadic_and_short(&cache)) {
+      an_init_state  is;
+      clear_init_state(&is);
+      is.direct_init = TRUE;
+      is.force_dynamic_init = TRUE;
+      is.ctor_initializer = TRUE;
+      scan_dependent_type_parenthesized_initializer(&is, cache.first_init);
+      flush_initializer_cache(&cache);
+      dip = is.init_dip;
+      goto consume_right_paren;
+    }  /* if */
     icp = fetch_init_component_from_initializer_cache(&cache);
     if (icp == NULL) {
       /* An empty initializer, "()", indicating value initialization. */
@@ -7219,11 +7256,6 @@ cases, array_type is NULL).
         }  /* if */
         dip = alloc_dynamic_init(init_kind);
       }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      curr_construct_end_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Bypass the right paren. */
-      (void)get_token();
     } else {
       /* Not default-initialization. */
       if (list_init_enabled && gpp_mode && array_type != NULL &&
@@ -7265,15 +7297,17 @@ cases, array_type is NULL).
           check_assertion(dip != NULL);
         }  /* if */
       }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      curr_construct_end_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (anything_cached(&cache)) {
-        pos_error(ec_exp_rparen, init_component_pos(cache.first_init));
+        pos_error(ec_too_many_initializer_values,
+                  init_component_pos(cache.first_init));
         flush_initializer_cache(&cache);
       }  /* if */
-      (void)required_token(tok_rparen, ec_exp_rparen);
     }  /* if */
+consume_right_paren:
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   check_assertion(dip != NULL);
   dip->is_constructor_init = TRUE;
