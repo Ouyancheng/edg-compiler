@@ -4866,20 +4866,6 @@ returned set to TRUE.
      variable will be an error constant (or a dynamic initializer pointing
      to an error constant. */
   init_err = FALSE;
-  if (!C_mode() && is_real_class_type(vp_type)) {
-    cssp = symbol_supplement_for_class(vp_type);
-    if (curr_token == tok_lbrace && !cssp->is_class_aggregate &&
-        !dps->has_direct_initializer && !list_init_enabled) {
-      /* This is an attempt to do C-style aggregate initialization on a class
-         object that is not an aggregate (e.g., it has a constructor, nonpublic
-         members, or virtual functions).  In such cases a constructor must be
-         used. */
-      type_error(ec_brace_initialization_not_allowed, vp_type);
-      init_err = TRUE;
-      vp_type = error_type();
-      cssp = NULL;
-    }  /* if */
-  }  /* if */
   /* Save the current token kind: curr_token will change if we prescan the
      initializer.  In the case of "auto" static data members, that will already
      have happened. */
@@ -4932,8 +4918,26 @@ returned set to TRUE.
       prescan_initializer_for_auto_type_deduction(dps,
                                                   parenthesized_initializer);
       vp_type = dps->type;
+      complete_type_is_needed(vp_type);
+      if (is_incomplete_type(vp_type)) {
+        /* Incomplete type is an error. */
+        pos_error(incomplete_type_err_code(vp_type), source_pos);
+        *incomplete_type_error_reported = TRUE;
+        vp_type = error_type();
+      }  /* if */
     }  /* if */
-    if (is_error_type(vp_type)) {
+  }  /* if */
+  if (!C_mode() && is_real_class_type(vp_type)) {
+    cssp = symbol_supplement_for_class(vp_type);
+    if (curr_token == tok_lbrace && !cssp->is_class_aggregate &&
+        !dps->has_direct_initializer && !list_init_enabled) {
+      /* This is an attempt to do C-style aggregate initialization on a class
+         object that is not an aggregate (e.g., it has a constructor, nonpublic
+         members, or virtual functions).  In such cases a constructor must be
+         used. */
+      type_error(ec_brace_initialization_not_allowed, vp_type);
+      init_err = TRUE;
+      vp_type = error_type();
       cssp = NULL;
     }  /* if */
   }  /* if */
@@ -4957,17 +4961,20 @@ returned set to TRUE.
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       a_source_position  pos;
+      a_boolean          args_supplied = dps->has_deducible_class_templ_args;
+      an_init_component  *icp = dps->prescanned_initializer_cache.first_init;
       /* Use the source position of the first argument as the call position. */
       pos = pos_first_token;
       if (dependent_class_type) {
-        scan_dependent_type_parenthesized_initializer(
-                                  &dps->init_state, (an_init_component*)NULL);
+        scan_dependent_type_parenthesized_initializer(&dps->init_state, icp);
       } else {
         scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
                                              /*fill_in_dtor=*/TRUE,
-                                             /*args_supplied=*/FALSE,
-                                             (an_arg_list_elem_ptr)NULL,
+                                             args_supplied, icp,
                                              &dps->init_state);
+      }  /* if */
+      if (args_supplied) {
+        flush_initializer_cache(&dps->prescanned_initializer_cache);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
