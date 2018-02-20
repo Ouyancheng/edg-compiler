@@ -11976,7 +11976,10 @@ that list to pedp.
               if (ssep->number == prp1->symbol->decl_scope) break;
               function_scopes_to_skip++;
             }  /* for */
-            check_assertion(ssep != NULL);
+            if (ssep == NULL) {
+              expect_error();
+              break;
+            }  /* if */
             prp1->function_scopes_to_skip = function_scopes_to_skip;
           }  /* if */
         }  /* for */

@@ -5751,10 +5751,10 @@ next_argument:
          Deduction fails. */
       goto reject_function;
     } else if (param->is_parameter_pack) {
-      /* This can also come up in the prototype instantiation of a non-template
+      /* This can come up in the prototype instantiation of a non-template
          member of a class template that uses a pack expansion in its
-         parameter list. */
-      check_assertion(routine->is_prototype_instantiation);
+         parameter list.  Severe error cases can also end up here. */
+      check_assertion_or_expect_error(routine->is_prototype_instantiation);
       goto reject_function;
     }  /* if */
   }  /* if */
