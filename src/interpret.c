@@ -4809,6 +4809,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               fp = fp->next;
               continue;
             }  /* if */
+            if (fp->is_mutable) {
+              info_with_pos_sym(ec_constexpr_mutable_read, &ips->position,
+                                symbol_for(fp), ips);
+              do_constexpr_fail(result);
+              break;
+            }  /* if */
             get_mapped_byte_count(&persistent_map, fp, offset);
             if (elem_con == NULL) {
               /* No more initializers, but we have more fields.  Zero the
