@@ -36964,6 +36964,8 @@ proto_type is the prototype instantiation of ct_sym.
 }  /* make_simple_implicit_deduction_guide */
 
 
+/* FIXME: Get rid of ct_sym if not eventually used. */
+/*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
