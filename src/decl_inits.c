@@ -4961,20 +4961,17 @@ returned set to TRUE.
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       a_source_position  pos;
-      a_boolean          args_supplied = dps->has_deducible_class_templ_args;
-      an_init_component  *icp = dps->prescanned_initializer_cache.first_init;
       /* Use the source position of the first argument as the call position. */
       pos = pos_first_token;
       if (dependent_class_type) {
-        scan_dependent_type_parenthesized_initializer(&dps->init_state, icp);
+        scan_dependent_type_parenthesized_initializer(
+                                  &dps->init_state, (an_init_component*)NULL);
       } else {
         scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
                                              /*fill_in_dtor=*/TRUE,
-                                             args_supplied, icp,
+                                             /*args_supplied=*/FALSE,
+                                             (an_arg_list_elem_ptr)NULL,
                                              &dps->init_state);
-      }  /* if */
-      if (args_supplied) {
-        flush_initializer_cache(&dps->prescanned_initializer_cache);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {

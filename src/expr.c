@@ -479,19 +479,10 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     if (dps->has_deducible_class_templ_args) {
       /* In the case of a class template argument deduction, the parenthesized
          case really amounts to scanning call arguments. */
-      an_expr_node_ptr  dummy_expr;
-      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                          /*already_after_left_paren=*/TRUE,
-                          &dummy_expr, /*return_raw_arguments=*/TRUE,
-                          /*unknown_dependent_function=*/FALSE,
-                          /*args_will_be_discarded=*/FALSE,
-                          /*is_custom_ms_attr_arg_list=*/FALSE,
-                          (a_rescan_control_block *)NULL,
-                          /*arg_list_supplied=*/FALSE,
-                          (an_arg_list_elem *)NULL,
-                          &icp,
-                          (an_operand *)NULL, (a_boolean *)NULL,
-                          (a_source_position *)NULL);
+      icp = scan_expr_list(tok_rparen, /*is_delegate_init=*/FALSE,
+                           /*is_custom_ms_attr_arg_list=*/FALSE,
+                           /*empty_list_okay=*/TRUE,
+                           /*trailing_comma_okay=*/FALSE);
     } else {
       dps->initializer_is_single_expr = TRUE;
       icp = scan_init_component_with_potential_pack_expansion(
