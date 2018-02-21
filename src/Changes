@@ -33,7 +33,6 @@ This is now fixed.
 2/20/18  [EDGcpfe/19346]
 Abort on Microsoft-mode using-declaration in multi-translation unit check
 
-
 When simultaneously compiling multiple translation units with corresponding
 using-declarations, the front end sometimes aborted with an internal error
 in function equiv_base_using_decls (trans_corresp.c).  For example:
@@ -44,7 +43,7 @@ in function equiv_base_using_decls (trans_corresp.c).  For example:
   };                             // the Microsoft-mode representation of this
                                  // using-declaration.
 
-Compiling two identical files with the code above previously result in an
+Compiling two identical files with the code above previously resulted in an
 internal error.  That is now fixed.
 
 
