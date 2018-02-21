@@ -1,5 +1,19 @@
 Version 4.15
 
+2/21/18  [EDGcpfe/18901]
+Clang and GCC compatibility: Empty classes and constant expressions
+
+GNU and Clang accept the use of non-constant variables of empty class types
+with trivial copy constructors in constant expressions.  The front end now
+emulates that behavior.  For example:
+
+  struct S {};
+  constexpr int z(S) { return 0; }
+  void g(S x) {
+    constexpr int r = z(x);  // Now permitted in GNU and Clang modes.
+  }
+
+
 2/21/18  [EDGcpfe/18755]
 Function modifiers and parenthesized member declarators
 

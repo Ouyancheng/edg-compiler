@@ -12797,6 +12797,18 @@ the value representation of the integer value.
               result = copy_val_from_constant(ips, con, result_storage,
                                               result_storage);
               ips->disallow_mutable_field_load = saved_flag;
+            } else if (is_immediate_class_type(tp) &&
+                       tp->variant.class_struct_union.is_empty_class &&
+                       (clang_mode || gpp_mode) &&
+                       is_trivially_copyable_type(tp)) {
+              /* An empty class type object with trivial copy semantics is
+                 considered "constant". */
+              mark_whole_subobject_initialized(ips, result_storage, tp,
+                                               complete_object);
+              if (complete_object == result_storage) {
+                /* Mark the destination storage as fully initialized. */
+                mark_complete_object_initialized(complete_object);
+              }  /* if */
             } else {
               if (var->is_this_parameter) {
                 info_with_pos(ec_star_this_not_constant_valued,
