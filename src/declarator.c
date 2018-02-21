@@ -2077,9 +2077,11 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
       if (!err && !dps->is_nonstatic_member_function_decl) {
         pos_error(ec_member_function_modifier_on_static_member,
                   &pos_curr_token);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         func_info->new_member = FALSE;
         func_info->sealed = FALSE;
         func_info->abstract = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         func_info->final = FALSE;
         func_info->override = FALSE;
         err = TRUE;
