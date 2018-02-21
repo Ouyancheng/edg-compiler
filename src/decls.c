@@ -278,6 +278,7 @@ be restored).
   dps->template_void_specifier = FALSE;
   dps->is_inclass_member_function_decl = FALSE;
   dps->is_out_of_class_member_function_decl = FALSE;
+  dps->is_nonstatic_member_function_decl = FALSE;
   dps->position_of_this_reference_in_trailing_return_set = FALSE;
   dps->vla_field_treated_as_zero_length_array = FALSE;
   dps->is_struct_binding_decl = FALSE;
