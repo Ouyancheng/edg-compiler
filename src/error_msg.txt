@@ -2963,6 +2963,7 @@ ec_deduction_guide_def;;"deduction guide %t cannot be defined"
 ec_bad_deduction_guide_scope;;"deduction guide %t must be declared in the same scope as %n"
 ec_invalid_specifier_for_deduction_guide;;"invalid specifier for deduction guide declaration (only \"explicit\" is permitted)"
 ec_constexpr_mutable_field_load;;"mutable %n of a constant cannot be accessed in a constant expression"
+ec_member_function_modifier_on_static_member;;"function modifier does not apply to static member declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

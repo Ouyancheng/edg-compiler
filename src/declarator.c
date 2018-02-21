@@ -1965,13 +1965,13 @@ need not be addressed here.
 }  /* is_prototyped_parameter_list_start */
 
 
-/*ARGSUSED*/  /* "state" is currently unused. */
+/*ARGSUSED*/  /* "dps" is currently unused. */
 static void scan_member_function_modifiers(a_symbol_locator    *locator,
-                                           a_decl_parse_state  *state,
+                                           a_decl_parse_state  *dps,
                                            a_func_info_block   *func_info)
 /*
 Scan for member function modifiers and record their presence in *func_info.
-*state describes some syntactic properties of the current declaration.
+*dps describes some syntactic properties of the current declaration.
 ("sealed", "abstract", and "override" are an ECMA C++/CLI extension also
 accepted by some Microsoft compilers in their non-CLI modes; "new" is only
 accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
@@ -1984,11 +1984,13 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
                                          microsoft_version >= 1700);
 
   if (std_override_modifiers_enabled || accept_ms_modifiers) {
+    a_boolean  err = FALSE;
     for (;;) {
       if ((std_override_modifiers_enabled || accept_ms_modifiers) &&
           check_context_sensitive_keyword(tok_override, "override")) {
         if (func_info->override) {
-          pos_error(ec_duplicate_function_modifier, &error_position);
+          pos_error(ec_duplicate_function_modifier, &dps->declarator_pos);
+          err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
                    ((locator->is_destructor_name &&
@@ -1997,11 +1999,12 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
           pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
                                       : ec_modifier_not_allowed_on_finalizer,
-                    &error_position);
+                    &pos_curr_token);
+          err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           if (gpp_mode && !cpp11_mode) {
-            pos_warning(ec_override_and_final_is_cpp11, &error_position);
+            pos_warning(ec_override_and_final_is_cpp11, &dps->declarator_pos);
           }  /* if */
           func_info->override = TRUE;
         }  /* if */
@@ -2009,10 +2012,11 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
                   accept_ms_final_modifier) &&
                  check_context_sensitive_keyword(tok_final, "final")) {
         if (func_info->final) {
-          pos_error(ec_duplicate_function_modifier, &error_position);
+          pos_error(ec_duplicate_function_modifier, &dps->declarator_pos);
+          err = TRUE;
         } else {
           if (gpp_mode && !cpp11_mode) {
-            pos_warning(ec_override_and_final_is_cpp11, &error_position);
+            pos_warning(ec_override_and_final_is_cpp11, &dps->declarator_pos);
           }  /* if */
           func_info->final = TRUE;
         }  /* if */
@@ -2020,47 +2024,65 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
       } else if (accept_ms_modifiers &&
                  check_context_sensitive_keyword(tok_abstract, "abstract")) {
         if (func_info->abstract) {
-          pos_error(ec_duplicate_function_modifier, &error_position);
+          pos_error(ec_duplicate_function_modifier, &dps->declarator_pos);
+          err = TRUE;
         } else if (func_info->sealed) {
           pos_error(ec_function_modifiers_abstract_and_sealed,
-                    &error_position);
+                    &dps->declarator_pos);
+          err = TRUE;
         } else if (locator->is_destructor_name || locator->is_finalizer_name) {
           pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
                                       : ec_modifier_not_allowed_on_finalizer,
-                    &error_position);
+                    &pos_curr_token);
+          err = TRUE;
         } else {
           func_info->abstract = TRUE;
         }  /* if */
       } else if (accept_ms_modifiers &&
                  check_context_sensitive_keyword(tok_sealed, "sealed")) {
         if (func_info->sealed) {
-          pos_error(ec_duplicate_function_modifier, &error_position);
+          pos_error(ec_duplicate_function_modifier, &dps->declarator_pos);
+          err = TRUE;
         } else if (func_info->abstract) {
           pos_error(ec_function_modifiers_abstract_and_sealed,
-                    &error_position);
+                    &dps->declarator_pos);
+          err = TRUE;
         } else if (locator->is_destructor_name || locator->is_finalizer_name) {
           pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
                                       : ec_modifier_not_allowed_on_finalizer,
-                    &error_position);
+                    &pos_curr_token);
+          err = TRUE;
         } else {
           func_info->sealed = TRUE;
         }  /* if */
       } else if (cli_or_cx_enabled && curr_token == tok_new) {
         if (func_info->new_member) {
-          pos_error(ec_duplicate_function_modifier, &error_position);
+          pos_error(ec_duplicate_function_modifier, &dps->declarator_pos);
+          err = TRUE;
         } else if (locator->is_destructor_name || locator->is_finalizer_name) {
           pos_error(locator->is_destructor_name ?
                                         ec_modifier_not_allowed_on_destructor
                                       : ec_modifier_not_allowed_on_finalizer,
-                    &error_position);
+                    &pos_curr_token);
+          err = TRUE;
         } else {
           func_info->new_member = TRUE;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         break;
+      }  /* if */
+      if (!err && !dps->is_nonstatic_member_function_decl) {
+        pos_error(ec_member_function_modifier_on_static_member,
+                  &pos_curr_token);
+        func_info->new_member = FALSE;
+        func_info->sealed = FALSE;
+        func_info->abstract = FALSE;
+        func_info->final = FALSE;
+        func_info->override = FALSE;
+        err = TRUE;
       }  /* if */
       (void)get_token();
     }  /* for */
@@ -2631,9 +2653,6 @@ this is a helper function.
     scan_trailing_return_type(state, rout_type);
   } else {
     state->return_type_pos = state->specifiers_pos;
-  }  /* if */
-  if (state->is_inclass_member_function_decl && is_nonstatic_member) {
-    scan_member_function_modifiers(locator, state, func_info);
   }  /* if */
   if (attributes != NULL) {
     /* Make the scanned attributes available to the next call of
@@ -7371,6 +7390,9 @@ function_lparen:
             }  /* if */
           }  /* if */
         }  /* if */
+        if (is_nonstatic_member_function) {
+          state->is_nonstatic_member_function_decl = TRUE;
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && is_nonstatic_member_function &&
             member_parent_type != NULL && derived_type == NULL &&
@@ -7988,6 +8010,13 @@ the parameters.
                (a_call_conv_descr_ptr)NULL, (a_type_qualifier_set *)NULL, 
                (a_type_qualifier_set *)NULL, (an_attribute_ptr*)NULL,
                &state->source_sequence_entry, func_info, decl_pos_block);
+  /* r_declarator will have set error_position to the position of the
+     declarator-id if this is a real declarator and the first token of the
+     whole declarator if it is an abstract declarator. */
+  state->declarator_pos = error_position;
+  if (state->is_inclass_member_function_decl) {
+    scan_member_function_modifiers(locator, state, func_info);
+  }  /* if */
   if (is_constructor) {
     state->do_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */
@@ -8038,10 +8067,6 @@ the parameters.
       state->has_deducible_return_type = TRUE;
     }  /* if */
   }  /* if */
-  /* r_declarator will have set error_position to the position of the
-     declarator-id if this is a real declarator and the first token of the
-     whole declarator if it is an abstract declarator. */
-  state->declarator_pos = error_position;
   state->type = state->declared_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled &&

@@ -1,5 +1,18 @@
 Version 4.15
 
+2/21/18  [EDGcpfe/18755]
+Function modifiers and parenthesized member declarators
+
+The front end previously did not correctly parse function modifiers like
+"final" when the underlying function declarator is parenthesized.  For example:
+
+  struct S {
+    virtual int (f()) final;  // Previously a spurious error.  Now okay.
+  };
+
+This is now fixed.
+
+
 2/20/18  [EDGcpfe/19370]
 __is_standard_layout and duplicate base class types
 

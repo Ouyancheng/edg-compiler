@@ -959,6 +959,9 @@ typedef struct a_decl_parse_state {
 			   function declaration.  Specifically, this is TRUE
 			   when a function declarator appears at the top-level
 			   in a class reactivation scope. */
+  a_bit_field   is_nonstatic_member_function_decl:1;
+			/* TRUE for the declaration of a nonstatic member
+                           function. */
   a_bit_field	position_of_this_reference_in_trailing_return_set:1;
 			/* TRUE if
 			   position_of_this_reference_in_trailing_return is
