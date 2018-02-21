@@ -15674,10 +15674,17 @@ current token.
                               start_of_curr_token + 2) /*lint --e(571)*/
                                                        /*lint --e(776)*/;
   char          *str;
+  a_const_char  *tok_str = start_of_curr_token;
 
+  if (tok_str == NULL) {
+    /* This function can be called with a NULL start_of_curr_token in some
+       error situations.  Use an empty string as the spelling. */
+    expect_error();
+    token_len = 1;
+    tok_str = "";
+  }  /* if */
   str = copy_string_of_length_to_region(file_scope_region_number,
-                                        start_of_curr_token,
-                                        (sizeof_t)token_len);
+                                        tok_str, (sizeof_t)token_len);
   /* Overwrite the character following the token spelling with the
      terminating zero byte. */
   str[token_len - 1] = '\0';
