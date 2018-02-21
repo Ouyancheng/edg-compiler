@@ -12,7 +12,7 @@ corresponding modes.  For example:
   struct B { };
   struct C : B { };
   struct D : B , C { char d; };
-  static_assert(!__is_standard_layout(D), "Nonstandard¿);
+  static_assert(!__is_standard_layout(D), "Nonstandard");
     // Now fails in GNU and Clang modes.
 
 
