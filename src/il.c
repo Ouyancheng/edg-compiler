@@ -5423,6 +5423,24 @@ nonstatic data member indicated by field.
 }  /* set_ptr_to_data_member_constant */
 
 
+static void clear_source_corresp_for_copy(a_source_correspondence *scp)
+/*
+Clear the fields of the source correspondence for an IL entry that was
+just copied if those fields should not apply to the copy.
+*/
+{
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  scp->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  scp->decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if ONE_INSTANTIATION_PER_OBJECT
+  scp->per_instantiation_needed_flags = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+}  /* clear_source_corresp_for_copy */
+
+
 void copy_constant(a_constant *from,
                    a_constant *to)
 /*
@@ -5433,17 +5451,20 @@ Copy a constant entry from "from" to "to".
   /* *from might be a shared constant, an enum constant, etc., so clear
      the "next" field. */
   to->next = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Same holds for source_sequence pointers. */
-  to->source_corresp.source_sequence_entry = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  to->source_corresp.decl_pos_info = NULL;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-  to->source_corresp.per_instantiation_needed_flags = NULL;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  clear_source_corresp_for_copy(&to->source_corresp);
 }  /* copy_constant */
+
+
+void copy_template(a_template *from,
+                   a_template *to)
+/*
+Copy a template entry from "from" to "to".
+*/
+{
+  *to = *from;
+  to->next = NULL;
+  clear_source_corresp_for_copy(&to->source_corresp);
+}  /* copy_template */
 
 
 static a_type_ptr character_type(a_character_kind  kind)

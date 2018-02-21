@@ -1437,6 +1437,9 @@ extern a_scope_ptr new_function_scope(a_scope_number           scope_number,
 extern void copy_constant(a_constant *from,
                           a_constant *to);
 
+extern void copy_template(a_template *from,
+                          a_template *to);
+
 extern void add_constant_to_aggregate(a_constant_ptr con,
                                       a_constant_ptr aggr_con);
 

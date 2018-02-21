@@ -36750,6 +36750,164 @@ the function template, and decl_state tracks its declaration.
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
 
+
+static a_symbol_ptr copy_template_param_symbol(a_symbol_ptr	orig_sym)
+/*
+Make a copy of the template parameter symbol specified by orig_sym.
+If it is a class template symbol, also copy the template symbol supplement
+pointed to by orig_sym.  Return a pointer to the new symbol.
+*/
+{
+  a_symbol_ptr				new_sym;
+  a_template_symbol_supplement_ptr	orig_tssp = NULL;
+  a_template_symbol_supplement_ptr	new_tssp;
+
+  new_sym = alloc_symbol(orig_sym->kind, orig_sym->header,
+                         &orig_sym->decl_position);
+  if (symbol_is(orig_sym, sk_class_template)) {
+    orig_tssp = orig_sym->variant.template_info;
+    new_tssp = new_sym->variant.template_info;
+  }  /* if */
+  *new_sym = *orig_sym;
+  if (orig_tssp != NULL) {
+    /* Restore the template_info pointer. */
+    new_sym->variant.template_info = new_tssp;
+    /* Copy the template symbol supplement. */
+    *new_tssp = *orig_tssp;
+  }  /* if */
+  /* Clear the next pointers. */
+  new_sym->next = NULL;
+  new_sym->next_in_scope = NULL;
+  new_sym->prev_in_scope = NULL;
+  return new_sym;
+}  /* copy_template_param_symbol */
+
+
+static void copy_template_params_to_new_list(
+				a_template_param_ptr	params_to_add,
+				a_template_param_ptr	*new_list)
+/*
+This routine is used to create a new template parameter list, or add entries
+to a template parameter list, based on an existing list.
+
+*new_list is the list to which the newly created template parameters should
+be added, and can be NULL.  params_to_add are the template parameters to
+be added to the list.
+
+If the new list is empty, the parameters will be added with their original
+coordinates.  If there are already entries on the new list, the parameters
+will be added using the nesting depth of the entries already on the list
+and with positions that continue the sequence of the entries on the list.
+*/
+{
+  a_template_param_ptr			old_tpp;
+  a_template_param_ptr			new_tpp;
+  a_template_param_ptr			list_tail = NULL;
+  a_template_nesting_depth		depth;
+  a_boolean				add_to_list = FALSE;
+  a_template_param_list_pos		pos;
+  a_template_param_coordinate_ptr	coord_ptr;
+
+  if (*new_list != NULL) {
+    add_to_list = TRUE;
+    /* Find the last entry on the existing list. */
+    list_tail = *new_list;
+    while (list_tail->next != NULL) list_tail = list_tail->next;
+    /* Get the depth and position of the last parameter of the existing
+       list. */
+    coord_ptr = coordinates_of_template_param(list_tail);
+    depth = coord_ptr->depth;
+    pos = coord_ptr->position;
+  }  /* if */
+  /* Make a copy of the entries on the list.  We need to create a copy of
+     the symbol and a copy of the type/constant/template pointed to. */
+  for (old_tpp = params_to_add; old_tpp != NULL; old_tpp = old_tpp->next) {
+    a_symbol_ptr	new_sym;
+    a_symbol_ptr	old_sym = old_tpp->param_symbol;
+    new_sym = copy_template_param_symbol(old_sym);
+    if (new_sym->kind == (a_symbol_kind)sk_type) {
+      a_type_ptr	old_type = old_sym->variant.type.ptr;
+      a_type_ptr	new_type;
+      new_type = alloc_type(old_type->kind);
+      copy_type(old_type, new_type);
+      set_source_corresp(&new_type->source_corresp, new_sym);
+      /* FIXME: Clear parent scope?   IL list issues? */
+      new_sym->variant.type.ptr = new_type;
+    } else if (new_sym->kind == (a_symbol_kind)sk_constant) {
+      a_constant_ptr	old_constant = old_sym->variant.constant;
+      a_constant_ptr	new_constant;
+      new_constant = alloc_constant(old_constant->kind);
+      copy_constant(old_constant, new_constant);
+      set_source_corresp(&new_constant->source_corresp, new_sym);
+      /* FIXME: Clear parent scope?   IL list issues? */
+      new_sym->variant.constant = new_constant;
+    } else {
+      a_template_ptr	old_template =
+                             old_sym->variant.template_info->il_template_entry;
+      a_template_ptr	new_template;
+      check_assertion(new_sym->kind == (a_symbol_kind)sk_class_template);
+      new_template = alloc_template();
+      copy_template(old_template, new_template);
+      /* Update the template to refer to the template symbol supplement
+         of the new symbol. */
+      new_template->template_info = new_sym->variant.template_info;
+      set_source_corresp(&new_template->source_corresp, new_sym);
+      /* FIXME: Clear parent scope?   IL list issues? */
+      new_sym->variant.template_info->il_template_entry = new_template;
+    }  /* if */
+    new_tpp = alloc_template_param(new_sym);
+    if (add_to_list) {
+      /* When adding an entry to an existing list, the coordinates must be
+         updated. */
+      coord_ptr = coordinates_of_template_param(new_tpp);
+      coord_ptr->depth = depth;
+      coord_ptr->position = ++pos;
+    }  /* if */
+    /* Add the entry to the end of the list. */
+    if (list_tail == NULL) {
+      *new_list = new_tpp;
+    } else {
+      list_tail->next = new_tpp;
+      list_tail = new_tpp;
+    }  /* if */
+  }  /* for */
+}  /* copy_template_params_to_new_list */
+
+
+static a_symbol_ptr make_implicit_deduction_guide_template(
+			a_symbol_ptr				ct_sym,
+			a_template_symbol_supplement_ptr	ct_tssp,
+			a_type_ptr				proto_type,
+			a_symbol_ptr				ctor_sym)
+/*
+This routine creates the symbol and associated template data structures
+for an implicit deduction guide.  The basic information is filled in
+here.  Additional information (such as the template parameter list and
+function parameter list) will be completed later.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_cache_ptr			tcp;
+  a_class_type_supplement_ptr		proto_ctsp;
+
+  proto_ctsp = proto_type->variant.class_struct_union.extra_info;
+  tcp = cache_for_template(ct_tssp);
+  sym = alloc_symbol((a_symbol_kind)sk_function_template,
+                     ctor_sym->header,
+                     &null_source_position);
+  sym->decl_scope = ctor_sym->decl_scope;
+  tssp = sym->variant.template_info;
+  tdip = alloc_template_decl_info();
+  tssp->cache.decl_info = tdip;
+  tssp->variant.function.decl_cache.decl_info = tdip;
+  tdip->enclosing_scope = proto_ctsp->assoc_scope;
+  tdip->enclosing_template_decl = tcp->decl_info;
+  return sym;
+}  /* make_implicit_deduction_guide_template */
+
+
 /* FIXME: Get rid of ct_sym if not eventually used. */
 /*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_simple_implicit_deduction_guide(
@@ -36761,9 +36919,9 @@ static a_symbol_ptr make_simple_implicit_deduction_guide(
 Create a function template to be used as a "simple" implicit deduction guide.
 A "simple" guide is one for a constructor that is not itself a function
 template.  This guide has the template parameter list of the enclosing
-class template (specified by ct_sym and ct_tssp) and the function parameter
-list of the constructor specified by ctor_sym.  proto_type is the prototype
-instantiation of ct_sym.
+class template (specified by ct_sym and ct_tssp).  ctor_sym is the symbol
+of the (non-template) constructor for which a guide is to be created.
+proto_type is the prototype instantiation of ct_sym.
 */
 {
   a_template_decl_info_ptr		tdip;
@@ -36776,24 +36934,16 @@ instantiation of ct_sym.
   a_type_ptr				rout_type;
   a_template_cache_ptr			tcp;
   a_template_param_ptr			templ_param_list;
-  a_class_type_supplement_ptr		proto_ctsp;
 
-  proto_ctsp = proto_type->variant.class_struct_union.extra_info;
   ctor_rout = ctor_sym->variant.routine.ptr;
   ctor_rtsp = ctor_rout->type->variant.routine.extra_info;
   tcp = cache_for_template(ct_tssp);
+  sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
+                                               ctor_sym);
   templ_param_list = tcp->decl_info->parameters;
-  sym = alloc_symbol((a_symbol_kind)sk_function_template,
-                     ctor_sym->header,
-                     &null_source_position);
-  sym->decl_scope = ctor_sym->decl_scope;
   tssp = sym->variant.template_info;
-  tdip = alloc_template_decl_info();
-  tssp->cache.decl_info = tdip;
-  tssp->variant.function.decl_cache.decl_info = tdip;
+  tdip = tssp->cache.decl_info;
   tdip->parameters = templ_param_list;
-  tdip->enclosing_scope = proto_ctsp->assoc_scope;
-  tdip->enclosing_template_decl = tcp->decl_info;
   rout = alloc_routine();
   rout_type = alloc_type((a_type_kind)tk_routine);
   rout->type = rout_type;
@@ -36814,6 +36964,68 @@ instantiation of ct_sym.
 }  /* make_simple_implicit_deduction_guide */
 
 
+static a_symbol_ptr make_template_implicit_deduction_guide(
+			a_symbol_ptr				ct_sym,
+			a_template_symbol_supplement_ptr	ct_tssp,
+			a_type_ptr				proto_type,
+			a_symbol_ptr				ctor_sym)
+/*
+Create a function template to be used as a implicit deduction guide.
+This routine is used for cases where ctor_sym is a function template.
+The guide that is created has the template parameter list of the enclosing
+class template (specified by ct_sym and ct_tssp) and the function parameter
+list of the constructor template specified by ctor_sym.  proto_type is the
+prototype instantiation of ct_sym.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_symbol_supplement_ptr	ctor_tssp;
+  a_routine_ptr				rout;
+  a_routine_ptr				ctor_rout;
+  a_routine_type_supplement_ptr		ctor_rtsp;
+  a_routine_type_supplement_ptr		rtsp;
+  a_type_ptr				rout_type;
+  a_template_cache_ptr			tcp;
+  a_template_param_ptr			templ_param_list = NULL;
+
+  ctor_tssp = template_supplement_for_symbol(ctor_sym);
+  ctor_rout = ctor_tssp->variant.function.routine;
+  ctor_rtsp = ctor_rout->type->variant.routine.extra_info;
+  tcp = cache_for_template(ct_tssp);
+  sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
+                                               ctor_sym);
+  /* Add the template parameters of the class to the new template parameter
+     list that is being created. */
+  copy_template_params_to_new_list(tcp->decl_info->parameters,
+                                   &templ_param_list);
+  copy_template_params_to_new_list(ctor_tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
+                                   &templ_param_list);
+  tssp = sym->variant.template_info;
+  tdip = tssp->cache.decl_info;
+  tdip->parameters = templ_param_list;
+  rout = alloc_routine();
+  rout_type = alloc_type((a_type_kind)tk_routine);
+  rout->type = rout_type;
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->prototyped = TRUE;
+  rout_type->variant.routine.return_type = proto_type;
+  rtsp->param_type_list = copy_param_type_list(ctor_rtsp->param_type_list,
+                                               /*copy_default_args=*/FALSE,
+                                               /*max_params=*/0);
+  tssp->variant.function.routine = rout;
+  set_class_membership(sym, &rout->source_corresp, proto_type);
+  set_routine_special_kind(rout,
+                           (a_special_function_kind)sfk_deduction_guide);
+  rout->variant.class_template = ct_tssp->il_template_entry;
+  rout->compiler_generated = TRUE;
+  /* FIXME: Other fields that need to be set? */
+  return sym;
+}  /* make_template_implicit_deduction_guide */
+
+
 static void create_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
@@ -36831,8 +37043,8 @@ implicit deduction guide for that constructor.
     new_sym = make_simple_implicit_deduction_guide(ct_sym, ct_tssp,
                                                    proto_type, ctor_sym);
   } else {
-    /* FIXME */
-    unexpected_condition();
+    new_sym = make_template_implicit_deduction_guide(ct_sym, ct_tssp,
+                                                     proto_type, ctor_sym);
   }  /* if */
   add_deduction_guide(new_sym,
                       &ct_tssp->variant.class_template.deduction_guides);
@@ -36852,7 +37064,7 @@ ct_tssp and create implicit deduction guides for constructor.
   a_type_ptr			proto_type;
   a_symbol_ptr			ctor_set_sym;
   a_symbol_ptr			ctor_sym;
-  a_boolean			is_list;
+  a_boolean			is_list = FALSE;
 
   proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
   proto_cssp = class_symbol_supp(proto_sym);
