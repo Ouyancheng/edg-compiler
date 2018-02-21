@@ -36874,6 +36874,8 @@ and with positions that continue the sequence of the entries on the list.
 }  /* copy_template_params_to_new_list */
 
 
+/* FIXME: Get rid of ct_sym if not eventually used. */
+/*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_implicit_deduction_guide_template(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
@@ -36908,8 +36910,6 @@ function parameter list) will be completed later.
 }  /* make_implicit_deduction_guide_template */
 
 
-/* FIXME: Get rid of ct_sym if not eventually used. */
-/*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_simple_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
@@ -36964,8 +36964,6 @@ proto_type is the prototype instantiation of ct_sym.
 }  /* make_simple_implicit_deduction_guide */
 
 
-/* FIXME: Get rid of ct_sym if not eventually used. */
-/*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
