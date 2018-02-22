@@ -14,7 +14,7 @@ emulates that behavior.  For example:
   }
 
 
-2/21/18  [EDGcpfe/18755]
+2/21/18  [EDGcpfe/17440,EDGcpfe/18755]
 Function modifiers and parenthesized member declarators
 
 The front end previously did not correctly parse function modifiers like
