@@ -6118,6 +6118,7 @@ class definition.
    template. */
 #define is_template_alias_instance_symbol(sym)				\
   (symbol_is((sym), sk_type) &&						\
+   (sym)->variant.type.ptr->kind == (a_type_kind)tk_typeref &&		\
    (sym)->variant.type.ptr->variant.typeref.is_template_alias)
 
 /* Return TRUE if the symbol is a template class symbol for a real or
