@@ -8608,11 +8608,13 @@ interpreter context.
       skip_typerefs(dst_type->variant.pointer.type) == src_type) {
     /* Function pointer decay is okay. */
     valid = TRUE;
-  } else if (dst_type->kind == (a_type_kind)tk_array) {
-    a_type_ptr  etp = underlying_array_element_type(dst_type);
-    etp = skip_typerefs(etp);
-    if (identical_types_ignoring_qualifiers(src_type, etp) &&
-        is_array_element(cap)) {
+  } else if (dst_type->kind == (a_type_kind)tk_array &&
+             is_array_element(cap) &&
+             !dst_type->variant.array.is_template_dependent_size_array &&
+             !dst_type->variant.array.is_variable_size_array) {
+    a_type_ptr  etp = skip_typerefs(dst_type->variant.array.element_type);
+    if (dst_type->variant.array.variant.number_of_elements == cap->length &&
+        identical_types_ignoring_qualifiers(src_type, etp)) {
       /* The front end produces IL like the following:
           [lvalue] operator: lvalue adjust, result type: array [1] of const int
             [lvalue] operator: *, result type: const int
