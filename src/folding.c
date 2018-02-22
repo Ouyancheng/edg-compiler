@@ -8395,9 +8395,9 @@ and, if pos is not NULL, an error will be reported.
       case bok_has_assign:
       case bok_has_nothrow_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        if (!microsoft_mode || microsoft_version >= 1800) {
-          check_assertion(kind ==
-                            (a_builtin_operation_kind)bok_has_nothrow_assign);
+        if (!microsoft_mode ||
+            (microsoft_version >= 1800 &&
+             kind == (a_builtin_operation_kind)bok_has_nothrow_assign)) {
           result = !is_const && compute_has_nothrow_assign(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else {
