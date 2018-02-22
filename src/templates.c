@@ -36986,6 +36986,7 @@ function parameter list) will be completed later.
   a_template_symbol_supplement_ptr	tssp;
   a_template_cache_ptr			tcp;
   a_class_type_supplement_ptr		proto_ctsp;
+  a_template_ptr			templ;
 
   proto_ctsp = proto_type->variant.class_struct_union.extra_info;
   tcp = cache_for_template(ct_tssp);
@@ -37000,6 +37001,13 @@ function parameter list) will be completed later.
   tssp->variant.function.implicit_deduction_guide = TRUE;
   tdip->enclosing_scope = proto_ctsp->assoc_scope;
   tdip->enclosing_template_decl = tcp->decl_info;
+  templ = alloc_template();
+  tssp->il_template_entry = templ;
+  templ->kind = (a_template_kind)templk_function;
+  templ->canonical_template = templ;
+  set_source_corresp(&templ->source_corresp, sym);
+  /* FIXME: What list should this be added to? */
+  add_to_templates_list(templ, DEPTH_OF_FILE_SCOPE);
   return sym;
 }  /* make_implicit_deduction_guide_template */
 
@@ -37053,6 +37061,9 @@ proto_type is the prototype instantiation of ct_sym.
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = ct_tssp->il_template_entry;
   rout->compiler_generated = TRUE;
+  tssp->il_template_entry->prototype_instantiation.routine = rout;
+  /* FIXME: What list should this be added to? */
+  add_to_routines_list(rout, NO_SCOPE_DEPTH);
   /* FIXME: Other fields that need to be set? */
   return sym;
 }  /* make_simple_implicit_deduction_guide */
@@ -37093,9 +37104,9 @@ the template, a NULL symbol is returned.
   ctor_tssp = template_supplement_for_symbol(ctor_sym);
   ctor_rout = ctor_tssp->variant.function.routine;
   tcp = cache_for_template(ct_tssp);
-  /* A rescan context is needed because nonreal types will be created
-     below. */
-  push_instantiation_scope_for_rescan(ctor_sym);
+  push_class_and_template_reactivation_scope(proto_type,
+                                             /*is_template_based=*/TRUE,
+                                             /*extend_namespace=*/FALSE);
   sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
                                                ctor_sym);
   /* Add the template parameters of the class to the new template parameter
@@ -37164,11 +37175,14 @@ the template, a NULL symbol is returned.
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = ct_tssp->il_template_entry;
   rout->compiler_generated = TRUE;
+  /* FIXME: What list should this be added to? */
+  add_to_routines_list(rout, NO_SCOPE_DEPTH);
+  tssp->il_template_entry->prototype_instantiation.routine = rout;
   result_sym = sym;
   /* FIXME: Other fields that need to be set? */
   result_sym = sym;
 done:
-  pop_instantiation_scope_for_rescan();
+  pop_class_reactivation_scope();
   return result_sym;
 }  /* make_template_implicit_deduction_guide */
 
