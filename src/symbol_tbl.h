@@ -5766,9 +5766,10 @@ extern
 void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
 extern
 void clear_constexpr_if_cache_info(a_constexpr_if_cache_info_ptr	cicip);
-
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
-
+extern a_template_param_ptr make_copy_of_template_param_based_on_new_symbol(
+					a_template_param_ptr	orig_tpp,
+					a_symbol_ptr		new_sym);
 extern a_template_instance_ptr alloc_template_instance(void);
 extern a_master_instance_ptr alloc_master_instance(void);
 extern void free_param_id_list(a_param_id_ptr *pidlist);

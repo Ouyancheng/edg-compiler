@@ -15419,6 +15419,39 @@ on kind of default argument it has.
 }  /* clear_template_param_default_arg_info */
 
 
+a_template_param_ptr make_copy_of_template_param_based_on_new_symbol(
+					a_template_param_ptr	orig_tpp,
+					a_symbol_ptr		new_sym)
+/*
+Allocate a new template parameter and copy the fields orig_tpp to the
+new parameter.  Update the type/nontype/template referenced by the
+parameter to refer to the entity represented by new_sym.  Return a
+pointer to the new template parameter.
+*/
+{
+  a_template_param_ptr	new_tpp;
+
+  new_tpp = alloc_template_param(new_sym);
+  /* Copy the old parameter to the new parameter. */
+  *new_tpp = *orig_tpp;
+  new_tpp->next = NULL;
+  new_tpp->do_prototype_instantiation = FALSE;
+  /* Update the fields that are based on the symbol to refer to the
+     proper information. */
+  new_tpp->param_symbol = new_sym;
+  if (new_sym->kind == (a_symbol_kind)sk_type) {
+    new_tpp->variant.type     = new_sym->variant.type.ptr;
+  } else if (new_sym->kind == (a_symbol_kind)sk_constant) {
+    new_tpp->variant.constant.ptr = new_sym->variant.constant;
+  } else {
+    /* A template template parameter. */
+    check_assertion(new_sym->kind == (a_symbol_kind)sk_class_template);
+    new_tpp->variant.templ = new_sym->variant.template_info;
+  }  /* if */
+  return new_tpp;
+}  /* make_copy_of_template_param_based_on_new_symbol */
+
+
 a_template_param_ptr alloc_template_param(a_symbol_ptr sym)
 /*
 Allocate a new template parameter list entry, initialize it,

@@ -36855,7 +36855,8 @@ and with positions that continue the sequence of the entries on the list.
       /* FIXME: Clear parent scope?   IL list issues? */
       new_sym->variant.template_info->il_template_entry = new_template;
     }  /* if */
-    new_tpp = alloc_template_param(new_sym);
+    new_tpp = make_copy_of_template_param_based_on_new_symbol(old_tpp,
+                                                              new_sym);
     if (add_to_list) {
       /* When adding an entry to an existing list, the coordinates must be
          updated. */
