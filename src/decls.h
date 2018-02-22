@@ -961,7 +961,7 @@ typedef struct a_decl_parse_state {
 			   in a class reactivation scope. */
   a_bit_field   is_nonstatic_member_function_decl:1;
 			/* TRUE for the declaration of a nonstatic member
-                           function. */
+			   function. */
   a_bit_field	position_of_this_reference_in_trailing_return_set:1;
 			/* TRUE if
 			   position_of_this_reference_in_trailing_return is
