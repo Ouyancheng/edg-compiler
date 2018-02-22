@@ -7263,12 +7263,13 @@ cases, array_type is NULL).
     } else {
       /* Not default-initialization. */
       if (list_init_enabled && gpp_mode && array_type != NULL &&
-          curr_token == tok_lbrace) {
+          is_braced_init_component(icp)) {
         /* Something like "S(): array({ 1, 2 }) {}".  A list initializer in a
            parenthesized initializer for an array member is not actually valid
            per the C++11 standard, but GCC accepts it. */
         pos_warning(ec_braced_init_in_paren_init, &pos_curr_token);
         braced_mem_initializer(ctor, array_type, cip, icp);
+        free_init_component_list(icp);
         dip = cip->initializer;
       } else {
         if (array_type != NULL && !is_string_type(array_type)) {
