@@ -37081,7 +37081,6 @@ the template, a NULL symbol is returned.
   a_template_symbol_supplement_ptr	ctor_tssp;
   a_routine_ptr				rout;
   a_routine_ptr				ctor_rout;
-  a_routine_type_supplement_ptr		ctor_rtsp;
   a_type_ptr				rout_type;
   a_template_cache_ptr			tcp;
   a_template_param_ptr			templ_param_list = NULL;
@@ -37093,8 +37092,10 @@ the template, a NULL symbol is returned.
 
   ctor_tssp = template_supplement_for_symbol(ctor_sym);
   ctor_rout = ctor_tssp->variant.function.routine;
-  ctor_rtsp = ctor_rout->type->variant.routine.extra_info;
   tcp = cache_for_template(ct_tssp);
+  /* A rescan context is needed because nonreal types will be created
+     below. */
+  push_instantiation_scope_for_rescan(ctor_sym);
   sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
                                                ctor_sym);
   /* Add the template parameters of the class to the new template parameter
@@ -37167,6 +37168,7 @@ the template, a NULL symbol is returned.
   /* FIXME: Other fields that need to be set? */
   result_sym = sym;
 done:
+  pop_instantiation_scope_for_rescan();
   return result_sym;
 }  /* make_template_implicit_deduction_guide */
 
