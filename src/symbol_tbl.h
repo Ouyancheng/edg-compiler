@@ -3006,6 +3006,10 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if there can be only one declaration of
 			   this function template.  This is the case for
 			   a friend template with a default argument. */
+      a_bit_field
+		implicit_deduction_guide:1;
+			/* TRUE if this is a function template generated to
+			   serve as an implicit deduction guide. */
       bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_variable_template or sk_static_data_member: */

@@ -3610,6 +3610,7 @@ and return a pointer to it.
       tssp->
           variant.function.exception_spec_prototype_instantiation_done = FALSE;
       tssp->variant.function.must_have_only_one_decl = FALSE;
+      tssp->variant.function.implicit_deduction_guide = FALSE;
 #if CENTERLINE_CHECKING 
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

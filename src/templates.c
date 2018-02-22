@@ -1840,6 +1840,31 @@ an element.
 }  /* get_template_arg_value_from_default */
 
 
+static void set_template_default_arg_value(
+					a_template_arg_ptr	tap,
+					a_template_param_ptr	tpp)
+/*
+Set the default template argument of the template parameter tpp to the
+value specified by tap.
+*/
+{
+  switch (tap->kind) {
+    case tak_type:
+      tpp->default_arg.type = tap->variant.type;
+      break;
+    case tak_nontype:
+      tpp->default_arg.constant = tap->variant.constant;
+      break;
+    case tak_template:
+      tpp->default_arg.templ = tap->variant.templ.ptr;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* set_template_default_arg_value */
+
+
 /* Forward declarations. */
 static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
 
@@ -1885,9 +1910,11 @@ C++17-style template template argument matching.
   a_boolean		is_conversion_operator = FALSE;
   a_boolean		default_allowed;
   a_template_arg_ptr	prev_tap = NULL;
+  a_boolean		implicit_guide;
 
   default_allowed = (function_template_default_args_allowed &&
                      !is_partial_order_check) || is_templ_templ_param_check;
+  implicit_guide = tssp->variant.function.implicit_deduction_guide;
   if (is_partial_order_check) {
     /* The routine type of the prototype instantiation of the template
        is only needed below when doing the partial ordering check. */
@@ -1924,9 +1951,12 @@ C++17-style template template argument matching.
                                      /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
         if (copy_error ||
-            (template_arg_is_dependent(tap) && !is_templ_templ_param_check)) {
+            (!implicit_guide && !is_templ_templ_param_check &&
+             template_arg_is_dependent(tap))) {
           /* If the copy failed, or resulted in an argument that is still
-             dependent, don't use the resulting value. */
+             dependent, don't use the resulting value.  A dependent value
+             is okay for deduction guide substitution and for template
+             template parameter checking. */
           result = FALSE;
           break;
         }  /* if */
@@ -14193,6 +14223,14 @@ make_new_type:
               new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
                          ptp->orig_param_type_for_unevaluated_default_arg_expr;
             }  /* if */
+            if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+              /* When doing substitution to create a deduction guide,
+                 copy the deduction flags in the parameter type entry. */
+              new_ptp->type_involves_template_param =
+                                             ptp->type_involves_template_param;
+              new_ptp->type_involves_deduced_template_param =
+                                     ptp->type_involves_deduced_template_param;
+            }  /* if */
             /* Add the new param type entry to the param types list. */
             if (prev_ptp == NULL) {
               new_rtsp->param_type_list = new_ptp;
@@ -19401,7 +19439,8 @@ Build the template argument list for the prototype instantiation
 of this template.  Loop through the template parameters and
 create a corresponding template argument for each.  Return a pointer
 to the newly created list.  This routine also saves the symbol of
-the template (template_sym) in the IL entry for any type parameters.
+the template (template_sym), if not NULL, in the IL entry for any type
+parameters.
 */
 {
   a_template_arg_ptr                tap;
@@ -19426,7 +19465,9 @@ the template (template_sym) in the IL entry for any type parameters.
       tap->variant.type = tp;
       tp = generic_param_if_generic_definition_argument(tp);
       check_assertion(tp->kind == (a_type_kind)tk_template_param);
-      tp->variant.template_param.extra_info->template_symbol = template_sym;
+      if (template_sym != NULL) {
+        tp->variant.template_param.extra_info->template_symbol = template_sym;
+      }  /* if */
     } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
       tap->variant.constant = tpp->variant.constant.ptr;
@@ -36884,6 +36925,48 @@ and with positions that continue the sequence of the entries on the list.
 }  /* copy_template_params_to_new_list */
 
 
+static void substitute_default_templ_args(
+				a_symbol_ptr		template_sym,
+				a_template_param_ptr	list_to_subst,
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_boolean		*copy_error)
+/*
+Go through the template parameter list specified by list_to_subst and
+do substitution on the default argument values.  templ_param_list and
+templ_arg_list are the parameters/arguments to be substituted.  template_sym
+is the template associated with templ_param_list.  *copy_error will be set
+if a substitution fails.
+*/
+{
+  a_template_param_ptr	tpp;
+
+  for (tpp = list_to_subst; tpp != NULL; tpp = tpp->next) {
+    a_template_arg_ptr	tap;
+    a_templ_arg_kind	arg_kind;
+    a_ctws_state	ctws_state;
+    if (!tpp->has_default_arg) continue;
+    arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+    tap = alloc_template_arg(arg_kind);
+    get_template_arg_value_from_default(template_sym, tap, tpp,
+                                        templ_param_list);
+    init_ctws_state(&ctws_state);
+    substitute_template_argument(tap, tpp, templ_arg_list,
+                                 templ_param_list,
+                                 templ_arg_list, templ_param_list,
+                                 &template_sym->decl_position,
+                                 CTWS_NO_OPTIONS,
+                                 /*is_generic=*/FALSE,
+                                 copy_error, &ctws_state);
+    if (*copy_error) break;
+    /* Copy the argument value back into the template parameter. */
+    set_template_default_arg_value(tap, tpp);
+    free_template_arg_list(tap);
+  }  /* for */
+}  /* substitute_default_templ_args */
+
+
+
 /* FIXME: Get rid of ct_sym if not eventually used. */
 /*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_implicit_deduction_guide_template(
@@ -36914,6 +36997,7 @@ function parameter list) will be completed later.
   tdip = alloc_template_decl_info();
   tssp->cache.decl_info = tdip;
   tssp->variant.function.decl_cache.decl_info = tdip;
+  tssp->variant.function.implicit_deduction_guide = TRUE;
   tdip->enclosing_scope = proto_ctsp->assoc_scope;
   tdip->enclosing_template_decl = tcp->decl_info;
   return sym;
@@ -36985,20 +37069,27 @@ This routine is used for cases where ctor_sym is a function template.
 The guide that is created has the template parameter list of the enclosing
 class template (specified by ct_sym and ct_tssp) and the function parameter
 list of the constructor template specified by ctor_sym.  proto_type is the
-prototype instantiation of ct_sym.
+prototype instantiation of ct_sym.  The symbol of the generated template
+is returned.  If an substitution failure occurs during the creation of
+the template, a NULL symbol is returned.
 */
 {
   a_template_decl_info_ptr		tdip;
   a_symbol_ptr				sym;
+  a_symbol_ptr				result_sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_template_symbol_supplement_ptr	ctor_tssp;
   a_routine_ptr				rout;
   a_routine_ptr				ctor_rout;
   a_routine_type_supplement_ptr		ctor_rtsp;
-  a_routine_type_supplement_ptr		rtsp;
   a_type_ptr				rout_type;
   a_template_cache_ptr			tcp;
   a_template_param_ptr			templ_param_list = NULL;
+  a_template_param_ptr			ctor_templ_param_list;
+  a_template_arg_ptr			templ_arg_list;
+  a_template_arg_ptr			templ_arg_list_for_subst;
+  a_template_param_ptr			last_param_from_class;
+  a_boolean				copy_error = FALSE;
 
   ctor_tssp = template_supplement_for_symbol(ctor_sym);
   ctor_rout = ctor_tssp->variant.function.routine;
@@ -37010,29 +37101,73 @@ prototype instantiation of ct_sym.
      list that is being created. */
   copy_template_params_to_new_list(tcp->decl_info->parameters,
                                    &templ_param_list);
-  copy_template_params_to_new_list(ctor_tssp->variant.function.decl_cache.
-                                                         decl_info->parameters,
-                                   &templ_param_list);
+  /* Find the last entry in the template parameter list returned above. */
+  for (last_param_from_class = templ_param_list;
+       last_param_from_class->next != NULL;
+       last_param_from_class = last_param_from_class->next) {}
+  ctor_templ_param_list =
+                  ctor_tssp->variant.function.decl_cache.decl_info->parameters;
+  copy_template_params_to_new_list(ctor_templ_param_list, &templ_param_list);
+  /* Create an argument list corresponding to the template parameters
+     in the new parameter list. */
+  templ_arg_list = create_prototype_arg_list(ct_sym, templ_param_list);
+  /* Get the portion of the template parameter list and argument list that
+     correspond to the template parameters of the constructor template. */
+  {
+    a_template_param_ptr	tpp = templ_param_list;
+    a_template_arg_ptr		tap = templ_arg_list;
+    /* Skip to the last parameter/argument from the class template. */
+    for (; tpp != last_param_from_class; tpp = tpp->next, tap = tap->next) {}
+    /* Now skip to the first parameter of the constructor. */
+    templ_arg_list_for_subst = tap->next;
+    tpp = tpp->next;
+    /* Do substitution on any default template arguments in the new
+       parameter list. */
+    substitute_default_templ_args(ctor_sym, tpp, ctor_templ_param_list,
+                                  templ_arg_list_for_subst, &copy_error);
+  }
+  if (copy_error) goto done;
   tssp = sym->variant.template_info;
   tdip = tssp->cache.decl_info;
   tdip->parameters = templ_param_list;
   rout = alloc_routine();
-  rout_type = alloc_type((a_type_kind)tk_routine);
-  rout->type = rout_type;
-  rtsp = rout_type->variant.routine.extra_info;
-  rtsp->prototyped = TRUE;
-  rout_type->variant.routine.return_type = proto_type;
-  rtsp->param_type_list = copy_param_type_list(ctor_rtsp->param_type_list,
-                                               /*copy_default_args=*/FALSE,
-                                               /*max_params=*/0);
+  /* Do substitution on the routine type to replace any references to
+     template parameters of the original constructor template with
+     references to the newly created template parameters. */
+  {
+    a_ctws_state	ctws_state;
+    init_ctws_state(&ctws_state);
+    copy_error = FALSE;
+    rout_type = copy_type_with_substitution(
+                                  ctor_rout->type,
+                                  templ_arg_list_for_subst,
+                                  ctor_templ_param_list,
+                                  &ct_sym->decl_position,
+                                  CTWS_DEDUCTION_GUIDE, &copy_error,
+                                  &ctws_state);
+    if (copy_error) goto done;
+#if DEBUG
+    if (db_flag_is_set("impl_guide")) {
+      db_type(ctor_rout->type);
+      fprintf(f_debug, "\n");
+      db_type(rout_type);
+      fprintf(f_debug, "\n\n");
+    }  /* if */
+#endif /* DEBUG */
+    rout_type->variant.routine.return_type = proto_type;
+    rout->type = rout_type;
+  }
   tssp->variant.function.routine = rout;
   set_class_membership(sym, &rout->source_corresp, proto_type);
   set_routine_special_kind(rout,
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = ct_tssp->il_template_entry;
   rout->compiler_generated = TRUE;
+  result_sym = sym;
   /* FIXME: Other fields that need to be set? */
-  return sym;
+  result_sym = sym;
+done:
+  return result_sym;
 }  /* make_template_implicit_deduction_guide */
 
 
@@ -37056,8 +37191,10 @@ implicit deduction guide for that constructor.
     new_sym = make_template_implicit_deduction_guide(ct_sym, ct_tssp,
                                                      proto_type, ctor_sym);
   }  /* if */
-  add_deduction_guide(new_sym,
-                      &ct_tssp->variant.class_template.deduction_guides);
+  if (new_sym != NULL) {
+    add_deduction_guide(new_sym,
+                        &ct_tssp->variant.class_template.deduction_guides);
+  }  /* if */
 }  /* create_implicit_deduction_guide */
 
 

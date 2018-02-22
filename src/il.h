@@ -1902,6 +1902,9 @@ typedef int a_ctws_options_set;
 #define CTWS_CAST_OPERAND			0x1000
 			/* TRUE when substituting/rescanning the operand of a
 			   cast. */
+#define CTWS_DEDUCTION_GUIDE		0x2000
+			/* TRUE when doing substitution to create a
+			   deduction guide routine type. */
 
 
 /*
