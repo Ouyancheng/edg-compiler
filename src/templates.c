@@ -37060,6 +37060,7 @@ proto_type is the prototype instantiation of ct_sym.
   set_routine_special_kind(rout,
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = ct_tssp->il_template_entry;
+  rtsp->has_ellipsis = ctor_rtsp->has_ellipsis;
   rout->compiler_generated = TRUE;
   tssp->il_template_entry->prototype_instantiation.routine = rout;
   /* FIXME: What list should this be added to? */
@@ -37155,7 +37156,8 @@ the template, a NULL symbol is returned.
                                   templ_arg_list_for_subst,
                                   ctor_templ_param_list,
                                   &ct_sym->decl_position,
-                                  CTWS_DEDUCTION_GUIDE, &copy_error,
+                                  CTWS_DEDUCTION_GUIDE,
+                                  &copy_error,
                                   &ctws_state);
     if (copy_error) goto done;
 #if DEBUG
