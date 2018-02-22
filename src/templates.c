@@ -36826,10 +36826,19 @@ and with positions that continue the sequence of the entries on the list.
     a_symbol_ptr	old_sym = old_tpp->param_symbol;
     new_sym = copy_template_param_symbol(old_sym);
     if (new_sym->kind == (a_symbol_kind)sk_type) {
-      a_type_ptr	old_type = old_sym->variant.type.ptr;
-      a_type_ptr	new_type;
+      a_type_ptr				old_type;
+      a_type_ptr				new_type;
+      a_template_param_type_supplement_ptr	old_tptsp;
+      a_template_param_type_supplement_ptr	new_tptsp;
+      old_type = old_sym->variant.type.ptr;
+      old_tptsp = old_type->variant.template_param.extra_info;
+      check_assertion(old_type->kind == (a_type_kind)tk_template_param);
       new_type = alloc_type(old_type->kind);
+      new_tptsp = new_type->variant.template_param.extra_info;
       copy_type(old_type, new_type);
+      /* Restore the template type supplement pointer and copy the entry. */
+      new_type->variant.template_param.extra_info = new_tptsp;
+      *new_tptsp = *old_tptsp;
       set_source_corresp(&new_type->source_corresp, new_sym);
       /* FIXME: Clear parent scope?   IL list issues? */
       new_sym->variant.type.ptr = new_type;
