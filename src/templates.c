@@ -36805,7 +36805,7 @@ and with positions that continue the sequence of the entries on the list.
   a_template_param_ptr			list_tail = NULL;
   a_template_nesting_depth		depth;
   a_boolean				add_to_list = FALSE;
-  a_template_param_list_pos		pos;
+  a_template_param_list_pos		pos = 0;
   a_template_param_coordinate_ptr	coord_ptr;
 
   if (*new_list != NULL) {
