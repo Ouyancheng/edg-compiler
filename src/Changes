@@ -1,5 +1,33 @@
 Version 4.15
 
+2/23/18  [EDGcpfe/19371]
+Incorrect "optimization" during lowering leads to incorrect code
+
+In some cases, lowering attempts to determine if an expression has a known
+value, or failing that, whether the expression will always evaluate to a
+non-zero value.  A logic error in is_constant_valued_expression had resulted
+in incorrectly determining that some eok_dot_field and eok_points_to_field
+expressions would always return a non-zero value.  That could lead to
+incorrect optimizations such as:
+
+  struct S {
+    int m1;
+    int m2;
+  };
+  S f(void) {
+    S s;
+    s.m1 = 0;
+    s.m2 = 0;
+    return s;
+  }
+  int g(int a) {
+    return f().m2 || a;   // "|| a" had inadvertently been dropped
+  }
+  int main() {
+    return g(1);          // Had returned 0, now returns 1
+  }
+
+
 2/23/18  [EDGcpfe/17927,EDGcpfe/19372]
 Clang/Microsoft compatibility: predefined Microsoft macros
 

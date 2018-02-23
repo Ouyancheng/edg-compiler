@@ -14379,7 +14379,8 @@ inlining and therefore yield different results.
                                                            other_vars_change,
                                                            this_cannot_be_null,
                                                            is_non_null);
-        if (!*is_non_null && node_field(operand->next)->offset != 0) {
+        if (!*is_non_null && expr->is_lvalue &&
+            node_field(operand->next)->offset != 0) {
           /* If the field offset is non-zero, the entire expression will
              be non-zero even if the class address is zero. */
           *is_non_null = TRUE;
