@@ -2155,7 +2155,25 @@ the parameter symbols in that scope to is_invisible.
 }  /* make_param_syms_invisible */
 
 
-void check_type_with_auto_specifier(a_decl_parse_state  *state)
+void diagnose_invalid_class_templ_arg_deduction(a_decl_parse_state  *dps)
+/*
+*dps represents a declaration that uses a class template name as a type
+specifier, but class template argument deduction is not valid in this context.
+Issue an error suggesting explicit template arguments.
+*/
+{
+  a_type_ptr  ptp = dps->auto_type;
+  a_template_param_type_supplement_ptr
+              tptsp;
+
+  check_assertion(type_is(ptp, tk_template_param));
+  tptsp = ptp->variant.template_param.extra_info;
+  pos_sy_error(ec_missing_template_arg_list, &dps->auto_pos,
+               tptsp->class_template_symbol);
+}  /* diagnose_invalid_class_templ_arg_deduction */
+
+
+void check_type_with_placeholder_specifier(a_decl_parse_state  *state)
 /*
 *state describes a declaration parsing state involving a complete declarator
 that builds a type on top of an "auto" or "decltype(auto)" type specifier.
@@ -2168,9 +2186,9 @@ where "auto" is used both to deduce a type from an initializer and to announce
 a trailing return type.
 */
 {
-  a_boolean  err = FALSE;
+  a_boolean  err = FALSE, ctad_case = state->has_deducible_class_templ_args;
 
-  check_assertion(state->auto_type_specifier_seen);
+  check_assertion(state->has_deduced_type);
   if (is_array_type(state->declared_type)) {
     if (state->is_param_decl && state->is_lambda) {
       /* In the context of generic lambda parameters, "auto" can be used to
@@ -2178,15 +2196,18 @@ a trailing return type.
                       [](auto (&p)[2]) { return p[1]; }
       */
     } else {
-      pos_error(ec_auto_type_in_array_type, &state->auto_pos);
+      if (!ctad_case) {
+        pos_error(ec_auto_type_in_array_type, &state->auto_pos);
+      }  /* if */
       err = TRUE;
     }  /* if */
   } else {
     a_boolean  is_function_declarator =
                         state->declared_type->kind == (a_type_kind)tk_routine;
-    /* Check that if "decltype(auto)" is used, it has no declarator operator
-       on top.   E.g., "decltype(auto)& g();" is invalid. */
-    if (state->decltype_auto_specifier_seen &&
+    /* Check that if "decltype(auto)" or a class template name is used, it has
+       no declarator operator on top.   E.g., "decltype(auto)& g();" is
+       invalid. */
+    if ((state->decltype_auto_specifier_seen || ctad_case) &&
         ((is_function_declarator && !state->has_trailing_return_type) ||
          state->is_trailing_return_type || state->is_conversion_type_id)) {
       a_type_kind  ret_kind;
@@ -2197,15 +2218,18 @@ a trailing return type.
       }  /* if */
       if (ret_kind == (a_type_kind)tk_pointer ||
           ret_kind == (a_type_kind)tk_ptr_to_member) {
-        pos_error(ec_decltype_auto_return_must_be_standalone,
-                  &state->auto_pos);
+        if (!ctad_case) {
+          pos_error(ec_decltype_auto_return_must_be_standalone,
+                    &state->auto_pos);
+        }  /* if */
         err = TRUE;
       }  /* if */
     }  /* if */
     /* Check whether a trailing return type is missing. */
     if (is_function_declarator && !state->has_trailing_return_type) {
       if (deduced_return_types_enabled && !state->is_param_decl &&
-          !state->is_type_name) {
+          !state->is_type_name && !state->decltype_auto_specifier_seen &&
+          !ctad_case) {
         /* Something like "auto g() { return 0; }", which is permitted in
            C++14. */
         state->has_deducible_return_type = TRUE;
@@ -2216,7 +2240,7 @@ a trailing return type.
         if (is_error_type(state->specifiers_type)) {
           /* A diagnostic has been issued already. */
           expect_error();
-        } else {
+        } else if (!ctad_case) {
           pos_error(trailing_return_types_enabled ?
                       ec_missing_trailing_return_type :
                       ec_auto_type_in_function_type,
@@ -2227,7 +2251,12 @@ a trailing return type.
     }  /* if */
   }  /* if */
   if (err) {
-    /* For error recovery purposes, do not proceed with an "auto" type.
+    if (ctad_case) {
+      /* For class template argument deduction cases, we always issue an error
+         suggesting explicit template arguments. */
+      diagnose_invalid_class_templ_arg_deduction(state);
+    }  /* if */
+    /* For error recovery purposes, do not proceed with a placeholder type.
        Various structures may already be pointing to the "auto" type entry,
        however: Change it to an error entry to avoid surprises. */
     if (state->auto_type != NULL) {
@@ -2235,6 +2264,7 @@ a trailing return type.
     }  /* if */
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
+    state->has_deducible_class_templ_args = FALSE;
     state->has_deduced_type = FALSE;
     state->has_deducible_return_type = FALSE;
   } else if (state->secondary_declarator) {
@@ -2247,7 +2277,7 @@ a trailing return type.
                      ec_auto_used_two_ways, &state->auto_pos);
     }  /* if */
   }  /* if */
-}  /* check_type_with_auto_specifier */
+}  /* check_type_with_placeholder_specifier */
 
 
 static void scan_trailing_return_type(a_decl_parse_state  *dps,
@@ -3197,7 +3227,7 @@ an error if a default argument expression is encountered.
         }  /* if */
         /* Check that the type is legal, and do required adjustments. */
         if (!C_mode()) {
-          check_use_of_auto_type(&param_state);
+          check_use_of_placeholder_type(&param_state);
         }  /* if */
         check_and_adjust_parameter_type(&param_state, &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
@@ -8060,8 +8090,8 @@ the parameters.
     (void)get_token();
   }  /* if */
   check_pending_qualifiers_used(state);
-  if (state->auto_type_specifier_seen) {
-    check_type_with_auto_specifier(state);
+  if (state->has_deduced_type) {
+    check_type_with_placeholder_specifier(state);
   } else if (locator != NULL && locator->is_conversion_name) {
     /* Check if the conversion type involves "auto" or "decltype(auto)", and
        if so update *state to reflect this. */

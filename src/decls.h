@@ -1316,7 +1316,7 @@ extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
 
-extern void check_use_of_auto_type(a_decl_parse_state  *dps);
+extern void check_use_of_placeholder_type(a_decl_parse_state  *dps);
 
 /*
 Macro to discard the source sequence entry associated with the declarator.

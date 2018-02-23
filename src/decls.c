@@ -12211,7 +12211,7 @@ common cases.
     }  /* if */
   }  /* if */
   if (!C_mode()) {
-    check_use_of_auto_type(dps);
+    check_use_of_placeholder_type(dps);
   }  /* if */
   if ((any_cfront_mode() &&
        check_member_function_typedef(dps->type, &dps->start_pos)) ||
@@ -12668,10 +12668,10 @@ selection operation associated with this operator function reference.
                                        (a_type_qualifier_set *)NULL,
                                        &ptr_to_member_scanned,
                                        &decl_pos_block);
-    if (state.auto_type_specifier_seen) {
+    if (state.has_deduced_type) {
       /* Diagnose something like "operator decltype(auto)&". */
       state.type = state.declared_type = complete_type;
-      check_type_with_auto_specifier(&state);
+      check_type_with_placeholder_specifier(&state);
       if (!state.auto_type_specifier_seen) {
         complete_type = error_type();
       }  /* if */
@@ -13248,7 +13248,7 @@ a normal try.
           declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, (a_func_info_block_ptr)NULL, &decl_pos_block);
         }  /* if */
-        check_use_of_auto_type(&state);
+        check_use_of_placeholder_type(&state);
         check_pending_qualifiers_used(&state);
         if (!exceptions_enabled) {
           /* Don't bother with the semantic checks on the handler type.  Set
@@ -13395,7 +13395,7 @@ a normal try.
                                            /*block_lifetime=*/TRUE);
         handler->dynamic_init = dip;
         type_ptr = state.type;
-        check_use_of_auto_type(&state);
+        check_use_of_placeholder_type(&state);
         run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
       }  /* if */
     }  /* if */
@@ -17991,7 +17991,7 @@ if one is present.
   add_src_seq_end_of_variable_if_needed(state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!C_mode()) {
-    check_use_of_auto_type(state);
+    check_use_of_placeholder_type(state);
   }  /* if */
 #if CHECKING
   check_consistent_init_type(var_ptr);
@@ -18714,21 +18714,23 @@ a diagnostic if that isn't the case.
 }  /* check_deduced_auto_type */
 
 
-void check_use_of_auto_type(a_decl_parse_state  *dps)
+void check_use_of_placeholder_type(a_decl_parse_state  *dps)
 /*
-Check that if the "auto" or "decltype(auto)" type specifier was used in the
-current declaration, an initializer enabled the deduction of an actual type.
-Issue an error if that was not the case and set dps->specifiers_type to an
-error type to avoid repeating the diagnostic if additional declarators follow.
-Also diagnose invalid uses of "auto" and "decltype(auto)" in other contexts
-(e.g., casts).  This does not apply to the placeholder used to introduce a
-trailing return type (including invalid cases like "decltype(auto) f()->int",
-which are diagnosed elsewhere).
+Check that if placeholder type specifier ("auto", "decltype(auto)", or a class
+template name) was used in the current declaration, an initializer enabled the
+deduction of an actual type.  Issue an error if that was not the case and set
+dps->specifiers_type to an error type to avoid repeating the diagnostic if
+additional declarators follow.  Also diagnose invalid uses of placeholder types
+in other contexts (e.g., casts).  This does not apply to the placeholder used
+to introduce a trailing return type (including invalid cases like
+"decltype(auto) f()->int", which are diagnosed elsewhere).
 */
 {
   a_boolean  err = FALSE;
 
-  if (!dps->auto_type_specifier_seen || dps->has_trailing_return_type ||
+  if (!dps->has_deduced_type ||
+      dps->has_trailing_return_type ||
+      dps->is_deduction_guide ||
       (deduced_return_types_enabled &&
        ((dps->type != NULL && dps->type->kind == (a_type_kind)tk_routine) ||
         dps->is_trailing_return_type))) {
@@ -18740,10 +18742,14 @@ which are diagnosed elsewhere).
   } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->has_initializer || !dps->auto_type_allowed)) {
-    /* "auto"/"decltype(auto)" was seen, but we never saw an initializer or
-       else the specifier is not allowed at all in this context. */
+    /* A placeholder type was seen, but we never saw an initializer or else
+       the specifier is not allowed at all in this context. */
     err = TRUE;
-    if (!dps->auto_type_allowed) {
+    if (dps->has_deducible_class_templ_args) {
+      /* For a class template name as a placeholder, issue an error suggesting
+         explicit template arguments. */
+      diagnose_invalid_class_templ_arg_deduction(dps);
+    } else if (!dps->auto_type_allowed) {
       /* A context where an "auto" type is simply not allowed.  (E.g., an
          exception handler parameter.) */
       pos_error(dps->decltype_auto_specifier_seen ?
@@ -18775,6 +18781,7 @@ which are diagnosed elsewhere).
   }  /* if */
   if (err) {
     dps->auto_type_specifier_seen = FALSE;
+    dps->has_deducible_class_templ_args = FALSE;
     dps->has_deduced_type = FALSE;
     dps->auto_type = NULL;
     invalidate_type(dps);
@@ -18810,7 +18817,8 @@ which are diagnosed elsewhere).
           p_type = &vp->type;
           break;
         default:
-          unexpected_condition_str("check_use_of_auto_type: bad symbol");
+          unexpected_condition_str(
+                                 "check_use_of_placeholder_type: bad symbol");
       }  /* switch */
       if (p_type != NULL) {
         *p_type = dps->type;
@@ -18821,7 +18829,7 @@ which are diagnosed elsewhere).
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* check_use_of_auto_type */
+}  /* check_use_of_placeholder_type */
 
 
 static a_boolean is_terse_range_based_for_declaration(void)

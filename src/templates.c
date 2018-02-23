@@ -6934,7 +6934,7 @@ expression context) rather than a declaration.
       check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
   }  /* if */
-  check_use_of_auto_type(&dps);
+  check_use_of_placeholder_type(&dps);
   run_end_of_parse_actions(&dps, /*more_declarators=*/FALSE);
   /* Make sure the type from the declaration is a valid variable
      declaration. */
@@ -22408,7 +22408,7 @@ additional position information about the components of the declaration.
     *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
   }  /* if */
   remove_declarator_sse(&state, depth_scope_stack);
-  check_use_of_auto_type(&state);
+  check_use_of_placeholder_type(&state);
   if (template_dependent != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
@@ -27496,7 +27496,7 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     }  /* if */
   }  /* if */
-  check_use_of_auto_type(dps);
+  check_use_of_placeholder_type(dps);
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   /* Save the declaration sequence number at the end of this template
      declaration. */
@@ -28612,7 +28612,7 @@ that follows.
               }  /* if */
             }  /* if */
           }  /* if */
-          check_use_of_auto_type(dps);
+          check_use_of_placeholder_type(dps);
 #if GNU_EXTENSIONS_ALLOWED
           if (gpp_mode && has_parenthesized_initializer &&
               curr_token == tok_attribute) {

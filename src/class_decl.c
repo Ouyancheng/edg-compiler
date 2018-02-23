@@ -27775,7 +27775,7 @@ that is provided if this is a member template declaration.
     if (curr_token == tok_comma) {
       /* Another declarator is presumably coming next. */
       if (!C_mode()) {
-        check_use_of_auto_type(dps);
+        check_use_of_placeholder_type(dps);
       }  /* if */
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
@@ -27814,7 +27814,7 @@ next_declaration:;
     }  /* if */
   }  /* if */
   if (!C_mode()) {
-    check_use_of_auto_type(dps);
+    check_use_of_placeholder_type(dps);
   }  /* if */
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED

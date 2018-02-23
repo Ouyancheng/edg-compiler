@@ -26045,7 +26045,6 @@ was not completed because the types involved are still dependent,
 *still_dependent is set to TRUE and FALSE is returned.
 */
 {
-/* FIXME  Handle keep_placeholder. */
   a_boolean     result = TRUE;
   a_symbol_ptr  ct_sym, guide_set, selected_sym;
   a_template_symbol_supplement_ptr

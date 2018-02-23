@@ -9648,39 +9648,6 @@ an error if appropriate.
 }  /* check_explicit_specifier */
 
 
-static void check_use_of_class_template_placeholder(a_decl_parse_state  *dps)
-/*
-This function is called after a declaration (described by *dps) using a class
-template placeholder has been seen, to check that the placeholder was used
-correctly.  For example:
-
-	template<typename> struct S {};
-	void f(S);
-
-will cause this function to issue an error because the use of S (without
-template arguments) is not valid there.
-*/
-{
-  if ((dps->type != NULL && is_error_type(dps->type)) ||
-      !dps->has_deducible_class_templ_args) {
-    /* Some error already occurred.  Additional diagnostics are unlikely to
-       be helpful. */
-    expect_error();
-  } else if (!dps->range_based_for &&
-             !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
-             (!dps->has_initializer || !dps->auto_type_allowed) &&
-             !dps->is_deduction_guide) {
-    a_type_ptr  ptp = dps->auto_type;
-    a_template_param_type_supplement_ptr
-                tptsp;
-    check_assertion(type_is(ptp, tk_template_param));
-    tptsp = ptp->variant.template_param.extra_info;
-    pos_sy_error(ec_missing_template_arg_list, &dps->auto_pos,
-                 tptsp->class_template_symbol);
-  }  /* if */
-}  /* check_use_of_class_template_placeholder */
-
-
 static void process_class_template_placeholder(a_decl_parse_state    *state,
                                                a_type_ptr            type)
 /*
@@ -9699,8 +9666,6 @@ the declaration that is being parsed.
     state->has_deducible_class_templ_args = TRUE;
     state->auto_type = type;
     state->auto_pos = pos_curr_token;
-    add_end_of_parse_action(check_use_of_class_template_placeholder, state,
-                            /*secondary_decls=*/TRUE);
   }  /* if */
 }  /* process_class_template_placeholder */
 
