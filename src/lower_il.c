@@ -4697,141 +4697,19 @@ std::typeinfo object returned by the corresponding typeid(...) construct.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* lower_typeid_constant */
 
-
-static void remove_initializers_for_empty_base_classes(a_constant_ptr constant)
 /*
-Remove any initializers for optimized empty base classes that might appear
-in the ck_aggregate constant or any sub-aggregates.  The constant has not
-been lowered yet (in fact this processing is performed as part of pre-lowering
-the aggregate so that lowering routines that depend on a one-to-one mapping of
-initializable fields and constants in the aggregate will work properly).
+A couple of static variables used to "pass" information from
+prelower_aggregate_constant to prelower_class_in_aggregate.
 */
-{
-  a_class_type_supplement_ptr ctsp;
-  a_base_class_ptr            bcp;
-  a_type_ptr                  class_type = skip_typerefs(constant->type);
-  a_constant_ptr              cp, prev = NULL;
+static an_init_pos_descr_ptr
+                prelower_aggr_con_ipdp;
+                        /* An initialization position description for
+                           the aggregate constant that is being prelowered. */
 
-  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!constant->empty_base_classes_have_been_removed &&
-      is_immediate_class_type(class_type)) {
-    prelower_class_type(class_type);
-    /* Recurse for any sub-aggregates (needed because the routine that
-       does the vptr insertion does a depth first traversal and all empty
-       base classes must be removed before then). */
-    constant->empty_base_classes_have_been_removed = TRUE;
-    for (cp = constant->variant.aggregate.first_constant;
-         cp != NULL;
-         cp = cp->next) {
-      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-        remove_initializers_for_empty_base_classes(cp);
-      }  /* if */
-    }  /* for */
-    ctsp = class_type_supp(class_type);
-    if (ctsp->base_classes != NULL) {
-      cp = constant->variant.aggregate.first_constant;
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct && bcp->is_optimized_empty_base) {
-#if CHECKING
-          a_boolean found = FALSE;
-#endif /* CHECKING */
-          for (; cp != NULL; cp = cp->next) {
-            if ((aggregate_classes_can_have_bases ||
-                 cp->constant_for_base_class_from_constexpr_folding) &&
-                identical_types(cp->type, bcp->type)) {
-              /* The type of the constant matches that of the optimized
-                 empty base class; remove the constant from the aggregate
-                 list. */
-              check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate);
-#if CHECKING
-              found = TRUE;
-#endif /* CHECKING */
-              if (prev == NULL) {
-                constant->variant.aggregate.first_constant = cp->next;
-              } else {
-                prev->next = cp->next;
-              }  /* if */
-              if (constant->variant.aggregate.last_constant == cp) {
-                constant->variant.aggregate.last_constant = prev;
-              }  /* if */
-              cp = cp->next;
-              break;
-            }  /* if */
-            prev = cp;
-          }  /* for */
-          check_assertion(found || aggregate_classes_can_have_bases);
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-}  /* remove_initializers_for_empty_base_classes */
-
-#if IA64_ABI
-
-static void arrange_aggregate_constant_in_layout_order(a_constant_ptr aggr_con)
-/*
-If the type of the aggregate constant is one where lowering has re-ordered
-the base classes such that the base class order is different than the
-canonical ordering, rearrange the initializers in the aggregate constant
-to match the layout ordering (the front end uses canonical ordering when
-creating an aggregate constant).  This routine recursively processes
-the aggregate constant.
-This processing isn't necessary in the Cfront ABI.
-*/
-{
-  a_type_ptr                  aggr_type = skip_typerefs(aggr_con->type);
-  a_class_type_supplement_ptr ctsp;
-  a_constant_ptr              cp, prev = NULL;
-
-  /* Recurse to handle nested aggregates. */
-  for (cp = aggr_con->variant.aggregate.first_constant;
-       cp != NULL;
-       cp = cp->next) {
-    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-      arrange_aggregate_constant_in_layout_order(cp);
-    }  /* if */
-  }  /* for */
-  if (is_immediate_class_type(aggr_type)) {
-    /* For aggregates that correspond to class types, see if the layout
-       has been changed from the canonical form. */
-    prelower_class_type(aggr_type);
-    ctsp = class_type_supp(aggr_type);
-    if (ctsp->primary_base_class != NULL &&
-        ctsp->primary_base_class != ctsp->base_classes) {
-      /* In this case, lowering has placed the primary base class at offset
-         zero, which means that the ordering of constants in the aggregate
-         does not match the ordering of the fields that is returned
-         by next_initializable_field.  Find the initializer for the
-         primary base class and move it to the beginning of the aggregate
-         so it'll match the layout order. */
-#if CHECKING
-        a_boolean found = FALSE;
-#endif /* CHECKING */
-      for (cp = aggr_con->variant.aggregate.first_constant;
-           cp != NULL;
-           cp = cp->next) {
-        if (identical_types(cp->type, ctsp->primary_base_class->type)) {
-          if (prev != NULL) {
-            prev->next = cp->next;
-            cp->next = aggr_con->variant.aggregate.first_constant;
-            aggr_con->variant.aggregate.first_constant = cp;
-            if (aggr_con->variant.aggregate.last_constant == cp) {
-              aggr_con->variant.aggregate.last_constant = prev;
-            }  /* if */
-          }  /* if */
-#if CHECKING
-          found = TRUE;
-#endif /* CHECKING */
-          break;
-        }  /* if */
-        prev = cp;
-      }  /* for */
-      check_assertion(found || aggr_con->partial_aggr_value);
-    }  /* if */
-  }  /* if */
-}  /* arrange_aggregate_constant_in_layout_order */
-
-#endif /* IA64_ABI */
+static an_insert_location
+                *prelower_aggr_con_insert_location;
+                        /* An insert location for the aggregate constant that
+                           is being prelowered. */
 
 /*ARGSUSED*/  /* <-- tblock is not used. */
 static void prelower_class_in_aggregate(
@@ -4858,7 +4736,9 @@ in the constants that they've previously processed.
       prelower_class_type(con_type);
       /* Remove any initializers that the front end may have added for
          empty base classes.  Do this before vptrs are inserted below. */
-      remove_initializers_for_empty_base_classes(constant);
+      remove_initializers_for_empty_base_classes(constant,
+                                            prelower_aggr_con_ipdp,
+                                            prelower_aggr_con_insert_location);
       if (constant->is_result_of_constexpr_call &&
           !constant->vptr_has_been_lowered) {
         /* Initialize any __vptr fields if they exist in the aggregate.  This
@@ -4875,7 +4755,9 @@ in the constants that they've previously processed.
 }  /* prelower_class_in_aggregate */
 
 
-void prelower_aggregate_constant(a_constant_ptr constant)
+void prelower_aggregate_constant(a_constant_ptr        constant,
+                                 an_init_pos_descr_ptr ipdp,
+                                 an_insert_location    *insert_location)
 /*
 The aggregate constants that are generated for class/struct/unions by the
 front end reflect the canonical layout and don't account for empty base classes
@@ -4883,19 +4765,22 @@ that have been removed, layout re-ordering, or the insertion of pointers to
 virtual tables.  This routine pre-lowers the specified constant and any
 aggregate constants it contains.  Pre-lowering is only needed once (and skipped
 if the constant has already been pre-lowered or in C mode).
+
+If the aggregate constant contains dynamic initialization for optimized empty
+base classes, ipdp should point to the initialization position for the
+aggregate constant and insert_location to the location where generated code
+should be placed.  These parameters can be NULL if there is no dynamic
+initialization in the constant.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
   if (!C_mode() && !constant->has_been_prelowered) {
-#if IA64_ABI
-    /* If necessary, rearrange the initializers in the aggregate constant
-       to match the layout order. */
-    arrange_aggregate_constant_in_layout_order(constant);
-#endif /* IA64_ABI */
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_constant = prelower_class_in_aggregate;
+    prelower_aggr_con_ipdp = ipdp;
+    prelower_aggr_con_insert_location = insert_location;
     traverse_constant(constant, &tblock);
   }  /* if */
 }  /* prelower_aggregate_constant */
@@ -5052,7 +4937,8 @@ IL prefix is accessed).
       case ck_aggregate:
         /* Make any necessary changes in constant so that it corresponds to
            the fields in the lowered type. */
-        prelower_aggregate_constant(constant);
+        prelower_aggregate_constant(constant, (an_init_pos_descr_ptr)NULL,
+                                    (an_insert_location*)NULL);
 #if LOWER_DESIGNATED_INITIALIZERS
         /* Re-write any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,
@@ -21855,6 +21741,8 @@ for each compilation.
                                                                  );
   /* name_lower_init is called from fe_init.c because name mangling can
      be used separately from the rest of IL lowering. */
+  prelower_aggr_con_ipdp = NULL;
+  prelower_aggr_con_insert_location = NULL;
   /* Do lower_init.c initialization. */
   init_lower_init();
   /* Do lower_eh.c initialization. */

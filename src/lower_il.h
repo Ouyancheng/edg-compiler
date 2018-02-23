@@ -1377,7 +1377,10 @@ extern a_boolean constant_must_remain_in_function_scope(
 extern a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
                                              a_boolean      const_okay);
 
-extern void prelower_aggregate_constant(a_constant_ptr constant);
+extern void prelower_aggregate_constant(
+                                       a_constant_ptr        constant,
+                                       an_init_pos_descr_ptr ipdp,
+                                       an_insert_location    *insert_location);
 
 extern a_boolean check_for_troublesome_aggregate_constant(
                                                    a_constant_ptr constant,
@@ -1414,6 +1417,11 @@ Casts are not needed for pointer to member function types.
 
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
+
+extern void remove_initializers_for_empty_base_classes(
+                                       a_constant_ptr        constant,
+                                       an_init_pos_descr_ptr ipdp,
+                                       an_insert_location    *insert_location);
 
 #endif /* ifndef LOWER_IL_H */
 
