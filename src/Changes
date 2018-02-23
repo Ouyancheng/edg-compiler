@@ -1,5 +1,14 @@
 Version 4.15
 
+2/23/18  [EDGcpfe/19372]
+Clang/Microsoft compatibility: predefined Microsoft macros
+
+Previously, predefined Microsoft macros (like _MSC_VER, and _WIN32) were
+defined when ms_extensions was TRUE (i.e., with --ms_extensions).  A change
+has been made to define these only when microsoft_mode is TRUE.  This better
+aligns with Clang's behavior (with -fms-extensions).
+
+
 2/23/18  [EDGcpfe/18496]
 Invalid multibyte sequences in #line directives
 

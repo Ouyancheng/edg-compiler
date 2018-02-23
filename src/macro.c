@@ -10387,7 +10387,7 @@ command line -D options.
   }
 #endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_extensions) {
+  if (microsoft_mode) {
     unsigned long eff_microsoft_version = microsoft_version;
     if (microsoft_version >= 1901 && microsoft_version <= 1903) {
       /* Internally 1901, 1902, and 1903 are used to represent Visual Studio
