@@ -1,6 +1,6 @@
 Version 4.15
 
-2/22/18  [EDGcpfe/19375]
+2/22/18  [EDGcpfe/18339,EDGcpfe/19375]
 Abort on use of __has_assign in some Microsoft modes
 
 In Microsoft modes with microsoft_version >= 1800, the front end previously
