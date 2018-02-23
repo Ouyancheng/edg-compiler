@@ -1168,6 +1168,7 @@ translation of certain characters to UTF-8.
      characters. */
   clear_char_conversion_state(&conv_state, &in_pos,
                               /*translate_utf8=*/FALSE);
+  conv_state.warn_on_invalid_conversion = TRUE;
   /* Copy the string, processing escapes if appropriate.  The copy is done
      in two steps.  The first step processes one character (after processing
      of escapes, etc.) at a time.  The second step executed later in

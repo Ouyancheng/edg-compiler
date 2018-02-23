@@ -114,6 +114,12 @@ typedef struct a_char_conversion_state {
 			   are used to enable conv_single_char to return
 			   the second code unit of the pair in a subsequent
 			   call. */
+  a_byte_boolean
+		warn_on_invalid_conversion;
+			/* If TRUE, a warning will be issued for invalid
+			   multibyte sequences; otherwise, invalid
+			   sequences will be reported as discretionary
+			   errors. */
   char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
@@ -130,6 +136,7 @@ typedef struct a_char_conversion_state {
     (state)->next_mbc_char = NULL;                              \
     (state)->translate_utf8_to_mbc = translate_utf8;            \
     (state)->create_surrogate_pairs = FALSE;                    \
+    (state)->warn_on_invalid_conversion = FALSE;                \
   }  /* clear_char_conversion_state */
 
 extern void conv_single_char(a_char_conversion_state_ptr state,

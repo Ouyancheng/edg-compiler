@@ -1049,7 +1049,9 @@ get_another:
            over the invalid sequence, and return '?' in place of the bad
            character. */
         conv_line_loc_to_source_pos(lptr, &error_position);
-        diagnostic(es_discretionary_error, ec_bad_multibyte_char);
+        diagnostic(state->warn_on_invalid_conversion ? es_warning
+                                                     : es_discretionary_error,
+                   ec_bad_multibyte_char);
         lptr += numch - 1;
         targ_ch = '?';
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
@@ -1321,7 +1323,9 @@ defines the size of character.
       /* Invalid multibyte character sequence.  Report an error and replace
          the character with '?'. */
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-      diagnostic(es_discretionary_error, ec_bad_multibyte_char);
+      diagnostic(state->warn_on_invalid_conversion ? es_warning
+                                                   : es_discretionary_error,
+                 ec_bad_multibyte_char);
       wc = L'?';
     }  /* if */
     if ((wc & ~centity_mask) != 0 && state->create_surrogate_pairs) {
