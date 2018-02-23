@@ -17469,12 +17469,29 @@ Output the initializer, if any, for the indicated variable.
                                           /*is_var_init=*/TRUE);
         } else {
           /* Use an "="-form initializer. */
+          a_boolean need_parens = FALSE;
           write_tok_str(" = ");
+          if (var->declared_with_decltype_auto &&
+              initializer->dynamic->kind ==
+                                         (a_dynamic_init_kind)dik_expression &&
+              initializer->dynamic->variant.expression->kind !=
+                                             (an_expr_node_kind)enk_variable) {
+            /* Add parens for a case like
+                 decltype(auto) x = (y);
+               where omitting the parens would give the wrong type. */
+            need_parens = TRUE;
+          }  /* if */
+          if (need_parens) {
+            write_tok_ch('(');
+          }  /* if */
           gen_dynamic_init(initializer->dynamic,
                            var->type,
                            (an_expr_node_ptr)NULL,
                            /*avoid_top_level_comma=*/TRUE,
                            /*obj_expr_of_mfunc_operator=*/FALSE);
+          if (need_parens) {
+            write_tok_ch(')');
+          }  /* if */
         }  /* if */
         break;
       default:
