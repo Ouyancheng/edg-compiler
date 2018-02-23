@@ -9668,7 +9668,8 @@ template arguments) is not valid there.
     expect_error();
   } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
-             (!dps->has_initializer || !dps->auto_type_allowed)) {
+             (!dps->has_initializer || !dps->auto_type_allowed) &&
+             !dps->is_deduction_guide) {
     a_type_ptr  ptp = dps->auto_type;
     a_template_param_type_supplement_ptr
                 tptsp;
