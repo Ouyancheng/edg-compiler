@@ -6102,7 +6102,6 @@ re-ordered base classes.
         ctsp->virtual_function_info_base_class == NULL &&
         fp->offset == ctsp->virtual_function_info_offset) {
       /* Skip __vptr field. */
-      check_assertion(il_identical_types(fp->type, pointer_to_vtbl_type()));
       fp = next_initializable_field(fp->next);
     }  /* if */
     /* Loop through every constant in the aggregate.  Match each constant with
@@ -6111,6 +6110,7 @@ re-ordered base classes.
        dynamic initialization it contains).  In all cases, recurse for any
        aggregate (though the initialization position for fields and base
        classes is handled differently). */
+    /*lint --e{850} cp modified in loop */
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
          cp = cp->next) {
@@ -6234,8 +6234,6 @@ re-ordered base classes.
             ctsp->virtual_function_info_base_class == NULL &&
             fp->offset == ctsp->virtual_function_info_offset) {
           /* Skip __vptr field. */
-          check_assertion(il_identical_types(fp->type,
-                                             pointer_to_vtbl_type()));
           fp = next_initializable_field(fp->next);
         }  /* if */
       }  /* if */
