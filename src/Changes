@@ -4,9 +4,9 @@ Version 4.15
 Abort on use of __has_assign in some Microsoft modes
 
 In Microsoft modes with microsoft_version >= 1800, the front end previously
-failed an assertion failure in fold_unary_type_trait_helper (folding.c) on
-code using the __has_assign type traits helper.  This regression introduced
-in version 4.11 (through the changes for EDGcpfe/16871) is now fixed.
+failed an assertion check in fold_unary_type_trait_helper (folding.c) on code
+using the __has_assign type traits helper.  This regression was introduced in
+version 4.11 (through the changes for EDGcpfe/16871) and is now fixed.
 
 
 2/21/18  [EDGcpfe/18901]
