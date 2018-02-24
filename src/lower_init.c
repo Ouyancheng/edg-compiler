@@ -6065,7 +6065,7 @@ points to the location where executable code (if any) should be inserted.
 ipdp and insert_location can both be NULL (in cases where the aggregate
 constant is known not to contain any dynamic initialization).
 
-In the IA-64 ABI, this routine also re-arranges an aggregate constant (in
+In the IA-64 ABI, this routine also rearranges an aggregate constant (in
 canonical order) to match the layout order when the IA-64 layout has
 re-ordered base classes.
 */
