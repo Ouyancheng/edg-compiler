@@ -880,12 +880,11 @@ destination type (this comes up in a Microsoft-mode extension).
        ambiguous.  That's probably possible only when function templates
        are involved. */
     need_templates_pass = FALSE;
-    if (is_ref && !is_rvalue_ref && !source_is_lvalue) {
+    if (is_ref && !is_ref_to_const && !is_rvalue_ref && !source_is_lvalue) {
       /* The source has already been converted to a pointer (e.g., &f) or
          pointer to member (e.g., &A::f), so an lvalue reference can't bind
          directly to it.  need_templates_pass is left FALSE to suppress the
-         template loop as well.  Some match may still be possible via a
-         conversion, for a reference to const.  That's checked below. */
+         template loop as well. */
     } else if (is_rvalue_ref && !is_cast &&
                (rvalue_ref_can_be_bound_to_function_lvalue() !=
                                                           source_is_lvalue)) {

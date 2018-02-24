@@ -1,5 +1,24 @@
 Version 4.15
 
+2/23/18  [EDGcpfe/19331]
+Deduction of additional argument in a function template-id passed to reference
+
+Consider:
+
+  template<typename, typename T> void f(T);
+  typedef void F(int);
+  struct S {
+    S(F* const&);
+  };
+  S s(&f<long>);  // Previously an error.  Now okay.
+
+Previously, the front end failed to match &f<long> (whose second template
+argument still needs deduction) against the constructor of S because it
+did not consider the possibility of an rvalue pointer-to-function matching
+an lvalue reference type (when such a match is possible if the reference is
+to a const pointer type).  That is now fixed.
+
+
 2/23/18  [EDGcpfe/19371]
 Incorrect "optimization" during lowering leads to incorrect code
 
