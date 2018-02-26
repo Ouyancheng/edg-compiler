@@ -3409,6 +3409,7 @@ Output the contents of the interpreted object of type tp stored at addr.
         (void)fprintf(f_debug, "[\n");
         indent += 2;
         for (offset = 0; offset < n_bytes; offset += e_bytes) {
+          db_indent(indent-2);
           (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
           db_object(addr+offset, etp, complete_object);
         }  /* for */
@@ -4802,6 +4803,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             mark_subobject_initialized(value+offset, complete_object);
             bcp = bcp->next;
           }  /* for */
+          if (!result) break;
           for (;;) {
             a_byte_count  offset;
             fp = next_alloc_field(fp);
