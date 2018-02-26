@@ -15076,7 +15076,7 @@ where <typename-or-default> is either a type name or the keyword "default".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_token_cache        cache;
 
-  check_assertion(C_mode() && curr_token == tok_c11_generic);
+  check_assertion(curr_token == tok_c11_generic);
   clear_token_cache(&cache, /*reusable=*/FALSE);
   start_pos = pos_curr_token;
   /* Pass over the _Generic token. */
@@ -15135,7 +15135,7 @@ where <typename-or-default> is either a type name or the keyword "default".
       type = NULL;
       (void)get_token();
     } else {
-      /* A specific type case.  Scan the type an verify its validity. */
+      /* A specific type case.  Scan the type and verify its validity. */
       type_pos = pos_curr_token;
       type_name(&type);
       if (is_error_type(type)) {

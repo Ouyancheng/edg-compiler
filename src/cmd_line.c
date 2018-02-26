@@ -4788,6 +4788,12 @@ before this routine is called.
         c11_atomic_enabled = TRUE;
         c11_atomic_classes_disabled = TRUE;
       }  /* if */
+      if (clang_version >= 30200) {
+        alignof_enabled = TRUE;
+      }  /* if */
+      if (clang_version >= 30300) {
+        std_thread_local_storage_specifier_enabled = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* Not Clang mode. */

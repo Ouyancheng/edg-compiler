@@ -840,28 +840,34 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_builtin_complex, "__builtin_complex");
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  if (c11_mode || (gcc_mode && gnu_version >= 40700)) {
+  if (c11_mode || gcc_version_is(>= 40700) || clang_version_is(>= 30300)) {
     /* Enable the C11 _Noreturn keyword (accepted by default in some GNU C
-       modes). */
+       modes as well as some clang C and C++ modes). */
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
   }  /* if */
-  if (c11_mode || (gcc_mode && gnu_version >= 40900)) {
+  if (c11_mode || gcc_version_is(>= 40900) || clang_version_is(>= 30200)) {
     /* Enable the C11 _Generic keyword (accepted by default in some GNU C
-       modes). */
+       modes as well as some clang C and C++ modes). */
     enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
   }  /* if */
   if (c11_atomic_enabled) {
     enter_keyword((a_token_kind)tok_c11_atomic, "_Atomic");
   }  /* if */
-  if (C_mode()) {
+  if (C_mode() || clang_version_is(>= 30200)) {
+    /* Enabled in C mode as well as most C++ clang modes. */
+    if (alignof_enabled) {
+      enter_keyword((a_token_kind)tok_alignof, "_Alignof");
+    }  /* if */
+  }  /* if */
+  if (C_mode() || clang_version_is(>= 30300)) {
+    /* Enabled in C mode as well as most C++ clang modes. */
     if (std_thread_local_storage_specifier_enabled) {
       enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");
     }  /* if */
+  }  /* if */
+  if (C_mode()) {
     if (alignas_enabled) {
       enter_keyword((a_token_kind)tok_alignas, "_Alignas");
-    }  /* if */
-    if (alignof_enabled) {
-      enter_keyword((a_token_kind)tok_alignof, "_Alignof");
     }  /* if */
     if (static_assert_enabled) {
       /* Enter the C version of "static_assert", except in non-C11 Microsoft
