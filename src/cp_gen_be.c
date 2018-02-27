@@ -3604,7 +3604,7 @@ currently active selector class.
 Definitions for a linked list of variables that are defined with unnamed
 class types.  This is used so that an appropriate decltype-specifier for
 the type can be synthesized if that type is used as a qualifier in a
-qualified name.  For example,
+qualified name or as a template argument.  For example,
 
     struct { static int f() { return 0; } } x;
     int i = decltype(x)::f();
@@ -3615,8 +3615,8 @@ this list allows the unnamed qualifier class to be generated in a
 compilable form rather than as an undeclared temporary name.
 
 This is a singly-linked list, but it is only searched for unnamed class
-qualifiers; those should be exceedingly rare, so performance should not be
-an issue.
+qualifiers and template arguments; those should be exceedingly rare, so
+performance should not be an issue.
 */
 
 typedef struct a_var_for_decltype *a_var_for_decltype_ptr;
@@ -3649,6 +3649,31 @@ Create a new entry with var in the vars_for_decltype list.
   new_entry->var = var;
   vars_for_decltype = new_entry;
 }  /* register_var_for_decltype */
+
+
+static a_boolean synthesize_decltype_specifier(a_type_ptr type)
+/*
+If type can be represented as a decltype-specifier using one of the
+variables in the vars_for_decltype_list, put out the decltype-specifier
+and return TRUE; otherwise, return FALSE.
+*/
+{
+  a_var_for_decltype_ptr vfdp = NULL;
+  a_boolean              result = FALSE;
+
+  /* See if there is a variable we can use to create a decltype-specifier
+     for the type. */
+  for (vfdp = vars_for_decltype; vfdp != NULL && vfdp->var->type != type;
+       vfdp = vfdp->next) {}
+  if (vfdp != NULL) {
+    /* Create a decltype-specifier. */
+    write_tok_str("decltype(");
+    gen_variable_name(vfdp->var);
+    write_tok_ch(')');
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* synthesize_decltype_specifier */
 
 
 static void gen_class_qualifier(a_type_ptr             class_type,
@@ -3745,19 +3770,9 @@ for the meaning of need_closing_paren.
          class X must be a direct base or member of the type of *this. */
       gen_unqualified_name(&class_type->source_corresp, iek_type);
     } else {
-      a_var_for_decltype_ptr vfdp = NULL;
-      if (!has_name_before_mangling(class_type)) {
-        /* See if there is a variable we can use to create a
-           decltype-specifier for the type. */
-        for (vfdp = vars_for_decltype;
-             vfdp != NULL && vfdp->var->type != class_type;
-             vfdp = vfdp->next) {}
-      }  /* if */
-      if (vfdp != NULL) {
-        /* Create a decltype-specifier. */
-        write_tok_str("decltype(");
-        gen_variable_name(vfdp->var);
-        write_tok_ch(')');
+      if (!has_name_before_mangling(class_type) &&
+          synthesize_decltype_specifier(class_type)) {
+        /* Created a decltype-specifier for the nameless type. */
       } else {
         /* Use recursion to handle multiple levels of nesting. */
         gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
@@ -6701,7 +6716,10 @@ A reference is not the definition.
       use_elab_type_spec = type->elaborated_type_specifier_needed;
       if (scope != NULL) pop_name_context();
     }  /* if */
-    if (!use_elab_type_spec) {
+    if (!has_name_before_mangling(orig_type) &&
+        synthesize_decltype_specifier(orig_type)) {
+      /* Created a decltype-specifier for the nameless type. */
+    } else if (!use_elab_type_spec) {
       /* Use just the type name. */
       /* Note that for a dependent name that's qualified this will also
          put out an elaborated type specifier. */

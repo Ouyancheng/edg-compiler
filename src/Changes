@@ -1,5 +1,20 @@
 Version 4.15
 
+2/26/18  [EDGcpfe/18318]
+C++-generating back end: decltype-specifiers as template arguments
+
+When the source code contains a decltype-specifier used as a template
+argument and the type designated by the specifier is an unnamed class type,
+the C++-generating back end put out an undeclared temporary name (of the
+form __T12345678) as the argument.  This is now fixed.  For example:
+
+  template <typename T> T x;
+  struct { } s1;
+  void f() {
+    x<decltype(s1)>;  // Previously generated as x<__T12345678>
+  }
+
+
 2/26/18  [EDGcpfe/19386]
 Failure to diagnose bool parameter for user-defined literal operator
 
