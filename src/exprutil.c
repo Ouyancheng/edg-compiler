@@ -22420,7 +22420,10 @@ Do one-time initialization of variables related to expression processing.
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if SEQUENCING_DIAGNOSTICS_ENABLED
-  sequencing_diagnostics_enabled = is_effective_diagnostic(
+  /* C++17 introduces strict evaluation ordering, so these remarks are not
+     necessary. */
+  sequencing_diagnostics_enabled = !strict_cpp17_eval_order &&
+                                   is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
                                                 es_remark);
 #else /* !SEQUENCING_DIAGNOSTICS_ENABLED */

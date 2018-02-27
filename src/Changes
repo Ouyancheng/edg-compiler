@@ -3970,6 +3970,9 @@ end does not attempt to control evaluation order.
 These changes were added to the working paper for the C++17 standard through
 paper P0145R3.
 
+When enabled, this feature disables issuing of remarks about sequencing of
+operations (see Changes entry for EDGcpfe/10525).
+
 
 9/19/17  [EDGcpfe/18788]
 GNU and Clang C++ compatibility: Abort in noexcept deduction in an explicit
