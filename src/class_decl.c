@@ -2331,7 +2331,8 @@ the fields implied by the lambda's capture list).
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
   if (scope_stack_top().in_prototype_instantiation ||
-      scope_stack_top().in_nonreal_instantiation) {
+      scope_stack_top().in_nonreal_instantiation ||
+      scope_is(&scope_stack_top(), sck_template_declaration)) {
     /* If the lambda appears in a prototype instantiation context, mark it
        as a nonreal class.  Local classes in such contexts are not marked
        as prototype instantiations. */
