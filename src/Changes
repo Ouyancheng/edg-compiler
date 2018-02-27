@@ -1,6 +1,6 @@
 Version 4.15
 
-2/26/18  [EDGcpfe/19337]
+2/26/18  [EDGcpfe/18648,EDGcpfe/19337]
 Clang compatibility: _Alignof, _Generic, _Noreturn, _Thread_local
 
 The _Alignof, _Generic, _Noreturn, and _Thread_local keywords (and their
