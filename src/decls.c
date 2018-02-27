@@ -8160,7 +8160,8 @@ needed.
   } else {
     a_type_ptr  tp = skip_typerefs(ptp->type);
     if (tp->kind == (a_type_kind)tk_integer) {
-      if (tp->variant.integer.enum_type) {
+      if (tp->variant.integer.enum_type ||
+          tp->variant.integer.bool_type) {
         pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
                      &loc->source_position, tp);
         param_err = TRUE;

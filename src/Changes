@@ -1,5 +1,16 @@
 Version 4.15
 
+2/26/18  [EDGcpfe/19386]
+Failure to diagnose bool parameter for user-defined literal operator
+
+The front end previously failed to diagnose an attempt to declare a
+user-defined literal operator with a parameter of type bool, which is not
+one of the allowed parameter types.  This is now fixed.  For example, with
+--c++11:
+
+  void operator "" _b (bool) { }   // Invalid but previously undiagnosed
+
+
 2/26/18  [EDGcpfe/18648,EDGcpfe/19337]
 Clang compatibility: _Alignof, _Generic, _Noreturn, _Thread_local
 
