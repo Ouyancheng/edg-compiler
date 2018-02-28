@@ -1,5 +1,31 @@
 Version 4.15
 
+2/28/18  [EDGcpfe/18892]
+Friend template declarations in prototype instantiations
+
+Consider the following two translation units:
+
+  // File 1:
+  template<typename> struct H;
+  template<typename> struct V {
+    template<typename> friend struct H;
+  };
+
+  // File 2:
+  template<typename> struct V {
+    template<typename> friend struct H;
+  };
+  template<typename> struct H;
+
+During the prototype instantiation of V, the friend declaration finds a
+template in the first file, but not in the second file.  In the second file,
+therefore, a nested class placeholder is created to represent the friend
+template declaration.  However, that difference between the two files caused
+spurious correspondence errors when simultaneously compiling them.  The front
+end has therefore been changed to represent the friend template in the first
+file as it already was done in the second file.
+
+
 2/26/18  [EDGcpfe/18318]
 C++-generating back end: decltype-specifiers as template arguments
 

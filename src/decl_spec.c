@@ -8191,29 +8191,29 @@ The parameter input_flags is the same value that was passed to decl_specifiers
 }  /* report_bad_type_name */
 
 
-static a_type_ptr enclosing_class_type(a_decl_flag_set  input_flags)
+a_type_ptr enclosing_class_type(void)
 /*
-Called from decl_specifiers to determine the type of the class for which a
-member is being scanned.  See decl_specifier for the meaning of input_flags.
+Called while processing a member declaration to determine the type of the
+class for which the member is being scanned.
 Returns NULL in case of error.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_type_ptr               result = NULL;
 
-  if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
-      (input_flags & DSI_IS_TEMPLATE_DECLARATION)) {
+  if (scope_is(ssep, sck_template_instantiation) ||
+      scope_is(ssep, sck_template_declaration)) {
     /* Either this is a member template declaration or a rescan of a member
        template declaration to instantiate it. */
     --ssep;
   }  /* if */
-  if (ssep->kind != (a_scope_kind)sck_class_struct_union &&
-      ssep->kind != (a_scope_kind)sck_class_reactivation) {
+  if (scope_is(ssep, sck_class_struct_union) ||
+      scope_is(ssep, sck_class_reactivation)) {
+    result = ssep->assoc_type;
+    check_assertion(result != NULL && is_immediate_class_type(result));
+  } else {
     /* Error case of some sort. */
     expect_error();
-  } else {
-    result = ssep->assoc_type;
-    check_assertion(result != NULL && is_class_struct_union_type(result));
   }  /* if */
   return result;
 }  /* enclosing_class_type */
@@ -8574,7 +8574,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
       if (!(decl_specifiers_seen & ~accepted_specifiers) &&
           (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
            dps->declared_storage_class == (a_storage_class)sc_static)) {
-        a_type_ptr  class_type = enclosing_class_type(input_flags);
+        a_type_ptr  class_type = enclosing_class_type();
         a_boolean   is_static_ctor = FALSE;
         if (class_type != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10772,7 +10772,7 @@ process_class_specifier:
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
               a_boolean   is_elaborated_ctor = FALSE;
-              a_type_ptr  class_type = enclosing_class_type(input_flags);
+              a_type_ptr  class_type = enclosing_class_type();
               if (class_type != NULL) {
                 begin_deferral_of_access_checks();
                 is_elaborated_ctor = is_constructor_decl(class_type, state);

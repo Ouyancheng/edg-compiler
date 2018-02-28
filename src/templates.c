@@ -21027,6 +21027,80 @@ specialization.
 }  /* check_for_out_of_class_partial_spec */
 
 
+static a_boolean should_cancel_friend_class_template_lookup(a_symbol_ptr  sym)
+/*
+The current token is the coalesced name of a friend class template declaration
+and sym is the symbol found for it.  During prototype instantiations, we often
+do not want to actually consider that symbol because it may be unreliable.  In
+particular, when compiling multiple translation units simultaneously, different
+outcomes may be found in different translation units.  For example:
+
+  // File 1:
+  template<typename> struct H;
+  template<typename> struct V {
+    template<typename> struct H;  // Finds H above.
+  };
+
+  // File 2:
+  template<typename> struct V {
+    template<typename> struct H;  // Doesn't find anything.
+  };
+  template<typename> struct H;
+
+In order to ensure that the templates in both translation units are represented
+in the same way, we simply discard the result of the lookup.  That, however,
+should not be done if the lookup found the enclosing class itself or a member
+thereof.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (!scope_is(&scope_stack_top()-1, sck_class_struct_union)) {
+    /* This can, e.g., happen with something like
+          template<typename> template<typename> struct F;
+       or
+          template<> friend struct F;
+       (the latter is accepted in some modes). */
+  } else if (!locator_for_curr_id.is_qualified_name &&
+             !locator_for_curr_id.is_template_id &&
+             scope_stack_top().in_prototype_instantiation &&
+             sym->decl_scope != (&scope_stack_top()-1)->number) {
+    /* The name is unqualified, we are inside a prototype instantiation, and
+       we didn't find the name in the in the same scope as the friend
+       declaration.  The latter test is to handle something like:
+         template<typename> class C {
+           struct N;
+           friend struct N;
+           // ...
+         };
+       We want to keep that lookup result since otherwise we would issue an
+       error claiming that N was already declared in this class.
+
+       Next, we want to make sure the friend does not refer to the enclosing
+       class template or to a related template (a primary template or a
+       partial specialization).  Such lookup results also need to be preserved
+       to avoid redeclaration errors.
+    */
+    a_type_ptr      enclosing_class = enclosing_class_type();
+    a_template_ptr  enclosing_template =
+                             class_type_supp(enclosing_class)->assoc_template;
+    if (enclosing_template != NULL) {
+      a_symbol_ptr  enclosing_sym = symbol_for(enclosing_template);
+      enclosing_sym = prototype_template_of(enclosing_sym);
+      enclosing_sym = primary_template_of(enclosing_sym);
+      if (symbol_is(sym, sk_class_template)) {
+        sym = prototype_template_of(sym);
+        sym = primary_template_of(sym);
+        if (sym != enclosing_sym) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* should_cancel_friend_class_template_lookup */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -21266,6 +21340,11 @@ declaration of a partial specialization declared outside of its class.
                                                  ? ilm_template_friend
                                                  : ilm_template_linkage,
                               &err);
+      if (decl_state->is_template_friend && sym != NULL &&
+          should_cancel_friend_class_template_lookup(sym)) {
+        sym = NULL;
+        suppress_redecl_error = TRUE;
+      }  /* if */
       /* If the class name is a template ID, then this is probably a
          declaration of a partial specialization. */
       if (sym != NULL && is_template_class_symbol(sym) &&
@@ -22231,6 +22310,9 @@ nesting depth to be used.
                                                 GID_TEMPLATE_ARGS_OPTIONAL |
                                                 GID_USE_PROTOTYPE_NOT_NONREAL,
                                                 ilm_template_friend, &err);
+          if (sym != NULL && should_cancel_friend_class_template_lookup(sym)) {
+            sym = NULL;
+          }  /* if */
           if (sym != NULL) {
             if (is_injected_template_symbol(sym)) {
               sym = class_template_for_injected_template_symbol(sym);

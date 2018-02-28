@@ -194,6 +194,8 @@ extern void apply_class_modifiers(a_type_ptr  class_type,
                                   a_boolean   is_abstract,
                                   a_boolean   is_sealed);
 
+extern a_type_ptr enclosing_class_type(void);
+
 extern void decl_spec_one_time_init(void);
 
 /* Constants defining bits in the input bit vector used in calls to
