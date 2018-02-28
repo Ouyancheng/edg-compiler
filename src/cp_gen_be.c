@@ -5964,20 +5964,27 @@ field designator.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         array_case = TRUE;
         break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
       case tk_pointer:
-        { a_type_ptr base_type = type_pointed_to(type);
-          /* Only handle types can be initialized here. */
-          check_assertion(is_handle_type(type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (is_handle_type(type)) {
+          a_type_ptr base_type = type_pointed_to(type);
           if (is_template_param_type(base_type)) {
             template_dependent_case = TRUE;
           } else {
             check_assertion(is_cli_array_type(base_type));
             array_case = TRUE;
           }  /* if */
-        }
-        break;
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          if (is_template_param_type(type)) {
+            template_dependent_case = TRUE;
+          } else {
+            check_assertion(is_reference_type(type));
+          }  /* if */
+        }  /* if */
+        break;
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -6023,6 +6030,8 @@ field designator.
         sub_type = constant->variant.aggregate.first_constant->type;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (is_reference_type(type)) {
+      sub_type = type_pointed_to(type);
     } else {
       check_assertion_str(is_class_type_kind(type->kind),
                           "gen_initializer_constant: bad aggregate type");

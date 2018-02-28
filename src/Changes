@@ -1,5 +1,16 @@
 Version 4.15
 
+2/28/18  [EDGcpfe/17745]
+C++-generating back end: reference-typed initializer expressions
+
+The C++-generating back end previously failed an assertion (in
+gen_initializer_constant) when an initializer expression has a reference
+type.  This is now fixed.  For example:
+
+  typedef const char (&T)[4];
+  T r = T{};   // Previously caused an assertion failure
+
+
 2/28/18  [EDGcpfe/18892]
 Friend template declarations in prototype instantiations
 
