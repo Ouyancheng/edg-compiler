@@ -34,6 +34,9 @@ decls.c -- Scanning of declarations.
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
+#if DO_IL_LOWERING
+#include "lower_name.h"
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2516,53 +2519,46 @@ typedef struct an_id_linkage_block {
 			   NULL for variable declarations. */
   a_type_ptr	type;
 			/* The type with which the entity was declared. */
-  a_byte_boolean
-		is_friend_decl;
+  a_bit_field	is_friend_decl:1;
 			/* TRUE when the declaration is a friend
 			   declaration. */
-  a_byte_boolean
-		is_function_template;
+  a_bit_field	is_function_template:1;
 			/* TRUE when the declaration is a function template
 			   declaration. */
-  a_byte_boolean
-		is_new_template_instance;
+  a_bit_field	is_new_template_instance:1;
 			/* TRUE when the declaration matches a function
 			   template instance that is newly created by the
 			   declaration. */
-  a_byte_boolean
-		is_definition;
+  a_bit_field	is_definition:1;
 			/* TRUE when the declaration is a definition. */
-  a_byte_boolean
-		is_block_extern_decl;
+  a_bit_field	is_block_extern_decl:1;
 			/* TRUE when the declaration is a block extern
 			   declaration (a declaration within a function of
 			   an entity with linkage outside the function). */
-  a_byte_boolean
-		is_local_class_friend_decl;
+  a_bit_field	is_local_class_friend_decl:1;
 			/* TRUE when is_friend_decl is TRUE and the class in
 			   which the declaration appears is a local class. */
-  a_byte_boolean
-		within_unnamed_namespace;
+  a_bit_field	within_unnamed_namespace:1;
 			/* TRUE when the declaration appears within an
 			   unnamed namespace. */
-  a_byte_boolean
-		extern_C_name_linkage_specified;
+  a_bit_field	extern_C_name_linkage_specified:1;
 			/* TRUE when the declaration appears within the
 			   context of an extern "C" linkage specification. */
-  a_byte_boolean
-		direct_linkage_specifier;
+  a_bit_field	direct_linkage_specifier:1;
 			/* If TRUE, a linkage specification appeared directly
 			   on the declaration (as opposed to the declaration
 			   just being in a linkage specification block). */
-  a_byte_boolean
-		namespace_reactivated;
+  a_bit_field	namespace_reactivated:1;
 			/* TRUE if a namespace reactivation scope was
 			   pushed during linkage processing; it must be
 			   popped by the caller. */
-  a_byte_boolean
-		from_inline_namespace;
+  a_bit_field	from_inline_namespace:1;
 			/* TRUE if the symbol found is a projection symbol
 			   for a symbol made visible by an inline namespace. */
+  a_bit_field	c_overload:1;
+			/* TRUE if the symbol found is an overloaded C
+			   function (possible through the Clang "overloaded"
+			   attribute. */
   a_template_decl_info_ptr
 		templ_info;
 			/* When is_function_template is TRUE, a pointer to
@@ -2618,6 +2614,7 @@ Clear the fields of the given id linkage block.
   idlbp->direct_linkage_specifier = FALSE;
   idlbp->namespace_reactivated = FALSE;
   idlbp->from_inline_namespace = FALSE;
+  idlbp->c_overload = FALSE;
   idlbp->templ_info = NULL;
   idlbp->linkage = idl_none;
   idlbp->name_linkage = (a_name_linkage_kind)nlk_none;
@@ -2897,7 +2894,11 @@ internal linkage).
        ssep->name_linkage_is_explicit)) {
     if (C_mode()) {
       /* External entity in C mode. */ 
-      idlbp->name_linkage = (a_name_linkage_kind)nlk_external;
+      if (idlbp->c_overload) {
+        idlbp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+      } else {
+        idlbp->name_linkage = (a_name_linkage_kind)nlk_external;
+      }  /* if */
     } else if (idlbp->func_info != NULL &&
                idlbp->func_info->is_main_function) {
       /* In C++ "main" gets C++ linkage. */
@@ -2968,6 +2969,37 @@ internal linkage).
     idlbp->name_linkage = (a_name_linkage_kind)nlk_internal;
   }   /* if */
 }  /* compute_name_linkage */
+
+
+static a_boolean is_overloadable_c_sym(a_symbol_ptr         sym,
+                                       an_id_linkage_block  *idlbp)
+/*
+Return TRUE if the given symbol and the current declaration were both
+declared with the Clang attribute "overloaded".  Only called in Clang C mode.
+E.g.:
+  __attribute((overloadable)) void f(int);
+  __attribute((overloadable)) void f(double);
+Here, this function will be called for the second declaration with sym
+describing the previous declaration (if there were more than one, sym would
+represent an overload set).
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(clang_mode && C_mode());
+  if (idlbp->c_overload) {
+    if (symbol_is(sym, sk_routine)) {
+      a_routine_ptr     rp = sym->variant.routine.ptr;
+      an_attribute_ptr  attributes = rp->source_corresp.attributes;
+      if (find_attribute(ak_overloadable, attributes) != NULL) {
+        result = TRUE;
+      }  /* if */
+    } else if (symbol_is(sym, sk_overloaded_function)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_overloadable_c_sym */
 
 
 static void find_linked_symbol(an_id_linkage_block  *idlbp)
@@ -3175,7 +3207,9 @@ when the declaration is a friend declaration within a class.
        was an sk_overloaded_function symbol, we need to look for a type
        match amongst the instances of the name.  Even if it was an
        sk_routine symbol, we may want to overload the two functions. */
-    if (!C_mode() && is_function && kind != (a_symbol_kind)sk_variable) {
+    if ((!C_mode() ||
+         (clang_mode && is_overloadable_c_sym(other_decl, idlbp))) &&
+        is_function && kind != (a_symbol_kind)sk_variable) {
       /* C++ function or function template -- type compatibility check is
          required. */
       a_template_param_ptr  params = NULL;
@@ -3185,9 +3219,9 @@ when the declaration is a friend declaration within a class.
         n_params = idlbp->templ_info->n_params;
       }  /* if */
       if (decls_at_same_scope) {
-        /* *overload_symbol is set for cases in which the current symbol
+        /* idlbp->homonym_symbol is set for cases in which the current symbol
            may be added to an overload list.  Note that overloading across
-           scopes is not allowed.  Also, *overload_symbol may end up being
+           scopes is not allowed.  Also, idlbp->homonym_symbol may end up being
            cleared later. */
         idlbp->homonym_symbol = other_decl;
       }  /* if */
@@ -8195,6 +8229,62 @@ needed.
   }  /* if */
 }  /* check_udl_operator_type */
 
+#if DO_IL_LOWERING
+
+static void mangle_clang_c_overload(a_decl_parse_state   *dps)
+/*
+dps represents the declaration of a function declared with the Clang attribute
+"overloadable".  Call mangle_function_name for that function (except in some
+error cases).
+*/
+{
+  if (symbol_is(dps->sym, sk_routine)) {
+    a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+    a_type_ptr     rtp = rp->type;
+    if (type_is(rtp, tk_routine)) {
+      a_routine_type_supplement_ptr
+           rtsp = dps->type->variant.routine.extra_info;
+      if (rtsp->routine_name_linkage ==
+                                (a_name_linkage_kind)nlk_cplusplus_external) {
+        mangle_function_name(rp, /*suppress_parent_encoding=*/FALSE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* mangle_clang_c_overload */
+
+#endif /* DO_IL_LOWERING */
+
+static void check_clang_c_overload(a_decl_parse_state   *dps,
+                                   an_id_linkage_block  *idlbp)
+/*
+dps and idlbp describe a function declaration with the Clang "overloadable"
+attribute.  Verify that the constraints for the attribute are fulfilled and
+adjust *dps and *idlbp as needed.
+*/
+{
+  an_attribute_ptr  ap = find_decl_attribute(ak_overloadable, dps);
+
+  if (ap != NULL) {
+    if (!type_is(dps->type, tk_routine)) {
+      pos_error(ec_overloadable_attribute_requires_prototype, &ap->position);
+    } else {
+      a_routine_type_supplement_ptr
+           rtsp = dps->type->variant.routine.extra_info;
+      if (!rtsp->prototyped) {
+        pos_error(ec_overloadable_attribute_requires_prototype, &ap->position);
+      } else {
+        idlbp->c_overload = TRUE;
+        rtsp->routine_name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+#if DO_IL_LOWERING
+        add_end_of_parse_action(mangle_clang_c_overload, dps,
+                                /*secondary_decls=*/FALSE);
+#endif /* DO_IL_LOWERING */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_clang_c_overload */
+
 
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
@@ -8351,6 +8441,10 @@ for use in generating cross-reference output describing this declaration.
   idlb.type = type_ptr;
   idlb.func_info = func_info;
   idlb.is_definition = is_function_def;
+  if (clang_mode && C_mode() &&
+      (dps->prefix_attributes != NULL || dps->id_attributes != NULL)) {
+    check_clang_c_overload(dps, &idlb);
+  }  /* if */
   set_linkage_environment(&idlb, decl_scope_level);
   check_assertion(idlb.is_friend_decl == ((srk_flags & SRK_FRIEND) != 0) ||
                   is_or_contains_error_type(type_ptr));
@@ -8836,7 +8930,7 @@ for use in generating cross-reference output describing this declaration.
   } else {
     /* Not a redeclaration. */
     a_symbol_ptr  symbol_for_overloading = NULL;
-    if (C_dialect == C_dialect_cplusplus) {
+    if (!C_mode() || homonym_symbol != NULL) {
       /* Be sure the default arguments, if any, are at the end of the
          parameters list.  Also check some C++/CLI constraints on default
          arguments. */

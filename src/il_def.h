@@ -2559,6 +2559,7 @@ typedef enum an_attribute_kind_tag {
   /* Nonstandard attributes that do not require specific configuration
      flags. */
   ak_enable_if,		/* "enable_if" (clang). */
+  ak_overloadable,	/* "overloadable" (clang). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft

@@ -9343,8 +9343,12 @@ the latter will be NULL for variables.
         if (second_best_match == NULL) second_best_match = sym;
       } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
         an_extern_symbol_descr_ptr esdp = sym->variant.extern_symbol_descr;
+        if (rout_type != NULL) rout_type = skip_typerefs(rout_type);
         /* A type compatibility check may also be required for routines. */
-        if (rout_type == NULL || C_dialect != C_dialect_cplusplus ||
+        if (rout_type == NULL ||
+            (C_mode() &&
+             rout_type->variant.routine.extra_info->routine_name_linkage
+                            != (a_name_linkage_kind)nlk_cplusplus_external) ||
             esdp->variant.routine.ptr == il_header.main_routine) {
           /* A name match is enough in C (and for C++, if the routine is
              "::main"). */
@@ -9366,7 +9370,6 @@ the latter will be NULL for variables.
 
           other_type = esdp->type;
           other_type = skip_typerefs(other_type);
-          rout_type = skip_typerefs(rout_type);
           if (param_types_are_compatible(rout_type, other_type,
                                          TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match, unless a

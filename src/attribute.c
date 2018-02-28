@@ -229,6 +229,7 @@ static an_attr_descr known_attr_table[] = {
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
+  { "overloadable", "", "lx", ak_overloadable },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -622,6 +623,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_fallthrough, "s", apply_fallthrough_attr },
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
+  { ak_overloadable, "r", NO_APPL_FN },
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

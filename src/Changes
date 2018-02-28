@@ -1,5 +1,22 @@
 Version 4.15
 
+2/28/18  [EDGcpfe/14779,EDGcpfe/18590,EDGcpfe/18731]
+Clang attribute "overloadable"
+
+In Clang mode, the front end now accepts the attribute "overloadable" on
+function declarations.  It has no effect in C++ mode, but in C mode it
+enables C++-style overloading of functions.  For example:
+
+  __attribute((overloadable)) void f(int);     // (1)
+  __attribute((overloadable)) void f(double);  // (2)
+  int main() {
+    f(3.0);  // Calls (2).
+  }
+
+If lowering is enabled, the function name is mangled according to the C++
+ABI that is configured.
+
+
 2/28/18  [EDGcpfe/17745]
 C++-generating back end: reference-typed initializer expressions
 

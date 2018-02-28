@@ -559,8 +559,8 @@ static void mangled_variable_name_with_possible_qualification(
 static a_const_char *mangled_expr_operator_name(an_expr_node_ptr expr,
                                                 a_boolean        *bad_operator,
                                                 a_boolean        *is_cast);
-static void mangle_function_name(a_routine_ptr routine,
-                                 a_boolean     suppress_parent_encoding);
+void mangle_function_name(a_routine_ptr routine,
+                          a_boolean     suppress_parent_encoding);
 
 /*
 Macro for the typical invocation of mangled_encoding_for_expression_full
@@ -12724,8 +12724,8 @@ including classes.
 }  /* do_type_list_other_name_mangling */
 
 
-static void mangle_function_name(a_routine_ptr routine,
-                                 a_boolean     suppress_parent_encoding)
+void mangle_function_name(a_routine_ptr routine,
+                          a_boolean     suppress_parent_encoding)
 /*
 Mangle the name of the indicated function, if necessary.  Suppress the parent
 encoding if suppress_parent_encoding is TRUE.

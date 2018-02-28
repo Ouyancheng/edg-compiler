@@ -128,6 +128,9 @@ extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
 extern char *mangled_resolver_name(a_routine_ptr representative);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && IA64_ABI && DO_IL_LOWERING */
 
+extern void mangle_function_name(a_routine_ptr routine,
+                                 a_boolean     suppress_parent_encoding);
+
 extern void do_type_name_mangling(void);
 
 extern void do_all_name_mangling(a_boolean mangling_pre_pass);
