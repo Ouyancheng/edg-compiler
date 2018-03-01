@@ -4502,7 +4502,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_variable_ptr  vp = con->variant.address.variant.variable;
               a_type_ptr      vtp = skip_typerefs(vp->type);
               if (vp->constant_valued || vp->is_constexpr) {
-                a_byte      *var_bytes;
+                a_byte  *var_bytes;
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {
                   alloc_static_object(ips, vtp, var_bytes, &result);
@@ -5515,6 +5515,44 @@ loop constructs they may be needed again).
 }  /* do_constexpr_condition_cleanup */
 
 
+static a_boolean init_static_variables(an_interpreter_state  *ips,
+                                       a_scope_ptr           scope)
+/*
+Initialize a limited set of local static variables.  This function should only
+be called for the local static variables associated with constructs like
+"__func__".
+*/
+{
+  a_boolean       result = TRUE;
+  a_variable_ptr  vp = scope->variables;
+
+  for (; vp != NULL; vp = vp->next) {
+    a_byte  *var_bytes;
+    get_stack_bytes(ips, vp, var_bytes);
+    if (var_bytes == NULL) {
+      a_type_ptr  tp = vp->type;
+      if (!is_const_qualified_type(tp) ||
+          is_volatile_qualified_type(tp) ||
+          vp->init_kind != (an_init_kind)initk_static ||
+          vp->initializer.constant == NULL) {
+        info_with_pos(ec_constexpr_access_to_runtime_storage,
+                      &vp->source_corresp.decl_position, ips);
+        do_constexpr_fail(result);
+        break;
+      }  /* if */
+      tp = skip_typerefs(tp);
+      alloc_static_object(ips, tp, var_bytes, &result);
+      if (!result) break;
+      map_stack_bytes(ips, vp, var_bytes);
+      result = extract_value_from_constant(ips, vp->initializer.constant,
+                                           var_bytes, var_bytes);
+      if (!result) break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* initi_static_variables */
+
+
 static a_boolean do_constexpr_block_statement(an_interpreter_state  *ips,
                                               a_statement_ptr       block_stmt,
                                               a_scope_ptr           scope)
@@ -5538,6 +5576,14 @@ Interpret the given block statement and its associated scope (if any).
     if (vp != NULL || scope_is(scope, sck_function)) {
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
+    }  /* if */
+    if (scope->variables != NULL) {
+      /* There are local static variables.  That is normally not possible in
+         constexpr functions, but in some modes the implied static variables
+         for __func__ and similar constructs are permitted. */
+      if (!init_static_variables(ips, scope)) {
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (result) {

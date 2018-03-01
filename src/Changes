@@ -1,5 +1,21 @@
 Version 4.15
 
+3/1/18   [EDGcpfe/19389]
+__func__ in constexpr functions
+
+The front end previously failed to diagnose the use of __func__ (and similar
+constructs) in constexpr functions: It defines a local static variable, which
+is not permitted in constexpr function definitions.  However, the interpreter
+also failed to evaluate the construct.  Now, a diagnostic is issued, except in
+GNU and Clang modes, where the construct is correctly interpreted.  For
+example:
+
+  constexpr char f() { return __func__[0]; }
+    // Now a compilation error, except in GNU and Clang modes.
+  static_assert(f() == 'f', "Unexpected!");
+    // Now accepted in GNU and Clang modes.
+
+
 2/28/18  [EDGcpfe/14779,EDGcpfe/18590,EDGcpfe/18731]
 Clang attribute "overloadable"
 

@@ -32413,6 +32413,13 @@ have_variable:
                                  &pos_curr_token,
                                  end_position_or_null(&end_pos_curr_token),
                                  result, (a_ref_entry_ptr)NULL);
+    if (innermost_function_scope->variant.routine.ptr
+                                ->is_declared_constexpr &&
+        !(gpp_mode || clang_mode)) {
+      /* Clang and GCC appear to permit this particular instance of a local
+         static variable in a constexpr function. */
+      pos_error(ec_nonautomatic_var_in_constexpr_function, &pos_curr_token);
+    }  /* if */
   }  /* if */
 end_of_routine:
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
