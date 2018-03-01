@@ -2557,7 +2557,7 @@ typedef struct an_id_linkage_block {
 			   for a symbol made visible by an inline namespace. */
   a_bit_field	c_overload:1;
 			/* TRUE if the symbol found is an overloaded C
-			   function (possible through the Clang "overloaded"
+			   function (possible through the Clang "overloadable"
 			   attribute. */
   a_template_decl_info_ptr
 		templ_info;
@@ -2975,8 +2975,8 @@ static a_boolean is_overloadable_c_sym(a_symbol_ptr         sym,
                                        an_id_linkage_block  *idlbp)
 /*
 Return TRUE if the given symbol and the current declaration were both
-declared with the Clang attribute "overloaded".  Only called in Clang C mode.
-E.g.:
+declared with the Clang attribute "overloadable".  Only called in Clang C
+mode.  E.g.:
   __attribute((overloadable)) void f(int);
   __attribute((overloadable)) void f(double);
 Here, this function will be called for the second declaration with sym
