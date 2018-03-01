@@ -3061,7 +3061,9 @@ within the given complete object).
           subobj += elem_size;
         }  /* for */
       }
-      break;
+      /* Bypass the code that would mark the object pointed to by "subobject"
+         as initialized: */
+      goto done;
     case tk_class:
     case tk_struct:
       { /* Initialize fields and bases. */
@@ -3121,6 +3123,7 @@ within the given complete object).
       unexpected_condition();
   }  /* switch */
   mark_subobject_initialized(subobj, complete_obj);
+done:;
 }  /* init_subobject_to_zero */
 
 /*

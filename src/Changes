@@ -1,5 +1,25 @@
 Version 4.15
 
+3/1/18   [EDGcpfe/19380]
+Incorrect interpretation of default array member initialization
+
+Consider:
+
+  struct C {
+    int d[2][2];
+    C C::*pm = pm;
+  };
+  constexpr C c = {};
+
+This example requires the constexpr interpreter to zero-initialize the array
+member of variable c.  This initialization was previously done incorrectly,
+causing the subsequent member (c.pm) to be marked as "initialized".  In this
+example, that resulted in the interpreter not noticing that the use of the
+default initializer of C::pm accesses an uninitialized member (which should
+trigger an error).  The resulting use of uninitialized memory was likely to
+result in an abort.  That problem is now fixed.
+
+
 3/1/18   [EDGcpfe/19389]
 __func__ in constexpr functions
 
