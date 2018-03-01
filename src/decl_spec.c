@@ -8194,8 +8194,7 @@ The parameter input_flags is the same value that was passed to decl_specifiers
 a_type_ptr enclosing_class_type(void)
 /*
 Called while processing a member declaration to determine the type of the
-class for which the member is being scanned.
-Returns NULL in case of error.
+class for which the member is being scanned.  Returns NULL in case of error.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
