@@ -21068,8 +21068,8 @@ thereof.
              sym->decl_scope != (&scope_stack_top()-1)->number) {
     /* The name is unqualified, we are inside a prototype instantiation, the
        name is not that of a template template parameter, and we didn't find
-       the name in the in the same scope as the friend declaration.  The
-       latter test is to handle something like:
+       the name in the same scope as the friend declaration.  The latter test
+       is to handle something like:
          template<typename> class C {
            struct N;
            friend struct N;
