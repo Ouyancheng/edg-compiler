@@ -21064,10 +21064,12 @@ thereof.
   } else if (!locator_for_curr_id.is_qualified_name &&
              !locator_for_curr_id.is_template_id &&
              scope_stack_top().in_prototype_instantiation &&
+             !is_template_template_param_symbol(sym) &&
              sym->decl_scope != (&scope_stack_top()-1)->number) {
-    /* The name is unqualified, we are inside a prototype instantiation, and
-       we didn't find the name in the in the same scope as the friend
-       declaration.  The latter test is to handle something like:
+    /* The name is unqualified, we are inside a prototype instantiation, the
+       name is not that of a template template parameter, and we didn't find
+       the name in the in the same scope as the friend declaration.  The
+       latter test is to handle something like:
          template<typename> class C {
            struct N;
            friend struct N;
@@ -21088,7 +21090,7 @@ thereof.
       a_symbol_ptr  enclosing_sym = symbol_for(enclosing_template);
       enclosing_sym = prototype_template_of(enclosing_sym);
       enclosing_sym = primary_template_of(enclosing_sym);
-      if (symbol_is(sym, sk_class_template)) {
+      if (symbol_is(enclosing_sym, sk_class_template)) {
         sym = prototype_template_of(sym);
         sym = primary_template_of(sym);
         if (sym != enclosing_sym) {
