@@ -37319,7 +37319,8 @@ ct_tssp and create implicit deduction guides for constructor.
   proto_cssp = class_symbol_supp(proto_sym);
   proto_type = type_symbol_type(proto_sym);
   ctor_set_sym = proto_cssp->constructor;
-  if (symbol_is(ctor_set_sym, sk_overloaded_function)) {
+  if (ctor_set_sym != NULL &&
+      symbol_is(ctor_set_sym, sk_overloaded_function)) {
     is_list = TRUE;
     ctor_sym = ctor_set_sym->variant.overloaded_function.symbols;
   } else {
