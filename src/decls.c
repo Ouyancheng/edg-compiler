@@ -2974,9 +2974,11 @@ internal linkage).
 static a_boolean is_overloadable_c_sym(a_symbol_ptr         sym,
                                        an_id_linkage_block  *idlbp)
 /*
-Return TRUE if the given symbol and the current declaration were both
-declared with the Clang attribute "overloadable".  Only called in Clang C
-mode.  E.g.:
+Return TRUE if the given symbol or the current declaration is declared with
+the Clang attribute "overloadable".  If the given symbol is an overload set,
+also return TRUE (at least one of the constituent functions will necessarily
+have been declared with "overloadable" also).  Only called in Clang C mode.
+E.g.:
   __attribute((overloadable)) void f(int);
   __attribute((overloadable)) void f(double);
 Here, this function will be called for the second declaration with sym
@@ -2987,14 +2989,17 @@ represent an overload set).
   a_boolean  result = FALSE;
 
   check_assertion(clang_mode && C_mode());
-  if (idlbp->c_overload) {
-    if (symbol_is(sym, sk_routine)) {
-      a_routine_ptr     rp = sym->variant.routine.ptr;
-      an_attribute_ptr  attributes = rp->source_corresp.attributes;
-      if (find_attribute(ak_overloadable, attributes) != NULL) {
-        result = TRUE;
-      }  /* if */
-    } else if (symbol_is(sym, sk_overloaded_function)) {
+  if (symbol_is(sym, sk_overloaded_function)) {
+    /* We already overloaded this function name. */
+    result = TRUE;
+  } else if (idlbp->c_overload) {
+    /* The "overloadable" attribute is specified on the new declaration. */
+    result = TRUE;
+  } else if (symbol_is(sym, sk_routine)) {
+    a_routine_ptr     rp = sym->variant.routine.ptr;
+    an_attribute_ptr  attributes = rp->source_corresp.attributes;
+    if (find_attribute(ak_overloadable, attributes) != NULL) {
+      /* The previous attribute carried the "overloadable" attribute. */
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -8257,8 +8262,8 @@ error cases).
 static void check_clang_c_overload(a_decl_parse_state   *dps,
                                    an_id_linkage_block  *idlbp)
 /*
-dps and idlbp describe a function declaration with the Clang "overloadable"
-attribute.  Verify that the constraints for the attribute are fulfilled and
+If dps and idlbp describe a function declaration with the Clang "overloadable"
+attribute, verify that the constraints for the attribute are fulfilled and
 adjust *dps and *idlbp as needed.
 */
 {

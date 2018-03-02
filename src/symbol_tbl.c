@@ -9283,6 +9283,9 @@ the latter will be NULL for variables.
       a_namespace_ptr          sym_nsp;
       a_boolean                sym_has_C_linkage;
       a_boolean                sym_is_variable;
+      a_type_ptr               other_type;
+      an_extern_symbol_descr_ptr
+                               esdp;
       /* Ignore symbols not associated with the current file scope.  These
          could be extern entities associated with other translation units. */
       if (sym->decl_scope != file_scope_number) continue;
@@ -9299,6 +9302,9 @@ the latter will be NULL for variables.
            namespace projection symbols, and unknown function symbols. */
         continue;
       }  /* if */
+      esdp = sym->variant.extern_symbol_descr;
+      other_type = esdp->type;
+      other_type = skip_typerefs(other_type);
       sym_nsp = sym_parent_namespace_or_null(sym);
       sym_has_C_linkage =
                      (scp->name_linkage == (a_name_linkage_kind)nlk_external);
@@ -9342,12 +9348,13 @@ the latter will be NULL for variables.
         if (rout_type == NULL) break;
         if (second_best_match == NULL) second_best_match = sym;
       } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
-        an_extern_symbol_descr_ptr esdp = sym->variant.extern_symbol_descr;
         if (rout_type != NULL) rout_type = skip_typerefs(rout_type);
         /* A type compatibility check may also be required for routines. */
         if (rout_type == NULL ||
             (C_mode() &&
              rout_type->variant.routine.extra_info->routine_name_linkage
+                            != (a_name_linkage_kind)nlk_cplusplus_external &&
+             other_type->variant.routine.extra_info->routine_name_linkage
                             != (a_name_linkage_kind)nlk_cplusplus_external) ||
             esdp->variant.routine.ptr == il_header.main_routine) {
           /* A name match is enough in C (and for C++, if the routine is
@@ -9366,10 +9373,6 @@ the latter will be NULL for variables.
                int f(int)   { return 0; }
                int f(undef) { return 0; }
           */
-          a_type_ptr           other_type;
-
-          other_type = esdp->type;
-          other_type = skip_typerefs(other_type);
           if (param_types_are_compatible(rout_type, other_type,
                                          TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match, unless a
