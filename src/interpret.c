@@ -3064,6 +3064,22 @@ within the given complete object).
       /* Bypass the code that would mark the object pointed to by "subobject"
          as initialized: */
       goto done;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      { a_type_ptr     etp = skip_typerefs(tp->variant.vector.element_type);
+        a_targ_size_t  k, n_elems = tp->size/etp->size;
+        a_boolean      result = TRUE;
+        a_byte_count   elem_size = value_bytes_for_type(ips, etp, &result);
+        check_assertion(result);
+        for (k = 0; k<n_elems; k += 1) {
+          init_subobject_to_zero(ips, subobj, etp, complete_obj);
+          subobj += elem_size;
+        }  /* for */
+      }
+      /* Bypass the code that would mark the object pointed to by "subobject"
+         as initialized: */
+      goto done;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:
     case tk_struct:
       { /* Initialize fields and bases. */

@@ -1,5 +1,17 @@
 Version 4.15
 
+3/6/18   [EDGcpfe/19400]
+Zero-initialization of vector types in constexpr evaluation
+
+The interpreter previously was not equipped to zero-initialize vector type
+objects.  Attempting to do so resulted in an internal error.  That is now
+fixed.  For example, in GNU C++11 mode:
+
+  using VI4 = __attribute((vector_size(16))) int;
+  struct S { VI4 v; };
+  S &&rs = S{};  // Previously triggered an internal error.  Now okay.
+
+
 3/5/18   [EDGcpfe/17486]
 C++-generating back end: non-standard opaque enumeration declarations
 
