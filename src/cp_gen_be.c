@@ -6736,8 +6736,16 @@ A reference is not the definition.
                (a_boolean *)NULL);
     } else {
       /* Use an elaborated type specifier, e.g., "class X". */
-      gen_tag_reference(type, (a_gen_name_options_set)GN_NO_OPTIONS,
-                        (an_attribute_ptr)NULL);
+      a_gen_name_options_set elab_spec_options = GN_NO_OPTIONS;
+      if ((!type->has_been_declared || type->definition_delayed) &&
+          is_immediate_enum_type(type) && integer_type_is_scoped_enum(type)) {
+        /* This is the first mention of a scoped enumeration, presumably
+           as a non-standard opaque enumeration in a typedef or the like.
+           Mark this as a declaration so that "enum class" will be put
+           out. */
+        elab_spec_options = GN_DECLARATION;
+      }  /* if */
+      gen_tag_reference(type, elab_spec_options, (an_attribute_ptr)NULL);
     }  /* if */
   }  /* if */
 }  /* gen_type_reference */

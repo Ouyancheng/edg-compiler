@@ -1,5 +1,19 @@
 Version 4.15
 
+3/5/18   [EDGcpfe/17486]
+C++-generating back end: non-standard opaque enumeration declarations
+
+The C++ Standard only permits opaque enumeration declarations as standalone
+declarations, not as an elaborated-type-specifier.  However, other
+compilers do not enforce this restriction, so the front end accepts such
+nonstandard elaborated-type-specifiers in non-strict modes.  The
+C++-generating back end, however, did not correctly generate these
+constructs, omitting the "class" keyword.  This has now been fixed.  For
+example, with --c++11:
+
+  using E = enum class E;   // Previously generated as "enum E"
+
+
 3/1/18   [EDGcpfe/19380]
 Incorrect interpretation of default array member initialization
 
