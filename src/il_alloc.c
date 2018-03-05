@@ -2135,6 +2135,7 @@ to default values.
         pte->variant.template_param.is_generic_function_param = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         pte->variant.template_param.is_auto_param = FALSE;
+        pte->variant.template_param.is_decltype_auto = FALSE;
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;
         tptsp->coordinates.position = 0;

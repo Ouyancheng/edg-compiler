@@ -26193,7 +26193,8 @@ TRUE and FALSE is returned.
       goto end_of_routine;
     }  /* if */
   }  /* if */
-  check_assertion(is_auto_type(auto_type));
+  check_assertion(is_auto_type(auto_type) ||
+                  is_auto_template_param_type(auto_type));
   if (initializer_alep != NULL) {
     /* The initializer is given in init-component form. */
     if (is_expression_component(initializer_alep)) {

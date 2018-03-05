@@ -215,6 +215,7 @@ be restored).
     dps->param_with_only_enclosing_pack_refs = FALSE;
     dps->pending_prefix_enable_if_attr = FALSE;
     dps->keep_terminating_token = FALSE;
+    dps->is_nontype_template_param = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -18831,6 +18832,7 @@ to introduce a trailing return type (including invalid cases like
   if (!dps->has_deduced_type ||
       dps->has_trailing_return_type ||
       dps->is_deduction_guide ||
+      (dps->is_nontype_template_param && dps->auto_type_allowed) ||
       (deduced_return_types_enabled &&
        ((dps->type != NULL && dps->type->kind == (a_type_kind)tk_routine) ||
         dps->is_trailing_return_type))) {

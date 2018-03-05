@@ -1011,6 +1011,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the token terminating the declaration
 			   (usually a semicolon) should not be consumed or
 			   checked. */
+  a_bit_field	is_nontype_template_param:1;
+			/* TRUE if this is a nontype template parameter
+			   declaration. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

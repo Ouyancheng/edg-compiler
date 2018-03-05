@@ -400,6 +400,74 @@ was not attempted because the types involved are still dependent,
 }  /* deduce_placeholder_type */ 
 
 
+a_boolean arg_matches_auto_template_param(
+				a_type_ptr		param_type,
+				a_constant_ptr		constant,
+				an_arg_operand_ptr	arg_operand,
+				a_type_ptr		*p_deduced_type,
+				a_source_position_ptr	position)
+/*
+Return TRUE if the auto template parameter type specified by param_type
+matches the type of the argument specified by constant or arg_operand.
+Only one of constant or arg_operand must be non-NULL.  If position is
+non-NULL, a diagnostic is issued if either the resulting type is invalid
+as a nontype parameter, or if an auto type cannot be deduced.  If
+*p_deduced_type is not NULL, it is set to either the deduced type or an
+error type.
+*/
+{
+  a_boolean              result = FALSE;
+  a_type_ptr	         bottom_type;
+  a_type_ptr             deduced_type = NULL;
+  a_type_ptr             deduced_auto_type = NULL;
+  a_boolean              still_dependent = FALSE;
+  an_operand	         local_operand;
+  an_operand_ptr         p_operand;
+
+  bottom_type = find_bottom_of_type(param_type);
+  check_assertion(is_auto_template_param_type(bottom_type));
+  /* If a constant is supplied, create an operand from it.  Otherwise, use
+     the supplied operand. */
+  if (constant != NULL) {
+    check_assertion(arg_operand == NULL);
+    make_constant_operand(constant, &local_operand);
+    p_operand = &local_operand;
+  } else {
+    p_operand = &arg_operand->operand;
+  }  /* if */
+  /* Attempt to deduce the auto type from the argument type. */
+  if (deduce_placeholder_type(
+                         bottom_type->variant.template_param.is_decltype_auto,
+                         /*is_class_template=*/FALSE,
+                         /*is_direct_init=*/TRUE,
+                         param_type, bottom_type,
+                         /*keep_placeholder=*/FALSE,
+                         p_operand, (an_arg_list_elem_ptr)NULL,
+                         position,
+                         &deduced_type, &deduced_auto_type,
+                         &still_dependent)) {
+    /* The deduction succeeded.  Make sure the resulting type is valid as
+       a nontype template parameter. */
+    if (check_nontype_template_param_type(&deduced_type, position)) {
+      result = TRUE;
+    }  /* if */
+  } else {
+    if (still_dependent) {
+      /* If the type is still dependent, return the original type. */
+      result = TRUE;
+      deduced_type = param_type;
+    } else {
+      pos_ty2_error(ec_cannot_deduce_auto_templ_param, position,
+                    param_type, p_operand->type);
+    }  /* if */
+  }  /* if */
+  if (p_deduced_type != NULL) {
+    *p_deduced_type = result ? deduced_type : error_type();
+  }  /* if */
+  return result;
+}  /* arg_matches_auto_template_param */
+
+
 static void scan_call_arguments(
                            a_type_ptr               function_type,
                            a_routine_ptr            routine,
@@ -41318,6 +41386,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   a_decl_sequence_number inst_seq_on_entry =
                                            class_instantiation_sequence_number;
   a_boolean              relaxed_ms_case = FALSE;
+  a_source_position      start_pos = pos_curr_token;
 
   db_enter(3, "scan_template_argument_constant_expression");
   check_assertion(constant != NULL && in_file_scope(constant));
@@ -41329,6 +41398,24 @@ memory region).  If param_type is NULL, the parameter type is not known.
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   check_nontype_template_argument_type(&result);
+  if (param_type != NULL) {
+    /* Check for an "auto" or "decltype(auto)" parameter. */
+    a_type_ptr    bottom_type;
+    bottom_type = find_bottom_of_type(param_type);
+    if (is_auto_template_param_type(bottom_type)) {
+      /* Attempt to deduce the auto type from the argument.  An error will
+         be issued if this cannot be done.  deduced_type will either be
+         the deduced type or an error type. */
+      a_type_ptr          deduced_type = NULL;
+      an_arg_operand_ptr  arg_operand = alloc_arg_operand();
+      arg_operand->operand = result;
+      (void)arg_matches_auto_template_param(param_type, (a_constant_ptr)NULL,
+                                            arg_operand, &deduced_type,
+                                            &start_pos);
+      param_type = deduced_type;
+      free_arg_operand_list(arg_operand);
+    }  /* if */
+  }  /* if */
   if (class_instantiation_sequence_number != inst_seq_on_entry) {
     result.caused_template_instantiation = TRUE;
   }  /* if */
@@ -41533,7 +41620,9 @@ arg_operand points to an argument operand for a nontype template argument
 expression previously scanned by scan_nontype_template_argument.  Convert it
 to the template parameter type param_type, and put a constant for the
 converted result in *constant (which must be in the file scope memory region).
-This is callable from outside of the expression processing routines.
+This is callable from outside of the expression processing routines.  For
+an "auto" or "decltype(auto)" parameter, param_type will be NULL and the
+type will be obtained from the arg_operand.
 */
 {
   an_operand             operand;
@@ -41547,10 +41636,12 @@ This is callable from outside of the expression processing routines.
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   switch_to_file_scope_region(&region_to_switch_back_to);
-  if (is_error_operand(&arg_operand->operand) || is_error_type(param_type)) {
+  if (is_error_operand(&arg_operand->operand) ||
+      (param_type != NULL && is_error_type(param_type))) {
     set_error_constant(constant);
   } else {
     copy_nontype_template_arg_operand(arg_operand, &operand);
+    if (param_type == NULL) param_type = operand.type;
     /* Convert the operand to the parameter type and extract a constant. */
     prep_nontype_template_argument_initializer(&operand,
                                                param_type, constant);

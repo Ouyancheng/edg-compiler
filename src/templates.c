@@ -2275,8 +2275,8 @@ Return TRUE if there is a match, FALSE otherwise.
 }  /* template_template_arg_matches_param */
 
 
-static a_boolean check_nontype_template_param_type(a_type_ptr         *p_type,
-                                                   a_source_position  *pos)
+a_boolean check_nontype_template_param_type(a_type_ptr         *p_type,
+                                            a_source_position  *pos)
 /*
 If the given type is a valid type for a nontype template parameter return TRUE.
 Otherwise, return FALSE, and, if pos is non-NULL, issue an appropriate error at
@@ -2417,7 +2417,8 @@ during wrapup processing by compare_function_templates.
       if (is_nontype_templ_arg(tap)) {
         /* Check whether this nontype template parameter must be rescanned
            because of a dependence on another template argument. */
-        if (tpp->variant.constant.type_involves_template_param) {
+        if (!tpp->uses_auto &&
+            tpp->variant.constant.type_involves_template_param) {
           /* Create a substituted version of the nontype value. */
           a_boolean	copy_error = FALSE;
           a_ctws_state	ctws_state;
@@ -2441,7 +2442,7 @@ during wrapup processing by compare_function_templates.
           /* The constant was deduced from an array bound and does not yet
              have a type.  Make sure the declared type is integral, then
              create a constant of the appropriate type. */
-          if (!is_integral_type(constant_type)) {
+          if (tpp->uses_auto || !is_integral_type(constant_type)) {
             match = FALSE;
           } else {
             a_constant_ptr	constant;
@@ -2456,10 +2457,16 @@ during wrapup processing by compare_function_templates.
           /* The template argument has a deduced value with a type.  The
              type must match the declared type.  This test is only needed if
              the type involves a template parameter. */
-          check_assertion(tap->variant.constant != NULL);
-          if (tpp->variant.constant.type_involves_template_param) {
-            match = identical_types(constant_type,
-                                    tap->variant.constant->type);
+          a_constant_ptr	constant = tap->variant.constant;
+          check_assertion(constant != NULL);
+          if (tpp->uses_auto) {
+            match = arg_matches_auto_template_param(
+                                    tpp->variant.constant.ptr->type, constant,
+                                    (an_arg_operand_ptr)NULL,
+                                    (a_type_ptr*)NULL,
+                                    (a_source_position_ptr)NULL);
+          } else if (tpp->variant.constant.type_involves_template_param) {
+            match = identical_types(constant_type, constant->type);
           }  /* if */
         }  /* if */
       } else if (is_template_templ_arg(tap)) {
@@ -10402,24 +10409,26 @@ doing C++17-style template template parameter matching.
         } else if (is_template_templ_arg(tap)) {
           tap->variant.templ = specified_tap->variant.templ;
         } else {
-          /* Convert the constant value to the type of the template
-             parameter. */
-          a_type_ptr		constant_type;
+          a_type_ptr		constant_type = NULL;
           a_constant_ptr	constant;
-          a_boolean		copy_error = FALSE;
-          a_ctws_state		ctws_state;
-          init_ctws_state(&ctws_state);
           constant = fs_constant((a_constant_repr_kind)ck_error);
-          constant_type = tpp->param_symbol->variant.constant->type;
-          constant_type = copy_type_with_substitution(
+          if (!tpp->uses_auto) {
+            /* Convert the constant value to the type of the template
+               parameter. */
+            a_boolean		copy_error = FALSE;
+            a_ctws_state	ctws_state;
+            init_ctws_state(&ctws_state);
+            constant_type = tpp->param_symbol->variant.constant->type;
+            constant_type = copy_type_with_substitution(
                                     constant_type, new_list, templ_param_list,
 				    source_pos,
                                     CTWS_NO_OPTIONS, &copy_error, &ctws_state);
-          if (copy_error) {
-            /* The substitution of the type of the nontype parameter
-               resulted in an invalid type. */
-            arg_kind_mismatch = TRUE;
-            break;
+            if (copy_error) {
+              /* The substitution of the type of the nontype parameter
+                 resulted in an invalid type. */
+              arg_kind_mismatch = TRUE;
+              break;
+            }  /* if */
           }  /* if */
           if (is_templ_templ_param_check) {
             /* For a template template parameter check, consider this a match
@@ -10432,19 +10441,34 @@ doing C++17-style template template parameter matching.
             /* Verify that the constant value can be converted to the type of
                the corresponding template parameter. */
             check_assertion(specified_tap->arg_operand != NULL);
-            if (!nontype_template_arg_is_compatible_with_param_type(
+            if (tpp->uses_auto) {
+              /* For an auto template parameter, make sure the type matches
+                 the parameter.  Note that constant_type will be NULL
+                 below in this case. */
+              if (!arg_matches_auto_template_param(
+                           tpp->variant.constant.ptr->type,
+                           (a_constant_ptr)NULL, specified_tap->arg_operand,
+                           (a_type_ptr*)NULL,
+                           (a_source_position_ptr)NULL)) {
+                arg_kind_mismatch = TRUE;
+                break;
+              }  /* if */
+            } else {
+              check_assertion(constant_type != NULL);
+              if (!nontype_template_arg_is_compatible_with_param_type(
                                   specified_tap->arg_operand, constant_type)) {
-              arg_kind_mismatch = TRUE;
-              break;
+                arg_kind_mismatch = TRUE;
+                break;
+              }  /* if */
             }  /* if */
             conv_nontype_template_arg_to_param_type(
                           specified_tap->arg_operand, constant_type, constant);
             if (is_error_constant(constant)) {
-              /* The conversion resulted in an error constant.  The presence of
-                 an error type can sometimes cause the compatibility check
-                 above to succeed even when the actual conversion will produce
-                 an error type.   If the conversion resulted in an error
-                 constant, treat this as mismatch. */
+              /* The conversion resulted in an error constant.  The presence
+                 of an error type can sometimes cause the compatibility check
+                 above to succeed even when the actual conversion will
+                 produce an error type.   If the conversion resulted in an
+                 error constant, treat this as mismatch. */
               arg_kind_mismatch = TRUE;
               break;
             }  /* if */
@@ -10860,12 +10884,15 @@ list of a template function.  Returns TRUE if a match is found.
         tpp = get_template_param_by_list_pos(templ_param_list,
                                              coordinates->position);
         match = TRUE;
-        /* Note that the type of the constant does not participate in
-           type deduction.  Once all of the arguments have been deduced
-           the types of the nontype parameters are compared with the
-           types in the template parameter list.  If the constant types
-           are not dependent, we can check them now. */
-        if (!tpp->variant.constant.type_involves_template_param) {
+        /* Note that except for "auto" or "decltype(auto)" parameters,
+           the type of the constant does not participate in type deduction.
+           Once all of the arguments have been deduced the types of the
+           nontype parameters are compared with the types in the template
+           parameter list.  If the constant types are not dependent, we
+           can check them now. */
+        if (tpp->uses_auto) {
+          /* Consider an auto parameter a match for now. */
+        } else if (!tpp->variant.constant.type_involves_template_param) {
           if (!identical_types(constant->type,
                                templ_constant->type) &&
               !is_template_dependent_type(constant->type)) {
@@ -11662,6 +11689,7 @@ points to the template parameter list.
              instantiation that includes a template parameter type in the
              parent class. */
           match = is_auto_type(templ_type) ||
+                  is_auto_template_param_type(templ_type) ||
                   identical_types(type, templ_type);
         } else {
           a_template_param_coordinate_ptr	coordinates;
@@ -12493,22 +12521,27 @@ parameters.
     if (have_params) {
       /* Substitute the type of the nontype parameter. */
       const_type = tpp->variant.constant.ptr->type;
-      if (tpp->variant.constant.type_involves_template_param) {
-        /* The type of the template parameter involves a template
-           parameter.   Substitute the current set of template arguments
-           (the ones being created by this routine) into the type.
-           The outer template arguments will also be substituted below. */
-        const_type =
+      if (tpp->uses_auto) {
+        /* Get the type from the argument.  This will be checked below. */
+        new_const_type = tap->variant.constant->type;
+      } else {
+        if (tpp->variant.constant.type_involves_template_param) {
+          /* The type of the template parameter involves a template
+             parameter.   Substitute the current set of template arguments
+             (the ones being created by this routine) into the type.
+             The outer template arguments will also be substituted below. */
+          const_type =
              copy_type_with_substitution(const_type,
                                          arg_list_to_copy, param_list_for_copy,
 					 source_pos, options, copy_error,
                                          ctws_state);
+        }  /* if */
+        new_const_type = copy_type_with_substitution(const_type,
+                                                     templ_arg_list,
+                                                     templ_param_list,
+                                                     source_pos, options,
+                                                     copy_error, ctws_state);
       }  /* if */
-      new_const_type = copy_type_with_substitution(const_type,
-                                                   templ_arg_list,
-                                                   templ_param_list,
-                                                   source_pos, options,
-                                                   copy_error, ctws_state);
       /* Make sure the new type is a valid type for a nontype template
          parameter. */
       if (const_type != new_const_type &&
@@ -12536,7 +12569,18 @@ parameters.
                                                    copy_error,
                                                    ctws_state);
     tap->is_pack = constant_is_pack(tap->variant.constant);
-    if (new_const_type != NULL) {
+    if (have_params && tpp->uses_auto) {
+      /* Make sure the new argument is compatible with the auto template
+         parameter. */
+      if (!arg_matches_auto_template_param(tpp->variant.constant.ptr->type,
+                                           tap->variant.constant,
+                                           (an_arg_operand_ptr)NULL,
+                                           (a_type_ptr*)NULL,
+                                           (a_source_position_ptr)NULL)) {
+        /* It is not compatible. */
+        subst_fail(*copy_error);
+      }  /* if */
+    } else if (new_const_type != NULL) {
       /* If the constant does not have the required type, see if it can
          be converted. */
       a_type_ptr	type_from_constant = tap->variant.constant->type;
@@ -22450,6 +22494,7 @@ static void scan_a_template_parameter_declaration(
 				a_boolean		*is_unnamed,
 				a_boolean		*template_dependent,
 				a_boolean		*is_pack,
+				a_boolean		*uses_auto,
 				a_decl_pos_block_ptr	decl_pos_block)
 /*
 Scan the declaration of a single template nontype parameter.  If the
@@ -22457,8 +22502,10 @@ parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
 whether the nontype parameter is unnamed.  If the parameter type
 depends on a template parameter type, return TRUE in *template_dependent
 (if it is not NULL).  If the type of the parameter is followed by an
-ellipsis, return TRUE in *is_pack.  decl_pos_block is used to return
-additional position information about the components of the declaration.
+ellipsis, return TRUE in *is_pack.  If the template parameter is declared
+with "auto" or "decltype(auto)", return TRUE in *uses_auto (if it is not
+NULL).  decl_pos_block is used to return additional position information
+about the components of the declaration.
 */
 {
   a_decl_parse_state           state;
@@ -22467,6 +22514,8 @@ additional position information about the components of the declaration.
   init_decl_parse_state(&state);
   state.trailing_return_type_allowed = trailing_return_types_enabled;
   state.pack_ellipsis_allowed = variadic_templates_enabled;
+  state.auto_type_allowed = auto_template_params_enabled;
+  state.is_nontype_template_param = TRUE;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
                   &state, decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
@@ -22493,11 +22542,17 @@ additional position information about the components of the declaration.
   }  /* if */
   remove_declarator_sse(&state, depth_scope_stack);
   check_use_of_placeholder_type(&state);
+  if (state.has_deduced_type && auto_template_params_enabled) {
+    /* has_deduced_type can be set in some error cases even when auto
+       template parameters are not enabled. */
+    if (uses_auto != NULL) *uses_auto = TRUE;
+  }  /* if */
   if (template_dependent != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
        dependencies could be eliminated. */
-    *template_dependent = is_instantiation_dependent_type(state.type);
+    *template_dependent = !state.has_deduced_type &&
+                          is_instantiation_dependent_type(state.type);
   }  /* if */
   /* Check for invalid nontype parameter types and adjust those types if
      needed (array and function type decay). */
@@ -22958,6 +23013,28 @@ Scan the default argument of the nontype template parameter specified by tpp.
 }  /* scan_nontype_template_param_default_arg */
 
 
+static void update_auto_template_param_type(a_type_ptr	param_type)
+/*
+Update the "auto" or "decltype(auto)" type of param_type to record that it
+is used in an auto template parameter.
+*/
+{
+  a_type_ptr	type;
+  type = find_bottom_of_type(param_type);
+  if (type_is(type, tk_template_param)) {
+    a_template_param_type_supplement_ptr	tptsp;
+    tptsp = type->variant.template_param.extra_info;
+    if (tptsp->coordinates.depth == AUTO_TYPE_NESTING_DEPTH) {
+      /* Translate the "auto" information encoded in the coordinates to
+         the flags used for nontype template parameter types. */
+      type->variant.template_param.is_auto_param = TRUE;
+      type->variant.template_param.is_decltype_auto =
+                      tptsp->coordinates.position == DECLTYPE_AUTO_POS_NUMBER;
+    }  /* if */
+  }  /* if */
+}  /* udpate_auto_template_param_type */
+
+
 static a_template_param_ptr scan_nontype_template_param(
 		a_tmpl_decl_state_ptr		decl_state,
 		a_template_param_list_pos	template_param_list_pos,
@@ -22977,6 +23054,7 @@ depends on a template parameter.
   a_symbol_ptr         	sym;
   a_boolean		const_type_involves_template_param = FALSE;
   a_boolean		is_pack = FALSE;
+  a_boolean		uses_auto = FALSE;
   a_decl_pos_block	decl_pos_block;
 
   clear_decl_pos_block(&decl_pos_block);
@@ -22984,7 +23062,8 @@ depends on a template parameter.
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
                                         &is_unnamed,
                                         &const_type_involves_template_param,
-                                        &is_pack, &decl_pos_block);
+                                        &is_pack, &uses_auto,
+                                        &decl_pos_block);
   /* Create a symbol and bind a template param constant to it. At each
       point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
@@ -23022,6 +23101,10 @@ depends on a template parameter.
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
+  if (uses_auto) {
+    template_param->uses_auto = TRUE;
+    update_auto_template_param_type(param_type_ptr);
+  }  /* if */
   if (const_type_involves_template_param) {
     /* For nontype parameters, the type of the parameter needs
        to be saved as a token cache if the type uses template
@@ -23523,7 +23606,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
        instantiation. */
     ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
   }  /* if */
-  if (type_involves_template_param) {
+  if (type_involves_template_param && !param_ptr->uses_auto) {
     if (pending_nontype_param_instantiations == max_pending_instantiations) {
       pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
       constant_type = error_type();
@@ -23548,6 +23631,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
       rescan_reusable_cache(&param_ptr->cache.tokens);
       /* Scan the declaration specifiers. */
       scan_a_template_parameter_declaration(&param_locator, &constant_type,
+                                            (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,

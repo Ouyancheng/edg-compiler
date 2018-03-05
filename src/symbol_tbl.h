@@ -2059,6 +2059,9 @@ typedef struct a_template_param {
   a_bit_field	used_in_alias:1;
 			/* TRUE if the parameter is used in the resulting
 			   alias type. */
+  a_bit_field	uses_auto:1;
+			/* TRUE if this is a nontype parameter whose type
+			   involves "auto" or "decltype(auto)". */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When param_symbol->kind = sk_type. */

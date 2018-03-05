@@ -1420,6 +1420,8 @@ extern void detach_ref_entries_from_curr_expr(an_operand *operand);
 
 extern void reattach_ref_entries_to_curr_expr(an_operand *operand);
 
+extern void free_arg_operand_list(an_arg_operand_ptr aop);
+
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
 extern an_arg_operand_ptr arg_operand_for_constant(a_constant_ptr  cp);

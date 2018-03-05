@@ -2614,9 +2614,11 @@ Return TRUE if the given type is a class type with virtual functions
 
 a_boolean is_auto_type(a_type_ptr tp)
 /*
-Return TRUE if the indicated type is a special template parameter type used to
-represent "auto" or "decltype(auto)".  No typerefs are stripped before
-checking for that.
+Return TRUE if the indicated type is a special type used to represent
+"auto" or "decltype(auto)".  No typerefs are stripped before checking
+for that.  This is used to check for auto types used as variable types
+or deduced return types.  For auto nontype template parameter types,
+see is_auto_template_param_type.
 */
 {
   a_boolean result = FALSE;
@@ -2630,6 +2632,27 @@ checking for that.
   }  /* if */
   return result;
 }  /* is_auto_type */
+
+
+a_boolean is_auto_template_param_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a special type used to represent
+"auto" or "decltype(auto)".  No typerefs are stripped before checking
+for that.  This is used to check for nontype template parameters that
+are declared with auto types.  For other uses of auto types, see
+is_auto_type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_template_param(tp) &&
+      tp->variant.template_param.kind ==
+                               (a_template_param_type_kind)tptk_param &&
+      tp->variant.template_param.is_auto_param) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_auto_template_param_type */
 
 
 a_boolean is_class_template_placeholder_type(a_type_ptr tp)

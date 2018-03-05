@@ -913,7 +913,7 @@ The operand will not be used further.
 }  /* free_attachments_to_operand */
 
 
-static void free_arg_operand_list(an_arg_operand_ptr aop)
+void free_arg_operand_list(an_arg_operand_ptr aop)
 /*
 Free the list of argument operands pointed to by aop.
 */

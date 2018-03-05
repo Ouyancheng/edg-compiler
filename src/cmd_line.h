@@ -667,6 +667,11 @@ EXTERN a_boolean
 			   is enabled. */
 
 EXTERN a_boolean
+		auto_template_params_enabled;
+			/* TRUE if C++17 "auto" template parameters are
+			   enabled. */
+
+EXTERN a_boolean
 		floating_point_template_parameters_allowed;
 			/* TRUE if template parameters of floating-point type
 			   are allowed (which is nonstandard). */

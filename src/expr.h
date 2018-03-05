@@ -425,6 +425,13 @@ extern void check_and_adjust_deduced_return_type_if_needed(
                                                  a_type_ptr      *return_type);
 #endif /* COROUTINES_ALLOWED */
 
+extern a_boolean arg_matches_auto_template_param(
+				a_type_ptr		param_type,
+				a_constant_ptr		constant,
+				an_arg_operand_ptr	arg_operand,
+				a_type_ptr		*p_deduced_type,
+				a_source_position_ptr	position);
+
 extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
                                            a_template_arg_ptr orig_tap);

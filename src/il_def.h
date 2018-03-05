@@ -9657,7 +9657,13 @@ typedef struct a_type {
       a_bit_field
 		is_auto_param:1;
 			/* TRUE if this is a template parameter introduced by
-			   a C++14 "auto" lambda parameter. */
+			   a C++14 "auto" lambda parameter, or a C++17
+			   "auto" or "decltype(auto)" nontype template
+			   parameter. */
+      a_bit_field
+		is_decltype_auto:1;
+			/* TRUE if this is a C++17 "decltype(auto)" nontype
+			   template parameter. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

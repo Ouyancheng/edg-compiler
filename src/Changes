@@ -1,5 +1,16 @@
 Version 4.15
 
+3/5/18   [EDGcpfe/17698]
+C++17: auto nontype template parameters
+
+C++17 "auto" nontype template parameters (originally described in P0127R2)
+are now implemented.
+
+  template <auto x> struct A { };
+  A<2> a1;   // template parameter type is int
+  A<'a'> a2; // template parameter type is char
+
+
 3/6/18   [EDGcpfe/19400]
 Zero-initialization of vector types in constexpr evaluation
 
