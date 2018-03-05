@@ -2999,7 +2999,7 @@ represent an overload set).
     a_routine_ptr     rp = sym->variant.routine.ptr;
     an_attribute_ptr  attributes = rp->source_corresp.attributes;
     if (find_attribute(ak_overloadable, attributes) != NULL) {
-      /* The previous attribute carried the "overloadable" attribute. */
+      /* The previous declaration carried the "overloadable" attribute. */
       result = TRUE;
     }  /* if */
   }  /* if */
