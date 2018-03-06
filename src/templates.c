@@ -22551,7 +22551,7 @@ about the components of the declaration.
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
        dependencies could be eliminated. */
-    *template_dependent = !state.has_deduced_type &&
+    *template_dependent = !*uses_auto &&
                           is_instantiation_dependent_type(state.type);
   }  /* if */
   /* Check for invalid nontype parameter types and adjust those types if

@@ -457,8 +457,10 @@ error type.
       result = TRUE;
       deduced_type = param_type;
     } else {
-      pos_ty2_error(ec_cannot_deduce_auto_templ_param, position,
-                    param_type, p_operand->type);
+      if (position != NULL) {
+        pos_ty2_error(ec_cannot_deduce_auto_templ_param, position,
+                      param_type, p_operand->type);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (p_deduced_type != NULL) {
