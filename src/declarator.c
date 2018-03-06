@@ -2311,6 +2311,8 @@ routine is also called for the trailing return type of a lambda declarator.
               &dps->declarator_start_pos);
     err = TRUE;
   }  /* if */
+  /* Any leading "auto" did not represent a deduced type after all. */
+  dps->has_deduced_type = FALSE;
   /* Skip over the "->" token. */
   (void)get_token();
   dps->return_type_pos = pos_curr_token;
