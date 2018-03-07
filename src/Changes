@@ -1,5 +1,20 @@
 Version 4.15
 
+3/7/18   [EDGcpfe/19399]
+Abort on explicit template arguments for function with fold expression
+
+The front end previously could abort with an internal error in function
+rescan_pack_expansion when processing a call with explicit template arguments
+to a function whose signature involves a C++17 fold expression.  For example:
+
+  template<int> struct N {};
+  template<int... Is> void f(N<(b + ...)>) {
+    f<3>({});  // Previously triggered an internal error.
+  }
+
+That issue is now fixed.
+
+
 3/5/18   [EDGcpfe/17698]
 C++17: auto nontype template parameters
 

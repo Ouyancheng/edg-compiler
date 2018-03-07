@@ -45607,8 +45607,8 @@ left_associative is TRUE if the expansion should be evaluated as
           opnd_nodes->rescan_info
                     ->saved_operand.pack_expansion_descr == NULL) {
         /* A rescannable node, but we didn't record a pack-expansion
-           description entry. */
-        expect_error();
+           description entry.  That can happen during a partial substitution
+           (explicit template arguments). */
       } else {
         opnd_nodes->is_pack_expansion = TRUE;
       }  /* if */
@@ -45856,13 +45856,25 @@ cases the selector is returned via bound_function_selector).
   a_source_position     *op_pos = &expr->position;
   an_operand            *opnd = &expr->rescan_info->saved_operand;
   an_arg_list_elem_ptr  opnd_list;
+  a_boolean             generic = FALSE;
+  a_boolean             preserve_deduced_packs =
+                         (rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
 
+  if (preserve_deduced_packs) {
+    /* If preserve_deduced_packs is TRUE, the template argument list is not
+       known to be complete yet.  Produce a generic representation for now. */
+    rcblock->options &= ~CTWS_PRESERVE_DEDUCED_PACKS;
+    generic = TRUE;
+  }  /* if */
   opnd_list = rescan_expr_list(generic_opnds, rcblock);
   assemble_fold_expression_operand(result, bound_function_selector,
                                    &opnd->position, op_pos,
                                    end_position_or_null(&opnd->end_position),
                                    opnd_list, op_token, unary,
-                                   left_associative, /*generic=*/FALSE);
+                                   left_associative, generic);
+  if (preserve_deduced_packs) {
+    rcblock->options |= CTWS_PRESERVE_DEDUCED_PACKS;
+  }  /* if */
 }  /* rescan_fold_expression */
 
 
