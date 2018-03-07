@@ -2312,6 +2312,15 @@ routine is also called for the trailing return type of a lambda declarator.
     err = TRUE;
   }  /* if */
   /* Any leading "auto" did not represent a deduced type after all. */
+  if (dps->secondary_declarator) {
+    /* Check that "auto" is not used both to announce a trailing return type
+       and as a deducible type specifier. */
+    if (dps->deduced_auto_type != NULL) {
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                      : es_warning,
+                     ec_auto_used_two_ways, &dps->auto_pos);
+    }  /* if */
+  }  /* if */
   dps->has_deduced_type = FALSE;
   /* Skip over the "->" token. */
   (void)get_token();

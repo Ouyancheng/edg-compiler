@@ -253,6 +253,7 @@ be restored).
          to override the "auto" type with the actual return type.  Restore the
          "auto" type. */
       dps->has_trailing_return_type = FALSE;
+      dps->has_deduced_type = dps->auto_type_specifier_seen;
       dps->specifiers_type = dps->auto_type;
       dps->declared_type = dps->auto_type;
       dps->type = dps->auto_type;
