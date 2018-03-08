@@ -35161,9 +35161,25 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       vp->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
     } else {
       a_routine_ptr rp = sym->variant.routine.ptr;
-      rp->explicit_instantiation = tip->explicit_instantiation;
-      rp->class_explicitly_instantiated = tip->class_explicitly_instantiated;
-      rp->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
+#define set_instantiation_flags(r)                                            \
+  (r)->explicit_instantiation = tip->explicit_instantiation;                  \
+  (r)->class_explicitly_instantiated = tip->class_explicitly_instantiated;    \
+  (r)->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
+      set_instantiation_flags(rp);
+#if IA64_ABI
+      /* Alternate entry points of constructors and destructors get
+         the same treatment as the primary routine. */
+      if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+          rp->special_kind == (a_special_function_kind)sfk_destructor) {
+        a_routine_list_entry_ptr rlep;
+        for (rlep = rp->variant.ctor_dtor.alternate_entry_points;
+             rlep != NULL;
+             rlep = rlep->next) {
+          set_instantiation_flags(rlep->routine);
+        }  /* for */
+      }  /* if */
+#endif /* IA64_ABI */
+#undef set_instantiation_flags
     }  /* if */
   }  /* if */
 #if DEBUG
