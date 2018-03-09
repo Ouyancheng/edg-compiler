@@ -6080,9 +6080,10 @@ re-ordered base classes.
   a_base_class_ptr            bcp;
   a_type_ptr                  class_type = skip_typerefs(constant->type);
   a_constant_ptr              cp, cp_next, prev = NULL;
-  an_init_pos_modifier        ipm, *save_modifiers;
+  an_init_pos_modifier        ipm;
+  an_init_pos_descr           local_ipd, *local_ipdp = NULL;
   a_field_ptr                 fp;
-  a_boolean                   update_prev, save_base_class_subobject;
+  a_boolean                   update_prev;
   a_boolean                   advance_fp;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
@@ -6093,11 +6094,13 @@ re-ordered base classes.
     if (ipdp != NULL) {
       /* If we may be generating executable code for the initialization,
          add a modifier to the initialization position (we'll decide later
-         if it's a field or base class modifier).  Save the original values
-         and restore them when we're done. */
-      save_modifiers = ipdp->modifiers;
-      save_base_class_subobject = ipdp->base_class_subobject;
-      add_init_pos_modifier(&ipm, ipdp);
+         if it's a field or base class modifier).  Use a copy so as not to
+         modify the caller's version. */
+      local_ipd = *ipdp;
+      local_ipd.next = NULL;
+      local_ipdp = &local_ipd;
+      add_init_pos_modifier(&ipm, local_ipdp);
+      push_aggregate_this(local_ipdp);
     }  /* if */
     ctsp = class_type_supp(class_type);
     bcp = ctsp->base_classes;
@@ -6140,28 +6143,31 @@ re-ordered base classes.
         if (ipdp != NULL) {
           ipm.curr_base = bcp;
           ipm.type = cp->type;
-          ipdp->base_class_subobject = TRUE;
+          local_ipdp->base_class_subobject = TRUE;
         }  /* if */
-        if (bcp->is_optimized_empty_base) {
-          /* This base class is an empty base class that has been optimized
-             (so it won't exist in the lowered type).  The constant for it
-             must be removed.  Lower any dynamic initialization. */
-          if (cp->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+          /* Recurse to remove initializers for empty base classes. */
+          remove_initializers_for_empty_base_classes(cp, local_ipdp,
+                                                     insert_location);
+        } else {
+          /* A dynamic initialization in the aggregate.  If this is for
+             an optimized base class, lower it now (because the aggregate
+             will be removed); otherwise leave it for the caller to lower. */
+          check_assertion(cp->kind == (a_constant_repr_kind)ck_dynamic_init);
+          if (bcp->is_optimized_empty_base) {
             a_boolean keep_constant = FALSE;
             check_assertion(ipdp != NULL && insert_location != NULL);
-            lower_ck_dynamic_init(cp, ipdp, /*dtor_case=*/FALSE,
+            lower_ck_dynamic_init(cp, local_ipdp, /*dtor_case=*/FALSE,
                               (an_implied_copy_source*)NULL,
                               /*others_follow_in_aggr=*/(cp->next != NULL),
                               insert_location, &keep_constant, LDIO_NONE);
             check_assertion(!keep_constant);
-          } else {
-            /* This will be removed (but check that there aren't nested
-               empty classes first). */
-            check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate);
-            remove_initializers_for_empty_base_classes(cp, ipdp,
-                                                       insert_location);
           }  /* if */
-          /* Remove the constant from the aggregate. */
+        }  /* if */
+        if (bcp->is_optimized_empty_base) {
+          /* This base class is an empty base class that has been optimized
+             (so it won't exist in the lowered type).  The constant for it
+             must be removed from the aggregate. */
           if (prev == NULL) {
             constant->variant.aggregate.first_constant = cp->next;
           } else {
@@ -6172,10 +6178,7 @@ re-ordered base classes.
           }  /* if */
           update_prev = FALSE;
           advance_fp = FALSE;
-        } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-          /* Not an optimized empty base class, but might contain them. */
-          remove_initializers_for_empty_base_classes(cp, ipdp,
-                                                     insert_location);
+        } else {
 #if IA64_ABI
           if (ctsp->primary_base_class != NULL &&
               ctsp->primary_base_class != ctsp->base_classes) {
@@ -6228,7 +6231,7 @@ re-ordered base classes.
             ipm.curr_field = fp;
             ipm.type = cp->type;
           }  /* if */
-          remove_initializers_for_empty_base_classes(cp, ipdp,
+          remove_initializers_for_empty_base_classes(cp, local_ipdp,
                                                      insert_location);
         }  /* if */
       }  /* if */
@@ -6248,8 +6251,7 @@ re-ordered base classes.
       }  /* if */
     }  /* for */
     if (ipdp != NULL) {
-      ipdp->modifiers = save_modifiers;
-      ipdp->base_class_subobject = save_base_class_subobject;
+      pop_aggregate_this();
     }  /* if */
   }  /* if */
 }  /* remove_initializers_for_empty_base_classes */
@@ -6369,6 +6371,7 @@ represents a full expression).
                              aggr_type->variant.class_struct_union.field_list);
     /* Push a pointer to the beginning of the constant in case a reference to
        "this" is needed later (see lower_param_ref). */
+    push_aggregate_this(ipdp);
 #if EXPENSIVE_CHECKING && CHECKING
     if (!was_complex_type) {
       /* Verify that the aggregate type matches that of the corresponding
@@ -6379,7 +6382,6 @@ represents a full expression).
                                             type_pointed_to(init_node->type)));
     }  /* if */
 #endif /* EXPENSIVE_CHECKING && CHECKING */
-    push_aggregate_this(ipdp);
   }  /* if */
   con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Work through the list of constants, pairing each one with a member of
