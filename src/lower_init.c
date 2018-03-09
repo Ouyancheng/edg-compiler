@@ -6079,7 +6079,7 @@ re-ordered base classes.
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
   a_type_ptr                  class_type = skip_typerefs(constant->type);
-  a_constant_ptr              cp, prev = NULL;
+  a_constant_ptr              cp, cp_next, prev = NULL;
   an_init_pos_modifier        ipm, *save_modifiers;
   a_field_ptr                 fp;
   a_boolean                   update_prev, save_base_class_subobject;
@@ -6119,13 +6119,15 @@ re-ordered base classes.
     /*lint --e{850} cp modified in loop */
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
-         cp = cp->next) {
+         cp = cp_next) {
+      cp_next = cp->next;
       advance_fp = TRUE;
       update_prev = TRUE;
       if (cp->kind == (a_constant_repr_kind)ck_designator) {
         check_assertion(cp->variant.designator.is_field_designator);
         fp = cp->variant.designator.variant.field;
-        cp = cp->next;
+        cp = cp_next;
+        cp_next = cp->next;
       }  /* if */
       /* Move to next direct base class, if any. */
       while (bcp != NULL && !bcp->direct) {
@@ -6197,8 +6199,6 @@ re-ordered base classes.
                   constant->variant.aggregate.last_constant = prev;
                 }  /* if */
                 update_prev = FALSE;
-                /* Already processed the "next" constant, so skip it. */
-                cp = cp->next;
               }  /* if */
             }  /* if */
           }  /* if */
