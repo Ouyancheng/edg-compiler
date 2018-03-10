@@ -1197,6 +1197,7 @@ need to be determined.
     case sk_routine:
     case sk_static_data_member:
     case sk_variable:
+    case sk_variable_template:
       {
         /* These entities can have correspondences if they have external
            linkage. */
@@ -1937,6 +1938,31 @@ all_instantiations list of the associated template symbol supplement.
       }  /* if */
     }  /* for */
   } else if (symbol_is(templ_sym, sk_variable_template)) {
+    a_symbol_list_entry_ptr slep;
+    a_variable_ptr          proto;
+    /* Process the prototype instantiation first. */
+    proto = tssp->variant.variable.prototype_variable;
+    if (proto != NULL) {
+      clear_trans_unit_corresp(iek_variable, proto, visited);
+      if (visited) {
+        add_instantiation(tssp, symbol_for(proto));
+      }  /* if */
+    }  /* if */
+    for (slep = tssp->variant.variable.instantiations;
+         slep != NULL; slep = slep->next) {
+      a_symbol_ptr    inst = slep->symbol;
+      a_variable_ptr  vp;
+      if (!symbol_is(inst, sk_variable)) continue;
+      vp = inst->variant.variable.ptr;
+      if (vp != proto) {
+        /* Sometimes the prototype instantiation is placed on the
+           instantiations list; skip it since it has been processed above. */
+        clear_trans_unit_corresp(iek_variable, vp, visited);
+        if (visited) {
+          add_instantiation(tssp, inst);
+        }  /* if */
+      }  /* if */
+    }  /* for */
   } else {
     /* A function template. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
@@ -5645,6 +5671,78 @@ associated template symbol supplement.
 }  /* record_function_template_instantiation */
 
 
+static a_symbol_list_entry_ptr find_variable_template_instantiation(
+                                       a_template_symbol_supplement_ptr  tssp,
+                                       a_symbol_ptr                      inst)
+/*
+Search the list of instantiations attached to the given template symbol
+supplement for an instantiation that matches inst.
+*/
+{
+  a_symbol_list_entry_ptr  sym_entry = tssp->all_instantiations;
+  a_variable_ptr           vp = inst->variant.variable.ptr;
+  a_template_arg_ptr       templ_args = vp->template_info->template_arg_list;
+
+  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+    a_variable_ptr  corresp_vp = sym_entry->symbol->variant.variable.ptr;
+    if (identical_types(vp->type, corresp_vp->type) &&
+        /* The ETA_IS_NONREAL_MEMBER option allows comparisons between
+           template argument lists that are not known to match the same
+           template. */
+        equiv_template_arg_lists(corresp_vp->template_info->template_arg_list,
+                                 templ_args, ETA_IS_NONREAL_MEMBER) &&
+        /* Check partial specialization arguments. */
+        (vp->template_info->partial_spec_template_arg_list == NULL ?
+           corresp_vp->template_info->partial_spec_template_arg_list == NULL :
+           equiv_template_arg_lists(
+                     vp->template_info->partial_spec_template_arg_list,
+                     corresp_vp->template_info->partial_spec_template_arg_list,
+                     ETA_IS_NONREAL_MEMBER))) {
+      break;
+    }  /* if */
+  }  /* for */
+  return sym_entry;
+}  /* find_variable_template_instantiation */
+
+
+static void record_variable_template_instantiation(a_symbol_ptr  instance_sym)
+/*
+Search for an instantiation that corresponds to instance_sym in a prior
+translation unit.  If there is one, record a correspondence pointer;
+otherwise, add the instantiation to the list of instantiations in the
+associated template symbol supplement.
+*/
+{
+  a_template_instance_ptr
+                  inst = instance_sym->variant.variable.instance_ptr;
+  a_template_symbol_supplement_ptr
+                  tssp = inst->template_sym->variant.template_info;
+  a_template_ptr  templ = tssp->il_template_entry,
+                  corresp_templ =
+                            (a_template_ptr)canonical_template_entry_of(templ);
+  a_template_symbol_supplement_ptr
+                  corresp_tssp =
+                       symbol_for(corresp_templ)->variant.template_info;
+  a_variable_ptr  vp = instance_sym->variant.variable.ptr;
+  a_symbol_list_entry_ptr
+                  sym_entry;
+
+  sym_entry = find_variable_template_instantiation(corresp_tssp,
+                                                   inst->instance_sym);
+  if (sym_entry == NULL) {
+    /* The instantiation was not found on the canonical list.  Add it now. */
+    mark_canonical_instantiation(corresp_tssp, inst->instance_sym);
+  } else if (vp != sym_entry->symbol->variant.variable.ptr) {
+    a_variable_ptr  old_ce = (a_variable_ptr)canonical_il_entry_of(
+                                      sym_entry->symbol->variant.variable.ptr);
+    if (vp != old_ce) {
+      set_trans_unit_corresp(iek_variable, vp, old_ce);
+    }  /* if */
+  }  /* if */
+}  /* record_variable_template_instantiation */
+
+
+
 void record_instantiation(a_symbol_ptr                      inst,
                           a_template_symbol_supplement_ptr  tssp)
 /*
@@ -5778,6 +5876,8 @@ template.
       record_function_template_instantiation(inst);
     } else if (symbol_is(inst, sk_type)) {
       record_alias_template_instantiation(inst);
+    } else if (symbol_is(inst, sk_variable)) {
+      record_variable_template_instantiation(inst);
     }  /* if */
   }  /* if */
 done:
@@ -5808,6 +5908,8 @@ for those.
         record_function_template_instantiation(inst);
       } else if (symbol_is(inst, sk_type)) {
         record_alias_template_instantiation(inst);
+      } else if (symbol_is(inst, sk_variable)) {
+        record_variable_template_instantiation(inst);
       }  /* if */
     }  /* if */
     free_list_of_symbol_list_entries(entries);
@@ -5847,28 +5949,27 @@ static void establish_instantiation_correspondences(
 Find correspondences for every instantiation of the given template (for
 non-prototype instantiations, the actual search is delayed until all
 templates are processed).
+
 This routine should only be called for templates that have an associated
-sk_class_template or sk_function_template symbol.  Other template entries
-correspond to class members (e.g., a member function of a class template)
-and are handled elsewhere.  corresp_templ is the template whose prototype
-instantiation should match that of templ (the canonical entry of templ may
-be templ itself and therefore unusable).
+sk_class_template, sk_variable_template, or sk_function_template symbol.
+Other template entries correspond to class members (e.g., a member function of
+a class template) and are handled elsewhere.  corresp_templ is the template
+whose prototype instantiation should match that of templ (the canonical entry
+of templ may be templ itself and therefore unusable).
 */
 {
   a_symbol_ptr
-         templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
-         corresp_sym = (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+         templ_sym = symbol_for(templ),
+         corresp_sym = symbol_for(corresp_templ);
   a_template_symbol_supplement_ptr
          tssp = templ_sym->variant.template_info,
          corresp_tssp = corresp_sym->variant.template_info;
 
-  check_assertion(templ_sym->kind == (a_symbol_kind)sk_class_template ||
-                  templ_sym->kind == (a_symbol_kind)sk_function_template);
   if (templ != tssp->il_template_entry) {
     /* There can be multiple a_template entries for the same template.  Only
        process the instantiations when encountering the a_template entry that
        is recorded in the template symbol supplement. */
-  } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+  } else if (symbol_is(templ_sym, sk_class_template)) {
     /* Record the instantiations for later processing to avoid infinite
        recursion. */
     a_symbol_ptr  inst, corresp_inst;
@@ -5915,7 +6016,7 @@ be templ itself and therefore unusable).
         clear_type_correspondence(inst_type, /*visited=*/TRUE);
       }  /* if */
     }  /* if */
-  } else {
+  } else if (symbol_is(templ_sym, sk_function_template)) {
     /* Record the instantiations for later processing to avoid infinite
        recursion. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
@@ -5941,6 +6042,40 @@ be templ itself and therefore unusable).
         set_no_trans_unit_corresp(iek_routine, tssp->variant.function.routine);
       }  /* if */
     }  /* if */
+  } else if (symbol_is(templ_sym, sk_variable_template)) {
+    /* Record the instantiations for later processing to avoid infinite
+       recursion. */
+    a_symbol_list_entry_ptr   slep;
+    for (slep = tssp->variant.variable.instantiations;
+         slep != NULL; slep = slep->next) {
+      a_variable_ptr  vp = slep->symbol->variant.variable.ptr;
+      if (!has_correspondence(vp)) {
+        add_pending_instantiation(slep->symbol);
+      }  /* if */
+    }  /* for */
+    for (slep = corresp_tssp->variant.variable.instantiations;
+         slep != NULL; slep = slep->next) {
+      a_variable_ptr  vp = slep->symbol->variant.variable.ptr;
+      if (!has_correspondence(vp)) {
+        add_pending_instantiation(slep->symbol);
+      }  /* if */
+    }  /* for */
+    /* Also process the prototype instantiations. */
+    if (tssp->variant.variable.prototype_variable != NULL) {
+      a_variable_ptr  proto, corresp_proto;
+      proto = tssp->variant.variable.prototype_variable;
+      corresp_proto = corresp_tssp->variant.variable.prototype_variable;
+      /* For nonprototype template this could be NULL (the prototype
+         instantiation is attached to the corresponding prototype template). */
+      if (corresp_proto != NULL &&
+          corresp_templ->canonical_template != templ->canonical_template) {
+        set_trans_unit_corresp(iek_variable, proto, corresp_proto);
+      } else {
+        clear_trans_unit_corresp(iek_variable, proto, /*visited=*/TRUE);
+      }  /* if */
+    }  /* if */
+  } else {
+    unexpected_condition();
   }  /* if */
 }  /* establish_instantiation_correspondences */
 
@@ -6018,6 +6153,74 @@ return NULL.
   }  /* if */
   return corresp_templ;
 }  /* find_corresp_class_template */
+
+
+static a_template_ptr find_corresp_var_template(a_template_ptr  templ,
+                                                a_symbol_ptr    sym)
+/*
+Find a variable template from another translation unit corresponding to the
+given variable template templ.  However, only consider sym and its subordinate
+symbols when looking up a correspondence: if none is found, return NULL.
+*/
+{
+  a_template_ptr  corresp_templ = NULL;
+  a_symbol_ptr    templ_sym = symbol_for(templ);
+  a_template_symbol_supplement_ptr
+                  tssp = template_supplement_for_symbol(templ_sym),
+                  corresp_tssp = template_supplement_for_symbol(sym);
+
+  /* The symbol "sym" always corresponds to a primary symbol. */
+  check_assertion(corresp_tssp->primary_template_sym == NULL);
+  if (tssp->primary_template_sym != NULL) {
+    /* The given template is a partial specialization: look for a partial
+       specialization with the same set of parameters and arguments.
+       First, however, we must check that they come from corresponding
+       primary templates. */
+    a_symbol_ptr    prim_templ_sym = tssp->primary_template_sym;
+    a_template_ptr  prim_templ =
+                           template_supplement_for_symbol(prim_templ_sym)
+                                                          ->il_template_entry;
+    a_template_ptr  corresp_prim_templ = corresp_tssp->il_template_entry;
+    if (corresponding_templates(prim_templ, corresp_prim_templ)) {
+      /* The two partial specializations specialize the same primary
+         template. */
+      for (sym = corresp_tssp->partial_specializations;
+           sym != NULL;
+           sym = sym->next) {
+        corresp_tssp = template_supplement_for_symbol(sym);
+        if (equiv_template_param_lists(
+                                    corresp_tssp->cache.decl_info->parameters,
+                                    tssp->cache.decl_info->parameters,
+                                    /*issue_errors=*/FALSE,
+                                    ETP_NO_OPTIONS,
+                                    &templ_sym->decl_position, es_error)) {
+          /* The template parameters correspond; now check the arguments: they
+             are attached to the prototype instantiation. */
+          a_variable_ptr  proto, corresp_proto;
+          proto = tssp->variant.variable.prototype_variable;
+          corresp_proto = corresp_tssp->variant.variable.prototype_variable;
+          if (equiv_template_arg_lists(
+                  proto->template_info->template_arg_list,
+                  corresp_proto->template_info->template_arg_list,
+                  ETA_NO_OPTIONS)) {
+            corresp_templ = corresp_tssp->il_template_entry;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  } else {
+    /* This is a primary template: the template parameters must match. */
+    if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
+                                   tssp->cache.decl_info->parameters,
+                                   /*issue_errors=*/TRUE,
+                                   ETP_NO_OPTIONS,
+                                   &templ_sym->decl_position, es_error)) {
+      corresp_templ = corresp_tssp->il_template_entry;
+    }  /* if */
+  }  /* if */
+  return corresp_templ;
+}  /* find_corresp_variable_template */
 
 
 static a_template_ptr find_corresp_function_template(a_template_ptr  templ,
@@ -6101,6 +6304,7 @@ entities.
   } else {
     a_template_ptr  corresp_templ = NULL, candidate;
     a_boolean       class_template = is_class_template_symbol(templ_sym);
+    a_boolean       var_template = symbol_is(templ_sym, sk_variable_template);
     a_translation_unit_ptr
                     trans_unit = trans_unit_for_symbol(templ_sym);
     sym = corresp_symbol_list(templ_sym);
@@ -6113,11 +6317,14 @@ entities.
         /* Two different declarations in the same namespace and with the same
            name: they should probably match up. */
         if ((is_template_symbol(sym) &&
-             is_class_template_symbol(sym) == class_template) ||
-             (sym->kind == (a_symbol_kind)sk_overloaded_function &&
-                                                           !class_template)) {
+             is_class_template_symbol(sym) == class_template &&
+             symbol_is(sym, sk_variable_template) == var_template) ||
+             (symbol_is(sym, sk_overloaded_function) &&
+              !class_template && !var_template)) {
           if (class_template) {
             candidate = find_corresp_class_template(templ, sym);
+          } else if (var_template) {
+            candidate = find_corresp_var_template(templ, sym);
           } else {
             candidate = find_corresp_function_template(templ, sym);
           }  /* if */
@@ -6127,7 +6334,7 @@ entities.
             corresp_templ = candidate;
             break;
           }  /* if */
-        } else if (!is_class_template_symbol(templ_sym) &&
+        } else if (!class_template && !var_template &&
                    is_function_symbol(sym)) {
           /* A function template can always be overloaded with a nontemplate
              function: no conflict. */
@@ -6962,7 +7169,9 @@ scope.  The process is repeated in nested class and namespace scopes.
   {
     a_variable_ptr  var;
     for (var = scope->variables; var != NULL; var = var->next) {
-      find_variable_correspondence(var);
+      if (!var->is_template_variable) {
+        find_variable_correspondence(var);
+      }  /* if */
     }  /* for */
   }
 
