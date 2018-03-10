@@ -37533,6 +37533,7 @@ up-to-date.
     }  /* if */
     /* Generate guides from constructors. */
     create_implicit_deduction_guides(ct_sym, ct_tssp);
+    ct_tssp->variant.class_template.implicit_deduction_guides_added = TRUE;
   }  /* if */
 }  /* update_implicit_deduction_guides */
 
