@@ -366,7 +366,8 @@ typedef struct a_pack_reference {
   a_template_param_ptr
 		template_param;
 			/* When kind == prk_template_param, this points to
-			   the template parameter. */
+			   the template parameter.  This is only set for
+			   pack references created for instantiations. */
   union {
     a_variable_ptr
 		variable;
@@ -2266,6 +2267,14 @@ a_template_arg_ptr get_curr_variadic_arg_for_param(
 			a_boolean			is_rescan,
 			a_template_param_ptr		templ_param,
 			a_boolean			create_if_not_found);
+
+extern a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind);
+
+extern a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void);
+
+extern void add_pack_expansion_descr_to_prototype_arg(
+					a_template_param_ptr	templ_param,
+					a_template_arg_ptr	templ_arg);
 
 extern a_boolean any_packs_referenced(void);
 

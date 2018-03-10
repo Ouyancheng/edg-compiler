@@ -523,6 +523,7 @@ extern a_template_arg_ptr create_initial_template_arg_list(
 
 extern a_template_arg_ptr get_template_arg_for_coordinates(
 		        a_template_param_coordinate_ptr	coordinates,
+			a_ctws_options_set		options,
 			a_template_arg_ptr		*templ_arg_list,
 			a_template_param_ptr		templ_param_list);
 
@@ -878,7 +879,8 @@ extern void default_arg_prototype_instantiation(
 
 extern a_template_arg_ptr create_prototype_arg_list(
 			a_symbol_ptr		template_sym,
-			a_template_param_ptr	templ_param_list);
+			a_template_param_ptr	templ_param_list,
+			a_boolean		add_pack_descr);
 
 extern a_boolean prototype_instantiation_should_be_done_for_function(
 					a_symbol_ptr		template_sym);

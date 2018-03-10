@@ -10159,7 +10159,7 @@ Note that such a scope is required to exist when this routine is called.
 }  /* get_specified_template_decl_info */
 
 
-static a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind)
+a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind)
 /*
 Allocate a new pack reference entry, initialize it, and return a pointer
 to it.  kind indicates the kind of entity to which this pack reference
@@ -10232,7 +10232,7 @@ be NULL, in which case nothing is done.
 }  /* free_list_of_pack_references */
 
 
-static a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
+a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
 /*
 Allocate a new pack expansion descriptor, initialize it, and return a pointer
 to it.
@@ -10881,6 +10881,28 @@ FALSE for the __bases operator.  Return the number of actual arguments in
   }  /* if */
   return arg_list;
 }  /* make_base_class_arg_list */
+
+
+void add_pack_expansion_descr_to_prototype_arg(
+					a_template_param_ptr	templ_param,
+					a_template_arg_ptr	templ_arg)
+/*
+Create a pack expansion descriptor for the prototype instantiation template
+parameter and argument specified by templ_param and templ_arg.  This is a
+template argument that does not appear in the source code, but that should
+have a pack expansion so that it can be expanded in a rescan context.
+*/
+{
+  a_pack_expansion_descr_ptr	pedp;
+  a_pack_reference_ptr		prp;
+
+  pedp = alloc_pack_expansion_descr();
+  prp = alloc_pack_reference(prk_template_param);
+  prp->symbol = templ_param->param_symbol;
+  prp->coordinates = coordinates_of_template_param(templ_param);
+  pedp->packs_referenced = prp;
+  templ_arg->pack_expansion_descr = pedp;
+}  /* add_pack_expansion_descr_to_prototype_arg */
 
 
 static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(

@@ -17874,7 +17874,7 @@ name lookup options.
            parameter.  Replace it if it has the right depth. */
         { a_template_arg_ptr tap;
           coordinates = &con->variant.template_param.variant.coordinates;
-          tap = get_template_arg_for_coordinates(coordinates,
+          tap = get_template_arg_for_coordinates(coordinates, options,
                                                  &template_arg_list,
                                                  template_param_list);
           check_assertion(tap == NULL ||

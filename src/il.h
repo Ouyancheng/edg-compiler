@@ -1946,6 +1946,26 @@ typedef struct a_ctws_state {
 			/* The end of the list of parameters created by
 			   variadic pack expansions during this
 			   substitution. */
+  struct a_template_param
+		*orig_class_templ_params;
+			/* During the creation of a deduction guide template,
+			   pack expansion descriptors need to be copied and
+			   references to the original parameters replaced with
+			   references to the new versions.  This is the list
+			   of the original template parameters of the
+			   enclosing class template. */
+  struct a_template_param
+		*orig_ctor_templ_params;
+			/* This is like orig_class_templ_params except
+			   is the list of the original constructor template
+			   parameter list. */
+  struct a_template_param
+		*new_templ_params;
+			/* This is the list of replacement parameters.  The
+			   first N correspond to the N elements of
+			   orig_class_templ_params.  The remaining elements
+			   correspond to the elements of
+			   orig_ctor_templ_params. */
   int32_t	routine_type_levels;
 			/* The level of nesting of routine types. */
   int32_t	parent_levels;

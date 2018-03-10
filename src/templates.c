@@ -589,6 +589,9 @@ Initialize a template argument substitution state block.
 {
   csp->variadic_param_info = NULL;
   csp->variadic_param_info_tail = NULL;
+  csp->orig_class_templ_params = NULL;
+  csp->orig_ctor_templ_params = NULL;
+  csp->new_templ_params = NULL;
   csp->routine_type_levels = -1;
   csp->parent_levels = 0;
   csp->preserve_deduced_packs = FALSE;
@@ -2139,7 +2142,8 @@ This routine does the C++17 "at least as specialized" checking.
     /* Create an argument list corresponding to the template parameters
        of the argument template. */
     arg_tap = create_prototype_arg_list((a_symbol_ptr)NULL,
-                                        param_list_for_arg);
+                                        param_list_for_arg,
+                                        /*add_pack_descr=*/FALSE);
     /* Instantiate the invented class template on that argument list. */
     arg_sym = find_class_template_instance(invented_templ_sym, &arg_tap);
     /* Repeat this process for the parameter template.  Note that
@@ -2147,7 +2151,8 @@ This routine does the C++17 "at least as specialized" checking.
        list (including possibly filling in defaults) based on the
        argument template parameter list. */
     param_tap = create_prototype_arg_list((a_symbol_ptr)NULL,
-                                          param_list_for_param);
+                                          param_list_for_param,
+                                          /*add_pack_descr=*/FALSE);
     param_tap = create_initial_template_arg_list(
                                            param_list_for_arg, param_tap,
                                            /*is_templ_templ_param_check=*/TRUE,
@@ -9976,9 +9981,6 @@ use the current global value of the template template parameter.
   return sym;
 }  /* find_template_class */
 
-#if 0
-
-/* FIXME: Remove if unused */
 
 static a_symbol_ptr find_template_class_simple(
 					a_symbol_ptr		template_sym,
@@ -9998,8 +10000,6 @@ arguments can use default values.
                              /*in_substitution=*/FALSE);
   return sym;
 }  /* find_template_class_simple */
-
-#endif /* 0 */
 
 
 a_symbol_ptr find_class_template_instance(a_symbol_ptr        class_templ,
@@ -10501,7 +10501,8 @@ static a_template_arg_ptr get_template_arg_by_list_pos(
 			a_template_param_ptr		templ_param_list,
 			a_template_arg_ptr		*templ_arg_list,
 			a_template_param_coordinate_ptr	coordinates,
-			a_boolean			is_rescan)
+			a_boolean			is_rescan,
+			a_boolean			ignore_packs)
 /*
 Given a template parameter's coordinates, return a pointer to the template
 argument list element that corresponds to that parameter.  Note that only
@@ -10511,7 +10512,8 @@ argument list has not yet been created, create one.  When the list
 is initially created, the template arguments will contain NULL type
 or constant pointers.  These will be filled in as the argument types
 are deduced.  is_rescan is TRUE if this is called from a rescan/substitution
-context.
+context.  ignore_packs is TRUE if the special processing normally done for
+packs should be suppressed.
 */
 {
   a_template_arg_ptr		tap;
@@ -10533,7 +10535,7 @@ context.
   for (; pos > 1; pos--) {
     special_variadic_advance_to_next_template_arg(&tpp, &tap);
   }  /* if */
-  if (tpp->is_pack) {
+  if (tpp->is_pack && !ignore_packs) {
     tap = get_curr_variadic_arg_for_param(coordinates, is_rescan, tpp,
                                           /*create_if_not_found=*/!is_rescan);
   }  /* if */
@@ -10611,10 +10613,10 @@ match is found.
         a_template_arg_ptr			tap;
         /* Get the template argument that corresponds with this parameter. */
         coordinates = &templ_tssp->il_template_entry->coordinates;
-        tap = get_template_arg_by_list_pos(templ_param_list,
-                                           templ_arg_list,
-                                           coordinates,
-                                           /*is_rescan=*/FALSE);
+        tap = get_template_arg_by_list_pos(
+                                templ_param_list, templ_arg_list, coordinates,
+                                /*is_rescan=*/FALSE,
+                                /*ignore_packs=*/FALSE);
         check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
         templ_ptr = tssp->il_template_entry;
         if (tap->variant.templ.ptr == NULL) {
@@ -10856,8 +10858,10 @@ list of a template function.  Returns TRUE if a match is found.
       a_template_param_coordinate_ptr	coordinates;
       coordinates =
                    &templ_constant->variant.template_param.variant.coordinates;
-      tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                         coordinates, /*is_rescan=*/FALSE);
+      tap = get_template_arg_by_list_pos(
+                                templ_param_list, templ_arg_list, coordinates,
+                                /*is_rescan=*/FALSE,
+                                /*ignore_packs=*/FALSE);
       /* Now we have the nth template argument, which should correspond to
          the nth template parameter, whose constant is templ_constant. */
       if (tap->is_array_bound_of_unknown_type) {
@@ -11039,8 +11043,10 @@ of types after all of the function arguments have been processed.
        and not a synthesized template parameter. */
     a_template_param_coordinate_ptr	coordinates;
     coordinates = &templ_constant->variant.template_param.variant.coordinates;
-    tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                       coordinates, /*is_rescan=*/FALSE);
+    tap = get_template_arg_by_list_pos(
+                                templ_param_list, templ_arg_list, coordinates,
+                                /*is_rescan=*/FALSE,
+                                /*ignore_packs=*/FALSE);
     /* Now we have the nth template argument, which should correspond to
        the nth template parameter, whose constant is templ_constant. */
     if (tap->is_array_bound_of_unknown_type || tap->variant.constant == NULL) {
@@ -11700,10 +11706,10 @@ points to the template parameter list.
              template type. */
           coordinates = &templ_type->
                                 variant.template_param.extra_info->coordinates;
-          tap = get_template_arg_by_list_pos(templ_param_list,
-                                             templ_arg_list,
-                                             coordinates,
-                                             /*is_rescan=*/FALSE);
+          tap = get_template_arg_by_list_pos(
+                                templ_param_list, templ_arg_list, coordinates,
+                                /*is_rescan=*/FALSE,
+                                /*ignore_packs=*/FALSE);
           /* Now we have the nth template argument, which should correspond to
              the nth template parameter, whose type is templ_type. */
           if (tap->variant.type == NULL) {
@@ -12294,6 +12300,7 @@ that of a parameter from templ_param_list.
 
 a_template_arg_ptr get_template_arg_for_coordinates(
 		        a_template_param_coordinate_ptr	coordinates,
+			a_ctws_options_set		options,
 			a_template_arg_ptr		*templ_arg_list,
 			a_template_param_ptr		templ_param_list)
 /*
@@ -12302,18 +12309,18 @@ specified by coordinates.  If there is no argument, return NULL.
 templ_arg_list points to the template argument list of the current
 template.  templ_param_list is the parameter list of the current template.
 The template parameter is typically one from the current template except
-for a reference to an enclosing variadic template parameter.
-
+for a reference to an enclosing variadic template parameter.  options is
+a set of bit flags used to control how names are looked up, if needed.
 */
 {
   a_template_arg_ptr		tap = NULL;
 
   if (is_template_param_from_list(coordinates, templ_param_list)) {
     /* This is a parameter from the current template. */
-    tap = get_template_arg_by_list_pos(templ_param_list,
-                                       templ_arg_list,
-                                       coordinates,
-                                       /*is_rescan=*/TRUE);
+    tap = get_template_arg_by_list_pos(
+                                templ_param_list, templ_arg_list, coordinates,
+                                /*is_rescan=*/TRUE,
+                                (options & CTWS_DEDUCTION_GUIDE) != 0);
   } else if (in_pack_expansion()) {
     /* If this is a variadic parameter from an enclosing template, get the
        current argument value. */
@@ -12375,7 +12382,7 @@ Otherwise, return the original template.
     a_template_param_coordinate_ptr	coordinates;
     a_template_arg_ptr			tap;
     coordinates = &templ->coordinates;
-    tap = get_template_arg_for_coordinates(coordinates,
+    tap = get_template_arg_for_coordinates(coordinates, options,
                                            &templ_arg_list, templ_param_list);
     if (tap == NULL || tap->variant.templ.ptr == NULL) {
       /* No value has been provided for this template parameter yet.
@@ -13045,6 +13052,8 @@ to an alias template, the substituted type is returned in *new_type
     templ_param_is_alias = tssp->variant.class_template.is_alias_template;
   }  /* if */
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
+  /* In deduction guide substitution, we should not find the prototype
+     instantiation. */
   orig_is_prototype = orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
   is_nonreal_template = tssp->is_nonreal_member;
@@ -13688,6 +13697,62 @@ done:
 }  /* copy_exception_specification_with_substitution */
 
 
+static a_pack_expansion_descr_ptr copy_pack_expansion_descr_with_substitution(
+				a_pack_expansion_descr_ptr	pedp,
+				a_ctws_state_ptr		ctws_state)
+/*
+Copy the specified pack expansion descriptor replacing references to
+ctws_state->orig_class_templ_params and ctws_state->orig_ctor_templ_params
+with references to ctws_state->new_templ_params.  Return a pointer to
+the new pack expansion descriptor entry.   If pedp is NULL, return a
+NULL pointer.
+*/
+{
+  a_pack_expansion_descr_ptr	new_pedp = NULL;
+
+  if (pedp != NULL) {
+    a_pack_reference_ptr	prp;
+    a_pack_reference_ptr	new_prp;
+    a_pack_reference_ptr	new_prp_tail = NULL;
+    a_template_param_ptr	old_tpp;
+    a_template_param_ptr	new_tpp;
+    new_pedp = alloc_pack_expansion_descr();
+    for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+      check_assertion(prp->kind == prk_template_param);
+      new_prp = alloc_pack_reference(prk_template_param);
+      /* Look for the template parameter in the lists in ctws_state.
+         First go through the class template params.  If it is not found
+         in that list, continue to the constructor template params. */
+      for (old_tpp = ctws_state->orig_class_templ_params,
+             new_tpp = ctws_state->new_templ_params;
+           old_tpp != NULL;
+           old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
+        if (prp->symbol == old_tpp->param_symbol) break;
+      }  /* for */
+      if (old_tpp == NULL) {
+        for (old_tpp = ctws_state->orig_ctor_templ_params;
+             old_tpp != NULL;
+             old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
+          if (prp->symbol == old_tpp->param_symbol) break;
+        }  /* for */
+      }  /* if */
+      check_assertion(old_tpp != NULL);
+      new_prp->template_param = new_tpp;
+      new_prp->coordinates = coordinates_of_template_param(new_tpp);
+      new_prp->symbol = new_tpp->param_symbol;
+      /* Add the new entry to the end of the new list. */
+      if (new_prp_tail == NULL) {
+        new_pedp->packs_referenced = new_prp;
+      } else {
+        new_prp_tail->next = new_prp;
+      }  /* if */
+      new_prp_tail = new_prp;
+    }  /* for */
+  }  /* if */
+  return new_pedp;
+}  /* copy_pack_expansion_descr_with_substitution */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -13786,7 +13851,7 @@ a pointer over a reference type or creating an array of references.
            template parameter and return it to the caller. */
         { a_template_param_coordinate_ptr	coordinates;
           coordinates = &type->variant.template_param.extra_info->coordinates;
-          tap = get_template_arg_for_coordinates(coordinates,
+          tap = get_template_arg_for_coordinates(coordinates, options,
                                                  &templ_arg_list,
                                                  templ_param_list);
           if (tap == NULL || !is_type_templ_arg(tap) ||
@@ -14165,12 +14230,17 @@ make_new_type:
           a_boolean				any_more;
           uint32_t				elements = 0;
           a_param_type_ptr			first_element = NULL;
-          a_boolean				err;
-          any_more = begin_rescan_pack_expansion_context(
+          a_boolean				err = FALSE;
+          
+          if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+            any_more = TRUE;
+          } else {
+            any_more = begin_rescan_pack_expansion_context(
                                                      ptp->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
                                                      &pesep, ctws_state, &err);
+          }  /* if */
           /* Check if an error occurred (such as mismatched parameter pack
              lengths). */
           if (err) subst_fail(*copy_error);
@@ -14246,7 +14316,17 @@ make_new_type:
                 new_ptp->is_pack_element = TRUE;
               } else {
                 new_ptp->is_parameter_pack = TRUE;
-                new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
+                if (ctws_state->new_templ_params == NULL) {
+                  new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
+                } else {
+                  /* This is used when creating deduction guide templates
+                     to create a new pack expansion descriptor that refers
+                     to the template parameters of the new template. */
+                  new_ptp->pack_expansion_descr =
+                             copy_pack_expansion_descr_with_substitution(
+                                                    ptp->pack_expansion_descr,
+                                                    ctws_state);
+                }  /* if */
               }  /* if */
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14283,9 +14363,13 @@ make_new_type:
             }  /* if */
             if (first_element == NULL) first_element = new_ptp;
             prev_ptp = new_ptp;
-            (void)end_potential_pack_expansion_context(
+            if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+              any_more = FALSE;
+            } else { 
+              (void)end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
-            any_more = advance_to_next_pack_element(pesep);
+              any_more = advance_to_next_pack_element(pesep);
+            }  /* if */
           }  /* while */
           if (ptp->is_parameter_pack &&
               (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
@@ -19477,14 +19561,16 @@ sure it matches the primary template.
 
 a_template_arg_ptr create_prototype_arg_list(
 			a_symbol_ptr		template_sym,
-			a_template_param_ptr	templ_param_list)
+			a_template_param_ptr	templ_param_list,
+			a_boolean		add_pack_descr)
 /*
 Build the template argument list for the prototype instantiation
 of this template.  Loop through the template parameters and
 create a corresponding template argument for each.  Return a pointer
 to the newly created list.  This routine also saves the symbol of
 the template (template_sym), if not NULL, in the IL entry for any type
-parameters.
+parameters.  If add_pack_descr is TRUE a pack expansion entry is
+created for template parameters that are packs.
 */
 {
   a_template_arg_ptr                tap;
@@ -19523,6 +19609,10 @@ parameters.
     }  /* if */
     tap->is_pack = tpp->is_pack;
     tap->is_pack_element = tpp->is_pack;
+    if (tap->is_pack && add_pack_descr) {
+      /* Create a pack expansion entry for this argument. */
+      add_pack_expansion_descr_to_prototype_arg(tpp, tap);
+    }  /* if */
     if (list_head == NULL) list_head = tap;
     if (list_tail != NULL) list_tail->next = tap;
     list_tail = tap;
@@ -19658,7 +19748,8 @@ initially used when processing the declaration of a partial specialization.
     templ_param_list = decl_state->decl_info->parameters;
     /* Create a template argument list that corresponds to the template
        parameter list. */
-    templ_arg_list = create_prototype_arg_list(sym, templ_param_list);
+    templ_arg_list = create_prototype_arg_list(sym, templ_param_list,
+                                               /*add_pack_descr=*/FALSE);
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;
@@ -24616,7 +24707,8 @@ Create the variable entry variable template specified by template_sym.
   templ_param_list = decl_state->decl_info->parameters;
   /* Create a template argument list that corresponds to the template
      parameter list. */
-  templ_arg_list = create_prototype_arg_list(template_sym, templ_param_list);
+  templ_arg_list = create_prototype_arg_list(template_sym, templ_param_list,
+                                             /*add_pack_descr=*/FALSE);
   prototype_sym = make_template_variable(template_sym, templ_arg_list);
   var = prototype_sym->variant.variable.ptr;
   tssp->variant.variable.prototype_variable = var;
@@ -37011,7 +37103,8 @@ pointed to by orig_sym.  Return a pointer to the new symbol.
 
 static void copy_template_params_to_new_list(
 				a_template_param_ptr	params_to_add,
-				a_template_param_ptr	*new_list)
+				a_template_param_ptr	*new_list,
+				a_template_param_ptr	*first_added_param)
 /*
 This routine is used to create a new template parameter list, or add entries
 to a template parameter list, based on an existing list.
@@ -37024,6 +37117,9 @@ If the new list is empty, the parameters will be added with their original
 coordinates.  If there are already entries on the new list, the parameters
 will be added using the nesting depth of the entries already on the list
 and with positions that continue the sequence of the entries on the list.
+
+*first_added_param is set to the first parameter created by this call of
+the routine.
 */
 {
   a_template_param_ptr			old_tpp;
@@ -37034,6 +37130,7 @@ and with positions that continue the sequence of the entries on the list.
   a_template_param_list_pos		pos = 0;
   a_template_param_coordinate_ptr	coord_ptr;
 
+  *first_added_param = NULL;
   if (*new_list != NULL) {
     add_to_list = TRUE;
     /* Find the last entry on the existing list. */
@@ -37104,8 +37201,10 @@ and with positions that continue the sequence of the entries on the list.
       *new_list = new_tpp;
     } else {
       list_tail->next = new_tpp;
-      list_tail = new_tpp;
     }  /* if */
+    list_tail = new_tpp;
+    /* Save the first parameter created by this call. */
+    if (*first_added_param == NULL) *first_added_param = new_tpp;
   }  /* for */
 }  /* copy_template_params_to_new_list */
 
@@ -37169,10 +37268,12 @@ function parameter list) will be completed later.
   a_template_decl_info_ptr		tdip;
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
+  a_template_symbol_supplement_ptr	ctor_tssp;
   a_template_cache_ptr			tcp;
   a_class_type_supplement_ptr		proto_ctsp;
   a_template_ptr			templ;
 
+  ctor_tssp = template_supplement_for_symbol(ctor_sym);
   proto_ctsp = proto_type->variant.class_struct_union.extra_info;
   tcp = cache_for_template(ct_tssp);
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
@@ -37184,6 +37285,9 @@ function parameter list) will be completed later.
   tssp->cache.decl_info = tdip;
   tssp->variant.function.decl_cache.decl_info = tdip;
   tssp->variant.function.implicit_deduction_guide = TRUE;
+  tssp->is_variadic = ct_tssp->is_variadic | ctor_tssp->is_variadic;
+  tssp->has_variadic_template_params = ct_tssp->has_variadic_template_params |
+                                       ctor_tssp->has_variadic_template_params;
   tdip->enclosing_scope = proto_ctsp->assoc_scope;
   tdip->enclosing_template_decl = tcp->decl_info;
   templ = alloc_template();
@@ -37197,64 +37301,6 @@ function parameter list) will be completed later.
 }  /* make_implicit_deduction_guide_template */
 
 
-static a_symbol_ptr make_simple_implicit_deduction_guide(
-			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp,
-			a_type_ptr				proto_type,
-			a_symbol_ptr				ctor_sym)
-/*
-Create a function template to be used as a "simple" implicit deduction guide.
-A "simple" guide is one for a constructor that is not itself a function
-template.  This guide has the template parameter list of the enclosing
-class template (specified by ct_sym and ct_tssp).  ctor_sym is the symbol
-of the (non-template) constructor for which a guide is to be created.
-proto_type is the prototype instantiation of ct_sym.
-*/
-{
-  a_template_decl_info_ptr		tdip;
-  a_symbol_ptr				sym;
-  a_template_symbol_supplement_ptr	tssp;
-  a_routine_ptr				rout;
-  a_routine_ptr				ctor_rout;
-  a_routine_type_supplement_ptr		ctor_rtsp;
-  a_routine_type_supplement_ptr		rtsp;
-  a_type_ptr				rout_type;
-  a_template_cache_ptr			tcp;
-  a_template_param_ptr			templ_param_list;
-
-  ctor_rout = ctor_sym->variant.routine.ptr;
-  ctor_rtsp = ctor_rout->type->variant.routine.extra_info;
-  tcp = cache_for_template(ct_tssp);
-  sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
-                                               ctor_sym);
-  templ_param_list = tcp->decl_info->parameters;
-  tssp = sym->variant.template_info;
-  tdip = tssp->cache.decl_info;
-  tdip->parameters = templ_param_list;
-  rout = alloc_routine();
-  rout_type = alloc_type((a_type_kind)tk_routine);
-  rout->type = rout_type;
-  rtsp = rout_type->variant.routine.extra_info;
-  rtsp->prototyped = TRUE;
-  rout_type->variant.routine.return_type = proto_type;
-  rtsp->param_type_list = copy_param_type_list(ctor_rtsp->param_type_list,
-                                               /*copy_default_args=*/FALSE,
-                                               /*max_params=*/0);
-  tssp->variant.function.routine = rout;
-  set_class_membership(sym, &rout->source_corresp, proto_type);
-  set_routine_special_kind(rout,
-                           (a_special_function_kind)sfk_deduction_guide);
-  rout->variant.class_template = ct_tssp->il_template_entry;
-  rtsp->has_ellipsis = ctor_rtsp->has_ellipsis;
-  rout->compiler_generated = TRUE;
-  tssp->il_template_entry->prototype_instantiation.routine = rout;
-  /* FIXME: What list should this be added to? */
-  add_to_routines_list(rout, NO_SCOPE_DEPTH);
-  /* FIXME: Other fields that need to be set? */
-  return sym;
-}  /* make_simple_implicit_deduction_guide */
-
-
 static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
@@ -37262,13 +37308,12 @@ static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_symbol_ptr				ctor_sym)
 /*
 Create a function template to be used as a implicit deduction guide.
-This routine is used for cases where ctor_sym is a function template.
 The guide that is created has the template parameter list of the enclosing
-class template (specified by ct_sym and ct_tssp) and the function parameter
-list of the constructor template specified by ctor_sym.  proto_type is the
-prototype instantiation of ct_sym.  The symbol of the generated template
-is returned.  If an substitution failure occurs during the creation of
-the template, a NULL symbol is returned.
+class template (specified by ct_sym and ct_tssp) and the function template
+parameter list of the constructor template specified by ctor_sym (if it is
+a template).  proto_type is the prototype instantiation of ct_sym.  The
+symbol of the generated template is returned.  If an substitution failure
+occurs during the creation of the template, a NULL symbol is returned.
 */
 {
   a_template_decl_info_ptr		tdip;
@@ -37281,14 +37326,28 @@ the template, a NULL symbol is returned.
   a_type_ptr				rout_type;
   a_template_cache_ptr			tcp;
   a_template_param_ptr			templ_param_list = NULL;
-  a_template_param_ptr			ctor_templ_param_list;
-  a_template_arg_ptr			templ_arg_list;
-  a_template_arg_ptr			templ_arg_list_for_subst;
-  a_template_param_ptr			last_param_from_class;
+  a_template_param_ptr			orig_ctor_templ_params = NULL;
+  a_template_param_ptr			orig_class_templ_params;
   a_boolean				copy_error = FALSE;
+  a_template_param_ptr			first_param;
+  a_template_arg_ptr			class_templ_args;
+  a_template_arg_ptr			ctor_templ_args;
+  a_template_param_ptr			ctor_templ_params;
+  a_template_arg_ptr			tap;
+  a_type_ptr				return_type;
+  a_ctws_state				ctws_state;
+  a_symbol_ptr				return_type_sym;
+  a_boolean				ctor_is_template;
 
-  ctor_tssp = template_supplement_for_symbol(ctor_sym);
-  ctor_rout = ctor_tssp->variant.function.routine;
+  if (symbol_is(ctor_sym, sk_member_function)) {
+    ctor_is_template = FALSE;
+    ctor_tssp = NULL;
+    ctor_rout = ctor_sym->variant.routine.ptr;
+  } else {
+    ctor_is_template = TRUE;
+    ctor_tssp = template_supplement_for_symbol(ctor_sym);
+    ctor_rout = ctor_tssp->variant.function.routine;
+  }  /* if */
   tcp = cache_for_template(ct_tssp);
   push_class_and_template_reactivation_scope(proto_type,
                                              /*is_template_based=*/TRUE,
@@ -37297,34 +37356,35 @@ the template, a NULL symbol is returned.
                                                ctor_sym);
   /* Add the template parameters of the class to the new template parameter
      list that is being created. */
+  orig_class_templ_params = tcp->decl_info->parameters,
   copy_template_params_to_new_list(tcp->decl_info->parameters,
-                                   &templ_param_list);
-  /* Find the last entry in the template parameter list returned above. */
-  for (last_param_from_class = templ_param_list;
-       last_param_from_class->next != NULL;
-       last_param_from_class = last_param_from_class->next) {}
-  ctor_templ_param_list =
+                                   &templ_param_list, &first_param);
+  /* Create the argument list corresponding to the class's parameters. */
+  class_templ_args = create_prototype_arg_list(ct_sym, templ_param_list,
+                                               /*add_pack_descr=*/TRUE);
+  /* Get the return type based on the class template argument list.
+     The list is copied first because it may be discarded by
+     find_class_template_simple. */
+  tap = copy_template_arg_list(class_templ_args);
+  return_type_sym = find_template_class_simple(ct_sym, &tap);
+  return_type = type_symbol_type(return_type_sym);
+  if (ctor_is_template) {
+    orig_ctor_templ_params =
                   ctor_tssp->variant.function.decl_cache.decl_info->parameters;
-  copy_template_params_to_new_list(ctor_templ_param_list, &templ_param_list);
-  /* Create an argument list corresponding to the template parameters
-     in the new parameter list. */
-  templ_arg_list = create_prototype_arg_list(ct_sym, templ_param_list);
-  /* Get the portion of the template parameter list and argument list that
-     correspond to the template parameters of the constructor template. */
-  {
-    a_template_param_ptr	tpp = templ_param_list;
-    a_template_arg_ptr		tap = templ_arg_list;
-    /* Skip to the last parameter/argument from the class template. */
-    for (; tpp != last_param_from_class; tpp = tpp->next, tap = tap->next) {}
-    /* Now skip to the first parameter of the constructor. */
-    templ_arg_list_for_subst = tap->next;
-    tpp = tpp->next;
+    copy_template_params_to_new_list(orig_ctor_templ_params,
+                                     &templ_param_list,
+                                     &ctor_templ_params);
+    /* Create an argument list corresponding to the template parameters
+       in the new parameter list. */
+    ctor_templ_args = create_prototype_arg_list(ct_sym, ctor_templ_params,
+                                                /*add_pack_descr=*/TRUE);
     /* Do substitution on any default template arguments in the new
        parameter list. */
-    substitute_default_templ_args(ctor_sym, tpp, ctor_templ_param_list,
-                                  templ_arg_list_for_subst, &copy_error);
-  }
-  if (copy_error) goto done;
+    substitute_default_templ_args(ctor_sym, templ_param_list,
+                                  orig_ctor_templ_params,
+                                  ctor_templ_args, &copy_error);
+    if (copy_error) goto done;
+  }  /* if */
   tssp = sym->variant.template_info;
   tdip = tssp->cache.decl_info;
   tdip->parameters = templ_param_list;
@@ -37332,30 +37392,44 @@ the template, a NULL symbol is returned.
   /* Do substitution on the routine type to replace any references to
      template parameters of the original constructor template with
      references to the newly created template parameters. */
-  {
-    a_ctws_state	ctws_state;
-    init_ctws_state(&ctws_state);
-    copy_error = FALSE;
-    rout_type = copy_type_with_substitution(
+  init_ctws_state(&ctws_state);
+  ctws_state.orig_class_templ_params = orig_class_templ_params;
+  ctws_state.orig_ctor_templ_params = orig_ctor_templ_params;
+  ctws_state.new_templ_params = templ_param_list;
+  copy_error = FALSE;
+  rout_type = copy_type_with_substitution(
                                   ctor_rout->type,
-                                  templ_arg_list_for_subst,
-                                  ctor_templ_param_list,
+                                  class_templ_args,
+                                  orig_class_templ_params,
+                                  &ct_sym->decl_position,
+                                  CTWS_DEDUCTION_GUIDE,
+                                  &copy_error,
+                                  &ctws_state);
+  if (copy_error) goto done;
+  if (ctor_is_template) {
+    ctws_state.orig_class_templ_params = NULL;
+    ctws_state.orig_ctor_templ_params = NULL;
+    ctws_state.new_templ_params = NULL;
+    rout_type = copy_type_with_substitution(
+                                  rout_type,
+                                  ctor_templ_args,
+                                  orig_ctor_templ_params,
                                   &ct_sym->decl_position,
                                   CTWS_DEDUCTION_GUIDE,
                                   &copy_error,
                                   &ctws_state);
     if (copy_error) goto done;
+  }  /* if */
+  rout_type->variant.routine.return_type = return_type;
+  rout->type = rout_type;
 #if DEBUG
-    if (db_flag_is_set("impl_guide")) {
-      db_type(ctor_rout->type);
-      fprintf(f_debug, "\n");
-      db_type(rout_type);
-      fprintf(f_debug, "\n\n");
-    }  /* if */
+  if (db_flag_is_set("impl_guide")) {
+    db_type(ctor_rout->type);
+    fprintf(f_debug, "\n");
+    db_type(rout_type);
+    fprintf(f_debug, "\n\n");
+  }  /* if */
 #endif /* DEBUG */
-    rout_type->variant.routine.return_type = proto_type;
-    rout->type = rout_type;
-  }
   tssp->variant.function.routine = rout;
   set_class_membership(sym, &rout->source_corresp, proto_type);
   set_routine_special_kind(rout,
@@ -37385,15 +37459,10 @@ ct_tssp.  proto_type is the prototype instantiation of ct_sym.  Create an
 implicit deduction guide for that constructor.
 */
 {
-  a_symbol_ptr	new_sym = NULL;
+  a_symbol_ptr	new_sym;
 
-  if (symbol_is(ctor_sym, sk_member_function)) {
-    new_sym = make_simple_implicit_deduction_guide(ct_sym, ct_tssp,
+  new_sym = make_template_implicit_deduction_guide(ct_sym, ct_tssp,
                                                    proto_type, ctor_sym);
-  } else {
-    new_sym = make_template_implicit_deduction_guide(ct_sym, ct_tssp,
-                                                     proto_type, ctor_sym);
-  }  /* if */
   if (new_sym != NULL) {
     add_deduction_guide(new_sym,
                         &ct_tssp->variant.class_template.deduction_guides);
