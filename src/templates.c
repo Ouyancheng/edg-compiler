@@ -37331,7 +37331,7 @@ occurs during the creation of the template, a NULL symbol is returned.
   a_boolean				copy_error = FALSE;
   a_template_param_ptr			first_param;
   a_template_arg_ptr			class_templ_args;
-  a_template_arg_ptr			ctor_templ_args;
+  a_template_arg_ptr			ctor_templ_args = NULL;
   a_template_param_ptr			ctor_templ_params;
   a_template_arg_ptr			tap;
   a_type_ptr				return_type;
