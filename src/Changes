@@ -1,5 +1,19 @@
 Version 4.15
 
+3/12/18  [EDGcpfe/19096]
+GCC and Clang compatibility: "aligned" attribute on parameters
+
+The front end now accepts "aligned" attributes on parameter types but silently
+ignores them.  It appears that GCC accepts the attribute in some cases (e.g.,
+when parameter types are pointers):
+
+  void foo(float *__attribute__((aligned(256))) p); // GCC accepts
+  void bar(float  __attribute__((aligned(256))) p); // GCC rejects
+
+Clang accepts the attribute on all tested types, but doesn't appear to apply
+the attribute to the parameter type itself.
+
+
 3/7/18   [EDGcpfe/19399]
 Abort on explicit template arguments for function with fold expression
 

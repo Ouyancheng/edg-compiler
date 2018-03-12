@@ -4153,12 +4153,13 @@ and C11 _Alignas specifiers.
                                      entity_kind == iek_type);
 
   if (is_gcc_attribute(ap)) {
-    /* GCC allows types and bit fields to have a user-specified alignment. */
+    /* GCC allows types, parameters, and bit fields to have a user-specified
+       alignment. */
     if (gnu_version >= 40300) {
       /* Newer versions of GCC also allow the alignment of functions. */
-      constr = "c|e|t|v:-r!|d|r";
+      constr = "c|e|t|v:-r!|d|p|r";
     } else {
-      constr = "c|e|t|v:-r!|d";
+      constr = "c|e|t|v:-r!|d|p";
     }  /* if */
   } else if (std_specifier) {
     if (gpp_mode && !clang_mode) {
@@ -4337,6 +4338,10 @@ and C11 _Alignas specifiers.
           func_type->alignment = alignment;
           func_type->alignment_set_explicitly = TRUE;
         }  /* if */
+      } else if (entity_kind == iek_param_type) {
+        /* This is accepted by both Clang and GCC, but it is not entirely
+           clear what the effect is.  Record the attribute without any other
+           change to the IL. */
       } else {
         unexpected_condition();
       }  /* if */
