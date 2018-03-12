@@ -35258,7 +35258,7 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
   (r)->class_explicitly_instantiated = tip->class_explicitly_instantiated;    \
   (r)->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
       set_instantiation_flags(rp);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
       /* Alternate entry points of constructors and destructors get
          the same treatment as the primary routine. */
       if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -35270,7 +35270,7 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
           set_instantiation_flags(rlep->routine);
         }  /* for */
       }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 #undef set_instantiation_flags
     }  /* if */
   }  /* if */
