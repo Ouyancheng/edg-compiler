@@ -4339,9 +4339,22 @@ and C11 _Alignas specifiers.
           func_type->alignment_set_explicitly = TRUE;
         }  /* if */
       } else if (entity_kind == iek_param_type) {
-        /* This is accepted by both Clang and GCC, but it is not entirely
-           clear what the effect is.  Record the attribute without any other
-           change to the IL. */
+        if (clang_mode) {
+          /* Clang accepts alignment attributes on parameter types but it's
+             not clear what the effect is.  Record the attribute without any
+             other change to the IL. */
+        } else {
+          /* GCC does not allow alignment attributes on most parameter types
+             but does accept it on pointer types.  In both cases it's not
+             clear what the effect is. */
+          a_param_type_ptr ptp = (a_param_type_ptr)entity;
+          a_type_ptr       tp = skip_typerefs(ptp->type);
+          check_assertion(gnu_mode);
+          if (!is_pointer_type(tp) && !is_reference_type(tp)) {
+            report_bad_attribute_target(es_error, ap);
+            make_attr_unrecognized(ap);
+          }  /* if */
+        }  /* if */
       } else {
         unexpected_condition();
       }  /* if */
