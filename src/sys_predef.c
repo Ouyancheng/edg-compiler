@@ -1049,15 +1049,16 @@ Enter predeclared symbols as required by the implementation.
     preload_builtin_symbols();
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  if (!C_mode() &&
-      ((microsoft_mode && microsoft_version >= 1900) ||
-       clang_mode)) {
-    /* Create an alias template for "__make_integer_seq". */
-    make_make_integer_seq_internal_template();
-  }  /* if */
-  if (clangcpp_version_is(>=30900)) {
-    /* Create an alias template for "__type_pack_element". */
-    make_type_pack_element_internal_template();
+  if (variadic_templates_enabled) {
+    if ((microsoft_mode && microsoft_version >= 1900) ||
+         clang_mode) {
+      /* Create an alias template for "__make_integer_seq". */
+      make_make_integer_seq_internal_template();
+    }  /* if */
+    if (clangcpp_version_is(>=30900)) {
+      /* Create an alias template for "__type_pack_element". */
+      make_type_pack_element_internal_template();
+    }  /* if */
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {

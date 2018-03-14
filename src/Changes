@@ -1,5 +1,13 @@
 Version 4.15
 
+3/13/18  [EDGcpfe/19444]
+Assertion failure in make_make_integer_seq_internal_template
+
+An assertion failure (in make_make_integer_seq_internal_template) had resulted
+in clang emulation mode if gnu_version <= 40300 and C++11 mode is not enabled.
+Now fixed.
+
+
 3/13/18  [EDGcpfe/19941,EDGcpfe/19942]
 Clang compatibility: Clang 6.0.0 builtins
 
