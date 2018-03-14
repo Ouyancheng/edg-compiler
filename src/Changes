@@ -1,5 +1,12 @@
 Version 4.15
 
+3/13/18  [EDGcpfe/19941,EDGcpfe/19942]
+Clang compatibility: Clang 6.0.0 builtins
+
+The signatures for builtin functions have been updated to match those in
+clang 6.0.0.  A total of 159 new builtins were added.
+
+
 3/12/18  [EDGcpfe/19096]
 GCC and Clang compatibility: "aligned" attribute on parameters
 
