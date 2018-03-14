@@ -345,11 +345,11 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__atomic_xor_fetch_8", "Lx8", "unsigned long (volatile void*,unsigned long,int)", bfk_atomic_xor_fetch_8 },
 
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
-  /* Clang doesn't define these (though GCC does).  When performing function
+  /* Clang doesn't define these until version 6.0.0.  When performing function
      multiversioning lowering, they are required (and must therefore be
      implemented by a back end in clang mode). */
-  { "__builtin_cpu_init", "Lx", "int (void)", bfk_cpu_init },
-  { "__builtin_cpu_is", "Lx", "int (const char*)", bfk_cpu_is },
+  { "__builtin_cpu_init", "Lx(-59999)", "int (void)", bfk_cpu_init },
+  { "__builtin_cpu_is", "Lx(-59999)", "int (const char*)", bfk_cpu_is },
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
 
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
