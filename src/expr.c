@@ -5086,10 +5086,10 @@ indicated type.
                                           (a_type_ptr)NULL);
             break;
           case bfk_nontemporal_load:
-            rout_type = make_routine_type(dispatch_type,
-                                          make_pointer_type(dispatch_type),
-                                          (a_type_ptr)NULL, (a_type_ptr)NULL,
-                                          (a_type_ptr)NULL);
+            rout_type = make_routine_type(orig_dispatch_type,
+                                         make_pointer_type(orig_dispatch_type),
+                                         (a_type_ptr)NULL, (a_type_ptr)NULL,
+                                         (a_type_ptr)NULL);
             break;
           case bfk_nontemporal_store:
             rout_type = make_routine_type(void_type(), dispatch_type,
