@@ -3546,6 +3546,12 @@ setting is used, and to set various unmentioned settings as needed.
       std_version = 201402;
     }  /* if */
   }  /* if */
+  if (clang_version_is(>=60000)) {
+    /* Beginning with Clang 6.0.0, C++14 features are enabled by default. */
+    if (!cpp_mode_specified()) {
+      std_version = 201402;
+    }  /* if */
+  }  /* if */
   /* Reset the SVR4 C compatibility flag just in case it is set by
      default. */
   SVR4_C_mode = FALSE;
