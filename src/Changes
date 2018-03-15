@@ -1,5 +1,16 @@
 Version 4.15
 
+3/15/18  [EDGcpfe/19435]
+Exception specifications as part of function types disabled when exceptions
+are disabled
+
+When exceptions are disabled, exception specifications as part of function
+types (see the changes for EDGcpfe/17685 et al.) are now also disabled.
+That has the effect of disabling the __cpp_noexcept_function_type feature
+test macro which allows certain versions of the <type_traits> header file
+to compile with --no_exceptions.
+
+
 3/15/18  [EDGcpfe/19443]
 Clang compatibility: const-qualified argument to __builtin_nontemporal_load
 

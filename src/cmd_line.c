@@ -2622,7 +2622,8 @@ option values if they were not already set by a command line option.
           inline_variables_allowed = TRUE;
           fold_expressions_enabled = TRUE;
 #if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
-          if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
+          if (!option_kind_used[(int)optk_exc_spec_in_func_type] &&
+              exceptions_enabled) {
             exc_spec_in_func_type = TRUE;
           }  /* if */
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
