@@ -28746,11 +28746,11 @@ that follows.
     }  /* if */
     if (sym == NULL) {
       /* Check for the semicolon. */
-      if (curr_token == tok_lbrace) {
+      if (curr_token == tok_lbrace || curr_token == tok_colon) {
         /* This may have been intended to be a function definition.  Flush
            tokens to the closing right brace.  Leave it to the caller to
            advance past the closing right brace. */
-        flush_until_matching_token();
+        skip_function_body(curr_token == tok_colon);
         *(decl_state->final_token_ptr) = tok_rbrace;
       } else if (curr_token == tok_assign) {
         /* This may have been intended to be a static data member

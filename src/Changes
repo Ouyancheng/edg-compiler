@@ -1,5 +1,21 @@
 Version 4.15
 
+3/17/18  [EDGcpfe/19133]
+Microsoft compatibility: spurious error on in-class constructor specialization
+
+When Microsoft base class processing is enabled (which is the default in
+Microsoft mode), a spurious error could be issued on an in-class specialization
+of a constructor template.  Now fixed.
+
+  template<typename T> struct  A {
+    template<typename U> A(const A<U>& p) : x(0) { }
+    template<typename U> A(U* p) : x(0) { }
+    template<> explicit A(A* p) : x(0) { }
+    int x;
+  };
+  template<typename T, class U> struct B : public A<T> { };
+
+
 3/15/18  [EDGcpfe/19435]
 Exception specifications as part of function types disabled when exceptions
 are disabled

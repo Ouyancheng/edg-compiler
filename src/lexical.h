@@ -2674,6 +2674,8 @@ extern a_boolean processing_primary_source_file(void);
 
 extern void check_for_generation_of_pch_on_return_to_primary_file(void);
 
+extern void skip_function_body(a_boolean is_constructor);
+
 extern a_boolean cache_function_body(
 				a_token_cache		*p_token_cache,
 				a_boolean		is_constructor,

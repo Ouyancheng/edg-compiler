@@ -21521,6 +21521,25 @@ of the compound statement.
 }  /* cache_ctor_initializers */
 
 
+void skip_function_body(a_boolean is_constructor)
+/*
+Skip over the tokens of a function body.  is_constructor is TRUE if the
+function is a constructor.
+*/
+{
+  a_token_cache	cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  (void)cache_function_body(&cache, is_constructor,
+                            (a_boolean*)NULL,
+                            (a_token_sequence_number*)NULL,
+                            (a_token_sequence_number*)NULL,
+                            (a_source_position*)NULL,
+                            (a_source_position*)NULL);
+  discard_token_cache(&cache);
+}  /* skip_function_body */
+
+
 a_boolean cache_function_body(
 			a_token_cache		*p_token_cache,
 			a_boolean		is_constructor,
