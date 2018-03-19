@@ -1,5 +1,12 @@
 Version 4.15
 
+3/19/18  [EDGcpfe/19457]
+Build issue with LOWER_DESIGNATED_INITIALIZERS set to FALSE
+
+IA-64 ABI configurations where LOWER_DESIGNATED_INITIALIZERS is set to FALSE
+did not build due to a change introduced by EDGcpfe/16860.  Now fixed.
+
+
 3/17/18  [EDGcpfe/19133]
 Microsoft compatibility: spurious error on in-class constructor specialization
 

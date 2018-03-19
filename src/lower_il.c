@@ -4512,7 +4512,7 @@ pointers to data members are properly initialized to -1 for NULL.
       if (contains_ptr_to_data_member(f->type)) {
         a_constant_ptr descp = alloc_constant(
                                           (a_constant_repr_kind)ck_designator);
-        descp->variant.designator.field = f;
+        descp->variant.designator.variant.field = f;
         cp = lower_zero_initialization(f->type);
         descp->next = cp;
         if (constant->variant.aggregate.first_constant == NULL) {
