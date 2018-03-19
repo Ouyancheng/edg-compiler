@@ -4345,7 +4345,7 @@ and C11 _Alignas specifiers.
              other change to the IL. */
         } else {
           /* GCC does not allow alignment attributes on most parameter types
-             but does accept it on pointer types.  In both cases it's not
+             but does accept them on pointer types.  In both cases it's not
              clear what the effect is. */
           a_param_type_ptr ptp = (a_param_type_ptr)entity;
           a_type_ptr       tp = skip_typerefs(ptp->type);
