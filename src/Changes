@@ -679,10 +679,12 @@ C++-generating back end: clang and user-defined literal operators
 
 The change for EDGcpfe/17988 (in version 4.13) used an incorrect test to
 determine when to put out a space before the literal suffix when declaring
-a user-defined literal operator.  In particular, clang always requires the
-space before the literal suffix, regardless of the C++ version being
-compiled.  The C++-generating back end has now been changed to add the space
-whenever clang_is_generated_code_target is TRUE.  For example, with --clang:
+a user-defined literal operator.  In particular, except for the one special
+case of "if" as a suffix, clang always requires the space before the
+literal suffix, regardless of the C++ version being compiled.  The
+C++-generating back end has now been changed to add the space before every
+suffix except "if" whenever clang_is_generated_code_target is TRUE.  For
+example, with --clang:
 
   // Previously generated as operator ""LL, which clang rejects:
   unsigned long long operator "" LL(unsigned long long a) {
