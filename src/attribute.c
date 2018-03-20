@@ -3844,8 +3844,8 @@ an error.
            argument (alignas is currently the only case). */
         pedep = aap->pack_expansion_descr;
         any_more = begin_rescan_pack_expansion_context(pedep, t_params, t_args,
-                                                       &pesep, &ctws_state,
-                                                       &err);
+                                                       &pesep, CTWS_NO_OPTIONS,
+                                                       &ctws_state, &err);
         if (!any_more && aap->is_pack_expansion) {
           /* Indicate an empty pack expansion. */
           (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;

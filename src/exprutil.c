@@ -5132,7 +5132,7 @@ list, not an argument list, so it may include designators.
                                                  pedep,
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
-                                                 &pesep,
+                                                 &pesep, rcblock->options,
                                                  rcblock->ctws_state, &err);
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */

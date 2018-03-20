@@ -2312,7 +2312,7 @@ done.
   any_more = begin_rescan_pack_expansion_context(pedep,
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
-                                                 &pesep,
+                                                 &pesep, rcblock->options,
                                                  rcblock->ctws_state, &err);
   /* Check if an error occurred (such as mismatched parameter pack lengths). */
   if (err) subst_fail(rcblock->error_detected);
@@ -2450,7 +2450,7 @@ provide some additional ones over the basic ones implied for this case.
     any_more = begin_rescan_pack_expansion_context(pedep,
                                                   rcblock->template_param_list,
                                                    rcblock->template_arg_list,
-                                                   &pesep,
+                                                   &pesep, rcblock->options,
                                                    rcblock->ctws_state, &err);
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
@@ -11060,7 +11060,7 @@ indication in *rcblock).
                                                   pedep,
                                                   rcblock->template_param_list,
                                                   rcblock->template_arg_list,
-                                                  &pesep,
+                                                  &pesep, rcblock->options,
                                                   rcblock->ctws_state,
                                                   &rescan_err);
     }  /* if */
@@ -12430,7 +12430,7 @@ indication in *rcblock).
                                                  pedep,
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
-                                                 &pesep,
+                                                 &pesep, rcblock->options,
                                                  rcblock->ctws_state, &err);
               while (any_more) {
                 /* Rescan each member of the pack expansion. */

@@ -11255,6 +11255,7 @@ and can be NULL only if create_if_not_found is FALSE.
         result_tap = alloc_template_arg(
                       templ_arg_kind_for_symbol_kind(param_prp->symbol->kind));
         result_tap->is_pack_element = TRUE;
+        check_assertion(arg_prp->prev_template_arg != NULL);
         result_tap->next = arg_prp->prev_template_arg->next;
         arg_prp->prev_template_arg->next = result_tap;
         arg_prp->prev_template_arg = result_tap;
@@ -11741,6 +11742,7 @@ a_boolean begin_rescan_pack_expansion_context(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
+		a_ctws_options_set              	options,
 		a_ctws_state_ptr			ctws_state,
 		a_boolean				*err)
 
@@ -11754,7 +11756,8 @@ pedp is the pack expansion descriptor created when the pack expansion
 was initially scanned, and can be NULL in which case this routine simply
 returns a NULL value in *p_pesep.  templ_param_list and templ_arg_list are the
 template parameters and arguments for the instantiation.  ctws_state
-is a substitution state block pointer, and can be NULL.
+is a substitution state block pointer, and can be NULL.  options is a set
+of flags controlling substitution.
 
 See begin_potential_pack_expansion_context for a description of the
 return value and the setting of *p_pesep (note that this routine is
@@ -11767,7 +11770,10 @@ set to TRUE, FALSE otherwise.
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
   *err = FALSE;
-  if (pedp != NULL) {
+  if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+    /* For deduction guide substitution, don't rescan packs. */
+    pedp = NULL;
+  } else if (pedp != NULL) {
     /* Make a copy of the template argument list.  In some cases the caller
        can free the list before the rescan is complete. */
     templ_arg_list = copy_template_arg_list(templ_arg_list);

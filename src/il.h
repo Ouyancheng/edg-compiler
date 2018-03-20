@@ -1966,6 +1966,14 @@ typedef struct a_ctws_state {
 			   orig_class_templ_params.  The remaining elements
 			   correspond to the elements of
 			   orig_ctor_templ_params. */
+  a_type_ptr	old_this_class;
+			/* During deduction guide substitution, a this_class
+			   that matches this value will be replaced with
+			   new_this_class. */
+  a_type_ptr	new_this_class;
+			/* During deduction guide substitution, if this is
+			   non-NULL, it is used as a replacement for
+			   a this_class that matches old_this_class. */
   int32_t	routine_type_levels;
 			/* The level of nesting of routine types. */
   int32_t	parent_levels;

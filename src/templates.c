@@ -481,6 +481,10 @@ static a_template_ptr copy_template_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);
 
+static a_pack_expansion_descr_ptr copy_pack_expansion_descr_with_substitution(
+				a_pack_expansion_descr_ptr	pedp,
+				a_ctws_state_ptr		ctws_state);
+
 static void add_instantiation(
 		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
@@ -592,6 +596,8 @@ Initialize a template argument substitution state block.
   csp->orig_class_templ_params = NULL;
   csp->orig_ctor_templ_params = NULL;
   csp->new_templ_params = NULL;
+  csp->old_this_class = NULL;
+  csp->new_this_class = NULL;
   csp->routine_type_levels = -1;
   csp->parent_levels = 0;
   csp->preserve_deduced_packs = FALSE;
@@ -10535,9 +10541,14 @@ packs should be suppressed.
   for (; pos > 1; pos--) {
     special_variadic_advance_to_next_template_arg(&tpp, &tap);
   }  /* if */
-  if (tpp->is_pack && !ignore_packs) {
-    tap = get_curr_variadic_arg_for_param(coordinates, is_rescan, tpp,
-                                          /*create_if_not_found=*/!is_rescan);
+  if (tpp->is_pack) {
+    if (ignore_packs) {
+      skip_start_of_pack_placeholders_simple(&tap);
+    } else {
+      tap = get_curr_variadic_arg_for_param(
+                                      coordinates, is_rescan, tpp,
+                                      /*create_if_not_found=*/!is_rescan);
+    }  /* if */
   }  /* if */
   return tap;
 }  /* get_template_arg_by_list_pos */
@@ -12820,7 +12831,8 @@ If there is an error in the copying, set *copy_error to TRUE.
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
-                                                     &pesep, ctws_state, &err);
+                                                     &pesep, options,
+                                                     ctws_state, &err);
       pack_tap = tap;
       /* Check if an error occurred (such as mismatched parameter pack
          lengths). */
@@ -12949,6 +12961,22 @@ do_substitution:
       }  /* if */
       /* Exit the loop if the substitution failed. */
       if (*copy_error) break;
+      if (tap->pack_expansion_descr != NULL &&
+          (options & CTWS_DEDUCTION_GUIDE) != 0) {
+        /* For deduction guide substitution, transfer the pack expansion
+           information. */
+        if (ctws_state->new_templ_params == NULL) {
+          new_tap->pack_expansion_descr = tap->pack_expansion_descr;
+        } else {
+          /* This is used when creating deduction guide templates to create
+             a new pack expansion descriptor that refers to the template
+             parameters of the new template. */
+          new_tap->pack_expansion_descr =
+                             copy_pack_expansion_descr_with_substitution(
+                                                     tap->pack_expansion_descr,
+                                                     ctws_state);
+        }  /* if */
+      }  /* if */
       if (new_list == NULL) {
         new_list = new_tap;
       } else {
@@ -13054,7 +13082,8 @@ to an alias template, the substituted type is returned in *new_type
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   /* In deduction guide substitution, we should not find the prototype
      instantiation. */
-  orig_is_prototype = orig_type->
+  orig_is_prototype = (options & CTWS_DEDUCTION_GUIDE) == 0 &&
+                      orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
@@ -13736,7 +13765,15 @@ NULL pointer.
           if (prp->symbol == old_tpp->param_symbol) break;
         }  /* for */
       }  /* if */
-      check_assertion(old_tpp != NULL);
+      if (old_tpp == NULL) {
+        /* If a match was not found above, look through the new list to see
+           if this is an already-substituted parameter. */
+        for (new_tpp = ctws_state->new_templ_params;
+             new_tpp != NULL; new_tpp = new_tpp->next) {
+          if (prp->symbol == new_tpp->param_symbol) break;
+        }  /* if */
+      }  /* if */
+      check_assertion(new_tpp != NULL);
       new_prp->template_param = new_tpp;
       new_prp->coordinates = coordinates_of_template_param(new_tpp);
       new_prp->symbol = new_tpp->param_symbol;
@@ -14118,6 +14155,11 @@ a pointer over a reference type or creating an array of references.
         if (this_class == NULL) {
           new_this_class = NULL;
         } else {
+          if (this_class == ctws_state->old_this_class) {
+            /* In deduction guide substitution, the this_class should be
+               replaced with the version provided by the caller. */
+            this_class = ctws_state->new_this_class;
+          }  /* if */
           new_this_class = copy_type_with_substitution(
                                         this_class, templ_arg_list,
                                         templ_param_list, source_pos, options,
@@ -14239,7 +14281,8 @@ make_new_type:
                                                      ptp->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
-                                                     &pesep, ctws_state, &err);
+                                                     &pesep, options,
+                                                     ctws_state, &err);
           }  /* if */
           /* Check if an error occurred (such as mismatched parameter pack
              lengths). */
@@ -37126,13 +37169,11 @@ the routine.
   a_template_param_ptr			new_tpp;
   a_template_param_ptr			list_tail = NULL;
   a_template_nesting_depth		depth;
-  a_boolean				add_to_list = FALSE;
-  a_template_param_list_pos		pos = 0;
+  a_template_param_list_pos		pos;
   a_template_param_coordinate_ptr	coord_ptr;
 
   *first_added_param = NULL;
   if (*new_list != NULL) {
-    add_to_list = TRUE;
     /* Find the last entry on the existing list. */
     list_tail = *new_list;
     while (list_tail->next != NULL) list_tail = list_tail->next;
@@ -37141,6 +37182,13 @@ the routine.
     coord_ptr = coordinates_of_template_param(list_tail);
     depth = coord_ptr->depth;
     pos = coord_ptr->position;
+  } else {
+    /* Use a depth that will be different than both the class and the
+       constructor.  This isn't actually required but makes things like
+       debugging information clearer. */
+    coord_ptr = coordinates_of_template_param(params_to_add);
+    depth = coord_ptr->depth + 2;
+    pos = 0;
   }  /* if */
   /* Make a copy of the entries on the list.  We need to create a copy of
      the symbol and a copy of the type/constant/template pointed to. */
@@ -37189,13 +37237,10 @@ the routine.
     }  /* if */
     new_tpp = make_copy_of_template_param_based_on_new_symbol(old_tpp,
                                                               new_sym);
-    if (add_to_list) {
-      /* When adding an entry to an existing list, the coordinates must be
-         updated. */
-      coord_ptr = coordinates_of_template_param(new_tpp);
-      coord_ptr->depth = depth;
-      coord_ptr->position = ++pos;
-    }  /* if */
+    /* Update the coordinates of the new template parameter. */
+    coord_ptr = coordinates_of_template_param(new_tpp);
+    coord_ptr->depth = depth;
+    coord_ptr->position = ++pos;
     /* Add the entry to the end of the list. */
     if (list_tail == NULL) {
       *new_list = new_tpp;
@@ -37396,6 +37441,8 @@ occurs during the creation of the template, a NULL symbol is returned.
   ctws_state.orig_class_templ_params = orig_class_templ_params;
   ctws_state.orig_ctor_templ_params = orig_ctor_templ_params;
   ctws_state.new_templ_params = templ_param_list;
+  ctws_state.old_this_class = proto_type;
+  ctws_state.new_this_class = return_type;
   copy_error = FALSE;
   rout_type = copy_type_with_substitution(
                                   ctor_rout->type,
@@ -37407,9 +37454,7 @@ occurs during the creation of the template, a NULL symbol is returned.
                                   &ctws_state);
   if (copy_error) goto done;
   if (ctor_is_template) {
-    ctws_state.orig_class_templ_params = NULL;
-    ctws_state.orig_ctor_templ_params = NULL;
-    ctws_state.new_templ_params = NULL;
+    init_ctws_state(&ctws_state);
     rout_type = copy_type_with_substitution(
                                   rout_type,
                                   ctor_templ_args,

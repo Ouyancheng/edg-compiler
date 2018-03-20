@@ -2285,6 +2285,7 @@ extern a_boolean begin_rescan_pack_expansion_context(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
+		a_ctws_options_set              	options,
 		a_ctws_state_ptr			ctws_state,
 		a_boolean				*err);
 

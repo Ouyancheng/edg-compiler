@@ -255,6 +255,14 @@ Dump a list of template arguments, enclosed by angle brackets.
       }  /* if */
       if (tap->is_pack_element) fprintf(f_debug, "+");
       if (tap->pack_expansion_descr != NULL) fprintf(f_debug, "...");
+      {
+        a_template_param_coordinate_ptr	coord;
+        coord = coordinates_of_template_arg(tap);
+        if (coord != NULL) {
+          fprintf(f_debug, " #(%lu,%lu)", (unsigned long)coord->depth,
+                  (unsigned long)coord->position);
+        }  /* if */
+      }
       tap = tap->next;
       if (tap != NULL) fputs(",", f_debug);
     } while (tap != NULL);
