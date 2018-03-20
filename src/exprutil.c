@@ -16779,10 +16779,25 @@ error cases.
     if (curr_expr_is_potentially_evaluated()) {
       /* It is being called. */
       rout->called = TRUE;
-      if (rout->is_virtual && !virtual_suppressed &&
-          call_invokes_pure_virtual(rout, function_node)) {
-        /* Call to pure virtual, e.g., from a constructor or destructor. */
-        expr_pos_warning(ec_call_of_pure_virtual, pos);
+      if (rout->is_virtual) {
+        if (virtual_suppressed) {
+          is_virtual = FALSE;
+        } else {
+          if (call_invokes_pure_virtual(rout, function_node)) {
+            /* Call to pure virtual, e.g., from a constructor or destructor. */
+            expr_pos_warning(ec_call_of_pure_virtual, pos);
+          }  /* if */
+          /* Suppress virtual function dispatch on "final"/"sealed" members. */
+          if (rout->final) {
+            is_virtual = FALSE;
+          } else {
+            a_type_ptr  class_type = parent_class_of(rout);
+            if (is_immediate_class_type(class_type) &&
+                class_type->variant.class_struct_union.final) {
+              is_virtual = FALSE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (rout->has_nodiscard_attribute) {
         /* Note this for processing later. */

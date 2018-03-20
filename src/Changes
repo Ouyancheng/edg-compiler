@@ -1,5 +1,15 @@
 Version 4.15
 
+3/20/18  [EDGcpfe/16021,EDGcpfe/19432]
+Calls to "final" member functions
+
+Previously, declaring a virtual member function (or its enclosing class)
+"final" or (in some Microsoft modes) "sealed" did not affect the representation
+of calls to that function: The associated is_virtual_call flag could be TRUE.
+Now, the is_virtual_call flag is always set to FALSE when calling such a
+function directly.
+
+
 3/20/18  [EDGcpfe/18791]
 Microsoft compatibility: Additional changes for overaligned allocation
 
