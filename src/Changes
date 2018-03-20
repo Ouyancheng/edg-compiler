@@ -1,5 +1,13 @@
 Version 4.15
 
+3/20/18  [EDGcpfe/19427]
+Variable templates and multiple translation units
+
+Previously, the front end did not handle variable templates when simultaneously
+compiling multiple translation units: In many cases such cases resulted in
+internal errors.  That support has now been added.
+
+
 3/20/18  [EDGcpfe/16021,EDGcpfe/19432]
 Calls to "final" member functions
 
