@@ -1,5 +1,23 @@
 Version 4.15
 
+3/20/18  [EDGcpfe/19285]
+Duplicate static data member definitions and class templates
+
+Consider:
+
+  template<typename T> struct S {
+    static constexpr int x = 0;
+  };
+  template<typename T> constexpr int S<T>::x;
+  template<typename T> constexpr int S<T>::x;
+
+In pre-C++17 modes this is invalid, but the front end previously failed to
+issue an error on the second definition (2).  (In C++17 the example is valid
+because the out-of-class declaration is not a definition.)  Furthermore, in
+all modes, the C++-generating back end abort with an internal error in
+gen_template.  This problems are now fixed.
+
+
 3/20/18  [EDGcpfe/19427]
 Variable templates and multiple translation units
 

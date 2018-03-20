@@ -24522,13 +24522,13 @@ set, and its source sequence entry, if any, has been put out.)
           } else {
             il_template_entry->prototype_instantiation.variable = NULL;
           }  /* if */
-          /* An out-of-class static data member declaration is always a
-             definition. */
           il_template_entry->canonical_template =
                         sym->variant.static_data_member.variable->
                                                  template_info->assoc_template;
-          il_template_entry->canonical_template->definition_template =
+          if (decl_state->defines_something) {
+            il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
+          }  /* if */
           break;
         case sk_variable_template:
           {
@@ -24985,10 +24985,10 @@ static a_symbol_ptr variable_template_declaration(
 			a_symbol_locator			*locator,
 			a_template_symbol_supplement_ptr	*p_tssp)
 /*
-Scan a variable template declaration or the definition of a static
-data member of a class template.  locator identifies the entity being
-declared.  template_param_list points to the parameter list for this
-template declaration.  p_tssp points to the location in which the
+Scan a variable template declaration or the out-of-class declaration (often,
+a definition) of a static data member of a class template.  locator identifies
+the entity being declared.  template_param_list points to the parameter list
+for this template declaration.  p_tssp points to the location in which the
 template symbol supplement for this template should be returned to the caller.
 */
 {
@@ -25126,8 +25126,9 @@ template symbol supplement for this template should be returned to the caller.
     /* This is a template definition of a static data member of a
        class template or a redeclaration of a variable template. */
     a_type_ptr  type = dps->type;
-    if (!is_variable_template ||
-        dps->storage_class != (a_storage_class)sc_extern) {
+    if (is_variable_template ?
+          dps->storage_class != (a_storage_class)sc_extern :
+          (var == NULL || !var->initializer_in_class)) {
       dps->is_definition = TRUE;
       decl_state->defines_something = TRUE;
     }  /* if */
@@ -25143,6 +25144,14 @@ template symbol supplement for this template should be returned to the caller.
                                          /*is_variable_decl=*/TRUE);
     tssp = template_supplement_for_symbol(sym);
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
+    if (symbol_is(var_sym, sk_static_data_member) &&
+        !(cpp17_mode && var->is_inline) &&
+        tssp->variant.variable.has_out_of_class_definition) {
+      /* Having more than one out-of-class declaration of a static data member
+         is invalid, except for C++17 inline static data members (which are not
+         considered definitions from a language point of view). */
+      pos_sy_error(ec_redefinition, &locator->source_position, var_sym);
+    }  /* if */
     if ((is_ptr_or_ref_type(type) &&
          is_function_type(type_pointed_to(type))) ||
         (is_ptr_to_member_type(type) &&
@@ -25266,26 +25275,20 @@ template symbol supplement for this template should be returned to the caller.
     /* Prevent the generation of a source sequence entry for the a_template
        entry since we already did so elsewhere. */
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
-    if (is_variable_template) {
-      if (!source_sequence_entries_disallowed) {
-        /* For things that are not class members, anything that is not an
-           "extern" declaration is a definition.  For class members,
-           the declaration in the class can be a definition, so an
-           out-of-class declaration is not considered to be a definition
-           for source sequence purposes unless it has an initializer. */
-        if (!decl_state->defines_something &&
-            (!sym->is_class_member || !dps->is_definition)) {
-          a_src_seq_secondary_decl_ptr sssdp;
-          check_assertion(decl_state->il_template_entry != NULL);
-          sssdp = secondary_src_seq_for_template(
-                                                decl_state->il_template_entry);
-          sssdp->declared_type = dps->declared_type;
-        } else if (var != NULL) {
-          var->declared_type = dps->declared_type;
-        }  /* if */
-      }  /* if */
-    } else {
-      if (dps->declared_type != NULL) {
+    if (!source_sequence_entries_disallowed) {
+      /* For things that are not class members, anything that is not an
+         "extern" declaration is a definition.  For class members,
+         the declaration in the class can be a definition, so an
+         out-of-class declaration is not considered to be a definition
+         for source sequence purposes unless it has an initializer. */
+      if (!decl_state->defines_something &&
+          (!sym->is_class_member || !dps->is_definition)) {
+        a_src_seq_secondary_decl_ptr sssdp;
+        check_assertion(decl_state->il_template_entry != NULL);
+        sssdp = secondary_src_seq_for_template(
+                                              decl_state->il_template_entry);
+        sssdp->declared_type = dps->declared_type;
+      } else if (var != NULL) {
         var->declared_type = dps->declared_type;
       }  /* if */
     }  /* if */

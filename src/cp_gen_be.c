@@ -17575,7 +17575,7 @@ this one is such a continuation.
   a_type_ptr                   var_type;
   a_type_ptr                   unqual_var_type;
   a_boolean                    is_specialization;
-  a_boolean                    force_unqualified_name;
+  a_boolean                    force_unqualified_name = FALSE;
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr	       assoc_template = NULL;
@@ -17895,16 +17895,22 @@ this one is such a continuation.
 #endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
     }  /* if */
   }  /* if */
-  /* An unqualified name is used in the declarator if this is a declaration
-     rather than a definition.  Specializations are an exception, and
-     get the full normal handling.  Another exception is the case of a
-     redeclaration of a namespace member outside of its namespace (only
-     allowed in Microsoft mode). */
-  force_unqualified_name =
-       !is_definition && !is_specialization &&
-       !(microsoft_mode && is_namespace_member(var) &&
-         !scope_is_in_name_context_stack(
-                              parent_namespace_of(var)->variant.assoc_scope));
+  if (!is_definition && !is_specialization) {
+    /* An unqualified name is usually used in the declarator if this is a
+       declaration rather than a definition.  Specializations are an exception,
+       and get the full normal handling.  Out-of-class static data member
+       declarations with initializers appearing in the class definition may be
+       represented as non-defining declarations but still need a name
+       qualifier.  Another exception is the case of a redeclaration of a
+       namespace member outside of its namespace (only allowed in Microsoft
+       mode). */
+    if ((var->source_corresp.is_class_member || microsoft_mode) &&
+        !scope_is_in_name_context_stack(var->source_corresp.parent_scope)) {
+      /* Do not force an unqualified name. */
+    } else {
+      force_unqualified_name = TRUE;
+    }  /* if */
+  }  /* if */
   /* Ensure that no template argument list is put out on a declaration of a
      variable template, unless it's a specialization or partial
      specialization. */
