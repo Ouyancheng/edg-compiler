@@ -10497,6 +10497,11 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (overaligned_allocation_enabled) {
+      (void)enter_predef_macro("1", "_ALIGNED_NEW_SUPPORTED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -10533,7 +10538,7 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 #endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
-  if (overaligned_allocation_enabled) {
+  if (overaligned_allocation_enabled || (ms_extensions && !C_mode())) {
     char val[64];
     (void)sprintf(val, "%lu", (unsigned long)targ_default_new_alignment);
     (void)enter_predef_macro(val, "__STDCPP_DEFAULT_NEW_ALIGNMENT__",

@@ -1521,6 +1521,12 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
+  add_option_description(optk_aligned_new, "aligned_new", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_aligned_new, "no_aligned_new", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2628,7 +2634,9 @@ option values if they were not already set by a command line option.
           }  /* if */
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
           deduction_from_exc_spec_allowed = FALSE;
-          overaligned_allocation_enabled = TRUE;
+          if (!option_kind_used[(int)optk_aligned_new]) {
+            overaligned_allocation_enabled = TRUE;
+          }  /* if */
           generalized_nontype_arguments = TRUE;
           hex_floating_point_constants_allowed = TRUE;
           generalized_template_template_matching = TRUE;
@@ -3436,7 +3444,9 @@ default mode (e.g., exception handling).
         exc_spec_in_func_type = TRUE;
       }  /* if */
 #endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
-      overaligned_allocation_enabled = TRUE;
+      if (!option_kind_used[(int)optk_aligned_new]) {
+        overaligned_allocation_enabled = TRUE;
+      }  /* if */
       mandatory_copy_elision = TRUE;
       generalized_nontype_arguments = TRUE;
       strict_cpp17_eval_order = TRUE;
@@ -10371,6 +10381,9 @@ enable_microsoft_mode:
         break;
       case optk_exc_spec_in_func_type:
         exc_spec_in_func_type = opt_value;
+        break;
+      case optk_aligned_new:
+        overaligned_allocation_enabled = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

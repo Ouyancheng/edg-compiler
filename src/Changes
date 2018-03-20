@@ -1,5 +1,18 @@
 Version 4.15
 
+3/20/18  [EDGcpfe/18791]
+Microsoft compatibility: Additional changes for overaligned allocation
+
+The behavior associated with overaligned allocation (EDGcpfe/17696, a C++17
+feature first supported in version 4.14) has been slightly modified in
+Microsoft modes, as follows: __STDCPP_DEFAULT_NEW_ALIGNMENT__ is
+unconditionally defined in all Microsoft C++ modes, regardless of whether
+overaligned allocation is supported, and the macro _ALIGNED_NEW_SUPPORTED
+is predefined to the value 1 in Microsoft modes when overaligned allocation
+is supported.  In addition, the front end now allows control of this
+feature via the --[no_]aligned_new command-line option.
+
+
 3/19/18  [EDGcpfe/19457]
 Build issue with LOWER_DESIGNATED_INITIALIZERS set to FALSE
 

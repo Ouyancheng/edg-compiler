@@ -582,6 +582,7 @@ check_abbreviation()
   esac
   if [ $keyword_option -ne 0 ] ; then
     egrep "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
+--aligned_new
 --alternative_tokens
 --anachronisms
 --arg_dep_lookup
@@ -731,6 +732,7 @@ check_abbreviation()
 --near_data_pointers
 --new_for_init
 --nm
+--no_aligned_new
 --no_alternative_tokens
 --no_anachronisms
 --no_arg_dep_lookup
@@ -1541,6 +1543,8 @@ process_option()
          --no_nonstd_anonymous_unions | \
          --digit_separators | \
          --no_digit_separators | \
+         --aligned_new | \
+         --no_aligned_new | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
