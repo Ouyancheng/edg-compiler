@@ -6514,6 +6514,43 @@ al_tag_name attributes (if any).
 }  /* gen_tag_reference */
 
 
+static void check_for_enk_param_ref(an_expr_node_ptr expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Set tblock->result and tblock->terminate to TRUE if expr is an enk_param_ref
+node that designates a non-this parameter.  Called via traverse_expr from
+expr_has_enk_param_ref.
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_param_ref &&
+      expr->variant.param_ref.param_num != 0) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_enk_param_ref */
+
+
+static a_boolean expr_has_enk_param_ref(an_expr_node_ptr expr)
+/*
+Return TRUE if expr or one of its subexpressions is a non-this
+enk_param_ref.  Used to avoid attempting to generate such an expression
+when there is no function prototype against which to evaluate the
+reference, which can happen in template argument lists (because the
+template arguments are captured from the first reference, which might be in
+a function prototype context, but another reference to the same instance
+might not be).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_enk_param_ref;
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_has_enk_param_ref */
+
+
 static void gen_type_operator(a_type_ptr tp)
 /*
 Render a decltype(<expr>), __underlying_type(<type>), __typeof__(<expr>), or
@@ -6532,6 +6569,7 @@ such cases.
   a_boolean                     is_underlying_type =
                                        tp->variant.typeref.is_underlying_type;
   char                          *kwd;
+  a_boolean                     operator_suppressed = FALSE;
 
   if (is_decltype) {
     if (gcc_or_clang_is_generated_code_target) {
@@ -6549,7 +6587,6 @@ such cases.
   } else {
     kwd = (char *)"__typeof__(";
   }  /* if */
-  write_tok_str(kwd);
   if (tp->definition_delayed) {
     /* The decltype or typeof construct has associated source sequence entries.
        Save the current position in the source sequence stream and change it
@@ -6599,17 +6636,32 @@ srq_seq_sublist_parent_found:
                                                         ) {
     /* __underlying_type(<type>) or __typeof__(<type>). */
     skip_embedded_declarations();
+    write_tok_str(kwd);
     gen_type(tp->variant.typeref.extra_info->operator_type_arg);
   } else {
     /* __typeof__(<expr>) or decltype(<expr>). */
     an_expr_node_ptr expr = decltype_arg(tp);
     check_assertion(expr != NULL);
-    if (is_decltype && !tp->variant.typeref.decltype_expr_not_parenthesized) {
-      write_tok_str("(");
-    }  /* if */
-    gen_expression(expr);
-    if (is_decltype && !tp->variant.typeref.decltype_expr_not_parenthesized) {
-      write_tok_str(")");
+    if (in_template_argument_list && octl.func_prototype_stack == NULL &&
+        expr_has_enk_param_ref(expr)) {
+      /* The expression argument refers to function parameters from the
+         context where the template instance was initially instantiated,
+         but the current context has no function prototype against which
+         to process the function parameter references.  Just put out the
+         underlying type. */
+      gen_type(tp->variant.typeref.type);
+      operator_suppressed = TRUE;
+    } else {
+      write_tok_str(kwd);
+      if (is_decltype &&
+                        !tp->variant.typeref.decltype_expr_not_parenthesized) {
+        write_tok_str("(");
+      }  /* if */
+      gen_expression(expr);
+      if (is_decltype &&
+                        !tp->variant.typeref.decltype_expr_not_parenthesized) {
+        write_tok_str(")");
+      }  /* if */
     }  /* if */
   }  /* if */ 
   if (tp->definition_delayed) {
@@ -6617,7 +6669,9 @@ srq_seq_sublist_parent_found:
     restore_source_sequence_scan_state(&saved_state);
     tp->definition_delayed = FALSE;
   }  /* if */
-  write_tok_str(")");
+  if (!operator_suppressed) {
+    write_tok_str(")");
+  }  /* if */
 }  /* gen_type_operator */
 
 
