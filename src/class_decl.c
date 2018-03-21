@@ -3716,7 +3716,6 @@ constant-expression.
     a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
     /* Reactivate the class scope and parse the initializer. */
     push_class_and_template_reactivation_scope(
           class_type, /*is_template_based=*/gpp_mode,
@@ -3730,7 +3729,9 @@ constant-expression.
     var = dps.sym->variant.static_data_member.variable;
     dps.type = dps.declared_type = var->type;
     if (gpp_mode && var->template_info != NULL &&
-        var->template_info->assoc_template->definition_template != NULL) {
+        symbol_for(var->template_info->assoc_template)
+                ->variant.static_data_member.instance_ptr->template_info
+                ->variant.variable.has_out_of_class_definition) {
       /* In GNU C++ mode, if an out-of-class definition has been seen prior to
          the instantiation of the initializer, the initializer is not
          necessarily required to be a constant. */
