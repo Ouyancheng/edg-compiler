@@ -9634,6 +9634,9 @@ an error if appropriate.
 {
   a_symbol_ptr  sym = dps->sym;
 
+  if (sym != NULL && symbol_is(sym, sk_function_template)) {
+    sym = symbol_for(sym->variant.template_info->variant.function.routine);
+  }  /* if */
   if (sym != NULL && symbol_is(sym, sk_routine) &&
       special_kind_is(sym->variant.routine.ptr, sfk_deduction_guide)) {
     /* "explicit" can appear on deduction guides. */
