@@ -713,7 +713,7 @@ does not instantiate the template at all.  For example:
 This is now fixed.
 
 
-2/14/18  [EDGcpfe./18125]
+2/14/18  [EDGcpfe/18125]
 C++-generating back end: clang and user-defined literal operators
 
 The change for EDGcpfe/17988 (in version 4.13) used an incorrect test to
