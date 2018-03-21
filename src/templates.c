@@ -37325,7 +37325,6 @@ function parameter list) will be completed later.
   a_template_symbol_supplement_ptr	tssp;
   a_template_symbol_supplement_ptr	ctor_tssp = NULL;
   a_template_cache_ptr			tcp;
-  a_class_type_supplement_ptr		proto_ctsp;
   a_template_ptr			templ;
 
   /* The constructor for a hypothetical constructor won't have a template
@@ -37333,7 +37332,6 @@ function parameter list) will be completed later.
   if (ctor_sym->variant.routine.instance_ptr != NULL) {
     ctor_tssp = template_supplement_for_symbol(ctor_sym);
   }  /* if */
-  proto_ctsp = proto_type->variant.class_struct_union.extra_info;
   tcp = cache_for_template(ct_tssp);
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
                      ctor_sym->header,
@@ -37627,14 +37625,15 @@ ct_tssp and create implicit deduction guides for constructor.
   for (; ctor_sym != NULL; ctor_sym = is_list ? ctor_sym->next : NULL) {
     create_implicit_deduction_guide(ct_sym, ct_tssp, proto_type, ctor_sym);
   }  /* for */
-  if (ctor_sym == NULL) {
+  if (ctor_set_sym == NULL) {
     /* If there are no constructors, create a guide for a default
        constructor. */
     add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
                                            (a_type_ptr)NULL);
-    add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
-                                           proto_type);
   }  /* if */
+  /* Add the copy deduction candidate. */
+  add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
+                                         proto_type);
 }  /* create_implicit_deduction_guides */
 
 
