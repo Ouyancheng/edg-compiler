@@ -512,7 +512,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   a_type_ptr            undeduced_type, deduced_auto_type;
   a_boolean             still_dependent;
   a_boolean             is_full_expr = !dps->is_new_expr_type &&
-                                       !dps->is_init_capture;
+                                       !dps->is_init_capture &&
+                                       dps->sym != NULL;
   a_decl_parse_state    *saved_decl_parse_state;
 
   check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
@@ -567,9 +568,11 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     icp = scan_expr_or_braced_init_list(/*bundle=*/is_full_expr,
                                         /*always_allow_braced=*/FALSE);
   }  /* if */
-  add_init_component_to_initializer_cache(icp,
-                                          /*to_front=*/TRUE,
+  if (icp != NULL) {
+    add_init_component_to_initializer_cache(
+                                          icp, /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
+  }  /* if */
   /* Do type deduction. */
   if (C_mode()) {
     /* GNU C has some simplified deduction rules. */
@@ -597,8 +600,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       undeduced_type = make_qualified_type(undeduced_type,
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
-    if (is_braced_init_component(icp) && dps->has_direct_initializer &&
-        !dps->has_deducible_class_templ_args &&
+    if (icp != NULL &&is_braced_init_component(icp) &&
+        dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
         ((cpp14_mode && !(clang_mode ? clang_version < 30800 :
                           gpp_mode   ? gnu_version < 50000 : FALSE)) ||
          (microsoft_mode && microsoft_version >= 1900))) {
@@ -24346,27 +24349,22 @@ one argument, return TRUE; otherwise, return FALSE.
   a_token_cache  cache;
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
-  if (curr_token == tok_lparen) {
-    cache_curr_token(&cache);
-    /* Get the first token inside the parentheses. */
-    (void)get_token();
-    if (curr_token == tok_rparen) {
-      /* The argument list is "()", i.e., zero arguments. */
-    } else {
-      /* One or more arguments.  Cache the tokens of the first argument to see
-         if it is followed by additional ones. */
-      /* Note that cache_one_argument doesn't work reliable with template
-         references because it doesn't coalesce ids (which would be hard to
-         do, because you have to have a cache pre-built containing the right
-         tokens).  But this routine is now used only in some corner cases in
-         some corner modes (e.g., cfront), so this answer is good enough.
-         (Before this was relegated to use in corner modes, it was in use for
-         years, and we got no bug reports about it.) */
-      cache_one_argument(&cache);
-      /* If we stopped on a right parenthesis, the argument list has exactly
-         one argument. */
-      if (curr_token == tok_rparen) one_arg = TRUE;
-    }  /* if */
+  if (curr_token == tok_rparen) {
+    /* The argument list is "()", i.e., zero arguments. */
+  } else {
+    /* One or more arguments.  Cache the tokens of the first argument to see
+       if it is followed by additional ones. */
+    /* Note that cache_one_argument doesn't work reliable with template
+       references because it doesn't coalesce ids (which would be hard to
+       do, because you have to have a cache pre-built containing the right
+       tokens).  But this routine is now used only in some corner cases in
+       some corner modes (e.g., cfront), so this answer is good enough.
+       (Before this was relegated to use in corner modes, it was in use for
+       years, and we got no bug reports about it.) */
+    cache_one_argument(&cache);
+    /* If we stopped on a right parenthesis, the argument list has exactly
+       one argument. */
+    if (curr_token == tok_rparen) one_arg = TRUE;
   }  /* if */
   /* Restore the tokens. */
   rescan_cached_tokens(&cache);
@@ -24503,8 +24501,11 @@ freed by this routine.
   a_boolean                     expr_not_present = FALSE;
   a_boolean                     scanning_source = (rcblock == NULL &&
                                                    !arg_list_supplied);
+  a_boolean                     parenthesized = FALSE;
   an_init_component_ptr         braced_init_list = NULL;
   a_boolean                     saved_allow_call_with_incomplete_return_type;
+  an_initializer_cache
+                                *saved_initializer_cache = NULL;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -24545,6 +24546,39 @@ freed by this routine.
     /* Normal, non-rescan, processing. */
     type_position = *start_position;
     rescan_dip = NULL;
+    if (scanning_source) {
+      /* We may have to prescan the operand being cast to deduce the actual
+         type cast to (in the C++17 case involving class template argument
+         deduction).  That requires us consuming a parenthesis first (if there
+         is one). */
+      if (curr_token == tok_lparen) {
+        parenthesized = TRUE;
+        (void)get_token();
+      } else if (!(list_init_enabled && curr_token == tok_lbrace)) {
+        (void)required_token(tok_lparen, ec_exp_lparen);
+        type_cast_to = error_type();
+      }  /* if */
+      if (is_class_template_placeholder_type(type_cast_to)) {
+        a_decl_parse_state  dps;
+        init_decl_parse_state(&dps);
+        dps.type = type_cast_to;
+        dps.auto_type = type_cast_to;
+        dps.has_deduced_type = TRUE;
+        dps.has_deducible_class_templ_args = TRUE;
+        prescan_initializer_for_auto_type_deduction(&dps, parenthesized);
+        type_cast_to = dps.type;
+        if (parenthesized) {
+          saved_initializer_cache = expr_stack->initializer_cache;
+          expr_stack->initializer_cache = NULL;
+          set_up_initializer_rescan(&dps);
+        } else {
+          /* A braced initializer that is now in the initializer cache. */
+          braced_init_list = fetch_init_component_from_initializer_cache(
+                                           &dps.prescanned_initializer_cache);
+          scanning_source = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   error_position = *start_position;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -24565,7 +24599,7 @@ freed by this routine.
                             /*explicit_cv_qualifiers=*/FALSE,
                             allow_ms_array || list_init_enabled,
                             /*allow_unk_bound_array=*/list_init_enabled);
-  if (list_init_enabled && 
+  if (list_init_enabled && !parenthesized &&
       (scanning_source ? curr_token == tok_lbrace :
                          braced_init_list != NULL)) {
     /* C++11 list-initializer syntax, e.g., T{x, y}. */
@@ -24592,6 +24626,7 @@ freed by this routine.
     type_cast_to = error_type();
     err = TRUE;
   }  /* if */
+  error_position = pos_curr_token;
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     /* If the class is a template class, instantiate it to make its
@@ -24616,10 +24651,6 @@ freed by this routine.
         ctor_case = FALSE;
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (scanning_source) {
-    /* Check for a left parenthesis. */
-    (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
   could_be_dependent = could_be_dependent_class_type(type_cast_to);
   if (gpp_mode && !clang_mode && !could_be_dependent &&
@@ -24985,6 +25016,10 @@ end_of_routine:
   expr_stack->allow_call_with_incomplete_return_type = 
                                  saved_allow_call_with_incomplete_return_type;
   free_init_component_list(braced_init_list);
+  if (saved_initializer_cache != NULL) {
+    flush_initializer_cache(expr_stack->initializer_cache);
+    expr_stack->initializer_cache = saved_initializer_cache;
+  }  /* if */
   db_exit();
 }  /* scan_functional_notation_type_conversion */
 
@@ -31002,6 +31037,9 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     a_token_sequence_number paren_tok_seq_number;
     an_identifier_options_set  gid_options = GID_IS_EXPR_CONTEXT |
                                              GID_DTOR_RECOGNIZED;
+    if (class_template_arg_deduction_enabled) {
+      gid_options |= GID_TEMPLATE_ARGS_OPTIONAL;
+    }  /* if */
     start_position = pos_curr_token;
     /* If the identifier is the start of a C++ qualified name, get the whole
        name.  If not, look the name up as a normal identifier.  This routine
@@ -31604,20 +31642,31 @@ overloaded_function:
           }  /* if */
           break;
         case sk_class_template:
-          /* Class template.  Returned by symbol lookup for cases like
-             A<T>::template f<N> in prototype instantiations.  A class
-             template is returned because there's only a representation
-             for the class case as a member of a nonreal class, but it's
-             really a function template. */
-          check_assertion(locator.is_template_id &&
-                          is_template_dependent_context());
-          make_unknown_dependent_function_operand(projection_sym_ptr,
-                                                  /*is_template_id=*/TRUE,
-                                                  locator.template_arg_list,
-                                                  (a_boolean)locator.
+          /* Class template. */
+          if (!locator.is_template_id) {
+            /* A class template used as a placeholder type (a C++17 feature
+               requiring class template argument deduction). */
+            a_type_ptr  placeholder;
+            check_assertion(class_template_arg_deduction_enabled);
+            placeholder = make_class_template_placeholder(
+                                           sym_ptr, &locator.source_position);
+            sym_ptr = symbol_for(placeholder);
+            goto type_identifier_case;
+          } else {
+            /* A template id can produce a class template symbol for cases
+               like A<T>::template f<N> in prototype instantiations.  A class
+               template is returned because there's only a representation for
+               the class case as a member of a nonreal class, but it's really
+               a function template. */
+            check_assertion(is_template_dependent_context());
+            make_unknown_dependent_function_operand(projection_sym_ptr,
+                                                    /*is_template_id=*/TRUE,
+                                                    locator.template_arg_list,
+                                                    (a_boolean)locator.
                                                              is_qualified_name,
-                                                  result);
-          change_template_param_constant_operand_to_lvalue(result);
+                                                    result);
+            change_template_param_constant_operand_to_lvalue(result);
+          }  /* if */
           break;
         case sk_undefined:
           if (rcblock == NULL) {
@@ -31660,6 +31709,7 @@ overloaded_function:
         case sk_class_or_struct_tag:
         case sk_union_tag:
         case sk_enum_tag:
+type_identifier_case:
           /* The identifier is a type identifier. */
           if (!C_mode() && rcblock == NULL &&
               (name_followed_by_left_paren ||
