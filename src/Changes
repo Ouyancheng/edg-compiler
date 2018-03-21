@@ -43,8 +43,8 @@ error in gen_template.  These problems are now fixed.
 Variable templates and multiple translation units
 
 Previously, the front end did not handle variable templates when simultaneously
-compiling multiple translation units: In many cases such cases resulted in
-internal errors.  That support has now been added.
+compiling multiple translation units: Often such cases resulted in internal
+errors.  That support has now been added.
 
 
 3/20/18  [EDGcpfe/16021,EDGcpfe/19432]

@@ -6065,7 +6065,7 @@ of templ may be templ itself and therefore unusable).
       a_variable_ptr  proto, corresp_proto;
       proto = tssp->variant.variable.prototype_variable;
       corresp_proto = corresp_tssp->variant.variable.prototype_variable;
-      /* For nonprototype template this could be NULL (the prototype
+      /* For a nonprototype template this could be NULL (the prototype
          instantiation is attached to the corresponding prototype template). */
       if (corresp_proto != NULL &&
           corresp_templ->canonical_template != templ->canonical_template) {
