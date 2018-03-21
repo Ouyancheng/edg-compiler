@@ -27560,7 +27560,7 @@ any non-empty template parameter lists that were scanned.
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any
            attributes that will need to be applied during instantiation. */
-        if (tssp != NULL) {
+        if (tssp != NULL && decl_state->defines_something) {
           p_template_body_cache = &tssp->cache.tokens;
         }  /* if */
       } else if (is_function_template) {
