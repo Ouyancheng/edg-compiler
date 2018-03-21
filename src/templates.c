@@ -24525,7 +24525,7 @@ set, and its source sequence entry, if any, has been put out.)
           il_template_entry->canonical_template =
                         sym->variant.static_data_member.variable->
                                                  template_info->assoc_template;
-          if (decl_state->defines_something) {
+          if (decl_state->decl_parse.has_initializer) {
             il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
           }  /* if */
@@ -24986,10 +24986,10 @@ static a_symbol_ptr variable_template_declaration(
 			a_template_symbol_supplement_ptr	*p_tssp)
 /*
 Scan a variable template declaration or the out-of-class declaration (often,
-a definition) of a static data member of a class template.  locator identifies
-the entity being declared.  template_param_list points to the parameter list
-for this template declaration.  p_tssp points to the location in which the
-template symbol supplement for this template should be returned to the caller.
+a definition) of a static data member of a class template.  *decl_state tracks
+the declaration state accumulated so far.  locator identifies the entity being
+declared.  p_tssp points to the location in which the template symbol
+supplement for this template should be returned to the caller.
 */
 {
   a_boolean                        err = FALSE;
@@ -25126,9 +25126,8 @@ template symbol supplement for this template should be returned to the caller.
     /* This is a template definition of a static data member of a
        class template or a redeclaration of a variable template. */
     a_type_ptr  type = dps->type;
-    if (is_variable_template ?
-          dps->storage_class != (a_storage_class)sc_extern :
-          (var == NULL || !var->initializer_in_class)) {
+    if (!is_variable_template ||
+        dps->storage_class != (a_storage_class)sc_extern) {
       dps->is_definition = TRUE;
       decl_state->defines_something = TRUE;
     }  /* if */
@@ -25281,8 +25280,10 @@ template symbol supplement for this template should be returned to the caller.
          the declaration in the class can be a definition, so an
          out-of-class declaration is not considered to be a definition
          for source sequence purposes unless it has an initializer. */
-      if (!decl_state->defines_something &&
-          (!sym->is_class_member || !dps->is_definition)) {
+      if ((!decl_state->defines_something &&
+           (!sym->is_class_member || !dps->is_definition)) ||
+          (sym->is_class_member && var != NULL &&
+           var->initializer_in_class)) {
         a_src_seq_secondary_decl_ptr sssdp;
         check_assertion(decl_state->il_template_entry != NULL);
         sssdp = secondary_src_seq_for_template(

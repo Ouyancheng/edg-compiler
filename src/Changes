@@ -33,10 +33,10 @@ Consider:
   template<typename T> constexpr int S<T>::x;
 
 In pre-C++17 modes this is invalid, but the front end previously failed to
-issue an error on the second definition (2).  (In C++17 the example is valid
-because the out-of-class declaration is not a definition.)  Furthermore, in
-all modes, the C++-generating back end abort with an internal error in
-gen_template.  This problems are now fixed.
+issue an error on the second static data member definition.  (In C++17 the
+example is valid because the out-of-class declaration is not a definition.)
+Furthermore, in all modes, the C++-generating back end aborted with an internal
+error in gen_template.  These problems are now fixed.
 
 
 3/20/18  [EDGcpfe/19427]
