@@ -689,6 +689,9 @@ static void add_abi_tag_mangling(an_attribute_ptr         ap,
 static void add_variable_template_indication(a_variable_ptr           vp,
                                              a_mangling_control_block *mctl);
 
+static void mangled_name_with_length(a_const_char             *name,
+                                     a_mangling_control_block *mctl);
+
 /*
 Interface to mangled_type_name_full for the usual case, where the
 caller has not checked already for a substitution in IA-64 ABI mode and
@@ -2628,6 +2631,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
   a_template_param_coordinate *coordinates = NULL;
   an_expr_node_ptr            pack_expr = NULL;
   a_boolean                   suppress_address_of = FALSE;
+  a_boolean                   no_mangling = FALSE;
 
   check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
 #if IA64_ABI
@@ -2657,12 +2661,16 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     coordinates = &expr->variant.sizeof_pack.variant.templ->coordinates;
   } else if (expr->variant.sizeof_pack.is_type) {
     /* A type (template parameter). */
-    a_type_ptr type = expr->variant.sizeof_pack.variant.type;
-    check_assertion(type->kind == (a_type_kind)tk_template_param &&
-                    type->variant.template_param.is_pack &&
-                    type->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tptk_param);
-    coordinates = &type->variant.template_param.extra_info->coordinates;
+    a_type_ptr type = skip_typerefs(expr->variant.sizeof_pack.variant.type);
+    check_assertion(type->kind == (a_type_kind)tk_template_param);
+    if (type->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tptk_param) {
+      coordinates = &type->variant.template_param.extra_info->coordinates;
+    } else {
+      /* A tptk_member or tptk_unknown template parameter.  These can occur
+         in prototype instantiations. */
+      no_mangling = TRUE;
+    }  /* if */
   } else {
     /* An expression.  Non-type template parameter case is handled here,
        function parameter case is handled below. */
@@ -2682,7 +2690,10 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
   }  /* if */
   /* The argument is either a template (template) parameter (as identified
      above) or a function parameter. */
-  if (coordinates != NULL) {
+  if (no_mangling) {
+    /* Indicate that there is no standard mangling for this construct. */
+    mangled_name_with_length("?", mctl);
+  } else if (coordinates != NULL) {
     /* Note that although this template parameter is a pack, it isn't mangled
        as such (the IA-64 ABI mangling doesn't allow for that). */
     mangled_encoding_for_template_parameter(coordinates,

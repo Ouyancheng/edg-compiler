@@ -1,5 +1,25 @@
 Version 4.15
 
+2/22/18  [EDGcpfe/19460]
+Assertion failure in mangled_encoding_for_sizeof_pack
+
+In some (mostly C++-generating) configurations where MANGLE_ALL_NAMES is TRUE,
+the mangling of a tpck_member or tpck_unknown template parameter type as
+an argument to sizeof... had resulted in an assertion failure in
+mangled_encoding_for_sizeof_pack.  These template parameter types can occur
+when mangling prototype instantiations and as there is no standard mangling
+string for such entities, a "?" is inserted into the mangled name (as is
+currently done when such template parameters occur in other contexts).  For
+example (with --c++11):
+
+  template <int N> struct MI { };
+  template<typename T> struct BE { };
+  template<typename T> using BE_T = typename BE<T>::type;
+  template<typename... Ts> using CT = typename MI<sizeof...(Ts)>::type;
+  template<typename... Args> auto f(Args &&... args) ->
+                                          decltype(CT<BE_T<Args>...>{args...});
+
+
 3/22/18  [EDGcpfe/19358]
 Internal error on variable template with missing template argument list
 
