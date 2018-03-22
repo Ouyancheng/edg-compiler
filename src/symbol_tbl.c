@@ -3606,6 +3606,7 @@ and return a pointer to it.
       tssp->variant.function.prototype_friend_symbol = NULL;
       tssp->variant.function.invented_partial_ordering_param = NULL;
       tssp->variant.function.template_param_not_in_function_type = FALSE;
+      tssp->variant.function.constructor_symbol_for_guide = NULL;
       tssp->variant.function.has_prototype_instantiation = FALSE;
       tssp->
           variant.function.exception_spec_prototype_instantiation_done = FALSE;

@@ -2985,6 +2985,12 @@ typedef struct a_template_symbol_supplement {
 			   static or non-member function during partial
 			   ordering, this points to the invented parameter.
 			   NULL otherwise. */
+      a_symbol_ptr
+		constructor_symbol_for_guide;
+			/* If this is an implicit deduction guide, this
+			   points to the symbol for the original constructor.
+			   For a guide generated for a hypothetical
+			   constructor, this will be NULL. */
       a_bit_field
 		template_param_not_in_function_type:1;
 			/* TRUE if the function template has template

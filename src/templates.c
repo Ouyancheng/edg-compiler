@@ -37328,11 +37328,14 @@ function parameter list) will be completed later.
   a_template_symbol_supplement_ptr	ctor_tssp = NULL;
   a_template_cache_ptr			tcp;
   a_template_ptr			templ;
+  a_boolean				is_hypothetical = FALSE;
 
   /* The constructor for a hypothetical constructor won't have a template
      instance. */
   if (ctor_sym->variant.routine.instance_ptr != NULL) {
     ctor_tssp = template_supplement_for_symbol(ctor_sym);
+  } else {
+    is_hypothetical = TRUE;
   }  /* if */
   tcp = cache_for_template(ct_tssp);
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
@@ -37349,6 +37352,9 @@ function parameter list) will be completed later.
   tssp->has_variadic_template_params = ct_tssp->has_variadic_template_params ||
                                      (ctor_tssp != NULL &&
                                       ctor_tssp->has_variadic_template_params);
+  if (!is_hypothetical) {
+    tssp->variant.function.constructor_symbol_for_guide = ctor_sym;
+  }  /* if */
   tdip->enclosing_scope = parent_scope_of(proto_type);
   tdip->enclosing_template_decl = tcp->decl_info;
   templ = alloc_template();
