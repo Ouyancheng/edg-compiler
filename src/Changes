@@ -1,5 +1,21 @@
 Version 4.15
 
+3/22/18  [EDGcpfe/19358]
+Internal error on variable template with missing template argument list
+
+An internal error could occur (in scan_field_selection_operator or
+scan_identifier) if a variable template was used without a template
+argument list in certain contexts.  Now fixed.
+
+  struct A {
+    template <class T> static int i; 
+  };
+  template <int*> struct B { };
+  A a;
+  int A::i;
+  B<&a.i> b;
+
+
 3/20/18  [EDGcpfe/17642]
 C++-generating back end: assertion failure with decltype in template argument
 

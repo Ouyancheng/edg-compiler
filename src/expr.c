@@ -8338,6 +8338,15 @@ treat_as_static_member:
           operand_will_not_be_used_because_of_error(operand_1);
           make_error_operand(result);
           break;
+        case sk_variable_template:
+          /* The identifier is a variable template name. */
+          if (expr_error_should_be_issued()) {
+            pos_sy_error(ec_missing_template_arg_list, &member_position,
+                         member_sym);
+          }  /* if */
+          operand_will_not_be_used_because_of_error(operand_1);
+          make_error_operand(result);
+          break;
         default:
           unexpected_condition_str(
                              "scan_field_selection_operator: bad symbol kind");
@@ -31746,6 +31755,14 @@ type_identifier_case:
           /* The identifier is a namespace name. */
           error_and_make_error_operand(ec_namespace_name_not_allowed,
                                        result);
+          /* No need to call change_refs_to_error; rep is NULL. */
+          break;
+        case sk_variable_template:
+          /* The identifier is2 a variable template without a template
+             argument list. */
+          pos_sy_error(ec_missing_template_arg_list, &error_position,
+                       sym_ptr);
+          make_error_operand(result);
           /* No need to call change_refs_to_error; rep is NULL. */
           break;
         case sk_parameter:
