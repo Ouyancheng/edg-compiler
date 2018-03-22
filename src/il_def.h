@@ -9639,7 +9639,9 @@ typedef struct a_type {
 			/* The kind of template param type. */
       a_bit_field
 		is_pack:1;
-			/* TRUE if this is a template parameter pack. */
+			/* TRUE if this is a template parameter pack.  This
+			   is set for tpck_param types that represent
+			   template parameter pack declarations. */
       a_bit_field
 		is_generic_param:1;
 			/* TRUE if this is a C++/CLI generic type parameter. */
