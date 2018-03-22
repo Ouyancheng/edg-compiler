@@ -7833,7 +7833,19 @@ deduction guides and check if one is preferred over the other.
       } else {
         /* A candidate generated from an ordinary constructor is preferred over
            one generated from a constructor template. */
-        /* FIXME */
+        a_symbol_ptr  origin1, origin2;
+        origin1 = cfp1->function_symbol->variant.template_info
+                      ->variant.function.constructor_symbol_for_guide;
+        origin2 = cfp2->function_symbol->variant.template_info
+                      ->variant.function.constructor_symbol_for_guide;
+        if (origin1 != NULL && origin2 != NULL) {
+          a_boolean  is_template1, is_template2;
+          is_template1 = symbol_is(origin1, sk_function_template);
+          is_template2 = symbol_is(origin2, sk_function_template);
+          if (is_template1 != is_template2) {
+            result = is_template2 ? 1 : -1;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

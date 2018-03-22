@@ -37332,7 +37332,8 @@ function parameter list) will be completed later.
 
   /* The constructor for a hypothetical constructor won't have a template
      instance. */
-  if (ctor_sym->variant.routine.instance_ptr != NULL) {
+  if (symbol_is(ctor_sym, sk_function_template) ||
+      ctor_sym->variant.routine.instance_ptr != NULL) {
     ctor_tssp = template_supplement_for_symbol(ctor_sym);
   } else {
     is_hypothetical = TRUE;
