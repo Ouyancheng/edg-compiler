@@ -96,13 +96,6 @@ static a_control_flow_descr_ptr
 		avail_control_flow_descrs;
 			/* Linked list of a_control_flow_descr entries that
 			   have been freed for reuse. */
-static a_control_flow_descr_ptr
-		goto_fixup_list;
-			/* Linked list of control flow entries with kind
-			   cfdk_goto for entries that have been removed from
-			   the control flow list but need to be revisited in
-			   case the lifetime pointer in the associated
-			   statement should be cleared. */
 
 #define function_scope_object_lifetime                                \
   (scope_stack[depth_innermost_function_scope].curr_scope_object_lifetime)
@@ -679,8 +672,6 @@ If a goto is removed, the goto-counts of its parent, grandparent, and so
 forth, are decremented.
 */
 {
-  a_control_flow_descr_ptr  parent_cfdp = NULL, grandparent_cfdp;
-
   db_enter(5, "remove_control_flow_descr");
 #if DEBUG
   if (debug_level >= 5) {
@@ -704,50 +695,8 @@ forth, are decremented.
   } else {
     cfdp->next->prev = cfdp->prev;
   }  /* if */
-  if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
-    /* Decrement the goto counters in the parent, the parent's parent, etc. */
-    for (parent_cfdp = cfdp->parent;
-         parent_cfdp != NULL;
-         parent_cfdp = grandparent_cfdp) {
-      /* Save the pointer to the parent's parent, in case the parent becomes
-         irrelevant and is removed from the list. */
-      grandparent_cfdp = parent_cfdp->parent;
-      /* Decrement the goto count in the parent. */
-      --(parent_cfdp->variant.block.goto_count);
-      /* If there are no labels and no more gotos in the block, it can be
-         removed.  Note that there may be initializations, but there are not
-         interesting if there is no way to jump into the block. */
-      if (parent_cfdp->variant.block.goto_count == 0 &&
-          !parent_cfdp->variant.block.any_labels &&
-          !parent_cfdp->variant.block.any_vla_variables &&
-          parent_cfdp->variant.block.end_of_block != NULL) {
-        remove_list_of_control_flow_descrs(
-                        parent_cfdp, parent_cfdp->variant.block.end_of_block);
-      }  /* if */
-    }  /* for */
-    if (!C_mode()) {
-      if (cfdp->variant.goto_statement.ptr->variant.label.lifetime !=
-                                           function_scope_object_lifetime) {
-        /* The lifetime entry with which this goto is associated "survived"
-           (i.e., did not decay to the function scope object lifetime) and thus
-           will remain in the IL, so no fixup of the pointer is required. */
-      } else if (function_scope_object_lifetime->destructions == NULL) {
-        /* It is certain that the functions scope object lifetime will survive
-           in the IL.  Again, no pointer fixup is required. */
-      } else {
-        /* It may turn out that the lifetime created for the function scope
-           will be eliminated, in which case the lifetime pointer in the goto
-           statement will have to be cleared.  Put the entry on a fixup
-           list. */
-        cfdp->next = goto_fixup_list;
-        goto_fixup_list = cfdp;
-        /* Don't return it to the available list. */
-        goto done;
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  check_assertion(cfdp->kind != (a_control_flow_descr_kind)cfdk_goto);
   free_control_flow_descr(cfdp);
-done:;
   db_exit();
 }  /* remove_control_flow_descr */
 
@@ -898,7 +847,6 @@ that is being generated.
              keep this block around? */
           check_assertion(cfdp->variant.block.last_case_label == NULL);
           if (!cfdp->variant.block.any_labels &&
-              !cfdp->variant.block.any_vla_variables &&
               cfdp->variant.block.goto_count == 0) {
             /* A block with no labels and no forward gotos. */
             remove_list_of_control_flow_descrs(cfdp, cfdp->variant.
@@ -1344,7 +1292,6 @@ initializing declarations.
       }  /* if */
       if (!prev_parent->variant.block.any_labels &&
           prev_parent->variant.block.last_case_label == NULL &&
-          !prev_parent->variant.block.any_vla_variables &&
           prev_parent->variant.block.goto_count == 0) {
         /* A block with no labels and no forward gotos is being closed.  It
            can be removed from the list -- even if it has initializations,
@@ -2818,7 +2765,6 @@ algorithmic limit on the number of levels of nesting supported.
   saved_state->code_reachability = curr_reachability;
   saved_state->control_flow_list = control_flow_descr_list;
   saved_state->end_of_control_flow_list = end_of_control_flow_descr_list;
-  saved_state->goto_fixup_list = goto_fixup_list;
 }  /* new_struct_stmt_stack */
 
 
@@ -2845,7 +2791,6 @@ statement stack.
   curr_reachability = saved_state->code_reachability;
   control_flow_descr_list = saved_state->control_flow_list;
   end_of_control_flow_descr_list = saved_state->end_of_control_flow_list;
-  goto_fixup_list = saved_state->goto_fixup_list;
 }  /* restore_struct_stmt_stack */
 
 
@@ -7617,7 +7562,6 @@ through *p_result_type.
     /* Block for a function. */
     set_reachable(curr_reachability);
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
-    goto_fixup_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
     block->variant.block.extra_info->end_of_block_reachable = FALSE;
     block->position = pos_curr_token;
@@ -7980,7 +7924,6 @@ function try block has to have been established first.
      in compound_statement. */
   set_reachable(curr_reachability);
   control_flow_descr_list = end_of_control_flow_descr_list = NULL;
-  goto_fixup_list = NULL;
   /* Clear statement stack just to be careful. */
   depth_stmt_stack = -1;
   /* The function try block (including its catch clauses) is contained
@@ -8065,21 +8008,13 @@ lifetime for the function has to be popped from the object lifetime stack
 before the fixup can be done for pointers in goto and label statements.
 */
 {
-  a_control_flow_descr_ptr  cfdp, next_cfdp;
+  a_control_flow_descr_ptr  cfdp;
 
   if (control_flow_descr_list != NULL) {
     if (!C_mode()) {
       if (scope_ptr->lifetime == NULL) {
         /* The function scope lifetime was eliminated, so be sure it is
            not pointed to by any goto or label statements. */
-        /* The gotos were removed from the control_flow_descr_list but have
-           been saved on a fixup list. */
-        for (cfdp = goto_fixup_list; cfdp != NULL; cfdp = next_cfdp) {
-          next_cfdp = cfdp->next;
-          cfdp->variant.goto_statement.ptr->variant.label.lifetime = NULL;
-          free_control_flow_descr(cfdp);
-        }  /* for */
-        goto_fixup_list = NULL;
         /* The labels are still on the control_flow_descr_list. */
         for (cfdp = control_flow_descr_list; cfdp != NULL; cfdp = cfdp->next) {
           if (cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
@@ -8143,7 +8078,6 @@ One-time initialization for statements.c static variables.
   register_trans_unit_variable(struct_stmt_stack_container);
   register_trans_unit_variable(size_struct_stmt_stack_container);
   register_trans_unit_variable(curr_reachability);
-  register_trans_unit_variable(goto_fixup_list);
 #if UPC_EXTENSIONS_ALLOWED
   register_trans_unit_variable(affinity_forall_loop);
   register_trans_unit_variable(innermost_forall_loop);
@@ -8159,7 +8093,6 @@ be repeated for every (primary or secondary) translation unit.
 {
   control_flow_descr_list = NULL;
   end_of_control_flow_descr_list = NULL;
-  goto_fixup_list = NULL;
   /* Initialize some global variables declared in statements.h. */
   struct_stmt_stack = NULL;
   depth_stmt_stack = -1;
