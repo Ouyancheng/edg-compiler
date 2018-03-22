@@ -7758,6 +7758,89 @@ done:
 }  /* compare_enable_if_attributes */
 
 
+static int compare_function_templates_for_ovl_res(
+                                                a_candidate_function_ptr cfp1,
+                                                a_candidate_function_ptr cfp2)
+/*
+Helper function for compare_candidate_functions to check if one candidate
+template is more specialized than the other.
+*/
+{
+  uint32_t max1 = max_param_num_for_candidate_function(cfp1);
+  uint32_t max2 = max_param_num_for_candidate_function(cfp2);
+  uint32_t maxn = (max1 > max2) ? max1 : max2;
+  int      result;
+
+  result = compare_function_templates(cfp1->function_symbol,
+                                      cfp2->function_symbol,
+                                      /*entire_type=*/FALSE,
+                                      /*is_templ_templ_param_check=*/FALSE,
+                                      maxn);
+  return result;
+}  /* compare_function_templates_for_ovl_res */
+
+
+static a_boolean is_copy_deduction_candidate(a_routine_ptr  rp)
+/*
+Return TRUE if the given routine is a generated deduction guide known as "the
+copy deduction candidate" (characterized by a single parameter type equal to
+its return type).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (special_kind_is(rp, sfk_deduction_guide) && rp->compiler_generated) {
+    a_type_ptr  rtp = rp->type;
+    a_param_type_ptr
+                ptp = function_type_params(rtp);
+    if (ptp != NULL && ptp->next == NULL) {
+      if (rtp->variant.routine.return_type == ptp->type) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_copy_deduction_candidate */
+
+
+static int compare_deduction_guides_if_applicable(
+                                                a_candidate_function_ptr cfp1,
+                                                a_candidate_function_ptr cfp2)
+/*
+Helper function for compare_candidate_functions to check if the candidate are
+deduction guides and check if one is preferred over the other.
+*/
+{
+  int            result = 0;
+  a_routine_ptr  rp1 = func_sym_routine(cfp1->function_symbol);
+
+  if (special_kind_is(rp1, sfk_deduction_guide)) {
+    /* Deduction guides only appear in deduction guide sets: The other entry
+       must therefore also be a deduction guide. */
+    a_routine_ptr  rp2 = func_sym_routine(cfp2->function_symbol);
+    check_assertion(special_kind_is(rp2, sfk_deduction_guide));
+    if (rp1->compiler_generated != rp2->compiler_generated) {
+      /* An user-declared guide is preferred over a generated one. */
+      result = rp2->compiler_generated ? 1 : -1;
+    } else if (rp1->compiler_generated) {
+      /* The remaining disambiguation rules apply only to generated deduction
+         guides (which are always templates). */
+      a_boolean  cdc1 = is_copy_deduction_candidate(rp1),
+                 cdc2 = is_copy_deduction_candidate(rp2);
+      if (cdc1 != cdc2) {
+        /* One of the candidates is the copy deduction candidate: Prefer it. */
+        result = cdc1 ? 1 : -1;
+      } else {
+        /* A candidate generated from an ordinary constructor is preferred over
+           one generated from a constructor template. */
+        /* FIXME */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compare_deduction_guides_if_applicable */
+
+
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
 /*
@@ -7838,17 +7921,12 @@ other.  Return
   } else if (gpp_mode &&
              (cmp = compare_gpp_const_this_tiebreaker(cfp1, cfp2)) != 0) {
     /* g++ has a tiebreaker related to const "this" parameters. */
-  } else if (cfp1->is_function_template && cfp2->is_function_template) {
-    /* cfp1 and cfp2 are function templates.  Determine whether either of
-       the templates is more specialized than the other. */
-    uint32_t max1 = max_param_num_for_candidate_function(cfp1);
-    uint32_t max2 = max_param_num_for_candidate_function(cfp2);
-    uint32_t maxn = (max1 > max2) ? max1 : max2;
-    cmp = compare_function_templates(cfp1->function_symbol,
-                                     cfp2->function_symbol,
-                                     /*entire_type=*/FALSE,
-                                     /*is_templ_templ_param_check=*/FALSE,
-                                     maxn);
+  } else if (cfp1->is_function_template && cfp2->is_function_template &&
+             (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
+    /* cfp1 and cfp2 are function templates and one is more specialized than
+       the other. */
+  } else if ((cmp = compare_deduction_guides_if_applicable(cfp1, cfp2)) != 0) {
+    /* Deduction guides have a few tie-breaking rules associated with them. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled &&
              ((arg_num1 = creates_param_array(cfp1)) !=
