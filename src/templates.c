@@ -27568,8 +27568,8 @@ any non-empty template parameter lists that were scanned.
            may be NULL in error cases.  For GNU modes also save any
            attributes that will need to be applied during instantiation. */
         if (tssp != NULL &&
-            (!symbol_is(sym, sk_static_data_member) &&
-             !decl_state->decl_parse.has_initializer)) {
+            (!symbol_is(sym, sk_static_data_member) ||
+             decl_state->decl_parse.has_initializer)) {
           p_template_body_cache = &tssp->cache.tokens;
         }  /* if */
       } else if (is_function_template) {
