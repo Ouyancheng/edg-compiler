@@ -7812,8 +7812,12 @@ deduction guides and check if one is preferred over the other.
 */
 {
   int            result = 0;
-  a_routine_ptr  rp1 = func_sym_routine(cfp1->function_symbol);
+  a_routine_ptr  rp1;
 
+  if (cfp1->function_symbol == NULL || cfp2->function_symbol == NULL) {
+    goto done;
+  }  /* if */
+  rp1 = func_sym_routine(cfp1->function_symbol);
   if (special_kind_is(rp1, sfk_deduction_guide)) {
     /* Deduction guides only appear in deduction guide sets: The other entry
        must therefore also be a deduction guide. */
@@ -7849,6 +7853,7 @@ deduction guides and check if one is preferred over the other.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   return result;
 }  /* compare_deduction_guides_if_applicable */
 
