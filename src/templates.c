@@ -24527,9 +24527,11 @@ set, and its source sequence entry, if any, has been put out.)
             il_template_entry->prototype_instantiation.variable = NULL;
           }  /* if */
           il_template_entry->canonical_template =
-                        sym->variant.static_data_member.variable->
-                                                 template_info->assoc_template;
-          if (decl_state->decl_parse.has_initializer) {
+                     sym->variant.static_data_member.variable->template_info
+                                                             ->assoc_template;
+          if (decl_state->decl_parse.has_initializer ||
+              !sym->variant.static_data_member.variable
+                  ->initializer_in_class) {
             il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
           }  /* if */
