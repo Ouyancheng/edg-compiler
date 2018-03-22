@@ -2647,6 +2647,7 @@ option values if they were not already set by a command line option.
         /* Visual Studio 2017 version 15.6. */
         if (ms_cpplatest_mode || ms_cpp17_mode) {
           mandatory_copy_elision = TRUE;
+          class_template_arg_deduction_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {

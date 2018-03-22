@@ -10545,6 +10545,11 @@ command line -D options.
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  if (class_template_arg_deduction_enabled && ms_extensions) {
+    (void)enter_predef_macro("1", "_DEDUCTION_GUIDES_SUPPORTED",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   if (constexpr_enabled) {
     /* Define a fixed macro (not configurable since it is used by the
        EDG-provided <initializer_list> header) indicating whether support for
