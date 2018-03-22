@@ -1,5 +1,21 @@
 Version 4.15
 
+2/22/18  [EDGcpfe/19095]
+C++-generating back end, GNU compatibility: asm names and attributes
+
+For a function declaration with both an asm name and an attribute, the
+C++-generating back end previously put out the attribute first followed by
+the asm name.  This order is the reverse of the syntax expected by gcc.
+The C++-generating back end has now been changed to put out these
+constructs in the correct order.  For example, with --g++:
+
+  int foo() { return 0; }
+  __typeof(foo) foo  __asm__("x");
+  __typeof(foo) bar __asm__("foo");
+  // Previously generated as __attribute__((alias("x"))) __asm__("foo"):
+  __typeof(foo) bar __attribute__((alias("x")));
+
+
 2/22/18  [EDGcpfe/19477]
 Unneeded code for handling of control flow descriptors
 

@@ -7915,6 +7915,10 @@ recorded).
   }  /* if */
   if (scp != NULL) {
     an_attribute_ptr  attributes;
+#if GNU_EXTENSIONS_ALLOWED
+    a_routine_ptr     rout = (entry_kind == iek_routine) ? (a_routine_ptr)scp
+                                                         : NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (!(options & GDO_SUPPRESS_POSITION)) {
       /* Set the source position for the name. */
       set_decl_position(scp, sec_decl);
@@ -7944,6 +7948,17 @@ recorded).
     } else {
       attributes = sec_decl->attributes;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    /* Emit any user-specified assembly symbol for this routine.
+       Syntactically, this must precede any attributes. */
+    if (rout != NULL && attributes != NULL && has_gnu_routine_supp(rout) &&
+        gnu_routine_supp(rout)->asm_name != NULL) {
+      form_asm_name(gnu_routine_supp(rout)->asm_name, &octl);
+      /* Ensure the asm name will appear only once (it will be restored by
+         the caller). */
+      gnu_routine_supp(rout)->asm_name = NULL;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     gen_attributes(attributes, al_declarator_id,
                    /*primary_only=*/(sec_decl == NULL));
     if (!force_unqualified_name) {
@@ -18677,6 +18692,9 @@ TRUE if the declaration following this one is such a continuation.
   a_type_ptr                    parent_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_const_char                  *definition_from_string = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  a_const_char                  *saved_asm_name;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -19274,6 +19292,11 @@ handle_as_definition:
   /* Generate a declaration for the routine name with the right type. */
   in_friend_declaration = friend_decl;
   friend_is_class_member = rout->source_corresp.is_class_member;
+#if GNU_EXTENSIONS_ALLOWED
+    if (has_gnu_routine_supp(rout)) {
+      saved_asm_name = gnu_routine_supp(rout)->asm_name;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   gen_routine_specifiers_and_declaration(rout, rout_type,
                                          is_definition,
                                          force_unqualified_name,
@@ -19320,6 +19343,10 @@ handle_as_definition:
     /* Emit any user-specified assembly symbol for this routine. */
     if (has_gnu_routine_supp(rout)) {
       form_asm_name(gnu_routine_supp(rout)->asm_name, &octl);
+      /* Restore the asm name in case it was suppressed by
+         gen_routine_specifiers_and_declaration in order to accommodate
+         an attribute. */
+      gnu_routine_supp(rout)->asm_name = saved_asm_name;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     gen_attributes(attributes, al_postfix, is_definition);
