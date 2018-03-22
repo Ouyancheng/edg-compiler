@@ -16346,8 +16346,6 @@ template declaration and is NULL otherwise.
       var->property_or_event_descr = class_state->property_or_event_descr;
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!decl_info->is_member_template && var_is_property_or_event(var) &&
       property_or_event_kind_is(var, pek_cli_property)) {
     /* C++/CLI properties are associated with an sk_property_set symbol.
@@ -16634,6 +16632,7 @@ template declaration and is NULL otherwise.
      in-class initializer makes the declaration a definition too.  Also,
      in C++17, an inline (either explicit or implicit) static data member
      is considered a definition. */
+  if (var->initializer_in_class) srk_flags |= SRK_INITIALIZATION;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             decl_state->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16669,7 +16668,7 @@ template declaration and is NULL otherwise.
         var->declared_type = declared_type;
         var->declared_storage_class = decl_state->declared_storage_class;
       }  /* if */
-    } else if (!(srk_flags & SRK_DEFINITION)) {
+    } else if (!(srk_flags & (SRK_DEFINITION | SRK_INITIALIZATION))) {
       an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
       if (decl_state->marked_as_gnu_extension) {

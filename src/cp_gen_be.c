@@ -17728,13 +17728,12 @@ this one is such a continuation.
                       "gen_variable_decl: declared_type is NULL");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
-  /* Usually, initializers appear on a definition, but for static data
-     members, they may appear on the declaration. */
-  if (var->initializer_in_class && !var->is_inline) {
-    consider_initialization = !is_definition;
-  } else {
-    consider_initialization = is_definition;
-  }  /* if */
+  /* The is_definition flag is slightly different from the standard term
+     "definition" in that it is always TRUE for a declaration with an
+     initializer, including the case of an in-class declaration of a static
+     data member with an initializer (which is not always considered an actual
+     definition in the C++ standard). */
+  consider_initialization = is_definition;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI managed class types, static data members are defined in-class
      and initializers are therefore always considered. */

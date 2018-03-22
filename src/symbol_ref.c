@@ -1888,6 +1888,12 @@ created for this entity; otherwise, it is NULL.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  } else if (srk_flags & SRK_INITIALIZATION) {
+    /* In-class static data members can have an initializer without being
+       defined.  That initialized declaration is the primary declaration. */
+    is_primary_decl = !is_tentative_def;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Set declaration sequence numbers based on the first declaration of the
      name, regardless of whether it is the primary declaration or not. */
