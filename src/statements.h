@@ -543,9 +543,6 @@ typedef struct a_struct_stmt_stack_state {
   a_control_flow_descr_ptr
 		end_of_control_flow_list;
 			/* Saved pointer to tail of control flow list. */
-  a_control_flow_descr_ptr
-		goto_fixup_list;
-			/* Saved pointer to fixup list for goto statements. */
 } a_struct_stmt_stack_state;
 
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
