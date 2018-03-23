@@ -4133,15 +4133,20 @@ it is always NULL.
     if (is_rvalue_ref &&
         is_template_param_type(param_type) &&
         !is_qualified_type(param_type) &&
+        !skip_typerefs(param_type)
+                   ->variant.template_param.originally_class_template_param &&
         ((arg_operand != NULL &&
           (is_an_lvalue(arg_operand) ||
            is_a_function_designator(arg_operand))) ||
          indefinite_function_designator)) {
       /* A special case ([temp.deduct.call] paragraph 3): If the parameter
-         type is an rvalue reference to a template parameter (with no
-         cv-qualifiers), and the argument is an lvalue, use
+         type is a "forwarding reference" and the argument is an lvalue, use a
          reference-to-arg-type for the argument type, which will eventually
-         produce a parameter type that is an lvalue reference. */
+         produce a parameter type that is an lvalue reference (because of the
+         reference collapsing rules).  A "forwarding reference" is an rvalue
+         reference to a function template parameter (with no cv-qualifiers)
+         that was not synthesized from a class template parameter for a
+         generated deduction guide. */
       arg_operand = NULL;
       arg_type = make_reference_type(arg_type);
     } else if (gpp_mode &&
