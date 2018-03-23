@@ -10997,7 +10997,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
       { a_name_reference_ptr  name_ref = NULL;
         if (record_name_references_in_context()) {
           name_ref = qualifiable_name_reference(locator, &var->source_corresp);
-          if (srk_flags & SRK_DEFINITION) {
+          if ((srk_flags & SRK_DEFINITION) && !var->initializer_in_class) {
             name_ref->used_in_primary_declarator = TRUE;
           }  /* if */
         }  /* if */

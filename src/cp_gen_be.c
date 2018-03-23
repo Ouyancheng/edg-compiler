@@ -17963,7 +17963,7 @@ this one is such a continuation.
 #endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
     }  /* if */
   }  /* if */
-  if (!is_definition && !is_specialization) {
+  if (!is_specialization) {
     /* An unqualified name is usually used in the declarator if this is a
        declaration rather than a definition.  Specializations are an exception,
        and get the full normal handling.  Out-of-class static data member
@@ -17972,11 +17972,19 @@ this one is such a continuation.
        qualifier.  Another exception is the case of a redeclaration of a
        namespace member outside of its namespace (only allowed in Microsoft
        mode). */
-    if ((var->source_corresp.is_class_member || microsoft_mode) &&
-        !scope_is_in_name_context_stack(var->source_corresp.parent_scope)) {
-      /* Do not force an unqualified name. */
-    } else {
-      force_unqualified_name = TRUE;
+    if (var->source_corresp.is_class_member) {
+      /* A static data member should not be qualified if it's being declared
+         or defined inside its parent class. */
+      if (scope_is_in_name_context_stack(var->source_corresp.parent_scope)) {
+        force_unqualified_name = TRUE;
+      }  /* if */
+    } else if (!is_definition) {
+      if (microsoft_mode &&
+          !scope_is_in_name_context_stack(var->source_corresp.parent_scope)) {
+        /* Do not force an unqualified name. */
+      } else {
+        force_unqualified_name = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Ensure that no template argument list is put out on a declaration of a
