@@ -18884,6 +18884,9 @@ to introduce a trailing return type (including invalid cases like
     /* "decltype(auto)" was seen, but that type is modified in some way; e.g.,
        "decltype(auto) *p = &x;".  That is not permitted. */
     pos_error(ec_modified_decltype_auto_type, &dps->auto_pos);
+  } else if (dps->has_deducible_class_templ_args &&
+             dps->declared_type != dps->auto_type) {
+    pos_error(ec_modified_class_template_placeholder, &dps->auto_pos);
   }  /* if */
   if (err) {
     dps->auto_type_specifier_seen = FALSE;

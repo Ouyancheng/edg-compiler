@@ -2966,6 +2966,7 @@ ec_constexpr_mutable_field_load;;"mutable %n of a constant cannot be accessed in
 ec_member_function_modifier_on_static_member;;"function modifier does not apply to static member declaration"
 ec_overloadable_attribute_requires_prototype;;"the \"overloadable\" attribute requires a prototyped function declaration"
 ec_cannot_deduce_auto_templ_param;;"cannot deduce \"auto\" template parameter type %t1 from %t2"
+ec_modified_class_template_placeholder;;"class template name must be a placeholder for the complete type being initialized (not for a component of that type)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
