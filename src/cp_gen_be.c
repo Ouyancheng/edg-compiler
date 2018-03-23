@@ -18692,7 +18692,7 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_const_char                  *definition_from_string = NULL;
 #if GNU_EXTENSIONS_ALLOWED
-  a_const_char                  *saved_asm_name;
+  a_const_char                  *saved_asm_name = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   name_ref = get_current_name_ref();
