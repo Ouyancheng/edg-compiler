@@ -6929,7 +6929,7 @@ expression context) rather than a declaration.
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
     }  /* if */
-    /* By pass end-of-source token, which is probably the terminator token
+    /* Bypass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
   } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
@@ -6990,6 +6990,16 @@ expression context) rather than a declaration.
                               &template_sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);
     var_ptr->source_corresp.referenced = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (var_ptr->initializer_in_class) {
+      /* A secondary source sequence entry was recorded. */
+      set_src_seq_secondary_decl_fields((char*)var_ptr, dps.declared_type,
+                                        (a_name_reference_ptr)NULL,
+                                        SSSD_NO_FLAGS);
+    }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(var_sym,
