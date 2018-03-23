@@ -539,6 +539,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,make_vtbl_entry_type)*/
 /*lint -esym(756,uintptr_t)*/
 /*lint -esym(755,TARG_IA64_VTABLE_ENTRY_INT_KIND_win64)*/
+/*lint -esym(755,TARG_IA64_VTABLE_ENTRY_INT_KIND_win32)*/
 /*lint -esym(755,TARG_REUSE_TAIL_PADDING_win64)*/
 /*lint -esym(755,TARG_REUSE_TAIL_PADDING_win32)*/
 #endif /* IA64_ABI */
