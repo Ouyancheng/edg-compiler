@@ -9666,6 +9666,12 @@ typedef struct a_type {
 		is_decltype_auto:1;
 			/* TRUE if this is a C++17 "decltype(auto)" nontype
 			   template parameter. */
+      a_bit_field
+		originally_class_template_param:1;
+			/* TRUE if this is a template parameter of an
+			   implicit deduction guide that is based on a
+			   template parameter from the enclosing class
+			   template of the associated constructor. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

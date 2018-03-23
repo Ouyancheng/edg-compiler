@@ -37159,7 +37159,8 @@ pointed to by orig_sym.  Return a pointer to the new symbol.
 static void copy_template_params_to_new_list(
 				a_template_param_ptr	params_to_add,
 				a_template_param_ptr	*new_list,
-				a_template_param_ptr	*first_added_param)
+				a_template_param_ptr	*first_added_param,
+				a_boolean		from_class_template)
 /*
 This routine is used to create a new template parameter list, or add entries
 to a template parameter list, based on an existing list.
@@ -37174,7 +37175,8 @@ will be added using the nesting depth of the entries already on the list
 and with positions that continue the sequence of the entries on the list.
 
 *first_added_param is set to the first parameter created by this call of
-the routine.
+the routine.  from_class_template is TRUE if params_to_add came from
+a class template parameter list.
 */
 {
   a_template_param_ptr			old_tpp;
@@ -37221,6 +37223,8 @@ the routine.
       copy_type(old_type, new_type);
       /* Restore the template type supplement pointer and copy the entry. */
       new_type->variant.template_param.extra_info = new_tptsp;
+      new_type->variant.template_param.originally_class_template_param =
+                                                           from_class_template;
       *new_tptsp = *old_tptsp;
       set_source_corresp(&new_type->source_corresp, new_sym);
       /* FIXME: Clear parent scope?   IL list issues? */
@@ -37426,7 +37430,8 @@ occurs during the creation of the template, a NULL symbol is returned.
      list that is being created. */
   orig_class_templ_params = tcp->decl_info->parameters,
   copy_template_params_to_new_list(tcp->decl_info->parameters,
-                                   &templ_param_list, &first_param);
+                                   &templ_param_list, &first_param,
+                                   /*from_class_template=*/TRUE);
   /* Create the argument list corresponding to the class's parameters. */
   class_templ_args = create_prototype_arg_list(ct_sym, templ_param_list,
                                                /*add_pack_descr=*/TRUE);
@@ -37441,7 +37446,8 @@ occurs during the creation of the template, a NULL symbol is returned.
                   ctor_tssp->variant.function.decl_cache.decl_info->parameters;
     copy_template_params_to_new_list(orig_ctor_templ_params,
                                      &templ_param_list,
-                                     &ctor_templ_params);
+                                     &ctor_templ_params,
+                                     /*from_class_template=*/FALSE);
     /* Create an argument list corresponding to the template parameters
        in the new parameter list. */
     ctor_templ_args = create_prototype_arg_list(ct_sym, ctor_templ_params,
