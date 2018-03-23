@@ -24574,6 +24574,8 @@ freed by this routine.
         dps.auto_type = type_cast_to;
         dps.has_deduced_type = TRUE;
         dps.has_deducible_class_templ_args = TRUE;
+        dps.auto_pos = type_position;
+        dps.declarator_pos = pos_curr_token;
         prescan_initializer_for_auto_type_deduction(&dps, parenthesized);
         type_cast_to = dps.type;
         if (parenthesized) {
