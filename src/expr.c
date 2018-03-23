@@ -31653,14 +31653,23 @@ overloaded_function:
         case sk_class_template:
           /* Class template. */
           if (!locator.is_template_id) {
-            /* A class template used as a placeholder type (a C++17 feature
-               requiring class template argument deduction). */
-            a_type_ptr  placeholder;
-            check_assertion(class_template_arg_deduction_enabled);
-            placeholder = make_class_template_placeholder(
+            /* A class template can be used as a placeholder type in a C++17
+               function-style cast. */
+            a_token_kind  next_tok = next_token();
+            if (next_tok == tok_lparen || next_tok == tok_lbrace) {
+              a_type_ptr  placeholder;
+              check_assertion(class_template_arg_deduction_enabled);
+              placeholder = make_class_template_placeholder(
                                            sym_ptr, &locator.source_position);
-            sym_ptr = symbol_for(placeholder);
-            goto type_identifier_case;
+              sym_ptr = symbol_for(placeholder);
+              goto type_identifier_case;
+            } else {
+              if (expr_error_should_be_issued()) {
+                pos_sy_error(ec_missing_template_arg_list,
+                             &locator.source_position, sym_ptr);
+              }  /* if */
+              make_error_operand(result);
+            }  /* if */
           } else {
             /* A template id can produce a class template symbol for cases
                like A<T>::template f<N> in prototype instantiations.  A class
