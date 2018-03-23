@@ -2968,7 +2968,8 @@ an error if a default argument expression is encountered.
          unless the function is a user-defined overloaded operator (except
          operator()(), for which a default argument is allowed) or a
          user-defined conversion.  Note that locator may be NULL (e.g., with
-         abstract declarators). */
+         abstract declarators).  Deduction guides can also have default
+         arguments. */
       /* operator new(), new[](), delete(), and delete[]() can also take
          default arguments in the second and successive arguments -- this
          is implied by ARM 13.4, which excludes those operators from the
@@ -2983,6 +2984,8 @@ an error if a default argument expression is encountered.
            (di_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0) &&
           (!locator->is_operator_name ||
            locator->variant.opname == (an_opname_kind)onk_function_call)) {
+        declarator_allows_default_args = TRUE;
+      } else if ((di_flags & DI_IS_DEDUCTION_GUIDE) != 0) {
         declarator_allows_default_args = TRUE;
       }  /* if */
     }  /* if */

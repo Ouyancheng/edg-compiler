@@ -16211,7 +16211,7 @@ to entry used to record detailed source position information.
                           /*is_static_constructor=*/FALSE,
                           /*is_destructor=*/FALSE,
                           /*is_finalizer=*/FALSE,
-                          /*disallow_default_args=*/TRUE,
+                          /*disallow_default_args=*/FALSE,
                           /*disallow_exception_spec=*/FALSE,
                           decl_pos_block);
       /* The locator will be updated later on in
