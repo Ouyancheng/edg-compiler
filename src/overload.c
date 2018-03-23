@@ -7807,7 +7807,7 @@ static int compare_deduction_guides_if_applicable(
                                                 a_candidate_function_ptr cfp1,
                                                 a_candidate_function_ptr cfp2)
 /*
-Helper function for compare_candidate_functions to check if the candidate are
+Helper function for compare_candidate_functions to check if the candidates are
 deduction guides and check if one is preferred over the other.
 */
 {
@@ -7824,7 +7824,7 @@ deduction guides and check if one is preferred over the other.
     a_routine_ptr  rp2 = func_sym_routine(cfp2->function_symbol);
     check_assertion(special_kind_is(rp2, sfk_deduction_guide));
     if (rp1->compiler_generated != rp2->compiler_generated) {
-      /* An user-declared guide is preferred over a generated one. */
+      /* A user-declared guide is preferred over a generated one. */
       result = rp2->compiler_generated ? 1 : -1;
     } else if (rp1->compiler_generated) {
       /* The remaining disambiguation rules apply only to generated deduction
