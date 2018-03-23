@@ -37526,6 +37526,9 @@ occurs during the creation of the template, a NULL symbol is returned.
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = ct_tssp->il_template_entry;
   rout->compiler_generated = TRUE;
+  /* The routine uses nonreal types, so consider it a prototype
+     instantiation. */
+  rout->is_prototype_instantiation = TRUE;
   /* FIXME: What list should this be added to? */
   add_to_routines_list(rout, NO_SCOPE_DEPTH);
   tssp->il_template_entry->prototype_instantiation.routine = rout;
