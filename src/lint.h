@@ -540,6 +540,7 @@ extern int fileno(FILE *);
 /*lint -esym(756,uintptr_t)*/
 /*lint -esym(755,TARG_IA64_VTABLE_ENTRY_INT_KIND_win64)*/
 /*lint -esym(755,TARG_REUSE_TAIL_PADDING_win64)*/
+/*lint -esym(755,TARG_REUSE_TAIL_PADDING_win32)*/
 #endif /* IA64_ABI */
 #if !INSTANTIATE_EXTERN_INLINE || !IA64_ABI
 /*lint -esym(759,get_mangled_function_name_full)*/
