@@ -6831,7 +6831,8 @@ for use in generating cross-reference output describing this declaration.
       a_variable_ptr  orig_var = linked_symbol->variant.variable.ptr;
       if (C_mode() || (microsoft_mode && (srk_flags & SRK_TENTATIVE_DEF))) {
         if (linked_symbol->defined &&
-            orig_var->init_kind != (an_init_kind)initk_none) {
+            orig_var->init_kind != (an_init_kind)initk_none &&
+            !dps->has_initializer) {
           /* The variable was initialized on a prior declaration, so this
              cannot be a definition or a tentative definition.  (The error
              will be reported by the caller if there is an initializer on
@@ -11000,7 +11001,9 @@ the symbol through dps->sym and its linkage (which is always "none") through
             name_ref->used_in_primary_declarator = TRUE;
           }  /* if */
         }  /* if */
-        if (!(srk_flags & SRK_DEFINITION)) {
+        if (dps->source_sequence_entry != NULL &&
+            ss_entry_kind(dps->source_sequence_entry) ==
+                                                 iek_src_seq_secondary_decl) {
           an_sssd_flag_set  sssd_flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
           if (dps->marked_as_gnu_extension) {

@@ -1861,7 +1861,14 @@ created for this entity; otherwise, it is NULL.
       }  /* if */
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      is_primary_decl = !is_tentative_def;
+      if (symbol_is(sym_ptr, sk_static_data_member) &&
+          sym_ptr->variant.static_data_member.variable->initializer_in_class &&
+          !(srk_flags & SRK_INITIALIZATION)) {
+        /* A static data member definition outside a class is not a primary
+           declaration if the in-class declaration included an initializer. */
+      } else {
+        is_primary_decl = !is_tentative_def;
+      }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       sym_ptr->defined = TRUE;
     }  /* if */
