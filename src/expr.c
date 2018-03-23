@@ -31758,7 +31758,7 @@ type_identifier_case:
           /* No need to call change_refs_to_error; rep is NULL. */
           break;
         case sk_variable_template:
-          /* The identifier is2 a variable template without a template
+          /* The identifier is a variable template without a template
              argument list. */
           pos_sy_error(ec_missing_template_arg_list, &error_position,
                        sym_ptr);
