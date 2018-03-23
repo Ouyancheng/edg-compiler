@@ -695,8 +695,13 @@ templ_entry is NULL.
     check_assertion(ssep != NULL);
     if (ss_entry_kind(ssep) == iek_variable) {
       /* A source sequence entry for a variable must be a static data member
-         definition.  Move it to after the class. */
+         definition or a static member declaration with an in-class
+         initializer.  Move it to after the class if it is not the latter. */
       a_variable_ptr  var = ss_entry_ptr(ssep, a_variable_ptr);
+      if (var->initializer_in_class) {
+        ssep = ssep->next;
+        continue;
+      }  /* if */
       head_to_move = ssep;
       if (var->embedded_source_sequence_entries) {
         /* If the definition of the variable embedded additional declarations
