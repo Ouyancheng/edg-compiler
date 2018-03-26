@@ -1,5 +1,25 @@
 Version 4.15
 
+3/26/18  [EDGcpfe/19063]
+Incorrect substitution of template template parameter used by alias
+
+If an alias template used a template template parameter, and that alias
+was then used in a default argument of a function template, the alias
+was sometimes not substituted properly, resulting in spurious errors.
+Now fixed.
+
+  struct A { static const bool value = true; };
+  template <class T> struct B {};
+  template <template <class> class T> struct C {
+    template<template <class> class U, class = U<void>> static A f();
+    using type = decltype(f<T>());
+  };
+  template <template<class> class T> struct D {
+    template<class W> using my_f = T<W>;
+  };
+  bool b = C<D<B>::my_f>::type::value;  //
+
+
 3/26/18  [EDGcpfe/19434]
 Microsoft compatibility: __builtin_launder
 

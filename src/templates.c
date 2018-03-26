@@ -1956,7 +1956,7 @@ C++17-style template template argument matching.
                                      templ_param_list,
                                      templ_arg_list, templ_param_list,
                                      &template_sym->decl_position,
-                                     CTWS_NO_OPTIONS,
+                                     CTWS_NEW_CONTEXT,
                                      /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
         if (copy_error ||
@@ -13115,10 +13115,13 @@ to an alias template, the substituted type is returned in *new_type
        of the template arguments, don't try to find a matching template
        class. */
     new_sym = NULL;
-  } else if (templ_param_is_alias) {
+  } else if (templ_param_is_alias &&
+             (options & CTWS_NEW_CONTEXT) == 0) {
     /* If the result of a template template parameter substitution is
        an alias template, do substitution on the prototype type so that
-       a failure is a substitution failure, not a hard error. */
+       a failure is a substitution failure, not a hard error.  This is
+       not done for substitutions that do not come immediately from the
+       current context as some of the enclosing context won't be correct. */
     a_type_ptr	proto_type;
     a_type_ptr	tp;
     proto_type = tssp->variant.class_template.prototype_instantiation->
@@ -13128,9 +13131,9 @@ to an alias template, the substituted type is returned in *new_type
        the alias is based on the alias declaration position. */
     push_instantiation_scope_for_rescan(template_sym);
     tp = copy_type_with_substitution(proto_type,
-                                   new_list, tpp,
-                                   source_pos,
-                                   options, copy_error, ctws_state);
+                                     new_list, tpp,
+                                     source_pos,
+                                     options, copy_error, ctws_state);
     pop_instantiation_scope_for_rescan();
     if (tp == proto_type) {
       /* If no substitution was done, keep the original type. */
