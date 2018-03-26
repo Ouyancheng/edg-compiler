@@ -5609,6 +5609,7 @@ members of managed class types in some Microsoft modes.
   a_token_cache_ptr        token_cache = alloc_token_cache();
   a_token_sequence_number  first_tsn;
   a_token_sequence_number  last_tsn;
+  a_token_sequence_number  last_tsn_for_cache;
   a_token_set_array        stop_tokens;
   a_boolean                saved_in_field_initializer = FALSE;
   a_boolean                is_field = symbol_is(sym, sk_field);
@@ -5640,7 +5641,8 @@ members of managed class types in some Microsoft modes.
   cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
                                           stop_tokens);
   /* The -1 is to exclude the final token from the cache that is created. */
-  last_tsn = curr_token_sequence_number - 1;
+  last_tsn_for_cache = curr_token_sequence_number - 1;
+  last_tsn = curr_token_sequence_number;
   copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                          last_tsn,
                          /*include_last_token=*/FALSE,
@@ -5672,7 +5674,8 @@ members of managed class types in some Microsoft modes.
     /* When there is no default, the computed last token number could be
        less than the first.  In that case, use the first token number as
        the last. */
-    tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+    tcsp->last_token_number =
+               last_tsn_for_cache < first_tsn ? first_tsn : last_tsn_for_cache;
     /* Check for the case where the cache is empty. */
     tcsp->expression_missing = token_cache->first_token == NULL;
     if (is_field) {

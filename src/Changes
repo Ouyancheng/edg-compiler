@@ -1,5 +1,21 @@
 Version 4.15
 
+3/26/18  [EDGcpfe/19057]
+GNU C++ compatibility: static data member initializer ending with ">>"
+
+In g++ mode, class template static data members are cached and only
+instantiated if they are used.  This processing did not correctly handle
+a ">>" that closes two template argument list, resulting in spurious
+errors.  Now fixed.
+
+  template <typename T> constexpr bool v = true;
+  template <typename T> using v2 =  int;
+  template <typename T> struct A {
+    static constexpr bool value = v<v2<int>>;
+  };
+  A<int> a;
+
+
 3/22/18  [EDGcpfe/19095]
 C++-generating back end, GNU compatibility: asm names and attributes
 
