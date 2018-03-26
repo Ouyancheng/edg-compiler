@@ -2789,7 +2789,7 @@ typedef struct a_template_symbol_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_type_kind
 		type_kind;
-			/* The kind (tk_class, tk_struct, or tk_union) which
+			/* The kind (tk_class, tk_struct, or tk_union) that
 			   the instantiated types will have.  Not used for
 			   alias templates. */
       a_bit_field

@@ -10502,6 +10502,11 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (class_template_arg_deduction_enabled) {
+      (void)enter_predef_macro("1", "_DEDUCTION_GUIDES_SUPPORTED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -10542,11 +10547,6 @@ command line -D options.
     char val[64];
     (void)sprintf(val, "%lu", (unsigned long)targ_default_new_alignment);
     (void)enter_predef_macro(val, "__STDCPP_DEFAULT_NEW_ALIGNMENT__",
-                             /*cannot_be_redefined=*/TRUE,
-                             /*ref_suppresses_pch_file=*/FALSE);
-  }  /* if */
-  if (class_template_arg_deduction_enabled && ms_extensions) {
-    (void)enter_predef_macro("1", "_DEDUCTION_GUIDES_SUPPORTED",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */

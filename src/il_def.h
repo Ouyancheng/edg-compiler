@@ -8335,7 +8335,6 @@ typedef struct a_template_param_type_supplement {
 			   depth of the parameter. */
   struct a_symbol
 		*class_template_symbol;
-			/* FIXME: Merge into template_symbol? */
 			/* For a tptk_param type used to represent a
 			   placeholder for C++17 class template argument
 			   deduction, this points to the class template

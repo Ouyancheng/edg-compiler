@@ -16133,11 +16133,11 @@ out-of-class definition of a static data member of a class template).
 is_initial_decl is TRUE if this is being called to scan the original
 declaration and is FALSE when rescanning the tokens to generate a type for a
 specific instance of a function template.  template_sym is the symbol of the
-template or NULL is_initial_decl is TRUE.  templ_rout points to the routine
+template or NULL if is_initial_decl is TRUE.  templ_rout points to the routine
 associated with the original declaration of a template and is only present
 (non-NULL) when is_initial_decl is FALSE.  tip points to the template instance
 and is also only present when is_initial_decl is FALSE.  decl_pos_block points
-to entry used to record detailed source position information.
+to an entry used to record detailed source position information.
 */
 {
   a_decl_flag_set     dsi_flags = DSI_INLINE_ALLOWED |
@@ -16859,7 +16859,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
            function by rescanning the template tokens (since there are no
            tokens).  Instead, we just substitute the generic type.  This
            is also done for deduction guides (both user-declared and implicit
-           ones. */
+           ones). */
         rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
                                           (a_type_ptr)NULL);
         if (rout_type == NULL) {
@@ -27526,7 +27526,7 @@ any non-empty template parameter lists that were scanned.
         tssp = sym->variant.template_info;
       }  /* if */
       if (decl_state->defines_something) {
-        /* Save a pointer to the token cache for function body.  tssp may
+        /* Save a pointer to the token cache for the function body.  tssp may
            be NULL in error cases. */
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
       } /* if */
@@ -37322,9 +37322,6 @@ if a substitution fails.
 }  /* substitute_default_templ_args */
 
 
-
-/* FIXME: Get rid of ct_sym if not eventually used. */
-/*ARGSUSED*/ /* ct_sym is not currently used. */
 static a_symbol_ptr make_implicit_deduction_guide_template(
 			a_symbol_ptr				ct_sym,
 			a_template_symbol_supplement_ptr	ct_tssp,
@@ -37378,7 +37375,6 @@ function parameter list) will be completed later.
   templ->kind = (a_template_kind)templk_function;
   templ->canonical_template = templ;
   set_source_corresp(&templ->source_corresp, sym);
-  /* FIXME: What list should this be added to? */
   add_to_templates_list(templ, DEPTH_OF_FILE_SCOPE);
   return sym;
 }  /* make_implicit_deduction_guide_template */
@@ -37390,12 +37386,12 @@ static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_type_ptr				proto_type,
 			a_symbol_ptr				ctor_sym)
 /*
-Create a function template to be used as a implicit deduction guide.
+Create a function template to be used as an implicit deduction guide.
 The guide that is created has the template parameter list of the enclosing
 class template (specified by ct_sym and ct_tssp) and the function template
 parameter list of the constructor template specified by ctor_sym (if it is
 a template).  proto_type is the prototype instantiation of ct_sym.  The
-symbol of the generated template is returned.  If an substitution failure
+symbol of the generated template is returned.  If a substitution failure
 occurs during the creation of the template, a NULL symbol is returned.
 */
 {
@@ -37534,7 +37530,6 @@ occurs during the creation of the template, a NULL symbol is returned.
   add_to_routines_list(rout, NO_SCOPE_DEPTH);
   tssp->il_template_entry->prototype_instantiation.routine = rout;
   result_sym = sym;
-  /* FIXME: Other fields that need to be set? */
   result_sym = sym;
 done:
   pop_instantiation_scope_for_rescan();
@@ -37548,7 +37543,7 @@ static void add_guide_for_hypothetical_constructor(
 			a_type_ptr				proto_type,
 			a_type_ptr				param_type)
 /*
-Create a function template to be used as a implicit deduction guide
+Create a function template to be used as an implicit deduction guide
 for a hypothetical constructor.  The guide that is created has the
 template parameter list of the enclosing class template (specified by
 ct_sym and ct_tssp).  The constructor has either no parameter (if param_type
@@ -37630,7 +37625,7 @@ static void create_implicit_deduction_guides(
 			a_template_symbol_supplement_ptr	ct_tssp)
 /*
 Go through the constructors of the class template specified by ct_sym and
-ct_tssp and create implicit deduction guides for constructor.
+ct_tssp and create implicit deduction guides for each constructor.
 */
 {
   a_symbol_ptr			proto_sym;
@@ -37671,10 +37666,11 @@ void update_implicit_deduction_guides(a_symbol_ptr  ct_sym)
 ct_sym is a class template for which the set of deduction guides is needed.
 That set is obtained by generating function templates from the constructors
 of the class template and adding to them any explicitly-declared deduction
-guides.  The explicitly-declared are already recorded in the template symbol
-supplement associated with ct_sym.  The generated guides may or may not already
-be generated; if they are already generated, they may be out-of-date if the
-class template has been defined since the recorded guides were generated.
+guides.  The explicitly-declared guides are already recorded in the template
+symbol supplement associated with ct_sym.  The generated guides may or may
+not already be generated; if they are already generated, they may be
+out-of-date if the class template has been defined since the recorded
+guides were generated.
 
 This function ensures that the recorded generated deduction guides are
 up-to-date.

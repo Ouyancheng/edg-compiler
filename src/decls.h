@@ -787,7 +787,7 @@ typedef struct a_decl_parse_state {
 			/* TRUE in a declarative context in which "auto" may
 			   appear as a type specifier. */
   a_bit_field	has_deduced_type:1;
-			/* TRUE if a "auto" or "decltype(auto)" appeared,
+			/* TRUE if "auto" or "decltype(auto)" appeared,
 			   or if C++17 class template argument deduction
 			   is being done. */
   a_bit_field
@@ -810,7 +810,7 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a C++17 deduction guide used for
 			   class template argument deduction.  This is usually
 			   the same as has_deductible_class_template_args,
-			   but this is indicates that the declaration that
+			   but this indicates that the declaration that
 			   follow meets the criteria for a deduction guide. */
   a_bit_field
 		is_asm_function:1;

@@ -8676,7 +8676,7 @@ otherwise.
   a_symbol_ptr  sym = dps->sym;
 
   if ((dps->dso_flags & DSO_THREAD_LOCAL) == 0) {
-    /* Nothing to do.  This can occur in previous diagnostics "canceled" the
+    /* Nothing to do.  This can occur if previous diagnostics "canceled" the
        thread_local specifier. */
   } else if (sym == NULL) {
     if (dps->type != NULL &&

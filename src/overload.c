@@ -26209,7 +26209,6 @@ was not completed because the types involved are still dependent,
                                         (a_boolean *)NULL,
                                         (a_symbol_ptr *)NULL,
                                         &arg_match_list);
-
   if (selected_sym != NULL) {
     /* A guide was unambiguously determined. */
     a_routine_ptr  guide = selected_sym->variant.routine.ptr;

@@ -24363,7 +24363,7 @@ one argument, return TRUE; otherwise, return FALSE.
   } else {
     /* One or more arguments.  Cache the tokens of the first argument to see
        if it is followed by additional ones. */
-    /* Note that cache_one_argument doesn't work reliable with template
+    /* Note that cache_one_argument doesn't work reliably with template
        references because it doesn't coalesce ids (which would be hard to
        do, because you have to have a cache pre-built containing the right
        tokens).  But this routine is now used only in some corner cases in

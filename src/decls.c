@@ -18821,14 +18821,14 @@ a diagnostic if that isn't the case.
 
 void check_use_of_placeholder_type(a_decl_parse_state  *dps)
 /*
-Check that if placeholder type specifier ("auto", "decltype(auto)", or a class
-template name) was used in the current declaration, an initializer enabled the
-deduction of an actual type.  Issue an error if that was not the case and set
-dps->specifiers_type to an error type to avoid repeating the diagnostic if
-additional declarators follow.  Also diagnose invalid uses of placeholder types
-in other contexts (e.g., casts).  This does not apply to the placeholder used
-to introduce a trailing return type (including invalid cases like
-"decltype(auto) f()->int", which are diagnosed elsewhere).
+Check that if a placeholder type specifier ("auto", "decltype(auto)", or a
+class template name) was used in the current declaration, an initializer
+enabled the deduction of an actual type.  Issue an error if that was not
+the case and set dps->specifiers_type to an error type to avoid repeating
+the diagnostic if additional declarators follow.  Also diagnose invalid
+uses of placeholder types in other contexts (e.g., casts).  This does not
+apply to the placeholder used to introduce a trailing return type (including
+invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
 */
 {
   a_boolean  err = FALSE;

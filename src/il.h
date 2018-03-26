@@ -1956,7 +1956,7 @@ typedef struct a_ctws_state {
 			   enclosing class template. */
   struct a_template_param
 		*orig_ctor_templ_params;
-			/* This is like orig_class_templ_params except
+			/* This is like orig_class_templ_params except it
 			   is the list of the original constructor template
 			   parameter list. */
   struct a_template_param
