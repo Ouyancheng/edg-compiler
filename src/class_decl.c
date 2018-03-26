@@ -19994,6 +19994,23 @@ warnings or remarks may be issued.
 }  /* check_suppressed_special_functions */
 
 
+static void complete_defaulted_member_decl_if_explicit_exc_spec(
+                                                            a_routine_ptr  rp)
+/*
+Call complete_default_member_decl for the given routine if that routine was
+declared with an explicit exception specification.
+*/
+{
+  a_type_ptr  rtp = skip_typerefs(rp->type);
+  an_exception_specification_ptr
+              esp = rtp->variant.routine.extra_info->exception_specification;
+
+  if (esp != NULL && !esp->compiler_generated) {
+    complete_defaulted_member_decl(rp);
+  }  /* if */
+}  /* complete_defaulted_member_decl_if_explicit_exc_spec */
+
+
 static void mark_suppressed_defaulted_members_as_deleted(
                                a_type_ptr                          class_type,
                                a_generated_special_function_descr  *gsfd)
@@ -20031,7 +20048,7 @@ indicates that they should be suppressed.
                other special members, but it must be established early for
                move members because marking them as deleted takes them out
                of the overload set. */
-            complete_defaulted_member_decl(rp);
+            complete_defaulted_member_decl_if_explicit_exc_spec(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_operator) &&
@@ -20056,7 +20073,7 @@ indicates that they should be suppressed.
                other special members, but it must be established early for
                move members because marking them as deleted takes them out
                of the overload set. */
-            complete_defaulted_member_decl(rp);
+            complete_defaulted_member_decl_if_explicit_exc_spec(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {
