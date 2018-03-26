@@ -6994,9 +6994,10 @@ expression context) rather than a declaration.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (var_ptr->initializer_in_class) {
       /* A secondary source sequence entry was recorded. */
-      set_src_seq_secondary_decl_fields((char*)var_ptr, dps.declared_type,
-                                        (a_name_reference_ptr)NULL,
-                                        SSSD_NO_FLAGS);
+      (void)set_src_seq_secondary_decl_fields((char*)var_ptr,
+                                              dps.declared_type,
+                                              (a_name_reference_ptr)NULL,
+                                              SSSD_NO_FLAGS);
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

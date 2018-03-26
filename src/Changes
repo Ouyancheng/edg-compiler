@@ -82,7 +82,7 @@ to in a different context.  This is now fixed.  For example, with --c++11:
 
 
 3/20/18  [EDGcpfe/19285]
-Duplicate static data member definitions and class templates
+Duplicate static data member definitions and class templates (IL CHANGE)
 
 Consider:
 
@@ -96,7 +96,11 @@ In pre-C++17 modes this is invalid, but the front end previously failed to
 issue an error on the second static data member definition.  (In C++17 the
 example is valid because the out-of-class declaration is not a definition.)
 Furthermore, in all modes, the C++-generating back end aborted with an internal
-error in gen_template.  These problems are now fixed.
+error in gen_template.  These problems are now fixed.  As part of this fix,
+an IL change was made: The primary source sequence entry for a static data
+member that has an initializer associated with it is now always the entry
+describing the declaration that includes the initializer (even if that
+declaration is not technically the definition).
 
 
 3/20/18  [EDGcpfe/19427]
