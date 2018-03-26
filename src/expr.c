@@ -4278,7 +4278,8 @@ rcblock provides the associated rescan information.
   if (is_error_operand(&arg)) {
     normalize_error_operand(&arg);
     err = TRUE;
-  } else if (!is_plain_pointer_type(arg.type)) {
+  } else if (!is_plain_pointer_type(arg.type) &&
+             !is_template_param_type(arg.type)) {
     error_in_operand(ec_expr_not_pointer, &arg);
     err = TRUE;
   }  /* if */
