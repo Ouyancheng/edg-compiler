@@ -32,7 +32,7 @@ constructs in the correct order.  For example, with --g++:
   __typeof(foo) bar __attribute__((alias("x")));
 
 
-2/22/18  [EDGcpfe/19477]
+3/22/18  [EDGcpfe/19477]
 Unneeded code for handling of control flow descriptors
 
 Various fragments of code handling control flow descriptors were removed from
