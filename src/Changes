@@ -78,7 +78,7 @@ statements.c either because they could never be exercised or because they had
 no real effect and reduced overall performance.
 
 
-2/22/18  [EDGcpfe/19460]
+3/22/18  [EDGcpfe/19460]
 Assertion failure in mangled_encoding_for_sizeof_pack
 
 In some (mostly C++-generating) configurations where MANGLE_ALL_NAMES is TRUE,
