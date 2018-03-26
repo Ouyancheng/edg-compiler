@@ -97,7 +97,7 @@ issue an error on the second static data member definition.  (In C++17 the
 example is valid because the out-of-class declaration is not a definition.)
 Furthermore, in all modes, the C++-generating back end aborted with an internal
 error in gen_template.  These problems are now fixed.  As part of this fix,
-an IL change was made: The primary source sequence entry for a static data
+an IL CHANGE was made: The primary source sequence entry for a static data
 member that has an initializer associated with it is now always the entry
 describing the declaration that includes the initializer (even if that
 declaration is not technically the definition).
