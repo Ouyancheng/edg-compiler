@@ -4042,11 +4042,11 @@ been scanned: builtin_func represents the reference to the builtin function
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
-static void check_gnu_builtin_function_for_call(an_operand  *op,
-                                                a_boolean   *foldable,
-                                                a_boolean   *pseudo_call)
+static void check_builtin_function_for_call(an_operand  *op,
+                                            a_boolean   *foldable,
+                                            a_boolean   *pseudo_call)
 /*
-If the given operand corresponds to a GNU built-in function, return through
+If the given operand corresponds to a built-in function, return through
 *foldable whether a call to that function might be a valid constant-expression.
 *pseudo_call is set to TRUE if the arguments to the built-in function call
 are not treated like standard call arguments (e.g., if they behave like
@@ -4079,12 +4079,16 @@ This routine may also diagnose certain invalid uses of special GNU functions
           error_in_operand(ec_bad_function_for_gnu_va_arg_pack, op);
         }  /* if */
         break;
+      case bufk_launder:
+        *foldable = TRUE;
+        *pseudo_call = TRUE;
+        break;
       default:
         /* No special checks needed. */
         break;
     }  /* switch */
   }  /* if */
-}  /* check_gnu_builtin_function_for_call */
+}  /* check_builtin_function_for_call */
 
 
 static a_type_class_kind gnu_type_class_for_type(a_type_ptr  type)
@@ -4239,6 +4243,66 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
 }  /* fold_gnu_call_if_possible */
 
 
+static void scan_and_process_builtin_launder_arg(
+                                             an_operand              *func_op,
+                                             a_rescan_control_block  *rcblock,
+                                             an_operand              *result)
+/*
+Parse the argument in a construct of the form
+    __builtin_launder( <arg> )
+The left parenthesis is already consumed.  <arg> must be a pointer and its
+type is imbued on the pseudo-call (without a cast).  The scanned construct is
+recorded in *result.  If this construct is being substituted ("rescanned")
+rcblock provides the associated rescan information.
+*/
+{
+  a_boolean            err = FALSE;
+  an_operand           arg;
+  an_expr_node_ptr     node, callee;
+  a_type_ptr           call_type;
+  a_transformation_options_set
+                       callee_transform_options =
+                               TOPT_WILL_CALL |
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION;
+  
+  do_operand_transformations(func_op, callee_transform_options);
+  if (rcblock == NULL) {
+    /* Scan the argument operand. */
+    scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  } else {
+    /* Convert the previously-scanned expression to an_operand form. */
+    make_rescan_operand(rcblock->argument_list, rcblock, &arg);
+  }  /* if */
+  do_operand_transformations(&arg, TOPT_NO_OPTIONS);
+  if (is_error_operand(&arg)) {
+    normalize_error_operand(&arg);
+    err = TRUE;
+  } else if (!is_plain_pointer_type(arg.type)) {
+    error_in_operand(ec_expr_not_pointer, &arg);
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    make_error_operand(result);
+  } else {
+    callee = make_node_from_operand(func_op);
+    callee->next = make_node_from_operand(&arg);
+    call_type = make_routine_type(arg.type, arg.type, /*param2_type=*/NULL,
+                                  /*param3_type=*/NULL, /*param4_type=*/NULL);
+    make_function_call(callee, call_type, /*is_virtual=*/FALSE,
+                       /*virtual_suppressed=*/FALSE,
+                       /*selector_is_object_pointer=*/FALSE,
+                       /*compiler_generated=*/FALSE, /*is_conversion=*/FALSE,
+                       /*arg_dep_lookup_suppressed=*/FALSE,
+                       /*qualified_function_name=*/FALSE,
+                       /*found_through_adl=*/FALSE,
+                       /*uses_operator_syntax=*/FALSE, &func_op->position,
+                       result, /*p_folded=*/(a_boolean*)NULL, &node);
+  }  /* if */
+}  /* scan_and_process_builtin_launder_arg */
+
+
+
 static void scan_expr_for_builtin_choose_expr(an_expr_node  *node,
                                               an_operand    *result,
                                               a_boolean     *err)
@@ -4356,11 +4420,11 @@ Only available in C mode.
 }  /* scan_and_process_builtin_choose_expr_args */
 
 
-static void scan_gnu_builtin_pseudo_call(an_operand             *operand,
-                                         a_rescan_control_block *rcblock,
-                                         an_operand             *result_op)
+static void scan_builtin_pseudo_call(an_operand             *operand,
+                                     a_rescan_control_block *rcblock,
+                                     an_operand             *result_op)
 /*
-Operand represents a GNU built-in function that needs special treatment when
+Operand represents a built-in function that needs special treatment when
 called (e.g., the arguments cannot be evaluated).  This function parses and --
 when appropriate -- evaluates a pseudo-call to the built-in function.
 *result_op is set to an operand representing the entire pseudo-call.
@@ -4392,6 +4456,9 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     add_matching_stop_token(tok_rparen);
   }  /* if */
   switch (bfk) {
+    case bufk_launder:
+      scan_and_process_builtin_launder_arg(operand, rcblock, result_op);
+      break;
     case bufk_choose_expr:
       check_assertion(C_mode());  /* rcblock is not passed down. */
       scan_and_process_builtin_choose_expr_args(result_op);
@@ -4607,7 +4674,7 @@ result_built:
                   is_error_operand(result_op) ||
                   !curr_expr_kind_is_const());
   release_local_constant(&result);
-}  /* scan_gnu_builtin_pseudo_call */
+}  /* scan_builtin_pseudo_call */
 
 
 /*
@@ -5529,13 +5596,13 @@ are expected to be NULL in that case.
        expressions.  Among these folded built-ins are some whose argument
        processing is different from that done for function calls.  Such
        pseudo-calls are fully handled by the call to
-       scan_gnu_builtin_pseudo_call. */
+       scan_builtin_pseudo_call. */
     a_boolean  pseudo_call;
-    check_gnu_builtin_function_for_call(operand, &call_may_be_folded,
-                                        &pseudo_call);
+    check_builtin_function_for_call(operand, &call_may_be_folded,
+                                    &pseudo_call);
     if (pseudo_call) {
       check_assertion(call_may_be_folded);
-      scan_gnu_builtin_pseudo_call(operand, rcblock, result);
+      scan_builtin_pseudo_call(operand, rcblock, result);
       goto done;
     }  /* if */
   }  /* if */

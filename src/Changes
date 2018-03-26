@@ -1,5 +1,23 @@
 Version 4.15
 
+3/26/18  [EDGcpfe/19434]
+Microsoft compatibility: __builtin_launder
+
+In Microsoft modes with microsoft_version >= 1914, the front end now accepts
+the built-in pseudo-function "__builtin_launder".  It is modeled as a function
+with type "void* (void*)", but calls to it are treated specially:
+
+  (1) The argument must be a pointer type after array-to-pointer and
+      function-to-pointer conversions are applied (user-defined conversions
+      are not considered).
+  (2) The type of the call is the same as the type of the argument pointer.
+  (3) The constexpr interpreter treats calls to __builtin_launder as
+      equivalent to the evaluation of its argument.
+
+This utility is meant to help the implementation of C++17's std::launder
+template.
+
+
 3/26/18  [EDGcpfe/19057]
 GNU C++ compatibility: static data member initializer ending with ">>"
 

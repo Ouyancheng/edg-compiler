@@ -7274,6 +7274,18 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+    case bufk_launder:
+      {
+        interpreted = TRUE;
+        /* Evaluate the single argument instead of the call. */
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else if (!do_constexpr_expression(ips, args, result_storage,
+                                            result_storage)) {
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }
+      break;
     default:
       interpreted = FALSE;
   }  /* switch */

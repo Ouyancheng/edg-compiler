@@ -212,6 +212,7 @@ enumeration.
 enum a_builtin_user_function_kind_tag {
   bufk_first = bfk_last,          /* initial entry */
   bufk_choose_expr,               /* __builtin_choose_expr */
+  bufk_launder,                   /* __builtin_launder */
   bufk_last                       /* final entry */
 };
 
@@ -234,6 +235,10 @@ to be kept sorted).
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
+  /* __builtin_launder is "magical" in that it implicitly produces a return
+     type matching the argument type. */
+  { "__builtin_launder", "mx(1914-)", "void* (void*)", bufk_launder },
+
   /* __builtin_choose_expr is available in all gcc modes. */
   { "__builtin_choose_expr", "gc", "int (...)", bufk_choose_expr },
 
