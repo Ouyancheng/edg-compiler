@@ -811,7 +811,7 @@ typedef struct a_decl_parse_state {
 			   class template argument deduction.  This is usually
 			   the same as has_deductible_class_template_args,
 			   but this indicates that the declaration that
-			   follow meets the criteria for a deduction guide. */
+			   follows meets the criteria for a deduction guide. */
   a_bit_field
 		is_asm_function:1;
 			/* TRUE if the current declaration is for an asm
