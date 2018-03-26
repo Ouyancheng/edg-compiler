@@ -1,5 +1,17 @@
 Version 4.15
 
+3/26/18  [EDGcpfe/19490]
+Configuration macros are no longer target-specific
+
+The configuration macros TARG_MINIMUM_PACK_ALIGNMENT and
+TARG_MAXIMUM_PACK_ALIGNMENT are no longer target-specific (see the Changes
+entry for EDGcpfe/15604 et al.).  These macros are closely tied to the
+setting of the non-target-specific configuration macro TYPE_FOR_TARG_ALIGNMENT
+(whose value is used as the type for various fields in the front end), so
+requiring target-specific values for each target (where the value must be
+the same for all targets) seemed overly restrictive.
+
+
 3/26/18  [EDGcpfe/19063]
 Incorrect substitution of template template parameter used by alias
 

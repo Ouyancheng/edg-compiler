@@ -908,6 +908,8 @@ header has been read and the target has been determined).
   use_empty_struct_in_generated_c = USE_EMPTY_STRUCT_IN_GENERATED_C;
 #endif /* BACK_END_IS_C_GEN_BE */
   exc_spec_in_func_type = FALSE;
+  targ_minimum_pack_alignment = TARG_MINIMUM_PACK_ALIGNMENT;
+  targ_maximum_pack_alignment = TARG_MAXIMUM_PACK_ALIGNMENT;
 }  /* target_early_init */
 
 

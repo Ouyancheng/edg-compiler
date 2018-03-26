@@ -251,14 +251,10 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
 #endif /* LONG_LONG_ALLOWED */
   TARGET_MAP_MACRO(TARG_MAXIMUM_INTRINSIC_ALIGNMENT,
                    targ_maximum_intrinsic_alignment, _TC)
-  TARGET_MAP_MACRO(TARG_MAXIMUM_PACK_ALIGNMENT,
-                   targ_maximum_pack_alignment, _TC)
   TARGET_MAP_MACRO(TARG_MAX_BASE_CLASS_OFFSET, targ_max_base_class_offset, _TC)
   TARGET_MAP_MACRO(TARG_MAX_CLASS_OBJECT_SIZE, targ_max_class_object_size, _TC)
   TARGET_MAP_MACRO(TARG_MICROSOFT_BIT_FIELD_ALLOCATION,
                    targ_microsoft_bit_field_allocation, _TC)
-  TARGET_MAP_MACRO(TARG_MINIMUM_PACK_ALIGNMENT,
-                   targ_minimum_pack_alignment, _TC)
   TARGET_MAP_MACRO(TARG_MINIMUM_STRUCT_ALIGNMENT,
                    targ_minimum_struct_alignment, _TC)
   TARGET_MAP_MACRO(TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED,
