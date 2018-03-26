@@ -24639,6 +24639,7 @@ freed by this routine.
         a_decl_parse_state  dps;
         init_decl_parse_state(&dps);
         dps.type = type_cast_to;
+        dps.declared_type = type_cast_to;
         dps.auto_type = type_cast_to;
         dps.has_deduced_type = TRUE;
         dps.has_deducible_class_templ_args = TRUE;
