@@ -1469,6 +1469,20 @@ SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 #endif /* ifndef __sun */
 #endif /* ifdef lint */
 
+/*
+The following configuration macros are no longer used, but are kept in this
+file so that git-find-commit will continue to work (because this file may be
+used to compile older versions where the macros are used).
+*/
+#define TARG_MINIMUM_PACK_ALIGNMENT_linux_x86_64 1
+#define TARG_MAXIMUM_PACK_ALIGNMENT_linux_x86_64 128
+#define TARG_MINIMUM_PACK_ALIGNMENT_linux_i686 1
+#define TARG_MAXIMUM_PACK_ALIGNMENT_linux_i686 128
+#define TARG_MINIMUM_PACK_ALIGNMENT_win64 1
+#define TARG_MAXIMUM_PACK_ALIGNMENT_win64 128
+#define TARG_MINIMUM_PACK_ALIGNMENT_win32 1
+#define TARG_MAXIMUM_PACK_ALIGNMENT_win32 128
+
 #endif /* ifndef DEFINES_H */
 
 /******************************************************************************
