@@ -3842,7 +3842,7 @@ static void form_exception_specification_for_generated_function(
                                                          a_symbol_ptr   bctor);
 
 
-static void complete_defaulted_member_decl(a_routine_ptr  rp)
+void complete_defaulted_member_decl(a_routine_ptr  rp)
 /*
 The given routine entry is a defaulted special member.  If needed, establish
 its exception specification.  If an exception specification was specified

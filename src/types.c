@@ -8060,10 +8060,14 @@ definition of "non-throwing exception specification" in [except.spec]
 of the C++11 standard.
 */
 {
-  a_boolean result = (rp->is_trivial_default_constructor ||
-                      rp->is_trivial_copy_function ||
-                      rp->never_throws);
+  a_boolean result;
 
+  if (rp->is_defaulted) {
+    complete_defaulted_member_decl(rp);
+  }  /* if */
+  result = (rp->is_trivial_default_constructor ||
+            rp->is_trivial_copy_function ||
+            rp->never_throws);
   if (!result) {
     a_type_ptr  rtp = rp->type;
     if (rtp->kind == (a_type_kind)tk_routine) {
