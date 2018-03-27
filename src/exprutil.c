@@ -15562,8 +15562,9 @@ reference entry, or is NULL if none is needed.
   node = function_lvalue_expr(routine);
   make_glvalue_expression_operand(node, result);
   /* Remember whether or not the routine is virtual.  Use of a qualified
-     name suppresses the virtual-ness of the function (ARM 10.2). */
-  result->virtual_function = routine->is_virtual && !is_qualified_name;
+     name suppresses the virtual-ness of the function. */
+  result->virtual_function = routine->is_virtual && !is_qualified_name &&
+                             !routine->final;
   result->is_qualified_name = is_qualified_name;
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
