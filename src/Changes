@@ -55,7 +55,7 @@ GNU C++ compatibility: static data member initializer ending with ">>"
 
 In g++ mode, class template static data members are cached and only
 instantiated if they are used.  This processing did not correctly handle
-a ">>" that closes two template argument list, resulting in spurious
+a ">>" that closes two template argument lists, resulting in spurious
 errors.  Now fixed.
 
   template <typename T> constexpr bool v = true;
