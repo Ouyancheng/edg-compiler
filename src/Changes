@@ -1,5 +1,18 @@
 Version 4.15
 
+3/27/18  [EDGcpfe/19492]
+C++-generating back end: macro expansion in unrecognized pragmas
+
+In C++-generating back end configurations in which
+INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE, the front end has now been
+changed to expand macro invocations appearing in the text of unrecognized
+#pragma directives.  For example, with --microsoft:
+
+  #define _STL_WARNING_LEVEL    4
+  #pragma warning(push,_STL_WARNING_LEVEL)  // Now generated as
+                                            // #pragma warning(push,4)
+
+
 3/26/18  [EDGcpfe/19490]
 Configuration macros are no longer target-specific
 

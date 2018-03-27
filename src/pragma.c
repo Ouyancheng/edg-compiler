@@ -2340,7 +2340,10 @@ Initialize the pragma description table.
      generating back end is used, for example).   Immediate pragmas are
      preferable to next-construct pragmas for representing unrecognized
      pragmas because next-construct pragmas are only valid in certain
-     contexts. */
+     contexts.  The tokens of the pragma string will be macro-expanded when
+     the C++-generating back end is used, because macro definitions are put
+     out at the end of the generated code and thus cannot affect the
+     #pragma directive, which is generated in its correct location. */
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
                  (a_function_number)fn_null,
@@ -2348,7 +2351,7 @@ Initialize the pragma description table.
 		 /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,  /* Do not change. */
                  /*record_pragma_text=*/TRUE,         /* Do not change. */
-                 /*expand_macros=*/FALSE,		/* Do not change. */
+                 /*expand_macros=*/BACK_END_IS_CP_GEN_BE, /* Do not change. */
                  /*processing_C_code=*/FALSE, /* Do not change. */
                  /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
