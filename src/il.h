@@ -1909,7 +1909,7 @@ typedef int a_ctws_options_set;
 			/* TRUE if the substitution is being done on something
 			   outside of the original context of a function
 			   template that is being substituted (such as a
-			   default template argument. */
+			   default template argument). */
 
 /*
 Structure used to represent a set of function parameters that resulted from

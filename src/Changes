@@ -29,7 +29,7 @@ Now fixed.
   template <template<class> class T> struct D {
     template<class W> using my_f = T<W>;
   };
-  bool b = C<D<B>::my_f>::type::value;  //
+  bool b = C<D<B>::my_f>::type::value;
 
 
 3/26/18  [EDGcpfe/19434]
