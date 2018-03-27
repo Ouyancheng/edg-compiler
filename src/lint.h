@@ -1398,6 +1398,14 @@ extern int fileno(FILE *);
 /*lint -esym(552,targ_ssize_t_int_kind)*/
 /*lint -esym(769,ec_always_inline_suppressed)*/
 /*lint -esym(755,is_effective_thread_local)*/
+/*lint -esym(750,TARG_MINIMUM_PACK_ALIGNMENT_linux_x86_64)*/
+/*lint -esym(750,TARG_MAXIMUM_PACK_ALIGNMENT_linux_x86_64)*/
+/*lint -esym(750,TARG_MINIMUM_PACK_ALIGNMENT_linux_i686)*/
+/*lint -esym(750,TARG_MAXIMUM_PACK_ALIGNMENT_linux_i686)*/
+/*lint -esym(750,TARG_MINIMUM_PACK_ALIGNMENT_win64)*/
+/*lint -esym(750,TARG_MAXIMUM_PACK_ALIGNMENT_win64)*/
+/*lint -esym(750,TARG_MINIMUM_PACK_ALIGNMENT_win32)*/
+/*lint -esym(750,TARG_MAXIMUM_PACK_ALIGNMENT_win32)*/
 
 #endif /* ifndef LINT_H */
 
