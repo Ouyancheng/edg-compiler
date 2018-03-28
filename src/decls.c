@@ -7935,14 +7935,15 @@ position.
     } else if (!special_kind_is(rp, sfk_constructor) &&
                !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
-      if (!rout_is_real_template_instance(rp)) {
+      if (rp->is_declared_constexpr && !rout_is_real_template_instance(rp)) {
         pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
                      rtp->variant.routine.return_type);
       }  /* if */
     } else {
       a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
-      a_boolean         template_instance = rout_is_real_template_instance(rp);
-      if (!template_instance && rp->is_inheriting_ctor) {
+      a_boolean         diagnose = rp->is_declared_constexpr &&
+                                   !rout_is_real_template_instance(rp);
+      if (diagnose && rp->is_inheriting_ctor) {
         /* An inheriting constructor not generated from a base constructor
            template is never marked as a template instance, but if it is
            generated for a class template instance, it should be considered
@@ -7950,13 +7951,13 @@ position.
         a_type_ptr  parent = parent_class_of(rp);
         if (parent->variant.class_struct_union.is_template_class &&
             !parent->variant.class_struct_union.is_specialized) {
-          template_instance = TRUE;
+          diagnose = FALSE;
         }  /* if */
       }  /* if */
       for (; ptp != NULL; ptp = ptp->next) {
         if (!could_be_literal_type(ptp->type)) {
           okay = FALSE;
-          if (!template_instance) {
+          if (diagnose) {
             pos_ty_error(ec_nonliteral_param_type_in_constexpr_function,
                          diag_pos, ptp->type);
           }  /* if */
