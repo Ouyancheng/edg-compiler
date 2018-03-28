@@ -7168,6 +7168,7 @@ this statement was preceded by the GNU keyword __extension__.
   a_source_position  start_pos;
   an_il_entity_list_entry_ptr
                      entity_list;
+  a_routine_ptr      current_rp = current_routine_entry();
 
   db_enter(3, "statement");
 
@@ -7261,8 +7262,8 @@ rescan_statement:
 #endif /* COROUTINES_ALLOWED */
       /* Return or co-return statement. */
       return_statement();
-      if (current_routine_entry()->is_constexpr &&
-          !special_kind_is(current_routine_entry(), sfk_constructor)) {
+      if (current_rp->is_constexpr &&
+          !special_kind_is(current_rp, sfk_constructor)) {
         /* No return statements are allowed in constexpr constructors. */
         can_appear_in_constexpr_body = TRUE;
       }  /* if */
@@ -7463,14 +7464,15 @@ expr_statement:
       }  /* if */
       break;
   }  /* switch */
-  if (current_routine_entry()->is_constexpr &&
-      !can_appear_in_constexpr_body) {
-    /* Report an error if the statement is not one that is allowed in
-       a constexpr function or constexpr constructor. */
-    pos_error(special_kind_is(current_routine_entry(), sfk_constructor) ?
+  if (current_rp->is_constexpr && !can_appear_in_constexpr_body) {
+    if (current_rp->is_declared_constexpr) {
+      /* Report an error if the statement is not one that is allowed in a
+         constexpr function or constexpr constructor. */
+      pos_error(special_kind_is(current_rp, sfk_constructor) ?
                                 ec_invalid_statement_in_constexpr_constructor :
                                 ec_invalid_statement_in_constexpr_function,
-              &start_pos);
+                &start_pos);
+    }  /* if */
     scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
   }  /* if */
   /* Loop if we just got a label and not an actual statement. */

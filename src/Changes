@@ -1,7 +1,7 @@
 Version 4.15
 
-3/27/18  [EDGcpfe/19496]
-Spurious error on lambda returning a non-literal type in C++17 mode
+3/27/18  [EDGcpfe/19408,EDGcpfe/19409,EDGcpfe/19496]
+Spurious error on lambdas with non-constexpr constructs C++17 mode
 
 Consider:
 
@@ -13,7 +13,9 @@ Consider:
 In C++17 mode the front end issued a spurious error complaining that the
 return type of the lambda cannot be a nonliteral type (because the front end
 erroneously treated the lambda call operator as a constexpr function).  That
-is now fixed.
+is now fixed, as are a few similar issues (e.g., a "try block" in a C++17
+lambda expression was incorrectly diagnosed as being invalid in a constexpr
+function).
 
 
 3/27/18  [EDGcpfe/17883]
