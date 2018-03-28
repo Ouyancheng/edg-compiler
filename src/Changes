@@ -12,8 +12,8 @@ This is now fixed.  For example, with --g++:
   S1 d = (S1){1};  // Previously resulted in an assertion failure
 
 
-3/27/18  [EDGcpfe/19408,EDGcpfe/19409,EDGcpfe/19496]
-Spurious error on lambdas with non-constexpr constructs C++17 mode
+3/27/18  [EDGcpfe/18851,EDGcpfe/19408,EDGcpfe/19409,EDGcpfe/19496]
+Spurious error on lambdas with non-constexpr constructs in C++17 mode
 
 Consider:
 
