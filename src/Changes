@@ -1,5 +1,17 @@
 Version 4.15
 
+3/28/18  [EDGcpfe/19463]
+C++-generating back end, GNU compatibility: compound literals and constructors
+
+The C++-generating back end previously failed an assertion (in
+gen_compound_literal) when C++ source has a C99-style compound literal that
+results in invoking a constructor (a situation that can arise in g++ mode).
+This is now fixed.  For example, with --g++:
+
+  struct S1 { S1(unsigned); };
+  S1 d = (S1){1};  // Previously resulted in an assertion failure
+
+
 3/27/18  [EDGcpfe/19408,EDGcpfe/19409,EDGcpfe/19496]
 Spurious error on lambdas with non-constexpr constructs C++17 mode
 

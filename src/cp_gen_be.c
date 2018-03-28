@@ -17166,9 +17166,18 @@ output_functional_notation_cast_arguments:
   } else if (dip->is_compound_literal) {
     /* This is a compound literal, a C99 feature that is also available
        in some C++ modes. */
-    gen_compound_literal((a_constant_ptr)NULL, dip, init_entity_type,
-                         /*transparent_case=*/FALSE);
-    goto end_of_routine;
+    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* Handle this case directly, since we'll need the logic below for
+         generating the constructor invocation.  Just generate the cast
+         part of the compound literal notation and fall through to process
+         the constructor call. */
+      gen_cast(init_entity_type);
+    } else {
+      /* Handle non-constructor cases. */
+      gen_compound_literal((a_constant_ptr)NULL, dip, init_entity_type,
+                           /*transparent_case=*/FALSE);
+      goto end_of_routine;
+    }  /* if */
   }  /* if */
   /* Now put out an expression for the dynamic init entry.  For a cast, the
      cast prefix has been put out above, and the code below is putting out
