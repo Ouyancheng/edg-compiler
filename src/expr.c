@@ -470,32 +470,17 @@ error type.
 }  /* arg_matches_auto_template_param */
 
 
-static void scan_call_arguments(
-                           a_type_ptr               function_type,
-                           a_routine_ptr            routine,
-                           a_boolean                already_after_left_paren,
-                           an_expr_node_ptr         *p_argument_list,
-                           a_boolean                return_raw_arguments,
-                           a_boolean                unknown_dependent_function,
-                           a_boolean                args_will_be_discarded,
-                           a_boolean                is_custom_ms_attr_arg_list,
-                           a_rescan_control_block   *rcblock,
-                           a_boolean                arg_list_supplied,
-                           an_arg_list_elem_ptr     supplied_arg_list,
-                           an_arg_list_elem_ptr     *p_arg_list,
-                           an_operand               *single_operand,
-                           a_boolean                *single_operand_returned,
-                           a_source_position        *closing_paren_position);
-
 void prescan_initializer_for_auto_type_deduction(
                                          a_decl_parse_state *dps,
                                          a_boolean          parenthesized_init)
 /*
-Prescan an initializer expression for an "auto"/"decltype(auto)" type variable
-declaration and deduce the type of the variable.  The operand resulting from
-the scan is recorded in *dps for later consumption.  On return,
-dps->deduced_auto_type is the type to which the "auto"/"decltype(auto)" was
-deduced, and dps->type is the type of the entity to initialize.  
+Prescan an initializer and deduce the type of a placeholder type ("auto",
+"decltype(auto)", or a class template placeholder) from it.  In some cases,
+dps->retrieve_initializer_from_cache can be TRUE to indicate that the
+initializer was previously cached (in dps->prescanned_initializer_cache).
+The operand resulting from the scan is recorded in *dps for later consumption. 
+On return, dps->deduced_auto_type is the type to which the placeholder type
+was deduced, and dps->type is the type of the entity to initialize.  
 dps->has_deduced_type (which must be TRUE on entry) is cleared to
 FALSE if there was a deduction error, and dps->deduced_auto_type is returned
 NULL if deduction was not done because the type or initializer is still
@@ -541,7 +526,6 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   /* Scan the expression and save it in an initializer cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
      implies. */
-  check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
   if (parenthesized_init) {
     /* In the parenthesized case, the expression is syntactically part of an
        expression-list, even though in many cases there must be a single
@@ -550,10 +534,18 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     if (dps->has_deducible_class_templ_args) {
       /* In the case of a class template argument deduction, the parenthesized
          case really amounts to scanning call arguments. */
-      icp = scan_expr_list(tok_rparen, /*is_delegate_init=*/FALSE,
-                           /*is_custom_ms_attr_arg_list=*/FALSE,
-                           /*empty_list_okay=*/TRUE,
-                           /*trailing_comma_okay=*/FALSE);
+      if (dps->retrieve_initializer_from_cache) {
+        /* The expression list is already available (e.g., through expression
+           rescanning for a function-style cast). */
+        icp = dps->prescanned_initializer_cache.first_init;
+        dps->retrieve_initializer_from_cache = FALSE;
+        clear_initializer_cache(&dps->prescanned_initializer_cache);
+      } else {
+        icp = scan_expr_list(tok_rparen, /*is_delegate_init=*/FALSE,
+                             /*is_custom_ms_attr_arg_list=*/FALSE,
+                             /*empty_list_okay=*/TRUE,
+                             /*trailing_comma_okay=*/FALSE);
+      }  /* if */
     } else {
       dps->initializer_is_single_expr = TRUE;
       icp = scan_init_component_with_potential_pack_expansion(
@@ -568,6 +560,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     icp = scan_expr_or_braced_init_list(/*bundle=*/is_full_expr,
                                         /*always_allow_braced=*/FALSE);
   }  /* if */
+  check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
   if (icp != NULL) {
     add_init_component_to_initializer_cache(
                                           icp, /*to_front=*/TRUE,
@@ -600,7 +593,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       undeduced_type = make_qualified_type(undeduced_type,
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
-    if (icp != NULL &&is_braced_init_component(icp) &&
+    if (icp != NULL && is_braced_init_component(icp) &&
         dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
         ((cpp14_mode && !(clang_mode ? clang_version < 30800 :
                           gpp_mode   ? gnu_version < 50000 : FALSE)) ||
@@ -2586,9 +2579,7 @@ to TRUE.
     /* Use the argument list supplied. */
     check_assertion(rcblock == NULL);
     arg_list = supplied_arg_list;
-    if (rcblock == NULL) {
-      arg_block.closing_paren_position = pos_curr_token;
-    }  /* if */
+    arg_block.closing_paren_position = pos_curr_token;
   } else if (rcblock != NULL) {
     /* Convert the previously-scanned rcblock->argument_list list of
        expressions into an argument list. */
@@ -24613,6 +24604,7 @@ freed by this routine.
                             local_options);
       goto end_of_routine;
     }  /* if */
+    parenthesized = braced_init_list == NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = (rcblock->expr != NULL) ? rcblock->expr->expr_range.end :
                                              /* No end position available
@@ -24624,10 +24616,6 @@ freed by this routine.
     type_position = *start_position;
     rescan_dip = NULL;
     if (scanning_source) {
-      /* We may have to prescan the operand being cast to deduce the actual
-         type cast to (in the C++17 case involving class template argument
-         deduction).  That requires us consuming a parenthesis first (if there
-         is one). */
       if (curr_token == tok_lparen) {
         parenthesized = TRUE;
         (void)get_token();
@@ -24635,29 +24623,49 @@ freed by this routine.
         (void)required_token(tok_lparen, ec_exp_lparen);
         type_cast_to = error_type();
       }  /* if */
-      if (is_class_template_placeholder_type(type_cast_to)) {
-        a_decl_parse_state  dps;
-        init_decl_parse_state(&dps);
-        dps.type = type_cast_to;
-        dps.declared_type = type_cast_to;
-        dps.auto_type = type_cast_to;
-        dps.has_deduced_type = TRUE;
-        dps.has_deducible_class_templ_args = TRUE;
-        dps.auto_pos = type_position;
-        dps.declarator_pos = pos_curr_token;
-        prescan_initializer_for_auto_type_deduction(&dps, parenthesized);
-        type_cast_to = dps.type;
-        if (parenthesized) {
-          saved_initializer_cache = expr_stack->initializer_cache;
-          expr_stack->initializer_cache = NULL;
-          set_up_initializer_rescan(&dps);
-        } else {
-          /* A braced initializer that is now in the initializer cache. */
-          braced_init_list = fetch_init_component_from_initializer_cache(
-                                           &dps.prescanned_initializer_cache);
-          scanning_source = FALSE;
-        }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_class_template_placeholder_type(type_cast_to)) {
+    /* We have to prescan the operand being cast to deduce the actual type
+       cast to (in the C++17 case involving class template argument
+       deduction). */
+    a_decl_parse_state  dps;
+    init_decl_parse_state(&dps);
+    dps.type = type_cast_to;
+    dps.declared_type = type_cast_to;
+    dps.auto_type = type_cast_to;
+    dps.has_deduced_type = TRUE;
+    dps.has_deducible_class_templ_args = TRUE;
+    dps.auto_pos = type_position;
+    dps.declarator_pos = pos_curr_token;
+    dps.init_state.direct_init = TRUE;
+    if (rcblock != NULL) {
+      /* Rescan the operand list early and place it in the expression stack's
+         initializer cache. */
+      an_arg_list_elem_ptr  arg_list;
+      if (parenthesized) {
+        arg_list = rescan_expr_list(rcblock->argument_list, rcblock);
+      } else {
+        arg_list = braced_init_list;
+      }  /* if*/
+      dps.retrieve_initializer_from_cache = TRUE;
+      if (arg_list != NULL) {
+        add_init_component_to_initializer_cache(
+              arg_list, /*to_front=*/TRUE, &dps.prescanned_initializer_cache);
       }  /* if */
+    }  /* if */
+    prescan_initializer_for_auto_type_deduction(&dps, parenthesized);
+    if (rcblock != NULL) {
+      expr_stack->initializer_cache = NULL;
+    }  /* if */
+    type_cast_to = dps.type;
+    if (parenthesized) {
+      set_up_initializer_rescan(&dps);
+    } else {
+      /* A braced initializer that is now in the initializer cache. */
+      braced_init_list = fetch_init_component_from_initializer_cache(
+                                           &dps.prescanned_initializer_cache);
+      scanning_source = FALSE;
     }  /* if */
   }  /* if */
   error_position = *start_position;
@@ -43320,6 +43328,7 @@ The caller will add the destructor (if needed) and the array repetition.
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                     /*force_object_lifetime=*/TRUE,
                     /*suppress_object_lifetime=*/FALSE);
+    clear_initializer_cache(&cache);
     expr_stack->initializer_cache = &cache;
     add_init_component_to_initializer_cache(icp, /*to_front=*/TRUE,
                                             expr_stack->initializer_cache);

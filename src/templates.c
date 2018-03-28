@@ -13804,6 +13804,37 @@ NULL pointer.
 }  /* copy_pack_expansion_descr_with_substitution */
 
 
+static a_type_ptr copy_class_template_placeholder_with_substitution(
+			a_type_ptr			type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+The given type is a class template placeholder type.  Substitute it for the
+given template argument list and return the updated placeholder type.  See
+copy_type_with_substitutions for the meaning of the parameters.
+*/
+{
+  a_symbol_ptr    ct_sym = type->variant.template_param.extra_info
+                               ->class_template_symbol;
+  a_template_ptr  orig_templ, templ;
+  a_type_ptr      result = NULL;
+
+  check_assertion(is_class_template_symbol(ct_sym));
+  orig_templ = ct_sym->variant.template_info->il_template_entry;
+  templ = copy_template_with_substitution(orig_templ, templ_arg_list,
+                                          templ_param_list, source_pos,
+                                          options, copy_error, ctws_state);
+  if (!*copy_error && templ != orig_templ) {
+    result = make_class_template_placeholder(symbol_for(templ), source_pos);
+  }  /* if */
+  return result;
+}  /* copy_class_template_placeholder_with_substitution */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -13902,19 +13933,25 @@ a pointer over a reference type or creating an array of references.
            template parameter and return it to the caller. */
         { a_template_param_coordinate_ptr	coordinates;
           coordinates = &type->variant.template_param.extra_info->coordinates;
-          tap = get_template_arg_for_coordinates(coordinates, options,
-                                                 &templ_arg_list,
-                                                 templ_param_list);
-          if (tap == NULL || !is_type_templ_arg(tap) ||
-              tap->variant.type == NULL) {
-            /* No value has been provided for this template parameter yet,
-               or this is not a template parameter of the current template
-               (or a variadic parameter of an enclosing template).
-               Don't do the substitution, but don't consider this to be
-               a copy error either. */
-            new_type = type;
+          if (coordinates->depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+            new_type = copy_class_template_placeholder_with_substitution(
+                                 type, templ_arg_list, templ_param_list,
+                                 source_pos, options, copy_error, ctws_state);
           } else {
-            new_type = tap->variant.type;
+            tap = get_template_arg_for_coordinates(coordinates, options,
+                                                   &templ_arg_list,
+                                                   templ_param_list);
+            if (tap == NULL || !is_type_templ_arg(tap) ||
+                tap->variant.type == NULL) {
+              /* No value has been provided for this template parameter yet,
+                 or this is not a template parameter of the current template
+                 (or a variadic parameter of an enclosing template).
+                 Don't do the substitution, but don't consider this to be
+                 a copy error either. */
+              new_type = type;
+            } else {
+              new_type = tap->variant.type;
+            }  /* if */
           }  /* if */
         }
         break;

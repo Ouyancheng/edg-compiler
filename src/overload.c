@@ -26231,7 +26231,7 @@ was not completed because the types involved are still dependent,
     }  /* if */
   } else {
     /* Something went wrong with deduction. */
-    expect_error();
+    check_assertion_or_expect_error(scope_stack_top().is_rescan);
     *deduced_placeholder = error_type();
     *still_dependent = FALSE;
   }  /* if */

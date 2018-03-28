@@ -1014,6 +1014,11 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_nontype_template_param:1;
 			/* TRUE if this is a nontype template parameter
 			   declaration. */
+  a_bit_field	retrieve_initializer_from_cache:1;
+			/* TRUE to indicate to some functions that an
+			   an initializer should be retrieved from
+			   prescanned_initializer_cache (instead of using the
+			   usual expression scanning routines). */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

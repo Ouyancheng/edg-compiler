@@ -216,6 +216,7 @@ be restored).
     dps->pending_prefix_enable_if_attr = FALSE;
     dps->keep_terminating_token = FALSE;
     dps->is_nontype_template_param = FALSE;
+    dps->retrieve_initializer_from_cache = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
