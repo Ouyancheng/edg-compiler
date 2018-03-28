@@ -11257,19 +11257,27 @@ partial specialization.
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
   a_template_arg_ptr			prev_templ_tap = NULL;
   a_boolean				tap_is_pack = FALSE;
+  a_boolean				templ_tap_is_pack = FALSE;
 
-  begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
-  if (templ_tap == NULL && tap != NULL) {
-    /* If the templ_tap contained only placeholders, make sure that if
-       tap is only placeholders, they are skipped. */
-    skip_start_of_pack_placeholders_simple(&tap);
-  }  /* if */
-  for (match = TRUE; match && tap != NULL && templ_tap != NULL;) {
+  /* templ_tap is not tested here so that any placeholders in tap will
+     still be skipped in the loop. */
+  for (match = TRUE; match && tap != NULL;) {
+    /* See if the current tap list is a start-of-pack entry, and if so,
+       skip any placeholders. */
     tap_is_pack = is_start_of_pack_expansion_templ_arg(tap);
     if (tap_is_pack) {
       skip_start_of_pack_placeholders_simple(&tap);
       if (tap == NULL) break;
     }  /* if */
+    /* See if the current tap list is a start-of-pack entry, and if so,
+       skip any placeholders. */
+    if (templ_tap != NULL) {
+      templ_tap_is_pack = is_start_of_pack_expansion_templ_arg(templ_tap);
+      if (templ_tap_is_pack) {
+        skip_start_of_pack_placeholders_simple(&templ_tap);
+      }  /* if */
+    }  /* if */
+    if (templ_tap == NULL) break;
     prev_templ_tap = templ_tap;
     if (pesep == NULL && templ_tap->pack_expansion_descr != NULL) {
       /* The argument from the template is of the form "T...".  This
@@ -11310,9 +11318,14 @@ partial specialization.
          of a (potential) new element. */ 
       advance_to_next_deduced_element(pesep);
     } else {
-      advance_to_next_template_arg_simple(&templ_tap);
-      if (templ_tap == NULL && tap != NULL) {
-        tap_is_pack = is_start_of_pack_expansion_templ_arg(tap);
+      templ_tap = templ_tap->next;
+      if (templ_tap != NULL) {
+        /* If templ_tap is NULL, keep the existing value of
+           templ_tap_is_pack. */
+        templ_tap_is_pack = is_start_of_pack_expansion_templ_arg(templ_tap);
+        if (templ_tap_is_pack) {
+          skip_start_of_pack_placeholders_simple(&templ_tap);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -11335,12 +11348,18 @@ partial specialization.
     /* In partial ordering, it is possible for tap to be a pack expansion.
        In such cases, allow templ_tap to have more arguments. */
   } else if ((tap == NULL) !=
-      (templ_tap == NULL ||
-       templ_tap->pack_expansion_descr != NULL)) {
+             (templ_tap == NULL ||
+              templ_tap->pack_expansion_descr != NULL)) {
     /* If either list has arguments remaining, this is not a match.  It is
        okay for the template list to have another parameter if it is a
        parameter pack. */
-    match = FALSE;
+    if (tap != NULL && templ_tap_is_pack) {
+      /* The last templ_tap is an argument to a pack (but not a pack
+         expansion, which would have had a pack_expansion_descr).  This
+         is a match. */
+    } else {
+      match = FALSE;
+    }  /* if */
   }  /* if */
   return match;
 }  /* matches_template_arg_list */

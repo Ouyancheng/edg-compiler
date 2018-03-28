@@ -1,5 +1,20 @@
 Version 4.15
 
+3/28/18  [EDGcpfe/17558,EDGcpfe/19264]
+Incorrect matching of arguments to variadic template template parameter
+
+If a non-variadic class template is matched to a variadic template
+template parameter, and the non-variadic template has additional parameters
+with default arguments, a spurious error could result.  Now fixed.
+
+  template <typename T, typename = void> struct A {};
+  template <template <typename...> class T, typename U> void f(T<U>) {}
+  int main() {
+    A<int> a;
+    f(a);
+  }
+
+
 3/28/18  [EDGcpfe/19242]
 Incorrect evaluation of noexcept operator of variadic member function template
 
