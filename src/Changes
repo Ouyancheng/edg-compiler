@@ -1,5 +1,31 @@
 Version 4.15
 
+3/28/18  [EDGcpfe/19242]
+Incorrect evaluation of noexcept operator of variadic member function template
+
+In C++17 mode, the evaluation of a noexcept operator of a variadic function
+template that is a member of a class template could result in a spurious
+error.  Now fixed.
+
+  template <typename T> struct A {
+    A(T t){}
+    T g() noexcept { return T(); }
+    template <typename... Args>
+        decltype(auto) operator()(Args... args)
+                       noexcept(noexcept(this->g()(args...))) {
+      return this->g()(args...);
+    }
+  };
+  template <typename T> A<T> f(T t) { return A<T>(t); }
+  struct B {
+    bool operator()(int) { return true; }
+  };
+  int main() {
+    auto h = f(B{});
+    h(10);
+  }
+
+
 3/28/18  [EDGcpfe/19463]
 C++-generating back end, GNU compatibility: compound literals and constructors
 
