@@ -5028,12 +5028,13 @@ functions list.
 static a_boolean arg_count_mismatch(
                              a_type_ptr            routine_type,
                              an_arg_list_elem_ptr  arg_list,
+                             a_routine_ptr         routine,
                              a_boolean             *param_array_expanded_case)
 /*
 Return TRUE if the given function call argument list cannot match the given
-routine type (in the case of a variadic function template, explicit template
-arguments must have been substituted for this function to produce a reliable
-answer).
+routine.  routine is the associated routine if known (or NULL otherwise).
+In the case of a variadic function template, explicit template arguments must
+have been substituted for this function to produce a reliable answer).
 
 In C++/CLI and C++/CX modes set *param_array_expanded_case if the last
 parameter is a param array and the number of arguments and parameters don't
@@ -5091,27 +5092,34 @@ match.
   /* Check that the argument and parameter lists ended at the same place. */
   if (param != NULL) {
     /* Fewer arguments than required.  No match unless there are default
-       argument values.  Note that has_default_arg is not used here,
+       argument values.  Note that has_default_arg is not usually used here,
        because there are cases where has_default_arg is set and
        default_arg_expr is not set yet.  A default argument with a NULL
        default_arg_expr is accepted if it has an unevaluated template
        value, because we know this value can be produced when the call
        is generated. */
+    if (routine != NULL && special_kind_is(routine, sfk_deduction_guide) &&
+        param->has_default_arg) {
+      /* Implicit deduction guides cannot actually copy the default arguments
+         of their associated constructors.  However, since they are only used
+         for deduction purposes, we can mostly just ignore the extra parameter:
+         Any potential error will be caught when resolving the associated
+         constructor call. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* If we ran out of arguments but the next parameter is a C++/CLI param
-       array, then we can accept this function by creating a zero-length
-       parameter array. */
-    if (param->is_cli_param_array) {
+    } else if (param->is_cli_param_array) {
+      /* If we ran out of arguments but the next parameter is a C++/CLI param
+         array, then we can accept this function by creating a zero-length
+         parameter array. */
       check_assertion(cli_or_cx_enabled);
       *param_array_expanded_case = TRUE;
-    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not add code here. */
-    /* A final parameter pack can also make the call okay, because it can
-       be matched with zero arguments. */
-    if (!param->has_unevaluated_template_default &&
-        param->default_arg_expr == NULL &&
-        (!param->is_parameter_pack || param->next != NULL)) goto done;
+    } else if (!param->has_unevaluated_template_default &&
+               param->default_arg_expr == NULL &&
+               (!param->is_parameter_pack || param->next != NULL)) {
+      /* A final parameter pack can also make the call okay, because it can
+         be matched with zero arguments. */
+      goto done;
+    }  /* if */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
@@ -5394,7 +5402,7 @@ the point of call.  conv_context describes the context of the conversion.
              do this, so we perform that check after the substitution is
              completed. */
           check_arg_count_mismatch = FALSE;
-          if (arg_count_mismatch(routine_type, arg_list,
+          if (arg_count_mismatch(routine_type, arg_list, routine,
                                  &param_array_expanded_case)) {
             goto reject_function;
           }  /* if */
@@ -5489,7 +5497,8 @@ the point of call.  conv_context describes the context of the conversion.
        struct A { A(A, xxx, yyy); }
      which look viable as copy constructors on the first argument. */
   if (check_arg_count_mismatch &&
-      arg_count_mismatch(routine_type, arg_list, &param_array_expanded_case)) {
+      arg_count_mismatch(routine_type, arg_list, routine,
+                         &param_array_expanded_case)) {
     goto reject_function;
   }  /* if */
   /* The function looks okay from the standpoint of argument count. */
