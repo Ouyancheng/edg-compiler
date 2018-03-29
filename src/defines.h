@@ -650,7 +650,7 @@ command-line when compiling system headers.
 #define TARG_DBL_MANT_DIG_win32 53
 #define TARG_DBL_MAX_EXP_win32 1024
 #define TARG_DBL_MIN_EXP_win32 (-1021)
-#define TARG_DEFAULT_NEW_ALIGNMENT_win32 16
+#define TARG_DEFAULT_NEW_ALIGNMENT_win32 8
 #define TARG_DELTA_INT_KIND_win32 ((an_integer_kind)ik_short)
 #define TARG_DOUBLE_FIELD_ALIGNMENT_win32 8
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES_win32 0
