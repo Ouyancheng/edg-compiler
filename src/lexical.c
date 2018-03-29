@@ -9571,6 +9571,15 @@ fixed_point_suffix:
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
       canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len,
                                                /*force_ucn=*/FALSE);
+      if (kind == k_float) {
+        /* The numeric part of a user-defined float literal is implicitly a
+           long double, so we need to reconvert it with a synthesized
+           suffix. */
+        char saved_char = *++end_of_curr_token;
+        *((char *)end_of_curr_token) = 'L';
+        conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
+        *((char *)end_of_curr_token--) = saved_char;
+      }  /* if */
       if (is_error_constant(&const_for_curr_token)) {
         /* The literal overflowed/underflowed, which is not an error for
            raw literal operators and literal operator templates.
