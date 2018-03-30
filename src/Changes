@@ -1,5 +1,16 @@
 Version 4.15
 
+3/30/18  [EDGcpfe/19260]
+Internal error on diagnostic issued in rescan of variable template parameter
+
+An internal error could occur (in include_in_context_output) if a diagnostic
+was issued during the rescan of a dependent template parameter of a
+variable template declaration.  Now fixed.
+
+  template <class T, T t = 1.0> T x = t;
+  int i = x<int>;
+
+
 3/29/18  [EDGcpfe/19504]
 Microsoft compatibility: TARG_DEFAULT_NEW_ALIGNMENT and
 TARG_MAXIMUM_INTRINSIC_ALIGNMENT
