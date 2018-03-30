@@ -4,11 +4,11 @@ Version 4.15
 Microsoft compatibility: TARG_DEFAULT_NEW_ALIGNMENT and
 TARG_MAXIMUM_INTRINSIC_ALIGNMENT
 
-The default value for TARG_MAXIMUM_INTRINSIC_ALIGNMENT is now 8 on both 32-bit
-and 64-bit configurations.  The default value for TARG_DEFAULT_NEW_ALIGNMENT is
-now 8 on 32-bit configurations and 16 on 64-bit configurations.  These new
-default values are defined in defines.h.win32 and can be overridden.  See the
-Changes entry for EDGcpfe/17696 for more information.
+In the defines.h.win32 sample configuration file, the default value for
+TARG_MAXIMUM_INTRINSIC_ALIGNMENT is now 8 on both 32-bit and 64-bit
+configurations.  The default value for TARG_DEFAULT_NEW_ALIGNMENT is now 8 on
+32-bit configurations and 16 on 64-bit configurations.  See the Changes entry
+for EDGcpfe/17696 for more information.
 
 
 3/29/18  [EDGcpfe/18118,EDGcpfe/19499]
