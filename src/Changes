@@ -33,7 +33,7 @@ The front end previously lexed the numeric value of a user-defined float
 literal as a double, converting the value to long double to pass to the
 associated user-defined literal operator.  This could lead to loss of
 precision in the value.  The front end now lexes such values as long
-double.  The effect of this issue can be seen in the output of the
+doubles.  The effect of this issue can be seen in the output of the
 C++-generating back end.  For example, on some architectures with --c++11:
 
   long double operator "" _foo(long double p){
