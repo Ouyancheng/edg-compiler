@@ -1,5 +1,19 @@
 Version 4.15
 
+4/2/18   [EDGcpfe/17489]
+C++-generating back end: missing "template" keyword in friend declaration
+
+In a configuration in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end failed to add a
+necessary "template" keyword in a friend declaration with a dependent
+nested-name-specifier.  This is now fixed.  For example, with --c++11:
+
+  template <class T> struct S2 {
+    typedef typename T::template v<1> C;
+    friend C;  // Previously generated as "friend typename T::v<1>"
+  };
+
+
 4/2/18   [EDGcpfe/19478]
 Clang compatibility: __has_feature vs language version
 

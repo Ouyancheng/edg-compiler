@@ -4570,7 +4570,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              (gcc_or_clang_is_generated_code_target &&
               in_prototype_instantiation_context())) &&
             !is_partial_spec_prototype_inst &&
-            !(options & (GN_DECLARATION | GN_SUPPRESS_TEMPLATE_KEYWORD)) &&
+            !(options & GN_SUPPRESS_TEMPLATE_KEYWORD) &&
+            !((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL)) &&
             (name_has_template_arguments(scp, entry_kind,
                                          (a_template_arg_ptr *)NULL,
                                          /*insert_space=*/(a_boolean *)NULL) ||
