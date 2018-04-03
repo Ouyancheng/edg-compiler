@@ -6507,9 +6507,9 @@ end_arg_expansion:;
           if (feature_supported && clang_mode &&
               macro_symbol == clang_has_feature_symbol &&
               std_version < feature->feature_ver) {
-            /* The feature is not part of the emulated C++ Standard, so
-               clang's __has_feature says it's not supported, although
-               __has_extension would say it is. */
+            /* The feature is not part of the specified version of the C++
+               Standard, so clang's __has_feature says it's not supported,
+               although __has_extension would say it is. */
             feature_supported = FALSE;
           }  /* if */
         } else if (type_traits_helpers_enabled) {

@@ -18,10 +18,10 @@ nested-name-specifier.  This is now fixed.  For example, with --c++11:
 Clang compatibility: __has_feature vs language version
 
 The front end previously treated the clang __has_feature and __has_extension
-feature-test macros identically, giving the value 1 if the named feature
-is supported in the current invocation of the front end and 0 otherwise.
-The clang compiler, however, only gives the value 1 for __has_feature if
-the named feature is part of the currently-emulated C++ Standard, even if
+feature-test macros identically, giving the value 1 if the named feature is
+supported in the current invocation of the front end and 0 otherwise.  The
+clang compiler, however, only gives the value 1 for __has_feature if the
+named feature is part of the specified version of the C++ Standard, even if
 the feature actually is supported.  The front end has now been changed to
 emulate this behavior.  For example, with --clang --c++03:
 
