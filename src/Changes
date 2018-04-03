@@ -1,5 +1,19 @@
 Version 4.15
 
+4/3/18   [EDGcpfe/19508]
+Microsoft compatibility: --ms_cplusplus_std_value command-line option
+
+The --[no_]ms_cplusplus_std_value command-line option has been added to
+emulate Microsoft Visual Studio's /Zc:__cplusplus[-] command-line option.
+When specified, the __cplusplus macro is set to the value specified in the
+C++ standard that corresponds to the mode being emulated (i.e., the same
+value as the _MSVC_LANG macro).  Specifying this command-line option also
+implies Microsoft emulation mode.
+
+This change also enables terse static_asserts and nested namespace definitions
+in modes where Visual Studio also enables them.
+
+
 4/2/18   [EDGcpfe/17489]
 C++-generating back end: missing "template" keyword in friend declaration
 

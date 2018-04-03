@@ -594,6 +594,14 @@ Initialize the option information table.
   add_option_description(optk_ms_strict_ternary, "no_ms_strict_ternary",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_cplusplus_std_value,
+                         "ms_cplusplus_std_value",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_cplusplus_std_value,
+                         "no_ms_cplusplus_std_value",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -2579,7 +2587,7 @@ option values if they were not already set by a command line option.
           msvc_lang = "201402L";
           relaxed_range_based_for_enabled = TRUE;
         }  /* if */
-        if (ms_cpplatest_mode) {
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
         }  /* if */
@@ -2592,7 +2600,7 @@ option values if they were not already set by a command line option.
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
         }  /* if */
-        if (ms_cpplatest_mode) {
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
           terse_static_assert_enabled = TRUE;
         }  /* if */
         nodiscard_attribute_enabled = TRUE;
@@ -3708,7 +3716,8 @@ otherwise implicitly enabled Microsoft mode.
         option_kind_used[(int)optk_cppcli] ||
         option_kind_used[(int)optk_ms_permissive] ||
         option_kind_used[(int)optk_ms_rvalue_cast] ||
-        option_kind_used[(int)optk_ms_strict_ternary]) {
+        option_kind_used[(int)optk_ms_strict_ternary] ||
+        option_kind_used[(int)optk_ms_cplusplus_std_value]) {
       /* Microsoft mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
@@ -9641,6 +9650,12 @@ enable_microsoft_mode:
         ms_strict_ternary = opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_ms_cplusplus_std_value:
+        /* Emulate Microsoft's /Zc:__cplusplus[-] switch (which also implies
+           Microsoft mode). */
+        ms_cplusplus_std_value = opt_value;
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -11693,6 +11708,7 @@ variables declared in cmd_line.h.
                       DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES;
   pending_generic_constraint_specifier_enabled = FALSE;
   msvc_lang = NULL;
+  ms_cplusplus_std_value = FALSE;
   force_ms_type_info_not_in_namespace_std = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;

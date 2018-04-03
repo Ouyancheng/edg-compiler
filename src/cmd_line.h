@@ -297,6 +297,7 @@ typedef enum /*an_option_kind*/ {
   optk_ms_permissive,
   optk_ms_rvalue_cast,
   optk_ms_strict_ternary,
+  optk_ms_cplusplus_std_value,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
@@ -1536,6 +1537,11 @@ EXTERN a_boolean
 EXTERN a_const_char
                 *msvc_lang;
                         /* The value for the _MSVC_LANG predefined macro. */
+
+EXTERN a_boolean
+                ms_cplusplus_std_value;
+                        /* TRUE if the __cplusplus macro should be defined to
+                           the same value as msvc_lang. */
 
 EXTERN a_boolean
 		ms_permissive;
