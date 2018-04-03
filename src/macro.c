@@ -10238,9 +10238,11 @@ command line -D options.
     if (ms_extensions && !clang_mode) {
       if (microsoft_version < 1310) {
         val = "1";
+#if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_version >= 1914 && msvc_lang != NULL &&
                  ms_cplusplus_std_value) {
         val = msvc_lang;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         val = cpp98_date;
       }  /* if */
