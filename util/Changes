@@ -1,5 +1,14 @@
 Version 4.15
 
+4/3/18   [EDGcpfe/19512]
+Suppress __STDC* macros in make_predef_macro_table output
+
+A number of __STDC_ and __STDCPP_* macros values are now suppressed when
+running make_predef_macro_table (so these don't end up in a
+predefined_macros.txt file).  All of these macros are set by the front end
+in various configurations.
+
+
 1/16/18  [EDGcpfe/19144]
 Suppress feature test macros in make_predef_macro_table output
 
