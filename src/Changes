@@ -1,5 +1,18 @@
 Version 4.15
 
+4/4/18   [EDGcpfe/16738,EDGcpfe/16996,EDGcpfe/19207,EDGcpfe/19416]
+_Pragma operator with UTF and raw string literals
+
+The C++ Standard only requires that the _Pragma operator accept unprefixed
+and wide (L"...") string literals as operands, and the front end failed an
+assertion (in copy_pragma_string) if a different form of string literal is
+used.  In anticipation of action by the C++ Committee to address this
+limitation, the front end now accepts all forms of string literals as
+operands for _Pragma.  For example, with --c++11:
+
+  __Pragma(R"abc(some_pragma)abc")  // Previously aborted
+
+
 4/3/18   [EDGcpfe/19508]
 Microsoft compatibility: --ms_cplusplus_std_value command-line option
 

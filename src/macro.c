@@ -2588,9 +2588,9 @@ with \.  Return the macro argument created.
 
   /* Compute the length of the string.  Note that this will include the
      quotes on either end.  The size may be slightly larger than what is
-     needed if the string includes escapes that are removed.  Note that
-     the space counted for the quotes will be used to hold the LE_ESCAPE
-     that must be added at the end of the string. */
+     needed if the string is a raw string literal or includes escapes that
+     are removed.  Note that the space counted for the quotes will be used
+     to hold the LE_ESCAPE that must be added at the end of the string. */
 #if LE_ESCAPE_LEN != 2
  #error -- LE_ESCAPE_LEN expected to be 2
 #endif /* LE_ESCAPE_LEN != 2 */
@@ -2599,13 +2599,24 @@ with \.  Return the macro argument created.
   ensure_arg_raw_text_space(length, map);
   end_of_string = end_of_curr_token;
   /* Copy the characters to the macro argument. */
-  { a_const_char *src = start_of_curr_token;
+  { a_const_char *src;
     char         *dest = map->raw_text;
-    /* For a wide string literal, skip the leading "L". */
-    if (*src == 'L') src++;
-    /* Skip over the opening quote. */
-    check_assertion(*src == '"');
-    src++;
+    a_string_or_char_literal_kind sclk =
+                                     scan_encoding_prefix(start_of_curr_token);
+    /* Skip over the encoding prefix, if any, and the initial quotation
+       mark. */
+    src = start_of_curr_token + offset_to_start_of_literal_value(sclk);
+    if (sclk & SCLK_RAW_STRING_LITERAL) {
+      /* Scan past the d-char-sequences and parens delimiting the value
+         of the raw string literal. */
+      --end_of_string;
+      while (*src++ != '(' && src < end_of_string) {
+        --end_of_string;
+      }  /* while */
+      /* At this point, src should be pointing to the character following
+         the '(' and end_of_string should be pointing to the ')'. */
+      check_assertion(src <= end_of_string && *end_of_string == ')');
+    }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
     /* Record initial offset in text map. */
     conv_line_loc_to_source_pos(src, &curr_pos);
