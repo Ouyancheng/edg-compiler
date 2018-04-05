@@ -27167,6 +27167,11 @@ alias
   a_token_sequence_number		tsn_for_alias =
                                                     curr_token_sequence_number;
 
+  /* Only issue a diagnostic if we're handling actual source code. */
+  if (curr_token != tok_internal_alias_decl) {
+    report_gnu_cpp11_extension_if_needed(&pos_curr_token,
+                                         ec_alias_template_is_cpp11);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* The specifiers range covers just the "using" keyword. */
   decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;

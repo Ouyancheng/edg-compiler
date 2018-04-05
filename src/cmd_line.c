@@ -4806,6 +4806,9 @@ before this routine is called.
     if (cpp11_mode) {
       /* Clang enables terse static assert (with a warning) in C++11 mode. */
       terse_static_assert_enabled = TRUE;
+    } else {
+      /* Clang allows alias declarations (with a warning) in non C++11 modes */
+      alias_declarations_enabled = TRUE;
     }  /* if */
     if (clang_version >= 30000) {
       inline_namespaces_enabled = TRUE;

@@ -1,5 +1,12 @@
 Version 4.15
 
+4/5/18   [EDGcpfe/18813]
+Clang compatibility: alias declarations in non-C++11 mode
+
+Alias declarations and alias template declarations are now accepted (with a 
+warning) in clang C++98/03 modes.
+
+
 4/4/18   [EDGcpfe/16738,EDGcpfe/16996,EDGcpfe/19207,EDGcpfe/19416]
 _Pragma operator with UTF and raw string literals
 

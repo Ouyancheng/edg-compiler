@@ -15500,6 +15500,8 @@ semicolon.
   a_symbol_locator  loc;
   a_decl_pos_block  decl_pos_block;
 
+  report_gnu_cpp11_extension_if_needed(&pos_curr_token,
+                                       ec_alias_declaration_is_cpp11);
   clear_decl_pos_block(&decl_pos_block);
   add_stop_token(tok_semicolon);
   check_assertion(curr_token == tok_identifier);
