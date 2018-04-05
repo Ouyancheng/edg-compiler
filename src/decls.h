@@ -1016,7 +1016,7 @@ typedef struct a_decl_parse_state {
 			   declaration. */
   a_bit_field	retrieve_initializer_from_cache:1;
 			/* TRUE to indicate to some functions that an
-			   an initializer should be retrieved from
+			   initializer should be retrieved from
 			   prescanned_initializer_cache (instead of using the
 			   usual expression scanning routines). */
   an_init_state

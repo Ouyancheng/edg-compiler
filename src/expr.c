@@ -24626,9 +24626,9 @@ freed by this routine.
     }  /* if */
   }  /* if */
   if (is_class_template_placeholder_type(type_cast_to)) {
-    /* We have to prescan the operand being cast to deduce the actual type
-       cast to (in the C++17 case involving class template argument
-       deduction). */
+    /* We have to prescan the operand of the case in order to deduce the
+       actual type cast to (in the C++17 case involving class template
+       argument deduction). */
     a_decl_parse_state  dps;
     init_decl_parse_state(&dps);
     dps.type = type_cast_to;
