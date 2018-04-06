@@ -1,5 +1,23 @@
 Version 4.15
 
+4/6/18   [EDGcpfe/19520]
+Segfault in is_nothrow_spec on catch of function typedef
+
+In configurations that do lowering, a catch of a function type that uses
+a typedef has caused a segmentation fault in is_nothrow_spec.  For example
+(with --c++17):
+
+  void f(int) noexcept {}
+  typedef void (FP)(int);
+  int main() {
+    try {
+      throw f;
+    }
+    catch (FP) {
+    }
+  }
+
+
 4/5/18   [EDGcpfe/18813]
 Clang compatibility: alias declarations in non-C++11 mode
 

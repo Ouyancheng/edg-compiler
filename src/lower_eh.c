@@ -2775,16 +2775,18 @@ the cv-qualifiers and passes the type through.
         *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
       }  /* if */
       if (exc_spec_in_func_type &&
-          is_function_type(eff_type) &&
-          is_nothrow_spec(
-              eff_type->variant.routine.extra_info->exception_specification)) {
-        /* A noexcept exception specification is part of the function's type.
-           Include a flag to that effect, then strip the exception
-           specification from the effective type (as if the exception
-           specification was a type qualifier). */
-        *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
-        check_assertion(*flags_value & ETS_IS_POINTER);
-        eff_type = copy_of_function_type_without_exc_spec(eff_type);
+          is_function_type(eff_type)) {
+        a_type_ptr function_type = skip_typerefs(eff_type);
+        if (is_nothrow_spec(function_type->
+                        variant.routine.extra_info->exception_specification)) {
+          /* A noexcept exception specification is part of the function's type.
+             Include a flag to that effect, then strip the exception
+             specification from the effective type (as if the exception
+             specification was a type qualifier). */
+          *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
+          check_assertion(*flags_value & ETS_IS_POINTER);
+          eff_type = copy_of_function_type_without_exc_spec(function_type);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
