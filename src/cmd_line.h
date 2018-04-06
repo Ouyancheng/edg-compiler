@@ -1541,7 +1541,10 @@ EXTERN a_const_char
 EXTERN a_boolean
                 ms_cplusplus_std_value;
                         /* TRUE if the __cplusplus macro should be defined to
-                           the same value as msvc_lang. */
+                           the value implied by the C++ Standard version
+                           currently being implemented (e.g., 201402L for
+                           C++14).  This is the same value as the _MSVC_LANG
+                           macro. */
 
 EXTERN a_boolean
 		ms_permissive;
