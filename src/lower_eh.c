@@ -1419,7 +1419,9 @@ The type is not added to any lists.
   an_exception_specification_ptr  save_esp;
   a_type_ptr                      copied_type = alloc_type(type->kind);
 
-  check_assertion(is_function_type(type) && !visited_yet(type));
+  check_assertion(is_function_type(type) &&
+                  type->kind != (a_type_kind)tk_typeref &&
+                  !visited_yet(type));
   save_esp = type->variant.routine.extra_info->exception_specification;
   type->variant.routine.extra_info->exception_specification = NULL;
   copy_type(type, copied_type);
@@ -1833,7 +1835,8 @@ typeinfo variable in a COMDAT group.
           if (exc_spec_in_func_type &&
               is_function_type(pointed_to_type)) {
             an_exception_specification_ptr  esp;
-            esp = pointed_to_type->
+            a_type_ptr function_type = skip_typerefs(pointed_to_type);
+            esp = function_type->
                            variant.routine.extra_info->exception_specification;
             if (is_nothrow_spec(esp)) {
               /* Exception specifications are part of the type system and the
@@ -1843,7 +1846,7 @@ typeinfo variable in a COMDAT group.
                  pointed-to function type does not include the exception
                  specification. */
               pointed_to_type = copy_of_function_type_without_exc_spec(
-                                                              pointed_to_type);
+                                                                function_type);
               flags_value |= PFS_NOEXCEPT;
             }  /* if */
           }  /* if */
@@ -2674,12 +2677,15 @@ Return a pointer to the variable and set *type to the underlying type.
       flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
     }  /* if */
     if (exc_spec_in_func_type &&
-        is_function_type(*type) &&
-        is_nothrow_spec(
-               (*type)->variant.routine.extra_info->exception_specification)) {
-      /* A noexcept exception specification is part of the function's type. */
-      flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
-      *type = copy_of_function_type_without_exc_spec(*type);
+        is_function_type(*type)) {
+      a_type_ptr function_type = skip_typerefs(*type);
+      if (is_nothrow_spec(function_type->
+                        variant.routine.extra_info->exception_specification)) {
+        /* A noexcept exception specification is part of the function's
+           type. */
+        flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
+        *type = copy_of_function_type_without_exc_spec(function_type);
+      }  /* if */
     }  /* if */
     if (done) {
       flags_value |= ETS_LAST;
