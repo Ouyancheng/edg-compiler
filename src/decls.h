@@ -1467,6 +1467,9 @@ extern void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps);
 extern void add_src_seq_end_of_routine_if_needed(a_decl_parse_state  *dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+extern void check_deduction_guide_return_type(a_decl_parse_state  *dps,
+                                              a_symbol_ptr        ct_sym);
+
 extern void scan_deduction_guide(a_decl_parse_state    *dps,
                                  a_func_info_block     *func_info,
                                  a_symbol_locator      *locator,

@@ -26383,6 +26383,7 @@ optionally prefixed with the keyword "explicit".
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   proto->declared_type = dps->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  check_deduction_guide_return_type(dps, ct_sym);
   set_routine_special_kind(proto,
                            (a_special_function_kind)sfk_deduction_guide);
   proto->variant.class_template = ct_sym->variant.template_info

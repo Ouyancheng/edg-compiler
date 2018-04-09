@@ -2969,6 +2969,7 @@ ec_cannot_deduce_auto_templ_param;;"cannot deduce \"auto\" template parameter ty
 ec_modified_class_template_placeholder;;"class template name must be a placeholder for the complete type being initialized (not for a component of that type)"
 ec_alias_declaration_is_cpp11;;"alias declarations are a C++11 feature"
 ec_alias_template_is_cpp11;;"alias templates are a C++11 feature"
+ec_bad_deduction_guide_return_type;;"the return type must directly designate a specialization of the associated class template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

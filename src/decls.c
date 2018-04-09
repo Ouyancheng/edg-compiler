@@ -18501,6 +18501,34 @@ guide) to diagnose the use of invalid specifiers and record the presence of
 }  /* check_deduction_guide_specifiers */
 
 
+void check_deduction_guide_return_type(a_decl_parse_state  *dps,
+                                       a_symbol_ptr        ct_sym)
+/*
+Check that the return type of the deduction guide declaration described by
+dps is a specialization of the class template described by ct_sym.  If not,
+issue an error.
+*/
+{
+  if (!type_is(dps->type, tk_routine)) {
+    expect_error();
+  } else {
+    a_type_ptr  rtp = dps->type->variant.routine.return_type;
+    a_boolean   issue_error = FALSE;
+    if (is_error_type(rtp)) {
+      expect_error();
+    } else if (!is_immediate_class_type(rtp) ||
+               !rtp->variant.class_struct_union.is_template_class) {
+      issue_error = TRUE;
+    } else if (symbol_for(class_type_supp(rtp)->assoc_template) != ct_sym) {
+      issue_error = TRUE;
+    }  /* if */
+    if (issue_error) {
+      pos_error(ec_bad_deduction_guide_return_type, &dps->return_type_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_deduction_guide_return_type */
+
+
 void scan_deduction_guide(a_decl_parse_state    *dps,
                           a_func_info_block     *func_info,
                           a_symbol_locator      *locator,
@@ -18558,6 +18586,7 @@ placeholder type corresponding to the template name that was just scanned).
     pos_syty_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym,
                    dps->type);
   }  /* if */
+  check_deduction_guide_return_type(dps, ct_sym);
   /* Allocate a symbol representing the guide. */
   guide_sym = alloc_symbol((a_symbol_kind)sk_routine, locator->symbol_header,
                            &locator->source_position);
