@@ -78,7 +78,8 @@ static an_arg_list_elem_ptr scan_expr_list(
                                       a_boolean    is_delegate_init,
                                       a_boolean    is_custom_ms_attr_arg_list,
                                       a_boolean    empty_list_okay,
-                                      a_boolean    trailing_comma_okay);
+                                      a_boolean    trailing_comma_okay,
+                                      a_boolean    bundle);
 static void bound_function_in_cast(a_type_ptr        type_cast_to,
                                    a_source_position *start_position,
                                    an_operand        *operand,
@@ -544,7 +545,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         icp = scan_expr_list(tok_rparen, /*is_delegate_init=*/FALSE,
                              /*is_custom_ms_attr_arg_list=*/FALSE,
                              /*empty_list_okay=*/TRUE,
-                             /*trailing_comma_okay=*/FALSE);
+                             /*trailing_comma_okay=*/FALSE,
+                             /*bundle=*/TRUE);
       }  /* if */
     } else {
       dps->initializer_is_single_expr = TRUE;
@@ -1647,7 +1649,8 @@ constructs, in which case offsetof_case is TRUE.
                                       /*is_delegate_init=*/FALSE,
                                       /*is_custom_ms_attr_arg_list=*/FALSE,
                                       /*empty_list_okay=*/FALSE,
-                                      /*trailing_comma_okay=*/FALSE);
+                                      /*trailing_comma_okay=*/FALSE,
+                                      /*bundle=*/FALSE);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
@@ -2094,6 +2097,64 @@ return a pointer to the init_component.
 }  /* scan_expr_into_new_init_component */
 
 
+static an_init_component_ptr scan_expr_as_init_component(
+                                            a_boolean                 bundle,
+                                            a_local_expr_options_set  options)
+/*
+Scan an expression, from source and not from a cache, and return an
+init component entry describing what was scanned.  bundle is TRUE if
+the expression should be "bundled," meaning packaged with related information
+so it can be saved off to the side (e.g., in an initializer cache) for
+later restoration and further processing.  The expression is scanned with the
+given options and PREC_LOWEST precedence.
+*/
+{
+  an_init_component_ptr  icp;
+  an_object_lifetime_ptr wrap_lifetime = NULL;
+  an_object_lifetime_ptr saved_stack_lifetime = NULL;
+  an_object_lifetime_ptr saved_curr_lifetime = NULL;
+  
+  /* scan_expr will consult the current cache, so make sure we're going to
+     get something new (as we expect) and not something cached. */
+  check_assertion(!cached_initializer_present());
+  /* If the initializer is to be bundled, we put an object lifetime around
+     each scanned expression.  Later, when we know how the expression is
+     used, we may merge the lifetime into a parent expression lifetime. */
+  if (bundle && curr_object_lifetime != NULL) {
+    saved_curr_lifetime = curr_object_lifetime;
+    if (curr_object_lifetime->kind == 
+                                 (an_object_lifetime_kind)olk_expr_temporary) {
+      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+    }  /* if */
+    push_object_lifetime((an_il_entry_kind)iek_expr_node,
+                         (char *)NULL,
+                         (an_object_lifetime_kind)olk_expr_temporary);
+    wrap_lifetime = curr_object_lifetime;
+    saved_stack_lifetime = expr_stack->lifetime;
+    expr_stack->lifetime = wrap_lifetime;
+  }  /* if */
+  /* Scan the initializer expression and put it into an init-component. */
+  icp = scan_expr_into_new_init_component(options);
+  if (wrap_lifetime != NULL) {
+    /* Save the lifetime created for this expression for use later
+       when convert_initializer is called to convert it.  Don't save
+       the lifetime if it wasn't really used. */
+    check_assertion(curr_object_lifetime == wrap_lifetime);
+    if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
+      icp->variant.expr.lifetime = wrap_lifetime;
+      detach_from_object_lifetime_tree(wrap_lifetime);
+    }  /* if */
+    curr_object_lifetime = saved_curr_lifetime;
+    expr_stack->lifetime = saved_stack_lifetime;
+  }  /* if */
+  icp->bundled = bundle;
+  /* Save any reference entries separately from the current expression. */
+  detach_ref_entries_from_curr_expr(operand_of_arg_list_elem(icp));
+  icp->detached_ref_entries = TRUE;
+  return icp;
+}  /* scan_expr_as_init_component */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2102,7 +2163,8 @@ static an_arg_list_elem_ptr scan_expr_list(
                                       a_boolean    is_delegate_init,
                                       a_boolean    is_custom_ms_attr_arg_list,
                                       a_boolean    empty_list_okay,
-                                      a_boolean    trailing_comma_okay)
+                                      a_boolean    trailing_comma_okay,
+                                      a_boolean    bundle)
 /*
 Scan a comma-separated list of expressions.  The list must be terminated by
 the token indicated by closing_token (which is not consumed by this routine).
@@ -2110,8 +2172,11 @@ If is_delegate_init is TRUE, this is the initializer list for a C++/CLI gcnew
 of a delegate type.  If is_custom_ms_attr_arg_list is TRUE, this is an
 argument list for a Microsoft-style bracketed attribute.  If empty_list_okay
 is TRUE, an empty list is allowed.  If trailing_comma_okay is TRUE, the last
-expression may be followed by a comma (which is consumed here).  A pointer to
-the resulting argument list is returned.
+expression may be followed by a comma (which is consumed here).  bundle is
+TRUE if the expressions should be "bundled," meaning packaged with related
+information so they can be saved off to the side (e.g., in an initializer
+cache) for later restoration and further processing.  A pointer to the
+resulting argument list is returned.
 */
 {
   a_boolean            after_cached_expr = FALSE;
@@ -2169,10 +2234,10 @@ the resulting argument list is returned.
         a_pack_expansion_descr_ptr pedep;
         if (curr_token == tok_lbrace && list_init_enabled) {
           /* A brace-enclosed list. */
-          alep = parse_braced_init_list(/*bundle=*/FALSE);
+          alep = parse_braced_init_list(bundle);
         } else {
           /* An expression. */
-          alep = scan_expr_into_new_init_component(options);
+          alep = scan_expr_as_init_component(bundle, options);
         }  /* if */
         /* Add the expression or braced-init-list to the list. */
         if (expr_list == NULL) {
@@ -2600,7 +2665,8 @@ to TRUE.
                               /*is_delegate_init=*/FALSE,
                               is_custom_ms_attr_arg_list,
                               /*empty_list_okay=*/TRUE,
-                              /*trailing_comma_okay=*/any_cfront_mode());
+                              /*trailing_comma_okay=*/any_cfront_mode(),
+                              /*bundle=*/FALSE);
     arg_list_allocated_locally = TRUE;
     set_err_pos_to_curr_token();
     arg_block.closing_paren_position = pos_curr_token;
@@ -17721,7 +17787,8 @@ delegate initializer, given by rcblock->argument_list.
                                   /*is_delegate_init=*/TRUE,
                                   /*is_custom_ms_attr_arg_list=*/FALSE,
                                   /*empty_list_okay=*/FALSE,
-                                  /*trailing_comma_okay=*/FALSE);
+                                  /*trailing_comma_okay=*/FALSE,
+                                  /*bundle=*/FALSE);
   }  /* if */
   /* The subroutine should not allow zero arguments. */
   check_assertion(arg_list != NULL);
@@ -18150,7 +18217,8 @@ delegate initializer, given by rcblock->argument_list.
                                   /*is_delegate_init=*/TRUE,
                                   /*is_custom_ms_attr_arg_list=*/FALSE,
                                   /*empty_list_okay=*/FALSE,
-                                  /*trailing_comma_okay=*/FALSE);
+                                  /*trailing_comma_okay=*/FALSE,
+                                  /*bundle=*/FALSE);
   }  /* if */
   /* Check for the right number of arguments. */
   /* The subroutine should not allow zero arguments. */
@@ -35465,64 +35533,6 @@ is considered a full-expression.
 #endif /* DEBUG */
   db_exit();
 }  /* scan_bool_constant_expression */
-
-
-static an_init_component_ptr scan_expr_as_init_component(
-                                            a_boolean                 bundle,
-                                            a_local_expr_options_set  options)
-/*
-Scan an expression, from source and not from a cache, and return an
-init component entry describing what was scanned.  bundle is TRUE if
-the expression should be "bundled," meaning packaged with related information
-so it can be saved off to the side (e.g., in an initializer cache) for
-later restoration and further processing.  The expression is scanned with the
-given options and PREC_LOWEST precedence.
-*/
-{
-  an_init_component_ptr  icp;
-  an_object_lifetime_ptr wrap_lifetime = NULL;
-  an_object_lifetime_ptr saved_stack_lifetime = NULL;
-  an_object_lifetime_ptr saved_curr_lifetime = NULL;
-  
-  /* scan_expr will consult the current cache, so make sure we're going to
-     get something new (as we expect) and not something cached. */
-  check_assertion(!cached_initializer_present());
-  /* If the initializer is to be bundled, we put an object lifetime around
-     each scanned expression.  Later, when we know how the expression is
-     used, we may merge the lifetime into a parent expression lifetime. */
-  if (bundle && curr_object_lifetime != NULL) {
-    saved_curr_lifetime = curr_object_lifetime;
-    if (curr_object_lifetime->kind == 
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
-      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-    }  /* if */
-    push_object_lifetime((an_il_entry_kind)iek_expr_node,
-                         (char *)NULL,
-                         (an_object_lifetime_kind)olk_expr_temporary);
-    wrap_lifetime = curr_object_lifetime;
-    saved_stack_lifetime = expr_stack->lifetime;
-    expr_stack->lifetime = wrap_lifetime;
-  }  /* if */
-  /* Scan the initializer expression and put it into an init-component. */
-  icp = scan_expr_into_new_init_component(options);
-  if (wrap_lifetime != NULL) {
-    /* Save the lifetime created for this expression for use later
-       when convert_initializer is called to convert it.  Don't save
-       the lifetime if it wasn't really used. */
-    check_assertion(curr_object_lifetime == wrap_lifetime);
-    if (pop_object_lifetime_full(/*unbound_okay=*/TRUE)) {
-      icp->variant.expr.lifetime = wrap_lifetime;
-      detach_from_object_lifetime_tree(wrap_lifetime);
-    }  /* if */
-    curr_object_lifetime = saved_curr_lifetime;
-    expr_stack->lifetime = saved_stack_lifetime;
-  }  /* if */
-  icp->bundled = bundle;
-  /* Save any reference entries separately from the current expression. */
-  detach_ref_entries_from_curr_expr(operand_of_arg_list_elem(icp));
-  icp->detached_ref_entries = TRUE;
-  return icp;
-}  /* scan_expr_as_init_component */
 
 
 an_init_component_ptr cache_expression(void)
