@@ -2345,7 +2345,9 @@ routine is also called for the trailing return type of a lambda declarator.
      type. */
   dps->has_trailing_return_type = TRUE;
   type_name_full(&trt_dps);
-  if (parameters_visible_late) make_param_syms_invisible(TRUE);
+  if (parameters_visible_late) {
+    make_param_syms_invisible(TRUE);
+  }  /* if */
   if (err) {
     dps->specifiers_type = dps->declared_type = dps->type = error_type();
     dps->auto_type_specifier_seen = FALSE;

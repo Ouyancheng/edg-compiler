@@ -18843,7 +18843,8 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
       (dps->is_nontype_template_param && dps->auto_type_allowed) ||
       (deduced_return_types_enabled &&
        ((dps->type != NULL && dps->type->kind == (a_type_kind)tk_routine) ||
-        dps->is_trailing_return_type))) {
+        (dps->is_trailing_return_type &&
+         !dps->has_deducible_class_templ_args)))) {
     /* Not a declaration that requires this checking. */
   } else if (dps->type != NULL && is_error_type(dps->type)) {
     /* Some error already occurred.  Additional diagnostics are unlikely to
@@ -18851,7 +18852,8 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
     expect_error();
   } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
-             (!dps->has_initializer || !dps->auto_type_allowed)) {
+             (!dps->has_initializer || !dps->auto_type_allowed ||
+              (dps->is_type_name && dps->has_deducible_class_templ_args))) {
     /* A placeholder type was seen, but we never saw an initializer or else
        the specifier is not allowed at all in this context. */
     err = TRUE;
