@@ -16320,7 +16320,7 @@ to an entry used to record detailed source position information.
                           /*is_destructor=*/FALSE,
                           /*is_finalizer=*/FALSE,
                           /*disallow_default_args=*/FALSE,
-                          /*disallow_exception_spec=*/FALSE,
+                          /*disallow_exception_spec=*/TRUE,
                           decl_pos_block);
       /* The locator will be updated later on in
          deduction_guide_template_declaration. */
@@ -26411,6 +26411,7 @@ optionally prefixed with the keyword "explicit".
   /* Add this to the list of guides for the class template. */
   ct_tssp = template_supplement_for_symbol(ct_sym);
   add_deduction_guide(sym, &ct_tssp->variant.class_template.deduction_guides);
+  update_function_template_default_args(decl_state, sym, tssp);
   return sym;
 }  /* deduction_guide_template_declaration */
 

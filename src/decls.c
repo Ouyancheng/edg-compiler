@@ -18535,7 +18535,7 @@ placeholder type corresponding to the template name that was just scanned).
                       /*is_static_constructor=*/FALSE,
                       /*is_destructor=*/FALSE,
                       /*is_finalizer=*/FALSE,
-                      /*disallow_default_args=*/TRUE,
+                      /*disallow_default_args=*/FALSE,
                       /*disallow_exception_spec=*/TRUE,
                       decl_pos_block);
   if (new_type_ptr->kind == (a_type_kind)tk_routine) {
