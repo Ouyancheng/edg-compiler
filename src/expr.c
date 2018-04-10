@@ -635,7 +635,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       dps->specifiers_type = tp;
     } else if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
                                         dps->has_deducible_class_templ_args,
-                                        dps->init_state.direct_init,
+                                        dps->has_direct_initializer,
                                         undeduced_type,
                                         dps->auto_type,
                                         /*keep_placeholder=*/FALSE,
