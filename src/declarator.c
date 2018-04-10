@@ -2250,7 +2250,8 @@ a trailing return type.
     }  /* if */
     /* Check that a class template name placeholder didn't appear in an
        invalid context. */
-    if (ctad_case && state->is_conversion_type_id) {
+    if (ctad_case && (state->is_conversion_type_id ||
+                      state->is_nontype_template_param)) {
       err = TRUE;
     }  /* if */
   }  /* if */
