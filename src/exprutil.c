@@ -15536,6 +15536,7 @@ reference entry, or is NULL if none is needed.
 {
   a_routine_ptr    routine;
   an_expr_node_ptr node;
+  a_type_ptr class_type;
 
   reduce_projection_symbol_to_fundamental_symbol(routine_sym);
 #if CHECKING
@@ -15545,6 +15546,7 @@ reference entry, or is NULL if none is needed.
   }  /* if */
 #endif /* CHECKING */
   routine = routine_sym->variant.routine.ptr;
+  class_type = parent_class_of(routine);
   if (C_dialect == C_dialect_cplusplus &&
       curr_expr_is_potentially_evaluated()) {
     if (routine == il_header.main_routine) {
@@ -15564,7 +15566,9 @@ reference entry, or is NULL if none is needed.
   /* Remember whether or not the routine is virtual.  Use of a qualified
      name suppresses the virtual-ness of the function. */
   result->virtual_function = routine->is_virtual && !is_qualified_name &&
-                             !routine->final;
+                             !routine->final &&
+                             !(is_immediate_class_type(class_type) && 
+                               class_type->variant.class_struct_union.final);
   result->is_qualified_name = is_qualified_name;
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
