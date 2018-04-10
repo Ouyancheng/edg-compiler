@@ -5858,6 +5858,17 @@ FALSE is returned) for non-class objects.
     }  /* if */
   }  /* if */
   if (var != NULL) {
+    if (is_class_template_placeholder_type(var->type)) {
+      /* Make sure the type is deduced if needed. */
+      a_boolean  still_dependent;
+      if (deduce_class_template_args(var->type, /*is_direct_init=*/TRUE,
+                                     /*keep_placeholder=*/FALSE,
+                                     (an_arg_list_elem*)NULL,
+                                     err_pos, &var->type,
+                                     &still_dependent)) {
+        complete_type_is_needed(var->type);
+      }  /* if */
+    }  /* if */
     static_lifetime = var_has_static_or_thread_storage_duration(var);
     is_const = is_const_qualified_type(var->type);
     tp = var_type = skip_typerefs(var->type);
