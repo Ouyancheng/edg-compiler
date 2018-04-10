@@ -2248,6 +2248,11 @@ a trailing return type.
         err = TRUE;
       }  /* if */
     }  /* if */
+    /* Check that a class template name placeholder didn't appear in an
+       invalid context. */
+    if (ctad_case && state->is_conversion_type_id) {
+      err = TRUE;
+    }  /* if */
   }  /* if */
   if (err) {
     if (ctad_case) {
