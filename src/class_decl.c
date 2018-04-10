@@ -27265,6 +27265,7 @@ that is provided if this is a member template declaration.
         scan_nested_deduction_guide_template(templ_state, class_type,
                                              decl_pos_block_ptr);
       }  /* if */
+      remove_stop_token(tok_comma);
       goto next_declaration;
     } else if (!member_declarator(class_state, &decl_info, &locator,
                                   &func_info,  &is_function, &is_typedef)) {
@@ -27278,6 +27279,7 @@ that is provided if this is a member template declaration.
         instance->declared_type = error_type();
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      remove_stop_token(tok_comma);
       goto next_declaration;
     }
     if (!C_mode() && is_function) {
@@ -27399,6 +27401,7 @@ that is provided if this is a member template declaration.
         instance->param_id_list = func_info.param_id_list;
         func_info.keep_param_id_list = TRUE;
         discard_end_of_parse_actions(dps);
+        remove_stop_token(tok_comma);
         goto next_declaration;
       } else if (is_member_template) {
         /* An "= 0" is not valid for a member template, but in some modes
