@@ -26191,6 +26191,14 @@ was not completed because the types involved are still dependent,
   }  /* if */
   ct_sym = placeholder_type->variant.template_param.extra_info
                            ->class_template_symbol;
+  if (ct_sym->is_template_param) {
+    /* The placeholder class template is actually a template template
+       parameter.  Don't attempt deduction until a real instantiation is
+       performed. */
+    *still_dependent = TRUE;
+    result = FALSE;
+    goto done;
+  }  /* if */
   ct_tssp = template_supplement_for_symbol(ct_sym);
   if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
       (ct_sym->defined &&
