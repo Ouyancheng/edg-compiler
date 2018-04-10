@@ -812,7 +812,7 @@ extern a_symbol_ptr select_overloaded_function(
                         an_operand               *bound_function_selector,
                         an_arg_list_elem_ptr     arg_list,
                         an_arg_list_elem_ptr     init_list_ctor_arg_list,
-                        a_boolean                effects_direct_initialization,
+                        a_conv_context_set       conv_context,
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
                         a_boolean                use_std_for_arg_dep_lookup,
