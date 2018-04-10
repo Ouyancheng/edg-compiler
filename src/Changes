@@ -1,5 +1,14 @@
 Version 4.15
 
+4/10/18  [EDGcpfe/19497]
+Attributes on variable template definitions
+
+Due to a logic error, attributes were not being attached to variable
+templates.  That has now been fixed.  For example (with --gnu_version 60000):
+
+  template <class T> __attribute__((aligned(16))) int x = 0;
+
+
 4/6/18   [EDGcpfe/19520]
 Segfault in is_nothrow_spec on use of typedef for function
 

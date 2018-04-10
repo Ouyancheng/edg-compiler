@@ -25280,15 +25280,14 @@ supplement for this template should be returned to the caller.
         dps->storage_class != (a_storage_class)sc_unspecified) {
       pos_error(ec_storage_class_not_allowed, &locator->source_position);
     }  /* if */
-    if (!err) {
-      dps->sym = var_sym;
-      attach_decl_attributes(dps, /*primary_decl=*/TRUE);
-    }  /* if */
   }  /* if */
   if (err) {
     set_to_named_error_locator(*locator);
     sym = create_variable_template_symbol(decl_state, locator);
     decl_state->decl_scope_err = TRUE;
+  } else {
+    dps->sym = var_sym;
+    attach_decl_attributes(dps, /*primary_decl=*/TRUE);
   }  /* if */
   if (decl_state->out_of_class_instantiation) {
     /* Get the cache that was saved during the out-of-class declaration. */
