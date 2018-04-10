@@ -18881,13 +18881,10 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
     expect_error();
   } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
-             (!dps->auto_type_allowed ||
-              (dps->has_deducible_class_templ_args ? dps->is_type_name
-                                                   : !dps->has_initializer))) {
-    /* A placeholder type was seen, but either (a) the placeholder is not
-       allowed at all in this context (e.g., a class template name in a call to
-       type_name_full), or (b) we never saw an explicit initializer when one is
-       required (i.e., when placeholder is not a class template name). */
+             (!dps->has_initializer || !dps->auto_type_allowed ||
+              (dps->is_type_name && dps->has_deducible_class_templ_args))) {
+    /* A placeholder type was seen, but we never saw an initializer or else
+       the specifier is not allowed at all in this context. */
     err = TRUE;
     if (dps->has_deducible_class_templ_args) {
       /* For a class template name as a placeholder, issue an error suggesting
