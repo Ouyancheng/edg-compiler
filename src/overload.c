@@ -9494,7 +9494,7 @@ in_instantiation:
                                     have_selector,
                                     bound_function_selector,
                                     /*ctor_conversion_case=*/FALSE,
-                                    /*effects_copy_initialization=*/FALSE,
+                                    !effects_direct_initialization,
                                     /*allow_udc_on_arguments=*/TRUE,
                                     /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,

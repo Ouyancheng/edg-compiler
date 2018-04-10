@@ -26399,6 +26399,7 @@ optionally prefixed with the keyword "explicit".
   /* Call a routine that manages the correspondence of entities between
      translation units to notify it of the new instance. */
   record_instantiation(proto_sym, tssp);
+  check_deduction_guide_specifiers(dps, proto);
   if (prototype_instantiations_in_il && !locator->is_error) {
     add_to_routines_list(proto, NO_SCOPE_DEPTH);
   }  /* if */

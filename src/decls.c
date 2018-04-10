@@ -18480,8 +18480,8 @@ based on the current mode and the given declaration parsing state.
 }  /* get_decl_specifiers_flags */
 
 
-static void check_deduction_guide_specifiers(a_decl_parse_state  *dps,
-                                             a_routine_ptr       guide)
+void check_deduction_guide_specifiers(a_decl_parse_state  *dps,
+                                      a_routine_ptr       guide)
 /*
 This function is called after parsing a deduction guide (described by dps and
 guide) to diagnose the use of invalid specifiers and record the presence of
