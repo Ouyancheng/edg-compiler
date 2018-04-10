@@ -73,7 +73,7 @@ nested-name-specifier.  This is now fixed.  For example, with --c++11:
 
   template <class T> struct S2 {
     typedef typename T::template v<1> C;
-    friend C;  // Previously generated as "friend typename T::v<1>"
+    friend C;  // Previously generated as "friend class T::v<1>"
   };
 
 

@@ -6354,6 +6354,20 @@ al_tag_name attributes (if any).
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
     a_const_char *tag_kind_str = tag_keyword(type);
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+    if (gcc_is_generated_code_target &&
+        is_immediate_class_type(type) &&
+        type->variant.class_struct_union.is_nonreal_class &&
+        type->source_corresp.is_class_member &&
+        (options & GN_FRIEND_DECL)) {
+      /* G++ has a bug that results in compiler errors on an
+         elaborated-type-specifier in a friend declaration like 
+           friend class T::template value<1>;
+         Use a typename-specifier instead. */
+      tag_kind_str = "typename";
+    } else
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+    /* Do not insert code here. */
     if (options & GN_DECLARATION) {
       options |= GN_ELAB_TYPE_SPEC_AS_DECL;
     }  /* if */
