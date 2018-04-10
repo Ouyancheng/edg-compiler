@@ -9180,7 +9180,7 @@ a_symbol_ptr select_overloaded_function(
                         an_operand               *bound_function_selector,
                         an_arg_list_elem_ptr     arg_list,
                         an_arg_list_elem_ptr     init_list_ctor_arg_list,
-                        a_boolean                effects_direct_initialization,
+                        a_conv_context_set       conv_context,
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
                         a_boolean                use_std_for_arg_dep_lookup,
@@ -9210,8 +9210,8 @@ That's okay for constructors, because they cannot be const- or
 volatile-qualified, and the selector expression is only needed for
 that discrimination.  bound_function_selector->selector_is_object_pointer
 is TRUE if the selector is an object pointer, FALSE if it is an
-object.  effects_direct_initialization is TRUE if the call effects a
-direct-initialization.  do_arg_dep_lookup is TRUE if
+object.  If the call is in a conversion/initialization context,
+conv_context describes that context.  do_arg_dep_lookup is TRUE if
 argument-dependent lookup should be done; if it is TRUE,
 overloaded_function_symbol may be an sk_undefined symbol, indicating
 that nothing was found on a normal id lookup of the function name.
@@ -9272,7 +9272,6 @@ and return NULL.  This routine is called only in C++ mode.
   a_boolean                dependent_call = FALSE;
   a_boolean                known_to_be_visible = FALSE;
   an_arg_list_elem_ptr     arg_list_elem;
-  a_conv_context_set       conv_context = CCO_DEFAULT;
 
   db_enter(4, "select_overloaded_function");
 #if DEBUG
@@ -9283,7 +9282,6 @@ and return NULL.  This routine is called only in C++ mode.
               "Entering select_overloaded_function with ", 4);
   }  /* if */
 #endif /* DEBUG */
-  if (effects_direct_initialization) conv_context |= CCO_DIRECT_INITIALIZATION;
   if (!have_selector) bound_function_selector = NULL;
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
@@ -9451,6 +9449,7 @@ in_instantiation:
   }  /* if */
   if (overloaded_function_symbol != NULL) {
     if (!do_arg_dep_lookup) {
+      a_boolean  effects_copy_initialization;
       /* No argument-dependent lookup.  Use only the function symbol
          provided. */
       /* coverity[dead_error_line] */  /* Coverity bug: tool thinks
@@ -9486,6 +9485,9 @@ in_instantiation:
         }  /* if */
       }  /* if */
       /* Evaluate all matches in the function set. */
+      effects_copy_initialization =
+                                 (conv_context & CCO_INITIALIZING_VARIABLE) &&
+                                 !(conv_context & CCO_DIRECT_INITIALIZATION);
       try_overloaded_function_match(overloaded_function_symbol,
                                     is_template_id,
                                     template_arg_list,
@@ -9494,7 +9496,7 @@ in_instantiation:
                                     have_selector,
                                     bound_function_selector,
                                     /*ctor_conversion_case=*/FALSE,
-                                    !effects_direct_initialization,
+                                    effects_copy_initialization,
                                     /*allow_udc_on_arguments=*/TRUE,
                                     /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
@@ -13340,7 +13342,7 @@ by this routine.
                                        bound_function_selector,
                                        arg_list,
                                        (an_arg_list_elem *)NULL,
-                                       /*effects_direct_initialization=*/FALSE,
+                                       CCO_DEFAULT,
                                        do_arg_dep_lookup,
                                        use_pure_arg_dep_lookup,
                                        use_std_for_arg_dep_lookup,
@@ -26162,7 +26164,12 @@ was not completed because the types involved are still dependent,
   an_arg_match_summary_ptr
                 arg_match_list = NULL;
   a_boolean     unknown_dependent_ctor = FALSE, init_list_ctor_case = FALSE;
+  a_conv_context_set
+                conv_context = CCO_DEFAULT;
 
+  if (!is_direct_init) {
+    conv_context = CCO_INITIALIZING_VARIABLE;
+  }  /* if */
   if (!is_class_template_placeholder_type(placeholder_type)) {
     expect_error();
     *deduced_placeholder = error_type();
@@ -26202,7 +26209,7 @@ was not completed because the types involved are still dependent,
                                         (an_operand *)NULL,
                                         initializer_alep,
                                         init_list_ctor_arg_list,
-                                        is_direct_init,
+                                        conv_context,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
