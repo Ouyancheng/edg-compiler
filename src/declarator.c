@@ -2300,10 +2300,11 @@ routine is also called for the trailing return type of a lambda declarator.
   a_boolean                      err = FALSE;
 
   check_assertion(curr_token == tok_arrow);
-  if (dps->is_lambda || dps->has_deducible_class_templ_args) {
+  if (dps->is_lambda || dps->is_deduction_guide) {
     /* No special syntax checks are needed. */
   } else if (!dps->auto_type_specifier_seen ||
-             dps->decltype_auto_specifier_seen) {
+             dps->decltype_auto_specifier_seen ||
+             dps->has_deducible_class_templ_args) {
     /* Something like "int ()->int" or "decltype(auto) f()->void". */
     pos_error(ec_trailing_return_type_requires_auto, &error_position);
     err = TRUE;
