@@ -2237,7 +2237,14 @@ resulting argument list is returned.
           alep = parse_braced_init_list(bundle);
         } else {
           /* An expression. */
-          alep = scan_expr_as_init_component(bundle, options);
+          if (bundle) {
+            /* In addition to bundling the lifetime representation this call
+               also detaches the associated ref entries from the current
+               expression. */
+            alep = scan_expr_as_init_component(bundle, options);
+          } else {
+            alep = scan_expr_into_new_init_component(options);
+          }  /* if */
         }  /* if */
         /* Add the expression or braced-init-list to the list. */
         if (expr_list == NULL) {
