@@ -1895,7 +1895,7 @@ end_diagnostic.
 {
   an_arg_list_elem_ptr alep;
 
-  check_assertion(expr_stack != NULL &&
+  check_assertion(expr_stack == NULL ||
                   !expr_stack->suppress_diagnostics);
   /* Display nothing if the argument list is empty. */
   if (arg_list != NULL) {
