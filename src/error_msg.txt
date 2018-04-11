@@ -2970,6 +2970,7 @@ ec_modified_class_template_placeholder;;"class template name must be a placehold
 ec_alias_declaration_is_cpp11;;"alias declarations are a C++11 feature"
 ec_alias_template_is_cpp11;;"alias templates are a C++11 feature"
 ec_bad_deduction_guide_return_type;;"the return type must directly designate a specialization of the associated class template"
+ec_explicit_deduction_guide_in_copy_list_init;;"copy-list-initialization cannot use \"explicit\" %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

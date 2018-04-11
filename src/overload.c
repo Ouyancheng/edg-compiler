@@ -9486,8 +9486,9 @@ in_instantiation:
       }  /* if */
       /* Evaluate all matches in the function set. */
       effects_copy_initialization =
-                                 (conv_context & CCO_INITIALIZING_VARIABLE) &&
-                                 !(conv_context & CCO_DIRECT_INITIALIZATION);
+                               (conv_context & CCO_INITIALIZING_VARIABLE) &&
+                               !(conv_context & CCO_DIRECT_INITIALIZATION) &&
+                               init_list_ctor_arg_list == NULL;
       try_overloaded_function_match(overloaded_function_symbol,
                                     is_template_id,
                                     template_arg_list,
@@ -26252,6 +26253,10 @@ was not completed because the types involved are still dependent,
         *deduced_placeholder = trp;
       }  /* if */
       *still_dependent = FALSE;
+    }  /* if */
+    if (guide->is_explicit_constructor) {
+      pos_sy_error(ec_explicit_deduction_guide_in_copy_list_init, source_pos,
+                   selected_sym);
     }  /* if */
   } else {
     /* Something went wrong with deduction. */
