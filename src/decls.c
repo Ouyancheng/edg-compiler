@@ -18882,7 +18882,7 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
   } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->auto_type_allowed ||
-              (dps->has_deducible_class_templ_args ? dps->is_type_name
+              (dps->has_deducible_class_templ_args ? !dps->is_definition
                                                    : !dps->has_initializer))) {
     /* A placeholder type was seen, but either (a) the placeholder is not
        allowed at all in this context (e.g., a class template name in a call to
