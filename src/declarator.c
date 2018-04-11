@@ -2269,6 +2269,7 @@ a trailing return type.
     }  /* if */
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
+    state->decltype_auto_specifier_seen = FALSE;
     state->has_deducible_class_templ_args = FALSE;
     state->has_deduced_type = FALSE;
     state->has_deducible_return_type = FALSE;
@@ -2303,7 +2304,6 @@ routine is also called for the trailing return type of a lambda declarator.
   if (dps->is_lambda || dps->is_deduction_guide) {
     /* No special syntax checks are needed. */
   } else if (!dps->auto_type_specifier_seen ||
-             dps->decltype_auto_specifier_seen ||
              dps->has_deducible_class_templ_args) {
     /* Something like "int ()->int" or "decltype(auto) f()->void". */
     pos_error(ec_trailing_return_type_requires_auto, &error_position);
@@ -2367,7 +2367,7 @@ routine is also called for the trailing return type of a lambda declarator.
        actual return type. */
     dps->specifiers_type = dps->declared_type = dps->type = trt_dps.type;
     rout_type->variant.routine.extra_info->trailing_return_type = TRUE;
-    if (trt_dps.auto_type_specifier_seen &&
+    if (trt_dps.has_deduced_type &&
         (!trt_dps.has_trailing_return_type ||
          trt_dps.has_deducible_return_type)) {
       dps->has_deducible_return_type = TRUE;
@@ -3351,7 +3351,7 @@ an error if a default argument expression is encountered.
           }  /* if */
         }  /* if */
         if (generic_lambdas_enabled && state->is_lambda &&
-            param_state.auto_type_specifier_seen) {
+            param_state.has_deduced_type) {
           ptp->is_auto_param = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6686,7 +6686,8 @@ and record it in *dps.  Also update positions in decl_pos_block.
   check_assertion(curr_token == tok_lbracket);
   decl_pos_block->decl_pos = pos_curr_token;
   dps->declarator_pos = pos_curr_token;
-  if (!dps->auto_type_specifier_seen || dps->decltype_auto_specifier_seen) {
+  
+  if (!dps->auto_type_specifier_seen) {
     if (dps->secondary_declarator) {
       expect_error();
     } else {
@@ -7813,7 +7814,7 @@ past_postfix_declarator_operators:
            operator int(), j;
          issue an error. */
       if (is_unknown_type(specifiers_type) &&
-          !(gcc_mode && state->auto_type_specifier_seen)) {
+          !(gcc_mode && state->has_deduced_type)) {
         pos_error(ec_missing_decl_specifiers, &state->declarator_start_pos);
         complete_type = error_type();
       }  /* if */

@@ -11257,6 +11257,7 @@ symbol entry, and return a pointer to it in state->sym.
     /* An "auto" type specifier is not allowed in a typedef declaration. */
     pos_error(ec_auto_not_allowed_here, &state->auto_pos);
     state->auto_type_specifier_seen = FALSE;
+    state->decltype_auto_specifier_seen = FALSE;
     state->has_deduced_type = FALSE;
     state->auto_type = NULL;
     invalidate_type(state);
@@ -12779,7 +12780,7 @@ selection operation associated with this operator function reference.
       /* Diagnose something like "operator decltype(auto)&". */
       state.type = state.declared_type = complete_type;
       check_type_with_placeholder_specifier(&state);
-      if (!state.auto_type_specifier_seen) {
+      if (!state.has_deduced_type) {
         complete_type = error_type();
       }  /* if */
     }  /* if */
@@ -18845,6 +18846,7 @@ a diagnostic if that isn't the case.
   if (dps->prev_type != NULL) {
     if (!check_variable_redecl_compatible(dps)) {
       dps->auto_type_specifier_seen = FALSE;
+      dps->decltype_auto_specifier_seen = FALSE; 
       dps->has_deduced_type = FALSE;
       dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
     }  /* if */
@@ -18947,6 +18949,7 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
   }  /* if */
   if (err) {
     dps->auto_type_specifier_seen = FALSE;
+    dps->decltype_auto_specifier_seen = FALSE;
     dps->has_deducible_class_templ_args = FALSE;
     dps->has_deduced_type = FALSE;
     dps->auto_type = NULL;
@@ -19202,6 +19205,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     dps->type = dps->specifiers_type;
     dps->declared_type = dps->type;
     dps->auto_type_specifier_seen = TRUE;
+    dps->has_deduced_type = TRUE;
   } else {
     /* Scan the initial declaration specifiers (including storage class,
        type specifiers, and type qualifiers).  For a function definition,

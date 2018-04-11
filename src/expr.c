@@ -18912,8 +18912,8 @@ expression, and return the result in *result (or an error indication in
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     new_type = dps.type;
-    new_type_involves_auto = (dps.auto_type_specifier_seen &&
-                              !dps.has_trailing_return_type);
+    new_type_involves_auto = (dps.has_deduced_type &&
+    	                       !dps.has_trailing_return_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_gcnew) {
       if (new_type_involves_auto) {
@@ -18941,7 +18941,7 @@ expression, and return the result in *result (or an error indication in
         prescan_initializer_for_auto_type_deduction(&dps,
                                                   /*parenthesized_init=*/TRUE);
         using_expr_cache = TRUE;
-        if (!dps.auto_type_specifier_seen) {
+        if (!dps.has_deduced_type) {
           /* There was an error.  Proceed as if "auto" did not appear. */
           new_type = error_type();
           new_type_involves_auto = FALSE;

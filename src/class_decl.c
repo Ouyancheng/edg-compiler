@@ -15727,7 +15727,8 @@ constant and entering the name in the symbol table.
     decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
     /* Advance past the "=". */
     (void)get_token();
-    if (dps->auto_type_specifier_seen && !is_error_type(member_type)) {
+    if ((dps->auto_type_specifier_seen || dps->decltype_auto_specifier_seen) &&
+        !is_error_type(member_type)) {
       prescan_initializer_for_auto_type_deduction(dps,
                                                  /*parenthesized_init=*/FALSE);
       member_type = dps->type;
@@ -16178,10 +16179,11 @@ if an error is detected.
       pos_error(ec_member_constant_not_const, pos);
     } else {
       pos_ty_error(ec_invalid_member_constant_type, pos, type);
-      if (dps->auto_type_specifier_seen) {
+      if (dps->has_deduced_type) {
         /* Set the member type to an error type to avoid a spurious
            "auto without an initializer" error. */
-        type = dps->type = error_type();
+        type = error_type();
+        invalidate_type(dps);
       }  /* if */
     }  /* if */
   }  /* if */

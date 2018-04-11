@@ -9791,7 +9791,8 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
     specifier_allows_vacuous_decl = FALSE;
     switch (curr_token) {
       case tok_auto:
-        if (state->auto_type_specifier_seen) {
+        if (state->auto_type_specifier_seen ||
+            state->decltype_auto_specifier_seen) {
           pos_error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
                                         ec_mult_storage_classes,
                                         &error_position);
@@ -11023,13 +11024,13 @@ process_enum_specifier:
            in the fall-through path. */
         if (decltype_auto_enabled && decltype_auto_tokens_next()) {
           check_assertion(auto_type_specifier_enabled);
-          if (state->auto_type_specifier_seen) {
+          if (state->auto_type_specifier_seen ||
+              state->decltype_auto_specifier_seen) {
             pos_error(ec_bad_combination_of_type_specifiers, &pos_curr_token);
           } else {
             auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
             state->auto_pos = pos_curr_token;
             state->has_deduced_type = TRUE;
-            state->auto_type_specifier_seen = TRUE;
             if (state->is_new_expr_type) {
               /* The grammar in the working paper for C++14 allows something
                  like "new decltype(auto)(x);", but doesn't say what it means.
@@ -11683,7 +11684,9 @@ exit_loop:
   if (state->auto_type_specifier_seen &&
       auto_storage_class_specifier_enabled && auto_type_specifier_enabled) {
     /* The "auto" token was seen among the specifiers, but we could not decide
-       if it is a storage class specifier or a type specifier until now. */
+       if it is a storage class specifier or a type specifier until now. We do
+       not check for decltype(auto) as that would have been processed when it
+       was seen */
     process_auto_specifier((auto_type_allowed && !is_parameter), auto_is_first,
                            input_flags, state, decl_pos_block,
                            &decl_specifiers_seen, &basic_type, type_ptr, &err);

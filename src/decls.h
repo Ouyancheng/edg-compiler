@@ -792,8 +792,7 @@ typedef struct a_decl_parse_state {
 			   is being done. */
   a_bit_field
 		auto_type_specifier_seen:1;
-			/* TRUE if "auto" or "decltype(auto)" appeared as a
-			   type specifier. */
+			/* TRUE if "auto" appeared as a type specifier. */
   a_bit_field
 		decltype_auto_specifier_seen:1;
 			/* TRUE if "decltype(auto)" appeared as a specifier. */
