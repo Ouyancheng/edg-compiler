@@ -27386,7 +27386,6 @@ that is provided if this is a member template declaration.
                                         &decl_info);
       } else if (is_member_template_rescan) {
         *member_template_instance_type = dps->type;
-        remove_stop_token(tok_comma);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Set the declared type immediately, before the func_info block is
            discarded. */
