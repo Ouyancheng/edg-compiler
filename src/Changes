@@ -1,5 +1,22 @@
 Version 4.15
 
+4/11/18  [EDGcpfe/19335]
+C++-generating back end: decltype as target of dependent reference cast
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end failed to use a
+decltype operator that results in a dependent reference type in a cast,
+instead using the dependent type directly as the target type.  For example,
+with --c++14:
+
+  auto const lambda = [](auto &&... x) {
+    return [&](auto&& y) -> decltype(auto) {
+      return y(static_cast<decltype(x)>(x)...); // Previously generated as
+                                                // static_cast<auto &&>(x)
+    };
+  };
+
+
 4/10/18  [EDGcpfe/19497]
 Attributes on variable template definitions
 

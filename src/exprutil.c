@@ -13705,7 +13705,13 @@ e.g., if the source operand is an lvalue.
     } else {
       lvalue_expected = TRUE;
     }  /* if */
-    dest_type = type_pointed_to(dest_type);
+    /* Don't lose a type operator that appears on top of the reference
+       type, but otherwise replace the reference type with the referenced
+       type. */
+    if (!(dest_type->kind == (a_type_kind)tk_typeref &&
+          typeref_is_type_operator(dest_type))) {
+      dest_type = type_pointed_to(dest_type);
+    }  /* if */
   } else if (!curr_expr_kind_is_const() &&
              (is_class_struct_union_type(dest_type) ||
               is_template_param_type(dest_type) ||

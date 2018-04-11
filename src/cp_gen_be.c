@@ -10928,10 +10928,12 @@ is_reinterpret_cast indicate it.
   a_type                ref_type;
   a_const_char          *new_cast_keyword = NULL;
 
-  if (expr->variant.operation.is_reference_cast ||
-      op == (an_expr_operator_kind)eok_ref_cast ||
-      op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
-    /* A cast to a reference type. */
+  if ((expr->variant.operation.is_reference_cast ||
+       op == (an_expr_operator_kind)eok_ref_cast ||
+       op == (an_expr_operator_kind)eok_ref_dynamic_cast) &&
+      !(dest_type->kind == (a_type_kind)tk_typeref &&
+        typeref_is_type_operator(dest_type))) {
+    /* A cast to a reference type that is not implicit in a type operator. */
     destination_type_for_reference_cast(expr, &ref_type);
     dest_type = &ref_type;
   } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, operand_1)) {
