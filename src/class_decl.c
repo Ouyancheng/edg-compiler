@@ -27279,7 +27279,6 @@ that is provided if this is a member template declaration.
         instance->declared_type = error_type();
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      remove_stop_token(tok_comma);
       goto next_declaration;
     }
     if (!C_mode() && is_function) {
