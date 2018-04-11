@@ -16485,8 +16485,7 @@ template declaration and is NULL otherwise.
       a_token_cache  *token_cache;
       token_cache = cache_inclass_initializer(sym);
       initializer_cache = token_cache;
-    } else if (decl_state->auto_type_specifier_seen &&
-               !is_error_type(member_type)) {
+    } else if (decl_state->has_deduced_type && !is_error_type(member_type)) {
       if (delay_initializer_scan) {
         pos_error(ec_auto_not_allowed_here, &decl_state->auto_pos);
         member_type = decl_state->type = error_type();
@@ -27257,6 +27256,7 @@ that is provided if this is a member template declaration.
     add_stop_token(tok_comma);
     if (dps->has_deducible_class_templ_args && is_func_declarator_start()) {
       /* A deduction guide for a nested class. */
+      dps->is_deduction_guide = TRUE;
       if (templ_state == NULL) {
         scan_deduction_guide(dps, &func_info, &locator, decl_pos_block_ptr);
       } else {

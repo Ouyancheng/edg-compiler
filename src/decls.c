@@ -18852,6 +18852,23 @@ a diagnostic if that isn't the case.
 }  /* check_deduced_auto_type */
 
 
+static a_boolean is_initializing_decl(a_decl_parse_state  *dps)
+/*
+Return TRUE if the declaration described by *dps is an "initializing
+declaration".
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (dps->has_initializer) {
+    result = TRUE;
+  } else if (dps->is_definition && !dps->in_class_scope) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_initializing_decl */
+
+
 void check_use_of_placeholder_type(a_decl_parse_state  *dps)
 /*
 Check that if a placeholder type specifier ("auto", "decltype(auto)", or a
@@ -18882,12 +18899,14 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
   } else if (!dps->range_based_for &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->auto_type_allowed ||
-              (dps->has_deducible_class_templ_args ? !dps->is_definition
+              (dps->has_deducible_class_templ_args ? !is_initializing_decl(dps)
                                                    : !dps->has_initializer))) {
-    /* A placeholder type was seen, but either (a) the placeholder is not
-       allowed at all in this context (e.g., a class template name in a call to
-       type_name_full), or (b) we never saw an explicit initializer when one is
-       required (i.e., when placeholder is not a class template name). */
+    /* A placeholder type was seen, but (a) the placeholder is not allowed at
+       all in this context (e.g., a class template name in a call to
+       type_name_full), (b) an initializer is missing when one is required
+       (i.e., when placeholder is not a class template name), or (c) the
+       placeholder is a class template name but this isn't an "initializing
+       declaration". */
     err = TRUE;
     if (dps->has_deducible_class_templ_args) {
       /* For a class template name as a placeholder, issue an error suggesting
