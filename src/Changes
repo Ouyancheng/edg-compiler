@@ -4,9 +4,9 @@ Version 4.15
 Decltype(auto) broken with --auto_storage
 
 Decltype(auto) would result in a compilation error when --auto_storage was in
- effect. That has now been fixed.
- 
- 
+effect. That has now been fixed.
+
+
 4/11/18  [EDGcpfe/19335]
 C++-generating back end: decltype as target of dependent reference cast
 
@@ -22,8 +22,8 @@ with --c++14:
                                                 // static_cast<auto &&>(x)
     };
   };
-  
-  
+
+
 4/10/18  [EDGcpfe/19497]
 Attributes on variable template definitions
 
@@ -29945,7 +29945,7 @@ assuming the --unicode_source_kind=UTF-8 command-line option, the following
 invalid UTF-8 character sequence resulted in an abort in
 conv_string_literal:
 
-  char str[] = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½";
+  char str[] = "€€€€€€€€";
 
 
 3/19/14  [EDGcpfe/14933]
@@ -30036,7 +30036,7 @@ disabled that processing.  This is now fixed.  For example:
   // The following is a valid identifier in EUC-JP locale with multibyte
   // characters but is now diagnosed as "unrecognized token" with
   // --no_multibyte_chars:
-  int ï¿½ï¿½ = 1;
+  int ¤¢ = 1;
 
 
 3/12/14  [EDGcpfe/14904]
@@ -48138,7 +48138,7 @@ will have the same output representation.  For example, in the following
 Latin-1 encoded source file compiled in a non-GNU mode, strlen(str) will be
 2 and both characters will be the same:
 
-  char str[] = "ï¿½\u00b6";  // The pilcrow (paragraph mark) in Latin-1
+  char str[] = "¶\u00b6";  // The pilcrow (paragraph mark) in Latin-1
                               // and as a universal-character-name
 
 
@@ -50777,8 +50777,8 @@ characters.  A reference to that name, however, looked up the identifier
 using its canonical form and thus failed to find it in the symbol table.
 This has now been fixed.  For example:
 
-  #define fï¿½ 2  // second character is Latin-1 e with acute accent
-  int i = fï¿½;   // Previously "undefined identifier" error
+  #define fé 2  // second character is Latin-1 e with acute accent
+  int i = fé;   // Previously "undefined identifier" error
 
 
 7/29/11  [EDGcpfe/11953]
@@ -51243,7 +51243,7 @@ table differs slightly from the one in Annex D in the C99 Standard, ISO/IEC
 Standard is expected to include the same settings as the C++ Standard.)
 For example:
 
-  int risquï¿½;   // Last character is e with acute accent, previously
+  int risqué;   // Last character is e with acute accent, previously
                    // treated as a non-identifier character in some
                    // unusual configurations.
 
@@ -56666,7 +56666,7 @@ white space for the following when compiled in --microsoft mode:
   #pragma setlocale(".932")
   void f() {
     // The characters after the // below are 0x8b 0x40 0x94 0x5c 0x20
-    //ï¿½@ï¿½\ 
+    //‹@”\ 
   }
 
 
@@ -56863,7 +56863,7 @@ array").  This is now fixed.  For example:
 
   #define M(x) x;
   void f() {
-    M("ï¿½Ö¤ï¿½ï¿½ï¿½"); // Assertion failure with --multibyte_chars
+    M("¡Ö¤¤¤¤"); // Assertion failure with --multibyte_chars
   }
 
 
@@ -62841,7 +62841,7 @@ undefined in the printf call in the example below.
   extern "C" int printf(const char *, ...);
   int main(void) {
     // The characters after the // below are 0x8b 0x40 0x94 0x5c
-    //ï¿½@ï¿½\
+    //‹@”\
     int i=10;
     printf("%d\n", i);
   }
