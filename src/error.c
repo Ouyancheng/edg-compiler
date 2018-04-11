@@ -1384,7 +1384,11 @@ specified by dp.
         type = routine_symbol_type(fund_sym);
       }  /* if */
       routine = fund_sym->variant.routine.ptr;
-      entity_kind = ec_function;
+      if (special_kind_is(routine, sfk_deduction_guide)) {
+        entity_kind = ec_deduction_guide;
+      } else {
+        entity_kind = ec_function;
+      }  /* if */
       is_declaration_like = TRUE;
       if (fund_sym->variant.routine.ptr->is_lambda_body) {
         /* For lambdas, display the closure type name instead, which is of
