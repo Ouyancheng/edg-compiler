@@ -12983,12 +12983,12 @@ typedef struct a_new_delete_supplement {
 			/* When has_new_initializer is TRUE, this is TRUE if
 			   the new-initializer is enclosed in braces, e.g.,
 			   new int{1}. */
-  a_bit_field	type_contains_auto_specifier:1;
+  a_bit_field	deducible_type:1;
 			/* For a new in a prototype instantiation, TRUE if
 			   the type to be allocated was specified by way of
-			   the "auto" type specifier and could not be
-			   resolved at that time because the initializer
-			   is dependent. */
+			   placeholder type (e.g., "auto") and could not be
+			   resolved at that time because the initializer is
+			   dependent. */
   a_type_ptr	type;
 			/* The type of the object being allocated for new;
 			   the type pointed to by the object pointer for

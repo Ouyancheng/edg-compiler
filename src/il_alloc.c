@@ -3401,7 +3401,7 @@ fields to default values.
       ndsp->global_new_or_delete            = FALSE;
       ndsp->has_new_initializer             = FALSE;
       ndsp->new_initializer_is_brace_enclosed = FALSE;
-      ndsp->type_contains_auto_specifier    = FALSE;
+      ndsp->deducible_type                  = FALSE;
       ndsp->type                            = NULL;
       ndsp->routine                         = NULL;
       ndsp->arg                             = NULL;

@@ -5861,7 +5861,7 @@ FALSE is returned) for non-class objects.
   if (var != NULL) {
     if (is_class_template_placeholder_type(var->type)) {
       /* Make sure the type is deduced if needed. */
-      a_boolean  still_dependent;
+      a_boolean  still_dependent = FALSE;
       if (deduce_class_template_args(var->type, /*is_direct_init=*/TRUE,
                                      /*keep_placeholder=*/FALSE,
                                      (an_arg_list_elem*)NULL,
