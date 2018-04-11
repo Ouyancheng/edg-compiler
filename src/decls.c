@@ -18839,16 +18839,17 @@ required updates in the source sequence entry for this declaration.
 
 void check_deduced_auto_type(a_decl_parse_state  *dps)
 /*
-*dps describes a declaration involving an "auto" type specifier and the type
-of the declaration has already been deduced from the initializer.  Check that
-this type is consistent with any previous declarations of the entity, and emit
-a diagnostic if that isn't the case.
+*dps describes a declaration involving a placeholder type and the type of the
+declaration has already been deduced.  Check that this type is consistent with
+any previous declarations of the entity, and emit a diagnostic if that isn't
+the case.
 */
 {
   if (dps->prev_type != NULL) {
     if (!check_variable_redecl_compatible(dps)) {
       dps->auto_type_specifier_seen = FALSE;
       dps->decltype_auto_specifier_seen = FALSE; 
+      dps->has_deducible_class_templ_args = FALSE;
       dps->has_deduced_type = FALSE;
       dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
     }  /* if */

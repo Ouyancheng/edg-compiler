@@ -20291,9 +20291,11 @@ handle_empty_parens_new_initializer:
                                            saved_inside_conditional_expression;
   if (using_expr_cache) {
     /* Deactivate the initializer cache used for "auto". */
-    check_assertion(expr_stack->initializer_cache ==
-                                            &dps.prescanned_initializer_cache);
-    flush_initializer_cache(expr_stack->initializer_cache);
+    if (expr_stack->initializer_cache != NULL) {
+      check_assertion(expr_stack->initializer_cache ==
+                                           &dps.prescanned_initializer_cache);
+      flush_initializer_cache(expr_stack->initializer_cache);
+    }  /* if */
     expr_stack->initializer_cache = saved_initializer_cache;
     saved_initializer_cache = NULL;
   }  /* if */
