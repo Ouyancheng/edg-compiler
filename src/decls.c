@@ -12628,6 +12628,7 @@ is_parenthesized comes in FALSE.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   check_pending_qualifiers_used(state);
+  check_use_of_placeholder_type(state);
   if (any_cfront_mode() &&
       check_member_function_typedef(state->type, &state->start_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
@@ -18901,7 +18902,7 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
     /* Some error already occurred.  Additional diagnostics are unlikely to
        be helpful. */
     expect_error();
-  } else if (!dps->range_based_for &&
+  } else if (!dps->range_based_for && !dps->is_new_expr_type &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->auto_type_allowed ||
               (dps->has_deducible_class_templ_args ? !is_initializing_decl(dps)
