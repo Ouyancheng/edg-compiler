@@ -6359,7 +6359,9 @@ al_tag_name attributes (if any).
         is_immediate_class_type(type) &&
         type->variant.class_struct_union.is_nonreal_class &&
         type->source_corresp.is_class_member &&
-        (options & GN_FRIEND_DECL)) {
+        (options & GN_FRIEND_DECL) &&
+        !(type->source_corresp.parent_scope != NULL &&
+          scope_is_in_name_context_stack(type->source_corresp.parent_scope))) {
       /* G++ has a bug that results in compiler errors on an
          elaborated-type-specifier in a friend declaration like 
            friend class T::template value<1>;
