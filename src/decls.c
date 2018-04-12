@@ -8083,18 +8083,30 @@ ambiguity is encountered or to NULL for other failures.
     }  /* if */
   }  /* for */
   /* If we got this far, we'll have to use a raw literal operator or a literal
-     operator template. */
+     operator template, if there is one. */
   if (has_raw_literal_op && has_literal_op_template) {
-    /* An error. */
+    /* An ambiguity error, indicated by a FALSE result. */
     *p_use_literal_op_template = FALSE;
     *p_sym_to_use = ud_lit_op_sym_for_curr_token;
     result = FALSE;
   } else if (has_raw_literal_op) {
     *p_use_literal_op_template = FALSE;
     *p_sym_to_use = raw_sym;
-  } else {
+  } else if (has_literal_op_template) {
     *p_use_literal_op_template = TRUE;
     *p_sym_to_use = NULL;
+  } else {
+    *p_use_literal_op_template = FALSE;
+    if (is_error_constant(&const_for_curr_token)) {
+      /* The numeric value to be passed to the user-defined literal
+         operator overflowed or underflowed, so the invocation will be
+         treated as an error.  The actual symbol doesn't matter - it won't
+         be used - but must be non-NULL. */
+      *p_sym_to_use = ud_lit_op_sym_for_curr_token;
+    } else {
+      /* No symbol is suitable. */
+      *p_sym_to_use = NULL;
+    }  /* if */
   }  /* if */
 done:
   return result;

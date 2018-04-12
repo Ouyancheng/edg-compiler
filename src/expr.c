@@ -33529,6 +33529,15 @@ issue an error; otherwise, return TRUE.
     }  /* if */
   } else {
     check_assertion(op_sym != NULL);
+    if (is_error_constant(&const_for_curr_token)) {
+      /* The value to be passed to the user-defined literal operator
+         overflowed or underflowed.  Report an error if appropriate and
+         return FALSE. */
+      if (expr_error_should_be_issued()) {
+        pos_error(ec_invalid_udl_value, &pos_curr_token);
+      }  /* if */
+      op_sym = NULL;
+    }  /* if */
   }  /* if */
   if (op_sym != NULL && symbol_is(op_sym, sk_overloaded_function)) {
     /* An error must have been issued already. */

@@ -9598,19 +9598,28 @@ fixed_point_suffix:
                                                     /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
       if (err_code != ec_no_error &&
-          ud_lit_op_sym_for_curr_token != NULL) {
-        /* Check to see if ud_lit_op_sym_for_curr_token designates a raw
-           literal operator or a literal operator template. */
+          (ud_lit_op_sym_for_curr_token != NULL || caching_tokens)) {
+        /* There was an overflow or underflow in the numeric portion of the
+           user-defined literal.  Check to see if that's okay or if we
+           should report an error. */
         a_symbol_ptr sym = ud_lit_op_sym_for_curr_token;
-        if (symbol_is(sym, sk_function_template) ||
+        if (caching_tokens || symbol_is(sym, sk_function_template) ||
             (symbol_is(sym, sk_routine) &&
              sym->variant.routine.ptr->is_raw_literal_operator)) {
           /* An out-of-range literal is okay with a raw literal operator or
              a literal operator template, as the spelling, not the value,
-             of the literal is used.  For other kinds of literal operators,
-             as well as when no literal operator is found, report the
-             invalid literal and do not categorize this as a user-defined
-             literal. */
+             of the literal is used.  If we are caching tokens, we can't
+             reliably look up the literal operator, as the tokens will be
+             parsed in a different context, so we ignore the error since
+             the literal might eventually be linked to a raw literal
+             operator or literal operator template; const_for_curr_token
+             will be an error constant, allowing late diagnosis of the
+             error in case an ordinary literal operator is selected, and
+             const_with_curr_tok_spelling will be set appropriately to
+             allow handling the non-error cases.  For other kinds of
+             literal operators, as well as when no literal operator is
+             found, report the invalid literal and do not categorize this
+             as a user-defined literal. */
           err_code = ec_no_error;
         }  /* if */
       }  /* if */
