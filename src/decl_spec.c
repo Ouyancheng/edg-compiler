@@ -11031,14 +11031,7 @@ process_enum_specifier:
             auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
             state->auto_pos = pos_curr_token;
             state->has_deduced_type = TRUE;
-            if (state->is_new_expr_type) {
-              /* The grammar in the working paper for C++14 allows something
-                 like "new decltype(auto)(x);", but doesn't say what it means.
-                 For now, we just disallow it. */
-              pos_error(ec_decltype_auto_not_allowed_here, &pos_curr_token);
-            } else {
-              state->decltype_auto_specifier_seen = TRUE;
-            }  /* if */
+            state->decltype_auto_specifier_seen = TRUE;
             process_auto_specifier(
                     decltype_auto_enabled, auto_is_first, input_flags, state,
                     decl_pos_block, &decl_specifiers_seen, &basic_type,
