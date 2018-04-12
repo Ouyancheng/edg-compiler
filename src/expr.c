@@ -24762,6 +24762,7 @@ freed by this routine.
     dps.auto_pos = type_position;
     dps.declarator_pos = pos_curr_token;
     dps.init_state.direct_init = TRUE;
+    saved_initializer_cache = expr_stack->initializer_cache;
     if (rcblock != NULL) {
       /* Rescan the operand list early and place it in the expression stack's
          initializer cache. */
@@ -25227,8 +25228,10 @@ end_of_routine:
   expr_stack->allow_call_with_incomplete_return_type = 
                                  saved_allow_call_with_incomplete_return_type;
   free_init_component_list(braced_init_list);
-  if (saved_initializer_cache != NULL) {
-    flush_initializer_cache(expr_stack->initializer_cache);
+  if (saved_initializer_cache != expr_stack->initializer_cache) {
+    if (expr_stack->initializer_cache != NULL) {
+      flush_initializer_cache(expr_stack->initializer_cache);
+    }  /* if */
     expr_stack->initializer_cache = saved_initializer_cache;
   }  /* if */
   db_exit();
