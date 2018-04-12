@@ -7826,16 +7826,29 @@ deduction guides and check if one is preferred over the other.
 */
 {
   int            result = 0;
-  a_routine_ptr  rp1;
+  a_routine_ptr  rp1, rp2;
+  a_symbol_ptr   sym1 = cfp1->function_symbol, sym2 = cfp2->function_symbol;
 
-  if (cfp1->function_symbol == NULL || cfp2->function_symbol == NULL) {
+  if (sym1 == NULL || sym2 == NULL) {
+    goto done;
+  } else if (is_simple_function_symbol(sym1)) {
+    rp1 = sym1->variant.routine.ptr;
+  } else if (symbol_is(sym1, sk_function_template)) {
+    rp1 = sym2->variant.template_info->variant.function.routine;
+  } else {
     goto done;
   }  /* if */
-  rp1 = func_sym_routine(cfp1->function_symbol);
   if (special_kind_is(rp1, sfk_deduction_guide)) {
     /* Deduction guides only appear in deduction guide sets: The other entry
        must therefore also be a deduction guide. */
-    a_routine_ptr  rp2 = func_sym_routine(cfp2->function_symbol);
+    rp2 = func_sym_routine(cfp2->function_symbol);
+    if (is_simple_function_symbol(sym2)) {
+      rp2 = sym2->variant.routine.ptr;
+    } else if (symbol_is(sym2, sk_function_template)) {
+      rp2 = sym2->variant.template_info->variant.function.routine;
+    } else {
+      goto done;
+    }  /* if */
     check_assertion(special_kind_is(rp2, sfk_deduction_guide));
     if (rp1->compiler_generated != rp2->compiler_generated) {
       /* A user-declared guide is preferred over a generated one. */
