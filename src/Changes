@@ -28,11 +28,15 @@ now fixed.  For example, with --c++14:
   int i = f<int>();
 
 
-4/11/18 [EDGcpfe/19087]
-Decltype(auto) broken with --auto_storage
+4/11/18  [EDGcpfe/19087]
+Spurios error on decltype(auto)  with --auto_storage
 
-Decltype(auto) would result in a compilation error when --auto_storage was in
-effect. That has now been fixed.
+Use of decltype(auto) would result in a compilation error when --auto_storage
+was in effect. That has now been fixed.  For example, with --c++14 
+--auto_storage:
+
+  decltype(auto) x = 2; // Previously resulted in invalid combination of type
+                       // specifiers
 
 
 4/11/18  [EDGcpfe/19335]
