@@ -11268,13 +11268,9 @@ symbol entry, and return a pointer to it in state->sym.
      class or enumeration type, but that is checked elsewhere.) */
   state->decl_okay_in_constexpr_body = TRUE;
   if (state->auto_type != NULL && !state->has_trailing_return_type) {
-    /* An "auto" type specifier is not allowed in a typedef declaration. */
-    pos_error(ec_auto_not_allowed_here, &state->auto_pos);
-    state->auto_type_specifier_seen = FALSE;
-    state->decltype_auto_specifier_seen = FALSE;
-    state->has_deduced_type = FALSE;
-    state->auto_type = NULL;
-    invalidate_type(state);
+    /* A placeholder type is not allowed in a typedef declaration. */
+    state->auto_type_allowed = FALSE;
+    check_use_of_placeholder_type(state);
     type_ptr = error_type();
   }  /* if */
   /* Apply type-transforming GNU attributes (like vector_size) early.  (This
