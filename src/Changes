@@ -1,5 +1,16 @@
 Version 4.15
 
+4/11/18  [EDGcpfe/19543]
+Diagnostic on invalid use of decltype(auto) in typedef declaration
+
+Consider:
+
+	typedef decltype(auto) X; // Invalid.
+
+Previously, the diagnostic for this invalid use of decltype(auto) referred to
+the "auto" type specifier.  Now, it mentions "decltype(auto)" instead.
+
+
 4/11/18  [EDGcpfe/19546]
 Out-of-bounds numeric parts of user-defined literals appearing in templates
 
