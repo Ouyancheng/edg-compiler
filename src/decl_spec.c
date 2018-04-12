@@ -11686,7 +11686,7 @@ exit_loop:
     /* The "auto" token was seen among the specifiers, but we could not decide
        if it is a storage class specifier or a type specifier until now.  We do
        not check for decltype(auto) as that would have been processed when it
-       was seeni. */
+       was seen. */
     process_auto_specifier((auto_type_allowed && !is_parameter), auto_is_first,
                            input_flags, state, decl_pos_block,
                            &decl_specifiers_seen, &basic_type, type_ptr, &err);
