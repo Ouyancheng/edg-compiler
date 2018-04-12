@@ -7834,7 +7834,7 @@ deduction guides and check if one is preferred over the other.
   } else if (is_simple_function_symbol(sym1)) {
     rp1 = sym1->variant.routine.ptr;
   } else if (symbol_is(sym1, sk_function_template)) {
-    rp1 = sym2->variant.template_info->variant.function.routine;
+    rp1 = sym1->variant.template_info->variant.function.routine;
   } else {
     goto done;
   }  /* if */
