@@ -26254,7 +26254,7 @@ was not completed because the types involved are still dependent,
       }  /* if */
       *still_dependent = FALSE;
     }  /* if */
-    if (guide->is_explicit_constructor) {
+    if (guide->is_explicit_constructor && !is_direct_init) {
       pos_sy_error(ec_explicit_deduction_guide_in_copy_list_init, source_pos,
                    selected_sym);
     }  /* if */
