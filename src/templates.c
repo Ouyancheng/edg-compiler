@@ -37537,6 +37537,7 @@ occurs during the creation of the template, a NULL symbol is returned.
   push_instantiation_scope_for_rescan(ct_sym);
   sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
                                                ctor_sym);
+  sym->decl_position = ctor_sym->decl_position;
   /* Add the template parameters of the class to the new template parameter
      list that is being created. */
   orig_class_templ_params = tcp->decl_info->parameters,
@@ -37627,6 +37628,7 @@ occurs during the creation of the template, a NULL symbol is returned.
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = ct_tssp->il_template_entry;
   rout->compiler_generated = TRUE;
+  rout->source_corresp.decl_position = ctor_rout->source_corresp.decl_position;
   /* The routine uses nonreal types, so consider it a prototype
      instantiation. */
   rout->is_prototype_instantiation = TRUE;
