@@ -13945,6 +13945,17 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+  /* Normally copying a type such as a A<T>::X won't result in a change if
+     A<T> is a prototype instantiation and T is not replaced with a real
+     type.  But such a type will be replaced in deduction guides.  If
+     the type is a typedef to a real type, use the underlying type so
+     that we don't end up with a nonreal A<T'>::X. */
+  if (type->source_corresp.is_class_member &&
+      (options & CTWS_DEDUCTION_GUIDE) != 0 &&
+      type->kind == (a_type_kind)tk_typeref &&
+      !is_template_dependent_type(type)) {
+    type = skip_typerefs_not_dependent_decltypes(type);
+  }  /* if */
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
