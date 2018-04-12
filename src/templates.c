@@ -13870,7 +13870,7 @@ static a_type_ptr copy_class_template_placeholder_with_substitution(
 			a_ctws_state_ptr		ctws_state)
 /*
 The given type is a class template placeholder type.  Perform substitution
-on template associated with the placeholder type using the given
+on the template associated with the placeholder type using the given
 template argument list and return the updated placeholder type.  See
 copy_type_with_substitution for the meaning of the parameters.
 */
