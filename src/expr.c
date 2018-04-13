@@ -24407,12 +24407,12 @@ just an expression in parentheses.  Return the scanned expression in
                                                  EOPT_DELEGATE_INITIALIZER)) |
                                   EOPT_ALLOW_BOUND_FUNCTION |
                                   EOPT_PRESERVE_PROPERTY_REF;
-      if (curr_token == tok_ellipsis) {
-        if (fold_expressions_enabled) {
+      if (fold_expressions_enabled) {
+        if (curr_token == tok_ellipsis) {
           left_unary_fold_expr = TRUE;
+        } else {
+          options |= EOPT_FOLD_EXPR_CONTEXT;
         }  /* if */
-      } else {
-        options |= EOPT_FOLD_EXPR_CONTEXT;
       }  /* if */
       if (left_unary_fold_expr || !expr_present) {
         /* "( ..." in an expression context always introduces a unary fold
