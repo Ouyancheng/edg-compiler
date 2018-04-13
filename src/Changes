@@ -10,8 +10,9 @@ Consider:
     D(D&&) noexcept(false) = default;
   };
 
-This previously aborted in def_arg_and_eh_spec_fixup_for_class (class_decl.c)
-on a null-pointer indirection.  That is now fixed.
+In C++14 mode (and some GNU C++11 modes) this previously aborted in
+def_arg_and_eh_spec_fixup_for_class (class_decl.c) on a null-pointer
+indirection.  That is now fixed.
 
 
 4/12/18  [EDGcpfe/19544]
