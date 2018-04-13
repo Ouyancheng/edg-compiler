@@ -23187,11 +23187,14 @@ parameter entry for the parameter.
 			     /*is_friend_decl=*/FALSE);
     if (ignore_default) {
       /* Ignore the default for a parameter pack. */
-    } else if (ms_extensions && !nonclass_prototype_instantiations &&
+    } else if (ms_extensions && !class_template_arg_deduction_enabled &&
+               !nonclass_prototype_instantiations &&
                !is_variadic_template_context()) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done.  For variadic contexts, we need to scan
-         the default to record the pack expansions. */
+         the default to record the pack expansions.  In C++17 mode we need
+         to scan the default in case it needs to be copied to a deduction
+         guide. */
       template_param->def_arg_involves_template_param = TRUE;
       /* Assign a dummy type.  This can be used if the default argument value
          is needed within the prototype instantiation. */
