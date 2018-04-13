@@ -3891,10 +3891,9 @@ and issue an error if it does not.
           pos_error(ec_invalid_explicit_exception_specification,
                     &rp->source_corresp.decl_position);
         }  /* if */
-      } else {
-        /* Record the declared form. */
-        rtsp->exception_specification = declared_exception_spec;
       }  /* if */
+      /* Record the declared form. */
+      rtsp->exception_specification = declared_exception_spec;
     }  /* if */
   }  /* if */
   done:;
