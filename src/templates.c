@@ -13945,16 +13945,6 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  /* Normally copying a type such as a A<T>::X won't result in a change if
-     A<T> is a prototype instantiation and T is not replaced with a real
-     type.  But such a type will be replaced in deduction guides.  If
-     the type is a typedef, use the underlying type so that we don't
-     end up with an incorrect A<T'>::X. */
-  if (type->source_corresp.is_class_member &&
-      (options & CTWS_DEDUCTION_GUIDE) != 0 &&
-      type->kind == (a_type_kind)tk_typeref) {
-    type = skip_typerefs_not_dependent_decltypes(type);
-  }  /* if */
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
@@ -23187,14 +23177,11 @@ parameter entry for the parameter.
 			     /*is_friend_decl=*/FALSE);
     if (ignore_default) {
       /* Ignore the default for a parameter pack. */
-    } else if (ms_extensions && !class_template_arg_deduction_enabled &&
-               !nonclass_prototype_instantiations &&
+    } else if (ms_extensions && !nonclass_prototype_instantiations &&
                !is_variadic_template_context()) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done.  For variadic contexts, we need to scan
-         the default to record the pack expansions.  In C++17 mode we need
-         to scan the default in case it needs to be copied to a deduction
-         guide. */
+         the default to record the pack expansions. */
       template_param->def_arg_involves_template_param = TRUE;
       /* Assign a dummy type.  This can be used if the default argument value
          is needed within the prototype instantiation. */
