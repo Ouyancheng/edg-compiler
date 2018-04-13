@@ -774,8 +774,8 @@ Clang compatibility: _Alignof, _Generic, _Noreturn, _Thread_local
 
 The _Alignof, _Generic, _Noreturn, and _Thread_local keywords (and their
 associated behaviors) are now enabled in Clang C++ mode (when clang_version
->= 30200 for _Alignof and _Generic and when clang_version >= 30300 for
-_Noreturn and _Thread_local).
+>= 30000 for _Generic, when clang_version >= 30200 for _Alignof, and when
+>clang_version >= 30300 for _Noreturn and _Thread_local).
 
 
 2/23/18  [EDGcpfe/19331]
