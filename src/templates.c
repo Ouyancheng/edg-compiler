@@ -1784,19 +1784,22 @@ are excluded from the check.
 static a_boolean template_param_appears_in_param_list
 				(a_symbol_ptr param_sym,
                                  a_type_ptr   rout_type,
-                                 a_boolean    deduced_only)
+                                 a_boolean    deduced_only,
+                                 uint32_t     param_count)
 /*
 tparam_type is a tk_template_parameter type entry used in a template
 declaration, and rout_type is a routine type.  Search each of the routine's
 parameter types to see if tparam_type appears in it.  If deduced_only is
-TRUE, nondeduced contexts are excluded from the check.
+TRUE, nondeduced contexts are excluded from the check.  If param_count
+is non-zero, only parameters 1 through param_count are checked.
 */
 {
   a_boolean         found = FALSE;
   a_param_type_ptr  ptp;
+  a_boolean         use_count = param_count != 0;
 
   ptp = rout_type->variant.routine.extra_info->param_type_list;
-  for (; ptp != NULL; ptp = ptp->next) {
+  for (; ptp != NULL && (!use_count || param_count-- >= 1); ptp = ptp->next) {
     /* Inspect all template parameters, not just those that involve
        deduced template parameters.  A template parameter can affect the
        type even in a nondeduced location. */
@@ -1897,7 +1900,8 @@ static a_boolean all_templ_params_have_values(
 	a_boolean				is_partial_order_check,
 	a_boolean				is_templ_templ_param_check,
 	a_symbol_ptr				template_sym,
-	a_template_symbol_supplement_ptr	tssp)
+	a_template_symbol_supplement_ptr	tssp,
+	uint32_t				param_count)
 /*
 This routine is used after doing argument deduction for a template
 argument list.  Its purpose is to make sure that a value has been deduced
@@ -1909,7 +1913,9 @@ the symbol of the template being checked.  tssp is the associated template
 symbol supplement.  is_templ_templ_param_check is TRUE if this routine
 is being called to (possibly) supply default template argument values as
 part of template template parameter compatibility checking when doing
-C++17-style template template argument matching.
+C++17-style template template argument matching.  param_count provides
+the count of parameters being considered in the call when is_partial_ord_check
+is TRUE.  Otherwise it must be zero.
 */
 {
   a_boolean		result = TRUE;
@@ -1991,7 +1997,8 @@ C++17-style template template argument matching.
           }  /* if */
         } else {
           if (!template_param_appears_in_param_list(
-                       tpp->param_symbol, rout_type, /*deduced_only=*/FALSE)) {
+                       tpp->param_symbol, rout_type, /*deduced_only=*/FALSE,
+                       param_count)) {
             okay_if_no_value = TRUE;
           }  /* if */
         }  /* if */
@@ -2367,7 +2374,8 @@ static a_boolean wrapup_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
                                 a_symbol_ptr         template_sym,
                                 a_template_param_ptr templ_param_list,
-				a_boolean	     is_partial_order_check)
+				a_boolean	     is_partial_order_check,
+				uint32_t             param_count)
 /*
 This routine is used after doing argument deduction for each argument to
 ensure that any nontype parameter whose type depends on a
@@ -2385,7 +2393,9 @@ check that all parameters have values, and the handling of array
 bounds of unknown type.
 
 is_partial_order_check is TRUE when this function is called (indirectly)
-during wrapup processing by compare_function_templates.
+during wrapup processing by compare_function_templates.  param_count
+provides the count of parameters being considered in the call when
+is_partial_ord_check is TRUE.  Otherwise it must be zero.
 */
 {
   a_boolean				match = TRUE;
@@ -2415,7 +2425,7 @@ during wrapup processing by compare_function_templates.
     match = all_templ_params_have_values(templ_arg_list, templ_param_list,
                                          is_partial_order_check,
                                          /*is_templ_templ_param_check=*/FALSE,
-                                         template_sym,tssp);
+                                         template_sym, tssp, param_count);
   }  /* if */
   if (match) {
     begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
@@ -2560,7 +2570,8 @@ a_type_ptr wrapup_function_template_argument_deduction(
 				a_template_arg_ptr   *templ_arg_list,
                                 a_symbol_ptr         rout_templ_sym,
                                 a_template_param_ptr templ_param_list,
-				a_boolean	     is_partial_order_check)
+				a_boolean	     is_partial_order_check,
+				uint32_t             param_count)
 /*
 Calls wrapup_template_argument_deduction and then produces a final
 routine type by substituting the completed template arguments into the
@@ -2571,7 +2582,9 @@ NULL if all of the template arguments are coming from default values.
 If it is NULL, it will be created by this routine.
 
 is_partial_order_check is TRUE when this function is called by
-compare_function_templates.
+compare_function_templates.  param_count provides the count of parameters
+being considered in the call when is_partial_ord_check is TRUE.  Otherwise
+it is zero.
 */
 {
   a_type_ptr	new_type = NULL;
@@ -2594,7 +2607,8 @@ compare_function_templates.
   }  /* if */
   if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
                                          templ_param_list,
-                                         is_partial_order_check)) {
+                                         is_partial_order_check,
+                                         param_count)) {
     /* Substitute the template arguments in the routine type. */
     new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
@@ -2820,7 +2834,7 @@ is_templ_templ_param_check is TRUE when compare_function_templates is
 called to do C++17-style template template parameter matching.
 
 param_count provides the count of parameters to be compared when
-entire_type is FALSE.
+entire_type is FALSE, and must be zero otherwise.
 */
 {
   a_boolean	type_1_is_reference;
@@ -2838,6 +2852,7 @@ entire_type is FALSE.
   an_mtt_flag_set
 		mtt_flags = MTT_NO_FLAGS;
 
+  check_assertion(!entire_type || param_count == 0);
   /* Microsoft and g++ consider a reference to function to match a
      pointer to function for partial ordering. */
   do_ref_vs_ptr_check = microsoft_mode || (gpp_mode && gnu_version >= 40100);
@@ -3201,7 +3216,7 @@ parameter matching.
     match1 = FALSE;
     if (wrapup_function_template_argument_deduction(
                &dummy_arg_list1, templ_sym2, templ_param_list1,
-               /*is_partial_order_check=*/TRUE) != NULL) {
+               /*is_partial_order_check=*/TRUE, param_count) != NULL) {
       match1 = TRUE;
     }  /* if */
   }  /* if */
@@ -3211,7 +3226,7 @@ parameter matching.
     if (is_templ_templ_param_check ||
         wrapup_function_template_argument_deduction(
                &dummy_arg_list2, templ_sym1, templ_param_list2,
-               /*is_partial_order_check=*/TRUE) != NULL) {
+               /*is_partial_order_check=*/TRUE, param_count) != NULL) {
       match2 = TRUE;
     }  /* if */
   }  /* if */
@@ -3488,7 +3503,7 @@ in ps_arg_list.
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
-                        /*is_partial_order_check=*/FALSE)) {
+                        /*is_partial_order_check=*/FALSE, /*param_count=*/0)) {
       a_template_arg_ptr		test_arg_list;
       a_boolean				copy_error = FALSE;
       a_ctws_state			ctws_state;
@@ -17492,7 +17507,8 @@ are ignored even in modes where such specifiers are part of that type.
        is correct. */
     new_type = wrapup_function_template_argument_deduction(
                                 templ_arg_list, templ_sym, templ_param_list,
-                                /*is_partial_order_check=*/FALSE);
+                                /*is_partial_order_check=*/FALSE,
+                                /*param_count=*/0);
     match = FALSE;
     if (new_type != NULL) {
       a_routine_ptr  proto_rp = tssp->variant.function.routine;
@@ -17732,7 +17748,7 @@ matches, a new argument list is returned in *new_arg_list.
       all_templ_params_have_values(*new_arg_list, templ_param_list,
                                    /*is_partial_order_check=*/FALSE,
                                    /*is_templ_templ_param_check=*/FALSE,
-                                   template_sym, tssp)) {
+                                   template_sym, tssp, /*param_count=*/0)) {
     /* Create a substituted type based on the template arguments. */
     result_type = substitute_template_arguments(
                            template_sym, *new_arg_list,
@@ -25612,7 +25628,8 @@ first declaration of the template.
          function parameter types. */
       param_used = template_param_appears_in_param_list(param_sym,
                                                         rout_type,
-                                                        /*deduced_only=*/TRUE);
+                                                        /*deduced_only=*/TRUE,
+                                                        /*param_count=*/0);
     }  /* if */
     if (is_conversion_operator && !param_used) {
       /* For conversion functions, the template parameters can be used in the

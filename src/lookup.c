@@ -2996,7 +2996,7 @@ If no match is found, return NULL.
          have been deduced. */
       if (wrapup_function_template_argument_deduction(
                &templ_arg_list, fund_sym, (a_template_param_ptr)NULL,
-               /*is_partial_order_check=*/FALSE) != NULL) {
+               /*is_partial_order_check=*/FALSE, /*param_count=*/0) != NULL) {
         /* We have a match.  Add the matching template to a list of matching
            candidates.  Any poorer matches will be removed by this process.
            The template argument list is saved along with the symbol. */

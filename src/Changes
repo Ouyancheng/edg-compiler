@@ -1,5 +1,22 @@
 Version 4.15
 
+4/16/18  [EDGcpfe/18002,EDGcpfe/19387]
+Spurious partial ordering ambiguity involving default template arguments
+
+Partial ordering could fail to select a more specialized function in
+some cases involving a function template with a function parameter that
+did not participate in partial ordering (because it had a default function
+argument) and if the type of the defaulted function parameter used a template
+parameter that had a default template argument and was not otherwise
+deduced by the partial ordering process.  Now fixed.
+
+  template <typename T, typename U, typename V = int> void f(T, U, V* = 0);
+  template <typename T> void f(T, int);
+  int main() {
+    f(1, 2);
+  }
+
+
 4/13/18  [EDGcpfe/19554]
 Abort on defaulted special member with explicit exception specification
 

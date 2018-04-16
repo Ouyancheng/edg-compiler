@@ -4719,7 +4719,8 @@ template arguments, or NULL if deduction failed.
                                            template_arg_list,
                                            template_sym,
                                            (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE);
+                                           /*is_partial_order_check=*/FALSE,
+                                           /*param_count=*/0);
   pop_substitution();
   if (updated_routine_type != NULL) {
     a_routine_ptr routine = template_sym->variant.template_info->
@@ -13963,7 +13964,8 @@ not_direct_binding_case:
                                            &template_arg_list, 
                                            base_conversion_symbol,
                                            (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE);
+                                           /*is_partial_order_check=*/FALSE,
+                                           /*param_count=*/0);
       if (conv_routine_type == NULL) goto reject_function;
       if (!is_implicitly_callable_conversion_function(conv_routine_type)) {
         /* The deduced conversion function performs a conversion for which
@@ -25549,7 +25551,8 @@ source_is_rvalue.
     routine_type = wrapup_function_template_argument_deduction(
                                            template_arg_list, sym,
                                            (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE);
+                                           /*is_partial_order_check=*/FALSE,
+                                           /*param_count=*/0);
     if (routine_type == NULL) {
       /* Deduction failed. */
       goto reject_function;
