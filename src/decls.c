@@ -18890,7 +18890,7 @@ class template name) was used in the current declaration, an initializer
 enabled the deduction of an actual type.  Issue an error if that was not
 the case and set dps->specifiers_type to an error type to avoid repeating
 the diagnostic if additional declarators follow.  Also diagnose invalid
-uses of placeholder types in other contexts (e.g., casts).  This does not
+uses of a placeholder types in other contexts (e.g., casts).  This does not
 apply to the placeholder used to introduce a trailing return type (including
 invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
 */
@@ -18918,7 +18918,7 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
     /* A placeholder type was seen, but (a) the placeholder is not allowed at
        all in this context (e.g., a class template name in a call to
        type_name_full), (b) an initializer is missing when one is required
-       (i.e., when placeholder is not a class template name), or (c) the
+       (i.e., when the placeholder is not a class template name), or (c) the
        placeholder is a class template name but this isn't an "initializing
        declaration". */
     err = TRUE;

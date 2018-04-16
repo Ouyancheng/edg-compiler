@@ -13945,7 +13945,7 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  /* Normally copying a type such as a A<T>::X won't result in a change if
+  /* Normally copying a type such as A<T>::X won't result in a change if
      A<T> is a prototype instantiation and T is not replaced with a real
      type.  But such a type will be replaced in deduction guides.  If
      the type is a typedef, use the underlying type so that we don't
