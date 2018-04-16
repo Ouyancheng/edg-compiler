@@ -3900,18 +3900,43 @@ and issue an error if it does not.
 }  /* complete_defaulted_member_decl */
 
 
+static a_boolean is_move_function_with_explicit_exc_spec(a_routine_ptr  rp)
+/*
+Return TRUE if this is a move constructor or move assignment operator with an
+explicit exception specification.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  rtp = skip_typerefs(rp->type);
+  a_routine_type_supplement_ptr
+              rtsp = rtp->variant.routine.extra_info;
+  an_exception_specification_ptr
+              esp = rtsp->exception_specification;
+
+  if (esp != NULL && !esp->compiler_generated &&
+      is_rvalue_reference_type(rtsp->param_type_list->type) &&
+      (routine_is_move_constructor(rp) ||
+       routine_is_move_assignment_operator(rp))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_move_function_with_explicit_exc_spec */
+
+
 static void complete_all_defaulted_member_decls(a_type_ptr  class_type)
 /*
 If needed, establish the exception specification of any special members of
 class_type defined with "= default".  If an exception specification was
 specified explicitly, verify that it matches that of a corresponding generated
-member and issue an error if it does not.
+member and issue an error if it does not.  (This was previously done already
+for certain move functions.)
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
 
   for (; rp != NULL; rp = rp->next) {
-    if (rp->is_defaulted && !rp->is_deleted) {
+    if (rp->is_defaulted && !rp->is_deleted &&
+        !is_move_function_with_explicit_exc_spec(rp)) {
       complete_defaulted_member_decl(rp);
     }  /* if */
   }  /* for */
