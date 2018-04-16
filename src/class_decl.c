@@ -3914,6 +3914,7 @@ explicit exception specification.
               esp = rtsp->exception_specification;
 
   if (esp != NULL && !esp->compiler_generated &&
+      rtsp->param_type_list != NULL &&
       is_rvalue_reference_type(rtsp->param_type_list->type) &&
       (routine_is_move_constructor(rp) ||
        routine_is_move_assignment_operator(rp))) {
