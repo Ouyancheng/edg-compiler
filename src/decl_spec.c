@@ -11301,8 +11301,12 @@ process_enum_specifier:
                 *type_ptr = tp = type_symbol_type(curr_token_type_symbol);
                 decl_specifiers_seen |= DS_TYPE;
                 if (class_template_arg_deduction_enabled &&
-                    type_is(tp, tk_template_param)) {
-                  /* Check for class template argument deduction. */
+                    type_is(tp, tk_template_param) &&
+                    !locator_for_curr_id.is_template_id) {
+                  /* Check for class template argument deduction.  If the
+                     identifier is something like "T::template X<Y>" it
+                     will have been coalesced, so suppress this processing
+                     if we have a template-id. */
                   process_class_template_placeholder(state, tp);
                 }  /* if */
               }  /* if */
