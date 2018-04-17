@@ -1,5 +1,19 @@
 Version 4.15
 
+4/17/18  [EDGcpfe/19562]
+Spurious error on label in a lambda function
+
+The presence of a label in a lambda function disqualifies the lambda function
+from being considered constexpr (see the Changes entry for EDGcpfe/17690),
+but a spurious error had been issued previously.  Now fixed.  For example
+(with --c++17):
+
+  auto l = []() {
+    label01: return 0;      // No spurious error.
+  };
+  constexpr auto x = l();   // But, can't be used in a constexpr expression.
+
+
 4/17/18  [EDGcpfe/19098]
 Microsoft compatibility: sizeof(T::X) incorrectly treated as a type
 

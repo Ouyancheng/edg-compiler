@@ -7044,13 +7044,20 @@ it is followed by a colon.)
          the current scope.  It's needed to handle backwards gotos to
          the current label. */
       reset_curr_block_object_lifetime(label->exec_stmt);
-      /* Don't allow labels in C++14 constexpr functions. */
-      if (relaxed_constexpr_enabled &&
-        innermost_function_scope->variant.routine.ptr->is_constexpr) {
-        pos_error(ec_label_in_constexpr_function,
-                  &label->source_corresp.decl_position);
-        /* Avoid additional diagnostics by marking the label as referenced. */
-        symbol_for(label)->referenced = TRUE;
+      /* Don't allow labels in C++14 constexpr functions (also disqualifies
+         a lambda from being considered constexpr). */
+      if (relaxed_constexpr_enabled) {
+        if (innermost_function_scope->variant.routine.ptr->
+                                                       is_declared_constexpr) {
+          pos_error(ec_label_in_constexpr_function,
+                    &label->source_corresp.decl_position);
+          /* Avoid additional diagnostics by marking the label as
+             referenced.  */
+          symbol_for(label)->referenced = TRUE;
+        } else {
+          scope_stack[depth_innermost_function_scope].constexpr_ruled_out =
+                                                                          TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
