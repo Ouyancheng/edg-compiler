@@ -1,5 +1,23 @@
 Version 4.15
 
+4/17/18  [EDGcpfe/19098]
+Microsoft compatibility: sizeof(T::X) incorrectly treated as a type
+
+In Microsoft mode (actually in modes in which implicit typename is
+enabled), a dependent operand of a sizeof that was a parenthesized
+expression was incorrectly considered to be a type, resulting in
+incorrect behavior.  Now fixed.
+
+  template <class T> void f(typename T::template X<sizeof(T::Y)>*);
+  struct A {
+    template <int I> struct X {};
+    static const int Y = 1;
+  };
+  int main() {
+    f<A>(nullptr);  // Formerly "no instance ... matches"
+  }
+
+
 4/16/18  [EDGcpfe/18002,EDGcpfe/19387]
 Spurious partial ordering ambiguity involving default template arguments
 

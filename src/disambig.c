@@ -174,7 +174,8 @@ the "::" at the start of a qualified name) is a type name.
 */
 #define prescan_curr_id_is_type_name()					\
   (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE,	\
-                    /*in_type_check=*/FALSE) != NULL)
+                    /*in_type_check=*/FALSE,				\
+                    /*is_sizeof_context=*/FALSE) != NULL)
 
 /*
 Macros to test bits in a disambiguation flag set.
@@ -1598,7 +1599,7 @@ types separated by commas (when single_type_required is FALSE).
      for the left parenthesis below. */
   next_tok = next_token();
   is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
-                                        /*is_prescan=*/TRUE);
+                                        /*is_prescan=*/TRUE, IDS_NO_OPTIONS);
   if (microsoft_mode && is_start_of_type && curr_token != tok_identifier &&
       next_tok != tok_lparen && next_tok != tok_declspec &&
       next_tok != tok_alignas) {
@@ -1627,7 +1628,8 @@ types separated by commas (when single_type_required is FALSE).
          may not be a type.  Use is_type_start_full to determine if it is
          something like a type identifier. */
       is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
-                                            /*is_prescan=*/TRUE);
+                                            /*is_prescan=*/TRUE,
+                                            IDS_NO_OPTIONS);
     } else if (next_2_tok != tok_lparen) {
       /* Not a case we need to worry about. */
     } else if (next_tok == tok_identifier) {
@@ -1636,7 +1638,8 @@ types separated by commas (when single_type_required is FALSE).
       (void)get_token();
       any_tokens_fetched = TRUE;
       is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
-                                            /*is_prescan=*/TRUE);
+                                            /*is_prescan=*/TRUE,
+                                            IDS_NO_OPTIONS);
     }  /* if */
     next_tok = next_2_tok;
     if (any_tokens_fetched) rescan_cached_tokens(&cache);
@@ -1780,8 +1783,10 @@ routine to do lookahead, etc.
 
   /* When processing what might be an enum base, do not treat this as an
      expression context for is_decl_start purposes. */
-  is_decl_start_options = (flags & DFS_POSSIBLE_ENUM_BASE) == 0
-                                           ? IDS_EXPR_CONTEXT : IDS_NO_OPTIONS;
+  is_decl_start_options = ((flags & DFS_POSSIBLE_ENUM_BASE) == 0
+                                        ? IDS_EXPR_CONTEXT : IDS_NO_OPTIONS) |
+                          ((flags & DFS_IS_SIZEOF) != 0
+                                        ? IDS_IS_SIZEOF : IDS_NO_OPTIONS);
   if ((flags & DFS_REAL_DECLARATOR_ALLOWED) != 0) {
     is_decl_start_options |= IDS_REAL_DECLARATOR_ALLOWED;
   }  /* if */

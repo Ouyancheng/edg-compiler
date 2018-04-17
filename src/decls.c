@@ -888,7 +888,8 @@ assembler code.
 
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
-                              a_boolean in_type_check)
+                              a_boolean in_type_check,
+                              a_boolean is_sizeof_context)
 /*
 If the current token is an identifier or, in C++, the "::" at the start of a
 global qualified name, and if it starts the name of a type (a typedef name or,
@@ -898,7 +899,9 @@ is not done.  in_prescan is TRUE when we are called from the prescanning
 routines used for disambiguation.  This flag suppresses errors that
 might result from class template names that are missing argument lists.
 in_type_check is used when this routine is called directly or indirectly
-from places such as is_type_start.
+from places such as is_type_start.  is_sizeof_context is TRUE if this
+is called indirectly from scan_sizeof_operator and the name being scanned
+should not be treated as a type for dependent name purposes.
 */
 {
   a_symbol_ptr               assoc_symbol;
@@ -931,15 +934,19 @@ from places such as is_type_start.
          them in symbol entry later.  Defer any access errors that may occur
          because we may actually be scanning something that is not a type
          (e.g., a declarator). */
-      a_symbol_header_ptr  saved_header = locator_for_curr_id.symbol_header;
+      an_identifier_lookup_mode	ilm;
       /* Save locator_for_curr_id: If the lookup finds something that is not a
          type, we will restore the saved value.  This is more thorough than a
          call to clear_specific_symbol to account for e.g. changes to the
          symbol_header field when a constructor is found (constructors have
          their own symbol header not in the main symbol table). */
+      a_symbol_header_ptr       saved_header =
+                                             locator_for_curr_id.symbol_header;
+      /* In a construct like sizeof(T::X), we should consider T::X to be
+         a non-type in dependent contexts. */
+      ilm = is_sizeof_context ? ilm_normal : ilm_tentative_type;
       assoc_symbol =
-          coalesce_and_lookup_generalized_identifier(options,
-                                                     ilm_tentative_type, &err);
+          coalesce_and_lookup_generalized_identifier(options, ilm, &err);
       if (assoc_symbol != NULL) {
         if (!in_prescan && class_template_arg_deduction_enabled &&
             !locator_for_curr_id.is_template_id &&
@@ -979,21 +986,25 @@ from places such as is_type_start.
 Macro that is TRUE if the current token is an identifier that represents
 the name of a type (a typedef name or, in C++, the name of a class, struct,
 union, or enum).  Also works if the current is the "::" at the start of
-a global qualified name.  options is the an_identifier_options_set flags
-to be passed to curr_id_is_type_name.
+a global qualified name.  gid_options is the an_identifier_options_set flags,
+and ids_options is the an_is_decl_start_options_set flags to be passed to
+curr_id_is_type_name.
 */
-#define type_name_next(options) (is_generalized_identifier_start(options) && \
-                                 curr_id_is_type_name(options))
+#define type_name_next(gid_options, ids_options)			\
+  (is_generalized_identifier_start(gid_options) &&			\
+   curr_id_is_type_name(gid_options, ids_options))
 
 
-a_boolean is_type_start_full(a_boolean is_expr_context,
-                             a_boolean is_prescan)
+a_boolean is_type_start_full(a_boolean                    is_expr_context,
+                             a_boolean                    is_prescan,
+                             an_is_decl_start_options_set ids_options)
 /*
 Return TRUE if the current token looks like the start of a type.  A type
 starts with a type-specifier (including a typedef name) or a type-qualifier.
 is_expr_context is TRUE if this is called from a context in which an
-expression is permitted.  is_presan is TRUE if this is called from
-disambiguation.
+expression is permitted.  is_prescan is TRUE if this is called from
+disambiguation.  ids_options is a set of flags used by is_identifier_start
+and associated routines.
 */
 {
   a_boolean    is_start = FALSE;
@@ -1032,7 +1043,7 @@ disambiguation.
       gid_options |= GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (type_name_next(gid_options)) {
+    if (type_name_next(gid_options, ids_options)) {
       /* Identifier that is a type name (a typedef name or, in C++,
          the name of a class, struct, or union).  A type name cannot be
          followed by an opening brace of an initializer list. */
@@ -1063,7 +1074,8 @@ Interface to is_type_start_full for contexts that don't need to supply
 the is_prescan flag.
 */
 {
-  return is_type_start_full(is_expr_context, /*is_prescan=*/FALSE);
+  return is_type_start_full(is_expr_context, /*is_prescan=*/FALSE,
+                            IDS_NO_OPTIONS);
 }  /* is_type_start */
 
 
@@ -1093,7 +1105,8 @@ of declarations that are permitted.
   } else if (curr_token == tok_constexpr) {
     /* constexpr is always a specifier for a declaration. */
     is_start = TRUE;
-  } else if (is_type_start(expr_context)) {
+  } else if (is_type_start_full(expr_context, /*is_prescan=*/FALSE,
+                                options)) {
     /* Is start of type. */
     is_start = TRUE;
   } else if (curr_token == tok_lbracket) {

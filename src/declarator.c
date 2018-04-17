@@ -1894,7 +1894,7 @@ need not be addressed here.
 
   /* The ambiguous cases start with an identifier. */
   if (curr_token == tok_identifier) {
-    if (curr_id_is_type_name(GID_NO_OPTIONS)) {
+    if (curr_id_is_type_name(GID_NO_OPTIONS, IDS_NO_OPTIONS)) {
       /* The identifier is a typedef symbol. */
       if (C_dialect != C_dialect_pcc) {
         /* In ANSI and C++ mode, this must be a prototyped parameter list. */
@@ -3939,7 +3939,7 @@ an error if a default argument expression is encountered.
            not allowed (3.7.1, constraints).  In pcc mode, however, this
            is allowed. */
         if (C_dialect != C_dialect_pcc && !microsoft_bugs &&
-            curr_id_is_type_name(GID_NO_OPTIONS)) {
+            curr_id_is_type_name(GID_NO_OPTIONS, IDS_NO_OPTIONS)) {
           pos_error(C_mode() ? ec_typedef_cannot_be_param_name :
                                ec_type_cannot_be_param_name,
                     &error_position);

@@ -24877,7 +24877,8 @@ sensitive keywords.
          a declarator-id. */
       if (curr_type_symbol(/*is_new_type_name=*/FALSE,
                            /*in_prescan=*/TRUE,
-                           /*in_type_check=*/FALSE) == NULL) {
+                           /*in_type_check=*/FALSE,
+                            /*is_sizeof_context=*/FALSE) == NULL) {
         /* The current identifier is not a type.  So it should be a
            declarator-id and the potential context-sensitive keyword should be
            a type name.  However, in some error cases better error recovery is

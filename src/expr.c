@@ -11447,7 +11447,8 @@ previously-scanned sizeof expression, and return the result in *result
       is_parenthesized = TRUE;
       copy_source_position(pos_curr_token, lparen_position);
       (void)get_token();
-      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+      if (is_decl_not_expr(DFS_IS_SIZEOF |
+                           DFS_ABSTRACT_DECLARATOR_ALLOWED |
                            DFS_SINGLE_TYPE_REQUIRED)) {
         /* This is a type-name in parentheses. */
         is_type = TRUE;
@@ -11457,11 +11458,13 @@ previously-scanned sizeof expression, and return the result in *result
       /* Microsoft allows "sizeof T" without parentheses in C++ mode,
          where T is a type-name (not a keyword like "int").  If we have
          a type name that is not followed by a left parenthesis, assume this
-         to be the size of the type. */
+         to be the size of the type.  Note that is_sizeof_context is not
+         passed here.  It is passed indirectly by is_decl_not_expr above. */
       if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT) &&
           next_token() != tok_lparen &&
           curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE,
-                           /*in_type_check=*/FALSE)) {
+                           /*in_type_check=*/FALSE,
+                           /*is_sizeof_context=*/TRUE)) {
         /* Something like
              typedef int I;
              sizeof I;

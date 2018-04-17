@@ -37,25 +37,22 @@ typedef enum /*an_id_linkage_kind*/ {
 /* Return the symbol if the current token is a type name identifier. */
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
-                              a_boolean in_type_check);
+                              a_boolean in_type_check,
+                              a_boolean is_sizeof_constext);
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
-the "::" at the start of a qualified name) is a type name.  If options
+the "::" at the start of a qualified name) is a type name.  If gid_options
 includes GID_TEMPLATE_ARGS_OPTIONAL, this is considered a prescan context.
+If ids_options includes IDS_IS_SIZEOF, this is a sizeof context.
 */
-#define curr_id_is_type_name(options)					\
+#define curr_id_is_type_name(gid_options, ids_options)			\
   (curr_type_symbol(							\
      /*is_new_type_name=*/FALSE,					\
      /*in_prescan=*/							\
-         /*lint -e(835)*/((options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,	\
-     /*in_type_check=*/TRUE) != NULL)
-
-/* Test whether or not the current token is the start of a type. */
-a_boolean is_type_start_full(a_boolean is_expr_context,
-                             a_boolean is_presan);
-
-extern a_boolean is_type_start(a_boolean is_expr_context);
+         /*lint -e(835)*/((gid_options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,\
+     /*in_type_check=*/TRUE, /*is_sizeoof_context=*/			\
+         /*lint -e(835)*/((ids_options) & IDS_IS_SIZEOF) != 0) != NULL)
 
 /*
 Flags used to specify options to is_decl_start.
@@ -73,6 +70,17 @@ typedef int an_is_decl_start_options_set;
 				0x4
 			/* TRUE if a Microsoft attribute is not allowed in
 			   this context. */
+#define IDS_IS_SIZEOF		0x8
+			/* TRUE if this is the operand of parenthesized
+			   sizeof. */
+
+/* Test whether or not the current token is the start of a type. */
+extern
+a_boolean is_type_start_full(a_boolean                    is_expr_context,
+                             a_boolean                    is_prescan,
+                             an_is_decl_start_options_set options);
+
+extern a_boolean is_type_start(a_boolean is_expr_context);
 
 /* Test whether or not the current token is the start of a declaration. */
 extern a_boolean is_decl_start(an_is_decl_start_options_set options);
