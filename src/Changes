@@ -1,28 +1,5 @@
 Version 4.15
 
-4/16/18  [EDGcpfe/19545]
-Mapping corruption during constexpr interpretation of string literals
-
-The constexpr interpreter maintains mappings between the IL representation of
-string literals and the temporary storage used in the interpreter to hold the
-associated string values.  Under some circumstances, that mapping was
-corrupted causing string constant to be duplicated instead of shared.  For
-example:
-
-  struct S {
-    constexpr S(char const *str): str(str) {}
-    const char *str;
-  };
-  void f() {
-    S("abc");
-    S("abc");
-  }
-
-In some configurations, the two instances of the string "abc" produced
-distinct entries when instead they should have been shared.  That is now
-fixed.
-
-
 4/16/18  [EDGcpfe/18002,EDGcpfe/19387]
 Spurious partial ordering ambiguity involving default template arguments
 

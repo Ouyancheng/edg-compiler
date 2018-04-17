@@ -4617,23 +4617,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
+                /* Record a two-way mapping to ensure we always use the same
+                   storage, and that we reproduce the original constant if this
+                   becomes part of the interpretation result. */
+                map_stack_bytes(ips, cp, con_bytes);
+                map_stack_bytes(ips, con_bytes, (a_byte*)con);
                 if (result) {
                   result = extract_value_from_constant(ips, cp, con_bytes,
                                                        con_bytes);
                 }  /* if */
                 if (!result) break;
                 mark_complete_object_initialized(con_bytes);
-                /* Record a two-way mapping to ensure we always use the same
-                   storage, and that we reproduce the original constant if this
-                   becomes part of the interpretation result. */
-                if (constant_is(cp, ck_string)) {
-                  /* The con_bytes storage was mapped to cp, but in this case
-                     we really want it mapped to con (done below).  Back out
-                     the mapping to cp. */
-                  unmap_stack_bytes(ips, con_bytes);
-                }  /* if */
-                map_stack_bytes(ips, cp, con_bytes);
-                map_stack_bytes(ips, con_bytes, (a_byte*)con);
               }  /* if */
               clear_address(value, con_bytes);
               ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
