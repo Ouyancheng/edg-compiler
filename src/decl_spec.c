@@ -8626,7 +8626,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
               curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                /*in_prescan=*/FALSE,
                                /*in_type_check=*/FALSE,
-                               /*is_expr_constext=*/FALSE) == NULL) {
+                               /*is_expr_context=*/FALSE) == NULL) {
             /* The qualified name should not be treated as a type name: Assume
                a constructor is intended. */
             dps->dso_flags |= DSO_CONSTRUCTOR;

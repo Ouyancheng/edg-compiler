@@ -985,7 +985,7 @@ should not be treated as a type for dependent name purposes.
 /*
 Macro that is TRUE if the current token is an identifier that represents
 the name of a type (a typedef name or, in C++, the name of a class, struct,
-union, or enum).  Also works if the current is the "::" at the start of
+union, or enum).  Also works if the current token is the "::" at the start of
 a global qualified name.  gid_options is the an_identifier_options_set flags,
 and ids_options is the an_is_decl_start_options_set flags to be passed to
 curr_id_is_type_name.

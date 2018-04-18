@@ -38,7 +38,7 @@ typedef enum /*an_id_linkage_kind*/ {
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
                               a_boolean in_type_check,
-                              a_boolean is_sizeof_constext);
+                              a_boolean is_sizeof_context);
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
@@ -71,8 +71,8 @@ typedef int an_is_decl_start_options_set;
 			/* TRUE if a Microsoft attribute is not allowed in
 			   this context. */
 #define IDS_IS_SIZEOF		0x8
-			/* TRUE if this is the operand of parenthesized
-			   sizeof. */
+			/* TRUE if this is the parenthesized operand of sizeof
+			   operator. */
 
 /* Test whether or not the current token is the start of a type. */
 extern
