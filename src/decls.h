@@ -71,8 +71,8 @@ typedef int an_is_decl_start_options_set;
 			/* TRUE if a Microsoft attribute is not allowed in
 			   this context. */
 #define IDS_IS_SIZEOF		0x8
-			/* TRUE if this is the parenthesized operand of sizeof
-			   operator. */
+			/* TRUE if this is the parenthesized operand of a
+			   sizeof operator. */
 
 /* Test whether or not the current token is the start of a type. */
 extern

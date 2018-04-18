@@ -57,8 +57,8 @@ typedef uint16_t a_disambig_flag_set;
 			/* For a lambda declarator parameter, record the
 			   presence of an "auto" type. */
 #define DFS_IS_SIZEOF			0x400
-			/* TRUE if this is the parenthesized operand of sizeof
-			   operator. */
+			/* TRUE if this is the parenthesized operand of a
+			   sizeof operator. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
