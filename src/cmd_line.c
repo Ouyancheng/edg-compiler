@@ -3352,7 +3352,7 @@ default mode (e.g., exception handling).
   if (!(option_kind_used[(int)optk_export_template])) {
     /* If export template processing was not explicitly set by a command line
        option, disable it in C++11 mode. */
-    export_template_allowed = EXPORT_ENABLING_POSSIBLE && !value;
+    export_template_allowed = EXPORT_ENABLING_POSSIBLE && !value;/*lint !e506*/
   }  /* if */
   explicit_conversion_functions_enabled = value;
   if (!option_kind_used[(int)optk_uliterals]) {
