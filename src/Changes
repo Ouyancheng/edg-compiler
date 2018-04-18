@@ -1,5 +1,29 @@
 Version 4.15
 
+4/18/18  [EDGcpfe/19506]
+GNU C++ compatibility: missing "template" keyword bug fixed in g++
+
+The front end emulates a g++ lookup bug (see EDGcpfe/9232) that treats
+certain names as templates without use of the "template" keyword.  This
+bug has been fixed in g++, so the emulation is no longer done when
+gnu_version is >= 60000.  The emulation caused us (and the bug caused g++)
+to issue spurious errors on examples such as this one.
+
+  namespace N { template <typename T> int g(); }
+  template <typename T> struct A {
+    A() : g(0) {}
+    int g;
+  };
+  using namespace N;
+  template<typename T> inline void f() {
+    A<T> a;
+    while (a.g < 10) { }  // Formerly: expected a ">"
+  }
+  int main() {
+    f<int>();
+  }
+
+
 4/18/18  [EDGcpfe/19563]
 Incorrect value for export_template_allowed when EXPORT_ENABLING_POSSIBLE is
 FALSE
