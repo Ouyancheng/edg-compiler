@@ -76,6 +76,9 @@ typedef struct a_disambig_state {
 			/* TRUE if the "static" keyword was seen as a
 			   declaration specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean	suppress_packs;
+			/* TRUE if the pack processing should be suppressed
+			   in the current context. */
   a_token_sequence_number
 		first_tsn;
 			/* The value of curr_token_sequence_number at the
@@ -121,6 +124,7 @@ cache of the tokens fetched for disambiguation should be created.
   dsp->find_static_specifier_only = FALSE;
   dsp->static_specifier_seen = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  dsp->suppress_packs = suppress_packs;
   dsp->first_tsn = curr_token_sequence_number;
   /* dsp->pack_expansion_stack_entry set below. */
   if (cache_tokens) {
@@ -997,38 +1001,53 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   if (record_auto_params) flags &= ~DFS_RECORD_AUTO_PARAMS;
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
-    prescan_any_prefix_bracketed_attributes(flags);
-    if (curr_token == tok_ellipsis) {
-      /* Advance past the ellipsis. */
-      get_token_and_coalesce_if_identifier(flags);
-    } else {
-      /* A parameter declaration.  Scan the declaration. */
-      a_disambig_flag_set  param_flags = DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                                         DFS_REAL_DECLARATOR_ALLOWED |
-                                         DFS_SINGLE_TYPE_REQUIRED;
-      if (record_auto_params) param_flags |= DFS_RECORD_AUTO_PARAMS;
-      prescan_declaration(state, param_flags, /*is_top_level=*/FALSE);
-      if (record_auto_params) {
-        a_decl_parse_state_ptr   dps = state->decl_parse_state;
-        an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
-        param_num += 1;
-        if (apdp != NULL && apdp->param_num == 0) {
-          apdp->param_num = param_num;
-        }  /* if */
-      } else if (terminate_disambiguation(state)) {
-        goto done;
+    a_pack_expansion_stack_entry_ptr	pesep = NULL;
+    a_boolean				any_more = TRUE;
+    if (!state->suppress_packs) {
+      /* If packs are not being suppressed, begin a potential pack
+         expansion context.  Note that otherwise, pesep will be NULL and
+         the other pack routines below will consider this a non-pack
+         context. */
+      any_more = begin_potential_pack_expansion_context(&pesep);
+    }  /* if */
+    while (any_more) {
+      prescan_any_prefix_bracketed_attributes(flags);
+      if (curr_token == tok_ellipsis) {
+        /* Advance past the ellipsis. */
+        get_token_and_coalesce_if_identifier(flags);
+      } else {
+        /* A parameter declaration.  Scan the declaration. */
+        a_disambig_flag_set  param_flags = DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                           DFS_REAL_DECLARATOR_ALLOWED |
+                                           DFS_SINGLE_TYPE_REQUIRED;
+        if (record_auto_params) param_flags |= DFS_RECORD_AUTO_PARAMS;
+        prescan_declaration(state, param_flags, /*is_top_level=*/FALSE);
+        if (record_auto_params) {
+          a_decl_parse_state_ptr   dps = state->decl_parse_state;
+          an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
+          param_num += 1;
+          if (apdp != NULL && apdp->param_num == 0) {
+            apdp->param_num = param_num;
+          }  /* if */
+        } else if (terminate_disambiguation(state)) {
+          goto done;
+       }  /* if */
       }  /* if */
-    }  /* if */
-    if (curr_token == tok_comma) {
-      get_token_and_coalesce_if_identifier(flags);
-    } else if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
-      /* After scanning a parameter declaration we should be at a comma,
-         the closing right parenthesis, or an ellipsis that follows an
-         argument without an intervening comma.  If not, we conclude that this
-         isn't really a declaration. */
-     state->may_be_decl = FALSE;
-     goto done;
-    }  /* if */
+      if (curr_token == tok_comma) {
+        get_token_and_coalesce_if_identifier(flags);
+      } else if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
+        /* After scanning a parameter declaration we should be at a comma,
+           the closing right parenthesis, or an ellipsis that follows an
+           argument without an intervening comma.  If not, we conclude that
+           this isn't really a declaration. */
+       state->may_be_decl = FALSE;
+       abandon_potential_pack_expansion_context(pesep);
+       goto done;
+      }  /* if */
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/TRUE);
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
   }  /* while */
   /* Cache and bypass the right parenthesis. */
   get_token_and_coalesce_if_identifier(flags);
@@ -2007,11 +2026,21 @@ those parameters in a list pointed to by dps->auto_params.  Such parameters
 indicate that the lambda is a C++14 generic lambda.
 */
 {
-  a_disambig_state  state;
+  a_disambig_state		state;
+  a_boolean			scope_pushed = FALSE;
 
+  if (!is_template_dependent_context()) {
+    /* If we are not already in a template-dependent context, push a
+       template declaration scope so that any packs in the lambda
+       declarator will be handled properly. */
+    a_template_decl_info_ptr	tdip;
+    tdip = alloc_template_decl_info();
+    push_template_declaration_scope(tdip, /*is_template_param_rescan=*/FALSE);
+    scope_pushed = TRUE;
+  }  /* if */
   /* Initialize the disambiguation state block. */
   init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
-                      /*suppress_packs=*/TRUE,
+                      /*suppress_packs=*/FALSE,
                       /*cache_tokens=*/TRUE);
   state.decl_parse_state = dps;
   state.record_auto_parameters = TRUE;
@@ -2033,6 +2062,7 @@ indicate that the lambda is a C++14 generic lambda.
   }  /* if */
   check_assertion_or_expect_error(state.may_be_decl);
   wrapup_disambig_state(&state);
+  if (scope_pushed) pop_scope();
 }  /* prescan_lambda_parameter_clause */
 
 /******************************************************************************

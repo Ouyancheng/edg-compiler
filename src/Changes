@@ -1,5 +1,25 @@
 Version 4.15
 
+4/18/18  [EDGcpfe/19173]
+Error type in IL from lambda with parameter that is an empty pack expansion
+
+In C++14 (or newer) mode, an error type could end up in the IL if a lambda
+was declared with a parameter pack with an empty expansion.  The IL for
+the lambda was correct, but an error type was created during a prescan
+operation.  The presence of that error type could result in an internal
+error during name mangling.  Now fixed.
+
+  template <typename> void g();
+  template <typename T> struct A;
+  template <typename T, typename ... Ts> void f(T...){ }
+  template <typename T, typename ... Ts> static void h(T) {
+    f([](typename A< Ts >::type...){});
+  }
+  int main() {
+    h(g<int>);
+  }
+
+
 4/18/18  [EDGcpfe/19506]
 GNU C++ compatibility: missing "template" keyword bug fixed in g++
 

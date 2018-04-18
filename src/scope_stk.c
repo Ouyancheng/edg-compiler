@@ -12030,6 +12030,8 @@ by prp.
        Any actual missing expansions will have been diagnosed in the original
        prototype instantiations, so avoid issuing any potentially incorrect
        diagnostics here. */
+  } else if (scope_stack_top().in_disambiguation) {
+    /* We are in disambiguation, so pack references are not being recorded. */
   } else {
     for (; prp != NULL; prp = prp->next) {
       pos_st_error(ec_pack_not_expanded, &prp->position,
