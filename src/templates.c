@@ -2375,7 +2375,7 @@ static a_boolean wrapup_template_argument_deduction(
                                 a_symbol_ptr         template_sym,
                                 a_template_param_ptr templ_param_list,
 				a_boolean	     is_partial_order_check,
-				uint32_t             param_count)
+				uint32_t	     param_count)
 /*
 This routine is used after doing argument deduction for each argument to
 ensure that any nontype parameter whose type depends on a
@@ -2571,7 +2571,7 @@ a_type_ptr wrapup_function_template_argument_deduction(
                                 a_symbol_ptr         rout_templ_sym,
                                 a_template_param_ptr templ_param_list,
 				a_boolean	     is_partial_order_check,
-				uint32_t             param_count)
+				uint32_t	     param_count)
 /*
 Calls wrapup_template_argument_deduction and then produces a final
 routine type by substituting the completed template arguments into the
