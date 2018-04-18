@@ -18725,13 +18725,13 @@ a field selection.
                (is_class_or_injected_template_symbol(normal_fund_sym) ||
                 (gpp_microsoft_mode_case =
                  (symbol_is_or_contains_template(normal_fund_sym) &&
-                  (gpp_version_is(< 60000) ||
+                  (gpp_version_is(< 60000) || clang_mode ||
                    microsoft_mode))))) { /*lint !e820*/
       /* The class symbol is a nonreal nontemplate and the normal symbol
-         is a class template.  Use the normal symbol.  In g++ and Microsoft
-         mode, a function template or overload set containing a function
-         template causes the template symbol to be returned (except in
-         dependent cases (see below)). */
+         is a class template.  Use the normal symbol.  In g++, clang and
+         Microsoft mode, a function template or overload set containing a
+         function template causes the template symbol to be returned (except
+         in dependent cases (see below)). */
       if (gpp_microsoft_mode_case && is_template_dependent_context() &&
           is_nontype_template_param_symbol(class_fund_sym)) {
         /* In g++ and Microsoft mode, a reference like "t->f<1>()" is
