@@ -1031,7 +1031,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
           }  /* if */
         } else if (terminate_disambiguation(state)) {
           goto done;
-       }  /* if */
+        }  /* if */
       }  /* if */
       if (curr_token == tok_comma) {
         get_token_and_coalesce_if_identifier(flags);
