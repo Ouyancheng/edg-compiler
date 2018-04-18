@@ -19,7 +19,7 @@ but a spurious error had been issued previously.  Now fixed.  For example
   auto l = []() {
     label01: return 0;      // No spurious error.
   };
-  constexpr auto x = l();   // But, can't be used in a constexpr expression.
+  constexpr auto x = l();   // But, can't be used in a constant expression.
 
 
 4/17/18  [EDGcpfe/19098]
