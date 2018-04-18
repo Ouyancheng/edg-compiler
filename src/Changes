@@ -1,5 +1,13 @@
 Version 4.15
 
+4/18/18  [EDGcpfe/19563]
+Incorrect value for export_template_allowed when EXPORT_ENABLING_POSSIBLE is
+FALSE
+
+It had previously been possible to have export_template_allowed set to TRUE
+even in configurations where EXPORT_ENABLING_POSSIBLE is FALSE.  Now fixed.
+
+
 4/17/18  [EDGcpfe/19562]
 Spurious error on label in a lambda function
 
