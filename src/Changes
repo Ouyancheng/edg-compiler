@@ -1,5 +1,13 @@
 Version 4.15
 
+4/20/18  [EDGcpfe/19569]
+Microsoft compatibility: --ms_c++latest with microsoft_version 1914
+
+A number of C++17 features are now enabled when microsoft_version == 1914
+(i.e., Visual Studio 2017 version 15.7) and either --ms_c++17 or --ms_c++latest
+is specified.
+
+
 4/20/18  [EDGcpfe/17499]
 Qualified enum names in class or enum scope
 

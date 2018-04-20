@@ -2658,6 +2658,15 @@ option values if they were not already set by a command line option.
           class_template_arg_deduction_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1914) {
+        /* Visual Studio 2017 version 15.7. */
+        if (ms_cpplatest_mode || ms_cpp17_mode) {
+          variadic_using_decls_enabled = TRUE;
+          strict_cpp17_eval_order = TRUE;
+          aggregate_classes_can_have_bases = TRUE;
+          auto_template_params_enabled = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
