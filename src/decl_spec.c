@@ -6307,7 +6307,16 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     enum_type = type_symbol_type(tag_sym);
     is_redeclaration = TRUE;
     dps->redeclares_tag = TRUE;
-    if (is_immediate_enum_type(enum_type)) {
+    if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+        locator.is_qualified_name && ((!gpp_mode &&
+        (dps->tag_def_or_forward_decl || is_opaque_enum_decl)) ||
+        (gpp_mode && (is_definition || is_opaque_enum_decl)))) {
+       /* Qualified enum names within a class or enum are not allowed.
+          For gpp_mode, allow qualified useless member declarations. */
+       pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+       tag_sym = NULL;
+       set_to_error_locator(locator);
+    } else if (is_immediate_enum_type(enum_type)) {
       /* C++/CLI does not permit a type first declared with "enum class" or
          "enum struct" to later be referred to with just "enum", nor vice
          versa.  C++11 also disallows the mismatch for opaque declarations
@@ -6393,7 +6402,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = FALSE;
       *type_ptr = enum_type;
       goto return_point;
-    } else if (!tag_sym->is_nonreal_nested_type) {
+    }  else if (tag_sym->is_nonreal_member){
+            /* Use the enum symbol, not the nonreal one. */
+            tag_sym = nested_prototype_type_for_nonreal_type(tag_sym);
+            enum_type = type_symbol_type(tag_sym);
+    } else {
       pos_sy_error(ec_not_an_enum_type_name, &locator.source_position,
                    tag_sym);
       tag_sym = NULL;

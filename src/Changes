@@ -1,5 +1,26 @@
 Version 4.15
 
+4/20/18  [EDGcpfe/17499]
+Qualified enum names in class or enum scope
+
+Qualified enum names were erroneously allowed in class or enum scope. This 
+would in certain cases cause a crash. Both handling of qualified enums and 
+the crash is now fixed.
+
+  template <typename T>
+  class D1
+  {
+    enum A : int;
+    enum D1::A : int { foo } c; // This line would cause a compiler crash
+  };  
+
+  class D2
+  {
+    enum A : int;
+    enum D2::A : int { foo } c; // This used to erroneously compile 
+  };
+
+
 4/18/18  [EDGcpfe/19173]
 Error type in IL from lambda with parameter that is an empty pack expansion
 
