@@ -10847,6 +10847,9 @@ possibility.
         /* If the friend declaration appears in a template dependent context,
            create a dummy routine and associated symbol.  Return that instead
            of calling decl_routine. */
+        if (func_info->is_definition) {
+          state->is_definition = TRUE;
+        }  /* if */
         sym = decl_dependent_friend_function(locator, function_type, func_info,
                                              decl_info);
         state->sym = sym;
