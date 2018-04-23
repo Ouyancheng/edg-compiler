@@ -1,5 +1,15 @@
 Version 4.15
 
+4/23/18  [EDGcpfe/19564]
+Microsoft compatibility: allow __inline to be used with namespace
+
+In Microsoft mode, __inline could not be used to declare an inline 
+namespace. This has now been fixed. For example (with 
+--microsoft_version 1913 -c++):
+
+  __inline namespace literals {} //declares an inline namespace
+ 
+
 4/20/18  [EDGcpfe/19388]
 Spurious error on attribute applied to friend definition in class template
 

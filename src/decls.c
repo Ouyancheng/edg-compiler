@@ -14388,7 +14388,7 @@ NULL otherwise).
     is_unnamed_namespace = FALSE;
     namespace_pos = *nested_namespace_pos;
   } else {
-    if (curr_token == tok_inline) {
+    if (curr_token == tok_inline || curr_token == tok_microsoft_inline) {
       /* This is an inline namespace declaration. */
       is_inline = TRUE;
       (void)get_token();
@@ -18286,7 +18286,9 @@ processing should proceed after the call.
          return. */
       end_of_decl_action = eoda_skip_final_token;
     } else if (curr_token == tok_namespace ||
-               (inline_namespaces_enabled && curr_token == tok_inline &&
+               (inline_namespaces_enabled &&
+                (curr_token == tok_inline ||
+                 curr_token == tok_microsoft_inline) &&
                 next_token() == tok_namespace)) {
       /* "namespace" or "inline namespace".  Attributes cannot begin
           a "namespace" declaration. */
