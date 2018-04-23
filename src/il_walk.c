@@ -2592,14 +2592,11 @@ in cases where the orphan lists have not been generated yet.
       list_processing_routine(solhp->orphaned_types);
       innermost_function_scope = saved_innermost_function_scope;
     }  /* for */
-    /* Templates instantiated late in the primary translation unit in
-       the presence of exported templates have their lowering delayed
-       (see pop_scope), and therefore their orphan lists are not
-       constructed yet.  Visit the local scopes directly.  In all other
-       cases, we're done. */
-    if (C_mode() ||
-        !is_primary_translation_unit ||
-        !function_body_processing_delayed_on_some_func_in_primary_il) {
+    if (C_mode()) {
+      /* In C mode, orphan list processing is sufficient to cover the handling
+         of local entities that need it.  In C++ mode, however, that is not the
+         case because processing may have been delayed (i.e., the orphan lists
+         may not have been created yet). */
       goto end_of_routine;
     }  /* if */
   }  /* if */

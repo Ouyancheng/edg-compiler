@@ -1,5 +1,22 @@
 Version 4.15
 
+4/23/18  [EDGcpfe/19341]
+Inconsistent mangled name of local closure type in secondary translation unit
+
+Consider:
+
+  int main() { 
+    auto func = [](auto p) { p > 0; };  
+  }
+
+When this appeared in a secondary translation unit with no corresponding
+definition in the primary translation unit, the closure type associated with
+the lambda was not mangled.  Furthermore, even if processing were added to
+mangle the closure type's name, that mangled name was ignored by the
+C-generating back end: An unpredictable generated name was used instead.
+Both these issues are now resolved.
+
+
 4/23/18  [EDGcpfe/19564]
 Microsoft compatibility: allow __inline to be used with namespace
 
