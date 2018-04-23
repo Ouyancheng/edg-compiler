@@ -6310,9 +6310,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
         locator.is_qualified_name && ((!gpp_mode &&
         (dps->tag_def_or_forward_decl || is_opaque_enum_decl)) ||
-        (gpp_mode && (is_definition || is_opaque_enum_decl)))) {
-       /* Qualified enum names within a class or enum are not allowed.
-          For gpp_mode, allow qualified useless member declarations. */
+        (gpp_mode && (is_definition || is_opaque_enum_decl))) &&
+        !(dps->dso_flags & DSO_FRIEND)){
+       /* Qualified enum names within a class or enum are not allowed,
+          unless they appear in a friend declaration. For gpp_mode, allow
+          qualified useless member declarations. */
        pos_error(ec_qualified_name_not_allowed, &locator.source_position);
        tag_sym = NULL;
        set_to_error_locator(locator);
