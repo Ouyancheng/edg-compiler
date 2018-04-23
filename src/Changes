@@ -24,9 +24,10 @@ friend definition in a class template.  For example (with --c++11):
 4/20/18  [EDGcpfe/19569]
 Microsoft compatibility: --ms_c++latest with microsoft_version 1914
 
-A number of C++17 features are now enabled when microsoft_version == 1914
-(i.e., Visual Studio 2017 version 15.7) and either --ms_c++17 or --ms_c++latest
-is specified.
+Four C++17 features are now enabled when microsoft_version == 1914 (i.e.,
+Visual Studio 2017 version 15.7) and either --ms_c++17 or --ms_c++latest is
+specified.  Those features are: variadic using-declarations, strict evaluation
+ordering, base classes for aggregates, and auto template parameters.
 
 
 4/20/18  [EDGcpfe/17499]
