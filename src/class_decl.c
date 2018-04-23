@@ -3875,15 +3875,16 @@ and issue an error if it does not.
          equivalent to the generated one.  The resolution of Core issue
          1778 changed the non-equivalent cases to cause the defaulted
          member to be deleted instead of ill-formed.  MSVC and GCC already
-         behaved that way for template instances.  Newer GCC versions
-         follow Core issue 1778 in C++11 mode too. */
+         behaved that way for template instances.  Clang, and newer GCC and
+         MSVC versions follow Core issue 1778 in C++11 mode too. */
       if (exception_spec_is_less_restrictive(
                 declared_exception_spec, rtsp->exception_specification) ||
           exception_spec_is_less_restrictive(
                 rtsp->exception_specification, declared_exception_spec)) {
-        if (cpp14_mode ||
-            ((gpp_mode && !clang_mode) && gnu_version >= 40900) ||
-            ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+        if (cpp14_mode || clang_mode ||
+            (gpp_mode && gnu_version >= 40900) ||
+            (microsoft_mode && microsoft_version >= 1910) ||
+            ((microsoft_mode || gpp_mode) &&
              rp->is_template_function && !rp->is_specialized)) {
           rp->is_deleted = TRUE;
           rp->defined = TRUE;
