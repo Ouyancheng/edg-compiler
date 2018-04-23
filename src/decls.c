@@ -54,6 +54,13 @@ specifier.  Includes an "||" at the beginning.
 #define or_is_microsoft_storage_class() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_inline_token()                                            \
+  (curr_token == tok_inline || curr_token == tok_microsoft_inline )
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_inline_token() (curr_token == tok_inline)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 Macro to test for "__thread", "thread_local", or "_Thread_local" storage
 specifier.
@@ -14388,7 +14395,7 @@ NULL otherwise).
     is_unnamed_namespace = FALSE;
     namespace_pos = *nested_namespace_pos;
   } else {
-    if (curr_token == tok_inline || curr_token == tok_microsoft_inline) {
+    if (is_inline_token()) {
       /* This is an inline namespace declaration. */
       is_inline = TRUE;
       (void)get_token();
@@ -18286,9 +18293,7 @@ processing should proceed after the call.
          return. */
       end_of_decl_action = eoda_skip_final_token;
     } else if (curr_token == tok_namespace ||
-               (inline_namespaces_enabled &&
-                (curr_token == tok_inline ||
-                 curr_token == tok_microsoft_inline) &&
+               (inline_namespaces_enabled && is_inline_token() &&
                 next_token() == tok_namespace)) {
       /* "namespace" or "inline namespace".  Attributes cannot begin
           a "namespace" declaration. */

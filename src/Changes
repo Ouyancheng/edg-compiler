@@ -5,7 +5,7 @@ Microsoft compatibility: allow __inline to be used with namespace
 
 In Microsoft mode, __inline could not be used to declare an inline 
 namespace. This has now been fixed. For example (with 
---microsoft_version 1913 -c++):
+--microsoft_version 1913 --c++):
 
   __inline namespace literals {} //declares an inline namespace
  
