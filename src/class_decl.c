@@ -3875,7 +3875,7 @@ and issue an error if it does not.
          equivalent to the generated one.  The resolution of Core issue
          1778 changed the non-equivalent cases to cause the defaulted
          member to be deleted instead of ill-formed.  MSVC and GCC already
-         behaved that way for template instances.  Clang, and newer GCC and
+         behaved that way for template instances.  Clang and newer GCC and
          MSVC versions follow Core issue 1778 in C++11 mode too. */
       if (exception_spec_is_less_restrictive(
                 declared_exception_spec, rtsp->exception_specification) ||
