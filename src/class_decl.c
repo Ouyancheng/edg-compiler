@@ -27295,7 +27295,12 @@ that is provided if this is a member template declaration.
         scan_deduction_guide(dps, &func_info, &locator, decl_pos_block_ptr);
       } else {
         /* A deduction guide template. */
+        /* Transfer the declaration parse state to the template declaration
+           parse state, making sure that the list of end-of-parse actions is
+           only pointed to by the latter (otherwise, we will try to deallocate
+           the list twice). */
         templ_state->decl_parse = *dps;
+        dps->end_of_parse_actions = NULL;
         scan_nested_deduction_guide_template(templ_state, class_type,
                                              decl_pos_block_ptr);
       }  /* if */
