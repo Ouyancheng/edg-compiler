@@ -6012,6 +6012,13 @@ the dynamic initialization is the result of a static_cast.
         break;
       case dik_zero:
         break;
+      case dik_constant:
+        mangled_encoding_for_constant(dip->variant.constant,
+                                      /*old_form=*/FALSE,
+                                      /*in_dependent_expr=*/TRUE,
+                                      /*suppress_address_of=*/FALSE,
+                                      mctl);
+        break;
       default:
         unexpected_condition();
     }  /* switch */
