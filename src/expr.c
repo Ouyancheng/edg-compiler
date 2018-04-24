@@ -24576,6 +24576,7 @@ one argument, return TRUE; otherwise, return FALSE.
 static void scan_braced_init_list_cast(a_type_ptr         type_cast_to,
                                        a_cast_source_form source_form,
                                        an_init_component  *rescan_icp,
+                                       a_boolean          suppress_diagnostics,
                                        an_operand         *result)
 /*
 Scan the C++11 braced list-initializer form of a cast, e.g., T{x, y} or
@@ -24586,7 +24587,9 @@ source_form identifies the source form of the cast (csf_functional
 or csf_old_style).  On return, the current token is the one following
 the closing brace.  If rescan_icp is non-NULL, this is a rescan
 and rescan_icp provides the copied and substituted version of the
-previously-scanned braced initializer.
+previously-scanned braced initializer.  suppress_diagnostics is TRUE
+if diagnostics should be suppressed (i.e., when if the rescan is for
+deduction purposes).
 */
 {
   an_init_component_ptr icp;
@@ -24601,7 +24604,7 @@ previously-scanned braced initializer.
   if (rescan_icp != NULL) {
     icp = rescan_icp;
     expr_clear_init_state(&is);
-    is.no_diagnostics = TRUE;
+    is.no_diagnostics = suppress_diagnostics;
     p_is = &is;
     result_opnd = NULL;
   } else {
@@ -24826,8 +24829,8 @@ freed by this routine.
       (scanning_source ? curr_token == tok_lbrace :
                          braced_init_list != NULL)) {
     /* C++11 list-initializer syntax, e.g., T{x, y}. */
-    scan_braced_init_list_cast(type_cast_to, csf_functional,
-                               braced_init_list, result);
+    scan_braced_init_list_cast(type_cast_to, csf_functional, braced_init_list,
+                               rcblock != NULL, result);
     if (rcblock != NULL && is_error_operand(result)) {
       subst_fail(rcblock->error_detected);
     }  /* if */
