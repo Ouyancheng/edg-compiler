@@ -24618,6 +24618,8 @@ previously-scanned braced initializer.
     if (is.init_error) {
       make_error_operand(result);
     } else if (is.init_con != NULL) {
+      is.init_con->explicit_cast_applied = TRUE;
+      is.init_con->explicit_braces_on_aggregate = TRUE;
       make_constant_operand(is.init_con, result);
     } else {
       an_expr_node_ptr  node;

@@ -13399,6 +13399,12 @@ the partially-initialized flag can be copied into the dynamic init.
                    dip->kind==(a_dynamic_init_kind)dik_nonconstant_aggregate));
   dip->variant.constant = constant;
   dip->is_partially_initialized = constant->is_partially_initialized;
+  if (constant->explicit_cast_applied) {
+    dip->is_explicit_cast = TRUE;
+  }  /* if */
+  if (constant->explicit_braces_on_aggregate) {
+    dip->is_braced_initializer = TRUE;
+  }  /* if */
 }  /* set_dynamic_init_constant */
 
 
