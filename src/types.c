@@ -379,6 +379,7 @@ type, without changing the type represented, for deduction purposes."
   return type_ptr;
 }  /* skip_typedefs_not_dependent_decltypes */
 
+#if BACK_END_IS_CP_GEN_BE
 
 a_type_ptr skip_typerefs_not_typedefs_or_type_operators(a_type_ptr type_ptr)
 /*
@@ -393,6 +394,7 @@ Skip any typerefs that don't represent a typedef or a type operator.
   return type_ptr;
 }  /* skip_typerefs_not_typedefs_or_type_operators */
 
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 a_boolean is_error_type(a_type_ptr tp)
 /*
@@ -2657,13 +2659,11 @@ a_boolean is_class_template_placeholder_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a special template parameter type used to
 represent a class template that is being used for class template argument
-deduction.  Typeref entries representing qualifiers are stripped, but not
-typeref entries representing typedefs or type operators.
+deduction.  No typerefs are stripped before checking for that.
 */
 {
   a_boolean result = FALSE;
 
-  tp = skip_typerefs_not_typedefs_or_type_operators(tp);
   if (is_template_param(tp) &&
       tp->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param &&

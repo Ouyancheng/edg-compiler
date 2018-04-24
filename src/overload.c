@@ -26193,11 +26193,7 @@ was not completed because the types involved are still dependent,
   a_boolean     unknown_dependent_ctor = FALSE, init_list_ctor_case = FALSE;
   a_conv_context_set
                 conv_context = CCO_DEFAULT;
-  a_type_qualifier_set
-                tqs = get_type_qualifiers(placeholder_type);
 
-  placeholder_type =
-               skip_typerefs_not_typedefs_or_type_operators(placeholder_type);
   if (!is_direct_init) {
     conv_context = CCO_INITIALIZING_VARIABLE;
   }  /* if */
@@ -26222,14 +26218,10 @@ was not completed because the types involved are still dependent,
   }  /* if */
   ct_sym = placeholder_type->variant.template_param.extra_info
                            ->class_template_symbol;
-  if (ct_sym->is_template_param ||
-      (ct_sym->is_class_member &&
-       is_template_dependent_type(sym_parent_class(ct_sym)))) {
-    /* If the class template represented by ct_sym is still dependent, don't
-       attempt deduction until a real instantiation is performed.  That can
-       happen when the placeholder class template is actually a template
-       template parameter or when it is a member class template of a dependent
-       parent class. */
+  if (ct_sym->is_template_param) {
+    /* The placeholder class template is actually a template template
+       parameter.  Don't attempt deduction until a real instantiation is
+       performed. */
     *still_dependent = TRUE;
     result = FALSE;
     goto done;
@@ -26285,9 +26277,6 @@ was not completed because the types involved are still dependent,
         trp->variant.typeref.type = *deduced_placeholder;
         trp->variant.typeref.is_deduced_class = TRUE;
         *deduced_placeholder = trp;
-      }  /* if */
-      if (tqs != TQ_NONE) {
-        *deduced_placeholder = make_qualified_type(*deduced_placeholder, tqs);
       }  /* if */
       *still_dependent = FALSE;
     }  /* if */

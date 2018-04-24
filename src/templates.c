@@ -14288,14 +14288,13 @@ a pointer over a reference type or creating an array of references.
         if (this_class == NULL) {
           new_this_class = NULL;
         } else {
-          new_this_class = this_class;
-          if (new_this_class == ctws_state->old_this_class) {
+          if (this_class == ctws_state->old_this_class) {
             /* In deduction guide substitution, the this_class should be
                replaced with the version provided by the caller. */
-            new_this_class = ctws_state->new_this_class;
+            this_class = ctws_state->new_this_class;
           }  /* if */
           new_this_class = copy_type_with_substitution(
-                                        new_this_class, templ_arg_list,
+                                        this_class, templ_arg_list,
                                         templ_param_list, source_pos, options,
                                         copy_error, ctws_state);
           /* Drop any typedefs and qualifiers on the class type. */
@@ -16916,8 +16915,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
     /* Deduction guides are considered nonreal instantiations. */
-    is_deduction_guide = special_kind_is(templ_rout, sfk_deduction_guide);
-    if (is_deduction_guide) {
+    if (templ_rout->special_kind ==
+                               (a_special_function_kind)sfk_deduction_guide) {
       ps_options |= PS_NONREAL_INSTANTIATION;
     }  /* if */
     /* If this is an in-class specialization and the enclosing class is
@@ -16955,6 +16954,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     is_member_decl =
          tssp->variant.function.decl_cache.decl_info->enclosing_scope->kind ==
                                           (a_scope_kind)sck_class_struct_union;
+    is_deduction_guide = special_kind_is(templ_rout, sfk_deduction_guide);
 #if DECL_MODIFIERS_IN_USE
     locator_position = pos_curr_token;
 #endif /* DECL_MODIFIERS_IN_USE */
