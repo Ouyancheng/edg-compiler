@@ -70,11 +70,11 @@ ordering, base classes for aggregates, and auto template parameters.
 
 
 4/20/18  [EDGcpfe/17499]
-Qualified enum names in class or enum scope
+Qualified enum names in non-namespace scope
 
-Qualified enum names were erroneously allowed in class or enum scope. This 
-would in certain cases cause a crash. Both handling of qualified enums and 
-the crash is now fixed.
+Enum declarations using qualified enum names were erroneously allowed in 
+non-namespace scope. This would in certain cases cause a segmentation fault.
+Both handling of qualified enums and the segmentation fault are now fixed.
 
   template <typename T>
   class D1
