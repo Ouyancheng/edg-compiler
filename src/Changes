@@ -11,10 +11,10 @@ Consider:
 
 When this appeared in a secondary translation unit with no corresponding
 definition in the primary translation unit, the closure type associated with
-the lambda was not mangled.  Furthermore, even if processing were added to
-mangle the closure type's name, that mangled name was ignored by the
-C-generating back end: An unpredictable generated name was used instead.
-Both these issues are now resolved.
+the lambda was not mangled.  That is now fixed.  Note, however, that the
+C-generating back end will not render the mangled name and instead use a
+uniquely-generated name to avoid potential name collisions between unnamed
+entities (without external linkage) in different translation units.
 
 
 4/23/18  [EDGcpfe/19564]

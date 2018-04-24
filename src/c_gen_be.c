@@ -1466,7 +1466,7 @@ position to ensure that the name is unique.
   a_const_char *name = scp->name;
 
   if (name == NULL ||
-      (scp->copied_from_secondary_trans_unit && !scp->name_has_been_mangled &&
+      (scp->copied_from_secondary_trans_unit &&
        (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
         (scp->name_linkage == (a_name_linkage_kind)nlk_none &&
          !scp->is_local_to_function && !scp->is_class_member))) ||
