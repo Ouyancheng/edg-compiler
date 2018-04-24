@@ -1,5 +1,27 @@
 Version 4.15
 
+4/24/18  [EDGcpfe/19602]
+Incorrect handling of temporary for array rvalue bound to reference
+
+Consider:
+
+  struct S {
+    double s;
+    S(double d): s(d) {}
+  };
+  typedef S A[3];
+  A const &r = A{ S(1), S(2), S(3) };
+
+This involves the direct binding of an rvalue array (temporary) to a reference
+(r), which was enabled through the resolution of Core issue 450 (see the entry
+of 3/13/07).  However, our implementation of that resolution failed to
+implement the possibility of having to extend the lifetime of the array
+temporary to match that of the reference: Previously, lowering the example
+above caused the lifetime of the temporary array to be limited to the generated
+function that performs the initialization.  (I.e., after the initialization was
+completed, r became a dangling reference.)  That is now fixed.
+
+
 4/23/18  [EDGcpfe/19341]
 Inconsistent mangled name of local closure type in secondary translation unit
 

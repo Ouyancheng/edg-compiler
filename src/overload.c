@@ -22186,6 +22186,16 @@ the conversion.
        valid by core issue 450.  MSVC++ allows this since version 7.0,
        Sun allows it in Studio 11, and g++ doesn't allow it even in 4.1,
        but we'll go ahead and allow it in all modes. */
+    if (initializing_variable) {
+      /* The lifetime of the temporary holding the array rvalue must be
+         extended.  adjust_top_temporary_for_binding_to_reference will be
+         called again later on, but since we are about to rewrite this
+         expression as an lvalue, the later call would not recognize the
+         temporary as such. */
+      adjust_top_temporary_for_binding_to_reference(
+                                    source_operand,
+                                    (conv_context & CCO_STATIC_LIFETIME) != 0);
+    }  /* if */
     do_array_to_pointer_conversion(source_operand);
     conv_object_pointer_to_lvalue(source_operand);
     adjust_glvalue_type(source_operand, adj_base_dest_type);
