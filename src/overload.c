@@ -26163,6 +26163,7 @@ next_function:;
 
 a_boolean deduce_class_template_args(a_type_ptr        placeholder_type,
                                      a_boolean         is_direct_init,
+                                     a_boolean         parenthesized_init,
                                      a_boolean         keep_placeholder,
                                      an_arg_list_elem  *initializer_alep,
                                      a_source_position *source_pos,
@@ -26171,15 +26172,16 @@ a_boolean deduce_class_template_args(a_type_ptr        placeholder_type,
 /*
 Do type deduction for a use of a class template name as a placeholder type in
 a declaration or similar construct.  is_direct_init is TRUE if the deduction
-is for a "direct initialization" form.  placeholder_type represents the
-placeholder type.  initializer_alep describes the initializer in init-component
-form.  source_pos is the source position to use for the deduction.
-If the deduction succeeds, *deduced_placeholder is set to the deduced class
-template instance type and TRUE is returned.  In that case, if keep_placeholder
-is TRUE, a tk_typeref is added on top of *deduced_placeholder.  If an error is 
-detected, FALSE is returned (but no diagnostic is issued).  If the deduction
-was not completed because the types involved are still dependent,
-*still_dependent is set to TRUE and FALSE is returned.
+is for a "direct initialization" form (parenthesized_init is TRUE for the
+parenthesized form).  placeholder_type represents the placeholder type.
+initializer_alep describes the initializer in init-component form.  source_pos
+is the source position to use for the deduction.  If the deduction succeeds,
+*deduced_placeholder is set to the deduced class template instance type and
+TRUE is returned.  In that case, if keep_placeholder is TRUE, a tk_typeref is
+added on top of *deduced_placeholder.  If an error is detected, FALSE is
+returned (but no diagnostic is issued).  If the deduction was not completed
+because the types involved are still dependent, *still_dependent is set to
+TRUE and FALSE is returned.
 */
 {
   a_boolean     result = TRUE;
@@ -26208,7 +26210,8 @@ was not completed because the types involved are still dependent,
     goto done;
   }  /* if */
   if (initializer_alep != NULL) {
-    if (is_braced_init_component(initializer_alep)) {
+    if (!parenthesized_init &&
+        is_braced_init_component(initializer_alep)) {
       init_list_ctor_arg_list = initializer_alep;
       initializer_alep = initializer_alep->variant.braced.list;
     }  /* if */

@@ -308,6 +308,7 @@ static a_boolean deduce_placeholder_type(
                                       a_boolean         is_decltype_auto,
                                       a_boolean         is_class_template,
                                       a_boolean         is_direct_init,
+                                      a_boolean         parenthesized_init,
                                       a_type_ptr        orig_type,
                                       a_type_ptr        auto_type,
                                       a_boolean         keep_placeholder,
@@ -323,20 +324,21 @@ of class template arguments in a declaration or similar construct.  If the
 call is for a "decltype(auto)" construct, the flag is_decltype_auto is TRUE.
 If the call is for deduction of class template arguments, is_class_template
 is TRUE.  If this deduction is from a direct initializer, is_direct_init is
-TRUE.  orig_type is the type of the declared entity, with "auto" embedded
-in it.  auto_type is the "auto" type that's embedded (a template parameter
-type); it can be NULL, in which case this routine will find it inside
-orig_type.  initializer_operand is the initializer, whose type is
-used to do the deduction.  Alternatively, initializer_alep can be used to
-specify the initializer in init-component form; if it's non-NULL it is used
-instead of initializer_operand.  source_pos is the source position of the
-declaration.  If the deduction succeeds, *type_after_deduction is set to the
-deduced version of orig_type, *deduced_auto_type is set to the type deduced
-for "auto" itself, and TRUE is returned.  In that case, if keep_placeholder is
-TRUE, a tk_typeref is added on top of *deduced_auto_type.  If an error is
-detected, FALSE is returned (but no diagnostic is issued).  If the deduction
-was not attempted because the types involved are still dependent,
-*still_dependent is returned TRUE and FALSE is returned.
+TRUE (and is_parenthesized_init is TRUE if the initializer is parenthesized).
+orig_type is the type of the declared entity, with "auto" embedded in it.
+auto_type is the "auto" type that's embedded (a template parameter type); it
+can be NULL, in which case this routine will find it inside orig_type.
+initializer_operand is the initializer, whose type is used to do the
+deduction.  Alternatively, initializer_alep can be used to specify the
+initializer in init-component form; if it's non-NULL it is used instead of
+initializer_operand.  source_pos is the source position of the declaration.
+If the deduction succeeds, *type_after_deduction is set to the deduced version
+of orig_type, *deduced_auto_type is set to the type deduced for "auto" itself,
+and TRUE is returned.  In that case, if keep_placeholder is TRUE, a tk_typeref
+is added on top of *deduced_auto_type.  If an error is detected, FALSE is
+returned (but no diagnostic is issued).  If the deduction was not attempted
+because the types involved are still dependent, *still_dependent is returned
+TRUE and FALSE is returned.
 */
 {
   a_boolean  result;
@@ -347,9 +349,9 @@ was not attempted because the types involved are still dependent,
     *type_after_deduction = void_type();
     *still_dependent = FALSE;
     result = deduce_class_template_args(auto_type, is_direct_init,
-                                        keep_placeholder, initializer_alep,
-                                        source_pos, deduced_auto_type,
-                                        still_dependent);
+                                        parenthesized_init, keep_placeholder,
+                                        initializer_alep, source_pos,
+                                        deduced_auto_type, still_dependent);
     if (result) {
       *type_after_deduction = *deduced_auto_type;
     }  /* if */
@@ -441,6 +443,7 @@ error type.
                          bottom_type->variant.template_param.is_decltype_auto,
                          /*is_class_template=*/FALSE,
                          /*is_direct_init=*/TRUE,
+                         /*parenthesized_init=*/FALSE,
                          param_type, bottom_type,
                          /*keep_placeholder=*/FALSE,
                          p_operand, (an_arg_list_elem_ptr)NULL,
@@ -636,6 +639,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     } else if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
                                         dps->has_deducible_class_templ_args,
                                         dps->has_direct_initializer,
+                                        parenthesized_init,
                                         undeduced_type,
                                         dps->auto_type,
                                         /*keep_placeholder=*/FALSE,
@@ -18856,7 +18860,7 @@ expression, and return the result in *result (or an error indication in
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned "new". */
     if (deducible_new_type) {
-      /* The type is based on "auto".  Deduce the type from the
+      /* The type involves a placeholder type.  Deduce the type from the
          initializer expression. */
       an_operand           auto_operand;
       an_arg_list_elem_ptr auto_alep = NULL;
@@ -18887,6 +18891,7 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
         deduced = deduce_class_template_args(new_type, /*is_direct_init=*/TRUE,
                                              /*keep_placeholder=*/FALSE,
+                                             !no_operand,
                                              auto_alep, &type_position,
                                              &deduced_new_type,
                                              &still_dependent);
@@ -18990,6 +18995,7 @@ expression, and return the result in *result (or an error indication in
         a_boolean  still_dependent = FALSE;
         check_assertion(is_class_template_placeholder_type(dps.auto_type));
         if (deduce_class_template_args(dps.type, /*is_direct_init=*/TRUE,
+                                       /*parenthesized_init=*/FALSE,
                                        /*keep_placeholder=*/FALSE,
                                        (an_arg_list_elem*)NULL,
                                        &pos_curr_token, &new_type,
@@ -37011,6 +37017,7 @@ type of element_operand and sets the variable type to the deduced type.
     if (deduce_placeholder_type(iterator->declared_with_decltype_auto,
                                 /*is_class_template=*/FALSE,
                                 /*is_direct_init=*/FALSE,
+                                /*parenthesized_init=*/FALSE,
                                 iterator->type, /*auto_type=*/(a_type_ptr)NULL,
                                 /*keep_placeholder=*/FALSE,
                                 element_operand, (an_arg_list_elem_ptr)NULL,
@@ -40386,6 +40393,7 @@ type with the type of return_op.
   } else if (deduce_placeholder_type(is_decltype_auto,
                                      /*is_class_template=*/FALSE,
                                      /*is_direct_init=*/FALSE,
+                                     /*parenthesized_init=*/FALSE,
                                      orig_type, auto_type,
                                      keep_placeholder, return_op,
                                      /*initializer_alep=*/NULL,
