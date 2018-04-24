@@ -2580,6 +2580,7 @@ Clear the fields of the given variable to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   vp->declared_with_auto_type_specifier = FALSE;
   vp->declared_with_decltype_auto = FALSE;
+  vp->declared_with_class_template_placeholder = FALSE;
 #if BACK_END_IS_CP_GEN_BE
   vp->declaration_has_been_put_out = FALSE;
   vp->definition_has_been_put_out = FALSE;

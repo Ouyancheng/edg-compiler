@@ -16448,6 +16448,8 @@ template declaration and is NULL otherwise.
     var->declared_with_decltype_auto = TRUE;
   } else if (decl_state->auto_type_specifier_seen) {
     var->declared_with_auto_type_specifier = TRUE;
+  } else if (decl_state->has_deducible_class_templ_args) {
+    var->declared_with_class_template_placeholder = TRUE;
   }  /* if */
   if (decl_info->is_member_template ||
       in_class_template_definition(class_state)) {

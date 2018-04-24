@@ -13935,6 +13935,8 @@ Only the part marked is scanned in this routine.
     vp->declared_with_decltype_auto = TRUE;
   } else if (state.auto_type_specifier_seen) {
     vp->declared_with_auto_type_specifier = TRUE;
+  } else if (state.has_deducible_class_templ_args) {
+    vp->declared_with_class_template_placeholder = TRUE;
   }  /* if */
   if (state.dso_flags & DSO_CONSTEXPR) {
     vp->is_constexpr = TRUE;
@@ -17877,6 +17879,8 @@ if one is present.
       var_ptr->declared_with_decltype_auto = TRUE;
     } else if (state->auto_type_specifier_seen) {
       var_ptr->declared_with_auto_type_specifier = TRUE;
+    } else if (state->has_deducible_class_templ_args) {
+      var_ptr->declared_with_class_template_placeholder = TRUE;
     }  /* if */
     if (inline_variables_allowed &&
         (state->dso_flags & DSO_INLINE) != 0) {
@@ -19029,6 +19033,7 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
       if (vp != NULL) {
         vp->declared_with_auto_type_specifier = FALSE;
         vp->declared_with_decltype_auto = FALSE;
+        vp->declared_with_class_template_placeholder = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */

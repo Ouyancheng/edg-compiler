@@ -2510,7 +2510,8 @@ type.
 */
 #define var_declared_with_placeholder_type(var)                              \
   ((var)->declared_with_auto_type_specifier ||                               \
-   (var)->declared_with_decltype_auto)
+   (var)->declared_with_decltype_auto ||                                     \
+   (var)->declared_with_class_template_placeholder)
 
 extern a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                       a_base_class_ptr  bcp);

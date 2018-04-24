@@ -2987,6 +2987,9 @@ Display the indicated variable.
   if (ptr->declared_with_decltype_auto) {
     disp_boolean("declared_with_decltype_auto", TRUE);
   }  /* if */
+  if (ptr->declared_with_class_template_placeholder) {
+    disp_boolean("declared_with_class_template_placeholder", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
