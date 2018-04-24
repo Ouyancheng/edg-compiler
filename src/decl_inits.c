@@ -5863,6 +5863,7 @@ FALSE is returned) for non-class objects.
       /* Make sure the type is deduced if needed. */
       a_boolean  still_dependent = FALSE;
       if (deduce_class_template_args(var->type, /*is_direct_init=*/TRUE,
+                                     /*parenthesized_init=*/FALSE,
                                      /*keep_placeholder=*/FALSE,
                                      (an_arg_list_elem*)NULL,
                                      err_pos, &var->type,
