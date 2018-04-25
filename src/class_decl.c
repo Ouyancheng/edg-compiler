@@ -3856,11 +3856,13 @@ static void update_cached_defaulted_noexcept_arg(
                                           a_routine_ptr                   rp)
 /*
 rp is a defaulted special member whose declared exception specification is
-described by esp.  If esp has a cached operand, force the early scanning of
-that operand.
+described by esp.  If esp has a cached operand and we are in the surrounding
+class scope (i.e., we're not dealing with a late template instantiation),
+force the early scanning of that operand.
 */
 {
-  if (esp->arg_cached) {
+  if (esp->arg_cached &&
+      scope_is(&scope_stack_top(), sck_class_struct_union)) {
     /* Look for a routine fixup entry corresponding to this exception
        specification and use it to set up the environment needed to scan
        the cached operand. */
