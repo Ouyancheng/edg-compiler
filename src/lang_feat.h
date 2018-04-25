@@ -1307,7 +1307,7 @@ EXTERN unsigned long
 /*
 Convenience macros to test for GNU, Clang, and Microsoft versions.  Note that
 gpp_version_is, gcc_version_is, and gnu_version_is exclude Clang mode, unlike
-gpp_mode and gcc_mode.  Usage looks like "gpp_mode_is(<60000)" and
+gpp_mode and gcc_mode.  Usage looks like "gpp_version_is(<60000)" and
 "ms_version_is(any_version)".
 */
 #define any_version > 0 /*lint !e506*/

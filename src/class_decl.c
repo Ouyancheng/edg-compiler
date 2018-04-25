@@ -261,28 +261,41 @@ pointed to by the rfp->func_info if needed.
 }  /* free_routine_fixup */
 
 
+static a_scope_stack_entry_ptr scope_stack_entry_for_routine_fixup_list(void)
+/*
+*/
+{
+  a_scope_stack_entry  *ssep = &scope_stack_top();
+
+  while (scope_is(ssep, sck_template_declaration)) {
+    /* Presumably a member template declaration. Move up to what should
+       be the surrounding class scope. */
+    --ssep;
+  }  /* while */
+  check_assertion(scope_is(ssep, sck_class_struct_union));
+  /* There's only one routine-fixup-list, and it's associated with the
+     outermost enclosing class.  If this is a nested class, move up the
+     scope stack to find the appropriate entry. */
+  while (scope_is(ssep-1, sck_class_struct_union)) {
+    --ssep;
+  }  /* while */
+  return ssep;
+}  /* scope_stack_entry_for_routine_fixup_list */
+
+
 static void add_to_routine_fixup_list(a_routine_fixup_ptr  rfp)
 /*
 Add a routine fixup entry to the end of the list for the class associated
 with the indicated scope stack entry.
 */
 {
-  a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry  *ssep = scope_stack_entry_for_routine_fixup_list();
 
   check_assertion(rfp->symbol != NULL);
-  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
-    /* Presumably a member template declaration. Move up to what should
-       be the surrounding class scope. */
-    --ssep;
-  }  /* while */
-  check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-  /* There's only one routine-fixup-list, and it's associated with the
-     outermost enclosing class.  If this is a nested class, move up the
-     scope stack to find the appropriate entry. */
-  while ((ssep-1)->kind == (a_scope_kind)sck_class_struct_union) --ssep;
   /* Add the entry to the list. */
   if (ssep->last_routine_fixup == NULL) {
-    (symbol_supplement_for_class(ssep->assoc_type))->routine_fixup_list = rfp;
+    a_symbol_ptr  class_sym = symbol_for(ssep->assoc_type);
+    class_symbol_supp(class_sym)->routine_fixup_list = rfp;
   } else {
     ssep->last_routine_fixup->next = rfp;
   }  /* if */
@@ -2512,7 +2525,8 @@ and for member functions of template classes.
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
-  if ((rfp = cssp->routine_fixup_list) != NULL &&
+  rfp = cssp->routine_fixup_list;
+  if (rfp != NULL &&
       !(template_second_pass ? cssp->default_arg_fixup_pass_2_started
                              : cssp->default_arg_fixup_pass_1_started)) {
     if (template_second_pass) {
@@ -3837,6 +3851,55 @@ translation unit.
 }  /* check_trans_unit_for_class */
 
 
+static void update_cached_defaulted_noexcept_arg(
+                                          an_exception_specification_ptr  esp,
+                                          a_routine_ptr                   rp)
+/*
+rp is a defaulted special member whose declared exception specification is
+described by esp.  If esp has a cached operand, force the early scanning of
+that operand.
+*/
+{
+  if (esp->arg_cached) {
+    /* Look for a routine fixup entry corresponding to this exception
+       specification and use it to set up the environment needed to scan
+       the cached operand. */
+    a_scope_stack_entry  *ssep = scope_stack_entry_for_routine_fixup_list();
+    a_symbol_ptr         class_sym = symbol_for(ssep->assoc_type);
+    a_routine_fixup_ptr  rfp = class_symbol_supp(class_sym)
+                                                         ->routine_fixup_list;
+    a_symbol_ptr         rsym = symbol_for(rp);
+    for (; rfp != NULL; rfp = rfp->next) {
+      if (rfp->symbol == rsym) {
+        if (rfp->process_exception_spec) {
+          a_token_cache  *cache = esp->variant.token_cache;
+          /* Reactivate the function prototype scope. */
+          (void)push_scope((a_scope_kind)sck_func_prototype,
+                           rfp->func_info.scope_number,
+                           underlying_function_type(rfp->symbol),
+                           (a_routine_ptr)NULL);
+          if (rfp->func_info.prototype_scope_symbols != NULL) {
+            reactivate_prototype_scope_symbols(
+                                      rfp->func_info.prototype_scope_symbols);
+          }  /* if */
+          /* Scan the exception specification argument. */
+          esp->arg_cached = FALSE;
+          esp->variant.token_cache = NULL;
+          if (cache != NULL) {
+            delayed_scan_of_exception_spec(rp, cache);
+            free_token_cache(cache);
+            rfp->process_exception_spec = FALSE;
+          }  /* if */
+          /* Pop the reactivated function prototype scope off the stack. */
+          pop_scope();
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* update_cached_defaulted_noexcept_arg */
+
+
 static void form_exception_specification_for_generated_function(
                                                          a_routine_ptr  rp,
                                                          a_symbol_ptr   bctor);
@@ -3862,10 +3925,13 @@ and issue an error if it does not.
        the generated specification. */
     an_exception_specification_ptr  declared_exception_spec
                                           = rtsp->exception_specification;
-    if (declared_exception_spec != NULL &&
-        declared_exception_spec->compiler_generated) {
-      /* We already generated this one. */
-      goto done;
+    if (declared_exception_spec != NULL) {
+      if (declared_exception_spec->compiler_generated) {
+        /* We already generated this one. */
+        goto done;
+      } else if (declared_exception_spec->arg_cached) {
+        update_cached_defaulted_noexcept_arg(declared_exception_spec, rp);
+      }  /* if */
     }  /* if */
     rtsp->exception_specification = NULL;
     form_exception_specification_for_generated_function(
@@ -3881,10 +3947,9 @@ and issue an error if it does not.
                 declared_exception_spec, rtsp->exception_specification) ||
           exception_spec_is_less_restrictive(
                 rtsp->exception_specification, declared_exception_spec)) {
-        if (cpp14_mode || clang_mode ||
-            (gpp_mode && gnu_version >= 40900) ||
-            (microsoft_mode && microsoft_version >= 1910) ||
-            ((microsoft_mode || gpp_mode) &&
+        if (cpp14_mode ||
+            ms_version_is(>= 1910) || gpp_version_is(>= 40900) ||
+            ((microsoft_mode || (gpp_mode && !clang_mode)) &&
              rp->is_template_function && !rp->is_specialized)) {
           rp->is_deleted = TRUE;
           rp->defined = TRUE;
@@ -26807,7 +26872,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
               still needs processing, so we have to save the routine fixup
               entry onto the fixup list. */
           add_to_routine_fixup_list(curr_routine_fixup);
-          /* Make a new one fixup entry for the current declarator. */
+          /* Make a new fixup entry for the current declarator. */
           curr_routine_fixup = alloc_routine_fixup(class_type);
         } else {
           /* The other one can be reused. */
