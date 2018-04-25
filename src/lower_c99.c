@@ -37,7 +37,6 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
-#if DO_C99_IL_LOWERING
 
 a_boolean c99_il_lowering_needed(void)
 /*
@@ -71,7 +70,6 @@ static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_fixed_point_constant(a_constant_ptr constant);
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
-#endif /* DO_C99_IL_LOWERING */
 
 void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp)
 /*
@@ -105,9 +103,7 @@ Lower the expression in a VLA dimension entry.
     save_and_push_context(&context, scope, (an_object_lifetime_ptr)NULL,
                           &saved_curr_context);
     if (C_mode()) {
-#if DO_C99_IL_LOWERING
       lower_c99_full_expr(expr);
-#endif /* DO_C99_IL_LOWERING */
     } else {
       lower_full_expr(expr, (a_statement_ptr)NULL);
     }  /* if */
@@ -2586,8 +2582,6 @@ types that have already been visited.
 }  /* lower_type_of_vla_cast_if_necessary */
 
 
-#if DO_C99_IL_LOWERING
-
 void lower_c99_cast(an_expr_node_ptr  expr)
 /*
 Transform the given cast expression into a function call (compatible with C89).
@@ -4726,7 +4720,6 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
   switch_il_region(saved_region_number);
 }  /* lower_c99_il_memory_region */
 
-#endif /* DO_C99_IL_LOWERING */
 
 void lower_c99_one_time_init(void)
 /*

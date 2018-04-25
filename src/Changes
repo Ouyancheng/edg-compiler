@@ -1,5 +1,14 @@
 Version 4.15
 
+4/25/18  [EDGcpfe/19566]
+Remove DO_C99_IL_LOWERING configuration macro
+
+The DO_C99_IL_LOWERING configuration macro has been removed (its functionality
+is now controlled by the DO_IL_LOWERING macro).  A check has been added to
+ensure that, if set, the DO_C99_IL_LOWERING macro has the same value as the
+DO_IL_LOWERING macro.
+
+
 4/24/18  [EDGcpfe/19602]
 Incorrect handling of temporary for array rvalue bound to reference
 

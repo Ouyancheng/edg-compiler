@@ -6538,11 +6538,6 @@ file.
 #else /* !defined(DOING_SOURCE_ANALYSIS) */
   comment_undefined_macro_name(DOING_SOURCE_ANALYSIS);
 #endif /* defined(DOING_SOURCE_ANALYSIS) */
-#if defined(DO_C99_IL_LOWERING)
-  define_numeric_valued_macro(DO_C99_IL_LOWERING);
-#else /* !defined(DO_C99_IL_LOWERING) */
-  comment_undefined_macro_name(DO_C99_IL_LOWERING);
-#endif /* defined(DO_C99_IL_LOWERING) */
 #if defined(DO_FULL_PORTABLE_EH_LOWERING)
   define_numeric_valued_macro(DO_FULL_PORTABLE_EH_LOWERING);
 #else /* !defined(DO_FULL_PORTABLE_EH_LOWERING) */

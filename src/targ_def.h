@@ -411,31 +411,14 @@ handles them).
 #endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
 
 /*
-Flag that is TRUE when C IL constructs that are not part of C89 (from C99, GNU
-C, etc.)  should be lowered to constructs that fit in the IL definition for
-C89.  This may result in calls to a C99 runtime support library.  (Note: the
-term "C99 lowering" reflects its original use and is maintained only for
-backward compatibility; it should actually be understood to refer to all
-non-C++ IL lowering.)
+The DO_C99_IL_LOWERING configuration macro is no longer supported.  If set,
+verify that it has the same value as DO_IL_LOWERING.
 */
-#ifndef DO_C99_IL_LOWERING
-#if DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED ||                \
-                       GNU_EXTENSIONS_ALLOWED ||                     \
-                       COMPOUND_LITERAL_ENABLING_POSSIBLE ||         \
-                       VLA_ALLOWED ||                                \
-                       DESIGNATED_INITIALIZER_ENABLING_POSSIBLE ||   \
-                       FIXED_POINT_ALLOWED)
-#define DO_C99_IL_LOWERING TRUE
-#else /* !(DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED || GNU_...)) */
-#define DO_C99_IL_LOWERING FALSE
-#endif /* DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED || GNU_...) */
-#endif /* ifndef DO_C99_IL_LOWERING */
-#if DO_C99_IL_LOWERING && !DO_IL_LOWERING
- #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
-#endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
-#if DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING
- #error -- Lowering GNU C extensions requires DO_C99_IL_LOWERING
-#endif /* DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING */
+#ifdef DO_C99_IL_LOWERING
+#if DO_IL_LOWERING != DO_C99_IL_LOWERING
+ #error -- DO_C99_IL_LOWERING must have the same value as DO_IL_LOWERING
+#endif /* DO_IL_LOWERING != DO_C99_IL_LOWERING */
+#endif /* defined(DO_C99_IL_LOWERING) */
 
 /*
 This flag controls whether variable-length arrays (a C99 feature also
@@ -453,9 +436,9 @@ on facilities in the run-time support library.
 #if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
  #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !DO_IL_LOWERING
  #error -- VLAs cannot be lowered without doing C99 or C++ IL lowering
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING... */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !DO_IL_LOWERING */
 
 /*
 This switch controls whether complex and imaginary types and operations
@@ -463,18 +446,18 @@ This switch controls whether complex and imaginary types and operations
 calls to runtime routines to implement complex operations and conversions.
 */
 #ifndef LOWER_COMPLEX
-#if (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS_SUPPORTED
+#if DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED
 #define LOWER_COMPLEX TRUE
-#else /* !((DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS...) */
+#else /* !(DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED) */
 #define LOWER_COMPLEX FALSE
-#endif /* (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS... */
+#endif /* DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef LOWER_COMPLEX */
 #if LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED
  #error -- LOWER_COMPLEX requires C99_IL_EXTENSIONS_SUPPORTED
 #endif /* LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED */
-#if LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
- #error -- Complex cannot be lowered without doing C99 or C++ IL lowering
-#endif /* LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
+#if LOWER_COMPLEX && !DO_IL_LOWERING
+ #error -- Complex cannot be lowered without IL lowering
+#endif /* LOWER_COMPLEX && !DO_IL_LOWERING */
 
 /*
 This switch controls whether fixed-point arithmetic types and operations
@@ -485,9 +468,9 @@ is off by default.
 #ifndef LOWER_FIXED_POINT
 #define LOWER_FIXED_POINT FALSE
 #endif /* ifndef LOWER_FIXED_POINT */
-#if LOWER_FIXED_POINT && !DO_C99_IL_LOWERING
- #error -- Fixed point cannot be lowered without doing C99 IL lowering
-#endif /* LOWER_FIXED_POINT && !DO_C99_IL_LOWERING */
+#if LOWER_FIXED_POINT && !DO_IL_LOWERING
+ #error -- Fixed point cannot be lowered without doing IL lowering
+#endif /* LOWER_FIXED_POINT && !DO_IL_LOWERING */
 #if LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED
  #error -- Fixed point cannot be lowered unless fixed point is enabled
 #endif /* LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED */

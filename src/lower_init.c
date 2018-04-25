@@ -5941,7 +5941,6 @@ expression).
        It's just a place-holder that gets overwritten by the dynamic
        initialization. */
     desired_type = ipdp->modifiers->type;
-#if DO_C99_IL_LOWERING
     if (C_mode()) {
 #if LOWER_COMPLEX && C99_IL_EXTENSIONS_SUPPORTED
       if (is_imaginary_type(desired_type)) {
@@ -5961,10 +5960,7 @@ expression).
       {
         /* Nothing to be done. */
       }  /* if */
-    } else
-#endif /* DO_C99_IL_LOWERING */
-    /* Do not insert code here. */
-    {
+    } else {
       /* C++ mode. */
       /* For pointers to members, switch to the implementation type. */
       if (is_or_was_ptr_to_data_member_type(desired_type)) {
@@ -5977,9 +5973,9 @@ expression).
 #if GNU_VECTOR_TYPES_ALLOWED
         || is_vector_type(desired_type)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if DO_C99_IL_LOWERING && LOWER_COMPLEX
+#if LOWER_COMPLEX
         || is_complex_type(desired_type)
-#endif /* DO_C99_IL_LOWERING && LOWER_COMPLEX */
+#endif /* LOWER_COMPLEX */
                                                 ) {
       /* An aggregate is initialized with a ck_dynamic_init.  This can
          come up in something like
@@ -6505,12 +6501,9 @@ represents a full expression).
       } else {
         /* Some constant that doesn't contain a ck_dynamic_init; lower it
            with the normal mechanism. */
-#if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode || (C_mode() && microsoft_mode)) {
           lower_c99_constant(repeated_con);
-        } else
-#endif /* DO_C99_IL_LOWERING */
-        {
+        } else {
           lower_constant(repeated_con);
         }  /* if */
         if (ipd.indirect_through_variable) {
@@ -6576,12 +6569,10 @@ represents a full expression).
     } else {
       /* Normal constant. */
       if (C_mode()) {
-#if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(con_ptr);
         }  /* if */
-#endif /* DO_C99_IL_LOWERING */
       } else {
         /* C++ mode. */
         lower_constant(con_ptr);
@@ -9886,12 +9877,10 @@ C99 mode for the same reason.
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       if (C_mode()) {
-#if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(dip->variant.constant);
         }  /* if */
-#endif /* DO_C99_IL_LOWERING */
       } else {
         /* C++ mode. */
         lower_constant(dip->variant.constant);
@@ -9918,7 +9907,6 @@ C99 mode for the same reason.
       /* Lower the source expression. */
       source_node = dip->variant.expression;
       if (C_mode()) {
-#if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           if (options & LDIO_FULL_EXPR) {
@@ -9927,7 +9915,6 @@ C99 mode for the same reason.
             lower_c99_expr(source_node);
           }  /* if */
         }  /* if */
-#endif /* DO_C99_IL_LOWERING */
       } else {
         if (dip->is_optimized_class_rvalue_question_mark) {
           /* For the optimized "?" class rvalue case, the expression must

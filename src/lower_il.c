@@ -2281,11 +2281,9 @@ mode) forces the value to be 0/1 even if it was already of bool type.
     if (!il_identical_types(node->type, new_type)) {
         /* Normal cast. */
       node = add_cast(node, new_type);
-#if DO_C99_IL_LOWERING
       if (C_mode()) {
         lower_c99_cast(node);
       }  /* if */
-#endif /* DO_C99_IL_LOWERING */
     }  /* if */
   } else {
     /* Cast to bool. */
@@ -11655,7 +11653,6 @@ a temporary will be used, and the code will be something like
     op1_for_operation->next = op2;
     op_node = make_operator_node(op, operation_type, op1_for_operation);
   }  /* if */
-#if DO_C99_IL_LOWERING
   if (C_mode()) {
     lower_c99_operator(op_node);
 #if LOWER_COMPLEX
@@ -11665,7 +11662,6 @@ a temporary will be used, and the code will be something like
     lower_c99_operator(op_node);
 #endif /* LOWER_COMPLEX */
   }  /* if */
-#endif /* DO_C99_IL_LOWERING */
   /* Cast the result of the operation to the result type. */
   op_node = add_lowered_cast_if_necessary(op_node, result_type);
   /* Assign the result to op1 (or the temporary). */
@@ -21347,10 +21343,8 @@ terms into C ones, so that a C back end can handle it without change.
       il_header.il_has_C_semantics = TRUE;
     }  /* if */
     switch_il_region(saved_region_number);
-#if DO_C99_IL_LOWERING
   } else if (c99_il_lowering_needed()) {
     lower_c99_il_memory_region(region_number);
-#endif /* DO_C99_IL_LOWERING */
   }  /* if */
   /* Make sure no pending stmk_init statements remain. */
   check_assertion(pending_stmk_init_statements == NULL);

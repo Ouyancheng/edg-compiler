@@ -158,9 +158,7 @@ been included by the inclusion of fe_common.h.
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
-#if DO_C99_IL_LOWERING
 #include "lower_c99.h"
-#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 
 static void last(void)
@@ -1570,9 +1568,7 @@ after the command-line processing has been done.
      is done because some of the variables that are initialized in IL
      lowering are used elsewhere even when IL lowering is not being done. */
   il_lower_one_time_init();
-#if DO_C99_IL_LOWERING
   lower_c99_one_time_init();
-#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
   lower_name_one_time_init();
@@ -1675,9 +1671,7 @@ source file's compilation.
      (for example, null_eh_region_number when the --building_runtime
      option is used). */
   il_lower_init();
-#if DO_C99_IL_LOWERING
   lower_c99_init();
-#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
   /* Do lower_name.c initialization.  Name mangling can be included
@@ -1945,9 +1939,7 @@ when it is a secondary file.
   preproc_trans_unit_init();
 #if DO_IL_LOWERING
   il_lower_trans_unit_init();
-#if DO_C99_IL_LOWERING
   lower_c99_trans_unit_init();
-#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #if CPPCLI_ENABLING_POSSIBLE
   if (cli_or_cx_enabled) {

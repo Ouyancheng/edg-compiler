@@ -21,11 +21,8 @@ lower_c99.h -- Declarations related to lower_c99.c.
 
 #include "il.h"
 
-#if DO_C99_IL_LOWERING
+/* These macros are used for historical purposes. */
 #define lower_any_c99_expr(expr)  lower_c99_expr(expr)
-#else /* !DO_C99_IL_LOWERING */
-#define lower_any_c99_expr(expr)  /* Nothing */
-#endif /* DO_C99_IL_LOWERING */
 
 #define lower_any_cpp_expr(expr)  lower_expr(expr)
 
@@ -55,21 +52,12 @@ can result in a non-null value.
 Macro to lower a boolean controlling expression as either a C or C++ expression
 as appropriate.
 */
-#if DO_C99_IL_LOWERING
 #define lower_any_boolean_controlling_expr(expr, is_full_expr)              \
   if (C_mode()) {                                                           \
     lower_c99_boolean_controlling_expr(expr, is_full_expr);                 \
   } else {                                                                  \
     lower_boolean_controlling_expr(expr, is_full_expr);                     \
   }  /* if */
-#else /* !DO_C99_IL_LOWERING */
-#define lower_any_boolean_controlling_expr(expr, is_full_expr)              \
-  if (C_mode()) {                                                           \
-    /* Nothing. */                                                          \
-  } else {                                                                  \
-    lower_boolean_controlling_expr(expr, is_full_expr);                     \
-  }  /* if */
-#endif /* DO_C99_IL_LOWERING */
 
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 
@@ -150,13 +138,8 @@ extern void lower_c99_complex_aggregate_constant(a_constant_ptr constant);
 extern a_type_ptr lowered_complex_type(a_float_kind fkind);
 
 #endif /* LOWER_COMPLEX */
-#if DO_C99_IL_LOWERING
 extern a_boolean c99_il_lowering_needed(void);
-#else /* !DO_C99_IL_LOWERING */
-#define c99_il_lowering_needed() FALSE
-#endif /* DO_C99_IL_LOWERING */
 
-#if DO_C99_IL_LOWERING
 #if LOWER_FIXED_POINT
 extern a_type_ptr lowered_integer_type_for_fixed_point_type(
                                                            a_type_ptr fx_type);
@@ -180,8 +163,6 @@ extern void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
 extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 
 extern void lower_c99_statement(a_statement_ptr statement);
-
-#endif /* DO_C99_IL_LOWERING */
 
 extern void lower_c99_ne_0_if_needed(an_expr_node_ptr expr);
 
