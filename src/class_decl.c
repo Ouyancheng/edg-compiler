@@ -263,6 +263,9 @@ pointed to by the rfp->func_info if needed.
 
 static a_scope_stack_entry_ptr scope_stack_entry_for_routine_fixup_list(void)
 /*
+Return the scope stack entry that holds the current routine fixup list.  That
+is the entry representing the outermost class scope being defined in the
+current context (i.e., ignoring other instantiation contexts).
 */
 {
   a_scope_stack_entry  *ssep = &scope_stack_top();
@@ -285,8 +288,8 @@ static a_scope_stack_entry_ptr scope_stack_entry_for_routine_fixup_list(void)
 
 static void add_to_routine_fixup_list(a_routine_fixup_ptr  rfp)
 /*
-Add a routine fixup entry to the end of the list for the class associated
-with the indicated scope stack entry.
+Add a routine fixup entry to the end of the current routine fixup list.
+(See also scope_stack_entry_for_routine_fixup_list.)
 */
 {
   a_scope_stack_entry  *ssep = scope_stack_entry_for_routine_fixup_list();
