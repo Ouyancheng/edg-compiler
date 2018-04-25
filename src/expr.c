@@ -24835,7 +24835,7 @@ freed by this routine.
       subst_fail(rcblock->error_detected);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* scan_rbaced_init_list_cast sets curr_construct_end_position even when
+    /* scan_braced_init_list_cast sets curr_construct_end_position even when
        scanning_source = FALSE. */
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
