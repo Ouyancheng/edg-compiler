@@ -1475,13 +1475,12 @@ position to ensure that the name is unique.
     /* For entities without names, create a name. */
     /* For non-external entities copied from a secondary translation unit,
        use a temporary name for the entity to avoid name conflicts with
-       like-named entities in the primary translation unit (unless a mangled
-       name was generated for that entity; that is, e.g., the case for local
-       closure types).  Tag names in C mode and typedef names in C or C++ mode
-       may conflict even though they have no linkage.  Similarly, external
-       entities copied from a secondary translation unit may conflict with
-       non-external entities in the primary translation unit.  Do not change
-       names of fields in any case. */
+       like-named entities in the primary translation unit.  Tag names
+       in C mode and typedef names in C or C++ mode may conflict even
+       though they have no linkage.  Similarly, external entities copied
+       from a secondary translation unit may conflict with non-external
+       entities in the primary translation unit.  Do not change names of
+       fields in any case. */
     dump_temp_name((char *)scp);
   } else if (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
              scp->name_linkage == (a_name_linkage_kind)nlk_external) {
