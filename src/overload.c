@@ -20487,11 +20487,12 @@ happen only in C++ mode.
        routine in a constant expression. */
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
-    a_boolean            constant_case = is_constant_operand(source_operand);
+    a_boolean            constant_case;
     a_dynamic_init_kind  kind;
     prep_class_bitwise_copy_operand(source_operand, dest_type);
     /* In some cases (e.g., when the initializer is a compound literal
        in g++ mode) the dynamic initialization should use a constant. */
+    constant_case = is_constant_operand(source_operand);
     kind = constant_case ? (a_dynamic_init_kind)dik_constant :
                            (a_dynamic_init_kind)dik_expression;
     dip = alloc_dynamic_init_possibly_with_dtor(
@@ -20499,7 +20500,7 @@ happen only in C++ mode.
                                           fill_in_dtor,
                                           class_type,
                                           &source_operand->position);
-    if (kind == (a_dynamic_init_kind)dik_constant) {
+    if (constant_case) {
       set_dynamic_init_constant(
                    dip,
                    alloc_unshared_constant(&source_operand->variant.constant));
