@@ -13405,6 +13405,9 @@ the partially-initialized flag can be copied into the dynamic init.
   if (constant->explicit_braces_on_aggregate) {
     dip->is_braced_initializer = TRUE;
   }  /* if */
+  if (constant->is_compound_literal) {
+    dip->is_compound_literal = TRUE;
+  }  /* if */
 }  /* set_dynamic_init_constant */
 
 
