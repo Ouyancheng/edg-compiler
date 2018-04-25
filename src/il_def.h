@@ -10370,8 +10370,8 @@ typedef struct a_variable {
 			/* TRUE if the variable declaration contains the
 			   decltype(auto) specifier. */
   a_bit_field	declared_with_class_template_placeholder:1;
-			/* TRUE if the variable declaration contains the
-			   decltype(auto) specifier. */
+			/* TRUE if the variable declaration contains a class
+			   template placeholder. */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	declaration_has_been_put_out:1;
 			/* Used in the C++-generating back end to control the
