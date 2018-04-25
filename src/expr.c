@@ -24588,7 +24588,7 @@ or csf_old_style).  On return, the current token is the one following
 the closing brace.  If rescan_icp is non-NULL, this is a rescan
 and rescan_icp provides the copied and substituted version of the
 previously-scanned braced initializer.  suppress_diagnostics is TRUE
-if diagnostics should be suppressed (i.e., when if the rescan is for
+if diagnostics should be suppressed (i.e., when the rescan is for
 deduction purposes).
 */
 {
