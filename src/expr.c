@@ -427,8 +427,6 @@ error type.
   an_operand	         local_operand;
   an_operand_ptr         p_operand;
 
-  bottom_type = find_bottom_of_type(param_type);
-  check_assertion(is_auto_template_param_type(bottom_type));
   /* If a constant is supplied, create an operand from it.  Otherwise, use
      the supplied operand. */
   if (constant != NULL) {
@@ -439,7 +437,15 @@ error type.
     p_operand = &arg_operand->operand;
   }  /* if */
   /* Attempt to deduce the auto type from the argument type. */
-  if (deduce_placeholder_type(
+  bottom_type = find_bottom_of_type(param_type);
+  if (is_error_type(bottom_type)) {
+    /* In error cases, the "auto" type might have been lost.  Deduce an
+       error type. */
+    result = TRUE;
+    deduced_type = bottom_type;
+  } else {
+    check_assertion(is_auto_template_param_type(bottom_type));
+    if (deduce_placeholder_type(
                          bottom_type->variant.template_param.is_decltype_auto,
                          /*is_class_template=*/FALSE,
                          /*is_direct_init=*/TRUE,
@@ -450,20 +456,21 @@ error type.
                          position,
                          &deduced_type, &deduced_auto_type,
                          &still_dependent)) {
-    /* The deduction succeeded.  Make sure the resulting type is valid as
-       a nontype template parameter. */
-    if (check_nontype_template_param_type(&deduced_type, position)) {
-      result = TRUE;
-    }  /* if */
-  } else {
-    if (still_dependent) {
-      /* If the type is still dependent, return the original type. */
-      result = TRUE;
-      deduced_type = param_type;
+      /* The deduction succeeded.  Make sure the resulting type is valid as
+         a nontype template parameter. */
+      if (check_nontype_template_param_type(&deduced_type, position)) {
+        result = TRUE;
+      }  /* if */
     } else {
-      if (position != NULL) {
-        pos_ty2_error(ec_cannot_deduce_auto_templ_param, position,
-                      param_type, p_operand->type);
+      if (still_dependent) {
+        /* If the type is still dependent, return the original type. */
+        result = TRUE;
+        deduced_type = param_type;
+      } else {
+        if (position != NULL) {
+          pos_ty2_error(ec_cannot_deduce_auto_templ_param, position,
+                        param_type, p_operand->type);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

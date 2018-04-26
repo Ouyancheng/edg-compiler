@@ -22815,7 +22815,7 @@ about the components of the declaration.
   remove_declarator_sse(&state, depth_scope_stack);
   check_use_of_placeholder_type(&state);
   if (state.has_deduced_type && !state.has_trailing_return_type &&
-      auto_template_params_enabled && !state.decl_specifiers_error) {
+      auto_template_params_enabled) {
     /* has_deduced_type can be set in some error cases even when auto
        template parameters are not enabled. */
     if (uses_auto != NULL) *uses_auto = TRUE;
