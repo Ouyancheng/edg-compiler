@@ -9,7 +9,7 @@ EDGcpfe/16403,EDGcpfe/16644).  When the static data member itself is
 instantiated without its initializer also being instantiated, the corresponding
 variable entry will have its has_explicit_initializer flag set to TRUE, but
 its init_kind field set to initk_none.  The C++-generating back end, when
-configued with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
+configured with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
 previously aborted on such situations.  For example:
 
   template <typename T> struct S {
