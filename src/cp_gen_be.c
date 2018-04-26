@@ -17633,7 +17633,7 @@ Output the initializer, if any, for the indicated variable.
           }  /* if */
         }  /* if */
         break;
-#if 0&& TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       case initk_none:
         if (var->source_corresp.is_class_member && var->is_template_variable) {
           /* In some modes, static data member initializers of class templates
