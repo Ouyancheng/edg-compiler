@@ -1,5 +1,26 @@
 Version 4.15
 
+4/26/18  [EDGcpfe/19568]
+C++-generating back end and GNU-mode static data member instantiation
+
+In GNU C++ mode, the in-class initializer of a static data member of a class
+template is not instantiated unless it is needed (see the entry for
+EDGcpfe/16403,EDGcpfe/16644).  When the static data member itself is
+instantiated without its initializer also being instantiated, the corresponding
+variable entry will have its has_explicit_initializer flag set to TRUE, but
+its init_kind field set to initk_none.  The C++-generating back end, when
+configued with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
+previously aborted on such situations.  For example:
+
+  template <typename T> struct S {
+    static bool const sdm = false;
+  };
+  S<int> x;  // Instantiates S<int>::sdm, but not its initializer.
+             // Previously caused an abort in some configurations.
+
+That is now fixed.
+
+
 4/25/18  [EDGcpfe/19566]
 Remove DO_C99_IL_LOWERING configuration macro
 

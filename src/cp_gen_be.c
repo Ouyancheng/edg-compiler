@@ -17633,6 +17633,16 @@ Output the initializer, if any, for the indicated variable.
           }  /* if */
         }  /* if */
         break;
+#if 0&& TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      case initk_none:
+        if (var->source_corresp.is_class_member && var->is_template_variable) {
+          /* In some modes, static data member initializers of class templates
+             are lazily instantiated.  In such cases, no initializer is
+             recorded even though var->has_explicit_initializer is TRUE. */
+          break;
+        }  /* if */
+        /*FALLTHROUGH*/
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       default:
         unexpected_condition_str("gen_variable_initializer: bad init kind");
     }  /* switch */
