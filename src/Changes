@@ -1,5 +1,33 @@
 Version 4.15
 
+4/27/18  [EDGcpfe/19637]
+Exception specifications on pointer-to-member-function types
+
+The changes for EDGcpfe/17685 added support for exception specifications as
+a part of function types, but those changes didn't include pointer-to-member-
+function types.  Those changes have now been made.
+
+One note: As mentioned in the Changes entry for EDGcpfe/17685, the
+ETS_IS_ELLIPSIS macro has the same value as the
+ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION macro and these two are now distinguished
+by either ETS_IS_POINTER_TO_MEMBER_FUNCTION or ETS_IS_POINTER being set (prior
+to this change, only ETS_IS_POINTER was used to differentiate the two cases).
+This is a subtle IL CHANGE.
+
+For example (with --c++17):
+
+  struct S {
+    void m(void);
+  };
+  void f(void) {
+    try {
+      throw &S::m; // throw of potentially-throwing member function
+    }
+    catch(void(S::*)(void) noexcept) { }  // not caught
+    catch(void(S::*)(void))          { }  // caught
+  }
+
+
 4/26/18  [EDGcpfe/19568]
 C++-generating back end and GNU-mode static data member instantiation
 
@@ -5891,8 +5919,8 @@ exception tables, a new bit, ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION, is introduced
 to indicate the presence of a noexcept exception specification on the
 underlying function type.  Due to the lack of bits in the run time library's
 an_ETS_flag_set type, ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION uses the same bit
-as ETS_IS_ELLIPSIS with ETS_IS_POINTER being used to distinguish between
-the two cases.  This is a subtle IL CHANGE.
+as ETS_IS_ELLIPSIS with (ETS_IS_POINTER_TO_MEMBER_FUNCTION | ETS_IS_POINTER)
+being used to distinguish between the two cases.  This is a subtle IL CHANGE.
 
 
 8/2/17   [EDGcpfe/18098]

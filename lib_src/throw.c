@@ -1018,8 +1018,17 @@ is returned via nullptr_conv_needed (if it is not NULL).
       /* The underlying types match.  Determine whether the any pointer levels
          above that type are acceptable. */
       if (!is_ptr) {
-        /* Both are not pointers -- a match. */
-        match = TRUE;
+        /* Both are not pointers -- a potential match. */
+        if (is_pointer_to_member_function(etsp->flags) &&
+            is_pointer_to_member_function(flags) &&
+            is_noexcept(etsp->flags) &&
+            !is_noexcept(flags)) {
+          /* Two pointer-to-member-functions, but the exception specifications
+             are not a match (i.e., a potentially-throwing function type cannot
+             be caught by a non-throwing function type). */
+        } else {
+          match = TRUE;
+        }  /* if */
       } else if (is_single_ptr != ets_is_single_ptr) {
         /* One pointer is single level, the other is multi-level.  No match. */
       } else if (is_single_ptr) {

@@ -1408,28 +1408,59 @@ flag set value is returned.
 #endif /* IA64_ABI */
 #if IA64_ABI || GENERATE_EH_TABLES
 
-static a_type_ptr copy_of_function_type_without_exc_spec(a_type_ptr type)
+static a_boolean is_type_with_exc_spec(a_type_ptr type,
+                                       a_type_ptr *non_throw_type)
 /*
-Create and return a copy of the function type without the exception
-specification and re-set certain fields to ensure that a new typeinfo_var will
-be created for the new type.  The type must not have been lowered yet.
-The type is not added to any lists.
+If type is a function or pointer-to-member-function type that is a noexcept
+type (and exception specifications are part of function types), then return
+TRUE and set *non_throw_type to a copy of type that has the exception
+specification removed.
 */
 {
+  a_boolean                       result = FALSE;
+  a_type_ptr                      base_type;
+  a_type_ptr                      copied_type;
+  a_type_ptr                      orig_type;
+  a_boolean                       is_ptr_to_member = FALSE;
   an_exception_specification_ptr  save_esp;
-  a_type_ptr                      copied_type = alloc_type(type->kind);
 
-  check_assertion(is_function_type(type) &&
-                  type->kind != (a_type_kind)tk_typeref &&
-                  !visited_yet(type));
-  save_esp = type->variant.routine.extra_info->exception_specification;
-  type->variant.routine.extra_info->exception_specification = NULL;
-  copy_type(type, copied_type);
-  type->variant.routine.extra_info->exception_specification = save_esp;
-  il_lowering_flag_of(copied_type) = FALSE;
-  copied_type->typeinfo_var = NULL;
-  return copied_type;
-}  /* copy_of_function_type_without_exc_spec */
+  if (exc_spec_in_func_type) {
+    base_type = skip_typerefs(type);
+    if (is_ptr_to_member_type(base_type)) {
+      orig_type = base_type;
+      base_type = pm_member_type(base_type);
+      is_ptr_to_member = TRUE;
+    }  /* if */
+    if (is_function_type(base_type)) {
+      check_assertion(!visited_yet(type));
+      save_esp =base_type->variant.routine.extra_info->exception_specification;
+      if (is_nothrow_spec(save_esp)) {
+        /* Create a copy of the function type without the exception
+           specification (and ensure it's not lowered). */
+        base_type->variant.routine.extra_info->exception_specification = NULL;
+        copied_type = alloc_type(base_type->kind);
+        copy_type(base_type, copied_type);
+        base_type->variant.routine.extra_info->exception_specification =
+                                                                      save_esp;
+        il_lowering_flag_of(copied_type) = FALSE;
+        copied_type->typeinfo_var = NULL;
+        if (is_ptr_to_member) {
+          /* Copy the original (pointer-to-member) type and replace the
+             member portion with the copied function type from above. */
+          a_type_ptr save_copied_type = copied_type;
+          copied_type = alloc_type(orig_type->kind);
+          copy_type(orig_type, copied_type);
+          copied_type->variant.ptr_to_member.type = save_copied_type;
+          il_lowering_flag_of(copied_type) = FALSE;
+          copied_type->typeinfo_var = NULL;
+        }  /* if */
+        *non_throw_type = copied_type;
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_type_with_exc_spec */
 
 #endif /* IA64_ABI || GENERATE_EH_TABLES */
 
@@ -1832,23 +1863,15 @@ typeinfo variable in a COMDAT group.
                       is_incomplete_type_for_purposes_of_rtti(type)) {
             flags_value |= PFS_INCOMPLETE_CLASS;
           }  /* if */
-          if (exc_spec_in_func_type &&
-              is_function_type(pointed_to_type)) {
-            an_exception_specification_ptr  esp;
-            a_type_ptr function_type = skip_typerefs(pointed_to_type);
-            esp = function_type->
-                           variant.routine.extra_info->exception_specification;
-            if (is_nothrow_spec(esp)) {
-              /* Exception specifications are part of the type system and the
-                 pointed-to function has a noexcept exception specification.
-                 The IA-64 ABI represents this in the pointer typeinfo (not
-                 the function typeinfo), so add a flag here and make sure the
-                 pointed-to function type does not include the exception
-                 specification. */
-              pointed_to_type = copy_of_function_type_without_exc_spec(
-                                                                function_type);
-              flags_value |= PFS_NOEXCEPT;
-            }  /* if */
+          if (is_function_type(pointed_to_type) &&
+              is_type_with_exc_spec(pointed_to_type, &pointed_to_type)) {
+            /* Exception specifications are part of the type system and the
+               pointed-to function has a noexcept exception specification.
+               The IA-64 ABI represents this in the pointer typeinfo (not
+               the function typeinfo), so add a flag here and make sure the
+               pointed-to function type does not include the exception
+               specification. */
+            flags_value |= PFS_NOEXCEPT;
           }  /* if */
           flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
           set_unsigned_integer_constant(flags_con,
@@ -2603,17 +2626,21 @@ match the runtime's definition.
 Note that ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION and ETS_IS_ELLIPSIS are
 "overloaded" (i.e., they use the same bit).  That's because the library
 currently uses a_byte to store these flags and there are no unused bits.
-They are differentiated by the ETS_IS_POINTER bit.
+If either ETS_IS_POINTER or ETS_IS_POINTER_TO_MEMBER_FUNCTION is set,
+the bit is treated as ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION, otherwise it is
+treated as ETS_IS_ELLIPSIS.
 */
 #define ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION 0x10
-			/* When ETS_IS_POINTER is TRUE, a pointer to a function
+			/* When (ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION |
+			   ETS_IS_POINTER) is TRUE, a pointer to a function
 			   or member function type with a "noexcept" exception
 			   specification (in configurations where exception
 			   specifications are considered part of the function
 			   type). */
 #if DO_FULL_PORTABLE_EH_LOWERING
 #define ETS_IS_ELLIPSIS		0x10
-			/* When ETS_IS_POINTER is FALSE, the catch clause
+			/* When (ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION |
+			   ETS_IS_POINTER) is FALSE, the catch clause
 			   contains an ellipsis. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #define ETS_LAST		0x20
@@ -2675,17 +2702,15 @@ Return a pointer to the variable and set *type to the underlying type.
       flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
     } else if (is_or_was_ptr_to_member_function_type(*type)) {
       flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
-    }  /* if */
-    if (exc_spec_in_func_type &&
-        is_function_type(*type)) {
-      a_type_ptr function_type = skip_typerefs(*type);
-      if (is_nothrow_spec(function_type->
-                        variant.routine.extra_info->exception_specification)) {
-        /* A noexcept exception specification is part of the function's
-           type. */
-        flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
-        *type = copy_of_function_type_without_exc_spec(function_type);
+      if (is_type_with_exc_spec(*type, type)) {
+        /* A noexcept exception specification is part of the pointer-to-member-
+           function's type. */
+        flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
       }  /* if */
+    } else if (is_function_type(*type) && is_type_with_exc_spec(*type, type)) {
+      /* A noexcept exception specification is part of the function's
+         type. */
+      flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
     }  /* if */
     if (done) {
       flags_value |= ETS_LAST;
@@ -2744,6 +2769,13 @@ the cv-qualifiers and passes the type through.
     *flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
   } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
     *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
+    if (is_type_with_exc_spec(eff_type, &eff_type)) {
+      /* A noexcept exception specification is part of the pointer-to-member-
+         function type.  Include a flag to that effect, then strip the
+         exception specification from the effective type (as if the exception
+         specification was a type qualifier). */
+      *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
+    }  /* if */
   }  /* if */
   if (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
     a_type_ptr under_ptr = type_pointed_to(eff_type);
@@ -2780,19 +2812,12 @@ the cv-qualifiers and passes the type through.
       } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
         *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
       }  /* if */
-      if (exc_spec_in_func_type &&
-          is_function_type(eff_type)) {
-        a_type_ptr function_type = skip_typerefs(eff_type);
-        if (is_nothrow_spec(function_type->
-                        variant.routine.extra_info->exception_specification)) {
-          /* A noexcept exception specification is part of the function's type.
-             Include a flag to that effect, then strip the exception
-             specification from the effective type (as if the exception
-             specification was a type qualifier). */
-          *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
-          check_assertion(*flags_value & ETS_IS_POINTER);
-          eff_type = copy_of_function_type_without_exc_spec(function_type);
-        }  /* if */
+      if (is_type_with_exc_spec(eff_type, &eff_type)) {
+        /* A noexcept exception specification is part of the function or
+           pointer-to-member-function type.  Include a flag to that effect,
+           then strip the exception specification from the effective type (as
+           if the exception specification was a type qualifier). */
+        *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6102,6 +6127,11 @@ Lower an enk_throw expression node.
     a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     throw_type = tsp->type;
+    /* Make the typeinfo variable for the underlying throw type (before the
+       type is lowered). */
+    typeinfo_var = typeinfo_var_for_type(get_underlying_type(throw_type),
+                                         &flags_value,
+                                         &ptr_flags_var);
     lower_os_type(throw_type);
     throw_type = f_skip_typerefs(throw_type);
     dip = tsp->dynamic_init;
@@ -6131,10 +6161,6 @@ Lower an enk_throw expression node.
 #endif /* !ABI_CHANGES_FOR_RTTI */
     ptr_throw_type = make_pointer_type(throw_type);
     temp_var = make_local_temporary(ptr_throw_type);
-    /* Make the typeinfo variable for the underlying throw type. */
-    typeinfo_var = typeinfo_var_for_type(get_underlying_type(tsp->type),
-                                         &flags_value,
-                                         &ptr_flags_var);
     /* Make the arguments for the __throw_setup call. */
     typeinfo_node = var_addr_expr(typeinfo_var);
     typeinfo_node = add_cast_if_necessary(typeinfo_node,

@@ -241,16 +241,20 @@ typedef struct an_eh_region_descr {
 Note that ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION and ETS_IS_ELLIPSIS are
 "overloaded" (i.e., they use the same bit).  That's because the library
 currently uses a_byte to store these flags and there are no unused bits.
-They are differentiated by the ETS_IS_POINTER bit.
+If either ETS_IS_POINTER or ETS_IS_POINTER_TO_MEMBER_FUNCTION is set,
+the bit is treated as ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION, otherwise it is
+treated as ETS_IS_ELLIPSIS.
 */
 #define ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION 0x10
-			/* When ETS_IS_POINTER is TRUE, a pointer to a function
+			/* When (ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION |
+			   ETS_IS_POINTER) is TRUE, a pointer to a function
 			   or member function type with a "noexcept" exception
 			   specification (in configurations where exception
 			   specifications are considered part of the function
 			   type). */
 #define ETS_IS_ELLIPSIS		0x10
-			/* When ETS_IS_POINTER is FALSE, the catch clause
+			/* When (ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION |
+			   ETS_IS_POINTER) is FALSE, the catch clause
 			   contains an ellipsis. */
 #define ETS_LAST		0x20
 			/* TRUE if this is the last catch clause associated
@@ -290,15 +294,22 @@ They are differentiated by the ETS_IS_POINTER bit.
 #define is_single_level_pointer_to_member(flag)				\
   ((flag & (ETS_IS_POINTER_TO_DATA_MEMBER |				\
             ETS_IS_POINTER_TO_MEMBER_FUNCTION)) != 0)
+#define is_pointer_to_member_function(flag)				\
+  ((flag & ETS_IS_POINTER_TO_MEMBER_FUNCTION) != 0)
 
-#define is_const(flag)               ((flag & ETS_CONST) != 0)
-#define is_volatile(flag)            ((flag & ETS_VOLATILE) != 0)
-#define is_reference(flag)           ((flag & ETS_IS_REFERENCE) != 0)
-#define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS) != 0 && \
-                                      (flag & ETS_IS_POINTER) == 0)
+#define is_const(flag)     ((flag & ETS_CONST) != 0)
+#define is_volatile(flag)  ((flag & ETS_VOLATILE) != 0)
+#define is_reference(flag) ((flag & ETS_IS_REFERENCE) != 0)
+/* Note that both is_ellipsis and is_noexcept use the same flag; they are
+   differentiated by settings of ETS_IS_POINTER_TO_MEMBER_FUNCTION or
+   ETS_IS_POINTER. */
+#define is_ellipsis(flag)  ((flag & ETS_IS_ELLIPSIS) != 0 && \
+                            ((flag & (ETS_IS_POINTER | \
+                                     ETS_IS_POINTER_TO_MEMBER_FUNCTION)) == 0))
 #define is_noexcept(flag) ((flag & ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION)!=0 && \
-                           (flag & ETS_IS_POINTER) != 0)
-#define is_last(flag)                ((flag & ETS_LAST) != 0)
+                           ((flag & (ETS_IS_POINTER | \
+                                     ETS_IS_POINTER_TO_MEMBER_FUNCTION)) != 0))
+#define is_last(flag)     ((flag & ETS_LAST) != 0)
 
 /* Return the qualifiers from a flag entry. */
 #define get_qualifiers(flag)         (flag & ETS_QUALIFIERS)
