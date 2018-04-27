@@ -6404,10 +6404,10 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = FALSE;
       *type_ptr = enum_type;
       goto return_point;
-    }  else if (tag_sym->is_nonreal_member){
-            /* Use the enum symbol, not the nonreal one. */
-            tag_sym = nested_prototype_type_for_nonreal_type(tag_sym);
-            enum_type = type_symbol_type(tag_sym);
+    } else if (tag_sym->is_nonreal_member){
+      /* Use the enum symbol, not the nonreal one. */
+      tag_sym = nested_prototype_type_for_nonreal_type(tag_sym);
+      enum_type = type_symbol_type(tag_sym);
     } else {
       pos_sy_error(ec_not_an_enum_type_name, &locator.source_position,
                    tag_sym);
