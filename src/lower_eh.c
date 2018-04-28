@@ -6125,13 +6125,13 @@ Lower an enk_throw expression node.
     /* Throw of an object. */
 #if DO_FULL_PORTABLE_EH_LOWERING
     a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-    throw_type = tsp->type;
     /* Make the typeinfo variable for the underlying throw type (before the
        type is lowered). */
-    typeinfo_var = typeinfo_var_for_type(get_underlying_type(throw_type),
+    typeinfo_var = typeinfo_var_for_type(get_underlying_type(tsp->type),
                                          &flags_value,
                                          &ptr_flags_var);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+    throw_type = tsp->type;
     lower_os_type(throw_type);
     throw_type = f_skip_typerefs(throw_type);
     dip = tsp->dynamic_init;
