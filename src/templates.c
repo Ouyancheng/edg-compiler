@@ -35535,7 +35535,8 @@ dllimport or dllexport attribute to a template instance.
                              class_type->variant.class_struct_union.extra_info;
     /* Instantiate the class, if not already done. */
     complete_class_type_is_needed(class_type);
-    require_definitions_of_virtual_functions_in_class(class_type);
+    require_definitions_of_virtual_functions_in_class(class_type,
+                                                      /*for_objects=*/FALSE);
     ctsp->named_in_inline_template_directive = TRUE;
   } else {
     /* Instantiate the class, if not already done. */
@@ -35589,7 +35590,8 @@ dllimport or dllexport attribute to a template instance.
         /* For explicitly instantiated classes a vtable will be emitted;
            ensure that all virtual functions referenced by the vtable are
            defined. */
-        require_definitions_of_virtual_functions_in_class(class_type);
+        require_definitions_of_virtual_functions_in_class(
+                                           class_type, /*for_objects=*/FALSE);
       }  /* if */
       mem_sym = ignore_directive ?
                     NULL : sym->variant.class_struct_union.extra_info->symbols;
