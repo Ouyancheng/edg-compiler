@@ -20672,8 +20672,8 @@ Do IL lowering of the indicated scope and everything under it.
   if (lowering_file_scope) {
     /* Lower the file-scope lists or the lists for a class or namespace
        scope. */
-    lower_type_list(scope->types);
     lower_variable_list(scope->variables);
+    lower_type_list(scope->types);
     if (scope_kind == (a_scope_kind)sck_class_struct_union &&
         allow_anachronisms) {
       /* Change the storage class of static data members that have external
