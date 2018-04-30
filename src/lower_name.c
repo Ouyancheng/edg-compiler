@@ -620,6 +620,13 @@ static a_boolean substitution_available(
                                     an_il_entry_kind         kind,
                                     a_boolean                is_pack_expansion,
                                     a_mangling_control_block *mctl);
+static a_boolean add_substitution_if_available_full(
+                            char                     *entity,
+                            an_il_entry_kind         kind,
+                            a_boolean                is_pack_expansion,
+                            a_boolean                test,
+                            a_boolean                *is_standard_substitution,
+                            a_mangling_control_block *mctl);
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
@@ -827,8 +834,14 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
        already have checked this).  Skip the check when emulating GNU ABI bugs
        because in some cases the substitutions are intentionally
        non-standard. */
-    check_assertion_str(!substitution_available(entity, kind,
-                                                is_pack_expansion, mctl),
+    a_boolean is_standard_substitution = FALSE;
+    check_assertion_str(!(add_substitution_if_available_full(entity,
+                                                     kind,
+                                                     is_pack_expansion,
+                                                     /*test=*/TRUE,
+                                                     &is_standard_substitution,
+                                                     mctl) &&
+                          !is_standard_substitution),
                         "alloc_substitution: missed mangling substitution");
   }  /* if */
 #endif /* EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405 */
@@ -1549,18 +1562,21 @@ static a_boolean record_substitution_for_type(a_type_ptr type);
 
 
 static a_boolean add_substitution_if_available_full(
-                                    char                     *entity,
-                                    an_il_entry_kind         kind,
-                                    a_boolean                is_pack_expansion,
-                                    a_boolean                test,
-                                    a_mangling_control_block *mctl)
+                            char                     *entity,
+                            an_il_entry_kind         kind,
+                            a_boolean                is_pack_expansion,
+                            a_boolean                test,
+                            a_boolean                *is_standard_substitution,
+                            a_mangling_control_block *mctl)
 /*
 If there is a substitution available for entity, add it to the mangled name
 and return TRUE.  Otherwise return FALSE.  The kind indicates the kind of
 entity processed.  is_pack_expansion specifies whether the caller desires
 a substitution for the pack expanded type or the non-pack expanded type (and
 should be FALSE for non-type entities).  If test is TRUE, just determine
-whether a substitution is available; do not put it out.
+whether a substitution is available; do not put it out.  Set
+*is_standard_substitution to TRUE if the available substitution is a "standard"
+substitution (and is unset otherwise).
 */
 {
   a_substitution_ptr   sp;
@@ -1650,6 +1666,7 @@ whether a substitution is available; do not put it out.
   if (str != NULL) {
     /* There is a special substitution that applies. */
     result = TRUE;
+    *is_standard_substitution = TRUE;
     if (!test) add_str_to_mangled_name(str, mctl);
   } else {
     /* Otherwise, see if there is an existing substitution for something
@@ -1754,8 +1771,11 @@ a substitution for the pack expanded type or the non-pack expanded type (and
 should be FALSE for non-type entities).
 */
 {
+  a_boolean is_special_substitution;
+
   return add_substitution_if_available_full(entity, kind, is_pack_expansion,
-                                            /*test=*/FALSE, mctl);
+                                            /*test=*/FALSE,
+                                            &is_special_substitution, mctl);
 }  /* add_substitution_if_available */
 
 
@@ -1770,8 +1790,11 @@ matching is_pack_expansion value for types), return TRUE.  Do not add the
 substitution to the mangled name.
 */
 {
+  a_boolean is_special_substitution;
+
   return add_substitution_if_available_full(entity, kind, is_pack_expansion,
-                                            /*test=*/TRUE, mctl);
+                                            /*test=*/TRUE,
+                                            &is_special_substitution, mctl);
 }  /* substitution_available */
 
 
