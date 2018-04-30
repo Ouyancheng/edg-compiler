@@ -8435,30 +8435,31 @@ routine should be kept.
       /* Functions containing generic lambdas need to be kept because generic
          lambda instantiations will refer to their internals. */
       result = TRUE;
-    } else if (routine->is_lambda_body) {
-      if (routine->is_template_function) {
-        /* Generic lambda closure instances should also be retained. */
+    } else if (routine->source_corresp.is_class_member) {
+      a_type_ptr  parent_class = parent_class_of(routine);
+      if (parent_class->incomplete) {
+        /* Lowering the member function requires prelowering its parent class,
+           and that cannot be done if the parent class is incomplete. */
         result = TRUE;
+      } else if (class_type_supp(parent_class)->is_lambda_closure_class) {
+        if (class_type_supp(parent_class)->is_generic_lambda_closure_class) {
+          /* Generic lambda closure instances should also be retained. */
+          result = TRUE;
 #if NEED_NAME_MANGLING
-      } else {
-        /* Lambdas appearing in structured binding declarations have to wait
-           until the structured binding declaration is fully processed. */
-        a_type_ptr  closure = parent_class_of(routine);
-        a_class_type_supplement_ptr
-                    ctsp = class_type_supp(closure);
-        if (ctsp->defined_in_variable_initializer) {
-          a_variable_ptr  vp = ctsp->lambda_parent.variable;
-          if (vp->is_struct_binding_container) {
-            result = TRUE;
+        } else if (routine->is_lambda_body) {
+          /* Lambdas appearing in structured binding declarations have to wait
+             until the structured binding declaration is fully processed. */
+          a_class_type_supplement_ptr
+                    ctsp = class_type_supp(parent_class);
+          if (ctsp->defined_in_variable_initializer) {
+            a_variable_ptr  vp = ctsp->lambda_parent.variable;
+            if (vp->is_struct_binding_container) {
+              result = TRUE;
+            }  /* if */
           }  /* if */
-        }  /* if */
 #endif /* NEED_NAME_MANGLING */
+        }  /* if */
       }  /* if */
-    } else if (routine->source_corresp.is_class_member &&
-               parent_class_of(routine)->incomplete) {
-      /* Lowering the member function requires prelowering its parent class,
-         and that cannot be done if the parent class is incomplete. */
-      result = TRUE;
     } /* if */
   }  /* if */
   if (result) {

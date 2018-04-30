@@ -25105,8 +25105,24 @@ and everything dependent on it.  The routine entry itself is dealt with later.
           ((curr_translation_unit == translation_units) ?
              !in_secondary_trans_unit(sp) :
              (trans_unit_for_scope[sp->number] == curr_translation_unit))) {
+        a_routine_ptr  rp;
+        a_boolean      function_body_processing_finished;
         check_assertion(sp->kind == (a_scope_kind)sck_function);
-        if (!sp->variant.routine.ptr->keep_definition_in_il) {
+        rp = sp->variant.routine.ptr;
+        /* Do not clear the body of a function whose processing has not yet
+           finished.  For functions that are not top-level functions in their
+           memory regions (currently, the members of local lambdas), do not
+           clear the body if the corresponding top-level function's processing
+           is not done yet. */
+        if (rp->is_top_level_in_mem_region) {
+          function_body_processing_finished =
+                                        sp->function_body_processing_finished;
+        } else {
+          function_body_processing_finished =
+                                 il_header.region_scope_entry[mrn]
+                                          ->function_body_processing_finished;
+        }  /* if */
+        if (!rp->keep_definition_in_il && function_body_processing_finished) {
           /* An unneeded routine definition.  Delete it. */
           clear_function_body(sp);
         }  /* if */

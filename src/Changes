@@ -1,5 +1,21 @@
 Version 4.15
 
+4/30/18  [EDGcpfe/19341]
+Lowering of lambda members in secondary translation units
+
+The front end previously sometimes failed to lower local lambda members in
+secondary translation units (when simultaneously compiling multiple
+translation units).  For example, given an empty primary translation unit and
+the following secondary translation unit:
+
+  void g() {
+    auto lm = [](auto p) { return p; };
+  }
+
+the front end previously failed to lower the constructors of the closure
+class associated with the lambda local to function g().  That is now fixed.
+
+
 4/30/18  [EDGcpfe/18996]
 Assertion failure: alloc_substitution: missed mangling substitution
 
@@ -43,7 +59,7 @@ For example (with --c++17):
     void m(void);
   };
   void f(void) {
-    try {
+    try {try
       throw &S::m; // throw of potentially-throwing member function
     }
     catch(void(S::*)(void) noexcept) { }  // not caught
@@ -101,23 +117,6 @@ temporary to match that of the reference: Previously, lowering the example
 above caused the lifetime of the temporary array to be limited to the generated
 function that performs the initialization.  (I.e., after the initialization was
 completed, r became a dangling reference.)  That is now fixed.
-
-
-4/23/18  [EDGcpfe/19341]
-Inconsistent mangled name of local closure type in secondary translation unit
-
-Consider:
-
-  int main() { 
-    auto func = [](auto p) { p > 0; };  
-  }
-
-When this appeared in a secondary translation unit with no corresponding
-definition in the primary translation unit, the closure type associated with
-the lambda was not mangled.  That is now fixed.  Note, however, that the
-C-generating back end will not render the mangled name and instead use a
-uniquely-generated name to avoid potential name collisions between unnamed
-entities (without external linkage) in different translation units.
 
 
 4/23/18  [EDGcpfe/19564]
