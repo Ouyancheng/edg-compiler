@@ -192,13 +192,6 @@ configurations can be created in the same manner.
 #define LEGACY_TARGET_CONFIGURATION_NAME "linux_i686"
 #endif /* TARG_SUPPORTS_X86_64 */
 
-/*
-Don't specify a default configuration (this leaves the legacy configuration
-as the default and doesn't require a name change for $EDG_BASE/lib unless
-the --target option is used).
-*/
-#undef DEFAULT_TARGET_CONFIGURATION_NAME
-
 #if IA64_ABI
 
 #if TARG_SUPPORTS_X86_64

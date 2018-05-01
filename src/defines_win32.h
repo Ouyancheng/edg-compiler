@@ -226,13 +226,6 @@ ones can be created with --dump_legacy_as_target).
 #define LEGACY_TARGET_CONFIGURATION_NAME "win32"
 #endif /* TARG_SUPPORTS_X86_64 */
 
-/*
-Don't specify a default configuration (this leaves the legacy configuration
-as the default and doesn't require a name change for $EDG_BASE/lib unless
-the --target option is used).
-*/
-#undef DEFAULT_TARGET_CONFIGURATION_NAME
-
 #if TARG_SUPPORTS_X86_64
 
 /* "Other" target is Windows 32-bit configuration. */
