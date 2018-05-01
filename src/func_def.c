@@ -190,10 +190,10 @@ static void r_require_definitions_of_virtual_functions_in_class(
                                                         a_boolean  for_objects)
 /*
 Helper routine for require_definitions_of_virtual_functions_in_class to handle
-the recursive walk through base classes.  for_objects is TRUE if the definition
-of the virtual functions are needed because objects of that class type are
-created or destroyed (another reason might be, e.g., that the decider function
-has been defined).
+the recursive walk through base classes.  for_objects is TRUE if the
+definitions of the virtual functions are needed because objects of that class
+type are created or destroyed (another reason might be, e.g., that the decider
+function has been defined).
 */
 {
   if (!class_type->variant.class_struct_union.
@@ -278,7 +278,7 @@ Require definitions for all virtual functions in class_type (including
 those from its base classes that are not overridden).  This includes
 virtual destructors and instantiatable functions.  The definitions
 are required in the overall program, not necessarily in the current
-compilation.  for_objects is TRUE if the definition of the virtual
+compilation.  for_objects is TRUE if the definitions of the virtual
 functions are needed because objects of that class type are created
 or destroyed (another reason might be, e.g., that the decider function
 has been defined).
