@@ -25165,7 +25165,10 @@ supplement for this template should be returned to the caller.
     sym = check_variable_template_declaration(decl_state, locator);
     /* This is the initial declaration if it has not been entered into a
        scope yet. */
-    is_initial_decl = decl_state->is_var_templ_initial_decl;
+    if (decl_state->is_var_templ_initial_decl) {
+      is_initial_decl = TRUE;
+      dps->first_decl = TRUE;
+    }  /* if */
   }  /* if */
   is_variable_template = sym != NULL && symbol_is(sym, sk_variable_template);
   if (sym != NULL) {

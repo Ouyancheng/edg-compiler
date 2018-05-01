@@ -1,5 +1,21 @@
 Version 4.15
 
+5/1/18   [EDGcpfe/19650]
+Distinguishing original variable template declarations and redeclarations
+
+While processing a declaration, the front end maintains a state object of type
+a_decl_parse_state.  One of the flags in that object is "first_decl", which
+reflects whether this is the first declaration of the associated entity that
+is seen or whether it is a later declaration (usually, a redeclaration).
+However, the flag was previously never set for variable template declarations.
+For example:
+
+  template <class T> extern T x;  // (1)
+  template <class T> T x = 1;     // (2)
+
+The flag is now set to TRUE for declaration (1) and to FALSE for (2).
+
+
 5/1/18   [EDGcpfe/19643]
 __uuidof constants
 
