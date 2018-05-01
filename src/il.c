@@ -7960,34 +7960,50 @@ alloc_shareable_constant would return a shareable constant.
     /* Constants with backing expressions or associated with specific
        source positions should not be shared. */
     shareable = FALSE;
-  } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
-             cp->variant.ptr_to_member.name_reference != NULL) {
-    /* Pointer to member constants with an attached name reference should
-       not be shared. */
-    shareable = FALSE;
-  } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Template param constants should not be made part of the IL tree proper,
-       unless prototype instantiations are recorded in the IL.  In the latter
-       case, the constant may need to refer to a local expression, which
-       prevents sharing.  Those with assoc_info non-NULL were handled above.
-       For others, make a new copy every time. */
-    shareable = FALSE;
-  } else if (constant_is(cp, ck_address) &&
-             cp->variant.address.subobject_path != NULL) {
-    /* Do not share address constants with a subobject path. */
-    shareable = FALSE;
-  } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-    /* Don't share aggregate constants (they come up for compound literals
-       used to initialize static variables in gcc mode, when recording
-       constant expressions). */
-    shareable = FALSE;
-  } else if (cp->kind == (a_constant_repr_kind)ck_string &&
-             !string_literals_shared) {
-    /* Don't share string literals if told not to. */
-    shareable = FALSE;
   } else {
-    /* Other cases are shareable. */
-    shareable = TRUE;
+    switch (cp->kind) {
+      case ck_address:
+        if (cp->variant.address.subobject_path != NULL) {
+          /* Do not share address constants with a subobject path. */
+          shareable = FALSE;
+        } else if (cp->variant.address.kind ==
+                                           (an_address_base_kind)abk_uuidof &&
+                   cp->variant.address.variant.type != NULL) {
+          /* Do not share __uuidof address constants with an associated type
+             since a back end might be interested in the specific type that
+             was recorded. */
+          shareable = FALSE;
+        } else {
+          shareable = TRUE;
+        }  /* if */
+        break;
+      case ck_aggregate:
+        /* Don't share aggregate constants (they come up for compound literals
+           used to initialize static variables in gcc mode, when recording
+           constant expressions). */
+        shareable = FALSE;
+        break;
+      case ck_string:
+        /* Don't share string literals if told not to. */
+        shareable = string_literals_shared;
+        break;
+      case ck_ptr_to_member:
+        /* Pointer to member constants with an attached name reference
+           should not be shared. */
+        shareable = (cp->variant.ptr_to_member.name_reference == NULL);
+        break;
+      case ck_template_param:
+        /* Template param constants should not be made part of the IL tree
+           proper, unless prototype instantiations are recorded in the IL.
+           In the latter case, the constant may need to refer to a local
+           expression, which prevents sharing.  Those with assoc_info non-NULL
+           were handled above.  For others, make a new copy every time. */
+        shareable = FALSE;
+        break;
+      default:
+        /* Other cases are shareable. */
+        shareable = TRUE;
+    }  /* switch */
   }  /* if */
   return shareable;
 }  /* constant_is_shareable */

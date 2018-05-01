@@ -1,5 +1,29 @@
 Version 4.15
 
+5/1/18   [EDGcpfe/19643]
+__uuidof constants
+
+Previously, the front end always shared the representation of constants
+produced by the __uuidof operator.  Now, that sharing is avoided if a
+specific type is recorded in the corresponding ck_address/abk_uuidof entry.
+For example:
+
+  struct _GUID {
+    char a[16];
+  };
+  struct __declspec(uuid("{01234567-89ab-cdef-0123-456789ABCDEF}")) S;
+  struct __declspec(uuid("{01234567-89ab-cdef-0123-456789ABCDEF}")) T;
+  void g() {
+    _GUID uuidS = __uuidof(S);  // (1)
+    _GUID uuidT = __uuidof(T);  // (2)
+  }
+
+Previously, the constant produced for line (2) was the same one as the one
+produced for (1), causing, e.g., the C++-generating back end to render the
+second line as "... = __uuidof(S);".  Now, distinct constants are recorded,
+and the second line is rendered as "... = __uuidof(T);".
+
+
 4/30/18  [EDGcpfe/19341]
 Lowering of lambda members in secondary translation units
 
