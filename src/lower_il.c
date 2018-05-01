@@ -15936,6 +15936,15 @@ cast.  See lower_expr for typical invocation.
     case enk_type_operand:
       lower_os_type(expr->variant.type_operand.type);
       break;
+    case enk_braced_init_list:
+      /* Lower an enk_braced_init_list expression.  These rarely occur in the
+         IL (the front end typically processes these as initializers), but they
+         can occur in discarded branches of "if constexpr" statements.  Lower
+         the expressions in the list. */
+      lower_expr_list(expr->variant.braced_init_list,
+                      /*is_bool_controlling_expr_mask=*/0,
+                      /*assume_expr_is_non_null_mask=*/0);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
