@@ -80,8 +80,7 @@ extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 extern void generate_required_virtual_destructor_bodies(a_scope_ptr  scope);
 
 extern void require_definitions_of_virtual_functions_in_class(
-                                                      a_type_ptr class_type,
-                                                      a_boolean  for_objects);
+							a_type_ptr class_type);
 
 
 #if COROUTINES_ALLOWED

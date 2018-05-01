@@ -14560,8 +14560,7 @@ of virtual functions if type is a class.
       }  /* if */
 #endif /* DO_IL_LOWERING */
       if (require_virtuals) {
-        require_definitions_of_virtual_functions_in_class(
-                                                type, /*for_objects=*/FALSE);
+        require_definitions_of_virtual_functions_in_class(type);
       }  /* if */
       /* Force typeinfos for the base classes. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {

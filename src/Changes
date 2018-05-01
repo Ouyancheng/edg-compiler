@@ -1,29 +1,5 @@
 Version 4.15
 
-4/30/18  [EDGcpfe/19632]
-Virtual function table instantiations
-
-Consider:
-
-	template<class T> struct B {
-	  virtual void f() {
-	    static_assert(sizeof(T) == 13, "");
-	  }
-	};
-	struct D: B<int> {
-	  void f();
-	};
-	void D::f() {}  // Previously triggered an error.
-
-D::f is the "decider" function to produce a virtual function table for this
-example.  Previously, this recursively triggered the instantiation of
-overridden virtual functions in base classes (B<int>::f() in this example)
-and that triggered an error due to the failing static_assert (assuming that
-sizeof(int) != 13).  Now, the definition of a virtual function table triggered
-by a decider function definition no longer causes the instantiation of
-overridden base members.
-
-
 4/30/18  [EDGcpfe/19341]
 Lowering of lambda members in secondary translation units
 

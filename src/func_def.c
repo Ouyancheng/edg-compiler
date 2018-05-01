@@ -186,14 +186,10 @@ Require definitions for the virtual functions of the indicated class.
 
 
 static void r_require_definitions_of_virtual_functions_in_class(
-                                                        a_type_ptr class_type,
-                                                        a_boolean  for_objects)
+                                                         a_type_ptr class_type)
 /*
-Helper routine for require_definitions_of_virtual_functions_in_class to handle
-the recursive walk through base classes.  for_objects is TRUE if the
-definitions of the virtual functions are needed because objects of that class
-type are created or destroyed (another reason might be, e.g., that the decider
-function has been defined).
+Helper routine for require_definitions_of_virtual_functions_in_class
+to handle the recursive walk through base classes.
 */
 {
   if (!class_type->variant.class_struct_union.
@@ -208,17 +204,14 @@ function has been defined).
                                    virtual_functions_marked_as_required = TRUE;
     /* Loop through the routines list and check the virtual functions. */
     require_definitions_of_virtual_functions_on_routine_list(class_type);
-    if (for_objects) {
-      /* Do the same for base class virtual functions. */
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        /* Handle only direct base classes, because the recursive call
-           will handle that class's base classes. */
-        if (bcp->direct) {
-          r_require_definitions_of_virtual_functions_in_class(bcp->type,
-                                                              for_objects);
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    /* Do the same for base class virtual functions. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      /* Handle only direct base classes, because the recursive call
+         will handle that class's base classes. */
+      if (bcp->direct) {
+        r_require_definitions_of_virtual_functions_in_class(bcp->type);
+      }  /* if */
+    }  /* for */
   }  /* if */
 }  /* r_require_definitions_of_virtual_functions_in_class */
 
@@ -271,17 +264,13 @@ trigger its definition elsewhere).
 }  /* define_virtual_generated_dtor_if_needed */
 
 
-void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type,
-                                                       a_boolean  for_objects)
+void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
 /*
 Require definitions for all virtual functions in class_type (including
 those from its base classes that are not overridden).  This includes
 virtual destructors and instantiatable functions.  The definitions
 are required in the overall program, not necessarily in the current
-compilation.  for_objects is TRUE if the definitions of the virtual
-functions are needed because objects of that class type are created
-or destroyed (another reason might be, e.g., that the decider function
-has been defined).
+compilation.
 */
 {
   class_type = skip_typerefs(class_type);
@@ -323,8 +312,7 @@ has been defined).
       }  /* for */
     }  /* if */
 #endif /* IA64_ABI */
-    r_require_definitions_of_virtual_functions_in_class(
-                                                     class_type, for_objects);
+    r_require_definitions_of_virtual_functions_in_class(class_type);
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
 
@@ -353,31 +341,29 @@ be emitted elsewhere.
 
 
 static a_boolean virtual_functions_needed_due_to_definition_of(
-                                                   a_routine_ptr routine,
-                                                   a_boolean     *for_decider)
+                                                         a_routine_ptr routine)
 /*
 Return TRUE if definitions of virtual functions of the class of which the
 indicated routine is a member are needed (somewhere in the program, but
 not necessarily in the current compilation).  The definition of the
-indicated routine has just been processed.  If TRUE is returned because
-the given routine is (or was) a decider function (other than a destructor),
-set *for_decider to TRUE.
+indicated routine has just been processed.
 */
 {
   a_boolean  needed = FALSE;
   a_type_ptr class_type = parent_class_of(routine);
 
-  if (class_type->variant.class_struct_union
-                         .any_virtual_functions_including_in_base_classes) {
-    if (special_kind_is(routine, sfk_constructor) ||
-        special_kind_is(routine, sfk_destructor)) {
+  if (class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Constructor and destructor wrappers refer to the virtual function
          table and therefore the virtual functions are needed. */
       needed = TRUE;
     } else if (routine->is_virtual &&
                !is_explicit_instantiation_to_be_ignored(routine)) {
       a_routine_ptr decider = vtbl_decider_function_for_class(
-                                               class_type, (a_boolean *)NULL);
+                                                            class_type,
+                                                            (a_boolean *)NULL);
       if (decider != NULL ?
                     (decider == routine ||
                      (routine_has_been_defined(decider) &&
@@ -396,7 +382,6 @@ set *for_decider to TRUE.
            that specifies "inline" for a function that otherwise would have
            been considered to be the decider function. */
         needed = TRUE;
-        *for_decider = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -405,7 +390,7 @@ set *for_decider to TRUE.
 
 
 static void require_definitions_of_virtual_functions_due_to_definition_of(
-                                                        a_routine_ptr routine)
+                                                         a_routine_ptr routine)
 /*
 The indicated routine (a member function) has just been defined.  If that
 implies that definitions of virtual functions of the routine's class are
@@ -414,11 +399,9 @@ the definitions are required in the overall program, not necessarily in the
 current compilation.
 */
 {
-  a_boolean  for_decider = FALSE;
-  if (virtual_functions_needed_due_to_definition_of(routine, &for_decider)) {
+  if (virtual_functions_needed_due_to_definition_of(routine)) {
     a_type_ptr class_type = parent_class_of(routine);
-    require_definitions_of_virtual_functions_in_class(
-                                                    class_type, !for_decider);
+    require_definitions_of_virtual_functions_in_class(class_type);
     if (routine->considered_decider_function_at_some_point &&
         class_type->used_in_exception_or_rtti) {
       force_definition_of_typeinfo_for(class_type);
