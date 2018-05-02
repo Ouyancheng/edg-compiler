@@ -1,5 +1,16 @@
 Version 4.15
 
+5/2/18   [EDGcpfe/19646]
+Member function qualifiers and alias template declarations
+
+The front end previously issued a spurious error on an alias template
+declaration denoting a qualified member function type.  For example:
+
+  template<class T> using X = T() const;  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 5/2/18   [EDGcpfe/19655]
 GNU compatibility: Add builtins for GCC 8.1
 

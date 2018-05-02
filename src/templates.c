@@ -9296,6 +9296,7 @@ error type is used.
         }  /* if */
       }  /* if */
       init_decl_parse_state(&dps);
+      dps.is_alias = TRUE;
       dps.is_alias_template_type = TRUE;
       ++(tssp_of_prototype->pending_instantiations);
       /* Push the template instantiation scope for the instantiation. */
@@ -27084,6 +27085,7 @@ can be diagnosed at template definition time.
      instantiation is underway. */
   template_sym->is_invisible = TRUE;
   init_decl_parse_state(&dps);
+  dps.is_alias = TRUE;
   dps.is_alias_template_type = TRUE;
   /* Scan the type. */
   type_name_full(&dps);
