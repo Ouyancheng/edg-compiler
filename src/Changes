@@ -1,5 +1,12 @@
 Version 4.15
 
+5/2/18   [EDGcpfe/19655]
+GNU compatibility: Add builtins for GCC 8.1
+
+87 new builtin functions have been added when gnu_version >= 80100.
+Additionally, several builtin functions have different signatures.
+
+
 5/1/18   [EDGcpfe/19650]
 Distinguishing original variable template declarations and redeclarations
 
