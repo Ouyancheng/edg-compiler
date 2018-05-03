@@ -517,6 +517,8 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_win32)*/
 /*lint -esym(755,TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_win32)*/
 #else /* !IA64_ABI */
+/*lint -esym(759,rvalue_expr_for_lvalue)*/
+/*lint -esym(765,rvalue_expr_for_lvalue)*/
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/
 /*lint -esym(759,type_info_names)*/
