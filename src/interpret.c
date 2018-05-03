@@ -1130,6 +1130,7 @@ Macros to push and pop call frames.
     (p_frame)->continue_active = FALSE;                                      \
     (p_frame)->switch_break_active = FALSE;                                  \
     (ips)->curr_call_frame = (p_frame);                                      \
+    (ips)->call_seen = TRUE;                                                 \
   }
 
 #define pop_call_frame(ips)                                                  \
@@ -4617,17 +4618,23 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
-                /* Record a two-way mapping to ensure we always use the same
-                   storage, and that we reproduce the original constant if this
-                   becomes part of the interpretation result. */
-                map_stack_bytes(ips, cp, con_bytes);
-                map_stack_bytes(ips, con_bytes, (a_byte*)con);
                 if (result) {
                   result = extract_value_from_constant(ips, cp, con_bytes,
                                                        con_bytes);
                 }  /* if */
                 if (!result) break;
                 mark_complete_object_initialized(con_bytes);
+                /* Record a two-way mapping to ensure we always use the same
+                   storage, and that we reproduce the original constant if this
+                   becomes part of the interpretation result. */
+                if (constant_is(cp, ck_string)) {
+                  /* The con_bytes storage was mapped to cp, but in this case
+                     we really want it mapped to con (done below).  Back out
+                     the mapping to cp. */
+                  unmap_stack_bytes(ips, con_bytes);
+                }  /* if */
+                map_stack_bytes(ips, cp, con_bytes);
+                map_stack_bytes(ips, con_bytes, (a_byte*)con);
               }  /* if */
               clear_address(value, con_bytes);
               ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
@@ -4724,6 +4731,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         a_targ_size_t  n_elems, k, char_size;
         a_byte_count   elem_size;
         a_const_char   *char_ptr;
+        a_call_frame_ptr
+                       curr_call_frame;
         etp = skip_typerefs(tp->variant.array.element_type);
         char_size = etp->size;
         n_elems = tp->variant.array.variant.number_of_elements;
@@ -4733,6 +4742,24 @@ formats as necessary.  Return FALSE if the constant is an error constant.
            entry so that that constant can, if needed, be retrieved by
            copy_interpreter_object_to_constant. */
         map_stack_bytes(ips, value, (a_byte*)con);
+        curr_call_frame = ips->curr_call_frame;
+        if (curr_call_frame != NULL && !in_file_scope(con) &&
+            (innermost_function_scope == NULL ||
+             innermost_function_scope->variant.routine.ptr !=
+                                                  curr_call_frame->routine)) {
+          /* The ck_string entry is allocated in a function-scope memory
+             region for a function scope that is different from the scope in
+             which the result will be needed.  Enter a map entry indicating
+             that the string needs to be copied (to avoid memory region issues)
+             if it ends up in the final result. */
+          a_byte  *placeholder;
+          get_stack_bytes(ips, &con->variant.string.value, placeholder);
+          if (placeholder == NULL) {
+            /* The value associated with &con->variant.string.value doesn't
+               matter.  We use con for expediency. */
+            map_stack_bytes(ips, &con->variant.string.value, (a_byte*)con);
+          }  /* if */
+        }  /* if */
         for (k = 0; k<n_elems; k += 1) {
           unsigned long char_val = extract_character_from_string(
                                            char_ptr, (unsigned int)char_size);
@@ -7819,7 +7846,6 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* for */
     /* Reduce the cost of the call to just 2. */
     ips->cost -= up_front_cost-2;
-    ips->call_seen = TRUE;
   }  /* if */
 done:
   return result;
@@ -8277,7 +8303,6 @@ the body of the (constructor) function proper.
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Reduce the cost of the call to just 1. */
     ips->cost -= up_front_cost-2;
-    ips->call_seen = TRUE;
   }  /* if */
 done:
   return result;
@@ -13409,18 +13434,7 @@ diagnostic in *ips.
                  was loaded into interpreter storage (see
                  extract_value_from_constant).  In the latter case make a
                  copy of the string constant to avoid memory region issues. */
-              if (constant_is(prev_con, ck_string) && ips->call_seen) {
-                /* Copy the string entry, but mark it as being the result of
-                   a constant-expression evaluation, to distinguish it from an
-                   actual string literal. */
-                cp = alloc_unshared_constant(prev_con);
-                cp->is_result_of_constexpr_call = TRUE;
-#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-                cp->variant.string.sequence_number = 0;
-#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-              } else {
-                cp = prev_con;
-              }  /* if */
+              cp = prev_con;
               top_type = skip_typerefs(cp->type);
             } else if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
@@ -13519,6 +13533,24 @@ diagnostic in *ips.
             }  /* if */
           } else {
             if (constant_is(cp, ck_string)) {
+              if (constant_is(cp, ck_string) && ips->call_seen) {
+                /* If the ck_string constant was allocated in a different
+                   memory region, we recorded &cp-variant.string.value in the
+                   interpretation map.  In that case, a copy should be made to
+                   avoid memory region violations. */
+                a_byte  *placeholder;
+                get_stack_bytes(ips, &cp->variant.string.value, placeholder);
+                if (placeholder != NULL) {
+                    /* Copy the string entry, but mark it as being the result
+                       of a constant-expression evaluation, to distinguish it
+                       from an actual string literal. */
+                  cp = alloc_unshared_constant(cp);
+                  cp->is_result_of_constexpr_call = TRUE;
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+                  cp->variant.string.sequence_number = 0;
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+                }  /* if */
+              }  /* if */
               con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
