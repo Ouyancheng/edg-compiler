@@ -2852,8 +2852,7 @@ not to contain any top level base class casts.
 }  /* rvalue_pointer_for_class_rvalue */
 
 
-static an_expr_node_ptr rvalue_pointer_for_class_expression(
-                                                         an_expr_node_ptr expr)
+an_expr_node_ptr rvalue_pointer_for_class_expression(an_expr_node_ptr expr)
 /*
 Return an rvalue pointer expression for the class expression expr.
 expr is either an rvalue class pointer (in which case no conversion

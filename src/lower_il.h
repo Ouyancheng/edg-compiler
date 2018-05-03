@@ -1366,6 +1366,9 @@ extern void clear_parent_information(void);
 
 extern an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr);
 
+extern an_expr_node_ptr rvalue_pointer_for_class_expression(
+                                                        an_expr_node_ptr expr);
+
 extern a_boolean type_has_param_passed_via_cctor(a_type_ptr tp);
 
 extern a_type_ptr cast_type_for_param_passed_via_cctor(a_type_ptr source,

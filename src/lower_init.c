@@ -1785,6 +1785,22 @@ initialization (when ipdp->array_element_sequence is TRUE).
         init_val_node = add_cast(init_val_node, cast_to_type);
       }  /* if  */
     }  /* if */
+#if IA64_ABI
+    { a_type_ptr init_type = skip_typerefs(init_val_node->type);
+      if (is_immediate_class_type(init_type) &&
+          class_type_supp(init_type)->has_subobject_type &&
+          subobject_for_class(init_type) == skip_typerefs(entity_type)) {
+        /* We're assigning a class with complete object type to an entity
+           with subobject type.  Cast the initialization to the proper type. */
+        check_assertion(!init_val_node->is_lvalue);
+        init_val_node = rvalue_pointer_for_class_expression(init_val_node);
+        init_val_node = add_cast(init_val_node,
+                                 make_pointer_type(entity_type));
+        init_val_node = add_indirection_to_node(init_val_node);
+        init_val_node = rvalue_expr_for_lvalue(init_val_node);
+      }  /* if */
+    }
+#endif /* IA64_ABI */
     assign_node = make_assignment_expr_with_subobject_fix(entity_node,
                                                           have_complete_object,
                                                           op,
