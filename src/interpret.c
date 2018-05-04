@@ -1225,12 +1225,12 @@ storage.
 
 #if DEBUG
 
-void db_data_map(void  *map_ptr)
+void db_data_map(void  *map_address)
 /*
 Output some information about a data map's contents
 */
 {
-  a_data_map        *map = (a_data_map*)map_ptr;
+  a_data_map        *map = (a_data_map*)map_address;
   a_data_map_entry  *table = map->table;
   a_map_index       mask = map->hash_mask;
   a_map_index       k, n_slots = mask+1;
@@ -1294,6 +1294,34 @@ Double the number of entries in the given map.  This requires rehashing.
 }  /* expand_ptr_map */
 
 
+#ifdef TRACE_INTERPRETER_MAP
+
+static a_byte
+		*traced_iptr = NULL;
+			/* Pointer that is checked for mapping activity.
+			   Intended to be set from within a debugger and
+			   watched by setting a breakpoint on function
+			   interpreter_map_intercept. */
+
+static void interpreter_map_intercept(a_const_char  *msg)
+/*
+Function called when a map key equal to traced_iptr is entered into or removed
+from a map.
+*/
+{
+  fprintf(f_debug, "\nMap activity for %p: %s\n", traced_iptr, msg);
+}  /* interpreter_map_intercept */
+
+#define check_traced_iptr(ptr, msg)                                          \
+  if ((a_byte*)(ptr) == traced_iptr) interpreter_map_intercept(msg);
+
+#else /* TRACE_INTERPRETER_MAP  */
+
+#define check_traced_iptr(ptr, msg) /* Nothing */
+
+#endif /* TRACE_INTERPRETER_MAP */
+
+
 /*
 Macro to add a (pointer, pointer) entry to a data map.  The key pointer (iptr)
 may not be in the map already.
@@ -1304,6 +1332,7 @@ may not be in the map already.
   a_map_index  mask = (map)->hash_mask;                                      \
   a_map_index  idx = hash & mask;                                            \
   a_data_map_entry  *table = (map)->table;                                   \
+  check_traced_iptr(iptr, "mapped");                                         \
   if (table[idx].ptr == NULL) {                                              \
     table[idx].ptr = (a_byte*)(iptr);                                        \
     table[idx].data.ptr = (dptr);                                            \
@@ -1327,6 +1356,7 @@ may not be in the map already.
   a_map_index       idx = hash & mask, idx0 = idx;                           \
   a_data_map_entry  *table = (map)->table;                                   \
   a_byte            *ptr = table[idx].ptr;                                   \
+  check_traced_iptr(iptr, "mapped or replaced");                             \
   if (ptr == NULL) {                                                         \
     table[idx].ptr = (a_byte*)(iptr);                                        \
     table[idx].data.ptr = (dptr);                                            \
@@ -1372,6 +1402,7 @@ the table).
   a_map_index       idx = hash & mask;                                       \
   a_data_map_entry  *table = (map)->table;                                   \
   a_byte            *ptr = table[idx].ptr;                                   \
+  check_traced_iptr(iptr, "replaced");                                       \
   for (;;) {                                                                 \
     if (ptr == (a_byte*)(iptr)) {                                            \
       table[idx].data.ptr = (dptr);                                          \
@@ -1394,6 +1425,7 @@ Macro to add a (pointer, byte-count) entry to a data map.
   a_map_index  idx = hash & mask;                                            \
   a_data_map_entry  *table = (map)->table;                                   \
   a_byte            *cached_ptr = table[idx].ptr;                            \
+  check_traced_iptr(iptr, "mapped (bytecount)");                             \
   if (cached_ptr == NULL) {                                                  \
     table[idx].ptr = (a_byte*)(iptr);                                        \
     table[idx].data.byte_count = (bcount);                                   \
@@ -1422,6 +1454,14 @@ location.
   a_data_map_entry  *table = map->table;
   a_data_map_entry  saved_entry;
 
+#if EXPENSIVE_CHECKING
+  { a_byte  *dptr;
+    get_mapped_ptr(map, new_entry.ptr, dptr)
+    if (dptr != NULL) {
+      unexpected_condition_str("duplicate map key in interpreter");
+    }  /* if */
+  }
+#endif /* EXPENSIVE_CHECKING */
   /* Place the new mapping at idx, and move the existing mapping to the
      next available spot. */
   saved_entry = table[idx];
@@ -1442,6 +1482,7 @@ location.
   a_map_index       mask = (map)->hash_mask;                                 \
   a_map_index       idx = hash & mask;                                       \
   a_data_map_entry  *table = (map)->table;                                   \
+  check_traced_iptr(iptr, "UNmapped");                                       \
   /* Find the item to delete (we're assuming it exists). */                  \
   while (table[idx].ptr != (a_byte*)iptr) {                                  \
     idx = (idx+1) & mask;                                                    \
@@ -4525,6 +4566,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 a_byte  *var_bytes;
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {
+                  a_boolean  no_reverse_map = FALSE;
                   alloc_static_object(ips, vtp, var_bytes, &result);
                   map_stack_bytes(ips, vp, var_bytes);
                   if (result) {
@@ -4533,9 +4575,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       cp = vp->initializer.constant;
                     } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
                       a_dynamic_init_ptr  dip = vp->initializer.dynamic;
-                      result = do_constexpr_dynamic_init(
+                      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+                        cp = dip->variant.constant;
+                      } else {
+                        result = do_constexpr_dynamic_init(
                                                      ips, dip, &ips->position,
                                                      var_bytes, var_bytes);
+                      }  /* if */
                     } else {
                       an_init_kind    init_kind;
                       an_initializer  *initializer;
@@ -4545,9 +4591,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                         cp = initializer->constant;
                       } else if (init_kind == (an_init_kind)initk_dynamic) {
                         a_dynamic_init_ptr  dip = initializer->dynamic;
-                        result = do_constexpr_dynamic_init(
+                        if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+                          cp = dip->variant.constant;
+                        } else {
+                          result = do_constexpr_dynamic_init(
                                                      ips, dip, &ips->position,
                                                      var_bytes, var_bytes);
+                        }  /* if */
                       } else {
                         /* In GNU C++ mode, the initializer may not be
                            instantiated yet. */
@@ -4567,19 +4617,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       result = extract_value_from_constant(
                                                ips, cp, var_bytes, var_bytes);
                       if (constant_is(cp, ck_string)) {
-                        /* The var_bytes storage was mapped to cp, but in this
-                           case we really want it mapped to con (done below).
-                           Back out the mapping to cp. */
-                        unmap_stack_bytes(ips, var_bytes);
+                        /* String entries are already themselves mapped. */
+                        no_reverse_map = TRUE;
                       }  /* if */
-                    }  /* if */                     
+                    }  /* if */
                   }  /* if */
                   if (!result) break;
                   mark_complete_object_initialized(var_bytes);
-                  /* Set up a reverse mapping so we can re-create a variable
-                     address constant if the address (with potentially a
-                     different offset) is returned from the interpreter. */
-                  map_stack_bytes(ips, var_bytes, (a_byte*)con);
+                  if (!no_reverse_map) {
+                    /* Set up a reverse mapping so we can re-create a variable
+                       address constant if the address (with potentially a
+                       different offset) is returned from the interpreter. */
+                    map_stack_bytes(ips, var_bytes, (a_byte*)con);
+                  }  /* if */
                 }  /* if */
                 clear_address(value, var_bytes);
                 if (is_const_qualified_type(vp->type)) {
@@ -4627,14 +4677,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 /* Record a two-way mapping to ensure we always use the same
                    storage, and that we reproduce the original constant if this
                    becomes part of the interpretation result. */
-                if (constant_is(cp, ck_string)) {
-                  /* The con_bytes storage was mapped to cp, but in this case
-                     we really want it mapped to con (done below).  Back out
-                     the mapping to cp. */
-                  unmap_stack_bytes(ips, con_bytes);
-                }  /* if */
                 map_stack_bytes(ips, cp, con_bytes);
-                map_stack_bytes(ips, con_bytes, (a_byte*)con);
+                if (!constant_is(cp, ck_string)) {
+                  /* String entries are already themselves mapped. */
+                  map_stack_bytes(ips, con_bytes, (a_byte*)con);
+                }  /* if */
               }  /* if */
               clear_address(value, con_bytes);
               ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
