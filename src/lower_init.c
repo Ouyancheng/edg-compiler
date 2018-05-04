@@ -1790,8 +1790,8 @@ initialization (when ipdp->array_element_sequence is TRUE).
       if (is_immediate_class_type(init_type) &&
           class_type_supp(init_type)->has_subobject_type &&
           subobject_for_class(init_type) == skip_typerefs(entity_type)) {
-        /* We're assigning a complete object of class type to a subobject of
-           the same class type; add a cast. */
+        /* We're assigning a complete object of class type to an entity with
+           the subobject version of that type; add a cast. */
         check_assertion(!init_val_node->is_lvalue);
         init_val_node = rvalue_pointer_for_class_expression(init_val_node);
         init_val_node = add_cast(init_val_node,
