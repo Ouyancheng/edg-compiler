@@ -8286,10 +8286,12 @@ the body of the (constructor) function proper.
           init_subobject_to_zero(ips, result_storage+offset, tp,
                                  complete_object);
         } else {
+          a_byte  *prev_this_bytes;
           if (record_param_ref) {
             /* Associate the "this" pointer value (arbitrarily) with
                &ips->curr_call_frame. */
-            map_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
+            map_or_replace_ptr(&ips->map, &ips->curr_call_frame, this_bytes,
+                               prev_this_bytes);
           }  /* if */
           if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
@@ -8301,7 +8303,12 @@ the body of the (constructor) function proper.
             mark_subobject_initialized(result_storage+offset, complete_object);
           }  /* if */
           if (record_param_ref) {
-            unmap_stack_bytes(ips, &ips->curr_call_frame);
+            if (prev_this_bytes == NULL) {
+              unmap_ptr(&ips->map, &ips->curr_call_frame);
+            } else {
+              replace_mapped_ptr(&ips->map, &ips->curr_call_frame,
+                                 prev_this_bytes);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
