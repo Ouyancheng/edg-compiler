@@ -1,5 +1,26 @@
 Version 4.15
 
+5/4/18   [EDGcpfe/19489]
+GCC compatibility: #pragma GCC system_header
+
+Previously a header file included by a file that had been designated a
+system header by virtue of a "#pragma GCC system_header", had not itself been
+considered a system header file, resulting in spurious diagnostics (that
+are typically suppressed in system headers).  For example (with --g++ -I.):
+
+  // x.c:
+  #include "h1.h"
+  extern int x;
+
+  // h1.h:
+  #pragma GCC system_header
+  #include <h2.h>
+
+  // h2.h:                        Now considered a system header
+  extern int * foo () throw ();
+  #define x (* foo ())
+
+
 5/2/18   [EDGcpfe/19545,EDGcpfe/19658]
 Mapping corruption during constexpr interpretation of string literals
 

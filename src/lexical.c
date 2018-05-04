@@ -5935,13 +5935,13 @@ used to find this file.
   }  /* if */
   prev_ise = curr_ise;
   if (is_include_file) {
-    /* This file is from a system include directory if it was found in a
-       directory flagged as a system include directory.  If there is no
-       directory entry (e.g., for an absolute path name) use the system
-       include directory flag from the previous input stack entry. */
-    from_system_include_dir =
-                        dir_entry == NULL ? prev_ise->from_system_include_dir
-                                          : dir_entry->system_include_dir;
+    /* This file is from a system include directory if it was included by
+       a system header, or if it has a directory entry and that directory
+       is considered to be a system include directory. */
+    if (prev_ise->from_system_include_dir ||
+        (dir_entry != NULL && dir_entry->system_include_dir)) {
+      from_system_include_dir = TRUE;
+    }  /* if */
   }  /* if */
   /* Push the new input stack entry. */
   curr_ise = &input_stack[++depth_input_stack];
