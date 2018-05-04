@@ -4617,8 +4617,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       result = extract_value_from_constant(
                                                ips, cp, var_bytes, var_bytes);
                       if (constant_is(cp, ck_string)) {
-                        /* String entries are already themselves mapped. */
-                        no_reverse_map = TRUE;
+                        /* The ck_string case already installed a reverse map
+                           from var_bytes to cp. */
+                        if (type_is(vtp, tk_array)) {
+                          /* An array initialized with a string: var_bytes is
+                             the variable storage, not the string storage.
+                             Undo the previous reverse map. */
+                          unmap_stack_bytes(ips, var_bytes);
+                        } else {
+                          /* Presumably a pointer or reference to the string.
+                             var_bytes is the string storage itself.  Do not
+                             map it back to the variable. */
+                          no_reverse_map = TRUE;
+                        }  /* if */
                       }  /* if */
                     }  /* if */
                   }  /* if */
