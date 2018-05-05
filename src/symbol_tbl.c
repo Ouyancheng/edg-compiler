@@ -15827,12 +15827,14 @@ const_for_curr_token.
     req_param1_type = make_pointer_type(array_element_type(literal_type));
   }  /* if */
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
-  if (caching_tokens) {
+  if (caching_tokens && !caching_default_argument_tokens) {
     /* Don't bother looking up the literal operator-id at this point; it
        must be done when the user-defined literal token is fetched from a
        cache in case something in the cache, such as a using-directive,
        affects the result of the lookup, so doing a lookup at this point
-       would be wasted effort. */
+       would be wasted effort.  User-defined literals in default arguments,
+       however, must be looked up immediately, since any references are
+       bound at the point of declaration. */
     if (allow_raw_and_template && !from_cache) {
       /* We may need the token spelling when we do the lookup of the cached
          token; if this token isn't already in a cache, save the token
