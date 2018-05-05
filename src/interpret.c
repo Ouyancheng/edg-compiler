@@ -8286,7 +8286,7 @@ the body of the (constructor) function proper.
           init_subobject_to_zero(ips, result_storage+offset, tp,
                                  complete_object);
         } else {
-          a_byte  *prev_this_bytes;
+          a_byte  *prev_this_bytes = NULL;
           if (record_param_ref) {
             /* Associate the "this" pointer value (arbitrarily) with
                &ips->curr_call_frame. */
