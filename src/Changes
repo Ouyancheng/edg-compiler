@@ -1,5 +1,27 @@
 Version 4.15
 
+5/7/18   [EDGcpfe/19604]
+Spurious error on member function definition in Microsoft-mode base class
+
+Consider:
+
+  template<typename T> struct B {};
+  template<typename T> struct C: B<T> {
+    using B<T>::operator=;
+    C& operator=(C const&);
+  };
+  template<typename T> struct D: C<T> {};
+
+In Microsoft mode, the front end performs a "nonreal instantiation" of
+dependent base classes (to emulate certain nonstandard behaviors of the
+Microsoft compilers).  In this example, that caused the declaration of
+C<T>::operator= to conflict with a declaration implied by the member
+using-declaration, which in turned triggered a spurious error claiming
+"operator=" has already been declared in C<T>.  That problem is now fixed
+(and the example is now accepted in Microsoft modes as it is in other
+modes).
+
+
 5/4/18   [EDGcpfe/19489]
 GCC compatibility: #pragma GCC system_header
 

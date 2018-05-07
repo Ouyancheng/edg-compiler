@@ -11409,6 +11409,12 @@ was used).
     /* No member function symbol with this name exists yet, or else this is a
        redeclaration which will cause an error to be issued.  Create a new
        member function symbol. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && !suppress_redecl_error &&
+        in_ms_nonreal_class_instantiation()) {
+      suppress_redecl_error = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     new_sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                                  decl_scope_level, suppress_redecl_error);
   }  /* if */
