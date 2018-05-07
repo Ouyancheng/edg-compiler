@@ -25,9 +25,9 @@ are typically suppressed in system headers).  For example (with --g++ -I.):
 Mapping corruption during constexpr interpretation of string literals
 
 The constexpr interpreter maintains mappings between the IL representation of
-string literals and the temporary storage used in the interpreter to hold the
-associated string values.  Under some circumstances, that mapping was
-corrupted causing string constants to be duplicated instead of shared.  For
+a_constant entries and the temporary storage used in the interpreter to hold
+the associated values.  Under some circumstances, that mapping was corrupted,
+causing, e.g., string constants to be duplicated instead of shared.  For
 example:
 
   struct S {
