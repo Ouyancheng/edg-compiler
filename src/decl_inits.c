@@ -1459,6 +1459,10 @@ Issue any diagnostics at the given position.
       }  /* if */
       elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       elem_con->variant.dynamic_init = dip;
+      if (dip->is_partially_initialized) {
+        is->partial_initializer = TRUE;
+        elem_con->is_partially_initialized = TRUE;
+      }  /* if */
       elem_con->type = fp->type;
     }  /* if */
     is->has_dynamic_init_component = TRUE;
