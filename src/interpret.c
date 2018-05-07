@@ -2717,8 +2717,8 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
     *p_result = TRUE;
     total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
   }  /* if */
-  map_byte_count(&persistent_map, tp, total_size);
 done:
+  map_byte_count(&persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_union_type */
 
