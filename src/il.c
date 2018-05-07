@@ -18490,6 +18490,7 @@ a constant that is the previous value incremented by one.
 {
   a_constant_ptr   prev_val = alloc_unshared_constant(con);
   a_constant_ptr   one_val = local_constant();
+  an_integer_kind  one_kind = (an_integer_kind)ik_int;
   an_expr_node_ptr operands;
 
   clear_constant(con, (a_constant_repr_kind)ck_template_param);
@@ -18498,8 +18499,10 @@ a constant that is the previous value incremented by one.
                               (a_template_param_constant_kind)tpck_expression;
   /* Create a generic addition operation to increment the previous value. */
   operands = alloc_node_for_constant(prev_val);
-  set_integer_constant(one_val, (a_host_large_integer)1,
-                       (an_integer_kind)ik_int);
+  if (is_integral_or_enum_type(prev_val->type)) {
+    one_kind = skip_typerefs(prev_val->type)->variant.integer.int_kind;
+  }  /* if */
+  set_integer_constant(one_val, (a_host_large_integer)1, one_kind);
   operands->next = alloc_node_for_constant(one_val);
   con->variant.template_param.variant.expr =
                            make_operator_node((an_expr_operator_kind)eok_add,
