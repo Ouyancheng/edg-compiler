@@ -13839,8 +13839,9 @@ expression (i.e., id-expression or member access).
       /* Check for the case of a function-type glvalue that results from a
          reference to function. */
       an_expr_node_ptr  expr_noparens = skip_parens(expr);
-      if (is_operation_node(expr_noparens) &&
-          node_operator_is(expr_noparens, eok_ref_indirect)) {
+      if ((is_operation_node(expr_noparens) &&
+           node_operator_is(expr_noparens, eok_ref_indirect)) ||
+          is_routine_node(expr_noparens)) {
         if (expr_noparens->is_lvalue) {
           is_ref_to_fun_lvalue = TRUE;
         } else if (expr_noparens->is_xvalue) {

@@ -1,5 +1,23 @@
 Version 4.15
 
+5/8/18   [EDGcpfe/19482]
+decltype applied to function template specialization
+
+When the operand of the decltype operator is an id-expression, whether that
+id-expression is parenthesized or not matters.  Previously, the front end
+failed to correctly record the absence of parentheses when the operand is the
+name of a specialization of a function template.  E.g.:
+
+  template<typename T> void f(T);
+  decltype(f<int>) *p;
+
+That caused the back end to render type of p as "decltype((f<int>))*".  That
+type is normally a reference to function type, but the front end also failed
+to take the presence of parentheses on a function name into account.  It thus
+erroneously accepted the C++-generating back end output of the case above.
+Both issues are now resolved.
+
+
 5/8/18   [EDGcpfe/19671]
 GNU compatibility: pragma attaching to GNU statement expression
 
