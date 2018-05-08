@@ -46112,7 +46112,7 @@ cases the selector is returned via bound_function_selector).
   a_boolean             left_associative = expr->variant.fold.left_associative;
   a_token_kind          op_token = expr->variant.fold.operator_token;
   a_source_position     *op_pos = &expr->position;
-  an_operand            *opnd = &expr->rescan_info->saved_operand;
+  an_operand            *saved_opnd = &expr->rescan_info->saved_operand;
   an_arg_list_elem_ptr  opnd_list;
   a_boolean             generic = FALSE;
   a_boolean             preserve_deduced_packs =
@@ -46123,11 +46123,24 @@ cases the selector is returned via bound_function_selector).
        known to be complete yet.  Produce a generic representation for now. */
     rcblock->options &= ~CTWS_PRESERVE_DEDUCED_PACKS;
     generic = TRUE;
+    /* Turn the generic fold operand nodes into an_arg_list_elem entries
+       that can be passed to assemble_fold_expression_operand. */
+    opnd_list = alloc_arg_list_elem_for_operand(
+                                  &generic_opnds->rescan_info->saved_operand);
+    generic_opnds = generic_opnds->next;
+    if (generic_opnds != NULL) {
+      append_elem(opnd_list,
+                  alloc_arg_list_elem_for_operand(
+                                 &generic_opnds->rescan_info->saved_operand));
+      check_assertion(generic_opnds->next == NULL);
+    }  /* if */
+  } else {
+    opnd_list = rescan_expr_list(generic_opnds, rcblock);
   }  /* if */
-  opnd_list = rescan_expr_list(generic_opnds, rcblock);
   assemble_fold_expression_operand(result, bound_function_selector,
-                                   &opnd->position, op_pos,
-                                   end_position_or_null(&opnd->end_position),
+                                   &saved_opnd->position, op_pos,
+                                   end_position_or_null(
+                                                   &saved_opnd->end_position),
                                    opnd_list, op_token, unary,
                                    left_associative, generic);
   if (preserve_deduced_packs) {
