@@ -1,5 +1,18 @@
 Version 4.15
 
+5/8/18   [EDGcpfe/19671]
+GNU compatibility: pragma attaching to GNU statement expression
+
+A pragma applied to a statement that contains a GNU statement expression
+had mistakenly been applied to the block of the GNU statement expression rather
+than to the statement itself.  For example:
+
+  int f(void) {
+    #pragma test_next_statement
+    return ({ 0; });    // pragma now applies to return statement
+  }
+
+
 5/7/18   [EDGcpfe/19205]
 C-generating back end abort on initializer with default member initializer
 
