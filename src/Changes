@@ -49,7 +49,7 @@ the constant entry representing the initializer for the temporary produced by
 is now fixed.
 
 
-5/7/18   [EDGcpfe/19604]
+5/7/18   [EDGcpfe/17450,EDGcpfe/19604]
 Spurious error on member function definition in Microsoft-mode base class
 
 Consider:
