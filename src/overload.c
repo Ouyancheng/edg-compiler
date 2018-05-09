@@ -2226,7 +2226,7 @@ call.
   a_symbol_ptr             function_sym;
   an_error_code            err_code;
 
-  check_assertion(expr_stack != NULL &&
+  check_assertion(expr_stack == NULL ||
                   !expr_stack->suppress_diagnostics);
   for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
     /* Print each candidate function. */
@@ -7878,6 +7878,18 @@ deduction guides and check if one is preferred over the other.
             result = is_template2 ? 1 : -1;
           }  /* if */
         }  /* if */
+      }  /* if */
+    } else {
+      /* Two user-declared guides.  There are currently no redeclaration rules
+         for deduction guides.  So, e.g.:
+            template<class ... T, int N> struct S {};
+            template<class ... T> S(T...)->S<T..., 42>;
+            template<class ... T> S(T...)->S<T..., 42>;
+            S s;
+         technically results in an ambiguity.  However, common practice is to
+         ignore that ambiguity and just pick either guide. */
+      if (identical_types(rp1->type, rp2->type)) {
+        result = 1;
       }  /* if */
     }  /* if */
   }  /* if */

@@ -22176,7 +22176,8 @@ friend_template_checks_done:
         sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
         add_sym_to_symbol_table = TRUE;
       }  /* if */
-      if (!friend_class_injection_enabled) {
+      if (!friend_class_injection_enabled ||
+          scope_stack_top().in_prototype_instantiation) {
         /* If the class template is initially declared in a friend declaration,
            mark it as invisible. */
         sym->is_invisible = decl_state->is_template_friend;
