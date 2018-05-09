@@ -1,5 +1,24 @@
 Version 4.15
 
+5/9/18   [EDGcpfe/19096]
+GNU compatibility: Attribute "aligned" and pointer declarators
+
+GCC accepts declarations like:
+
+  void foo(float *__attribute((aligned(16))) p) {}
+
+although the attribute does not affect the type of the parameter.  The front
+end previously treated that attribute as if the declaration had been:
+
+  void foo(float *p __attribute((aligned(16)))) {}
+
+and that is how the C++-generating back end rendered the original example.
+However, GCC doesn't actually accept the latter declaration.  Now, the front
+end retains the earlier form but does not actually change the underlying type
+(since GCC does not appear to do so either).  A typeref entry is used to carry
+the attributes entries.
+
+
 5/8/18   [EDGcpfe/19482]
 decltype applied to function template specialization
 

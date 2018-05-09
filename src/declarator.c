@@ -102,6 +102,24 @@ standard-attribute syntax).
             ap->family == (a_byte_attribute_family)af_alignas)) &&
           !is_type_transforming_attribute(ap) &&
           ap->kind != (a_byte_attribute_kind)ak_enable_if) {
+        /* GNU attributes following nested array or function declarators elicit
+           an error in GCC. */
+        if (dps->in_nested_declarator && !error_issued &&
+            is_gcc_attribute(ap) && 
+            (syn_loc == al_post_func || syn_loc == al_post_array)) {
+          pos_error(ec_invalid_attribute_location, &ap->position);
+          error_issued = TRUE;
+        }  /* if */
+        /* The GNU "aligned" attribute is treated as a type transforming
+           attribute in pointer/reference declarator contexts, but it doesn't
+           actually modify the underlying type entry. */
+        if (ap->kind == (a_byte_attribute_kind)ak_align &&
+            is_gcc_attribute(ap) && syn_loc == al_post_ptr_or_ref) {
+          make_attr_unrecognized(ap);
+          ap->transforms_type_specifier = TRUE;
+          p_from = &ap->next;
+          continue;
+        }  /* if */
         *p_from = ap->next;
         /* Non-nested postfix attributes are recorded as al_postfix.  Others
            are recorded as al_id_equivalent. */
