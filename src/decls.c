@@ -351,6 +351,27 @@ entries.
 }  /* free_decl_parse_state */
 
 
+void discard_placeholder_type(a_decl_parse_state  *dps)
+/*
+Something went wrong with a placeholder type ("auto", "decltype(auto)", or a
+class template name used as a placeholder).  Update *dps to discard the state
+suggesting deduction must occur.
+*/
+{
+  /* Various structures may already be pointing to the "auto" type entry:
+     Change it to an error entry to avoid surprises. */
+  if (dps->auto_type != NULL) {
+    *dps->auto_type = *error_type();
+  }  /* if */
+  dps->auto_type = NULL;
+  dps->auto_type_specifier_seen = FALSE;
+  dps->decltype_auto_specifier_seen = FALSE;
+  dps->has_deducible_class_templ_args = FALSE;
+  dps->has_deduced_type = FALSE;
+  dps->has_deducible_return_type = FALSE;
+}  /* discard_placeholder_type */
+
+
 static a_decl_parse_callback_ptr
 		avail_decl_parse_callbacks;
 			/* Pointer to callback entries available for reuse. */

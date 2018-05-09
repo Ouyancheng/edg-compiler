@@ -9180,9 +9180,7 @@ if an error is issued.
       *basic_type = bt_error;
       *type_ptr = error_type();
       *err = TRUE;
-      state->auto_type_specifier_seen = FALSE;
-      state->has_deduced_type = FALSE;
-      state->decltype_auto_specifier_seen = FALSE;
+      discard_placeholder_type(state);
     } else {
       *basic_type = bt_auto;
       state->auto_type = make_auto_type(&state->auto_pos,

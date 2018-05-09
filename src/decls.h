@@ -1292,6 +1292,8 @@ Macro to record in a parsing state that a type error was encountered.
 #define invalidate_type(ps)                                                  \
   ((ps)->type = (ps)->declared_type = (ps)->specifiers_type = error_type())
 
+extern void discard_placeholder_type(a_decl_parse_state  *dps);
+
 extern void add_end_of_parse_action(
                              a_decl_parse_callback_function  *fn,
                              a_decl_parse_state              *dps,

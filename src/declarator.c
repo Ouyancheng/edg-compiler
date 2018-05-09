@@ -2279,18 +2279,7 @@ a trailing return type.
          suggesting explicit template arguments. */
       diagnose_invalid_class_templ_arg_deduction(state);
     }  /* if */
-    /* For error recovery purposes, do not proceed with a placeholder type.
-       Various structures may already be pointing to the "auto" type entry,
-       however: Change it to an error entry to avoid surprises. */
-    if (state->auto_type != NULL) {
-      *state->auto_type = *error_type();
-    }  /* if */
-    state->auto_type = NULL;
-    state->auto_type_specifier_seen = FALSE;
-    state->decltype_auto_specifier_seen = FALSE;
-    state->has_deducible_class_templ_args = FALSE;
-    state->has_deduced_type = FALSE;
-    state->has_deducible_return_type = FALSE;
+    discard_placeholder_type(state);
   } else if (state->secondary_declarator) {
     /* Check that "auto" is not used both to announce a trailing return type
        and as a deducible type specifier. */
