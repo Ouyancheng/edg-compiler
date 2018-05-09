@@ -569,8 +569,16 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   } else {
     /* In the non-parenthesized case, it's a simple expression or
        a braced-init-list. */
-    icp = scan_expr_or_braced_init_list(/*bundle=*/is_full_expr,
-                                        /*always_allow_braced=*/FALSE);
+    if (dps->retrieve_initializer_from_cache) {
+      /* The expression list is already available (e.g., through expression
+         rescanning for a function-style cast). */
+      icp = dps->prescanned_initializer_cache.first_init;
+      dps->retrieve_initializer_from_cache = FALSE;
+      clear_initializer_cache(&dps->prescanned_initializer_cache);
+    } else {
+      icp = scan_expr_or_braced_init_list(/*bundle=*/is_full_expr,
+                                          /*always_allow_braced=*/FALSE);
+    }  /* if */
   }  /* if */
   check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
   if (icp != NULL) {
