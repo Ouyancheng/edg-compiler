@@ -1,5 +1,32 @@
 Version 4.15
 
+5/10/18  [EDGcpfe/19665]
+Freeing of memory too early when FREE_MEMORY_REGIONS_EARLY is TRUE
+
+In configurations where FREE_MEMORY_REGIONS_EARLY is TRUE, it had been possible
+to free a memory region while it was still being accessed.  That could happen
+when a lambda and its top-level function share the same memory region and led
+to undefined behavior (e.g., segfault or assertion failure).  The following
+example triggered this behavior in some configurations:
+
+  struct A {
+    virtual ~A() { }
+    virtual int f() {
+      int a;
+      [&]() { a = 0; }();
+      return a;
+    }
+  };
+  struct B {
+    virtual void f() {
+      new A;
+    }
+  };
+  void f() {
+   B();
+  }
+
+
 5/9/18   [EDGcpfe/19096]
 GNU compatibility: Attribute "aligned" and pointer declarators
 

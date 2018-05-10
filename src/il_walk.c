@@ -652,6 +652,12 @@ definition of the routine is needed, and not just the declaration.
                scope is popped off the stack.  The innermost_function_scope
                test is needed for generated routines in IL lowering, since
                they're not on the scope stack. */
+          } if (innermost_function_scope != NULL &&
+                curr_il_region_number == mem_region_for_routine(
+                              innermost_function_scope->variant.routine.ptr)) {
+            /* This routine (likely a lambda) is not the top-level function
+               for the memory region and the top-level function is still being
+               used (because innermost_function_scope is pointing to it). */
           } else {
             /* We may be able to dispose of the memory region now. */
             check_for_done_with_memory_region(rout->memory_region);
