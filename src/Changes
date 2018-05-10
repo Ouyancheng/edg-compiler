@@ -28,22 +28,21 @@ example triggered this behavior in some configurations:
 
 
 5/9/18   [EDGcpfe/19096]
-GNU compatibility: Attribute "aligned" and pointer declarators
+GCC and Clang compatibility: "aligned" attribute on parameters
 
-GCC accepts declarations like:
+It appears that GCC accepts the "aligned" attribute in some cases (e.g., when
+parameter types are pointers or references):
 
-  void foo(float *__attribute((aligned(16))) p) {}
+  void foo(float *__attribute__((aligned(256))) p); // GCC accepts
+  void bar(float  __attribute__((aligned(256))) p); // GCC rejects
 
-although the attribute does not affect the type of the parameter.  The front
-end previously treated that attribute as if the declaration had been:
-
-  void foo(float *p __attribute((aligned(16)))) {}
-
-and that is how the C++-generating back end rendered the original example.
-However, GCC doesn't actually accept the latter declaration.  Now, the front
-end retains the earlier form but does not actually change the underlying type
-(since GCC does not appear to do so either).  A typeref entry is used to carry
-the attributes entries.
+Clang accepts the attribute on all tested types, but doesn't appear to apply
+the attribute to the parameter type itself.  A change has been made to accept
+the "aligned" attribute when applied to a pointer or reference type (i.e., the
+GCC behavior) in both GCC and Clang modes.  The attribute does not affect the
+pointer or reference type itself, but a typeref entry is used to carry the
+attribute description (so that it can be rendered by the C++-generating back
+end).
 
 
 5/8/18   [EDGcpfe/19482]
@@ -1088,22 +1087,6 @@ Clang compatibility: Clang 6.0.0 builtins
 
 The signatures for builtin functions have been updated to match those in
 clang 6.0.0.  A total of 159 new builtins were added.
-
-
-3/12/18  [EDGcpfe/19096]
-GCC and Clang compatibility: "aligned" attribute on parameters
-
-It appears that GCC accepts the "aligned" attribute in some cases (e.g., when
-parameter types are pointers or references):
-
-  void foo(float *__attribute__((aligned(256))) p); // GCC accepts
-  void bar(float  __attribute__((aligned(256))) p); // GCC rejects
-
-Clang accepts the attribute on all tested types, but doesn't appear to apply
-the attribute to the parameter type itself.  A change has been made to
-accept the "aligned" attribute in Clang mode and when applied to pointer or
-reference types in GNU modes.  Such attributes have no effect.  An error
-continues to be emitted for non-pointer/non-reference parameter types.
 
 
 3/7/18   [EDGcpfe/19399]
