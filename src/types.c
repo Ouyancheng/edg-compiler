@@ -2674,6 +2674,7 @@ typeref entries representing typedefs or type operators.
   return result;
 }  /* is_class_template_placeholder_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr normalized_class_template_placeholder_type(a_type_ptr         tp,
                                                       a_source_position  *pos)
@@ -2696,6 +2697,7 @@ the template template argument.  Otherwise, return tp.
   return tp;
 }  /* normalized_class_template_placeholder_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp)
 /*

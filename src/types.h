@@ -265,9 +265,11 @@ extern a_boolean is_polymorphic_class_type(a_type_ptr tp);
 extern a_boolean is_auto_type(a_type_ptr tp);
 extern a_boolean is_auto_template_param_type(a_type_ptr tp);
 extern a_boolean is_class_template_placeholder_type(a_type_ptr tp);
+#if !STANDALONE_UTILITY_PROGRAM
 extern
 a_type_ptr normalized_class_template_placeholder_type(a_type_ptr         tp,
                                                       a_source_position  *pos);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
