@@ -6418,6 +6418,12 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_constructor)
 
+#define is_ctor_or_deduction_guide(sym)                                      \
+  (is_special_function_symbol(sym,                                           \
+                              (a_special_function_kind)sfk_constructor) ||   \
+   is_special_function_symbol(sym,                                           \
+                              (a_special_function_kind)sfk_deduction_guide))
+
 /* Return TRUE if the class has a trivial default constructor (implicitly
    declared or defaulted), and no nontrivial default constructor.  (Note
    that a class could have a defaulted trivial default constructor, and one

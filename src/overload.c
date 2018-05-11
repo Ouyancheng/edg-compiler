@@ -4723,9 +4723,9 @@ template arguments, or NULL if deduction failed.
                                            /*param_count=*/0);
   pop_substitution();
   if (updated_routine_type != NULL) {
-    a_routine_ptr routine = template_sym->variant.template_info->
-                                                      variant.function.routine;
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+    a_routine_ptr routine = template_sym->variant.template_info
+                                        ->variant.function.routine;
+    if (special_kind_is(routine, sfk_constructor)) {
       rtsp = updated_routine_type->variant.routine.extra_info;
       ptp = rtsp->param_type_list;
       if (ptp != NULL &&
@@ -5988,6 +5988,33 @@ Otherwise, return NULL.
 }  /* make_implicit_selector_type */
 
 
+static a_boolean has_initializer_list_deduction_guide(a_symbol_ptr  sym)
+/*
+Return TRUE if the given symbol representing a deduction guide or an overload
+set of deduction guides includes at least one guide accepting a single
+argument of a std::initializer_list type.
+*/
+{
+  a_boolean  result = FALSE;
+  a_boolean  is_list = symbol_is(sym, sk_overloaded_function);
+
+  if (is_list) sym = sym->variant.overloaded_function.symbols;
+  while (sym != NULL) {
+    a_type_ptr        rtp = function_or_template_symbol_type(sym);
+    a_param_type_ptr  ptp = function_type_params(rtp);
+    if (ptp != NULL &&
+        (ptp->next == NULL || ptp->next->has_default_arg) &&
+        is_std_initializer_list_type(ptp->type)) {
+      /* A guide that can be called with one std::initializer_list argument. */
+      result = TRUE;
+      break;
+    }  /* if */
+    sym = is_list ? sym->next : NULL;
+  }  /* while */
+  return result;
+}  /* has_initializer_list_deduction_guide */
+
+
 static void try_overloaded_function_match(
                  a_symbol_ptr             overloaded_function_symbol,
                  a_boolean                is_template_id,
@@ -6086,7 +6113,7 @@ conv_context describes the context of the conversion.
        cases written in operator form -- they can't be rewritten by
        preceding them with "this->", so a selector should not be invented. */
     if (!ctor_conversion_case && !is_overloaded_operator && !have_selector &&
-        !is_special_function_symbol(proj_function_symbol, sfk_constructor)) {
+        !is_ctor_or_deduction_guide(proj_function_symbol)) {
       a_type_ptr routine_type;
       a_boolean  some_function_needs_selector = FALSE;
       /* Check the first or only function to see whether or not it requires
@@ -6140,6 +6167,10 @@ retry:
       if (class_type_supp(class_type)->has_initializer_list_ctor) {
         in_init_list_ctor_pass = TRUE;
       }  /* if */
+    } else if (is_special_function_symbol(rep_sym, sfk_deduction_guide) &&
+               has_initializer_list_deduction_guide(
+                                                overloaded_function_symbol)) {
+      in_init_list_ctor_pass = TRUE;
     }  /* if */
   }  /* if */
 retry2:
@@ -6182,17 +6213,32 @@ retry2:
       /* In the initial pass to match initializer-list constructors, skip
          other kinds of constructors.  In the second pass we analyze all
          constructors. */
+      a_routine_ptr  rp;
       if (is_simple_function_symbol(function_symbol)) {
-        if (!function_symbol->variant.routine.ptr->is_initializer_list_ctor) {
-          continue;
-        }  /* if */
+        rp = function_symbol->variant.routine.ptr;
       } else if (symbol_is(function_symbol, sk_function_template)) {
-        if (!function_symbol->variant.template_info->variant.function.routine
-                                                  ->is_initializer_list_ctor) {
-          continue;
-        }  /* if */
+        rp = function_symbol->variant.template_info->variant.function.routine;
       } else {
         continue;
+      }  /* if */
+      if (rp->is_initializer_list_ctor) {
+        /* We'll try matching the initializer-list below. */
+      } else {
+        a_boolean  init_list_guide = FALSE;
+        if (special_kind_is(rp, sfk_deduction_guide)) {
+          a_type_ptr        rtp = skip_typerefs(rp->type);
+          a_param_type_ptr  ptp = function_type_params(rtp);
+          if (ptp != NULL &&
+              (ptp->next == NULL || ptp->next->has_default_arg) &&
+              is_std_initializer_list_type(ptp->type)) {
+            /* A guide that can be called with one std::initializer_list
+               argument. */
+            init_list_guide = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!init_list_guide) {
+          continue;
+        }  /* if */
       }  /* if */
       /* Try matching this initializer-list constructor using the braced-init-
          list as a single argument. */
