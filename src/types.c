@@ -2691,8 +2691,7 @@ the template template argument.  Otherwise, return tp.
 
   new_ct_sym = template_argument_if_template_template_param(orig_ct_sym);
   if (new_ct_sym != orig_ct_sym) {
-    tp = make_class_template_placeholder(new_ct_sym, &pos_curr_token);
-
+    tp = make_class_template_placeholder(new_ct_sym, pos);
   }  /* if */
   return tp;
 }  /* normalized_class_template_placeholder_type */
