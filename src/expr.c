@@ -24784,6 +24784,8 @@ freed by this routine.
        argument deduction). */
     a_decl_parse_state  dps;
     init_decl_parse_state(&dps);
+    type_cast_to = normalized_class_template_placeholder_type(type_cast_to,
+                                                              &type_position);
     dps.type = type_cast_to;
     dps.declared_type = type_cast_to;
     dps.auto_type = type_cast_to;
