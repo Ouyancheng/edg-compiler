@@ -4321,9 +4321,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (tp->kind == (a_type_kind)tk_template_param &&
           tp->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param &&
-          tp->variant.template_param.extra_info->coordinates.depth !=
-                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+                                      (a_template_param_type_kind)tptk_param) {
         /* This is the name of a template parameter, which may be different
            in the current context from what was originally recorded.  Make
            sure we use the correct name for this context. */
