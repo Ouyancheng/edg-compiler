@@ -13951,9 +13951,20 @@ FALSE, and record diagnostic info in *diag_list.
         a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
         if (force_prvalue) {
           if (is_runtime_data_address(cap)) {
-            info_with_pos(ec_constexpr_access_to_runtime_storage,
-                          &expr->position, &ips);
-            do_constexpr_fail(result);
+            if (is_immediate_class_type(result_type) &&
+                result_type->variant.class_struct_union.is_empty_class &&
+                is_trivially_copyable_type(result_type)) {
+              /* An empty class with no actual data to copy: Just allocate
+                 an empty object. */
+              n_bytes = value_bytes_for_type(&ips, result_type, &result);
+              check_assertion(result);
+              alloc_complete_object(&ips, n_bytes, result_type,
+                                    result_storage);
+            } else {
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &expr->position, &ips);
+              do_constexpr_fail(result);
+            }  /* if */
           } else if (is_volatile_qualified_type(expr->type)) {
               do_constexpr_fail(result);
               info_with_pos(ec_constexpr_volatile_fetch, &expr->position,
