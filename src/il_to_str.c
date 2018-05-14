@@ -5888,7 +5888,7 @@ do_sizeof_cases:
           octl->output_str("__integer_pack(", octl);
           form_constant(constant->variant.template_param.variant.bound,
                         /*need_parens=*/FALSE, octl);
-          octl->output_str(")", octl);
+          octl->output_str(")...", octl);
           break;
         case tpck_destructor:
           { a_type_ptr dtor_type =
