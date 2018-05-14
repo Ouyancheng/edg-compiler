@@ -174,7 +174,7 @@ That is now fixed.
 5/2/18   [EDGcpfe/19655]
 GNU compatibility: Add builtins for GCC 8.1
 
-87 new builtin functions have been added when gnu_version >= 80100.
+512 new builtin functions have been added when gnu_version >= 80100.
 Additionally, several builtin functions have different signatures.
 
 
