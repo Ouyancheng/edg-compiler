@@ -8530,11 +8530,11 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
         }  /* if */
         dest_type = pm_member_type(dest_type);
         source_type = pm_member_type(source_type);
-      } else if (!gpp_mode && !clang_mode &&
+      } else if (!gpp_mode && !clang_mode && !microsoft_mode &&
                  is_array(source_type) && is_array(dest_type)) {
         /* N4261 reworked qualification conversions to include arrays (thereby
-           resolving Core issue 330).  GCC and Clang do not appear to implement
-           that yet. */
+           resolving Core issue 330).  GCC, Clang, and MSVC do not appear to
+           implement that yet. */
         if (!identical_array_type_level(source_type, dest_type)) {
           same = FALSE;
           break;
