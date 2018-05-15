@@ -2799,6 +2799,7 @@ and return FALSE.  Otherwise, return TRUE.
                 init_component_pos(icp));
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   if (result && is->decl_parse_state != NULL) {
     a_symbol_ptr  sym = is->decl_parse_state->sym;
     if (sym != NULL) {
@@ -2808,6 +2809,7 @@ and return FALSE.  Otherwise, return TRUE.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   return result;
 }  /* check_flexible_array_init */
 
