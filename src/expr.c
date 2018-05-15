@@ -41607,6 +41607,7 @@ escape at the end of the expression.)
       if ((generalized_nontype_arguments ||
            (!operand->is_id_expression &&
             !operand->is_address_of_id_expression)) &&
+          !is_a_glvalue(operand) &&
           !(is_constant_operand(operand) &&
             is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                &operand->variant.constant))) {
