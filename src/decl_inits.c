@@ -2799,6 +2799,15 @@ and return FALSE.  Otherwise, return TRUE.
                 init_component_pos(icp));
     }  /* if */
   }  /* if */
+  if (result && is->decl_parse_state != NULL) {
+    a_symbol_ptr  sym = is->decl_parse_state->sym;
+    if (sym != NULL) {
+      a_variable_ptr  vp = variable_for_symbol(sym);
+      if (vp != NULL) {
+        vp->has_flexible_array_initializer = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   return result;
 }  /* check_flexible_array_init */
 
