@@ -8517,7 +8517,7 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
         }  /* if */
         dest_type = pm_member_type(dest_type);
         source_type = pm_member_type(source_type);
-      } else if (!gpp_mode && !clang_mode && //!ms_version_is(>= 1914) &&
+      } else if (!gpp_mode && !clang_mode && !ms_version_is(>= 1914) &&
                  is_array(source_type) && is_array(dest_type)) {
         /* N4261 reworked qualification conversions to include arrays (thereby
            resolving Core issue 330).  GCC, Clang, and (some versions of MSVC)
