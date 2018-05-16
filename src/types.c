@@ -9145,8 +9145,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       an_error_code ms_qualifier_warning = ec_no_error;
       if (microsoft_mode) {
         /* MSVC++ allows some weird dropping of certain qualifiers. */
-        (void)handle_microsoft_dropping_of_qualifiers(
-                                                &source_type_qualifiers,
+        handle_microsoft_dropping_of_qualifiers(&source_type_qualifiers,
                                                 &dest_type_qualifiers,
                                                 unqual_dest_type_pointed_to,
                                                 &ms_qualifier_warning);
