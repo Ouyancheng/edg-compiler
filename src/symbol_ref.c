@@ -2389,7 +2389,11 @@ IL entry in place of whatever is pointed to by the symbol.
                been set. */
             /*lint --e{446} ssep modified in loop */
             for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
-              check_assertion(ssep != &scope_stack[0]);
+              if (ssep == &scope_stack[0]) {
+                expect_error();
+                suppress_warning = TRUE;
+                break;
+              }  /* if */
               if (ssep->kind == (a_scope_kind)sck_function) {
                 /* A reference to a local variable from within a quasi-nested
                    function definition should have been reported as an error
