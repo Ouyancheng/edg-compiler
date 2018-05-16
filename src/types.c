@@ -8332,7 +8332,7 @@ to a pointer to dest_type.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean handle_microsoft_dropping_of_qualifiers(
+static void handle_microsoft_dropping_of_qualifiers(
                                   a_type_qualifier_set *source_type_qualifiers,
                                   a_type_qualifier_set *dest_type_qualifiers,
                                   a_type_ptr           dest_type,
@@ -8346,18 +8346,14 @@ the source and destination type qualifiers.  If they indicate the
 strange cases we care about, adjust the qualifiers and set *warning_code
 to indicate the particular weird case.  Otherwise, leave *warning_code
 unchanged.  dest_type is the destination type (possibly with typerefs
-not stripped), for use in a test.  Return TRUE if any adjustment
-was made.
+not stripped), for use in a test.
 */
 {
-  a_boolean adj_made = FALSE;
-
   check_assertion(microsoft_mode);
   if ((*source_type_qualifiers & TQ_UNALIGNED) &&
       !(*dest_type_qualifiers  & TQ_UNALIGNED)) {
     *source_type_qualifiers &=  ~TQ_UNALIGNED;
     *dest_type_qualifiers   |=   TQ_UNALIGNED;
-    adj_made = TRUE;
     if (f_skip_typerefs(dest_type)->alignment != 1) {
       *warning_code = ec_unaligned_qualifier_dropped;
     }  /* if */
@@ -8366,10 +8362,8 @@ was made.
       !(*dest_type_qualifiers  & TQ_RESTRICT)) {
     *source_type_qualifiers &=  ~TQ_RESTRICT;
     *dest_type_qualifiers   |=   TQ_RESTRICT;
-    adj_made = TRUE;
     *warning_code = ec_restrict_qualifier_dropped;
   }  /* if */
-  return adj_made;
 }  /* handle_microsoft_dropping_of_qualifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8435,13 +8429,9 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
     a_type_qualifier_set source_type_qualifiers =
                                               get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean            ms_qualifier_adj_made = FALSE;
-    a_type_qualifier_set orig_dest_type_qualifiers = dest_type_qualifiers;
-    a_type_qualifier_set orig_source_type_qualifiers = source_type_qualifiers;
     if (microsoft_mode) {
       /* MSVC++ allows some weird dropping of certain qualifiers. */
-      ms_qualifier_adj_made = handle_microsoft_dropping_of_qualifiers(
-                                              &source_type_qualifiers,
+      handle_microsoft_dropping_of_qualifiers(&source_type_qualifiers,
                                               &dest_type_qualifiers,
                                               dest_type,
                                               &warning_code);
@@ -8463,25 +8453,22 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
       same = FALSE;
     } else {
       /* In standard mode, if the destination has additional qualifiers
-	 not found in the source, any previous qualifiers must have
-	 included const. */
+	 not found in the source, any previous qualifiers must have included
+         const.  Microsoft's "__unaligned" qualifier is not subject to that
+         constraint, nor are the "restrict"/"__restrict" qualifiers. */
+      if (!(source_type_qualifiers & TQ_RESTRICT)) {
+        dest_type_qualifiers &= ~TQ_RESTRICT;
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (!(source_type_qualifiers & TQ_UNALIGNED)) {
+        dest_type_qualifiers &= ~TQ_UNALIGNED;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (any_qualifier_in_set_missing(source_type_qualifiers,
 				       dest_type_qualifiers)) {
 	qualifiers_added = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ms_qualifier_adj_made &&
-            !any_qualifier_in_set_missing(orig_source_type_qualifiers,
-                                          orig_dest_type_qualifiers)) {
-          /* Some qualifiers were adjusted for the Microsoft case discussed
-             above, but no qualifiers were being added originally.  Don't
-             require that previous steps all have const. */
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          same = previous_qualifiers_include_const;
-          if (!same) break;
-        }  /* if */
+        same = previous_qualifiers_include_const;
+        if (!same) break;
       }  /* if */
       /* See if this qualifier includes const. */
       if ((dest_type_qualifiers & TQ_CONST) == 0) {
@@ -8530,11 +8517,11 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
         }  /* if */
         dest_type = pm_member_type(dest_type);
         source_type = pm_member_type(source_type);
-      } else if (!gpp_mode && !clang_mode && !microsoft_mode &&
+      } else if (!gpp_mode && !clang_mode && //!ms_version_is(>= 1914) &&
                  is_array(source_type) && is_array(dest_type)) {
         /* N4261 reworked qualification conversions to include arrays (thereby
-           resolving Core issue 330).  GCC, Clang, and MSVC do not appear to
-           implement that yet. */
+           resolving Core issue 330).  GCC, Clang, and (some versions of MSVC)
+           do not appear to implement that yet. */
         if (!identical_array_type_level(source_type, dest_type)) {
           same = FALSE;
           break;
