@@ -8086,7 +8086,7 @@ of the C++11 standard.
   a_boolean result;
 
   if (rp->is_defaulted) {
-    complete_defaulted_member_decl(rp);
+    complete_defaulted_exc_spec(rp);
   }  /* if */
   result = (rp->is_trivial_default_constructor ||
             rp->is_trivial_copy_function ||

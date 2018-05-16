@@ -3910,7 +3910,7 @@ static void form_exception_specification_for_generated_function(
                                                          a_symbol_ptr   bctor);
 
 
-void complete_defaulted_member_decl(a_routine_ptr  rp)
+void complete_defaulted_exc_spec(a_routine_ptr  rp)
 /*
 The given routine entry is a defaulted special member.  If needed, establish
 its exception specification.  If an exception specification was specified
@@ -3968,7 +3968,23 @@ and issue an error if it does not.
     }  /* if */
   }  /* if */
   done:;
-}  /* complete_defaulted_member_decl */
+}  /* complete_defaulted_exc_spec */
+
+
+static void complete_defaulted_exc_spec_if_explicit(a_routine_ptr  rp)
+/*
+Call complete_default_member_decl for the given routine if that routine was
+declared with an explicit exception specification.
+*/
+{
+  a_type_ptr  rtp = skip_typerefs(rp->type);
+  an_exception_specification_ptr
+              esp = rtp->variant.routine.extra_info->exception_specification;
+
+  if (esp != NULL && !esp->compiler_generated) {
+    complete_defaulted_exc_spec(rp);
+  }  /* if */
+}  /* complete_defaulted_exc_spec_if_explicit */
 
 
 static a_boolean is_move_function_with_explicit_exc_spec(a_routine_ptr  rp)
@@ -3995,13 +4011,14 @@ explicit exception specification.
 }  /* is_move_function_with_explicit_exc_spec */
 
 
-static void complete_all_defaulted_member_decls(a_type_ptr  class_type)
+static void complete_all_defaulted_exc_specs(a_type_ptr  class_type)
 /*
 If needed, establish the exception specification of any special members of
 class_type defined with "= default".  If an exception specification was
 specified explicitly, verify that it matches that of a corresponding generated
 member and issue an error if it does not.  (This was previously done already
-for certain move functions.)
+for certain move functions.)  Called as part of deferred class fixup
+processing.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
@@ -4009,10 +4026,17 @@ for certain move functions.)
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted && !rp->is_deleted &&
         !is_move_function_with_explicit_exc_spec(rp)) {
-      complete_defaulted_member_decl(rp);
+      /* For class template instances, we only complete ("instantiate") the
+         exception specification if one is explicitly specified (to ensure
+         that the explicit and implicit versions are equivalent). */
+      if (!is_unspecialized_template_class(class_type)) {
+        complete_defaulted_exc_spec(rp);
+      } else {
+        complete_defaulted_exc_spec_if_explicit(rp);
+      }  /* if */
     }  /* if */
   }  /* for */
-}  /* complete_all_defaulted_member_decls */
+}  /* complete_all_defaulted_exc_specs */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -4138,9 +4162,10 @@ after a class instantiation.
       }  /* if */
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
-        check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
-        if (!cfp->class_type->variant.class_struct_union.is_nonreal_class) {
-          complete_all_defaulted_member_decls(cfp->class_type);
+        a_type_ptr  class_type = cfp->class_type;
+        check_trans_unit_for_class(class_type, &trans_unit_pushed);
+        if (!class_type->variant.class_struct_union.is_nonreal_class) {
+          complete_all_defaulted_exc_specs(class_type);
         }  /* if */
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
@@ -20102,23 +20127,6 @@ warnings or remarks may be issued.
 }  /* check_suppressed_special_functions */
 
 
-static void complete_defaulted_member_decl_if_explicit_exc_spec(
-                                                            a_routine_ptr  rp)
-/*
-Call complete_default_member_decl for the given routine if that routine was
-declared with an explicit exception specification.
-*/
-{
-  a_type_ptr  rtp = skip_typerefs(rp->type);
-  an_exception_specification_ptr
-              esp = rtp->variant.routine.extra_info->exception_specification;
-
-  if (esp != NULL && !esp->compiler_generated) {
-    complete_defaulted_member_decl(rp);
-  }  /* if */
-}  /* complete_defaulted_member_decl_if_explicit_exc_spec */
-
-
 static void mark_suppressed_defaulted_members_as_deleted(
                                a_type_ptr                          class_type,
                                a_generated_special_function_descr  *gsfd)
@@ -20156,7 +20164,7 @@ indicates that they should be suppressed.
                other special members, but it must be established early for
                move members because marking them as deleted takes them out
                of the overload set. */
-            complete_defaulted_member_decl_if_explicit_exc_spec(rp);
+            complete_defaulted_exc_spec_if_explicit(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_operator) &&
@@ -20181,7 +20189,7 @@ indicates that they should be suppressed.
                other special members, but it must be established early for
                move members because marking them as deleted takes them out
                of the overload set. */
-            complete_defaulted_member_decl_if_explicit_exc_spec(rp);
+            complete_defaulted_exc_spec_if_explicit(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {

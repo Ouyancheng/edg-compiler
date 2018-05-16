@@ -88,7 +88,7 @@ extern void ensure_inclass_static_member_constant_initializer_is_scanned(
 
 extern void resolve_indeterminate_exception_specification(a_routine_ptr  rp);
 
-extern void complete_defaulted_member_decl(a_routine_ptr  rp);
+extern void complete_defaulted_exc_spec(a_routine_ptr  rp);
 
 extern void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
                                              a_decl_parse_state  *dps,
