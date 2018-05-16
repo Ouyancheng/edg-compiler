@@ -16367,8 +16367,8 @@ typedef struct a_scope {
   /* Scope entries are a key part of the scheme for keeping the
      intermediate language divided up into separate memory regions.
      There is a region for the file scope and a region (containing both
-     declarative and executable information) for each function that has
-     a body.  Having such regions is useful in that it allows removal of
+     declarative and executable information) for each top-level function that
+     has a body.  Having such regions is useful in that it allows removal of
      all the intermediate language associated with a function as a unit
      when it is no longer needed, and allows writing out and reading
      back in of individual routines.  When the executable information
