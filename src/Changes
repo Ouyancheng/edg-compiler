@@ -1,5 +1,19 @@
 Version 4.15
 
+5/17/18  [EDGcpfe/19695]
+GNU compatibility: alignment attributes on enumeration types
+
+It appears that GCC ignores alignment attributes on enumeration types in
+GCC versions before 6.0.0.  The front end now does the same (with a warning).
+A previous check in GCC emulation mode had also generated a spurious error
+in cases where an alignment attribute had specified an alignment larger than
+the base alignment of the enumeration type.  For example (with --c++11
+--gnu_version 50200):
+
+  enum struct alignas(16) E;
+  typedef enum struct alignas(16) E { e = 1 } x;
+
+
 5/17/18  [EDGcpfe/18303,EDGcpfe/19582]
 Abort on use of enumerator constant with [[deprecated]] attribute
 

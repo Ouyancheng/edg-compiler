@@ -4451,10 +4451,9 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
   a_targ_alignment result = base_alignment;
 
   check_assertion(is_enum_type(type));
-  if (type->alignment_set_explicitly && !(gnu_mode && !clang_mode)) {
+  if (type->alignment_set_explicitly) {
     /* An explicit alignment can be set on enum types; verify that it
-       is at least as large as the alignment for the underlying type.
-       GCC (but not clang) appears not to perform this check. */
+       is at least as large as the alignment for the underlying type. */
     if (type->alignment >= base_alignment) {
       result = type->alignment;
     } else {

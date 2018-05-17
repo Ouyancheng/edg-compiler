@@ -4257,6 +4257,13 @@ and C11 _Alignas specifiers.
       }  /* if */
       if (!apply_value) {
         /* Nothing more to do. */
+      } else if (gnu_version_is(<60000) &&
+                 entity_kind == iek_type &&
+                 is_immediate_enum_type((a_type_ptr)entity)) {
+        /* Early versions of GCC appear to have ignored alignment attributes
+           on enumeration types. */
+        pos_warning(ec_attributes_ignored, &ap->position);
+        make_attr_unrecognized(ap);
       } else if (std_specifier ||
                  (gnu_mode && gnu_version >= 40800 &&
                   (entity_kind == iek_variable ||
