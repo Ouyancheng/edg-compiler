@@ -37420,7 +37420,7 @@ a class template parameter list.
 }  /* copy_template_params_to_new_list */
 
 
-static void substitute_default_templ_args(
+static void substitute_template_param_list(
 				a_symbol_ptr		template_sym,
 				a_template_param_ptr	list_to_subst,
 				a_template_param_ptr	templ_param_list,
@@ -37428,37 +37428,58 @@ static void substitute_default_templ_args(
 				a_boolean		*copy_error)
 /*
 Go through the template parameter list specified by list_to_subst and
-do substitution on the default argument values.  templ_param_list and
-templ_arg_list are the parameters/arguments to be substituted.  template_sym
-is the template associated with templ_param_list.  *copy_error will be set
-if a substitution fails.
+do substitution on the types of any nontype template parameters and on
+any default argument values.  templ_param_list and templ_arg_list are
+the parameters/arguments to be substituted.  template_sym is the template
+associated with templ_param_list.  *copy_error will be set if a substitution
+fails.
 */
 {
   a_template_param_ptr	tpp;
 
   for (tpp = list_to_subst; tpp != NULL; tpp = tpp->next) {
-    a_template_arg_ptr	tap;
-    a_templ_arg_kind	arg_kind;
     a_ctws_state	ctws_state;
-    if (!tpp->has_default_arg) continue;
-    arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
-    tap = alloc_template_arg(arg_kind);
-    get_template_arg_value_from_default(template_sym, tap, tpp,
-                                        templ_param_list);
-    init_ctws_state(&ctws_state);
-    substitute_template_argument(tap, tpp, templ_arg_list,
-                                 templ_param_list,
-                                 templ_arg_list, templ_param_list,
-                                 &template_sym->decl_position,
-                                 CTWS_NO_OPTIONS,
-                                 /*is_generic=*/FALSE,
-                                 copy_error, &ctws_state);
-    if (*copy_error) break;
-    /* Copy the argument value back into the template parameter. */
-    set_template_default_arg_value(tap, tpp);
-    free_template_arg_list(tap);
+    a_symbol_ptr	param_sym = tpp->param_symbol;
+    /* Substitute the type of nontype template parameter that depend on other
+       template parameters. */
+    if (symbol_is(param_sym, sk_constant) &&
+        tpp->variant.constant.type_involves_template_param) {
+      a_type_ptr	const_type;
+      init_ctws_state(&ctws_state);
+      const_type = tpp->variant.constant.ptr->type;
+      const_type =
+             copy_type_with_substitution(const_type,
+                                         templ_arg_list, templ_param_list,
+                                         &template_sym->decl_position,
+                                         CTWS_NO_OPTIONS,
+                                         copy_error, &ctws_state);
+      if (*copy_error) break;
+      tpp->variant.constant.ptr->type = const_type;
+    }  /* if */
+    /* If the template parameter has a default argument, perform substitution
+       on it. */
+    if (tpp->has_default_arg) {
+      a_template_arg_ptr	tap;
+      a_templ_arg_kind		arg_kind;
+      arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+      tap = alloc_template_arg(arg_kind);
+      get_template_arg_value_from_default(template_sym, tap, tpp,
+                                          templ_param_list);
+      init_ctws_state(&ctws_state);
+      substitute_template_argument(tap, tpp, templ_arg_list,
+                                   templ_param_list,
+                                   templ_arg_list, templ_param_list,
+                                   &template_sym->decl_position,
+                                   CTWS_NO_OPTIONS,
+                                   /*is_generic=*/FALSE,
+                                   copy_error, &ctws_state);
+      if (*copy_error) break;
+      /* Copy the argument value back into the template parameter. */
+      set_template_default_arg_value(tap, tpp);
+      free_template_arg_list(tap);
+    }  /* if */
   }  /* for */
-}  /* substitute_default_templ_args */
+}  /* substitute_template_param_list */
 
 
 static a_symbol_ptr make_implicit_deduction_guide_template(
@@ -37582,6 +37603,11 @@ occurs during the creation of the template, a NULL symbol is returned.
   /* Create the argument list corresponding to the class's parameters. */
   class_templ_args = create_prototype_arg_list(ct_sym, templ_param_list,
                                                /*add_pack_descr=*/TRUE);
+  /* Substitute the new class template parameters in the copy of the
+     parameter list from the class template. */
+  substitute_template_param_list(ct_sym, templ_param_list,
+                                 orig_class_templ_params,
+                                 class_templ_args, &copy_error);
   /* Get the return type based on the class template argument list.
      The list is copied first because it may be discarded by
      find_class_template_simple. */
@@ -37599,18 +37625,13 @@ occurs during the creation of the template, a NULL symbol is returned.
        in the new parameter list. */
     ctor_templ_args = create_prototype_arg_list(ct_sym, ctor_templ_params,
                                                 /*add_pack_descr=*/TRUE);
-    /* Do substitution on any default template arguments in the new
-       parameter list. */
-    substitute_default_templ_args(ctor_sym, templ_param_list,
-                                  orig_ctor_templ_params,
-                                  ctor_templ_args, &copy_error);
+    /* Repeat the substitution, this time replacing any template parameters
+       of the constructor template. */
+    substitute_template_param_list(ctor_sym, templ_param_list,
+                                   orig_ctor_templ_params,
+                                   ctor_templ_args, &copy_error);
     if (copy_error) goto done;
   }  /* if */
-  /* Repeat the substitution on default arguments.  This time we are
-     substituting the template parameters of the class. */
-  substitute_default_templ_args(ct_sym, templ_param_list,
-                                orig_class_templ_params,
-                                class_templ_args, &copy_error);
   if (copy_error) goto done;
   tssp = sym->variant.template_info;
   tdip = tssp->cache.decl_info;
