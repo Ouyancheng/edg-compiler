@@ -8493,7 +8493,9 @@ static void gen_field_initializer(a_field_ptr  field)
                 (field->initializer->kind ==
                                            (a_dynamic_init_kind)dik_constant &&
                  field->initializer->variant.constant->kind ==
-                                       (a_constant_repr_kind)ck_aggregate)))) {
+                                          (a_constant_repr_kind)ck_aggregate &&
+                 !constant_should_be_put_out_as_expr(
+                                    field->initializer->variant.constant))))) {
     /* gen_dynamic_init will supply the braces for a braced constructor
        call.  Similarly, an aggregate will have its own set of braces. */
     write_tok_ch('{');

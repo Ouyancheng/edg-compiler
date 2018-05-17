@@ -1,5 +1,23 @@
 Version 4.15
 
+5/17/18  [EDGcpfe/19696]
+C++-generating back end: default member initializer with aggregate expression
+
+When an aggregate-valued constant expression (e.g., a call to a constexpr
+function that returns an aggregate) is used as a brace-enclosed default
+member initializer, the C++-generating back end failed to enclose the
+expression in braces, resulting in uncompilable code.  This is now fixed.
+For example, with --c++11:
+
+  struct S {
+    constexpr S(int) {}
+    static constexpr S f1() { return 0; }
+  };
+  struct B {
+    S s{ S::f1() };  // Previously generated as "s(S::f1())"
+  };
+
+
 5/16/18  [EDGcpfe/17952,EDGcpfe/18905,EDGcpfe/19531]
 Instantiation of defaulted noexcept specifiers in class template instances
 
