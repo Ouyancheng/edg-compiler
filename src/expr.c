@@ -345,7 +345,6 @@ TRUE and FALSE is returned.
 
   if (is_class_template) {
     /* This is a class template argument deduction case. */
-    result = TRUE;
     *type_after_deduction = void_type();
     *still_dependent = FALSE;
     result = deduce_class_template_args(auto_type, is_direct_init,
