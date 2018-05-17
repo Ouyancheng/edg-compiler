@@ -66,8 +66,8 @@ example triggered this behavior in some configurations:
 5/9/18   [EDGcpfe/19096]
 GCC and Clang compatibility: "aligned" attribute on parameters
 
-It appears that GCC accepts the "aligned" attribute in some cases (e.g., when
-parameter types are pointers or references):
+It appears that GCC accepts the "aligned" attribute on parameter types in some
+cases (e.g., when parameter types are pointers or references):
 
   void foo(float *__attribute__((aligned(256))) p); // GCC accepts
   void bar(float  __attribute__((aligned(256))) p); // GCC rejects
