@@ -1,5 +1,22 @@
 Version 4.15
 
+5/17/18  [EDGcpfe/18303,EDGcpfe/19582]
+Abort on use of enumerator constant with [[deprecated]] attribute
+
+The front end previously aborted on the following example:
+
+  enum E { z [[deprecated]] };
+  template <E e> struct S {
+    enum { N = e };
+  };
+  int main() {
+    S<z> sz;
+  }
+
+(This triggered an assertion failure in check_use_of_deprecated_entity in
+symbol_ref.c)  That is now fixed.
+
+
 5/17/18  [EDGcpfe/19696]
 C++-generating back end: default member initializer with aggregate expression
 
