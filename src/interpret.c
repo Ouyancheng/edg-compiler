@@ -13953,7 +13953,7 @@ FALSE, and record diagnostic info in *diag_list.
           if (is_runtime_data_address(cap)) {
             if (is_immediate_class_type(result_type) &&
                 result_type->variant.class_struct_union.is_empty_class &&
-                is_trivially_copyable_type(result_type)) {
+                is_trivially_copy_constructible_type(result_type)) {
               /* An empty class with no actual data to copy: Just allocate
                  an empty object. */
               n_bytes = value_bytes_for_type(&ips, result_type, &result);

@@ -1985,6 +1985,84 @@ Return TRUE if the given type is trivially copyable.
 }  /* is_trivially_copyable_type */
 
 
+a_boolean is_trivially_copy_constructible_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is trivially copyable in an initialization
+context.  (Same as is_trivially_copyable_type except ignoring assignment
+operators.)
+*/
+{
+  a_boolean  result;
+  
+  if (is_volatile_qualified_type(tp) &&
+      (microsoft_mode ? TRUE :
+       clang_mode     ? clang_version >= 30400 && clang_version <= 40000 :
+       gpp_mode       ? !is_class_struct_union_type(tp) :
+                        FALSE)) {
+    result = FALSE;
+  } else {
+    tp = skip_array_types(tp);
+    tp = skip_typerefs(tp);
+    if (is_scalar(tp)) {
+      result = TRUE;
+    } else if (is_immediate_class_type(tp)) {
+      /* A class type is trivially copy constructible if:
+          - it has no nontrivial move/copy constructors, and
+          - it has a trivial destructor.
+      */
+      a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
+      if (!has_nontrivial_destructor(cssp) &&
+          !cssp->has_user_provided_copy_constructor &&
+          !cssp->has_user_provided_move_constructor &&
+          !cssp->has_user_provided_move_assign_operator &&
+          !(tp->variant.class_struct_union.any_volatile_member &&
+            microsoft_mode)) {
+        a_symbol_ptr  sym;
+        a_boolean     is_list;
+        result = TRUE;
+        /* Check for nontrivial copy/move constructors.  We already checked
+           that none are user-provided, so we can just check the compiler-
+           generated constructors. */
+        sym = cssp->constructor;
+        if (sym != NULL && symbol_is(sym, sk_overloaded_function)) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        } else {
+          is_list = FALSE;
+        }  /* if */
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          a_routine_ptr	    rp;
+          a_param_type_ptr  ptp;
+          a_boolean         one_param;
+          if (symbol_is(sym, sk_function_template)) continue;
+          check_assertion(symbol_is(sym, sk_member_function));
+          rp = sym->variant.routine.ptr;
+          ptp = function_type_params(rp->type);
+          one_param = ptp != NULL && ptp->next == NULL;
+          /* A generated constructor with one parameter is always a copy
+             constructor.  For deleted constructors a more expensive check
+             is needed. */
+          if ((((rp->compiler_generated || rp->is_defaulted) && one_param) ||
+               (rp->is_deleted &&
+                is_copy_constructor(rp, tp, (a_type_qualifier_set*)NULL,
+                                    /*include_move_ctors=*/TRUE,
+                                    /*is_declarative_context=*/TRUE))) &&
+                !rp->is_trivial_copy_function) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+      } else {
+        result = FALSE;
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_trivially_copy_constructible_type */
+
+
 a_boolean is_const_default_constructible(a_type_ptr  tp)
 /*
 Return TRUE if the given type is a const-default-constructible class type or an

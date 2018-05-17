@@ -228,6 +228,7 @@ extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_simple_scalar_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_trivially_copyable_type(a_type_ptr tp);
+extern a_boolean is_trivially_copy_constructible_type(a_type_ptr tp);
 extern a_boolean is_const_default_constructible(a_type_ptr  tp);
 extern a_boolean is_pod_class(a_type_ptr  tp);
 extern a_boolean is_literal_type(a_type_ptr tp);
