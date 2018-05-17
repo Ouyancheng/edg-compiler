@@ -26335,11 +26335,15 @@ TRUE and FALSE is returned.
     a_routine_ptr  guide = selected_sym->variant.routine.ptr;
     a_type_ptr     deduced_type = guide->type->variant.routine.return_type;
     if (is_template_dependent_type(deduced_type)) {
-      /* We shouldn't get here since we checked for a dependent initializer
-         earlier on. */
-      unexpected_condition();
+      /* Normally, we shouldn't get here since we checked for a dependent
+         initializer earlier on.  However, class templates instantiated over
+         error arguments are sometimes marked as "nonreal" (see
+         create_partial_instantiation_of_class). */
+      check_assertion(is_or_contains_error_type(deduced_type));
+      *deduced_placeholder = error_type();
+      goto done;
     } else {
-      *deduced_placeholder = guide->type->variant.routine.return_type;
+      *deduced_placeholder = deduced_type;
       if (keep_placeholder) {
         /* Add a tk_typeref on top of the deduced type so we can tell only
            the class template name appeared originally. */
