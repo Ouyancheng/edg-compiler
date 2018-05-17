@@ -3973,7 +3973,7 @@ and issue an error if it does not.
 
 static void complete_defaulted_exc_spec_if_explicit(a_routine_ptr  rp)
 /*
-Call complete_default_member_decl for the given routine if that routine was
+Call complete_defaulted_exc_spec for the given routine if that routine was
 declared with an explicit exception specification.
 */
 {
