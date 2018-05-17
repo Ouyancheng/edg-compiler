@@ -8453,7 +8453,7 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
       same = FALSE;
     } else {
       /* In standard mode, if the destination has additional qualifiers
-	 not found in the source, any previous qualifiers must have included
+         not found in the source, any previous qualifiers must have included
          const.  Microsoft's "__unaligned" qualifier is not subject to that
          constraint, nor are the "restrict"/"__restrict" qualifiers. */
       if (!(source_type_qualifiers & TQ_RESTRICT)) {
@@ -8465,14 +8465,14 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (any_qualifier_in_set_missing(source_type_qualifiers,
-				       dest_type_qualifiers)) {
-	qualifiers_added = TRUE;
+                                       dest_type_qualifiers)) {
+        qualifiers_added = TRUE;
         same = previous_qualifiers_include_const;
         if (!same) break;
       }  /* if */
       /* See if this qualifier includes const. */
       if ((dest_type_qualifiers & TQ_CONST) == 0) {
-	previous_qualifiers_include_const = FALSE;
+        previous_qualifiers_include_const = FALSE;
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
@@ -8505,9 +8505,9 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
         }  /* if */
         /* Continue at the next level for pointers and handles. */
         dest_type = type_pointed_to(dest_type);
-	source_type = type_pointed_to(source_type);
+        source_type = type_pointed_to(source_type);
       } else if (is_ptr_to_member(dest_type) &&
-		 is_ptr_to_member(source_type)) {
+                 is_ptr_to_member(source_type)) {
         /* Continue at the next level for pointers to members. */
         a_type_ptr  src_class = pm_class_type(source_type),
                     dst_class = pm_class_type(dest_type);
@@ -8520,14 +8520,14 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
       } else if (!gpp_mode && !clang_mode && !ms_version_is(>= 1914) &&
                  is_array(source_type) && is_array(dest_type)) {
         /* N4261 reworked qualification conversions to include arrays (thereby
-           resolving Core issue 330).  GCC, Clang, and (some versions of MSVC)
+           resolving Core issue 330).  GCC, Clang, and (some versions of) MSVC
            do not appear to implement that yet. */
         if (!identical_array_type_level(source_type, dest_type)) {
           same = FALSE;
           break;
         }  /* if */
-	dest_type = dest_type->variant.array.element_type;
-	source_type = source_type->variant.array.element_type;
+        dest_type = dest_type->variant.array.element_type;
+        source_type = source_type->variant.array.element_type;
       } else {
         if (ignore_underlying_type) {
           /* We've reached the underlying type of one or the other of
