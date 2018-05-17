@@ -111,10 +111,11 @@ standard-attribute syntax).
           error_issued = TRUE;
         }  /* if */
         /* The GNU "aligned" attribute is treated as a type transforming
-           attribute in pointer/reference declarator contexts, but it doesn't
-           actually modify the underlying type entry. */
+           attribute in some pointer/reference declarator contexts, but it
+           doesn't actually modify the underlying type entry. */
         if (ap->kind == (a_byte_attribute_kind)ak_align &&
-            is_gcc_attribute(ap) && syn_loc == al_post_ptr_or_ref) {
+            is_gcc_attribute(ap) && syn_loc == al_post_ptr_or_ref &&
+            !dps->in_class_scope) {
           make_attr_unrecognized(ap);
           ap->transforms_type_specifier = TRUE;
           p_from = &ap->next;
