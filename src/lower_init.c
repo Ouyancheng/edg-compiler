@@ -10941,17 +10941,22 @@ the position to insert the necessary code.
     /* This initialization has a braced initializer.  Make sure that the
        number of elements that have been allocated is at least as large
        as the number of initializers. */
-    check_assertion(dip->is_partially_initialized &&
-                    (dip->kind == (a_dynamic_init_kind)dik_constant ||
-                     dip->kind == (a_dynamic_init_kind)
-                                                  dik_nonconstant_aggregate) &&
-                    is_array_type(dip->variant.constant->type));
+    a_type_ptr array_type;
+    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      check_assertion(dip->is_partially_initialized);
+      array_type = dip->variant.constant->type;
+    } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+      array_type = dip->variant.expression->type;
+    } else {
+      unexpected_condition();
+    }  /* if */
+    check_assertion(is_array_type(array_type));
     /* Add "|| num_elements < num_initializers" to the test above. */
     temp_node = var_rvalue_expr(temp);
     num_array_elem_node = node_for_host_large_integer(
-                         (a_host_large_integer)
-                               num_array_elements(dip->variant.constant->type),
-                         targ_ptrdiff_t_int_kind);
+                          (a_host_large_integer)num_array_elements(array_type),
+                          targ_ptrdiff_t_int_kind);
     if (num_elements_type->size <= num_array_elem_node->type->size) {
       /* Use ptrdiff_t as the type for comparison purposes. */
       temp_node = add_cast_if_necessary(temp_node, num_array_elem_node->type);
