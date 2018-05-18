@@ -37440,8 +37440,8 @@ fails.
   for (tpp = list_to_subst; tpp != NULL; tpp = tpp->next) {
     a_ctws_state	ctws_state;
     a_symbol_ptr	param_sym = tpp->param_symbol;
-    /* Substitute the type of nontype template parameter that depend on other
-       template parameters. */
+    /* Substitute the types of nontype template parameters that depend on
+       other template parameters. */
     if (symbol_is(param_sym, sk_constant) &&
         tpp->variant.constant.type_involves_template_param) {
       a_type_ptr	const_type;
