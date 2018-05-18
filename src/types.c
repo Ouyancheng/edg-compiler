@@ -6167,6 +6167,24 @@ check_typerefs:
            In a case like this, S<int>::A<X> and S<char>::A<X> are considered
            distinct if X is dependent. */
         goto done;
+      } else if ((flags & ITF_EXACT_EQUIVALENCE) == 0 &&
+                 type_1->variant.typeref.is_dependent &&
+                 type_2->variant.typeref.is_dependent &&
+                 type_1->variant.typeref.is_template_alias &&
+                 type_2->variant.typeref.is_template_alias) {
+        /* Types such as void_t<T::X> and void<T::Y> should be treated as
+           distinct in most cases.  Although one might expect this to also
+           be the case when ITF_EXACT_EQUIVALENCE is specified, that flag
+           actually needs to test the type under the typeref. */
+        a_typeref_type_supplement_ptr	ttsp_1;
+        a_typeref_type_supplement_ptr	ttsp_2;
+        ttsp_1 = type_1->variant.typeref.extra_info;
+        ttsp_2 = type_2->variant.typeref.extra_info;
+        if (!equiv_template_arg_lists(ttsp_1->template_arg_list,
+                                      ttsp_2->template_arg_list,
+                                      ETA_IS_NONREAL_MEMBER)) {
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&

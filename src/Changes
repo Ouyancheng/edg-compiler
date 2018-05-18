@@ -1,5 +1,23 @@
 Version 4.15
 
+5/18/18  [EDGcpfe/17429]
+Incorrect comparison of semi-dependent types such as void_t
+
+Aliases such as void_t are strange in that the underlying type is always
+known, but it must be treated as dependent in certain contexts.  In
+some contexts, such as the declaration of a partial specialization in
+the example below, different dependent instantiations of void_t were
+incorrectly treated as equivalent, resulting in a spurious error.  Now
+fixed.
+
+  template <typename...> using void_t = void;
+  template <typename, typename = void> struct A {};
+  template <typename U> struct A<U, void_t<U>> { };
+  template <typename U, typename = void> struct S {};
+  template <typename U> struct S<U, void_t<typename A<U>::T1>> { };
+  template <typename U> struct S<U, void_t<typename A<U>::T2>> { };
+
+
 5/17/18  [EDGcpfe/19695]
 GNU compatibility: alignment attributes on enumeration types
 
