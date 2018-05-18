@@ -28,7 +28,7 @@ The front end previously aborted on the following example:
   }
 
 (This triggered an assertion failure in check_use_of_deprecated_entity in
-symbol_ref.c)  That is now fixed.
+symbol_ref.c.)  That is now fixed.
 
 
 5/17/18  [EDGcpfe/19696]
