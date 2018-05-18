@@ -1721,6 +1721,10 @@ initialization (when ipdp->array_element_sequence is TRUE).
       /* Assign an expression to the entity to be initialized. */
       /* The expression has already been lowered. */
       init_val_node = dip->variant.expression;
+      if (is_array_type(entity_type)) {
+        check_assertion(is_array_type(init_val_node->type));
+        array_assignment = TRUE;
+      }  /* if */
       break;
     default:
       unexpected_condition_str("add_init_assignment: bad kind");
