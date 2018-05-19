@@ -10941,7 +10941,7 @@ the position to insert the necessary code.
     /* This initialization has a braced initializer.  Make sure that the
        number of elements that have been allocated is at least as large
        as the number of initializers. */
-    a_type_ptr array_type;
+    a_type_ptr array_type = NULL;
     if (dip->kind == (a_dynamic_init_kind)dik_constant ||
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       check_assertion(dip->is_partially_initialized);
