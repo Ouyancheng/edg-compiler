@@ -1,5 +1,24 @@
 Version 4.15
 
+5/21/18  [EDGcpfe/19700]
+Abort in add_constant_to_aggregate in Microsoft-mode overload resolution case
+
+Consider the following Microsoft-mode example:
+
+  struct S { char const str[]; };
+  struct X { int n; char const *p; };
+  struct Y { X x; };
+  int f(S);
+  int f(Y);
+  int r = f({{ 48, "123" }});
+
+Previously, this caused the front end to abort with a null-pointer indirection
+in add_constant_to_aggregate (il.c) because the front end attempted to make an
+actual IL change when only tentatively matching up the argument of the call to
+f() to the first candidate function (for overload resolution purposes).  That
+is now fixed.
+
+
 5/21/18  [EDGcpfe/19660]
 User-defined literals in default arguments
 

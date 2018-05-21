@@ -2172,17 +2172,21 @@ initialization).  *is describes the initialization as a whole.
              We have run into the string literal of such a case: Explode it
              into character constants and add them to the aggregate
              constant. */
-          a_constant_ptr  con_list, char_con;
-          explode_string_initializer(elem_con);
-          con_list = elem_con->variant.aggregate.first_constant;
-          while (con_list != NULL && (no_bound || idx < ecount)) {
-            char_con = con_list;
-            con_list = con_list->next;
-            char_con->next = NULL;
-            add_constant_to_aggregate(char_con, *init_con);
-            ++idx;
-          }  /* while */
-          icp = icp->next;
+          if (!is->check_validity_only) {
+            a_constant_ptr  con_list, char_con;
+            explode_string_initializer(elem_con);
+            con_list = elem_con->variant.aggregate.first_constant;
+            while (con_list != NULL && (no_bound || idx < ecount)) {
+              char_con = con_list;
+              con_list = con_list->next;
+              char_con->next = NULL;
+              add_constant_to_aggregate(char_con, *init_con);
+              ++idx;
+            }  /* while */
+            icp = icp->next;
+          } else {
+            idx += string_constant_length(elem_con);
+          }  /* if */
           if (idx > icount) icount = idx;
           /* Don't consider additional initializers after the string
              literal. */

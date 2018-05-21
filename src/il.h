@@ -1443,7 +1443,9 @@ extern void copy_template(a_template *from,
 extern void add_constant_to_aggregate(a_constant_ptr con,
                                       a_constant_ptr aggr_con);
 
-void explode_string_initializer(a_constant_ptr con);
+extern void explode_string_initializer(a_constant_ptr con);
+
+extern a_targ_size_t string_constant_length(a_constant_ptr  con);
 
 extern void combine_initializers(a_constant_ptr     first,
                                  a_dynamic_init_ptr first_dip,

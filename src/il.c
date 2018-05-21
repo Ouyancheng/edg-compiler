@@ -5577,6 +5577,19 @@ characters.  The constant is updated in place.
 }  /* explode_string_initializer */
 
 
+a_targ_size_t string_constant_length(a_constant_ptr  con)
+/*
+Return the number of characters in the given ck_string entry.
+*/
+{
+  a_character_kind  char_kind = con->character_kind;
+  unsigned int      char_size = (unsigned int)character_size[char_kind];
+  a_targ_size_t     len = con->variant.string.length;
+
+  return len/char_size;
+}  /* string_constant_length */
+
+
 static an_expr_node_ptr gather_initializer_expressions(a_constant_ptr con)
 /*
 Gather any expressions with side effects in the initializer constant con
