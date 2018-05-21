@@ -10646,8 +10646,17 @@ command line -D options.
   }  /* if */
 #endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
   if (overaligned_allocation_enabled || (ms_extensions && !C_mode())) {
-    char val[64];
-    (void)sprintf(val, "%lu", (unsigned long)targ_default_new_alignment);
+    char         val[64];
+    a_const_char *suffix;
+    if (targ_size_t_int_kind == (an_integer_kind)ik_unsigned_int) {
+      suffix = "u";
+    } else if (targ_size_t_int_kind == (an_integer_kind)ik_unsigned_long) {
+      suffix = "ul";
+    } else {
+      suffix = "ull";
+    }  /* if */
+    (void)sprintf(val, "%lu%s", (unsigned long)targ_default_new_alignment,
+                  suffix);
     (void)enter_predef_macro(val, "__STDCPP_DEFAULT_NEW_ALIGNMENT__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);

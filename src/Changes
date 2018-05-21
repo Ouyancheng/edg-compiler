@@ -1,5 +1,22 @@
 Version 4.15
 
+5/21/18  [EDGcpfe/19084]
+Type of __STDCPP_DEFAULT_NEW_ALIGNMENT__ macro
+
+According to the C++17 Standard, the __STDCPP_DEFAULT_NEW_ALIGNMENT__
+predefined macro (see EDGcpfe/17696) is supposed to be "an integer literal
+of type std::size_t".  However, the front end simply used the numeric value
+of the TARG_DEFAULT_NEW_ALIGNMENT configuration macro as the definition of
+__STDCPP_DEFAULT_NEW_ALIGNMENT__, implicitly giving it type int.  This is
+now fixed; the value has the appropriate suffix to specify the same type as
+std::size_t.  For example, with the front end configured with
+TARG_SIZE_T_INT_KIND as ik_unsigned_long_long and
+TARG_DEFAULT_NEW_ALIGNMENT as 16, and with the --c++17 command-line
+argument:
+
+  int i = __STDCPP_DEFAULT_NEW_ALIGNMENT__;  // macro value is now 16ull
+
+
 5/21/18  [EDGcpfe/19700]
 Abort in add_constant_to_aggregate in Microsoft-mode overload resolution case
 
