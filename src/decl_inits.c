@@ -2852,17 +2852,25 @@ position is available).
     }  /* if */
   }  /* if */
   if ((fp->next == NULL || class_type->kind == (a_type_kind)tk_union) &&
-      is_flexible_array_type(fp->type) &&
-      !check_flexible_array_init(icp, fp, is)) {
-    /* An invalid attempt to initialize a flexible array.  Make sure that we
-       move to the next initializer component (to avoid an infinite loop).
-       Either is->init_error has been set, or an error message has been
-       issued.  For error recovery purposes, end the traversal of initializer
-       components at this point (additional elements are most likely to
-       trigger additional, unhelpful errors). */
-    check_assertion_or_expect_error(is->init_error);
-    *p_icp = NULL;
-    elem_con = NULL;
+      is_flexible_array_type(fp->type)) {
+    if (!check_flexible_array_init(icp, fp, is)) {
+      /* An invalid attempt to initialize a flexible array.  Make sure that we
+         move to the next initializer component (to avoid an infinite loop).
+         Either is->init_error has been set, or an error message has been
+         issued.  For error recovery purposes, end the traversal of initializer
+         components at this point (additional elements are most likely to
+         trigger additional, unhelpful errors). */
+      check_assertion_or_expect_error(is->init_error);
+      *p_icp = NULL;
+      elem_con = NULL;
+    } else {
+      aggr_init_element_full(p_icp, dtype, fp, is, diag_pos, &elem_con);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+      if (elem_con != NULL) {
+        elem_con->flexible_array_initializer = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
   } else {
     aggr_init_element_full(p_icp, dtype, fp, is, diag_pos, &elem_con);
   }  /* if */

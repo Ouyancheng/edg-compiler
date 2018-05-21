@@ -129,14 +129,16 @@ also specified on the defaulted member).
 
 
 5/15/18  [EDGcpfe/16797,EDGcpfe/18532,EDGcpfe/18545,EDGcpfe/19675]
-has_flexible_array_initializer
+has_flexible_array_initializer and flexible_array_initializer
 
 In Microsoft modes and in GNU C mode, the front end accepts aggregate
 initializers for flexible array members (see the entry of 9/1/04).
 The original implementation of that feature included setting the flag
 has_flexible_array_initializer to TRUE in the associated variable entry.
 When aggregate initialization was reworked in version 4.5, that setting
-of the flag was lost.  It is now restored.
+of the flag was lost.  It is now restored.  Similarly, the setting of
+the flag flexible_array_initializer in a_constant entries was lost for
+cases like these: That too is now restored.
 
 
 5/10/18  [EDGcpfe/19665]
