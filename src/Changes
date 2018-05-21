@@ -128,7 +128,7 @@ of class template instances (unless an explicit exception specification is
 also specified on the defaulted member).
 
 
-5/15/18  [EDGcpfe/19675]
+5/15/18  [EDGcpfe/16797,EDGcpfe/18532,EDGcpfe/18545,EDGcpfe/19675]
 has_flexible_array_initializer
 
 In Microsoft modes and in GNU C mode, the front end accepts aggregate
