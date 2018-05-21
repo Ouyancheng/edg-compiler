@@ -1,5 +1,22 @@
 Version 4.15
 
+5/21/18  [EDGcpfe/19660]
+User-defined literals in default arguments
+
+The change for EDGcpfe/18711 (not part of a release, but widely distributed
+as a patch) resulted in a regression, causing spurious "not found" errors
+when a user-defined literal appears in a default argument.  This is now
+fixed.  For example, with --c++14:
+
+  double operator "" _f(long double f) { return 0.0; }
+  struct Vec3 {
+    Vec3(double x);
+  };
+  struct Test {
+    void foo(Vec3 v = Vec3(1.0_f)); // Previously a "not found" error
+  };
+
+
 5/18/18  [EDGcpfe/17429]
 Incorrect comparison of semi-dependent types such as void_t
 
