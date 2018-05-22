@@ -37631,6 +37631,10 @@ occurs during the creation of the template, a NULL symbol is returned.
                                    orig_ctor_templ_params,
                                    ctor_templ_args, &copy_error);
     if (copy_error) goto done;
+    substitute_template_param_list(ctor_sym, ctor_templ_params,
+                                   orig_class_templ_params,
+                                   class_templ_args, &copy_error);
+    if (copy_error) goto done;
   }  /* if */
   if (copy_error) goto done;
   tssp = sym->variant.template_info;
