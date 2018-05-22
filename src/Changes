@@ -1,5 +1,15 @@
 Version 4.15
 
+5/22/18  [EDGcpfe/15023,EDGcpfe/19451]
+New command-line option: --vcmeta_directory
+
+A new command-line option, --vcmeta_directory, available only in configurations
+where CPPCX_ENABLING_POSSIBLE is TRUE, can be used to specify a directory name
+where a suitable vcmeta.dll file can be found.  In the absence of this
+command-line option, the default continues to be to search for vcmeta.dll in
+the path that contains the application.
+
+
 5/21/18  [EDGcpfe/19084]
 Type of __STDCPP_DEFAULT_NEW_ALIGNMENT__ macro
 

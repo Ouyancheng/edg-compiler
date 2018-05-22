@@ -9173,8 +9173,10 @@ this function.
       wcscat_s(module_path, relative_path);
       library_instance = LoadLibraryW(module_path);
     }  /* if */
-  } /* if */
-  check_assertion(library_instance != nullptr);
+  }  /* if */
+  if (library_instance == nullptr) {
+    unexpected_condition_str("can't find vcmeta.dll in relative path");
+  }  /* if */
   return library_instance;
 }  /* relative_load_library */
 
@@ -9189,10 +9191,24 @@ Initialize various metadata interfaces.
   check_assertion(clr_runtime_info_);
   check_assertion(alink_interface_);
   if (cppcx_enabled) {
-    HINSTANCE vcmeta_module = relative_load_library(L"vcmeta.dll");
+    HINSTANCE vcmeta_module;
+    if (vcmeta_directory_name == nullptr) {
+      /* Search for vcmeta.dll relative to this module. */
+      vcmeta_module = relative_load_library(L"vcmeta.dll");
+    } else {
+      /* Search for vcmeta.dll in a directory specified by the user. */
+      wchar_t   module_path[MAX_PATH];
+      size_t    convertedChars = 0;  
+      if (mbstowcs_s(&convertedChars, module_path, MAX_PATH,
+                     vcmeta_directory_name, _TRUNCATE) != 0) {
+        unexpected_condition_str("path for vcmeta.dll is too long");
+      }  /* if */
+      wcscat_s(module_path, L"\\vcmeta.dll");
+      vcmeta_module = LoadLibraryW(module_path);
+    }  /* if */
     if (vcmeta_module == nullptr) {
       hr = E_FAIL;
-      CHECK_API_RESULT(hr, relative_load_library);
+      unexpected_condition_str("failed to find suitable vcmeta.dll");
     } else {
       LPFNGETCLASSOBJECT vcmeta_get_class_object =
             reinterpret_cast<LPFNGETCLASSOBJECT>(GetProcAddress(

@@ -948,6 +948,7 @@ check_abbreviation()
 --using_std
 --variadic_macros
 --variadic_templates
+--vcmeta_directory
 --version
 --vla
 --wchar_t_keyword
@@ -1656,6 +1657,7 @@ process_option()
          --mscorlib_file_name | \
          --preusing | \
          --using_directory | \
+         --vcmeta_directory | \
          --default_calling_convention | \
          --dump_legacy_as_target | \
          --target)
@@ -1746,6 +1748,7 @@ process_option()
           --mscorlib_file_name=* | \
           --preusing=* | \
           --using_directory=* | \
+          --vcmeta_directory=* | \
           --default_calling_convention=* | \
           --dump_legacy_as_target=* | \
           --target=*)

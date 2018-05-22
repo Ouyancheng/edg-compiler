@@ -298,6 +298,7 @@ typedef enum /*an_option_kind*/ {
   optk_ms_rvalue_cast,
   optk_ms_strict_ternary,
   optk_ms_cplusplus_std_value,
+  optk_vcmeta_directory_name,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
@@ -1498,6 +1499,13 @@ EXTERN a_const_char
 			   be used.  If this is not an absolute path name,
 			   it will be searched for using the normal
 			   assembly search path mechanism. */
+EXTERN a_const_char
+		*vcmeta_directory_name;
+			/* If non-NULL, the name of the directory in which the
+			   vcmeta.dll file is to be found.  When NULL,
+			   vcmeta.dll is searched for in the directory
+			   relative to the location of the module that is
+			   currently running. */
 EXTERN a_boolean
 		using_framework_directory;
 			/* TRUE if assemblies should be searched for in the

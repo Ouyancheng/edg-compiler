@@ -556,6 +556,9 @@ Initialize the option information table.
   add_option_description(optk_cppcx, "no_c++cx",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_vcmeta_directory_name, "vcmeta_directory",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* CPPCX_ENABLING_POSSIBLE */
 #if CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE
   add_option_description(optk_preusing, "preusing",
@@ -9609,6 +9612,10 @@ enable_microsoft_mode:
            normally provided by mscorlib.dll. */
         mscorlib_file_name = file_name_from_opt_arg(opt_arg);
         break;
+      case optk_vcmeta_directory_name:
+        /* Specify the directory name in which to find vcmeta.dll. */
+        vcmeta_directory_name = file_name_from_opt_arg(opt_arg);
+        break;
       case optk_using_framework_directory:
         /* Enable or disable searching for assemblies (#using) in the
            installation directory for the CLR. */
@@ -11707,6 +11714,7 @@ variables declared in cmd_line.h.
   }  /* if */
   cli_or_cx_enabled = cppcli_enabled || cppcx_enabled;
   mscorlib_file_name = NULL;
+  vcmeta_directory_name = NULL;
   /* using_framework_directory defaults to TRUE, but has no effect unless
      cppcli_enabled is TRUE. */
   using_framework_directory = TRUE;
