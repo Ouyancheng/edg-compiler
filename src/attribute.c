@@ -4153,6 +4153,7 @@ and C11 _Alignas specifiers.
   a_boolean    use_last_attribute = !C_mode() && gnu_mode && !clang_mode &&
                                     (gnu_version < 40800 ||
                                      entity_kind == iek_type);
+  a_boolean    attribute_discarded = FALSE;
 
   if (is_gcc_attribute(ap)) {
     /* GCC allows types, parameters, and bit fields to have a user-specified
@@ -4264,6 +4265,7 @@ and C11 _Alignas specifiers.
            on enumeration types. */
         pos_warning(ec_attributes_ignored, &ap->position);
         make_attr_unrecognized(ap);
+        attribute_discarded = TRUE;
       } else if (std_specifier ||
                  (gnu_mode && gnu_version >= 40800 &&
                   (entity_kind == iek_variable ||
@@ -4369,7 +4371,8 @@ and C11 _Alignas specifiers.
       }  /* if */
       if (aap != NULL) aap = aap->next;
     } while (aap != NULL);
-    if (is_unrecognized_attr(ap) && std_specifier && dps != NULL) {
+    if (is_unrecognized_attr(ap) && std_specifier && dps != NULL &&
+        !attribute_discarded) {
       /* With the standard alignment specifier ("alignas") we may have seen
          some valid and some invalid arguments.  If we made the attribute
          unrecognized as a whole, discard any pending alignment updates. */
