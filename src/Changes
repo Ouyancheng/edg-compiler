@@ -1,5 +1,20 @@
 Version 4.15
 
+5/23/18  [EDGcpfe/19716]
+GNU and Clang C++ compatibility: matching of template template parameters
+
+When the C++17-style matching of template template parameters is not being
+done (see EDGcpfe/18746), g++ and clang accept slightly more general
+template template parameter matching.  In the example below, the "int..."
+parameter is considered to match the "U..." from the template template
+parameter.  We now emulate this when gnu_version >= 60000 and when
+clang_version >= 50000.
+
+  template <template <typename U, U... K> class TT> struct A { };
+  template <typename T, int... V> struct B { };
+  A<B> a;
+
+
 5/22/18  [EDGcpfe/15023,EDGcpfe/19451]
 New command-line option: --vcmeta_directory
 

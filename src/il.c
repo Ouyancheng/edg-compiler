@@ -7213,13 +7213,22 @@ definition of the CC flags in il.h for more information.
     }  /* if */
     if (!same_types && (options & CC_TEMPLATE_TEMPLATE_PARAM) != 0) {
       /* When matching a template template parameter constant, consider this
-         a match if the second type is from a template template parameter. */
-      same_types = is_template_param_type(eff_cp2_type) &&
-                   eff_cp2_type->kind == (a_type_kind)tk_template_param &&
-                   eff_cp2_type->variant.template_param.kind ==
+         a match if the second type is from a template template parameter.
+         In g++/clang modes, this is also accepted if the first type is from a
+         template parameter (for some versions). */
+      same_types = (is_template_param_type(eff_cp2_type) &&
+                    eff_cp2_type->kind == (a_type_kind)tk_template_param &&
+                    eff_cp2_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param &&
-                   eff_cp2_type->variant.template_param.extra_info->
-                                         coordinates.depth == NO_NESTING_DEPTH;
+                    eff_cp2_type->variant.template_param.extra_info->
+                                      coordinates.depth == NO_NESTING_DEPTH) ||
+                   ((gpp_version_is(>= 60000) || clang_version_is(>= 50000)) &&
+                    is_template_param_type(eff_cp1_type) &&
+                    eff_cp1_type->kind == (a_type_kind)tk_template_param &&
+                    eff_cp1_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+                    eff_cp1_type->variant.template_param.extra_info->
+                                      coordinates.depth == NO_NESTING_DEPTH);
     }  /* if */
     if (!same_types) {
       same_types = f_types_are_compatible(eff_cp1_type,
