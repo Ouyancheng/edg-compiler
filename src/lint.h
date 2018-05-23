@@ -1410,6 +1410,7 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_MAXIMUM_PACK_ALIGNMENT_win32)*/
 /*lint -esym(759,rvalue_pointer_for_class_expression)*/
 /*lint -esym(765,rvalue_pointer_for_class_expression)*/
+/*lint -esym(552,vcmeta_directory_name)*/
 
 #endif /* ifndef LINT_H */
 
