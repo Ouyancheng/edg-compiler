@@ -18208,6 +18208,9 @@ name lookup options.
                                  guide_type, source_pos, options, copy_error,
                                  ctws_state, constant);
           if (!*copy_error) {
+            if (bound_copy == NULL) {
+              bound_copy = alloc_unshared_constant(constant);
+            }  /* if */
             con_copy = fs_constant((a_constant_repr_kind)ck_template_param);
             set_template_param_constant_kind(
                   con_copy, (a_template_param_constant_kind)tpck_integer_pack);
