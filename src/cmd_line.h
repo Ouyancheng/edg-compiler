@@ -1503,9 +1503,8 @@ EXTERN a_const_char
 		*vcmeta_directory_name;
 			/* If non-NULL, the name of the directory in which the
 			   vcmeta.dll file is to be found.  When NULL,
-			   vcmeta.dll is searched for in the directory
-			   relative to the location of the module that is
-			   currently running. */
+			   vcmeta.dll is searched for in the same directory
+			   as the module that contains the front end. */
 EXTERN a_boolean
 		using_framework_directory;
 			/* TRUE if assemblies should be searched for in the
