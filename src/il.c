@@ -1786,7 +1786,7 @@ Dump the contents of the indicated variable and its type for debug purposes.
 }  /* db_variable */
 
 
-static void db_dip(a_dynamic_init_ptr  dip)
+void db_dip(a_dynamic_init_ptr  dip)
 /*
 Convenience function to call db_dynamic_initializer with no indentation.
 */
