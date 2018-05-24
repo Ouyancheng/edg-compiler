@@ -5019,7 +5019,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          *this_bytes = NULL;
+          this_bytes = NULL;
           if (elem_con->implicit_aggr_element &&
               con->variant.aggregate.has_dynamic_init_component) {
             /* This could involve a default member initializer using a "this"
