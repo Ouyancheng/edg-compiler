@@ -4974,6 +4974,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_field_ptr     fp;
           a_constant_ptr  elem_con;
           a_byte_count    offset;
+          a_byte          *this_bytes;
           elem_con = con->variant.aggregate.first_constant;
           if (elem_con == NULL) {
             fp = tp->variant.class_struct_union.field_list;
@@ -5018,6 +5019,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             do_constexpr_fail(result);
             break;
           }  /* if */
+          *this_bytes = NULL;
+          if (elem_con->implicit_aggr_element &&
+              con->variant.aggregate.has_dynamic_init_component) {
+            /* This could involve a default member initializer using a "this"
+               pointer.  That pointer refers to the current class: Ensure a
+               mapping is set up for that. */
+            this_bytes = set_up_param_ref_for_this_ptr(
+                                         ips, tp, value, complete_object);
+          }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
           if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
@@ -5031,6 +5041,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             /* Record the active field. */
             *(a_field_ptr*)value = fp;
             mark_subobject_initialized(value+offset, complete_object);
+          }  /* if */
+          if (this_bytes != NULL) {
+            /* Unmap "this" (possibly restoring a previously active
+               mapping). */
+            unmap_param_ref_for_this_ptr(ips, this_bytes);
           }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
         } else if (tp->kind == (a_type_kind)tk_vector) {
