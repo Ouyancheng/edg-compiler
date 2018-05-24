@@ -1786,15 +1786,6 @@ Dump the contents of the indicated variable and its type for debug purposes.
 }  /* db_variable */
 
 
-void db_dip(a_dynamic_init_ptr  dip)
-/*
-Convenience function to call db_dynamic_initializer with no indentation.
-*/
-{
-  db_dynamic_initializer(dip, 0);
-}  /* db_dip */
-
-
 static void db_expr_node(an_expr_node_ptr node,
 		         int              level)
 /*
@@ -2471,6 +2462,15 @@ destructor_on_this_line:
       break;
   }  /* switch */
 }  /* db_dynamic_initializer */
+
+
+void db_dip(a_dynamic_init_ptr  dip)
+/*
+Convenience function to call db_dynamic_initializer with no indentation.
+*/
+{
+  db_dynamic_initializer(dip, 0);
+}  /* db_dip */
 
 
 void db_initializer(a_variable_ptr  var,
