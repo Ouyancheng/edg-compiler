@@ -21478,6 +21478,7 @@ declaration of a partial specialization declared outside of its class.
   a_boolean                         saved_sses_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_token_sequence_number           last_tsn_of_decl;
+  a_boolean                         make_new_symbol_invisible = FALSE;
 
   db_enter(3, "class_template_declaration");
   /* Scan any attributes and ignore them (they don't appertain to anything). */
@@ -21663,6 +21664,7 @@ declaration of a partial specialization declared outside of its class.
           should_cancel_friend_class_template_lookup(sym)) {
         sym = NULL;
         suppress_redecl_error = TRUE;
+        make_new_symbol_invisible = TRUE;
       }  /* if */
       /* If the class name is a template ID, then this is probably a
          declaration of a partial specialization. */
@@ -22176,7 +22178,14 @@ friend_template_checks_done:
         sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
         add_sym_to_symbol_table = TRUE;
       }  /* if */
-      if (!friend_class_injection_enabled) {
+      if (make_new_symbol_invisible) {
+        /* should_cancel_friend_class_template_lookup decided that the class
+           template name shouldn't be resolved in the current prototype
+           instantiation.  Now we're creating a new symbol to represent the
+           unresolved name, but we don't want it to be found through lookups
+           since that symbol doesn't resolve to an actual template. */
+        sym->is_invisible = TRUE;
+      } else if (!friend_class_injection_enabled) {
         /* If the class template is initially declared in a friend declaration,
            mark it as invisible. */
         sym->is_invisible = decl_state->is_template_friend;
