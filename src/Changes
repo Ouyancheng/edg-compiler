@@ -1,5 +1,36 @@
 Version 4.15
 
+5/24/18  [EDGcpfe/19731]
+Constexpr interpreter handling of "this" in default member initializers
+
+Consider:
+
+  struct B {
+    int x;
+    int y = this->x+1;
+  };
+  struct D: B {
+    int d = B{this->x+2}.y;
+  };
+  constexpr int r = D{{1}}.d;
+  static_assert(r == 4);
+
+The front end produces IL for the cast "B{this->x+2}" that looks somewhat
+like the IL for "B{this->x+2, this->x+1}" (where the default initializer for
+B::y has been made explicit).  The two occurrences of "this->x" refer to two
+different B objects, however: The first refers to the subobject B of the D
+object being initialized whereas the second refers to the temporary object
+produced by the cast itself.  The two can be distinguished by the flag
+"implicit_aggr_element" in the constant entries representing the various
+data member initializers (the flag is FALSE for "this->x+2" but TRUE for
+"this->x+1" in the expanded aggregate initializer).
+
+The constexpr interpreter, however, failed to respect that distinction,
+which caused it to access invalid interpreter storage.  That in turn could
+result in an abort or an invalid outcome (e.g., the static_assert in the
+example above spuriously failed).  That problem is now fixed.
+
+
 5/23/18  [EDGcpfe/19716]
 GNU and Clang C++ compatibility: matching of template template parameters
 

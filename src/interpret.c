@@ -3546,10 +3546,13 @@ Output the contents of the interpreted object of type tp stored at addr.
       (void)fprintf(f_debug, "\n");
       break;
   }  /* switch */
-  if (complete_object != NULL &&
-      !subobject_is_initialized(addr, complete_object)) {
-    db_indent(indent);
-    (void)fprintf(f_debug, "[NOINIT]\n");
+  if (complete_object != NULL) {
+    if (complete_object == addr ?
+          !complete_object_is_initialized(addr) :
+          !subobject_is_initialized(addr, complete_object)) {
+      db_indent(indent);
+      (void)fprintf(f_debug, "[NOINIT]\n");
+    }  /* if */
   }  /* if */
 }  /* db_object */
 
@@ -4877,11 +4880,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_field_ptr       fp = tp->variant.class_struct_union.field_list;
           a_base_class_ptr  bcp = base_classes_of(tp);
           a_constant_ptr    elem_con;
-          a_byte            *this_bytes = NULL;
-          if (con->variant.aggregate.has_dynamic_init_component) {
-            this_bytes = set_up_param_ref_for_this_ptr(ips, tp, value,
-                                                       complete_object);
-          }  /* if */
           elem_con = con->variant.aggregate.first_constant;
           /* Initialize base subobjects first. */
           for (;;) {
@@ -4939,24 +4937,37 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               fp = elem_con->variant.designator.variant.field;
               elem_con = elem_con->next;
               continue;
-            } else if (!copy_val_from_constant(
-                              ips, elem_con, value+offset, complete_object)) {
-              do_constexpr_fail(result);
-              break;
             } else {
-              if (fp->is_bit_field) {
-                /* Fit the value in the bit field width. */
-                trim_bit_field(value+offset, fp->bit_size,
-                               fp->bit_field_is_signed);
+              a_byte  *this_bytes = NULL;
+              if (elem_con->implicit_aggr_element &&
+                  con->variant.aggregate.has_dynamic_init_component) {
+                /* This could involve a default member initializer using a
+                   "this" pointer.  That pointer refers to the current class:
+                   Ensure a mapping is set up for that. */
+                this_bytes = set_up_param_ref_for_this_ptr(
+                                             ips, tp, value, complete_object);
               }  /* if */
-              mark_subobject_initialized(value+offset, complete_object);
-              elem_con = elem_con->next;
+              if (!copy_val_from_constant(
+                              ips, elem_con, value+offset, complete_object)) {
+                do_constexpr_fail(result);
+              } else {
+                if (fp->is_bit_field) {
+                  /* Fit the value in the bit field width. */
+                  trim_bit_field(value+offset, fp->bit_size,
+                                 fp->bit_field_is_signed);
+                }  /* if */
+                mark_subobject_initialized(value+offset, complete_object);
+                elem_con = elem_con->next;
+              }  /* if */
+              if (this_bytes != NULL) {
+                /* Unmap "this" (possibly restoring a previously active
+                   mapping). */
+                unmap_param_ref_for_this_ptr(ips, this_bytes);
+              }  /* if */
+              if (!result) break;
             }  /* if */
             fp = fp->next;
           }  /* for */
-          if (this_bytes != NULL) {
-            unmap_param_ref_for_this_ptr(ips, this_bytes);
-          }  /* if */
         } else if (tp->kind == (a_type_kind)tk_union) {
           /* Initialize the first field (unless another field is
              designated). */
@@ -5302,21 +5313,9 @@ Evaluate the given dynamic initialization for the given storage.
   }  /* if */
   switch (dip->kind) {
     case dik_nonconstant_aggregate:
-      { a_constant_ptr  con = dip->variant.constant;
-        a_type_ptr      con_type = skip_typerefs(con->type);
-        a_byte          *this_bytes = NULL;
-        if (is_immediate_class_type(con_type)) {
-          this_bytes = set_up_param_ref_for_this_ptr(ips, con_type,
-                                                     result_storage,
-                                                     complete_object);
-        }  /* if */
-        result = copy_val_from_constant(ips, dip->variant.constant,
-                                        result_storage, complete_object);
-        mark_subobject_initialized(result_storage, complete_object);
-        if (this_bytes != NULL) {
-          unmap_param_ref_for_this_ptr(ips, this_bytes);
-        }  /* if */
-      }
+      result = copy_val_from_constant(ips, dip->variant.constant,
+                                      result_storage, complete_object);
+      mark_subobject_initialized(result_storage, complete_object);
       break;
     case dik_constant:
       result = copy_val_from_constant(ips, dip->variant.constant,

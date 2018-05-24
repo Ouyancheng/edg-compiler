@@ -1786,6 +1786,15 @@ Dump the contents of the indicated variable and its type for debug purposes.
 }  /* db_variable */
 
 
+static void db_dip(a_dynamic_init_ptr  dip)
+/*
+Convenience function to call db_dynamic_initializer with no indentation.
+*/
+{
+  db_dynamic_initializer(dip, 0);
+}  /* db_dip */
+
+
 static void db_expr_node(an_expr_node_ptr node,
 		         int              level)
 /*
@@ -2085,13 +2094,13 @@ sizeof_cases:
     case enk_param_ref:
       if (node->variant.param_ref.param_num == 0) {
         /* A zero parameter number indicates "this". */
-        fprintf(f_debug, "param_ref: this");
+        fprintf(f_debug, "param_ref: this, type = ");
       } else {
         fprintf(f_debug, "param_ref: param_num = %u, levels_up = %u, type = ",
                 node->variant.param_ref.param_num,
                 node->variant.param_ref.levels_up);
-        db_abbreviated_type(node->type);
       }  /* if */
+      db_abbreviated_type(node->type);
       fputs("\n", f_debug);
       break;
     case enk_braced_init_list:
@@ -2667,7 +2676,7 @@ Dump a statement, for debug purposes.
         } else {
           a_dynamic_init_ptr  dip = sp->variant.stmt_expr_result.dynamic_init;
           fputs(" ", f_debug);
-          db_dynamic_initializer(dip, /*level=*/0);
+          db_dip(dip);
         }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
