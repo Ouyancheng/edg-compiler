@@ -4940,7 +4940,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             } else {
               a_byte  *this_bytes = NULL;
               if (elem_con->implicit_aggr_element &&
-                  con->variant.aggregate.has_dynamic_init_component) {
+                  con->variant.aggregate.has_dynamic_init_component &&
+                  class_type_supp(tp)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
                 /* This could involve a default member initializer using a
                    "this" pointer.  That pointer refers to the current class:
                    Ensure a mapping is set up for that. */
@@ -5021,7 +5023,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* if */
           this_bytes = NULL;
           if (elem_con->implicit_aggr_element &&
-              con->variant.aggregate.has_dynamic_init_component) {
+              con->variant.aggregate.has_dynamic_init_component &&
+              class_type_supp(tp)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
             /* This could involve a default member initializer using a "this"
                pointer.  That pointer refers to the current class: Ensure a
                mapping is set up for that. */
