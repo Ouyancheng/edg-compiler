@@ -1,5 +1,27 @@
 Version 4.15
 
+5/25/18  [EDGcpfe/19641]
+Substitution of local signatures with noexcept (or similar) operator
+
+Consider:
+
+  template<bool B> bool f();
+  void g() {
+    [](auto x)->decltype(f<noexcept(x)>()) { return 1; }(2);
+      // Previously triggered an abort.
+  }
+
+The template argument "noexcept(x)" is allocated in the file scope memory
+region (as are all template arguments).  However, the entry representing the
+operand "x" (and enk_param_ref expression node) is allocated in function
+memory scope because that expression could potentially refer to entities local
+to the function g().  To bridge the memory region mismatch, an implicit
+reference is created using the a_local_expr_node mechanism (see the entry of
+4/28/06).  However, previously, that mechanism didn't reliably function during
+template substitution of generic lambdas, causing the front end to abort (with
+a null pointer dereference) in copy_type_with_substitution.  That is now fixed.
+
+
 5/25/18  [EDGcpfe/19446]
 Spurious error on specialization of variable template
 
