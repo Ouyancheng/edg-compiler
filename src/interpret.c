@@ -9729,6 +9729,7 @@ the value representation of the integer value.
               } else {
                 /* The somewhat unusual case of an array rvalue. */
                 clear_address(result_addr, opnd1_value);
+                result_addr->alloc_seq_number = ips->curr_alloc_seq_number;
               }  /* if */
               result_addr->flags |= CA_ARRAY_ELEMENT;
               /* Check that the array length fits in interpreter limits. */
