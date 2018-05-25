@@ -25354,6 +25354,7 @@ supplement for this template should be returned to the caller.
     dps->has_initializer = TRUE;
     split_location = curr_token_sequence_number;
     if (var != NULL && var->initializer_in_class &&
+        !decl_state->is_specialization &&
         (is_variable_template || (!microsoft_mode && !sun_mode))) {
       /* Microsoft and Sun allow a static data member defined in the class
          to be redefined outside. */
