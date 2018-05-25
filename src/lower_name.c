@@ -4179,10 +4179,8 @@ operator on some template constants when suppress_address_of is TRUE
           break;
         case tpck_expression:
           /* An expression involving template parameters. */
-          mangled_encoding_for_expression(
-                                      con->variant.template_param.variant.expr,
-                                      /*in_dependent_expr=*/TRUE,
-                                      mctl);
+          mangled_encoding_for_expression(expr_node_from_tpck_expression(con),
+                                          /*in_dependent_expr=*/TRUE, mctl);
           break;
         case tpck_template_ref:
           /* An unknown function template with a list of explicit template
@@ -4259,7 +4257,7 @@ do_unknown_function:
         case tpck_noexcept:
           mangled_encoding_for_sizeof(
                          con->variant.template_param.variant.templ_sizeof.type,
-                         con->variant.template_param.variant.templ_sizeof.expr,
+                         generic_sizeof_arg_expr(con),
                          con->variant.template_param.kind,
                          (an_expr_node_ptr)NULL,
                          mctl);

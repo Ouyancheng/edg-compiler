@@ -11983,11 +11983,14 @@ The expression can then be recovered using find_local_expr_node.
 {
   a_memory_region_number     memory_region, region_to_switch_back_to;
   a_local_expr_node_ref_ptr  new_ref;
+  a_routine_ptr              rp;
 
   check_assertion(!in_file_scope(expr) && in_file_scope(referrer) &&
                   func_scope != NULL);
-  check_assertion(func_scope->kind == (a_scope_kind)sck_function);
-  memory_region = mem_region_for_routine(func_scope->variant.routine.ptr);
+  check_assertion(scope_is(func_scope, sck_function));
+  rp = func_scope->variant.routine.ptr;
+  ((a_source_correspondence*)referrer)->enclosing_routine = rp;
+  memory_region = mem_region_for_routine(rp);
   if (memory_region != curr_il_region_number) {
     region_to_switch_back_to = curr_il_region_number;
     switch_il_region(memory_region);
@@ -12096,18 +12099,10 @@ a_local_expr_node_ref entries.  kind represents the kind of entry that is
 expected to hold a pointer to the expression being searched for.)
 */
 {
-  a_scope_ptr       target_scope = innermost_function_scope;
+  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
+  a_scope_ptr              scope = scope_for_routine(scp->enclosing_routine);
 
-#if !STANDALONE_UTILITY_PROGRAM
-  if (target_scope == NULL) {
-    /* innermost_function_scope will be NULL when the current scope is a
-       local class.  However, the innermost function scope can be retrieved
-       in such cases using get_innermost_function_scope() (which scans the
-       scope stack and thus can only be used in the front end). */
-    target_scope = get_innermost_function_scope();
-  }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-  return find_local_expr_node_in_scope(referrer, kind, target_scope);
+  return find_local_expr_node_in_scope(referrer, kind, scope);
 }  /* find_local_expr_node */
 
 
@@ -12229,8 +12224,6 @@ memory).
     check_assertion(result == NULL && scp->enclosing_routine != NULL);
     if (scp->enclosing_routine->function_def_number !=
                                                     NULL_function_def_number) {
-      /* Not using scope_for_routine on purpose because the scope might
-         not be there. */
       a_scope_ptr  enclosing_fn_scope =
                                      scope_for_routine(scp->enclosing_routine);
       result = find_local_scope_in_function_scope((char*)scp,
@@ -12330,8 +12323,7 @@ a_local_expr_node_ref.
                    con->variant.template_param.kind ==
                                (a_template_param_constant_kind)tpck_noexcept));
   result = con->variant.template_param.variant.templ_sizeof.expr;
-  if (result == NULL && innermost_function_scope != NULL &&
-      con->variant.template_param.local_expr_ref) {
+  if (result == NULL && con->variant.template_param.local_expr_ref) {
     /* The argument of the sizeof/alignof/uuidof/typeid construct is an
        expression, whose representation is stored in a function scope memory
        region.  Since we are currently inside a function, look if the
