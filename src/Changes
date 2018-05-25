@@ -1,5 +1,17 @@
 Version 4.15
 
+5/25/18  [EDGcpfe/19223]
+Internal error on noexcept on function template default argument
+
+An internal error could occur (in alloc_template_cache_segment) if a
+function template default argument contained a function declarator with
+a noexcept specifier.  Now fixed.
+
+  template <class T> void f(T x = [](auto) noexcept(false) {return 0;}(0)){}
+  int main() {
+    f<int>();
+  }
+
 5/25/18  [EDGcpfe/19641]
 Substitution of local signatures with noexcept (or similar) operator
 

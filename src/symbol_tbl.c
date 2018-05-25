@@ -3058,8 +3058,11 @@ to the symbol supplement associated with sym.
   }  /* if */
   ssep = &scope_stack[depth_to_use];
   is_valid_context = ssep->in_prototype_instantiation ||
-                     ssep->in_generic_definition ||
-                     ssep->kind == (a_scope_kind)sck_template_declaration;
+                     ssep->in_generic_definition;
+  if (!is_valid_context && is_template_declaration_context()) {
+    ssep = &scope_stack[depth_template_declaration_scope];
+    is_valid_context = TRUE;
+  }  /* if */
   check_assertion_or_expect_error_str2(is_valid_context,
                                        "alloc_template_cache_segment:",
                                        "not in prototype instantiation");
