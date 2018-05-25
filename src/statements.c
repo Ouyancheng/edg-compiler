@@ -794,6 +794,11 @@ an error is found, issue the diagnostic and return TRUE.
       }  /* if */
       pos_error(err_code, &goto_cfdp->source_pos);
       err = TRUE;
+      if (current_routine_entry()->is_constexpr) {
+        /* Disable the interpretation of a function that might include an
+           invalid branch. */
+        scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
