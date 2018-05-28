@@ -311,7 +311,8 @@ Opaque pointer to the result of looking up an attribute name.
 */
 typedef struct an_attr_name_map_entry *an_attr_name_map_entry_ptr;
 
-extern a_boolean gnu_attribute_is_supported(a_const_char *name);
+extern a_boolean attribute_is_supported(a_const_char        *name,
+                                        an_attribute_family family);
 
 extern void attribute_one_time_init(void);
 

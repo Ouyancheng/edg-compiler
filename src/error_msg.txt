@@ -2973,6 +2973,7 @@ ec_bad_deduction_guide_return_type;;"the return type must directly designate a s
 ec_explicit_deduction_guide_in_copy_list_init;;"copy-list-initialization cannot use \"explicit\" %n"
 ec_deduction_guide;INTERNAL;"deduction guide"
 ec_invalid_udl_value;;"Invalid value for user-defined literal operator"
+ec_has_cpp_attrib_not_in_if;;"__has_cpp_attribute cannot appear outside of #if or #elif"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

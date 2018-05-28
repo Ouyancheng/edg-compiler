@@ -8983,26 +8983,38 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
-A dummy attribute used solely for the processing of gnu_attribute_is_supported.
+A dummy attribute used solely for the processing of attribute_is_supported.
 */
 static an_attribute_ptr dummy_attr;
 
-a_boolean gnu_attribute_is_supported(a_const_char *name)
+a_boolean attribute_is_supported(a_const_char        *name,
+                                 an_attribute_family family)
 /*
-Return TRUE if name is the name of a GNU attribute that is enabled in the
-current execution of the front end, FALSE otherwise.
+Return TRUE if name designates an attribute of the specified family that is
+enabled in the current execution of the front end, FALSE otherwise.
+Passing af_internal as the value of family indicates that an attribute in
+any family is permitted, with standard attributes given preference.
 */
 {
   an_attr_name_map_entry_ptr ep;
-  an_attr_name_map_entry_ptr *p_ep = lookup_attribute_name(name, af_gnu);
+  an_attr_name_map_entry_ptr *p_ep;
   a_boolean                  supported = FALSE;
 
+  if (family != af_internal) {
+    p_ep = lookup_attribute_name(name, family);
+  } else if ((p_ep = lookup_attribute_name(name, af_std)) != NULL) {
+    family = af_std;
+  } else if ((p_ep = lookup_attribute_name(name, af_gnu)) != NULL) {
+    family = af_gnu;
+  } else if ((p_ep = lookup_attribute_name(name, af_ms_declspec)) != NULL) {
+    family = af_ms_declspec;
+  }  /* if */
   if (p_ep != NULL) {
     check_assertion(*p_ep != NULL);
     if (dummy_attr == NULL) {
-      /* Allocate a dummy attribute for cond_matches_gnu_attr_mode. */
+      /* Allocate a dummy attribute for matching. */
       dummy_attr = alloc_attribute();
-      dummy_attr->family = (a_byte_attribute_family)af_gnu;
+      dummy_attr->family = family;
     }  /* if */
     dummy_attr->name = name;
     /* Scan through the attributes with this name to see if one meets the
@@ -9015,11 +9027,17 @@ current execution of the front end, FALSE otherwise.
            appear at most once in a group). */
         ++cond;
       }  /* if */
-      supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
+      if (family == af_gnu) {
+        supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
+      } else if (family = af_std) {
+        supported = cond_matches_std_attr_mode(cond, dummy_attr);
+      } else {
+        supported = cond_matches_ms_declspec_mode(cond, dummy_attr);
+      }  /* if */
     }  /* for */
   }  /* if */
   return supported;
-}  /* gnu_attribute_is_supported */
+}  /* attribute_is_supported */
 
 
 void attribute_one_time_init(void)

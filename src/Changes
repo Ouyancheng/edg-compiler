@@ -1,5 +1,27 @@
 Version 4.15
 
+5/28/18  [EDGcpfe/19667]
+Additions and changes to standard feature-test macros
+
+The front end now defines a number of new feature-test macros, as well as
+the __has_cpp_attribute preprocessing operator, as described in C++
+Committee document P0941R0, and the values of a few existing feature-test
+macros have been updated to reflect the values from that document.  The new
+macros include: __cpp_deduction_guides, __cpp_guaranteed_copy_elision,
+__cpp_nontype_template_args, and __cpp_template_template_args.  The new
+__has_cpp_attribute operator takes a single argument, which can be either
+the attribute-token of a standard attribute or the name of a GNU attribute
+or a Microsoft __declspec attribute.  If the attribute is applicable in the
+current emulation, the value for a standard attribute is the six-digit
+year and month the attribute was added to the C++ working paper and the
+value 1 for a GNU or Microsoft attribute; otherwise the value is 0.  For
+example, with --c++14, the variable i will be defined:
+
+  #if __has_cpp_attribute(deprecated)
+  int i = 5;  // Will be defined with --c++14 but not with --c++11
+  #endif.
+
+
 5/25/18  [EDGcpfe/19223]
 Internal error on noexcept on function template default argument
 

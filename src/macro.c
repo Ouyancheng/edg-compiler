@@ -270,6 +270,12 @@ static a_symbol_ptr
 			   mode. */
 
 static a_symbol_ptr
+		has_cpp_attribute_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__has_cpp attribute", which enables
+			   testing for support of standard attributes. */
+
+static a_symbol_ptr
 		clang_has_builtin_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_builtin", which is used in clang
@@ -4124,13 +4130,6 @@ static a_boolean
 			   feature test macro. */
 
 static a_boolean
-		nontype_template_arg_conversions_enabled;
-			/* TRUE if the conversions described in N4268 are
-			   permitted in nontype template arguments.  Used
-			   to support the __cpp_nontype_template_args
-			   feature test macro. */
-
-static a_boolean
 		c_alignas_enabled;
 			/* TRUE if the _Alignas specifier is enabled in C
 			   mode.  Used to support
@@ -4174,8 +4173,8 @@ static a_boolean
 
 static a_boolean
 		cxx_constexpr_string_builtins;
-			/* TRUE if the certain string builtin functions
-			   can be used in constexpr expressions.  Used for
+			/* TRUE if certain string builtin functions can be
+			   used in constexpr expressions.  Used for
 			   __has_feature(cxx_constexpr_string_builtins). */
 
 
@@ -4206,9 +4205,19 @@ static a_feature_support feature_support_list[] = {
     "201603" },
   { "",
     0,
+    &class_template_arg_deduction_enabled,
+    "__cpp_deduction_guides",
+    "201611" },
+  { "",
+    0,
     &fold_expressions_enabled,
     "__cpp_fold_expressions",
-    "201411" },
+    "201603" },
+  { "",
+    0,
+    &mandatory_copy_elision,
+    "__cpp_guaranteed_copy_elision",
+    "201606" },
   { "",
     0,
     &hex_floating_point_constants_allowed,
@@ -4251,7 +4260,7 @@ static a_feature_support feature_support_list[] = {
     "201606" },
   { "",
     0,
-    &nontype_template_arg_conversions_enabled,
+    &generalized_nontype_arguments,
     "__cpp_nontype_template_args",
     "201411" },
   { "",
@@ -4264,6 +4273,11 @@ static a_feature_support feature_support_list[] = {
     &struct_bindings_enabled,
     "__cpp_structured_bindings",
     "201606" },
+  { "",
+    0,
+    &generalized_template_template_matching,
+    "__cpp_template_template_args",
+    "201611" },
   { "",
     0,
     &char16_t_and_char32_t_are_keywords,
@@ -4533,8 +4547,8 @@ static a_feature_support feature_support_list[] = {
   { "cxx_thread_local",
     201103,
     &cxx_thread_local_enabled,
-    NULL,
-    NULL },
+    "__cpp_threadsafe_static_init",
+    "200806" },
   { "cxx_trailing_return",
     201103,
     &trailing_return_types_enabled,
@@ -4670,6 +4684,64 @@ with the type traits helper name to which helper_ptr points.
   int result = strcmp((const char *)id_ptr, *(const char **)helper_ptr);
   return result;
 }  /* compare_type_traits_helper_names */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+/*
+The following struct associates a standard attribute-token with the value
+returned by __has_cpp_attribute for that token.
+*/
+
+typedef struct a_cpp_attribute_support {
+  a_const_char
+	*token;		/* The spelling of the attribute-token. */
+  a_const_char
+	*value;		/* The value of __has_cpp_attribute applied to the
+			   token. */
+} a_cpp_attribute_support;
+
+/*
+The following array describes all the standard attribute-tokens with the
+value returned by __has_cpp_attribute for that token.  The entries are
+sorted by the token spelling so it can be used with bsearch.
+*/
+
+static a_cpp_attribute_support attribute_support_list[] = {
+  { "carries_dependency",
+    "200809" },
+  { "deprecated",
+    "201309" },
+  { "fallthrough",
+    "201603" },
+  { "maybe_unused",
+    "201603" },
+  { "nodiscard",
+    "201603" },
+  { "noreturn",
+    "200709" }
+};
+
+#define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \
+                            sizeof(a_cpp_attribute_support))
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+static int compare_attribute_names(a_const_void_ptr id_ptr,
+                                   a_const_void_ptr attr_supp_ptr)
+/*
+Function used by bsearch to compare the attribute-token to which id_ptr
+points with the attribute-token spelling of the attribute support entry to
+which attr_supp_ptr points.
+*/
+{
+  int result = strcmp((const char *)id_ptr,
+                      ((a_cpp_attribute_support *)attr_supp_ptr)->token);
+  return result;
+}  /* compare_attribute_names */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
 END_EXTERN_C_BLOCK
@@ -6541,11 +6613,48 @@ end_arg_expansion:;
          and 0 otherwise. */
       a_const_char *attribute_name = clang_feature_test_id(map, &arg_position);
       if (attribute_name != NULL &&
-          gnu_attribute_is_supported(attribute_name)) {
+          attribute_is_supported(attribute_name, af_gnu)) {
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");
       }  /* if */
+    } else if (macro_symbol == has_cpp_attribute_symbol) {
+      /* The __has_cpp_attribute macro.  If the named attribute is
+         available in the current execution of the front end, the value for
+         a standard attribute is the six-digit year and month of the
+         meeting at which the attribute was added to the C++ working paper,
+         and the value 1 for a nonstandard attribute; otherwise, the value
+         is 0. */
+      a_const_char *attribute_name = NULL;
+      a_const_char *value = "0";
+      if (strict_ansi_mode && !in_pp_if_expression) {
+        /* __has_cpp_attribute may only appear inside #if or #elif.*/
+        pos_diagnostic(strict_ansi_discretionary_severity,
+                       ec_has_cpp_attrib_not_in_if, &start_pos);
+        ctoken = tok_identifier;
+        *rescan = FALSE;
+        goto return_point;
+      }  /* if */
+      attribute_name = clang_feature_test_id(map, &arg_position);;
+      if (attribute_name != NULL &&
+          attribute_is_supported(attribute_name, af_internal)) {
+        a_void_ptr attr_supp_entry;
+        attr_supp_entry = bsearch((a_bsearch_arg_type)attribute_name,
+                                  (a_bsearch_arg_type)attribute_support_list,
+                                  size_t_arg(NUM_CPP_ATTRIBUTES),
+                                  sizeof(a_cpp_attribute_support),
+                                  compare_attribute_names);
+        if (attr_supp_entry != NULL) {
+          /* This is a standard attribute; the value is the six-digit year
+             and month when the attribute was voted into the C++ working
+             paper. */
+          value = ((a_cpp_attribute_support *)attr_supp_entry)->value;
+        } else {
+          /* Not a standard attribute, so the value is just 1. */
+          value = "1";
+        }  /* if */
+      }  /* if */
+      strcpy(repl_text, value);
     } else if (macro_symbol == clang_has_builtin_symbol) {
       /* The clang __has_builtin macro.  Has the value 1 if the named
          builtin function is available in the current execution of the
@@ -10223,7 +10332,6 @@ command line -D options.
   decltype_keyword_enabled = decltype_enabled &&
                                             !enable_underscore_decltype_only;
   initializer_lists_enabled = cpp11_mode;
-  nontype_template_arg_conversions_enabled = cpp17_mode;
   c_alignas_enabled = C_mode() && alignas_enabled;
   c_alignof_enabled = C_mode() && alignof_enabled;
   c_generic_enabled = c11_mode;
@@ -10447,10 +10555,10 @@ command line -D options.
         }  /* if */
       }  /* for */
       /* __cpp_constexpr must be handled specially, as it will have
-         different values depending on whether C++11 or C++14 constexpr
-         features are supported. */
+         different values depending on whether C++11, C++14, or C++17
+         constexpr features are supported. */
       if (constexpr_lambdas_enabled) {
-        (void)enter_predef_macro("201606", "__cpp_constexpr",
+        (void)enter_predef_macro("201603", "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       } else if (relaxed_constexpr_enabled) {
@@ -10789,6 +10897,15 @@ command line -D options.
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus &&
+      define_portable_feature_test_macros) {
+    has_cpp_attribute_symbol = enter_predef_macro_full(
+                                             (char *)NULL,
+                                             "__has_cpp_attribute",
+                                             /*cannot_be_redefined=*/TRUE,
+                                             /*ref_suppresses_pch_file=*/FALSE,
+                                             /*function_like=*/TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled) {
