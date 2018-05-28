@@ -9029,7 +9029,7 @@ any family is permitted, with standard attributes given preference.
       }  /* if */
       if (family == af_gnu) {
         supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
-      } else if (family = af_std) {
+      } else if (family == af_std) {
         supported = cond_matches_std_attr_mode(cond, dummy_attr);
       } else {
         supported = cond_matches_ms_declspec_mode(cond, dummy_attr);
