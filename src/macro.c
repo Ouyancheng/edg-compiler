@@ -273,7 +273,8 @@ static a_symbol_ptr
 		has_cpp_attribute_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_cpp attribute", which enables
-			   testing for support of standard attributes. */
+			   testing whether a given attribute is supported
+			   in the current emulation. */
 
 static a_symbol_ptr
 		clang_has_builtin_symbol;
