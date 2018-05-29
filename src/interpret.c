@@ -4941,7 +4941,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_byte  *this_bytes = NULL;
               if (elem_con->implicit_aggr_element &&
                   con->variant.aggregate.has_dynamic_init_component &&
-                  class_type_supp(tp)->anonymous_union_kind !=
+                  class_type_supp(tp)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_none) {
                 /* This could involve a default member initializer using a
                    "this" pointer.  That pointer refers to the current class:
@@ -5024,7 +5024,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           this_bytes = NULL;
           if (elem_con->implicit_aggr_element &&
               con->variant.aggregate.has_dynamic_init_component &&
-              class_type_supp(tp)->anonymous_union_kind !=
+              class_type_supp(tp)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_none) {
             /* This could involve a default member initializer using a "this"
                pointer.  That pointer refers to the current class: Ensure a
@@ -9606,6 +9606,10 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (!is_initialized(src)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_object_not_initialized, &opnd1->position,
+                              ips);
               } else if (src->address == NULL) {
                 *(a_constexpr_address*)result_storage = *src;
               } else {
@@ -10160,6 +10164,9 @@ the value representation of the integer value.
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
+              } else if (!is_initialized(cap)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (is_variant_path(cap) &&
                          !check_variant_path(ips, cap, /*release=*/TRUE,
                                              &expr->position)) {
@@ -10169,9 +10176,6 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
-              } else if (!is_initialized(cap)) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (tp->kind == (a_type_kind)tk_integer) {
                 /* An integral type. */
                 if (tp->variant.integer.bool_type) {
@@ -10269,6 +10273,8 @@ the value representation of the integer value.
             break;
           case eok_pre_decr:
             { a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              a_constexpr_address  orig_address = *cap;
+              copy_address_structures(&orig_address);
               if (is_runtime_data_address(cap)) {
                 /* Cannot modify the value of an object whose lifetime began
                    outside the current evaluation. */
@@ -10282,6 +10288,9 @@ the value representation of the integer value.
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
+              } else if (!is_initialized(cap)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (is_variant_path(cap) &&
                          !check_variant_path(ips, cap, /*release=*/TRUE,
                                              &expr->position)) {
@@ -10291,9 +10300,6 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
-              } else if (!is_initialized(cap)) {
-                do_constexpr_fail(result);
-                info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (tp->kind == (a_type_kind)tk_integer) {
                 /* An integer. */
                 an_integer_value  *ival = int_value_at(cap);
@@ -10380,7 +10386,7 @@ the value representation of the integer value.
               if (result) {
                 /* Return either the address or the value, as
                    appropriate. */
-                SET_result_val_from_operand_address(cap);
+                SET_result_val_from_operand_address(&orig_address);
               }  /* if */
             }
             break;
@@ -11388,6 +11394,10 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
+              } else if (!is_initialized(dst)) {
+                do_constexpr_fail(result);
+                info_with_pos(ec_object_not_initialized, &opnd1->position,
+                              ips);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
                           !check_variant_path(ips, dst, /*release=*/TRUE,
@@ -13215,7 +13225,7 @@ the value representation of the integer value.
         if (this_bytes != NULL) {
           (void)memcpy(result_storage, this_bytes, size_t_arg(n_bytes));
           copy_address_structures(result_storage);
-          mark_complete_object_initialized(complete_object);
+          mark_complete_object_initialized(result_storage);
         } else {
           do_constexpr_fail(result);
           info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -13286,13 +13296,12 @@ that are needed for the operation of the interpreter.
 
 static void translate_interpreter_offset(an_interpreter_state  *ips,
                                          a_constexpr_address   *cap,
-                                         a_type_ptr            type,
                                          a_constant_ptr        con)
 /*
-cap represents an interpreter address pointing into interpreter storage for a
-complete object of the given type.  Record in con->variant.address.offset
-the corresponding target offset for a ck_address constant representing the
-same address.  Also record the associated subobject path.
+cap represents an interpreter address pointing into interpreter storage.
+Record in con->variant.address.offset the corresponding target offset for a
+ck_address constant representing the same address.  Also record the associated
+subobject path.
 */
 {
   a_targ_ptrdiff_t  t_offset = 0; /* Total target offset. */
@@ -13303,6 +13312,8 @@ same address.  Also record the associated subobject path.
     a_field_ptr           fp = NULL;
     a_base_class_ptr      bcp = NULL;
     a_subobject_path_ptr  path = NULL, *p_end_path = &path, path_entry;
+    a_type_ptr            type = complete_object_type(parent_address);
+
     if (cannot_dereference(cap)) {
       a_boolean     result = TRUE;
       a_byte_count  n_bytes = value_bytes_for_type(ips, type, &result);
@@ -13511,7 +13522,6 @@ diagnostic in *ips.
                (in which case, we must produce an address constant for that
                same variable). */
             a_constant_ptr  prev_con = (a_constant_ptr)mptr;
-            a_type_ptr      top_type;
             if (!constant_is(prev_con, ck_address)) {
               /* Presumably this is a constant created for an abk_constant
                  address by the code below or it is a ck_string entry that
@@ -13519,7 +13529,6 @@ diagnostic in *ips.
                  extract_value_from_constant).  In the latter case make a
                  copy of the string constant to avoid memory region issues. */
               cp = prev_con;
-              top_type = skip_typerefs(cp->type);
             } else if (prev_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               vp = prev_con->variant.address.variant.variable;
@@ -13530,14 +13539,12 @@ diagnostic in *ips.
                 do_constexpr_fail(result);
                 break;
               }  /* if */
-              top_type = skip_typerefs(vp->type);
               cp = NULL;
             } else {
               cp = prev_con->variant.address.variant.constant;
-              top_type = skip_typerefs(cp->type);
             }  /* if */
             if (cap->address != cap->complete_object) {
-              translate_interpreter_offset(ips, cap, top_type, con);
+              translate_interpreter_offset(ips, cap, con);
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
@@ -13580,7 +13587,7 @@ diagnostic in *ips.
             /* Set up a reverse mapping, so other address constants into this
                object can use the same constant entry (see the case where mptr
                points to a non-ck_address entry above). */
-            map_stack_bytes(ips, base_address, (a_byte*)cp);
+            map_stack_bytes(ips, cap->complete_object, (a_byte*)cp);
             if (!copy_interpreter_object_to_constant(
                           ips, base_address, cap->complete_object, utp, cp)) {
               do_constexpr_fail(result);
