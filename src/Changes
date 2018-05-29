@@ -19,7 +19,7 @@ example, with --c++14, the variable i will be defined:
 
   #if __has_cpp_attribute(deprecated)
   int i = 5;  // Will be defined with --c++14 but not with --c++11
-  #endif.
+  #endif
 
 
 5/25/18  [EDGcpfe/19223]
