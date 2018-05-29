@@ -9014,7 +9014,7 @@ any family is permitted, with standard attributes given preference.
     if (dummy_attr == NULL) {
       /* Allocate a dummy attribute for matching. */
       dummy_attr = alloc_attribute();
-      dummy_attr->family = family;
+      dummy_attr->family = (a_byte_attribute_kind)family;
     }  /* if */
     dummy_attr->name = name;
     /* Scan through the attributes with this name to see if one meets the
