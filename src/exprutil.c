@@ -4879,6 +4879,7 @@ dynamic init that underlies the cast, or NULL if there isn't one.
   an_expr_node_ptr              expr = rcblock->expr, op1 = NULL;
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
+  a_type_ptr                    orig_type;
 
   if (braced_init_list != NULL)  *braced_init_list = NULL;
   if (actual_dip != NULL) *actual_dip = NULL;
@@ -4886,6 +4887,7 @@ dynamic init that underlies the cast, or NULL if there isn't one.
     /* The cast is specified by a dynamic initialization (dip), not an
        expression. */
     eriep = dip->rescan_info;
+    orig_type = eriep->type;
   } else {
     /* The cast is specified by an expression. */
     check_assertion(expr != NULL &&
@@ -4897,13 +4899,15 @@ dynamic init that underlies the cast, or NULL if there isn't one.
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
       check_assertion(dip != NULL);  /* Make Coverity analysis happy. */
+      orig_type = expr->type;
     } else {
       op1 = expr->variant.operation.operands;
+      orig_type = eriep->type;
     }  /* if */
   }  /* if */
   /* Determine the result type for the cast. */
   check_assertion(eriep != NULL && eriep->type != NULL);
-  *cast_type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
+  *cast_type = do_type_substitution_for_rescan(orig_type, rcblock, eriep);
   if (actual_dip != NULL) *actual_dip = dip;
   if (dip != NULL && dip->rescan_info != NULL &&
       is_braced_init_list_operand(&dip->rescan_info->saved_operand)) {

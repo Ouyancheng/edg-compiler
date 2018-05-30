@@ -19564,7 +19564,6 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   } else {
     conv_glvalue_to_prvalue(operand);
     if (constexpr_enabled && curr_expr_kind_is_const()) {
-      force_operand_to_constant_if_possible(operand);
       if (is_constant_operand(operand)) {
         kind = (a_dynamic_init_kind)dik_constant;
       }  /* if */
@@ -19915,16 +19914,30 @@ is_transparent.  conv_context describes the context of the conversion.
       /* Some conversions are not allowed on a nontype template argument.
          (Note that if an explicit cast was applied to the template argument,
          those restrictions do not apply.) */
-      a_type_ptr src_type = source_operand->type, eff_src_type = src_type;
+      a_type_ptr  src_type = source_operand->type, eff_src_type = src_type;
+      an_operand  *src_to_test = source_operand;
+      an_operand  src_copy;
+      a_boolean   constant_src;
       if (conversion->routine != NULL) {
         eff_src_type = return_type_of(conversion->routine->type);
+        if (is_constant_operand(source_operand)) {
+          copy_operand(source_operand, &src_copy);
+          user_convert_operand(&src_copy, eff_src_type,
+                               conversion, (a_conv_descr *)NULL,
+                               /*force_copy_to_temp=*/FALSE);
+          force_operand_to_constant_if_possible(&src_copy);
+          src_to_test = &src_copy;
+        }  /* if */
       }  /* if */
+      constant_src = is_constant_operand(src_to_test);
       if (!conversion->is_explicit_cast &&
           !conversion_allowed_for_nontype_template_argument(
                                            &conversion->std,
                                            eff_src_type,
-                                           is_constant_operand(source_operand),
-                                           &source_operand->variant.constant,
+                                           constant_src,
+                                           constant_src ?
+                                              &src_to_test->variant.constant :
+                                              (a_constant_ptr)NULL,
                                            dest_type,
                                            &err_code)) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
