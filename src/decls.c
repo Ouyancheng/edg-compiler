@@ -18949,9 +18949,9 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
       dps->is_deduction_guide ||
       (dps->is_nontype_template_param && dps->auto_type_allowed) ||
       (deduced_return_types_enabled &&
-       ((dps->type != NULL && dps->type->kind == (a_type_kind)tk_routine) ||
-        (dps->is_trailing_return_type &&
-         !dps->has_deducible_class_templ_args)))) {
+       ((dps->type != NULL && dps->type->kind == (a_type_kind)tk_routine &&
+         dps->auto_type_allowed) || (dps->is_trailing_return_type &&
+                                    !dps->has_deducible_class_templ_args)))) {
     /* Not a declaration that requires this checking. */
   } else if (dps->type != NULL && is_error_type(dps->type)) {
     /* Some error already occurred.  Additional diagnostics are unlikely to

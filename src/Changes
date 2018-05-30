@@ -1,5 +1,16 @@
 Version 4.15
 
+5/29/18  [EDGcpfe/19701]
+Missing diagnostic on auto in typedef
+
+Certain cases of auto type placeholder in a typedef declaration would not
+be correctly diagnosed as erroneous. The invalid typedef declaration would
+result in an assertion during the lowering phase. This has now been fixed.
+For example: 
+
+  typedef auto f(); // Used to cause an assertion failure.
+
+
 5/28/18  [EDGcpfe/19667]
 Additions and changes to standard feature-test macros
 
