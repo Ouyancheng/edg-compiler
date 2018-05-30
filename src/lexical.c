@@ -23545,7 +23545,6 @@ of the front end.
   ucn_buffer = NULL;
   suffix_replacement_buffer = NULL;
   caching_tokens = FALSE;
-  caching_default_argument_tokens = FALSE;
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_temp_text_buffer_octl;

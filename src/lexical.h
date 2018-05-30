@@ -2247,11 +2247,6 @@ EXTERN a_boolean
 			/* TRUE when caching a token stream to be scanned
 			   later. */
 
-EXTERN a_boolean
-		caching_default_argument_tokens;
-			/* TRUE when the tokens of a default argument are
-			   being cached. */
-
 /*
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.

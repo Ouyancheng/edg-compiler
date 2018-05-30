@@ -1,5 +1,24 @@
 Version 4.15
 
+5/30/18  [EDGcpfe/19745]
+Caching tokens and user-defined literals
+
+The literal operator associated with a user-defined literal appearing in a
+function template or member function of a class template must be looked up
+when the function is instantiated from cached tokens, because the result of
+the lookup may depend on a using-directive in the function that will only
+be parsed during the instantiation, not when the tokens are originally
+cached.  Because the results of a lookup performed at the time the tokens
+are initially cached would have no effect on the ultimate outcome, as an
+optimization, find_literal_operator simply skipped the lookup when
+caching_tokens is TRUE.  This approach violates the reasonable expectation,
+however, that caching and retrieving tokens should behave the same as
+simply fetching the tokens directly.  As a result, the optimization for
+caching_tokens has now been removed from find_literal_operator and full
+lookups are performed on each call, regardless of whether tokens are being
+cached or fetched from a cache.
+
+
 5/29/18  [EDGcpfe/19701]
 Missing diagnostic on auto in typedef
 

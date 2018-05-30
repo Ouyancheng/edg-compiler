@@ -138,8 +138,6 @@ when either is_function_template or is_template_param are FALSE.
   a_scope_stack_entry_ptr	ssep;
   a_source_position		start_pos;
   a_cts_flag_set		cts_options;
-  a_boolean			saved_dft_arg_caching =
-                                               caching_default_argument_tokens;
 
   db_enter(3, "prescan_default_arg_expr");
   /* Initialize a local stop token set. */
@@ -168,10 +166,8 @@ when either is_function_template or is_template_param are FALSE.
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   cts_options = CTS_COALESCE_IDS;
   if (is_template_param) cts_options |= CTS_STOP_ON_STATEMENT_END;
-  caching_default_argument_tokens = TRUE;
   cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens, cts_options);
   end_caching_fetched_tokens();
-  caching_default_argument_tokens = saved_dft_arg_caching;
   if (is_template_param &&
       (curr_token == tok_semicolon || curr_token == tok_rbrace)) {
     /* We ended up at an unexpected place because of mismatched

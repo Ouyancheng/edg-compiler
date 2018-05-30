@@ -15830,232 +15830,222 @@ const_for_curr_token.
     req_param1_type = make_pointer_type(array_element_type(literal_type));
   }  /* if */
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
-  if (caching_tokens && !caching_default_argument_tokens) {
-    /* Don't bother looking up the literal operator-id at this point; it
-       must be done when the user-defined literal token is fetched from a
-       cache in case something in the cache, such as a using-directive,
-       affects the result of the lookup, so doing a lookup at this point
-       would be wasted effort.  User-defined literals in default arguments,
-       however, must be looked up immediately, since any references are
-       bound at the point of declaration. */
-    if (allow_raw_and_template && !from_cache) {
-      /* We may need the token spelling when we do the lookup of the cached
-         token; if this token isn't already in a cache, save the token
-         spelling in const_with_curr_tok_spelling so the value can be
-         cached. */
-      create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+  if (caching_tokens && allow_raw_and_template && !from_cache) {
+    /* We may need the token spelling when we do the lookup of the cached
+       token; if this token isn't already in a cache, save the token
+       spelling in const_with_curr_tok_spelling so the value can be
+       cached. */
+    create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+  }  /* if */
+  /* Look up the symbol(s) for the specified literal operator. */
+  orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+  if (orig_sym != NULL) {
+    if (size_t_type == NULL) {
+      /* Initialize the special types used for parameter checking. */
+      size_t_type = integer_type(targ_size_t_int_kind);
+      ptr_to_const_char_type = make_pointer_type(
+                  make_qualified_type(integer_type((an_integer_kind)ik_char),
+                                      TQ_CONST));
     }  /* if */
-  } else {
-    /* Look up the symbol(s) for the specified literal operator. */
-    orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-    if (orig_sym != NULL) {
-      if (size_t_type == NULL) {
-        /* Initialize the special types used for parameter checking. */
-        size_t_type = integer_type(targ_size_t_int_kind);
-        ptr_to_const_char_type = make_pointer_type(
-                    make_qualified_type(integer_type((an_integer_kind)ik_char),
-                                        TQ_CONST));
-      }  /* if */
-      list_sym = symbol_is(orig_sym, sk_overloaded_function)
-                                ? orig_sym->variant.overloaded_function.symbols
-                                : orig_sym;
-      do {
-        /* Check the symbol for a match against the permitted operators. */
-        sym = fundamental_symbol_of(list_sym);
-        if (symbol_is(sym, sk_function_template)) {
-          if (!allow_raw_and_template) {
-            /* Ignore the symbol. */
-          } else {
-            /* This is a literal operator template, and the current literal
-               is of a kind for which a literal operator template is a
-               possible match.  Make a note of it and continue the scan. */
-            if (operator_template != NULL) {
-              /* We already saw a literal operator template.  Remember that
-                 for possible later handling. */
-              ambiguous_operator_template = TRUE;
-            }  /* if */
-            operator_template = sym;
-            if (dp != NULL) {
-              /* Record the symbol for later display, if needed. */
-              slep = alloc_symbol_list_entry();
-              slep->symbol = sym;
-              slep->next = raw_and_template_operators;
-              raw_and_template_operators = slep;
-            }  /* if */
+    list_sym = symbol_is(orig_sym, sk_overloaded_function)
+                              ? orig_sym->variant.overloaded_function.symbols
+                              : orig_sym;
+    do {
+      /* Check the symbol for a match against the permitted operators. */
+      sym = fundamental_symbol_of(list_sym);
+      if (symbol_is(sym, sk_function_template)) {
+        if (!allow_raw_and_template) {
+          /* Ignore the symbol. */
+        } else {
+          /* This is a literal operator template, and the current literal
+             is of a kind for which a literal operator template is a
+             possible match.  Make a note of it and continue the scan. */
+          if (operator_template != NULL) {
+            /* We already saw a literal operator template.  Remember that
+               for possible later handling. */
+            ambiguous_operator_template = TRUE;
           }  /* if */
-        } else if (symbol_is(sym, sk_routine)) {
-          /* This is a function.  Get its parameter list and check it
-             against the required parameter type(s). */
-          a_routine_type_supplement_ptr rtsp;
-          a_type_ptr                    param1_type;
-          a_type_ptr                    param2_type;
-          rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
-          if (rtsp->param_type_list == NULL) {
-            /* A literal operator must have at least one parameter.  An
-               error should already have been issued. */
+          operator_template = sym;
+          if (dp != NULL) {
+            /* Record the symbol for later display, if needed. */
+            slep = alloc_symbol_list_entry();
+            slep->symbol = sym;
+            slep->next = raw_and_template_operators;
+            raw_and_template_operators = slep;
+          }  /* if */
+        }  /* if */
+      } else if (symbol_is(sym, sk_routine)) {
+        /* This is a function.  Get its parameter list and check it against
+           the required parameter type(s). */
+        a_routine_type_supplement_ptr rtsp;
+        a_type_ptr                    param1_type;
+        a_type_ptr                    param2_type;
+        rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
+        if (rtsp->param_type_list == NULL) {
+          /* A literal operator must have at least one parameter.  An error
+             should already have been issued. */
+          expect_error();
+          continue;
+        }  /* if */
+        param1_type = skip_typerefs(rtsp->param_type_list->type);
+        if (rtsp->param_type_list->next != NULL) {
+          param2_type = skip_typerefs(rtsp->param_type_list->next->type);
+          if (rtsp->param_type_list->next->next != NULL) {
+            /* A literal operator cannot have more than two parameters.
+               An error should already have been issued. */
             expect_error();
             continue;
           }  /* if */
-          param1_type = skip_typerefs(rtsp->param_type_list->type);
-          if (rtsp->param_type_list->next != NULL) {
-            param2_type = skip_typerefs(rtsp->param_type_list->next->type);
-            if (rtsp->param_type_list->next->next != NULL) {
-              /* A literal operator cannot have more than two parameters.
-                 An error should already have been issued. */
-              expect_error();
-              continue;
-            }  /* if */
-          } else {
-            param2_type = NULL;
+        } else {
+          param2_type = NULL;
+        }  /* if */
+        if (identical_types(param1_type, ptr_to_const_char_type) &&
+            param2_type == NULL && allow_raw_and_template) {
+          /* This is a raw literal operator, and the current literal is of
+             a kind for which a raw literal operator is a possible match.
+             Make a note of it and continue the scan. */
+          if (raw_operator != NULL) {
+            /* We already saw a raw literal operator.  Remember that for
+               possible later handling. */
+            ambiguous_raw_operator = TRUE;
           }  /* if */
-          if (identical_types(param1_type, ptr_to_const_char_type) &&
-              param2_type == NULL && allow_raw_and_template) {
-            /* This is a raw literal operator, and the current literal is
-               of a kind for which a raw literal operator is a possible
-               match.  Make a note of it and continue the scan. */
-            if (raw_operator != NULL) {
-              /* We already saw a raw literal operator.  Remember that for
-                 possible later handling. */
-              ambiguous_raw_operator = TRUE;
+          raw_operator = sym;
+          if (dp != NULL) {
+            /* Record the symbol for later display, if needed. */
+            slep = alloc_symbol_list_entry();
+            slep->symbol = sym;
+            slep->next = raw_and_template_operators;
+            raw_and_template_operators = slep;
+          }  /* if */
+        } else if (identical_types(req_param1_type, param1_type)) {
+          /* The first parameter has the required type. */
+          if (is_string && param2_type == NULL) {
+            /* This is a raw literal operator, which can't be used for a
+               string literal -- ignore it. */
+          } else if ((is_string &&
+                      !types_are_compatible(param2_type, size_t_type)) ||
+                     (!is_string && param2_type != NULL)) {
+            /* In the case of a string literal operator there should be a
+               second parameter of type size_t; otherwise, there should not
+               be another parameter.  If this is not the case, this
+               candidate was declared erroneously and should be ignored.
+               (Note the use of types_are_compatible instead of
+               identical_types; this produces slightly better error
+               recovery in the presence of error types.) */
+            expect_error();
+          } else {
+            if (matching_sym != NULL) {
+              /* We already saw a matching symbol. */
+              ambiguous_matching_sym = TRUE;
+              if (dp == NULL) {
+                /* This is an error (and we are not producing diagnostics);
+                   no need to keep scanning. */
+                break;
+              }  /* if */
             }  /* if */
-            raw_operator = sym;
+            matching_sym = sym;
             if (dp != NULL) {
-              /* Record the symbol for later display, if needed. */
+              /* Record the symbol for later display. */
               slep = alloc_symbol_list_entry();
               slep->symbol = sym;
-              slep->next = raw_and_template_operators;
-              raw_and_template_operators = slep;
-            }  /* if */
-          } else if (identical_types(req_param1_type, param1_type)) {
-            /* The first parameter has the required type. */
-            if (is_string && param2_type == NULL) {
-              /* This is a raw literal operator, which can't be used for a
-                 string literal -- ignore it. */
-            } else if ((is_string &&
-                        !types_are_compatible(param2_type, size_t_type)) ||
-                       (!is_string && param2_type != NULL)) {
-              /* In the case of a string literal operator there should be a
-                 second parameter of type size_t; otherwise, there should
-                 not be another parameter.  If this is not the case, this
-                 candidate was declared erroneously and should be ignored.
-                 (Note the use of types_are_compatible instead of
-                 identical_types; this produces slightly better error
-                 recovery in the presence of error types.) */
-              expect_error();
-            } else {
-              if (matching_sym != NULL) {
-                /* We already saw a matching symbol. */
-                ambiguous_matching_sym = TRUE;
-                if (dp == NULL) {
-                  /* This is an error (and we are not producing
-                     diagnostics); no need to keep scanning. */
-                  break;
-                }  /* if */
-              }  /* if */
-              matching_sym = sym;
-              if (dp != NULL) {
-                /* Record the symbol for later display. */
-                slep = alloc_symbol_list_entry();
-                slep->symbol = sym;
-                slep->next = operators;
-                operators = slep;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        } else {
-          /* Not a template and not a function.  This can result from
-             erroneous declarations using literal operator ids.  Ignore the
-             symbol. */
-          expect_error();
-        }  /* if */
-      } while (symbol_is(orig_sym, sk_overloaded_function) &&
-               (list_sym = list_sym->next) != NULL);
-      if (ambiguous_matching_sym) {
-        /* Return the original overloaded function symbol to indicate the
-           ambiguity. */
-        matching_sym = orig_sym;
-      } else if (matching_sym == NULL) {
-        /* See if there is exactly one literal operator template or raw
-           literal operator in the set; if so, select that and convert
-           const_for_curr_token to a string containing the spelling of the
-           token. */
-        a_boolean token_string_needed = FALSE;
-        a_boolean ambiguous = FALSE;
-        if (operator_template != NULL) {
-          if (raw_operator != NULL || ambiguous_operator_template) {
-            /* Return the original overloaded function symbol to indicate
-               the ambiguity. */
-            matching_sym = orig_sym;
-            ambiguous = TRUE;
-          } else {
-            matching_sym = operator_template;
-          }  /* if */
-          token_string_needed = TRUE;
-        } else if (raw_operator != NULL) {
-          if (ambiguous_raw_operator) {
-            /* Return the original overloaded function symbol to indicate
-               the ambiguity. */
-            matching_sym = orig_sym;
-            ambiguous = TRUE;
-          } else {
-            matching_sym = raw_operator;
-          }  /* if */
-          token_string_needed = TRUE;
-        }  /* if */
-        if (token_string_needed) {
-          if (from_cache) {
-            if (!ambiguous) {
-              /* The current token is being extracted from a cache, so both
-                 const_for_curr_token and const_with_curr_tok_spelling are
-                 valid.  We need the "raw" version for a raw literal operator
-                 or literal operator template, so copy the token spelling
-                 into const_for_curr_token. */
-              copy_constant(&const_with_curr_tok_spelling,
-                            &const_for_curr_token);
-            } else {
-              /* Leave const_for_curr_token unchanged in case of ambiguity. */
-            }  /* if */
-          } else {
-            /* A regular token, neither being added to nor extracted from a
-               cache.  Record the spelling of the token. */
-            create_constant_from_token_spelling(&const_with_curr_tok_spelling);
-            if (!ambiguous) {
-              /* We need to put the spelling of the current token into
-                 const_for_curr_token for a raw literal operator or literal
-                 operator template. */
-              copy_constant(&const_with_curr_tok_spelling,
-                            &const_for_curr_token);
-            } else {
-              /* There was an ambiguity detected.  In some cases, that can
-                 be resolved by SFINAE, so we have the token spelling into
-                 const_with_curr_tok_spelling in case it is needed but leave
-                 const_for_curr_token unchanged. */
+              slep->next = operators;
+              operators = slep;
             }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* if */
-    if (dp != NULL) {
-      /* There should have been an ambiguity of some kind.  Display
-         "additional info" diagnostics for each symbol that contributed to
-         the ambiguity. */
-      check_assertion(orig_sym != NULL);
-      if (ambiguous_matching_sym) {
-        /* More than one literal operator matched the requirements. */
-        for (slep = operators; slep != NULL; slep = slep->next) {
-          sym_add_diag_info(dp, ec_ambiguous_function_add_on, slep->symbol);
-        }  /* for */
       } else {
-        check_assertion(raw_and_template_operators != NULL &&
-                        raw_and_template_operators->next != NULL);
-        for (slep = raw_and_template_operators; slep != NULL;
-             slep = slep->next) {
-          sym_add_diag_info(dp, ec_ambiguous_function_add_on, slep->symbol);
-        }  /* for */
+        /* Not a template and not a function.  This can result from
+           erroneous declarations using literal operator ids.  Ignore the
+           symbol. */
+        expect_error();
       }  /* if */
-      free_list_of_symbol_list_entries(operators);
-      free_list_of_symbol_list_entries(raw_and_template_operators);
+    } while (symbol_is(orig_sym, sk_overloaded_function) &&
+             (list_sym = list_sym->next) != NULL);
+    if (ambiguous_matching_sym) {
+      /* Return the original overloaded function symbol to indicate the
+         ambiguity. */
+      matching_sym = orig_sym;
+    } else if (matching_sym == NULL) {
+      /* See if there is exactly one literal operator template or raw
+         literal operator in the set; if so, select that and convert
+         const_for_curr_token to a string containing the spelling of the
+         token. */
+      a_boolean token_string_needed = FALSE;
+      a_boolean ambiguous = FALSE;
+      if (operator_template != NULL) {
+        if (raw_operator != NULL || ambiguous_operator_template) {
+          /* Return the original overloaded function symbol to indicate the
+             ambiguity. */
+          matching_sym = orig_sym;
+          ambiguous = TRUE;
+        } else {
+          matching_sym = operator_template;
+        }  /* if */
+        token_string_needed = TRUE;
+      } else if (raw_operator != NULL) {
+        if (ambiguous_raw_operator) {
+          /* Return the original overloaded function symbol to indicate the
+             ambiguity. */
+          matching_sym = orig_sym;
+          ambiguous = TRUE;
+        } else {
+          matching_sym = raw_operator;
+        }  /* if */
+        token_string_needed = TRUE;
+      }  /* if */
+      if (token_string_needed) {
+        if (from_cache) {
+          if (!ambiguous) {
+            /* The current token is being extracted from a cache, so both
+               const_for_curr_token and const_with_curr_tok_spelling are
+               valid.  We need the "raw" version for a raw literal operator
+               or literal operator template, so copy the token spelling
+               into const_for_curr_token. */
+            copy_constant(&const_with_curr_tok_spelling,
+                          &const_for_curr_token);
+          } else {
+            /* Leave const_for_curr_token unchanged in case of ambiguity. */
+          }  /* if */
+        } else if (!caching_tokens) {
+          /* A regular token, neither being added to nor extracted from a
+             cache.  Record the spelling of the token. */
+          create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+          if (!ambiguous) {
+            /* We need to put the spelling of the current token into
+               const_for_curr_token for a raw literal operator or literal
+               operator template. */
+            copy_constant(&const_with_curr_tok_spelling,
+                          &const_for_curr_token);
+          } else {
+            /* There was an ambiguity detected.  In some cases, that can be
+               resolved by SFINAE, so we have put the token spelling into
+               const_with_curr_tok_spelling in case it is needed but leave
+               const_for_curr_token unchanged. */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
+  }  /* if */
+  if (dp != NULL) {
+    /* There should have been an ambiguity of some kind.  Display
+       "additional info" diagnostics for each symbol that contributed to
+       the ambiguity. */
+    check_assertion(orig_sym != NULL);
+    if (ambiguous_matching_sym) {
+      /* More than one literal operator matched the requirements. */
+      for (slep = operators; slep != NULL; slep = slep->next) {
+        sym_add_diag_info(dp, ec_ambiguous_function_add_on, slep->symbol);
+      }  /* for */
+    } else {
+      check_assertion(raw_and_template_operators != NULL &&
+                      raw_and_template_operators->next != NULL);
+      for (slep = raw_and_template_operators; slep != NULL;
+           slep = slep->next) {
+        sym_add_diag_info(dp, ec_ambiguous_function_add_on, slep->symbol);
+      }  /* for */
+    }  /* if */
+    free_list_of_symbol_list_entries(operators);
+    free_list_of_symbol_list_entries(raw_and_template_operators);
   }  /* if */
   return matching_sym;
 }  /* find_literal_operator */
