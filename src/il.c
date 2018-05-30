@@ -7579,6 +7579,20 @@ definition of the CC flags in il.h for more information.
                               "compare_constants: bad templ param const kind");
           }  /* switch */
         }  /* if */
+        if (eq && (options & CC_EXACT_EQUIVALENCE) != 0) {
+          /* If the constants refer to local expression nodes, ensure they're
+             both in the same function.  (E.g., we do not want to reuse a
+             constant that refers to a local expression for the nontype
+             template argument of a template instance used in a different
+             function. */
+          if (cp1->variant.template_param.local_expr_ref !=
+                                 cp2->variant.template_param.local_expr_ref ||
+              (cp1->variant.template_param.local_expr_ref &&
+               !same_entities(cp1->source_corresp.enclosing_routine,
+                              cp2->source_corresp.enclosing_routine))) {
+            eq = FALSE;
+          }  /* if */
+        }  /* if */
         break;
       case ck_designator:
         if (cp1->variant.designator.is_generic !=
