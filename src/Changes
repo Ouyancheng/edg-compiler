@@ -3,7 +3,7 @@ Version 4.15
 5/29/18  [EDGcpfe/19701]
 Missing diagnostic on auto in typedef
 
-Certain cases of auto type placeholder in a typedef declaration would not
+Certain cases of the auto type placeholder in a typedef declaration would not
 be correctly diagnosed as erroneous. The invalid typedef declaration would
 result in an assertion during the lowering phase. This has now been fixed.
 For example: 
