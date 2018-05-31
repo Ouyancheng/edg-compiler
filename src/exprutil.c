@@ -4899,7 +4899,21 @@ dynamic init that underlies the cast, or NULL if there isn't one.
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
       check_assertion(dip != NULL);  /* Make Coverity analysis happy. */
-      orig_type = expr->type;
+      /* For an expression S<T>{} in a context requiring a constant "bool",
+         eriep->type will represent "bool".  However, at instantiation time
+         there are really up to three conversions in play here: (1) The
+         conversion of "{}" to S<T>, (2) a call to a user-defined conversion
+         function, and (3) a standard conversion from the result of that
+         user-defined conversion to bool.  The type to substitute at this
+         level would be S<T>, which is expr->type.  However, for error
+         recovery purposes, eriep->type works better if expr->type cannot
+         be a class type. */
+      if (is_class_struct_union_type(expr->type) ||
+          is_template_param_type(expr->type)) {
+        orig_type = expr->type;
+      } else {
+        orig_type = eriep->type;
+      } /* if */
     } else {
       op1 = expr->variant.operation.operands;
       orig_type = eriep->type;
