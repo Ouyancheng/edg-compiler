@@ -15754,24 +15754,21 @@ Standard 2.14.8 [lex.ext]) and pos is the start of the literal or of the
 literal-operator-id in which name appears; literal_type is the type of the
 literal and determines the type of the first parameter of the literal
 operator (the list of potential types is found in 13.5.8 [over.literal] of
-the C++11 Standard).  If we are currently caching tokens, this routine
-basically does nothing except for setting const_with_curr_tok_spelling if
-the current token is a numeric literal. Otherwise, the name of the literal
-operator or literal operator template is looked up.  If the lookup finds a
-single matching function, return the corresponding symbol; otherwise,
-return the overloaded function symbol or NULL, if no literal operator or
-literal operator template with the designated name has yet been declared.
-If ambiguous symbols are found and dp is non-NULL, put out an "additional
-info" diagnostic for each one.  dp is a pointer to the primary diagnostic
-entry with which any new messages should be attached.  As a side effect,
-locator_for_curr_id is set to refer to the corresponding
-literal-operator-id.  If from_cache is FALSE and a raw literal operator or
-literal operator template is selected, a string literal containing the
-portion of the current token preceding the ud-suffix is created and copied
-to const_with_curr_tok_spelling.  If from_cache is TRUE, the lookup is
-being performed while fetching a token from a token cache, and
-const_for_curr_token and const_with_curr_tok_spelling are set up from the
-information stored in the cache; if a raw literal operator or literal
+the C++11 Standard).  The name of the literal operator or literal operator
+template is looked up.  If the lookup finds a single matching function,
+return the corresponding symbol; otherwise, return the overloaded function
+symbol or NULL, if no literal operator or literal operator template with
+the designated name has yet been declared.  If ambiguous symbols are found
+and dp is non-NULL, put out an "additional info" diagnostic for each one.
+dp is a pointer to the primary diagnostic entry with which any new messages
+should be attached.  As a side effect, locator_for_curr_id is set to refer
+to the corresponding literal-operator-id.  If from_cache is FALSE and a raw
+literal operator or literal operator template is selected, a string literal
+containing the portion of the current token preceding the ud-suffix is
+created and copied to const_with_curr_tok_spelling.  If from_cache is TRUE,
+the lookup is being performed while fetching a token from a token cache,
+and const_for_curr_token and const_with_curr_tok_spelling are set up from
+the information stored in the cache; if a raw literal operator or literal
 operator template is selected, const_with_curr_tok_spelling is copied to
 const_for_curr_token.
 */
