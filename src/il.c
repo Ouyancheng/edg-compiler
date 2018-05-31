@@ -8002,10 +8002,9 @@ alloc_shareable_constant would return a shareable constant.
                 "constant_is_shareable: implicitly-cast const has assoc_info");
     }  /* if */
 #endif /* CHECKING */
-  } else if (cp->expr != NULL || cp->source_corresp.decl_position.seq != 0 ||
-             cp->source_corresp.enclosing_routine != NULL) {
+  } else if (cp->expr != NULL || cp->source_corresp.decl_position.seq != 0) {
     /* Constants with backing expressions or associated with specific
-       source positions or functions should not be shared. */
+       source positions should not be shared. */
     shareable = FALSE;
   } else {
     switch (cp->kind) {

@@ -7750,10 +7750,6 @@ discarded right after they have been generated.
     /* Routines that are or contain generic lambdas may need to have their
        scopes reactivated for instantiations. */
     discard = FALSE;
-  } else if (scope_for_routine(routine)->expr_node_refs != NULL) {
-    /* File-scope entities indirectly refer to expressions in this function.
-       Allow those references to be usable as long as possible. */
-    discard = FALSE;
   } else if (routine->is_prototype_instantiation &&
              !all_template_info_in_il) {
     /* This is a prototype instantiation, and we're not keeping prototype
@@ -8438,10 +8434,6 @@ routine should be kept.
     if (routine->contains_generic_lambda) {
       /* Functions containing generic lambdas need to be kept because generic
          lambda instantiations will refer to their internals. */
-      result = TRUE;
-    } else if (scope_for_routine(routine)->expr_node_refs != NULL) {
-      /* File-scope entities indirectly refer to expressions in this function.
-         Allow those references to be usable as long as possible. */
       result = TRUE;
     } else if (routine->source_corresp.is_class_member) {
       a_type_ptr  parent_class = parent_class_of(routine);
