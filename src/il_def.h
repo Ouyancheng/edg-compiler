@@ -12089,9 +12089,9 @@ enum an_expr_node_kind_tag {
   enk_variable,         /* A variable. */
   enk_field,            /* Used in an eok_dot_field, eok_points_to_field, etc.
                            operation to indicate the field. */
-  enk_temp_init,	/* Initialization of a temporary within an
-			   expression.  C++ only.  Used in C for C99
-			   compound literals. */
+  enk_temp_init,	/* Initialization of a temporary within an expression.
+			   Mostly for C++ but used in C for C99 compound
+			   literals. */
   enk_new_delete,	/* C++ "new" or "delete". */
   enk_lambda,		/* C++ lambda expression. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
