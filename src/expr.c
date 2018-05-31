@@ -14157,6 +14157,8 @@ name.  We do not advance to the token after the decltype in this case.
     a_boolean   dependent_arg = is_template_dependent_context() &&
                                 is_template_dependent_type(result);
     a_boolean   no_parens_matters;
+    a_memory_region_number
+                prev_region;
     tp->variant.typeref.type = decltype_from_operand(&operand,
                                                      &no_parens_matters);
     tp->variant.typeref.is_decltype = TRUE;
@@ -14165,7 +14167,11 @@ name.  We do not advance to the token after the decltype in this case.
     if (dependent_arg) {
       prep_generic_operand(&operand);
     }  /* if */
+    /* Represent the operand as an expression.  If the operand is a constant,
+       a constant entry will be allocated: Allocate it in file scope memory. */
+    switch_to_file_scope_region(&prev_region);
     expr = make_node_from_operand(&operand);
+    switch_back_to_original_region(prev_region);
     if (!dependent_arg) {
       /* Check for cases where the result type is not dependent but the
          expression is instantiation-dependent. */
