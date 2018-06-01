@@ -12114,9 +12114,16 @@ expected to hold a pointer to the expression being searched for.)
 */
 {
   a_source_correspondence  *scp = (a_source_correspondence*)referrer;
-  a_scope_ptr              scope = scope_for_routine(scp->enclosing_routine);
+  an_expr_node_ptr         result;
 
-  return find_local_expr_node_in_scope(referrer, kind, scope);
+  if (scp->enclosing_routine->function_def_number !=
+                                                   NULL_function_def_number) {
+    a_scope_ptr  scope = scope_for_routine(scp->enclosing_routine);
+    result = find_local_expr_node_in_scope(referrer, kind, scope);
+  } else {
+    result = NULL;
+  }  /* if */
+  return result;
 }  /* find_local_expr_node */
 
 
