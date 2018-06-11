@@ -1299,7 +1299,10 @@ Install the keywords in the symbol table.
     if (alignas_enabled) {
       enter_keyword((a_token_kind)tok_alignas, "alignas");
     }  /* if */
-    if (alignof_enabled) {
+    if (alignof_enabled &&
+        !(clang_mode && !cpp11_mode)) {
+      /* clang seems to only enable this version of the keyword in C++11
+         and later modes. */
       enter_keyword((a_token_kind)tok_alignof, "alignof");
     }  /* if */
 #if COROUTINES_ALLOWED

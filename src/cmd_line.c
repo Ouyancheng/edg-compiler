@@ -4512,7 +4512,7 @@ This function is also called in clang mode.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   c99_bool_is_keyword = TRUE;
-  if (gnu_version >= 40700) {
+  if (gnu_version_is(>=40700)) {
     alignof_enabled = TRUE;
     alignas_enabled = TRUE;
   }  /* if */
