@@ -1,5 +1,20 @@
 Version 4.15
 
+6/11/18  [EDGcpfe/19741]
+Assertion failure on alias to entity in secondary translation unit
+
+An assertion failure (remap_ptr_to_entry_number: pointer in secondary trans
+unit) would occur if an alias in one translation unit referred to an entity
+in another translation unit. Now fixed.  For example, with --g++
+--no_il_lowering:
+
+  // file 1:
+  static void foo(void) __attribute__((weakref("bar")));
+
+  // file 2:
+  void bar(void);
+
+
 5/30/18  [EDGcpfe/19745]
 Caching tokens and user-defined literals
 

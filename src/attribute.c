@@ -8778,6 +8778,24 @@ Also used for the GNU ifunc attribute.
     } else if (aliased_sym->kind != entry->alias->kind) {
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
+    } else if ((entry->alias->kind == sk_routine &&
+                in_secondary_trans_unit(entry->alias->variant.routine.ptr) !=
+                in_secondary_trans_unit(aliased_sym->variant.routine.ptr)) ||
+               (entry->alias->kind == sk_variable &&
+                in_secondary_trans_unit(entry->alias->variant.variable.ptr->
+                                                           aliased_variable) !=
+                in_secondary_trans_unit(aliased_sym->variant.variable.ptr))) {
+      /* We've found a match, but it's in another translation unit.  Put this
+         entry back on the list to revisit later. */
+      if (alias_fixup_list == NULL) {
+        alias_fixup_list = entry;
+      } else {
+        last_alias_fixup->next = entry;
+      }  /* if */
+      last_alias_fixup = entry;
+      entry->next = NULL;
+      /* Avoid freeing the entry at the end of this loop. */
+      continue;
     } else {
       /* Usual case: An entity declared in this translation unit is aliased
          using the GNU "alias" (or "weakref" or "ifunc") attribute. */
