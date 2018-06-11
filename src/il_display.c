@@ -923,6 +923,7 @@ Display the indicated subobject path.
 {
   disp_name("kind");
   disp_null_term_string(il_entry_kind_names[(int)ptr->kind]);
+  (void)printf("\n");
   disp_ptr("next", (char *)ptr->next, iek_subobject_path);
   switch (ptr->kind) {
     case iek_field:
