@@ -463,6 +463,9 @@ a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
 extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
 
+extern
+a_template_arg_ptr templ_arg_list_for_variable(a_variable_ptr	var_ptr);
+
 extern void get_substitution_pairs_for_template_class(
                                            a_type_ptr            class_type,
                                            a_template_param_ptr  *p_t_params,

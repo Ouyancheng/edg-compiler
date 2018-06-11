@@ -4950,6 +4950,32 @@ template declaration scope or a template instantiation scope.
 }  /* push_instantiation_scope_for_templ_param_rescan */
 
 
+static void reactivate_variable_context(
+				a_template_decl_info_ptr	decl_info,
+				a_symbol_ptr			var_sym,
+				a_push_scope_options_set	options)
+/*
+Unlike functions and classes, a variable template instance does not have its
+own scope, but its template parameters need to be reactivated.  This routine
+is called when that needs to be done.  decl_info is the declaration information
+for the variable template for which var_sym is an instance.  options are the
+push_scope options being used.
+*/
+{
+  a_template_instance_ptr	tip;
+  a_variable_ptr		var_ptr;
+  a_template_arg_ptr		template_arg_list;
+
+  var_ptr = variable_for_symbol(var_sym);
+  tip = template_instance_for_symbol(var_sym);
+  template_arg_list = templ_arg_list_for_variable(var_ptr);
+  push_simple_instantiation_scope(decl_info, (a_type_ptr)NULL,
+                                  (a_routine_ptr)NULL, var_sym,
+                                  tip->template_sym, template_arg_list,
+                                  options);
+}  /* reactivate_variable_context */
+
+
 a_boolean push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
@@ -5077,7 +5103,8 @@ class to be defined.
   } else if (is_lambda_body) {
     /* A real instantiation of a generic lambda.  If we are still in the
        function in which the lambda was defined, use the existing context. */
-    if (lambda_scope->depth_in_scope_stack == orig_depth) {
+    if (lambda_scope->depth_in_scope_stack == orig_depth &&
+        orig_depth != DEPTH_OF_FILE_SCOPE) {
       use_existing_context = TRUE;
     }  /* if */
     is_real_lambda_instantiation = TRUE;
@@ -5108,6 +5135,12 @@ class to be defined.
        of the template being instantiated.  Save this value before it
        is potentially modified below. */
     new_innermost_namespace_scope = definition_depth;
+    if (decl_info->variable_instance_sym != NULL) {
+      /* The context includes a variable template instantiation.  Reactivate
+         the instantiation scope for the variable template. */
+      reactivate_variable_context(enclosing_tdip,
+                                  decl_info->variable_instance_sym, options);
+    }  /* if */
   }  /* if */
   if (is_template) {
     a_scope_stack_entry_ptr	ssep = &scope_stack_top();

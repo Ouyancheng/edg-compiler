@@ -1874,6 +1874,11 @@ typedef struct a_template_decl_info {
 			   the cache information for constexpr if that
 			   was saved if a prototype instantiation of
 			   the function was done. */
+  a_symbol_ptr	variable_instance_sym;
+			/* For the template declaration entry for a generic
+			   lambda instantiation inside a non-member variable
+			   template initializer, this variable template
+			   instance on which the instantiation is based. */
 } a_template_decl_info;
 
 

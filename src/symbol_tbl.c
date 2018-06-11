@@ -3145,6 +3145,7 @@ fields, and return a pointer to it.  Reuse a freed entry if possible.
   tdip->pack_expansions = NULL;
   tdip->last_pack_expansion = NULL;
   tdip->constexpr_if_hash_table = NULL;
+  tdip->variable_instance_sym = NULL;
   return tdip;
 }  /* alloc_template_decl_info */
 

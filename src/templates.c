@@ -1358,6 +1358,25 @@ it is the partial specialization template argument list.
 }  /* templ_arg_list_for_class */
 
 
+a_template_arg_ptr templ_arg_list_for_variable(a_variable_ptr	var_ptr)
+/*
+Given the template variable specified by var_ptr, return the template
+argument list to be used when generating an instantiation.  This is usually
+the normal template argument list, but if the variable was generated from
+a partial specialization, it is the partial specialization template
+argument list.
+*/
+{
+  a_template_arg_ptr	templ_arg_list;
+
+  templ_arg_list = var_ptr->template_info->partial_spec_template_arg_list;
+  if (templ_arg_list == NULL) {
+    templ_arg_list = var_ptr->template_info->template_arg_list;
+  }  /* if */
+  return templ_arg_list;
+}  /* templ_arg_list_for_variable */
+
+
 void get_substitution_pairs_for_template_class(
                                            a_type_ptr            class_type,
                                            a_template_param_ptr  *p_t_params,
@@ -5874,10 +5893,7 @@ user later during real instantiations.
        push_template_instantiation_scope. */
     a_template_arg_ptr	templ_arg_list;
     tcp = cache_for_template(tssp);
-    templ_arg_list = var_ptr->template_info->partial_spec_template_arg_list;
-    if (templ_arg_list == NULL) {
-      templ_arg_list = var_ptr->template_info->template_arg_list;
-    }  /* if */
+    templ_arg_list = templ_arg_list_for_variable(var_ptr);
     scope_pushed = push_template_instantiation_scope(
                                     tcp->decl_info,
                                     (a_type_ptr)NULL,
@@ -30719,7 +30735,14 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
   if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     a_scope_stack_entry_ptr	ssep =
                              &scope_stack[depth_innermost_instantiation_scope];
+    a_symbol_ptr		instance_sym = ssep->instance_sym;
     template_decl_info->enclosing_template_decl = ssep->template_decl_info;
+    if (instance_sym != NULL && !instance_sym->is_class_member &&
+        is_template_variable_symbol(instance_sym)) {
+      /* If the innermost instantiation scope is associated with a variable
+         template, save the instance that is being instantiated. */
+      template_decl_info->variable_instance_sym = instance_sym;
+    }  /* if */
   }  /* if */
   /* Record the default name linkage at the point of declaration. */
   template_decl_info->name_linkage = scope_stack_top().default_name_linkage;

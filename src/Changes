@@ -1,5 +1,17 @@
 Version 4.15
 
+6/11/18  [EDGcpfe/19445]
+Lookup issue with generic lambdas used in variable template initializers
+
+If a variable template was initialized with a generic lambda, the lookup
+of the variable template's template parameters could fail in an instantiation
+of the generic lambda that was done via the variable template instance.
+Now fixed.
+
+  template <typename T> auto x = [](auto a) { return T(); };
+  int y = x<int>(1);
+
+
 6/11/18  [EDGcpfe/19741]
 Assertion failure on alias to entity in secondary translation unit
 
