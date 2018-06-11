@@ -8778,10 +8778,10 @@ Also used for the GNU ifunc attribute.
     } else if (aliased_sym->kind != entry->alias->kind) {
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
-    } else if ((entry->alias->kind == sk_routine &&
+    } else if ((entry->alias->kind == (a_symbol_kind)sk_routine &&
                 in_secondary_trans_unit(entry->alias->variant.routine.ptr) !=
                 in_secondary_trans_unit(aliased_sym->variant.routine.ptr)) ||
-               (entry->alias->kind == sk_variable &&
+               (entry->alias->kind == (a_symbol_kind)sk_variable &&
                 in_secondary_trans_unit(entry->alias->variant.variable.ptr->
                                                            aliased_variable) !=
                 in_secondary_trans_unit(aliased_sym->variant.variable.ptr))) {
