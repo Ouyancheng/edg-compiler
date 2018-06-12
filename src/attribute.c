@@ -8782,8 +8782,7 @@ Also used for the GNU ifunc attribute.
                 in_secondary_trans_unit(entry->alias->variant.routine.ptr) !=
                 in_secondary_trans_unit(aliased_sym->variant.routine.ptr)) ||
                (entry->alias->kind == (a_symbol_kind)sk_variable &&
-                in_secondary_trans_unit(entry->alias->variant.variable.ptr->
-                                                           aliased_variable) !=
+                in_secondary_trans_unit(entry->alias->variant.variable.ptr) !=
                 in_secondary_trans_unit(aliased_sym->variant.variable.ptr))) {
       /* We've found a match, but it's in another translation unit.  Put this
          entry back on the list to revisit later. */
