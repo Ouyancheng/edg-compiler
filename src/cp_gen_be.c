@@ -13857,10 +13857,11 @@ gen_expr that might end up generating this expr as a temporary.
             }  /* if */
             /* Use the type name to create a "destructor" name. */
             while (type->kind == (a_type_kind)tk_typeref &&
-                   typeref_is_typedef(type) &&
-                   !type->typedef_definition_has_been_put_out) {
-              /* For typedefs that have not yet been put out, go down to
-                 the underlying type. */
+                   (typeref_is_qualified(type) ||
+                    (typeref_is_typedef(type) &&
+                     !type->typedef_definition_has_been_put_out))) {
+              /* Skip over type qualifiers.  For typedefs that have not yet
+                 been put out, go down to the underlying type. */
               type = type->variant.typeref.type;
             }  /* while */
             if (!(msvc_is_generated_code_target &&

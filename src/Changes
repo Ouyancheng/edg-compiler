@@ -1,5 +1,19 @@
 Version 4.15
 
+6/12/18  [EDGcpfe/19639]
+C++-generating back end: call via qualified object to trivial destructor
+
+In cases when a trivial destructor is explicitly invoked via a qualified
+object expression, the C++-generating back end erroneously included the
+qualifier(s) in the destructor name, producing code that could not be
+compiled.  This is now fixed.  For example:
+
+  struct S { };
+  void f(S volatile* p) {
+    p->S::~S();  // Previously generated as p->volatile S::~volatile S()
+  }
+
+
 6/11/18  [EDGcpfe/19445]
 Lookup issue with generic lambdas used in variable template initializers
 
