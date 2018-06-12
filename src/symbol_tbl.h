@@ -1877,7 +1877,7 @@ typedef struct a_template_decl_info {
   a_symbol_ptr	variable_instance_sym;
 			/* For the template declaration entry for a generic
 			   lambda instantiation inside a non-member variable
-			   template initializer, this variable template
+			   template initializer, this is the variable template
 			   instance on which the instantiation is based. */
 } a_template_decl_info;
 
