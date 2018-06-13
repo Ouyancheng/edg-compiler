@@ -12,7 +12,7 @@ example, with --gnu_version=60300:
   template <typename a> class b {
     template <typename> struct c {
       using d = c<int>;
-      friend d;  // Previously incorrectly generated
+      friend d;  // Previously caused spurious compilation errors with g++
     };
   };
 
