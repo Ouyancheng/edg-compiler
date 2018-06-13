@@ -6360,16 +6360,13 @@ al_tag_name attributes (if any).
     if (gcc_is_generated_code_target &&
         is_immediate_class_type(type) &&
         type->variant.class_struct_union.is_nonreal_class &&
-        !type->variant.class_struct_union.is_prototype_instantiation &&
         type->source_corresp.is_class_member &&
         (options & GN_FRIEND_DECL) &&
-        (type->variant.class_struct_union.is_template_class ||
-         (!(type->source_corresp.parent_scope != NULL &&
-            scope_is_in_name_context_stack(
-                                         type->source_corresp.parent_scope)) &&
-          !(parent_class_or_null(type) != NULL &&
-            parent_class_of(type)->
-                             variant.class_struct_union.is_template_class)))) {
+        !(type->source_corresp.parent_scope != NULL &&
+          scope_is_in_name_context_stack(type->source_corresp.parent_scope)) &&
+        !(parent_class_or_null(type) != NULL &&
+          parent_class_of(type)->
+                               variant.class_struct_union.is_template_class)) {
       /* G++ has a bug that results in compiler errors on an
          elaborated-type-specifier in a friend declaration like 
            friend class T::template value<1>;
@@ -6484,15 +6481,6 @@ al_tag_name attributes (if any).
       /* This type depends on a template parameter and thus must be preceded
          by the "typename" keyword. */
       options |= GN_DEPENDENT;
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-      if (gcc_is_generated_code_target && (options & GN_FRIEND_DECL) &&
-          type_is_prototype_instantiation(type) &&
-          type->source_corresp.is_class_member) {
-        /* G++ has a bug that causes it to reject dependent friend template
-           declarations if they contain the "template" keyword. */
-        options |= GN_SUPPRESS_TEMPLATE_KEYWORD;
-      }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
     }  /* if */
     if (!already_declared && (options & GN_DEPENDENT) == 0) {
       /* The initial declaration of a tag cannot use a qualified name. */
