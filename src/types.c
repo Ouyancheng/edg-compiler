@@ -3804,7 +3804,9 @@ class will be instantiated if necessary so that its base classes are known.
     }  /* if */
     /* Check that both classes are complete, i.e., that their definitions have
        been seen. */
-    if (class_type_supp(derived_class)->assoc_scope != NULL &&
+    if (is_immediate_class_type(base_class) &&
+        is_immediate_class_type(derived_class) &&
+        class_type_supp(derived_class)->assoc_scope != NULL &&
         class_type_supp(base_class)->assoc_scope != NULL) {
       /* See if the base class appears on the base class list for the derived
          type.  The base class list contains all base classes, both direct

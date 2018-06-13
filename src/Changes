@@ -1,5 +1,21 @@
 Version 4.15
 
+6/13/18  [EDGcpfe/19771]
+Abort in find_base_class_of_full when template parameter type is provided
+
+In some configurations, an abort could occur (in find_base_class_of_full)
+when called with a base or derived type that was actually a template
+parameter type.  The example below could abort in Microsoft mode when
+find_explicitly_overridden_member indirectly resulted in a call of
+find_base_class_of_full.  Now fixed.
+
+  template <typename Base> struct Derived : public Base {
+    virtual void A::f() {
+      return Base::f();
+    }
+  };
+
+
 6/13/18  [EDGcpfe/19426]
 C++-generating back end, GNU compatibility: nested dependent friend template
 
