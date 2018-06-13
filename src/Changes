@@ -1,5 +1,22 @@
 Version 4.15
 
+6/13/18  [EDGcpfe/19426]
+C++-generating back end, GNU compatibility: nested dependent friend template
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end generated nested
+dependent friend template declarations in a form that, although correct,
+caused g++ to issue spurious compilation errors.  This now fixed.  For
+example, with --gnu_version=60300:
+
+  template <typename a> class b {
+    template <typename> struct c {
+      using d = c<int>;
+      friend d;  // Previously incorrectly generated
+    };
+  };
+
+
 6/12/18  [EDGcpfe/19639]
 C++-generating back end: call via qualified object to trivial destructor
 
