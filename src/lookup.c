@@ -3214,6 +3214,7 @@ that do normal id lookup processing.
   a_scope_depth			curr_depth;
   a_scope_stack_entry_ptr	ssep = NULL;
   a_boolean			curr_scope_skipped = FALSE;
+  a_boolean			check_decl_seq_in_exception_spec;
 
   /* Work out from the innermost scope on the stack, and look at each
      scope.  If the scope is a class reactivation or a template
@@ -3226,6 +3227,8 @@ that do normal id lookup processing.
             locator->symbol_header->identifier, depth_of_initial_lookup_scope);
   }  /* if */
 #endif /* DEBUG */
+  check_decl_seq_in_exception_spec =
+                              gpp_mode && lookup_state->inclass_exception_spec;
   /* Loop through the scope stack until we reach the scope indicated by
      end_depth. */
   for (curr_depth = start_depth; curr_depth > end_depth;
@@ -3246,7 +3249,7 @@ that do normal id lookup processing.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
     /* If IDL_SKIP_TEMPLATE_DECL_SCOPES is used, skip any template declaration
        scopes on the stack. */
-    if (ssep->kind == (a_scope_kind)sck_template_declaration &&
+    if (kind == (a_scope_kind)sck_template_declaration &&
         lookup_state->skip_template_decl_scopes) continue;
     /* Skip scopes that are marked to be ignored for normal lookup. */
     if (ssep->ignore_during_normal_lookup) continue;
@@ -3268,9 +3271,9 @@ that do normal id lookup processing.
     lookup_state->check_decl_seq = !lookup_state->is_linkage_lookup &&
                        !lookup_state->is_friend_lookup &&
                        !lookup_state->suppress_decl_seq_check &&
-                       ((gpp_mode && lookup_state->inclass_exception_spec) ||
-                        (ssep->kind != (a_scope_kind)sck_class_reactivation &&
-                         ssep->kind != (a_scope_kind)sck_class_struct_union));
+                       (check_decl_seq_in_exception_spec ||
+                        (kind != (a_scope_kind)sck_class_reactivation &&
+                         kind != (a_scope_kind)sck_class_struct_union));
     /* Declaration sequence numbers are not normally checked for class members,
        but need to be checked for alias template instantiations of alias
        templates that are class members. */
@@ -3425,6 +3428,14 @@ that do normal id lookup processing.
          defining and referencing context. */
       sym = instantiation_context_lookup(ssep, locator, lookup_state);
       break;
+    } else if (check_decl_seq_in_exception_spec &&
+               (kind == (a_scope_kind)sck_class_reactivation ||
+                kind == (a_scope_kind)sck_class_struct_union)) {
+      /* GCC limits the visibility of class members when scanning exception
+         specification, which is emulated when check_decl_seq_in_exception_spec
+         is TRUE.  However, that limitation appears to apply only to the
+         innermost class definition. */
+      check_decl_seq_in_exception_spec = FALSE;
     }  /* if */
   }  /* for */
 #if DEBUG

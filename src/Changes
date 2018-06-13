@@ -1,5 +1,27 @@
 Version 4.15
 
+6/13/18  [EDGcpfe/18905,EDGcpfe/19691]
+GCC compatibility: Lookup in exception specification operands
+
+Version 4.5 of the front made a change to GNU C++-mode lookup when rescanning
+exception specification operands.  That change caused spurious errors in some
+cases such as:
+
+  struct E {};
+  template<typename> struct X { static const bool value = true; };
+  template<typename> struct S {
+    typedef E EA;
+    template<typename T> struct N {
+      N() noexcept(X<EA>::value);  // Previously EA was not found during
+    };                             // the instantiation of S<int>::N<int>.
+    N<int> n;
+  };
+  S<int> s;
+
+Here, the typedef name EA was not found during the instantiations kicked off
+by the use of S<int>.  That is now fixed.
+
+
 6/13/18  [EDGcpfe/19771]
 Abort in find_base_class_of_full when template parameter type is provided
 
