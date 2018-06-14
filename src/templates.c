@@ -5891,9 +5891,13 @@ user later during real instantiations.
     /* Push a template instantiation scope.  For static data members, the
        argument list comes from the enclosing class that is reactivated by
        push_template_instantiation_scope. */
-    a_template_arg_ptr	templ_arg_list;
+    a_template_arg_ptr		templ_arg_list;
+    a_push_scope_options_set	ps_options = PS_PROTOTYPE_INSTANTIATION;
     tcp = cache_for_template(tssp);
     templ_arg_list = templ_arg_list_for_variable(var_ptr);
+    if (tssp->is_specific_definition) {
+      ps_options |= PS_IS_SPECIALIZATION;
+    }  /* if */
     scope_pushed = push_template_instantiation_scope(
                                     tcp->decl_info,
                                     (a_type_ptr)NULL,
@@ -5902,7 +5906,7 @@ user later during real instantiations.
                                     template_sym,
                                     templ_arg_list,
                                     /*push_lex_state=*/TRUE,
-                                    PS_PROTOTYPE_INSTANTIATION);
+                                    ps_options);
   }  /* if */
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
@@ -6904,7 +6908,7 @@ expression context) rather than a declaration.
                                  tssp_of_prototype->pragmas_bound_to_template);
   is_definition = !is_var_templ_instance ||
                   (is_use &&
-                   (tssp_of_prototype->cache.tokens.first_token != NULL ||
+                   (body_cache->tokens.first_token != NULL ||
                     var_ptr->initializer_in_class));
   /* Call a routine to do processing common to various forms of variable
      declarations. */
@@ -6912,7 +6916,7 @@ expression context) rather than a declaration.
     update_variable_decl_info(var_ptr, &dps, is_definition);
   }  /* if */
   if (is_definition &&
-      tssp_of_prototype->cache.tokens.first_token != NULL) {
+      body_cache->tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
@@ -19597,6 +19601,10 @@ generated.
     /* In some modes, a specialization must first be declared in the
        namespace containing the template. */
     check_specialization_scope(template_sym, error_pos);
+    /* When a member template is specialized, the list of partial
+       specializations should be cleared because those partial
+       specializations were associated with the prototype template. */
+    tssp->partial_specializations = NULL;
     /* Check for any existing instantiations.  A specialization must be
        declared before it is used.  The instantiation required count is
        used instead of the referenced flag so that only uses that would
@@ -19613,14 +19621,24 @@ generated.
                              error_pos, template_sym, tip->instance_sym);
         }  /* if */
       }  /* for */
+    } else if (symbol_is(template_sym, sk_variable_template)) {
+      a_symbol_list_entry_ptr	slep;
+      for (slep = tssp->variant.variable.instantiations; slep != NULL;
+           slep = slep->next) {
+        a_template_instance_ptr	tip;
+        a_master_instance_ptr	mip;
+        tip = template_instance_for_symbol(slep->symbol);
+        mip = master_instance_of(tip);
+        if (mip->instance_required_count > 0) {
+          pos_sy2_diagnostic(es_discretionary_error,
+                             ec_specialization_of_referenced_template,
+                             error_pos, template_sym, tip->instance_sym);
+        }  /* if */
+      }  /* for */
     } else {
       a_symbol_ptr		sym;
       a_symbol_list_entry_ptr	slep;
       check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
-      /* When a member class template is specialized, the list of partial
-         specializations should be cleared because those partial
-         specializations were associated with the prototype template. */
-      tssp->partial_specializations = NULL;
       for (slep = tssp->variant.class_template.instantiations; slep != NULL;
            slep = slep->next) {
         /* It is only an error if the class type is complete and is not a
@@ -25337,6 +25355,14 @@ supplement for this template should be returned to the caller.
     if (!is_variable_template &&
         dps->storage_class != (a_storage_class)sc_unspecified) {
       pos_error(ec_storage_class_not_allowed, &locator->source_position);
+    }  /* if */
+    if (is_variable_template && decl_state->is_specialization &&
+        !decl_state->is_template_friend) {
+      /* This template is a specialization of a member template.  Update the
+         template information to reflect this. */
+      if (!tssp->is_specific_definition) is_initial_decl = TRUE;
+      record_specialization(sym, tssp, &locator->source_position);
+      var->initializer_in_class = FALSE;
     }  /* if */
   }  /* if */
   if (err) {

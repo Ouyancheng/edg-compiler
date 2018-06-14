@@ -1,5 +1,18 @@
 Version 4.15
 
+6/14/18  [EDGcpfe/19764]
+Specialization of member variable template not handled properly
+
+If a member variable template was specialized, the specialization was not
+actually used to produce the value of the instantiated variable.  Now fixed.
+
+  template <typename T> struct A {
+    template <typename U> static const U x = 1;
+  };
+  template <> template <typename U> const U A<int>::x = 2;
+  static_assert(A<int>::x<char> == 2, "wrong value");
+
+
 6/14/18  [EDGcpfe/19570]
 Aggregate class types
 
