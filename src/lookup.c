@@ -3431,7 +3431,7 @@ that do normal id lookup processing.
     } else if (check_decl_seq_in_exception_spec &&
                (kind == (a_scope_kind)sck_class_reactivation ||
                 kind == (a_scope_kind)sck_class_struct_union)) {
-      /* GCC limits the visibility of class members when scanning exception
+      /* GCC limits the visibility of class members when scanning an exception
          specification, which is emulated when check_decl_seq_in_exception_spec
          is TRUE.  However, that limitation appears to apply only to the
          innermost class definition. */
