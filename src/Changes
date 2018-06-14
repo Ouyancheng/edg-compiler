@@ -1,5 +1,23 @@
 Version 4.15
 
+6/14/18  [EDGcpfe/19570]
+Aggregate class types
+
+The front end erroneously failed to disqualify certain class types from being
+aggregate class types.  Specifically, class types with defaulted constructors
+marked "explicit" and class types that inherit virtual functions without
+declaring their own.  For example:
+
+  struct S {
+    explicit S() = default;
+    int i;
+  };
+  static_assert(!__is_aggregate(S), "Unexpected");  // Previously an error.
+                                                    // Now okay.
+
+This is now fixed.
+
+
 6/13/18  [EDGcpfe/19744]
 C++-generating back end: constexpr static data members without initializers
 

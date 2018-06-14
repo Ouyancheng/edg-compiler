@@ -9132,11 +9132,13 @@ to FALSE before returning).
   if (is_virtual ||
       bcp_type->variant.class_struct_union.any_virtual_base_classes) {
     class_type->variant.class_struct_union.any_virtual_base_classes = TRUE;
+    class_state->class_aggregate_ruled_out = TRUE;
   }  /* if */
   if (bcp_type->variant.class_struct_union
                            .any_virtual_functions_including_in_base_classes) {
     class_type->variant.class_struct_union
                       .any_virtual_functions_including_in_base_classes = TRUE;
+    class_state->class_aggregate_ruled_out = TRUE;
   }  /* if */
   if (!bcp_cssp->standard_layout) {
     cssp->standard_layout = FALSE;
@@ -27637,6 +27639,7 @@ that is provided if this is a member template declaration.
         if (dso_flags & DSO_EXPLICIT) {
           if (decl_info.is_constructor) {
             rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
+            class_state->class_aggregate_ruled_out = TRUE;
           } else if (locator.is_conversion_name &&
                      explicit_conversion_functions_enabled) {
             if (cli_or_cx_enabled &&
