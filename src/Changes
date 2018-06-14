@@ -1,5 +1,54 @@
 Version 4.15
 
+6/13/18  [EDGcpfe/19744]
+C++-generating back end: constexpr static data members without initializers
+
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to
+TRUE, the C++-generating back end might have to emit C++ code representing the
+instantiation of a class template with a constexpr static data member whose
+initializer has not been instantiated.  For example:
+
+  template<typename T, T V> struct X {
+    static constexpr T value = V;
+  };
+  int main() {
+    X<bool, false> obj;
+  }
+
+Here the value of X<bool, false>::value is never accessed and therefore the
+associated initializer is never instantiated.  The C++-generating back end
+previously rendered the specialization as (slightly reformatted):
+
+  template< class T, T V> struct X { 
+    static constexpr T value = (V); 
+  }; 
+  # 1
+  template<> struct X<bool, false>  { 
+    static constexpr bool value; 
+  }; 
+  int main() { 
+    X<bool, false>  obj;
+    return 0; 
+  } 
+
+which is invalid because the constexpr static data member in the explicit
+specialization has no initializer.  Forcing the instantiation of that
+initializer is in general not an option because it may result in spurious
+errors (if that particular instance does not produce a valid initializer).
+Instead, the C++-generating back end now leaves out the constexpr specifier
+in such cases and instead emits the underlying const type.  The explicit
+specialization above is thus rendered as:
+
+  template<> struct X<bool, false>  { 
+    static const bool value; 
+  }; 
+
+which is valid on its own (it may result in one-definition rule (ODR)
+violations if the same specialization is rendered with an initializer
+in another translation unit, but back end compilers typically do not
+check for such violations).
+
+
 6/13/18  [EDGcpfe/18905,EDGcpfe/19691]
 GCC compatibility: Lookup in exception specification operands
 

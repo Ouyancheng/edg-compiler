@@ -17997,7 +17997,12 @@ this one is such a continuation.
         (var->source_corresp.is_class_member || is_definition)) {
       /* Put out the "constexpr" keyword.  For ordinary variables (i.e., not
          static data members) it should only appear on the definition. */
-      write_tok_str("constexpr ");
+      if (var->source_corresp.is_class_member &&
+          var->init_kind == (an_init_kind)initk_none) {
+        write_tok_str("const ");
+      } else {
+        write_tok_str("constexpr ");
+      }  /* if */
     }  /* if */
     if (var->is_inline) {
       write_tok_str("inline ");
