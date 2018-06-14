@@ -17999,7 +17999,14 @@ this one is such a continuation.
          static data members) it should only appear on the definition. */
       if (var->source_corresp.is_class_member &&
           var->init_kind == (an_init_kind)initk_none) {
-        write_tok_str("const ");
+        /* When rendering template instantiations as explicit specializations,
+           we may not have an initializer available (i.e., the variable was
+           not used in a way that requires its initializer to be instantiated).
+           Rendering the explicit specialization with the "constexpr" specifier
+           but no initializer would produce an error.  We therefore drop the
+           "constexpr" specifier and use the effective type (which will have
+           a const-qualifier in the non-reference case) instead. */
+        var_type = var->type;
       } else {
         write_tok_str("constexpr ");
       }  /* if */
