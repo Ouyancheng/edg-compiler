@@ -1488,12 +1488,16 @@ template-dependent context or a member of a class).
              (is_inclass_member_function_decl ||
               is_template_dependent_context() ||
               is_nonspecialized_instantiation_context()) &&
-              !is_microsoft_in_class_specialization_context()) {
+              !is_microsoft_in_class_specialization_context() &&
+              !is_template_friend_decl()) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
        cache segment to extract the tokens later on.  Microsoft in-class
        specializations are handled differently than other template members,
-       so a template cache segment should not be created. */
+       so a template cache segment should not be created.  A friend template
+       function declaration should not have a template cache segment created
+       because for that case we want to rescan the noexcept for the individual
+       friend declarations. */
     a_token_set_array             stop_tokens;
     a_token_sequence_number       first_tsn, last_tsn;
     /* The caller ensured that an exception specification entry was

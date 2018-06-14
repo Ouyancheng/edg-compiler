@@ -908,6 +908,8 @@ extern void template_directive_or_declaration(
 			a_template_decl_options_set	options,
 			a_source_position_ptr		directive_start_pos);
 
+extern a_boolean is_template_friend_decl(void);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern
 void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,

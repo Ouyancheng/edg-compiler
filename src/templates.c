@@ -28064,6 +28064,24 @@ any non-empty template parameter lists that were scanned.
 }  /* template_declaration */
 
 
+a_boolean is_template_friend_decl(void)
+/*
+Return TRUE if the innermost template declaration scope is associated with
+a friend declaration.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_template_declaration_context()) {
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack[depth_template_declaration_scope];
+    check_assertion(ssep->tmpl_decl_state != NULL);
+    result = ssep->tmpl_decl_state->is_template_friend;
+  }  /* if */
+  return result;
+}  /* is_template_friend_decl */
+
+
 a_symbol_ptr find_matching_template_instance(
 		a_symbol_ptr			sym,
 		a_decl_parse_state		*dps,
