@@ -51,7 +51,7 @@ Aggregate class types
 The front end erroneously failed to disqualify certain class types from being
 aggregate class types.  Specifically, class types with defaulted constructors
 marked "explicit" and class types that inherit virtual functions without
-declaring their own.  For example:
+declaring their own were sometimes treated as aggregate types.  For example:
 
   struct S {
     explicit S() = default;
