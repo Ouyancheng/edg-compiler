@@ -1,5 +1,13 @@
 Version 4.15
 
+6/15/18  [EDGcpfe/19654]
+Microsoft compatibility: constexpr lambdas not interpreted in Microsoft mode
+
+An incorrect test for constexpr lambda mode was done in the interpreter
+causing constexpr lambdas to not be considered constant in Microsoft
+mode.  Now fixed.
+
+
 6/15/18  [EDGcpfe/19752]
 Incorrect processing of attributes on a declarator
 

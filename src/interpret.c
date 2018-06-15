@@ -13238,7 +13238,7 @@ the value representation of the integer value.
                                               complete_object);
       break;
     case enk_lambda:
-      if (cpp14_mode) {
+      if (constexpr_lambdas_enabled) {
         result = do_constexpr_lambda(ips, expr, result_storage,
                                      complete_object);
       } else {
