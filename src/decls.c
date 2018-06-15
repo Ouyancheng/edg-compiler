@@ -2249,11 +2249,6 @@ consistent with that of the previous declaration.
                               error_code, prev_decl, any_difference_seen);
       if (any_difference_seen) end_diagnostic(dp);
     }  /* if */
-    if (any_difference_seen) {
-      /* Unify the exception specification to avoid problems downstream. */
-      skip_typerefs(prev_type)->variant.routine.extra_info
-                              ->exception_specification = new_esp;
-    }  /* if */
   }  /* if */
 done:
   db_exit();
