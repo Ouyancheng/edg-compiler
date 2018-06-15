@@ -769,6 +769,7 @@ extern
 a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
                                       a_boolean         include_templates,
                                       a_boolean         declarative_context,
+                                      a_boolean         no_explicit,
                                       a_source_position *pos,
                                       a_boolean         *ambiguous,
                                       a_symbol_ptr      *inaccessible_match,

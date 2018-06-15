@@ -5377,6 +5377,7 @@ extern a_routine_ptr select_default_constructor_full(
                                          a_boolean         declarative_context,
                                          a_boolean         evaluated,
                                          a_boolean         check_access,
+                                         a_boolean         no_explicit,
                                          a_boolean         *error_detected,
                                          a_boolean         *err);
 

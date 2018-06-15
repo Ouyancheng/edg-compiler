@@ -1259,12 +1259,14 @@ given position, unless is->no_diagnostics is TRUE.
     /* Get the default constructor. */
     if (is->no_diagnostics) p_err = &err;
     /* No access checking is done during tentative matching for overload
-       resolution (indicated by is->check_validity_only). */
+       resolution (indicated by is->check_validity_only).  This is a copy-
+       initialization context, so "explicit" constructors should be ignored. */
     ctor_rp = select_default_constructor_full(
                                     tp, diag_pos, tp,
                                     /*declarative_context=*/FALSE,
                                     /*evaluated=*/TRUE,
                                     /*check_access=*/!is->check_validity_only,
+                                    /*no_explicit=*/TRUE,
                                     p_err, (a_boolean *)NULL);
     if (err) is->init_error = TRUE;
     /* Determine if a constructor call will be involved. */

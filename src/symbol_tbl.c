@@ -10757,6 +10757,7 @@ a_routine_ptr select_default_constructor_full(
                                          a_boolean         declarative_context,
                                          a_boolean         evaluated,
                                          a_boolean         check_access,
+                                         a_boolean         no_explicit,
                                          a_boolean         *error_detected,
                                          a_boolean         *err)
 /*
@@ -10792,7 +10793,8 @@ that can be called with zero arguments.
   if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, /*include_templates=*/TRUE,
-                                      declarative_context, err_pos, &ambiguous,
+                                      declarative_context, no_explicit,
+                                      err_pos, &ambiguous,
                                       (error_detected == NULL ?
                                          &inaccessible_match :
                                          (a_symbol **)NULL),
@@ -10867,6 +10869,7 @@ Interface to select_default_constructor for the simple case.
                                                  /*declarative_context=*/FALSE,
                                                  /*evaluated=*/TRUE,
                                                  /*check_access=*/TRUE,
+                                                 /*no_explicit=*/FALSE,
                                                  /*error_detected=*/
                                                              (a_boolean *)NULL,
                                                  err);

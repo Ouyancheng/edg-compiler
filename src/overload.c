@@ -22461,6 +22461,7 @@ end_of_routine:
 
 
 void value_initialization(a_type_ptr            dest_type,
+                          a_boolean             copy_init_context,
                           a_source_position     *pos,
                           a_routine_ptr         *ctor_called,
                           a_boolean             *is_constant,
@@ -22583,6 +22584,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
                                          curr_expr_is_potentially_evaluated(),
                                          generate_il &&
                                          expr_access_checking_should_be_done(),
+                                         copy_init_context,
                                          p_error_detected,
                                          &def_ctor_err);
       if (!issue_errors) {
@@ -23955,7 +23957,8 @@ will be an lvalue instead of the usual prvalue.
         } else {
           p_error_detected = NULL;
         }  /* if */
-        value_initialization(dest_type, &icp->variant.braced.start_pos,
+        value_initialization(dest_type, !is_direct_init,
+                             &icp->variant.braced.start_pos,
                              &ctor_called, &is_constant, &dip, &constant, is,
                              p_error_detected);
         if (error_detected) {
@@ -24229,7 +24232,8 @@ will be an lvalue instead of the usual prvalue.
       } else {
         p_error_detected = NULL;
       }  /* if */
-      value_initialization(dest_type, &icp->variant.braced.start_pos,
+      value_initialization(dest_type, !is_direct_init,
+                           &icp->variant.braced.start_pos,
                            (a_routine **)NULL, &is_constant, &dip, &constant,
                            is, p_error_detected);
       if (arg_match != NULL) {
@@ -25422,6 +25426,7 @@ a_symbol_ptr select_overloaded_default_constructor(
                                          a_type_ptr        class_type,
                                          a_boolean         include_templates,
                                          a_boolean         declarative_context,
+                                         a_boolean         no_explicit,
                                          a_source_position *pos,
                                          a_boolean         *ambiguous,
                                          a_symbol_ptr      *inaccessible_match)
@@ -25481,7 +25486,9 @@ find_default_constructor.
          loop here. */
       if (include_templates) need_second_pass = TRUE;
     } else if (is_default_constructor(sym->variant.routine.ptr,
-                                      declarative_context)) {
+                                      declarative_context) &&
+               (!sym->variant.routine.ptr->is_explicit_constructor ||
+                !no_explicit)) {
       /* sym is a default constructor. */
       if (ctor_sym != NULL) {
         /* A default constructor had already been found, so there's
@@ -25520,7 +25527,7 @@ find_default_constructor.
                                   /*have_selector=*/FALSE,
                                   (an_operand *)NULL,
                                   /*ctor_conversion_case=*/FALSE,
-                                  /*effects_copy_initialization=*/FALSE,
+                                  /*effects_copy_initialization=*/no_explicit,
                                   /*allow_udc_on_arguments=*/FALSE,
                                   /*arg_dep_lookup_done=*/FALSE,
                                   /*from_arg_dep_lookup=*/FALSE,

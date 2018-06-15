@@ -1122,6 +1122,7 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void value_initialization(a_type_ptr            dest_type,
+                                 a_boolean             copy_init_context,
                                  a_source_position     *pos,
                                  a_routine_ptr         *ctor_called,
                                  a_boolean             *is_constant,
@@ -1207,6 +1208,7 @@ extern a_symbol_ptr select_overloaded_default_constructor(
                                         a_type_ptr        class_type,
                                         a_boolean         include_templates,
                                         a_boolean         declarative_context,
+                                        a_boolean         no_explicit,
                                         a_source_position *pos,
                                         a_boolean         *ambiguous,
                                         a_symbol_ptr      *inaccessible_match);

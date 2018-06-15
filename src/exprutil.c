@@ -15883,6 +15883,7 @@ processing.  Supplies some arguments from expression stack values.
                                          /*declarative_context=*/FALSE,
                                          curr_expr_is_potentially_evaluated(),
                                          expr_access_checking_should_be_done(),
+                                         /*no_explicit=*/FALSE,
                                          p_error_detected,
                                          err);
   if (error_detected) record_suppressed_error();

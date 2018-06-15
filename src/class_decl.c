@@ -11829,6 +11829,7 @@ If there is more than one matching function, set *ambiguous to TRUE.
           sym = find_default_constructor(class_type,
                                          /*include_templates=*/TRUE,
                                          /*declarative_context=*/TRUE,
+                                         /*no_explicit=*/FALSE,
                                          source_pos, ambiguous,
                                          (a_symbol **)NULL,
                                          (a_boolean *)NULL);
@@ -20256,6 +20257,7 @@ as the class type from which the constructor is selected.
                                                /*declarative_context=*/TRUE,
                                                /*evaluated=*/TRUE,
                                                /*check_access=*/TRUE,
+                                               /*no_explicit=*/FALSE,
                                                &error_detected, &err);
     if (default_ctor != NULL) {
       result = default_ctor->is_constexpr ||
@@ -20745,6 +20747,7 @@ constructor should be deleted.
                                                 /*declarative_context=*/TRUE,
                                                 /*evaluated=*/TRUE,
                                                 /*check_access=*/TRUE,
+                                                /*no_explicit=*/FALSE,
                                                 &error_detected, &err);
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
@@ -20774,7 +20777,8 @@ constructor should be deleted.
                                     bcp->type, &pos_curr_token, class_type,
                                     /*declarative_context=*/TRUE,
                                     /*evaluated=*/TRUE, /*check_access=*/TRUE,
-                                    &error_detected, &err);
+                                    /*no_explicit=*/FALSE, &error_detected,
+                                     &err);
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
             break;

@@ -43759,7 +43759,8 @@ position.
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   (a_decl_parse_state*)NULL, is);
-  value_initialization(type, diag_pos, (a_routine**)NULL, &is_constant,
+  value_initialization(type, /*copy_init_context=*/FALSE, diag_pos,
+                       (a_routine**)NULL, &is_constant,
                        &is->init_dip, &is->init_con, is, (a_boolean*)NULL);
   if (is->init_dip != NULL) {
     wrap_up_dynamic_init_full_expression(is->init_dip);
@@ -44474,6 +44475,7 @@ Return TRUE if the given arg_operand makes use of an error type or constant.
 a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
                                       a_boolean         include_templates,
                                       a_boolean         declarative_context,
+                                      a_boolean         no_explicit,
                                       a_source_position *pos,
                                       a_boolean         *ambiguous,
                                       a_symbol_ptr      *inaccessible_match,
@@ -44525,6 +44527,7 @@ because of hide-by-sig lookup.
     ctor_sym = select_overloaded_default_constructor(class_type,
                                                      include_templates,
                                                      declarative_context,
+                                                     no_explicit,
                                                      pos,
                                                      ambiguous,
                                                      inaccessible_match);
