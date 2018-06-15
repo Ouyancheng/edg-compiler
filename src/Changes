@@ -1,5 +1,22 @@
 Version 4.15
 
+6/15/18  [EDGcpfe/19752]
+Incorrect processing of attributes on a declarator
+
+The front end had incorrectly processed cases with multiple attributes on
+a declarator, resulting in some attributes being processed multiple times.
+The following case (with --clang) had given a spurious error and then
+an assertion failure (in enable_if_attribute_fails) and is now fixed:
+
+  void x(void)
+         __attribute__((overloadable))
+         __attribute__((enable_if(true, "")))
+         {}
+  void f(void) {
+    x();
+  }
+
+
 6/15/18  [EDGcpfe/19756]
 Explicit instantiation of partially specialized variable template
 

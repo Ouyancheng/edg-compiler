@@ -133,6 +133,7 @@ standard-attribute syntax).
         }  /* if */
         *p_to = ap;
         p_to = &ap->next;
+        ap->next = NULL;
       } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
                  dps->is_lambda) {
         /* The only kind of __declspec attributes allowed on declarators are
@@ -154,6 +155,7 @@ standard-attribute syntax).
           make_attr_unrecognized(ap);
         }  /* if */
         p_from = &ap->next;
+        ap->next = NULL;
       }  /* if */
     } while (*p_from != NULL);
   }  /* if */

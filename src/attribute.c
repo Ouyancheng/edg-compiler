@@ -4920,8 +4920,8 @@ static char* apply_enable_if_attr(an_attribute_ptr  ap,
                                   char              *entity,
                                   an_il_entry_kind  entity_kind)
 /*
-The given entity must be a routine.  Apply the GNU "enable_if" attribute to
-it and return the entity.
+The given entity must be a routine type.  Apply the GNU "enable_if" attribute
+to it and return the entity.
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;
