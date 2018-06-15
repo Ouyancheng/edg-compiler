@@ -1,5 +1,20 @@
 Version 4.15
 
+6/15/18  [EDGcpfe/19756]
+Explicit instantiation of partially specialized variable template
+
+A spurious "cannot be instantiated" error could be issued if a variable
+template was partially specialized and then explicitly instantiated for
+an instance that would make use of a partial specialization.  Now fixed.
+
+  struct A {
+    template <typename U> static U x;
+    template <typename U> static const U* x<U*>;
+  };
+  template <typename T> const T* A::x<T*> = nullptr;
+  template const int* A::x<int*>;
+
+
 6/14/18  [EDGcpfe/19764]
 Specialization of member variable template not handled properly
 

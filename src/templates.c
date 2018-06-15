@@ -3898,6 +3898,29 @@ return NULL.
 }  /* check_partial_specializations */
 
 
+static a_symbol_ptr check_variable_template_partial_specializations(
+					a_template_instance_ptr	tip)
+/*
+Determine the symbol to be used for the instantiation.  This is typically
+tip->template_sym, but can be a partial specialization.  A variable template
+can be instantiated more than once if it is initially declared extern,
+instantiated, and then later has a definition supplied.  The template that
+is determined here is saved in template_used_for_instantiation so that the
+same partial specialization is used at both points.  Return the template
+symbol to be used for the instantiation.
+*/
+{
+  if (tip->template_used_for_instantiation == NULL) {
+    a_symbol_ptr	new_templ_sym;
+    new_templ_sym = check_partial_specializations(tip->instance_sym,
+                                                  tip->template_sym);
+    if (new_templ_sym == NULL) new_templ_sym = tip->template_sym;
+    tip->template_used_for_instantiation = new_templ_sym;
+  }  /* if */
+  return tip->template_used_for_instantiation;
+}  /* check_variable_template_partial_specializations */
+
+
 a_namespace_ptr determine_referencing_namespace(void)
 /*
 Determine the referencing namespace for a template that is to be
@@ -6781,19 +6804,7 @@ expression context) rather than a declaration.
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
   template_sym = tip->template_sym;
   if (is_var_templ_instance) {
-    if (tip->template_used_for_instantiation == NULL) {
-      /* Determine the symbol to be used for the instantiation.  This is
-         typically template_sym, but can be a partial specialization.
-         A variable template can be instantiated more than once if
-         it is initially declared extern, instantiated, and then later has
-         a definition supplied.  This is used to make sure the same
-         partial specialization is used at both points. */
-      a_symbol_ptr	new_templ_sym;
-      new_templ_sym = check_partial_specializations(var_sym, template_sym);
-      if (new_templ_sym == NULL) new_templ_sym = template_sym;
-      tip->template_used_for_instantiation = new_templ_sym;
-    }  /* if */
-    template_sym = tip->template_used_for_instantiation;
+    template_sym = check_variable_template_partial_specializations(tip);
     tssp = template_supplement_for_symbol(template_sym);
     /* For variable templates, get the information about the prototype
        template (if any). */
@@ -31365,11 +31376,19 @@ template entities.
     if ((symbol_is(tip->instance_sym, sk_static_data_member) ||
          symbol_is(tip->instance_sym, sk_variable))) {
       a_variable_ptr	vp;
+      a_symbol_ptr	template_sym;
       vp = variable_for_symbol(tip->instance_sym);
+      template_sym = tip->template_sym;
+      if (symbol_is(tip->instance_sym, sk_variable)) {
+        /* Variable templates can be partially specialized, so use the template
+           that was selected for the instantiation. */
+        template_sym = check_variable_template_partial_specializations(tip);
+      }  /* if */
+      check_assertion(template_sym != NULL);
       specialized = vp->is_specialized;
       specialization_defined = tip->instance_sym->defined;
       template_def = !vp->is_inline &&
-                     (tip->template_sym->defined ||
+                     (template_sym->defined ||
                       exported_definition_is_available(tip));
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
@@ -31378,13 +31397,13 @@ template entities.
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
         do_implicit_include_if_needed(tip);
-        template_def = tip->template_sym->defined;
+        template_def = template_sym->defined;
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     } else {
       a_template_symbol_supplement_ptr  tssp;
       a_symbol_ptr			template_sym;
-      a_routine_ptr	rp;
+      a_routine_ptr			rp;
       rp = tip->instance_sym->variant.routine.ptr;
       specialized = rp->is_specialized;
       specialization_defined = specialized && tip->instance_sym->defined;
