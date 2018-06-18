@@ -856,6 +856,13 @@ header has been read and the target has been determined).
   make_all_functions_unprototyped = MAKE_ALL_FUNCTIONS_UNPROTOTYPED;
   assume_this_cannot_be_null_in_conditional_operators =
                            ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS;
+#if IA64_ABI
+  ctors_return_this = targ_ia64_abi_variant_ctors_and_dtors_return_this;
+  dtors_return_this = targ_ia64_abi_variant_ctors_and_dtors_return_this;
+#else /* !IA64_ABI */
+  ctors_return_this = TRUE;
+  dtors_return_this = TRUE;
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
   remove_qualifiers_from_param_types =
                                     DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES;

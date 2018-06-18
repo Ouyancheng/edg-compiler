@@ -532,27 +532,22 @@ it would appear as the type on a call of the function in the lowered IL.
   a_type_ptr return_type;
 
   routine_type = skip_typerefs(routine_type);
-#if CTORS_RETURN_THIS
-  if (routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
+  if (ctors_return_this &&
+      routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
     /* Constructors return "pointer to class" in the Cfront-like ABI and
        a variant of the IA-64 ABI. */
     a_type_ptr class_type =
                           routine_type->variant.routine.extra_info->this_class;
     check_assertion(class_type != NULL);
     return_type = make_pointer_type(class_type);
-  } else
-#endif /* CTORS_RETURN_THIS */
-#if DTORS_RETURN_THIS
-  if (routine_type->variant.routine.extra_info->assoc_routine_is_dtor) {
+  } else if (dtors_return_this &&
+             routine_type->variant.routine.extra_info->assoc_routine_is_dtor) {
     /* Destructors return "void *" in a variant of the IA-64 ABI.
        Note that deleting destructors return void even in that
        variant, but those do not have assoc_routine_is_dtor set (it's
        not set for entry points) so there's no problem here. */
     return_type = void_star_type();
-  } else
-#endif /* DTORS_RETURN_THIS */
-  /* Do not insert code here. */
-  {
+  } else {
     return_type = il_return_type_of(routine_type);
     if (is_reference_type(return_type)) {
       /* Turn a reference type into a pointer type. */
@@ -2841,18 +2836,14 @@ static a_type_ptr make_ctor_type(void)
 /*
 Make the generic constructor pointer type.  It is
    void  (*)(void *);  // IA-64 ABI
-   void *(*)(void *);  // IA-64 ABI (where CTORS_RETURN_THIS is TRUE)
+   void *(*)(void *);  // IA-64 ABI (where ctors_return_this is TRUE)
    void *(*)(void *);  // Cfront-like ABI
 */
 {
   if (ctor_ptr_type == NULL) {
     a_type_ptr function_type;
-    function_type = make_function_type(
-#if !IA64_ABI || CTORS_RETURN_THIS
-                                       void_star_type(),
-#else /* IA64_ABI && !CTORS_RETURN_THIS */
-                                       void_type(),
-#endif /* !IA64_ABI || CTORS_RETURN_THIS */
+    function_type = make_function_type((ctors_return_this ?  void_star_type() :
+                                                             void_type()),
                                        void_star_type(),
                                        (a_type_ptr)NULL);
     ctor_ptr_type = make_pointer_type(function_type);
@@ -2880,19 +2871,15 @@ a_type_ptr make_dtor_type(void)
 /*
 Make the generic destructor pointer type.  It is
    void (*)(void *);       // IA-64 ABI
-   void *(*)(void *);      // IA-64 ABI (where DTORS_RETURN_THIS)
+   void *(*)(void *);      // IA-64 ABI (where dtors_return_this)
    void (*)(void *, int);  // Cfront-like ABI
 */
 {
   if (dtor_ptr_type == NULL) {
     a_type_ptr function_type;
 #if IA64_ABI
-    function_type = make_function_type(
-#if DTORS_RETURN_THIS
-                                       void_star_type(),
-#else /* !DTORS_RETURN_THIS */
-                                       void_type(),
-#endif /* DTORS_RETURN_THIS */
+    function_type = make_function_type((dtors_return_this ? void_star_type() :
+                                                            void_type()),
                                        void_star_type(),
                                        (a_type_ptr)NULL);
 #else /* !IA64_ABI */
@@ -2925,18 +2912,14 @@ static a_type_ptr make_copy_ctor_type(void)
 /*
 Make the generic copy constructor pointer type.  It is
    void  (*)(void *, void *);  // IA-64 ABI
-   void *(*)(void *, void *);  // IA-64 ABI (where CTORS_RETURN_THIS is TRUE)
+   void *(*)(void *, void *);  // IA-64 ABI (where ctors_return_this is TRUE)
    void *(*)(void *, void *);  // Cfront-like ABI
 */
 {
   if (cctor_ptr_type == NULL) {
     a_type_ptr function_type;
-    function_type = make_function_type(
-#if !IA64_ABI || CTORS_RETURN_THIS
-                                       void_star_type(),
-#else /* IA64_ABI && !CTORS_RETURN_THIS */
-                                       void_type(),
-#endif /* !IA64_ABI || CTORS_RETURN_THIS */
+    function_type = make_function_type((ctors_return_this ? void_star_type() :
+                                                            void_type()),
                                        void_star_type(),
                                        void_star_type());
     cctor_ptr_type = make_pointer_type(function_type);
@@ -3097,10 +3080,10 @@ being called to allocate the memory.  This is used for the IA-64 ABI (see
        cookie and the alignment of an element in the array. */
     /* The standard IA-64 ABI cookie is a size_t. */
     padding_size = integer_type((an_integer_kind)targ_size_t_int_kind)->size;
-#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
-    /* The variant cookie is a struct containing two size_t fields. */
-    padding_size *= 2;
-#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+    if (targ_ia64_abi_use_variant_array_cookies) {
+      /* The variant cookie is a struct containing two size_t fields. */
+      padding_size *= 2;
+    }  /* if */
     { a_targ_alignment  alignment = alignment_of_type(type);
       if (alignment > padding_size) {
         padding_size = alignment;
@@ -3204,16 +3187,16 @@ IA-64 ABI).
 #if IA64_ABI
   /* The IA-64 ABI dictates that "The cookie will be stored in the
      sizeof(size_t) bytes immediately preceding the array data."  When
-     IA64_ABI_USE_VARIANT_ARRAY_COOKIES is TRUE, the cookie contains two
+     targ_ia64_abi_use_variant_array_cookies is TRUE, the cookie contains two
      fields, each of sizeof(size_t) bytes. */
   if (get_array_new_padding_size(elem_type, (a_routine_ptr)NULL) != 0) {
     a_targ_size_t cookie_offset;
     /* A cookie is being used for this type. */
     cookie_offset = targ_size_t_type->size;
-#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
-    /* The variant cookie is a struct containing two size_t fields. */
-    cookie_offset *= 2;
-#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+    if (targ_ia64_abi_use_variant_array_cookies) {
+      /* The variant cookie is a struct containing two size_t fields. */
+      cookie_offset *= 2;
+    }  /* if */
     offset_node = node_for_integer_constant((long)cookie_offset,
                                             targ_size_t_int_kind);
 
@@ -3661,38 +3644,37 @@ IA-64 ABI, the routines called are different.
   }  /* if */
 #else /* IA64_ABI */
   an_expr_node_ptr assign_node = NULL, arg_entity_node = entity_node;
-#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
   an_expr_node_ptr assign_elem_size_node;
-#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
   if (prefix_size_node != NULL) {
     an_expr_node_ptr cookie_ptr_node, cookie_value_node;
-#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
-    /* Generate code to set the array element size field in the variant
-       array cookie.  The variant cookie is a struct containing two size_t
-       fields, in the order element_size, element_count.  The normal
-       code below will set the second field to the number of elements. */
-    /* Build a constant node for the size of the array elements. */
-    an_expr_node_ptr size_elem_node =
+    if (targ_ia64_abi_use_variant_array_cookies) {
+      /* Generate code to set the array element size field in the variant
+         array cookie.  The variant cookie is a struct containing two size_t
+         fields, in the order element_size, element_count.  The normal
+         code below will set the second field to the number of elements. */
+      /* Build a constant node for the size of the array elements. */
+      an_expr_node_ptr size_elem_node =
                                  size_elem_node_from_pointer_type(entity_type);
-    /* entity_node contains the address of the allocation.  Cast it to
-       "size_t *" then subtract 2 to get to the first field. */
-    cookie_ptr_node = add_cast_if_necessary(
+      /* entity_node contains the address of the allocation.  Cast it to
+         "size_t *" then subtract 2 to get to the first field. */
+      cookie_ptr_node = add_cast_if_necessary(
                                           entity_node,
                                           make_pointer_type(
                                           integer_type(targ_size_t_int_kind)));
-    entity_node = make_reusable_copy(entity_node, /*vars_can_change=*/FALSE);
-    cookie_ptr_node->next = node_for_integer_constant(2L,
-                                                      targ_size_t_int_kind);
-    cookie_ptr_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
-                                         cookie_ptr_node->type,
-                                         cookie_ptr_node);
-    cookie_ptr_node = add_indirection_to_node(cookie_ptr_node);
-    /* Generate the assignment expression.  It is inserted below. */
-    assign_elem_size_node = make_assignment_expr(
+      entity_node = make_reusable_copy(entity_node, /*vars_can_change=*/FALSE);
+      cookie_ptr_node->next = node_for_integer_constant(2L,
+                                                        targ_size_t_int_kind);
+      cookie_ptr_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_psubtract,
+                                          cookie_ptr_node->type,
+                                          cookie_ptr_node);
+      cookie_ptr_node = add_indirection_to_node(cookie_ptr_node);
+      /* Generate the assignment expression.  It is inserted below. */
+      assign_elem_size_node = make_assignment_expr(
                                             cookie_ptr_node,
                                             (an_expr_operator_kind)eok_assign,
                                             size_elem_node);
-#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+    }  /* if */
     /* If there was padding, we must set the value indicating how many
        elements there are.  Compute the address of the "cookie". */
 
@@ -3721,9 +3703,9 @@ IA-64 ABI, the routines called are different.
                                 (a_routine_ptr)NULL, (a_routine_ptr)NULL,
                                 zero_storage);
   if (prefix_size_node != NULL) {
-#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
-    assign_node = make_comma_node(assign_elem_size_node, assign_node);
-#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+    if (targ_ia64_abi_use_variant_array_cookies) {
+      assign_node = make_comma_node(assign_elem_size_node, assign_node);
+    }  /* if */
     call_node = make_comma_node(assign_node, call_node);
   }  /* if */
 #endif /* IA64_ABI */
@@ -5373,15 +5355,15 @@ routine will be the same as the one passed in.
         this_param_type = make_qualified_type(this_param_type, TQ_CONST);
       }  /* if */
       return_type = lowered_return_type_of(routine_type);
-#if IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-      /* Deleting and delegation destructors return void even in the
-         variant. */
-      if ((kind == (a_ctor_or_dtor_kind)cdk_deleting ||
-           kind == (a_ctor_or_dtor_kind)cdk_delegation) &&
-          routine->special_kind == (a_special_function_kind)sfk_destructor) {
-        return_type = void_type();
+      if (targ_ia64_abi_variant_ctors_and_dtors_return_this) {
+        /* Deleting and delegation destructors return void even in the
+           variant. */
+        if ((kind == (a_ctor_or_dtor_kind)cdk_deleting ||
+             kind == (a_ctor_or_dtor_kind)cdk_delegation) &&
+            routine->special_kind == (a_special_function_kind)sfk_destructor) {
+          return_type = void_type();
+        }  /* if */
       }  /* if */
-#endif /* IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
       /* Additional parameter types, if any, are added below. */
       new_storage_class = routine->storage_class;
       if (new_storage_class == (a_storage_class)sc_unspecified) {
@@ -7458,11 +7440,9 @@ static a_routine_ptr
 
 #if IA64_ABI
 
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
 static a_routine_ptr
 		guard_acquire_routine,
 		guard_release_routine;
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 
 /*
 Pointer to the variable entry for __dso_handle.
@@ -7820,22 +7800,24 @@ location is the insert_location2 value (after the assignment statement).
   an_integer_kind    int_kind;
   a_type_ptr         int_type;
 #if IA64_ABI
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
   a_statement_ptr    outer_then;
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 #endif /* IA64_ABI */
 
   /* Make the static first-time-test variable in the current scope. */
-#if !IA64_ABI || IA64_ABI_USE_INT_STATIC_INIT_GUARD
+#if !IA64_ABI
   int_kind = (an_integer_kind)ik_int;
-#else /* !(IA64_ABI || IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
-  /* The ABI specifies that we use a 64-bit integer type.  Try that, and
-     then fall back to "int". */
-  int_kind = int_kind_for_bit_size(64, /*is_signed=*/FALSE);
-  if (int_kind == (an_integer_kind)ik_none) {
+#else /* IA64_ABI */
+  if (targ_ia64_abi_use_int_static_init_guard) {
     int_kind = (an_integer_kind)ik_int;
+  } else {
+    /* The ABI specifies that we use a 64-bit integer type.  Try that, and
+       then fall back to "int". */
+    int_kind = int_kind_for_bit_size(64, /*is_signed=*/FALSE);
+    if (int_kind == (an_integer_kind)ik_none) {
+      int_kind = (an_integer_kind)ik_int;
+    }  /* if */
   }  /* if */
-#endif /* (IA64_ABI || IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+#endif /* IA64_ABI */
   int_type = integer_type(int_kind);
   if (routine_might_exist_in_multiple_copies(
                                  innermost_function_scope->variant.routine.ptr)
@@ -7901,25 +7883,25 @@ location is the insert_location2 value (after the assignment statement).
   test_var_node = var_rvalue_expr(*test_var);
   test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
 #else /* IA64_ABI */
-#if IA64_ABI_USE_INT_STATIC_INIT_GUARD
-  /* The ARM EABI test is "(test_var & 1) == 0" */
-  test_var_node = var_rvalue_expr(*test_var);
-  test_var_node->next = node_for_integer_constant(1L,
-                                                  (an_integer_kind)ik_int);
-  test_var_node = make_operator_node((an_expr_operator_kind)eok_and,
-                                     int_type, test_var_node);
-  test_var_node->next = node_for_integer_constant(0L,
-                                                  (an_integer_kind)ik_int);
-#else /* !IA64_ABI_USE_INT_STATIC_INIT_GUARD */
-  /* In the IA64 ABI, only the first byte of the variable is specified by 
-     the ABI.  The remainder is reserved for use in multithreaded
-     implementations. */
-  test_var_node = add_cast_to_char_star(var_addr_expr(*test_var));
-  test_var_node = add_indirection_to_node(test_var_node);
-  test_var_node = rvalue_expr_for_lvalue(test_var_node);
-  test_var_node->next = node_for_integer_constant(0L, 
-                                                  (an_integer_kind)ik_char);
-#endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+  if (targ_ia64_abi_use_int_static_init_guard) {
+    /* The ARM EABI test is "(test_var & 1) == 0" */
+    test_var_node = var_rvalue_expr(*test_var);
+    test_var_node->next = node_for_integer_constant(1L,
+                                                    (an_integer_kind)ik_int);
+    test_var_node = make_operator_node((an_expr_operator_kind)eok_and,
+                                       int_type, test_var_node);
+    test_var_node->next = node_for_integer_constant(0L,
+                                                    (an_integer_kind)ik_int);
+  } else {
+    /* In the IA64 ABI, only the first byte of the variable is specified by 
+       the ABI.  The remainder is reserved for use in multithreaded
+       implementations. */
+    test_var_node = add_cast_to_char_star(var_addr_expr(*test_var));
+    test_var_node = add_indirection_to_node(test_var_node);
+    test_var_node = rvalue_expr_for_lvalue(test_var_node);
+    test_var_node->next = node_for_integer_constant(0L, 
+                                                    (an_integer_kind)ik_char);
+  }  /* if */
 #endif /* IA64_ABI */
   compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                     integer_type((an_integer_kind)ik_int),
@@ -7928,11 +7910,8 @@ location is the insert_location2 value (after the assignment statement).
   insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
                       insert_location,
 #if IA64_ABI
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-                                       &outer_then,
-#else /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
-                                       block_stmt,
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+                      (targ_ia64_abi_use_guard_acquire_release ? &outer_then :
+                                                                 block_stmt),
 #else /* !IA64_ABI */
                                        block_stmt,
 #endif /* IA64_ABI */
@@ -7945,53 +7924,54 @@ location is the insert_location2 value (after the assignment statement).
                                                       (an_integer_kind)ik_int),
                                         insert_location2);
 #else /* IA64_ABI */
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-  if (is_effective_thread_local(guarded_var)) {
-    /* No need to worry about multi-threading (this variable is
-       local to the thread, so a simple flag will ensure that the guarded
-       initialization is performed only once in this thread). */
-    /* Return the block statement created above (since we won't be creating
-       the one below). */
-    if (block_stmt != NULL) *block_stmt = outer_then;
-  } else {
-    /* To support multi-threading, make an inner
-         "if (__cxa_guard_acquire(&test_var)) {
-            ...
-            __cxa_guard_release(&test_var);
-          }"
-       statement as the "then" part of the outer "if" above. Leave
-       *insert_location2 ready for insertion at the ...
-       This is done as two "if"s so that once the variable is
-       initialized one doesn't pay the cost of calling the runtime
-       routine. */
-    an_expr_node_ptr acquire_node = /*lint -e(666)*/
-            make_prototyped_runtime_call("__cxa_guard_acquire",
+  if (targ_ia64_abi_use_guard_acquire_release) {
+    if (is_effective_thread_local(guarded_var)) {
+      /* No need to worry about multi-threading (this variable is
+         local to the thread, so a simple flag will ensure that the guarded
+         initialization is performed only once in this thread). */
+      /* Return the block statement created above (since we won't be creating
+         the one below). */
+      if (block_stmt != NULL) *block_stmt = outer_then;
+    } else {
+      /* To support multi-threading, make an inner
+           "if (__cxa_guard_acquire(&test_var)) {
+              ...
+              __cxa_guard_release(&test_var);
+            }"
+         statement as the "then" part of the outer "if" above. Leave
+         *insert_location2 ready for insertion at the ...
+         This is done as two "if"s so that once the variable is
+         initialized one doesn't pay the cost of calling the runtime
+         routine. */
+      an_expr_node_ptr acquire_node = /*lint -e(666)*/
+              make_prototyped_runtime_call("__cxa_guard_acquire",
                                          &guard_acquire_routine,
                                          integer_type((an_integer_kind)ik_int),
                                          make_pointer_type((*test_var)->type),
                                          NULL, var_addr_expr(*test_var));
-    an_insert_location outer_block_insert_location,
-                       release_insert_location;
-    an_expr_node_ptr release_node = /*lint -e(666)*/
-            make_prototyped_runtime_call("__cxa_guard_release",
-                                         &guard_release_routine, void_type(),
-                                         make_pointer_type((*test_var)->type),
-                                         NULL, var_addr_expr(*test_var));
-    /* Make the acquire call a boolean controlling expression. */
-    acquire_node = boolean_controlling_expr(acquire_node);
-    set_block_start_insert_location(outer_then, &outer_block_insert_location);
-    insert_if_statement(acquire_node, /*is_initialization_guard=*/TRUE,
-                        &outer_block_insert_location, block_stmt,
-                        insert_location2, (an_insert_location *)NULL);
-    /* Avoid moving "insert_location2" which is now the right place to
-       put the initialization code. */
-    release_insert_location = *insert_location2;
-    (void)insert_expr_statement(release_node, &release_insert_location);
-  }
-#else /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+      an_insert_location outer_block_insert_location,
+                         release_insert_location;
+      an_expr_node_ptr release_node = /*lint -e(666)*/
+              make_prototyped_runtime_call("__cxa_guard_release",
+                                          &guard_release_routine, void_type(),
+                                          make_pointer_type((*test_var)->type),
+                                          NULL, var_addr_expr(*test_var));
+      /* Make the acquire call a boolean controlling expression. */
+      acquire_node = boolean_controlling_expr(acquire_node);
+      set_block_start_insert_location(outer_then,
+                                      &outer_block_insert_location);
+      insert_if_statement(acquire_node, /*is_initialization_guard=*/TRUE,
+                          &outer_block_insert_location, block_stmt,
+                          insert_location2, (an_insert_location *)NULL);
+      /* Avoid moving "insert_location2" which is now the right place to
+         put the initialization code. */
+      release_insert_location = *insert_location2;
+      (void)insert_expr_statement(release_node, &release_insert_location);
+    }
+  } else {
   /* The guard variable is set to 1 at the end of the initialization.
      See set_local_static_guard_var. */
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* add_first_time_test */
 
@@ -8007,47 +7987,35 @@ to indicate that the initialization is complete.  Insert the code at
 *insert_location.
 */
 {
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-  if (!is_effective_thread_local(local_static_guard_var)) {
+  if (targ_ia64_abi_use_guard_acquire_release &&
+      !is_effective_thread_local(local_static_guard_var)) {
     /* In non-thread-local cases, the call to __cxa_guard_release has already
        been emitted, so there's nothing to do here. */
-  } else
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
-  /* Do not insert code here. */
-  {
-#if IA64_ABI_USE_INT_STATIC_INIT_GUARD
-    /* ARM EABI specifies to use least significant bit for guard test. */
-    (void)insert_assignment_statement(var_lvalue_expr(local_static_guard_var),
-                                      (an_expr_operator_kind)eok_assign,
-                                      node_for_integer_constant(1L,
+  } else {
+    if (targ_ia64_abi_use_int_static_init_guard) {
+      /* ARM EABI specifies to use least significant bit for guard test. */
+      (void)insert_assignment_statement(var_lvalue_expr(
+                                                       local_static_guard_var),
+                                        (an_expr_operator_kind)eok_assign,
+                                        node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
-                                      insert_location);
-#else /* !IA64_ABI_USE_INT_STATIC_INIT_GUARD */
-    /* IA-64 ABI specifies to use first byte for guard test. */
-    (void)insert_assignment_statement(add_indirection_to_node(
-                                       add_cast_to_char_star(
-                                       var_addr_expr(local_static_guard_var))),
-                                      (an_expr_operator_kind)eok_assign,
-                                      node_for_integer_constant(1L,
+                                        insert_location);
+    } else {
+      /* IA-64 ABI specifies to use first byte for guard test. */
+      (void)insert_assignment_statement(add_indirection_to_node(
+                                         add_cast_to_char_star(
+                                         var_addr_expr(
+                                                     local_static_guard_var))),
+                                        (an_expr_operator_kind)eok_assign,
+                                        node_for_integer_constant(1L,
                                                      (an_integer_kind)ik_char),
-                                      insert_location);
-#endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+                                        insert_location);
+    }  /* if */
   }  /* if */
 }  /* set_local_static_guard_var */
 
 #endif /* IA64_ABI */
 
-#if !IA64_ABI
-#define USE_EH_GUARD_VAR_CLEANUP TRUE
-#else /* IA64_ABI */
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-#define USE_EH_GUARD_VAR_CLEANUP TRUE
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
-#endif /* !IA64_ABI*/
-
-#ifndef USE_EH_GUARD_VAR_CLEANUP
-/*ARGSUSED*/ /* The parameters are not used in that case. */
-#endif /* ifndef USE_EH_GUARD_VAR_CLEANUP */
 static void add_local_static_guard_var_cleanup(
                                  a_variable_ptr         local_static_guard_var,
                                  an_object_lifetime_ptr local_static_lifetime,
@@ -8062,23 +8030,26 @@ the initialization of the local static variable is completed.  If any
 code is needed, insert it at *insert_location.
 */
 {
-#ifdef USE_EH_GUARD_VAR_CLEANUP
-#undef USE_EH_GUARD_VAR_CLEANUP
-  a_dynamic_init_ptr dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-  an_init_pos_descr  ipd;
+#if IA64_ABI
+  if (targ_ia64_abi_use_guard_acquire_release)
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
+    a_dynamic_init_ptr dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+    an_init_pos_descr  ipd;
 
-  /* In the IA-64 ABI, the runtime calls __cxa_guard_abort instead of
-     clearing the variable. */
-  dip->variable = local_static_guard_var;
-  dip->has_temporary_lifetime = TRUE;
-  dip->is_guard_var_for_local_static_var_init = TRUE;
-  add_to_end_of_destructions_list(dip, local_static_lifetime,
-                                  /*update_parent_destruction_sublist=*/TRUE);
-  dip->destructible_entity_descr = alloc_destructible_entity_descr();
-  set_var_init_pos_descr(local_static_guard_var, &ipd);
-  add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
-                       curr_context, insert_location);
-#endif /* ifdef USE_EH_GUARD_VAR_CLEANUP */
+    /* In the IA-64 ABI, the runtime calls __cxa_guard_abort instead of
+       clearing the variable. */
+    dip->variable = local_static_guard_var;
+    dip->has_temporary_lifetime = TRUE;
+    dip->is_guard_var_for_local_static_var_init = TRUE;
+    add_to_end_of_destructions_list(dip, local_static_lifetime,
+                                   /*update_parent_destruction_sublist=*/TRUE);
+    dip->destructible_entity_descr = alloc_destructible_entity_descr();
+    set_var_init_pos_descr(local_static_guard_var, &ipd);
+    add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
+                         curr_context, insert_location);
+  }  /* if */
 }  /* add_local_static_guard_var_cleanup */
 
 #if GENERATE_EH_TABLES
@@ -9167,14 +9138,11 @@ effect.
         break;
       case stmk_return:
         if (statement->expr != NULL) {
-#if CTORS_RETURN_THIS || DTORS_RETURN_THIS
-          if (is_variable_node(statement->expr) &&
+          if ((ctors_return_this || dtors_return_this) &&
+              is_variable_node(statement->expr) &&
               node_variable(statement->expr)->is_this_parameter) {
             /* It's okay for a constructor or destructor to return "this". */
-          } else
-#endif /* CTORS_RETURN_THIS || DTORS_RETURN_THIS */
-          /* Do not insert code here. */
-          {
+          } else {
             /* Assume a non-NULL expression means the routine has an effect. */
             tblock->result = FALSE;
           }  /* if */
@@ -11912,10 +11880,11 @@ The subtree of the node has not yet been lowered.
            ((temp = (type *)new-call(...)) != NULL) ?
                                      (initialization, temp) : NULL
       */
-#if CTORS_RETURN_THIS
-      a_boolean is_constructor_init =
+      a_boolean is_constructor_init = FALSE;
+      if (ctors_return_this) {
+        is_constructor_init =
                            (dip->kind == (a_dynamic_init_kind)dik_constructor);
-#endif /* CTORS_RETURN_THIS */
+      }  /* if */
       /* Allocate the temporary. */
       ptr_new_type = make_pointer_type(ndsp->type);
       temp_var = make_local_temporary(ptr_new_type);
@@ -11967,20 +11936,18 @@ The subtree of the node has not yet been lowered.
                                              &insert_location);
       }  /* if */
       {
-#if CTORS_RETURN_THIS
         a_boolean can_optimize_away_temp = FALSE;
-        if (is_constructor_init) {
-          /* Try to use the result of the constructor call directly
-             instead of the value of the temporary (the constructor
-             returns the address of the object). */
-          if (is_constructor_call(insert_location.variant.expr)) {
-            can_optimize_away_temp = TRUE;
+        if (ctors_return_this) {
+          if (is_constructor_init) {
+            /* Try to use the result of the constructor call directly
+               instead of the value of the temporary (the constructor
+               returns the address of the object). */
+            if (is_constructor_call(insert_location.variant.expr)) {
+              can_optimize_away_temp = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
-        if (!can_optimize_away_temp)
-#endif /* CTORS_RETURN_THIS */
-        /* Do not insert code here. */
-        {
+        if (!ctors_return_this || !can_optimize_away_temp) {
           /* End the initialization code with an expression that gets the
              value of the temporary. */
           init_node = var_rvalue_expr(temp_var);
@@ -12162,19 +12129,17 @@ tricks.
        the null-pointer test.  Force use of a temporary now if we would
        be using one for the copy for the delete call anyway. */
     a_boolean vars_can_change = FALSE;
-#if !DTORS_RETURN_THIS
-    if (delete_routine != NULL) vars_can_change = TRUE;
-#endif /* !DTORS_RETURN_THIS */
+    if (!dtors_return_this && delete_routine != NULL) {
+      vars_can_change = TRUE;
+    }  /* if */
     ptr_node_test = ptr_node;
     ptr_node = make_reusable_copy(ptr_node, vars_can_change);
   }  /* if */
-#if !DTORS_RETURN_THIS
-  if (delete_routine != NULL) {
+  if (!dtors_return_this && delete_routine != NULL) {
     /* Make a copy of the object pointer so that we can use it later in
        building the call of the delete routine. */
     ptr_node_delete = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
   }  /* if */
-#endif /* !DTORS_RETURN_THIS */
 #if ABI_CHANGES_FOR_RTTI
   if (delete_routine != NULL &&
       !delete_routine->source_corresp.is_class_member &&
@@ -12188,11 +12153,11 @@ tricks.
        ::delete. */
     a_variable_ptr temp;
     check_assertion(need_null_ptr_test);
-#if DTORS_RETURN_THIS
-    /* A copy was not made above, so make one now. */
-    ptr_node_delete = make_reusable_copy(ptr_node_test,
-                                         /*vars_can_change=*/TRUE);
-#endif /* DTORS_RETURN_THIS */
+    if (dtors_return_this) {
+      /* A copy was not made above, so make one now. */
+      ptr_node_delete = make_reusable_copy(ptr_node_test,
+                                           /*vars_can_change=*/TRUE);
+    }  /* if */
     /* Create a dynamic_cast<void *> and lower it. */
     ptr_node_delete = make_operator_node(
                                        (an_expr_operator_kind)eok_dynamic_cast,
@@ -12223,10 +12188,7 @@ tricks.
     lower_virtual_function_call(call_node);
   }  /* if */
   if (delete_routine != NULL) {
-#if DTORS_RETURN_THIS
-    if (temp_assign_node != NULL)
-#endif /* DTORS_RETURN_THIS */
-    {
+    if (!dtors_return_this || temp_assign_node != NULL) {
       /* Add a call of the delete routine, so we have a comma expression
            (dtor(...), delete(...))
       */
@@ -12234,14 +12196,12 @@ tricks.
                   make_delete_call_node(delete_routine, class_type,
                                         ptr_node_delete);
       call_node = make_comma_node(call_node, delete_call_node);
-#if DTORS_RETURN_THIS
-    } else {
+    } else if (dtors_return_this) {
       /* In the variant of the IA-64 ABI where destructors return "this",
          and "this" is a suitable argument for the delete routine,
          build delete(dtor(...)). */
       call_node = make_delete_call_node(delete_routine, class_type,
                                         call_node);
-#endif /* DTORS_RETURN_THIS */
     }  /* if */
   } else {
     /* Just for safety, make sure that a destructor that returns a
@@ -19225,10 +19185,8 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_elem(array_new_prefix_size_var),
 #else /* IA64_ABI */
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
       pch_saved_var_array_elem(guard_acquire_routine),
       pch_saved_var_array_elem(guard_release_routine),
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
       pch_saved_var_array_elem(dso_handle_var),
 #endif /* IA64_ABI */
 #if USE_PATCH_INIT_STARTUP
@@ -19296,10 +19254,8 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(needed_destruction_object_field);
   register_trans_unit_variable(array_new_prefix_size_var);
 #else /* IA64_ABI */
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
   register_trans_unit_variable(guard_acquire_routine);
   register_trans_unit_variable(guard_release_routine);
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   register_trans_unit_variable(dso_handle_var);
 #endif /* IA64_ABI */
 #if USE_PATCH_INIT_STARTUP
@@ -19374,10 +19330,8 @@ for each translation unit.
   needed_destruction_object_field = NULL;
   array_new_prefix_size_var = NULL;
 #else /* IA64_ABI */
-#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
   guard_acquire_routine = NULL;
   guard_release_routine = NULL;
-#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   dso_handle_var = NULL;
 #endif /* IA64_ABI */
 #if USE_PATCH_INIT_STARTUP

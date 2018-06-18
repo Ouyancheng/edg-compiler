@@ -377,7 +377,7 @@ indicated routine has just been processed.
            was previously defined at a point when it wasn't known to be
            the decider function, or was thought to be the decider function
            but is now known not to be.  This can happen only for ABIs (like
-           the ARM EABI; see IA64_ABI_VARIANT_KEY_FUNCTION) where the
+           the ARM EABI; see TARG_IA64_ABI_VARIANT_KEY_FUNCTION) where the
            decider function can be altered by an out-of-class definition
            that specifies "inline" for a function that otherwise would have
            been considered to be the decider function. */

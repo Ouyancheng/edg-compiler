@@ -214,6 +214,18 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
   TARGET_MAP_MACRO(TARG_HAS_SIGNED_CHARS, targ_has_signed_chars, _TC)
   TARGET_MAP_MACRO(TARG_HOST_STRING_CHAR_BIT, targ_host_string_char_bit, _TC)
 #if DO_IL_LOWERING && IA64_ABI
+  TARGET_MAP_MACRO(TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE,
+                   targ_ia64_abi_use_guard_acquire_release, _TC)
+  TARGET_MAP_MACRO(TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD,
+                   targ_ia64_abi_use_int_static_init_guard, _TC)
+  TARGET_MAP_MACRO(TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES,
+                   targ_ia64_abi_use_variant_array_cookies, _TC)
+  TARGET_MAP_MACRO(TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR,
+                   targ_ia64_abi_use_variant_ptr_to_member_function_repr, _TC)
+  TARGET_MAP_MACRO(TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS,
+                   targ_ia64_abi_variant_ctors_and_dtors_return_this, _TC)
+  TARGET_MAP_MACRO(TARG_IA64_ABI_VARIANT_KEY_FUNCTION,
+                   targ_ia64_abi_variant_key_function, _TC)
   TARGET_MAP_MACRO(TARG_IA64_VTABLE_ENTRY_INT_KIND,
                    targ_ia64_vtable_entry_int_kind, _TC)
 #endif /* DO_IL_LOWERING && IA64_ABI */

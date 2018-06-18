@@ -9575,7 +9575,7 @@ from the front end to the runtime.
 			         "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS");
 #if IA64_ABI
   /* Are we using the variant form of array cookies for the IA-64 ABI? */
-  enter_predef_num_macro_noredef(IA64_ABI_USE_VARIANT_ARRAY_COOKIES,
+  enter_predef_num_macro_noredef(targ_ia64_abi_use_variant_array_cookies,
 			         "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES");
 #endif /* IA64_ABI */
 #if !IA64_ABI
@@ -10525,20 +10525,20 @@ command line -D options.
     (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_IA64_ABI,
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
-#if IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-    /* Do constructors and destructors return "this" for the IA-64 ABI? */
-    (void)enter_predef_macro("1", 
-                             MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS,
-                             /*cannot_be_redefined=*/TRUE,
-                             /*ref_suppresses_pch_file=*/FALSE);
-#endif /* IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-#if IA64_ABI_USE_INT_STATIC_INIT_GUARD
-    /* Are we using the variant "int"-sized guard variables? */
-    (void)enter_predef_macro("1",
+    if (targ_ia64_abi_variant_ctors_and_dtors_return_this) {
+      /* Do constructors and destructors return "this" for the IA-64 ABI? */
+      (void)enter_predef_macro("1", 
+                               MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS,
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+    if (targ_ia64_abi_use_int_static_init_guard) {
+      /* Are we using the variant "int"-sized guard variables? */
+      (void)enter_predef_macro("1",
                              MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD,
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
-#endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+    }  /* if */
 #endif /* IA64_ABI */
     if (define_portable_feature_test_macros) {
       /* Add definitions as described by WG21 SG10 SD-6 for the features

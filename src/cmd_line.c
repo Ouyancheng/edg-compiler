@@ -6924,38 +6924,6 @@ file.
 #else /* !defined(IA64_ABI) */
   comment_undefined_macro_name(IA64_ABI);
 #endif /* defined(IA64_ABI) */
-#if defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE)
-  define_numeric_valued_macro(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE);
-#else /* !defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
-  comment_undefined_macro_name(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE);
-#endif /* defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
-#if defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD)
-  define_numeric_valued_macro(IA64_ABI_USE_INT_STATIC_INIT_GUARD);
-#else /* !defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
-  comment_undefined_macro_name(IA64_ABI_USE_INT_STATIC_INIT_GUARD);
-#endif /* defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
-#if defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES)
-  define_numeric_valued_macro(IA64_ABI_USE_VARIANT_ARRAY_COOKIES);
-#else /* !defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
-  comment_undefined_macro_name(IA64_ABI_USE_VARIANT_ARRAY_COOKIES);
-#endif /* defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
-#if defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR)
-  define_numeric_valued_macro(
-                             IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR);
-#else /* !defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
-  comment_undefined_macro_name(
-                             IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR);
-#endif /* defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
-#if defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS)
-  define_numeric_valued_macro(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS);
-#else /* !defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
-  comment_undefined_macro_name(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS);
-#endif /* defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
-#if defined(IA64_ABI_VARIANT_KEY_FUNCTION)
-  define_numeric_valued_macro(IA64_ABI_VARIANT_KEY_FUNCTION);
-#else /* !defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
-  comment_undefined_macro_name(IA64_ABI_VARIANT_KEY_FUNCTION);
-#endif /* defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
 #if defined(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
   define_numeric_valued_macro(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS);
 #else /* !defined(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS) */
@@ -8291,6 +8259,40 @@ file.
 #else /* !defined(TARG_HOST_STRING_CHAR_BIT) */
   comment_undefined_macro_name(TARG_HOST_STRING_CHAR_BIT);
 #endif /* defined(TARG_HOST_STRING_CHAR_BIT) */
+#if defined(TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE)
+  define_numeric_valued_macro(TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE);
+#else /* !defined(TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
+  comment_undefined_macro_name(TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE);
+#endif /* defined(TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
+#if defined(TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD)
+  define_numeric_valued_macro(TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD);
+#else /* !defined(TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+  comment_undefined_macro_name(TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD);
+#endif /* defined(TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+#if defined(TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES)
+  define_numeric_valued_macro(TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES);
+#else /* !defined(TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
+  comment_undefined_macro_name(TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES);
+#endif /* defined(TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
+#if defined(TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR)
+  define_numeric_valued_macro(
+                        TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR);
+#else /* !defined(TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
+  comment_undefined_macro_name(
+                        TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR);
+#endif /* defined(TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
+#if defined(TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS)
+  define_numeric_valued_macro(
+                            TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS);
+#else /* !defined(TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
+  comment_undefined_macro_name(
+                            TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS);
+#endif /* defined(TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
+#if defined(TARG_IA64_ABI_VARIANT_KEY_FUNCTION)
+  define_numeric_valued_macro(TARG_IA64_ABI_VARIANT_KEY_FUNCTION);
+#else /* !defined(TARG_IA64_ABI_VARIANT_KEY_FUNCTION) */
+  comment_undefined_macro_name(TARG_IA64_ABI_VARIANT_KEY_FUNCTION);
+#endif /* defined(TARG_IA64_ABI_VARIANT_KEY_FUNCTION) */
 #if defined(TARG_IA64_VTABLE_ENTRY_INT_KIND)
   define_string_valued_macro(TARG_IA64_VTABLE_ENTRY_INT_KIND);
 #else /* !defined(TARG_IA64_VTABLE_ENTRY_INT_KIND) */

@@ -108,9 +108,14 @@ static variables.  If the flag is FALSE, the guard variables
 are tested/set by inline code.  TRUE allows a thread-safe
 solution in the runtime.
 */
-#ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-#define IA64_ABI_USE_GUARD_ACQUIRE_RELEASE TRUE
+#ifndef TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#ifdef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#define TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE \
+        IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#else /* !defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
+#define TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE TRUE
 #endif /* ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+#endif /* ifndef TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 
 /*
 TRUE to use ARM EABI semantics for static initialization guard variables
@@ -119,14 +124,19 @@ from the standard IA-64 ABI are: the guard variable is "int"-sized,
 and the least significant bit of the guard variable (rather than
 the first byte) is used for the guard test.
 */
-#ifndef IA64_ABI_USE_INT_STATIC_INIT_GUARD
-#define IA64_ABI_USE_INT_STATIC_INIT_GUARD FALSE
-#endif /* ifndef IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+#ifndef TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD
+#ifdef IA64_ABI_USE_INT_STATIC_INIT_GUARD
+#define TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD \
+        IA64_ABI_USE_INT_STATIC_INIT_GUARD
+#else /* !defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+#define TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD FALSE
+#endif /* ifdef IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+#endif /* ifndef TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 
 /*
 The name of the macro to be defined when IA-64 guard variables are
 "int"-sized instead of "long long"-sized.  Used only when
-IA64_ABI_USE_INT_STATIC_INIT_GUARD is TRUE.
+targ_ia64_abi_use_int_static_init_guard is TRUE.
 */
 #ifndef MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD
 #define MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD \
@@ -143,9 +153,14 @@ the virtual-function bit to the low-order bit of the other
 field in the pointer-to-member-function representation.
 This is needed, for example, for the ARM architecture.
 */
-#ifndef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
-#define IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR FALSE
-#endif /* ifndef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
+#ifndef TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+#ifdef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+#define TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR \
+  IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+#else /* !defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
+#define TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR FALSE
+#endif /* ifdef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
+#endif /* ifndef TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 
 /*
 TRUE to use the variant representation of array cookies with
@@ -159,9 +174,14 @@ rather than the simple size_t value of the standard IA-64 ABI.
 This variant version is used for the ARM architecture.  See
 3.2.2.1 in the ARM EABI document.
 */
-#ifndef IA64_ABI_USE_VARIANT_ARRAY_COOKIES
-#define IA64_ABI_USE_VARIANT_ARRAY_COOKIES FALSE
-#endif /* ifndef IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#ifndef TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#ifdef IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES \
+        IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#else /* !defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
+#define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES FALSE
+#endif /* ifdef IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#endif /* ifndef TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 
 /*
 TRUE to make constructors and destructors return the "this" value
@@ -170,14 +190,19 @@ Constructors return "pointer to class", and destructors return
 "void *", except deleting destructors, which return the standard
 "void".
 */
-#ifndef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-#define IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS FALSE
-#endif /* ifndef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+#ifndef TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#ifdef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS \
+        IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#else /* !defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
+#define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS FALSE
+#endif /* ifdef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+#endif /* ifndef TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 
 /*
 The name of the macro to be defined when constructors and destructors
-return "this".  Used only when IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-is TRUE.
+return "this".  Used only when
+targ_ia64_abi_variant_ctors_and_dtors_return_this is TRUE.
 */
 #ifndef MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS
 #define MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS \
@@ -189,9 +214,13 @@ TRUE to select the variant rule for determining the key function
 (decider function) for virtual function tables in the IA-64 ABI.
 See 3.1 in the ARM EABI document.
 */
-#ifndef IA64_ABI_VARIANT_KEY_FUNCTION
-#define IA64_ABI_VARIANT_KEY_FUNCTION FALSE
+#ifndef TARG_IA64_ABI_VARIANT_KEY_FUNCTION
+#ifdef IA64_ABI_VARIANT_KEY_FUNCTION
+#define TARG_IA64_ABI_VARIANT_KEY_FUNCTION IA64_ABI_VARIANT_KEY_FUNCTION
+#else /* !defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
+#define TARG_IA64_ABI_VARIANT_KEY_FUNCTION FALSE
 #endif /* ifndef IA64_ABI_VARIANT_KEY_FUNCTION */
+#endif /* ifndef TARG_IA64_ABI_VARIANT_KEY_FUNCTION */
 
 /*
 The early GNU implementations of the IA-64 ABI (e.g., versions 3.2 and 3.3)
@@ -2746,35 +2775,6 @@ into the runtime routine to process those.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* !defined(NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_...) */
 /* This must be TRUE for IL lowering.  There's a consistency check there. */
-
-/*
-Flag that indicates whether constructors return "this".  This is
-TRUE in the Cfront-like ABI and FALSE in the IA-64 ABI, but TRUE in
-the ARM EABI variant of the IA-64 ABI.
-*/
-#ifndef CTORS_RETURN_THIS
-#if !IA64_ABI || IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-#define CTORS_RETURN_THIS TRUE
-#else /* IA64_ABI && !IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-#define CTORS_RETURN_THIS FALSE
-#endif /* !IA64_ABI || IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-#else /* defined(CTORS_RETURN_THIS) */
- #error -- CTORS_RETURN_THIS should not be defined.
-#endif /* ifndef CTORS_RETURN_THIS */
-
-/*
-Flag that indicates whether destructors return "this".  This is
-FALSE except in the ARM EABI variant of the IA-64 ABI.
-*/
-#ifndef DTORS_RETURN_THIS
-#if IA64_ABI && IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-#define DTORS_RETURN_THIS TRUE
-#else /* !IA64_ABI || !IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-#define DTORS_RETURN_THIS FALSE
-#endif /* IA64_ABI && IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-#else /* defined(DTORS_RETURN_THIS) */
- #error -- DTORS_RETURN_THIS should not be defined.
-#endif /* ifndef DTORS_RETURN_THIS */
 
 /*
 Enumerated types:  Default setting for targ_enum_types_can_be_smaller_than_int.

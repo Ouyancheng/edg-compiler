@@ -1134,11 +1134,67 @@ EXTERN an_integer_kind
                         /* Integer kind to use for an index into a virtual
                            function table.  Must be no smaller than the size of
                            a_virtual_function_number. */
+EXTERN a_boolean
+                ctors_return_this;
+                        /* Flag that indicates whether constructors return
+                           "this".  This is TRUE in the Cfront-like ABI and
+                           FALSE in the IA-64 ABI, but TRUE in the ARM EABI
+                           variant of the IA-64 ABI. */
+EXTERN a_boolean
+                dtors_return_this;
+                        /* Flag that indicates whether destructors return
+                           "this".  This is FALSE except in the ARM EABI
+                           variant of the IA-64 ABI.  */
+
 #if IA64_ABI
+EXTERN a_boolean
+                targ_ia64_abi_use_guard_acquire_release;
+                        /* TRUE if code should be generated to call the runtime
+                           guard acquire/release/abort routines in
+                           initializations of local static variables.  If the
+                           flag is FALSE, the guard variables are tested/set by
+                           inline code.  TRUE allows a thread-safe solution in
+                           the runtime. */
+EXTERN a_boolean
+                targ_ia64_abi_use_int_static_init_guard;
+                        /* TRUE to use ARM EABI semantics for static
+                           initialization guard variables (see section 4.4.2 of
+                           version 2.02 of the ARM EABI).  The two differences
+                           from the standard IA-64 ABI are: the guard variable
+                           is "int"-sized, and the least significant bit of the
+                           guard variable (rather than the first byte) is used
+                           for the guard test. */
+EXTERN a_boolean
+                targ_ia64_abi_use_variant_array_cookies;
+                        /* TRUE to use the variant representation of array
+                           cookies with the IA-64 ABI.  The variant form uses a
+                           struct rather than the simple size_t value of the
+                           standard IA-64 ABI.  This variant version is used
+                           for the ARM architecture.  See 3.2.2.1 in the ARM
+                           EABI document. */
+EXTERN a_boolean
+                targ_ia64_abi_use_variant_ptr_to_member_function_repr;
+                        /* TRUE to use the variant representation of pointers
+                           to member functions with the IA-64 ABI. */
+EXTERN a_boolean
+                targ_ia64_abi_variant_ctors_and_dtors_return_this;
+                        /* TRUE to make constructors and destructors return the
+                           "this" value in a variant of the IA-64 ABI.  This is
+                           used by the ARM EABI.  Constructors return "pointer
+                           to class", and destructors return "void *", except
+                           deleting destructors, which return the standard
+                           "void". */
+EXTERN a_boolean
+                targ_ia64_abi_variant_key_function;
+                        /* TRUE to select the variant rule for determining the
+                           key function (decider function) for virtual function
+                           tables in the IA-64 ABI.  See 3.1 in the ARM EABI
+                           document. */
 EXTERN an_integer_kind
 		targ_ia64_vtable_entry_int_kind;
                         /* Integer kind used for the size of a vtable entry in
                            the IA-64 ABI. */
+
 #endif /* IA64_ABI */
 
 #if GENERATE_EH_TABLES
@@ -1267,6 +1323,12 @@ EXTERN an_integer_kind
 #undef TARG_DELTA_INT_KIND
 #undef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
 #if IA64_ABI
+#undef TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#undef TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD
+#undef TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#undef TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+#undef TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#undef TARG_IA64_ABI_VARIANT_KEY_FUNCTION
 #undef TARG_IA64_VTABLE_ENTRY_INT_KIND
 #if GENERATE_EH_TABLES
 #undef TARG_REGION_NUMBER_INT_KIND
@@ -1477,6 +1539,17 @@ EXTERN an_integer_kind
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND                            \
                         targ_virtual_function_index_int_kind
 #if IA64_ABI
+#define TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE                               \
+        targ_ia64_abi_use_guard_acquire_release
+#define TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD                               \
+        targ_ia64_abi_use_int_static_init_guard
+#define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES                               \
+        targ_ia64_abi_use_variant_array_cookies
+#define IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR                      \
+        targ_ia64_abi_use_variant_ptr_to_member_function_repr
+#define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS                     \
+        targ_ia64_abi_variant_ctors_and_dtors_return_this
+#define TARG_IA64_ABI_VARIANT_KEY_FUNCTION targ_ia64_abi_variant_key_function
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND targ_ia64_vtable_entry_int_kind
 #if GENERATE_EH_TABLES
 #define TARG_REGION_NUMBER_INT_KIND targ_region_number_int_kind

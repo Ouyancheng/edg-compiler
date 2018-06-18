@@ -25938,23 +25938,25 @@ NULL if the result is unknown).
         if (!routine->is_template_function) {
           /* A non-template.  It's the decider if it's not inline. */
           if (
-#if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
-              !routine->inline_in_class_definition
-#else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
+#if IA64_ABI
+              !targ_ia64_abi_variant_key_function ?
+                                         !routine->inline_in_class_definition :
+                                         !routine->is_inline
+#else /* !IA64_ABI */
               !routine->is_inline
-#endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
+#endif /* IA64_ABI */
              ) break;
         } else {
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
              a function to see whether it is really inline. */
           if (!rout_is_inline_template_function(routine,
-#if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
-                                                /*in_class=*/TRUE
-#else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
-                                                /*in_class=*/FALSE
-#endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
-                                                                  )) break;
+#if IA64_ABI
+                                            !targ_ia64_abi_variant_key_function
+#else /* !IA64_ABI */
+                                            /*in_class=*/FALSE
+#endif /* IA64_ABI */
+                                                              )) break;
 #if BACK_END_IS_CP_GEN_BE && \
     (NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
      PROTOTYPE_INSTANTIATIONS_IN_IL)
