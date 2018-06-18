@@ -1,6 +1,6 @@
 Version 4.15
 
-6/15/18  [EDGcpfe/19572]
+6/15/18  [EDGcpfe/13277,EDGcpfe/19047,EDGcpfe/19572,EDGcpfe/19776]
 Explicit default constructors
 
 The front end now ignores explicit default constructors when considering
