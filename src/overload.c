@@ -25431,22 +25431,22 @@ a_symbol_ptr select_overloaded_default_constructor(
                                          a_boolean         *ambiguous,
                                          a_symbol_ptr      *inaccessible_match)
 /*
-See if there is a default constructor of the indicated class type
-(i.e., one that can be called with no arguments).  If so, return a pointer
-to the symbol for the constructor.  Consider template constructors as
-possible default constructors if include_templates is TRUE (they can
-be called with zero arguments if they have default template arguments
-or a parameter pack).  If declarative_context is TRUE, the function is
-being called in a declarative context (where default arguments are not
-parsed); otherwise, this is a call in an expression context (where default
-arguments must have been parsed).  If more than one constructor matches,
-set *ambiguous to TRUE and return NULL.  The source position of the
-reference is given by pos (it's needed only if include_templates is
-TRUE).  If inaccessible_match is non-NULL, in C++/CLI mode it will be
-set to a symbol that would have been chosen except that it was
-inaccessible because of hide-by-sig lookup.  No reference to the
-constructor is implied yet; we're just finding out if it exists.  This
-routine does not find implied trivial default constructors; see
+See if there is a default constructor of the indicated class type (i.e., one
+that can be called with no arguments).  If so, return a pointer to the symbol
+for the constructor.  Consider template constructors as possible default
+constructors if include_templates is TRUE (they can be called with zero
+arguments if they have default template arguments or a parameter pack).  If
+declarative_context is TRUE, the function is being called in a declarative
+context (where default arguments are not parsed); otherwise, this is a call in
+an expression context (where default arguments must have been parsed).  If
+no_explicit is TRUE, constructors declared with the "explicit" specifier are
+ignored.  If more than one constructor matches, set *ambiguous to TRUE and
+return NULL.  The source position of the reference is given by pos (it's
+needed only if include_templates is TRUE).  If inaccessible_match is non-NULL,
+in C++/CLI mode it will be set to a symbol that would have been chosen except
+that it was inaccessible because of hide-by-sig lookup.  No reference to the
+constructor is implied yet; we're just finding out if it exists.  This routine
+does not find implied trivial default constructors; see
 find_default_constructor.
 */
 {

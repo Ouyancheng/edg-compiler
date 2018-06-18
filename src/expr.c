@@ -44484,20 +44484,20 @@ a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
 Find and return a pointer to a symbol representing a default constructor for
 the class indicated by class_type.  (A default constructor is a constructor
 that requires no arguments.)  If more than one acceptable constructor is
-found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
-if no default constructor is found.  For a trivial default constructor that's
-not user-declared, there's no symbol, so return NULL; for a user-declared
-default constructor that's defaulted and trivial, return the symbol.
-In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
-If include_templates is TRUE, consider also template constructors that can
-be called with zero arguments.  If declarative_context is TRUE, the function is
+found, set *ambiguous to TRUE and return one of the symbols.  Return NULL if
+no default constructor is found.  For a trivial default constructor that's not
+user-declared, there's no symbol, so return NULL; for a user-declared default
+constructor that's defaulted and trivial, return the symbol.  In either of
+those cases, if trivial is non-NULL return *trivial set to TRUE.  If
+include_templates is TRUE, consider also template constructors that can be
+called with zero arguments.  If declarative_context is TRUE, the function is
 being called in a declarative context (where default arguments are not
 parsed); otherwise, this is a call in an expression context (where default
-arguments must have been parsed).  pos gives the source position for the
-reference (it's needed only if include_templates is TRUE).
-If inaccessible_match is non-NULL, in C++/CLI mode it will be set to a
-symbol that would have been chosen except that it was inaccessible
-because of hide-by-sig lookup.
+arguments must have been parsed).  If no_explicit is TRUE, ignore constructor
+declared with the "explicit" specifier.  pos gives the source position for the
+reference (needed only if include_templates is TRUE).  If inaccessible_match
+is non-NULL, in C++/CLI mode it will be set to a symbol that would have been
+chosen except that it was inaccessible because of hide-by-sig lookup.
 */
 {
   a_symbol_ptr  sym, ctor_sym = NULL;

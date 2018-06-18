@@ -20778,7 +20778,7 @@ constructor should be deleted.
                                     /*declarative_context=*/TRUE,
                                     /*evaluated=*/TRUE, /*check_access=*/TRUE,
                                     /*no_explicit=*/FALSE, &error_detected,
-                                     &err);
+                                    &err);
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
             break;
