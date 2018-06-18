@@ -7913,9 +7913,9 @@ location is the insert_location2 value (after the assignment statement).
                       (targ_ia64_abi_use_guard_acquire_release ? &outer_then :
                                                                  block_stmt),
 #else /* !IA64_ABI */
-                                       block_stmt,
+                      block_stmt,
 #endif /* IA64_ABI */
-                                                   insert_location2,
+                      insert_location2,
                       (an_insert_location *)NULL);
 #if !IA64_ABI
   /* Make "test_var = 1" and insert it inside the "if" statement. */

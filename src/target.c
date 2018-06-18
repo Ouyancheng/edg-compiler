@@ -607,6 +607,11 @@ are diagnosed.
     internal_error("check_target_config: "
                 "targ_field_alloc_sequence_equals_decl_sequence must be TRUE");
   }  /* if */
+#else /* !IA64_ABI */
+  if (!ctors_return_this || dtors_return_this) {
+    internal_error("check_target_config: "
+                     "ctors_return_this or dtors_return_this set incorrectly");
+  }  /* if */
 #endif /* IA64_ABI */
 #if !HOST_TARGET_ENDIAN_MISMATCH_OKAY
   if (targ_little_endian != host_little_endian) {
@@ -861,7 +866,7 @@ header has been read and the target has been determined).
   dtors_return_this = targ_ia64_abi_variant_ctors_and_dtors_return_this;
 #else /* !IA64_ABI */
   ctors_return_this = TRUE;
-  dtors_return_this = TRUE;
+  dtors_return_this = FALSE;
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
   remove_qualifiers_from_param_types =
