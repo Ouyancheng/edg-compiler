@@ -44493,7 +44493,7 @@ include_templates is TRUE, consider also template constructors that can be
 called with zero arguments.  If declarative_context is TRUE, the function is
 being called in a declarative context (where default arguments are not
 parsed); otherwise, this is a call in an expression context (where default
-arguments must have been parsed).  If no_explicit is TRUE, ignore constructor
+arguments must have been parsed).  If no_explicit is TRUE, ignore constructors
 declared with the "explicit" specifier.  pos gives the source position for the
 reference (needed only if include_templates is TRUE).  If inaccessible_match
 is non-NULL, in C++/CLI mode it will be set to a symbol that would have been
