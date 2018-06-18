@@ -8504,8 +8504,10 @@ static void gen_field_initializer(a_field_ptr  field)
                               (a_dynamic_init_kind)dik_nonconstant_aggregate ||
                 (field->initializer->kind ==
                                            (a_dynamic_init_kind)dik_constant &&
-                 !constant_should_be_put_out_as_expr(
-                                    field->initializer->variant.constant))))) {
+                 !(field->initializer->variant.constant->kind !=
+                                      (a_constant_repr_kind)ck_aggregate ||
+                   constant_should_be_put_out_as_expr(
+                                   field->initializer->variant.constant)))))) {
     /* gen_dynamic_init will supply the braces for a braced constructor
        call.  Similarly, an aggregate will have its own set of braces.  A
        constant aggregate from an expression, such as would be produced by
