@@ -37262,8 +37262,9 @@ to implement a co_yield expression.
   }  /* if */
   curr_routine = current_routine_entry();
   if (is_template_dependent_context() && operand_is_dependent(operand)) {
-    template_unary_operation(for_yield ? eok_yield : eok_await, operand,
-                             result, pos, tok_seq_number);
+    template_unary_operation((an_expr_operator_kind)(for_yield ? eok_yield
+                                                               : eok_await),
+                             operand, result, pos, tok_seq_number);
     goto done;
   }  /* if */
   cdp = get_coroutine_descr(curr_routine, pos);
