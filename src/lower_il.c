@@ -222,7 +222,7 @@ For the IA-64 ABI:
     *delta = 0;
   } else {
     *delta = pm_cast_offset(constant);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
     if (targ_ia64_abi_use_variant_ptr_to_member_function_repr) {
       /* In the IA-64 ABI, the low-order bit indicates whether the function
          is virtual.  This is in the variant of the ABI for architectures
@@ -230,7 +230,7 @@ For the IA-64 ABI:
          set. */
       *delta = *delta * 2 + (routine->is_virtual ? 1 : 0);
     }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   }  /* if */
   /* The second field is
        0 for a NULL pointer;
@@ -282,10 +282,12 @@ For the IA-64 ABI:
     /* In the IA-64 ABI, the offset is the virtual function table offset
        in bytes of the function. */
     *offset = routine->virtual_function_number * vtbl_entry_size();
+#if DO_IL_LOWERING
     if (!targ_ia64_abi_use_variant_ptr_to_member_function_repr) {
       /* The low-order bit is 1 to indicate a virtual function. */
       if (routine->is_virtual) *offset |= 1;
     }  /* if */
+#endif /* DO_IL_LOWERING */
 #endif /* IA64_ABI */
     *func = NULL;
   }  /* if */

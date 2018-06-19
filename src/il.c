@@ -25938,24 +25938,24 @@ NULL if the result is unknown).
         if (!routine->is_template_function) {
           /* A non-template.  It's the decider if it's not inline. */
           if (
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
               !targ_ia64_abi_variant_key_function ?
                                          !routine->inline_in_class_definition :
                                          !routine->is_inline
-#else /* !IA64_ABI */
+#else /* !(IA64_ABI && DO_IL_LOWERING) */
               !routine->is_inline
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
              ) break;
         } else {
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
              a function to see whether it is really inline. */
           if (!rout_is_inline_template_function(routine,
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
                                             !targ_ia64_abi_variant_key_function
-#else /* !IA64_ABI */
+#else /* !(IA64_ABI && DO_IL_LOWERING) */
                                             /*in_class=*/FALSE
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
                                                               )) break;
 #if BACK_END_IS_CP_GEN_BE && \
     (NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \

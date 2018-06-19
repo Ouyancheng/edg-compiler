@@ -9537,13 +9537,13 @@ from the front end to the runtime.
 			   "__EDG_DELTA_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   /* Define the type of an entry in the IA-64 virtual function table. */
   (void)enter_predef_macro(int_kind_name(targ_ia64_vtable_entry_int_kind),
 			   "__EDG_IA64_VTABLE_ENTRY_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   /* Define the type of the virtual function index field of the virtual
      function table. */
   (void)enter_predef_macro(int_kind_name(targ_virtual_function_index_int_kind),
@@ -9573,11 +9573,11 @@ from the front end to the runtime.
   enter_predef_num_macro_noredef((VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS),
                                    /*lint !e506*/
 			         "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS");
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   /* Are we using the variant form of array cookies for the IA-64 ABI? */
   enter_predef_num_macro_noredef(targ_ia64_abi_use_variant_array_cookies,
 			         "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES");
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 #if !IA64_ABI
   /* What type should we use for number_of_elements arguments in cfront ABI? */
   (void)enter_predef_macro(
@@ -10525,6 +10525,7 @@ command line -D options.
     (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_IA64_ABI,
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+#if DO_IL_LOWERING
     if (targ_ia64_abi_variant_ctors_and_dtors_return_this) {
       /* Do constructors and destructors return "this" for the IA-64 ABI? */
       (void)enter_predef_macro("1", 
@@ -10539,6 +10540,7 @@ command line -D options.
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+#endif /* DO_IL_LOWERING */
 #endif /* IA64_ABI */
     if (define_portable_feature_test_macros) {
       /* Add definitions as described by WG21 SG10 SD-6 for the features
