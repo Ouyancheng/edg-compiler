@@ -37262,6 +37262,10 @@ to implement a co_yield expression.
   }  /* if */
   curr_routine = current_routine_entry();
   if (is_template_dependent_context() && operand_is_dependent(operand)) {
+    /* If the operand is template-dependent, we represent the "co_yield" or
+       "co_await" as a normal unary operation rather than with an enk_await or
+       enk_yield node that carries the actual underlying operations. */
+    prep_generic_operand(operand);
     template_unary_operation((an_expr_operator_kind)(for_yield ? eok_yield
                                                                : eok_await),
                              operand, result, pos, tok_seq_number);
@@ -40977,7 +40981,10 @@ rcblock parameter for this function).
   /* Scan the operand. */
   (void)get_token();
   yield_opnd = scan_yield_operand();
-  if (arg_list_is_dependent(yield_opnd)) {
+  if (is_template_dependent_context() && arg_list_is_dependent(yield_opnd)) {
+    /* If the operand is template-dependent, we represent the "co_yield" as a
+       normal unary operation rather than with an enk_yield node that carries
+       the actual underlying operations. */
     an_operand  opnd;
     prep_generic_argument_list(yield_opnd);
     if (is_braced_init_component(yield_opnd)) {
@@ -40986,9 +40993,8 @@ rcblock parameter for this function).
       extract_operand_from_expression_component(yield_opnd, &opnd,
                                                 /*free_icp=*/TRUE);
     }  /* if */
-    template_unary_operation(eok_yield, &opnd, result,
-                             &operator_position,
-                             operator_tok_seq_number);
+    template_unary_operation((an_expr_operator_kind)eok_yield, &opnd, result,
+                             &operator_position, operator_tok_seq_number);
     goto done;
   }  /* if */
   /* Note the presence of a yield expression. */
