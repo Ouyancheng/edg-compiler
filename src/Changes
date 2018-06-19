@@ -1,5 +1,24 @@
 Version 4.15
 
+6/19/18  [EDGcpfe/19575]
+Ambiguous inheriting constructors in C++17 mode
+
+Consider:
+
+  struct B1 { B1(double); };
+  struct B2 { B2(double); };
+  struct D: B1, B2 {
+    using B1::B1;
+    using B2::B2;  // Previously an error about a duplicate constructor
+  };               // declaration.
+  D d(1.0);        // Now an ambiguity error is issued here instead.
+
+In C++17 mode (and in Microsoft mode with microsoft_version >= 1914) the
+front end no longer issues an error on the using-declaration that triggers a
+duplicate inheriting constructor declaration.  Instead, the error is postponed
+to the point of use (an ambiguity error is issued there).
+
+
 6/19/18  [EDGcpfe/19486]
 Coroutine operations in prototype instantiations
 

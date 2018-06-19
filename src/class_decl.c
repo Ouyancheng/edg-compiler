@@ -14359,15 +14359,27 @@ implicitly declared member functions.
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       /* Do not insert code here. */
       {
+        a_boolean  ambiguous = FALSE;
         /* symbol_for_member_function has returned a symbol that has already 
            been declared.  Issue an error on trying to redeclare a
            member function. */
         if (decl_state->is_inheriting_ctor &&
             sym->variant.routine.ptr->is_inheriting_ctor) {
-          pos_syty_error(ec_inheriting_ctor_conflict,
-                         &locator->source_position,
-                         sym, sym->variant.routine.ptr->generating_using_decl
-                                                      ->qualifier.class_type);
+          if (cpp17_mode || microsoft_version_is(>=1914)) {
+            /* Inheriting constructors were reformulated in C++17 such that
+               they are completely handled at the point of use (instead of
+               synthesized at the point where the using-declaration appears).
+               We approximate some of that behavior by marking the synthesized
+               constructors as ambiguous if a duplicate synthesis is
+               detected. */
+            sym->ambiguous = TRUE;
+            ambiguous = TRUE;
+          } else {
+            pos_syty_error(ec_inheriting_ctor_conflict,
+                           &locator->source_position, sym,
+                           sym->variant.routine.ptr->generating_using_decl
+                                                   ->qualifier.class_type);
+          }  /* if */
         } else {
           pos_sy_error(ec_member_function_redeclaration,
                        &locator->source_position, sym);
@@ -14376,6 +14388,9 @@ implicitly declared member functions.
         sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                                  decl_scope_level,
                                  /*suppress_redecl_error=*/TRUE);
+        if (ambiguous) {
+          sym->ambiguous = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
