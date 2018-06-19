@@ -608,10 +608,12 @@ are diagnosed.
                 "targ_field_alloc_sequence_equals_decl_sequence must be TRUE");
   }  /* if */
 #else /* !IA64_ABI */
+#if DO_IL_LOWERING
   if (!ctors_return_this || dtors_return_this) {
     internal_error("check_target_config: "
                      "ctors_return_this or dtors_return_this set incorrectly");
   }  /* if */
+#endif /* DO_IL_LOWERING */
 #endif /* IA64_ABI */
 #if !HOST_TARGET_ENDIAN_MISMATCH_OKAY
   if (targ_little_endian != host_little_endian) {
