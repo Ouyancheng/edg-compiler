@@ -1,5 +1,16 @@
 Version 4.15
 
+6/19/18  [EDGcpfe/19751]
+IA-64 ABI: explicit specialization of variable template no longer in COMDAT
+
+An explicit specialization of a variable template in IA-64 ABI configurations
+is no longer placed in a COMDAT group.  That matches the behavior of GCC and
+clang.  For example (with --c++14):
+
+  template<typename T> int vt;
+  template<> int vt<double> = 0;  // No longer marked weak and in COMDAT
+
+
 6/18/18  [EDGcpfe/19263]
 Configuration macros for IA64 ABI ARM variants are now target-specific
 

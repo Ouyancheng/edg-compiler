@@ -9512,9 +9512,11 @@ Do IL lowering of the indicated variable and everything under it.
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
 #if IA64_ABI
     if (variable->is_template_variable &&
+        !variable->is_specialized &&
         variable->storage_class == (a_storage_class)sc_unspecified) {
       /* Ensure that variable templates are put into their own COMDAT
-         groups. */
+         groups (but not variable templates that have been explicitly
+         specialized). */
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */
