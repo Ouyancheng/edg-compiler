@@ -13062,6 +13062,12 @@ The operation is a unary operation if unary_operator is TRUE.
         /* Note that postfix -- comes in as a non-unary operation. */
         op = (an_expr_operator_kind)eok_pre_decr;
         break;
+#if COROUTINES_ALLOWED
+      case onk_await:
+        /* Only used in template-dependent contexts. */
+        op = (an_expr_operator_kind)eok_await;
+        break;
+#endif /* COROUTINES_ALLOWED */
       default:
         unexpected_condition_str("bad unary opname kind");
     }  /* switch */

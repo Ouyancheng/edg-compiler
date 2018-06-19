@@ -14997,6 +14997,12 @@ tk_unknown is returned.
     case eok_lvalue:
       result = expr_kind;
       break;
+#if COROUTINES_ALLOWED
+    case eok_await:
+    case eok_yield:
+      result = expr_kind;
+      break;
+#endif /* COROUTINES_ALLOWED */
     case eok_error:
       result = (a_type_kind)tk_error;
       break;
@@ -18517,7 +18523,7 @@ substitution. *p_error is set to TRUE if a substitution error occurs.
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
                                               &parent_t_args);
     substitute_constant(p_constant, parent_class_or_null(parent_class),
-                        parent_t_params, parent_t_args,	CTWS_NO_OPTIONS,
+                        parent_t_params, parent_t_args,	options,
                         ctws_state, source_pos, p_error);
   }  /* if */
   if (!*p_error && t_args != NULL) {
@@ -26796,6 +26802,10 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
   /* eok_lvalue: */			LVRV_OPND1_IS_PRVALUE,
+#if COROUTINES_ALLOWED
+  /* eok_await: */			LVRV_NO_REQUIREMENTS,
+  /* eok_yield: */			LVRV_NO_REQUIREMENTS,
+#endif /* COROUTINES_ALLOWED */
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */

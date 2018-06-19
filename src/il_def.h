@@ -12741,10 +12741,18 @@ enum an_expr_operator_kind_tag {
 			   <varargs.h> variant of va_start (as opposed to the
 			   variant from <stdarg.h>). */
   /* Operators appearing only in prototype instantiations: */
-  eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
-                           but really something with unknown lvalueness) is
-                           to be used as if it were an lvalue.  The eok_lvalue
-                           node itself is marked as an lvalue. */
+  eok_lvalue,		/* Indicates that the operand (marked as an rvalue,
+			   but really something with unknown lvalueness) is
+			   to be used as if it were an lvalue.  The eok_lvalue
+			   node itself is marked as an lvalue. */
+#if COROUTINES_ALLOWED
+  eok_await,		/* The coroutine "co_await" operator applied to a
+			   dependent operand.  (In non-dependent contexts,
+			   an "enk_await" node is created instead.) */
+  eok_yield,		/* The coroutine "co_yield" operator applied to a
+			   dependent operand.  (In non-dependent contexts,
+			   an "enk_yield" node is created instead.) */
+#endif /* COROUTINES_ALLOWED */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -17071,6 +17079,9 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "cli[]", 
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
+#if COROUTINES_ALLOWED
+   "co_await", "co_yield",
+#endif /* COROUTINES_ALLOWED */
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

@@ -37261,6 +37261,11 @@ to implement a co_yield expression.
     goto done;
   }  /* if */
   curr_routine = current_routine_entry();
+  if (is_template_dependent_context() && operand_is_dependent(operand)) {
+    template_unary_operation(for_yield ? eok_yield : eok_await, operand,
+                             result, pos, tok_seq_number);
+    goto done;
+  }  /* if */
   cdp = get_coroutine_descr(curr_routine, pos);
   if (cdp->error_descr) {
     expect_error();
@@ -40968,13 +40973,27 @@ rcblock parameter for this function).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   operator_tok_seq_number = curr_token_sequence_number;
+  /* Scan the operand. */
+  (void)get_token();
+  yield_opnd = scan_yield_operand();
+  if (arg_list_is_dependent(yield_opnd)) {
+    an_operand  opnd;
+    prep_generic_argument_list(yield_opnd);
+    if (is_braced_init_component(yield_opnd)) {
+      make_braced_init_list_operand(yield_opnd, &opnd);
+    } else {
+      extract_operand_from_expression_component(yield_opnd, &opnd,
+                                                /*free_icp=*/TRUE);
+    }  /* if */
+    template_unary_operation(eok_yield, &opnd, result,
+                             &operator_position,
+                             operator_tok_seq_number);
+    goto done;
+  }  /* if */
   /* Note the presence of a yield expression. */
   cdp = get_coroutine_descr(rout, &operator_position);
   check_assertion(rout->is_coroutine);
   cdp->has_yield = TRUE;
-  /* Scan the operand. */
-  (void)get_token();
-  yield_opnd = scan_yield_operand();
   if (rout->has_deducible_return_type) {
     a_coroutine_fixup_ptr  cfp;
     /* Create a placeholder enk_yield node.  It will be completed later on.

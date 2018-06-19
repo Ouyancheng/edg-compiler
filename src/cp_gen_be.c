@@ -13577,6 +13577,14 @@ gen_expr that might end up generating this expr as a temporary.
           write_tok_str(")");
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+        case eok_await:
+          opstr = "co_await ";
+          break;
+        case eok_yield:
+          opstr = "co_yield ";
+          break;
+#endif /* COROUTINES_ALLOWED */
         case eok_noexcept:
           write_tok_str("noexcept(");
           gen_expression(operand_1);

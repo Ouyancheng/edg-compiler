@@ -1,5 +1,22 @@
 Version 4.15
 
+6/19/18  [EDGcpfe/19486]
+Coroutine operations in prototype instantiations
+
+The front end's preliminary support for coroutines (see the entries for
+EDGcpfe/16687 and EDGcpfe/15431) previously did not support co_await and
+co_yield applied to template-dependent operands.  Now it does.  For example:
+
+  template<typename T> auto coro(T p) {
+    co_await p;  // Previously aborted in Microsoft modes that perform
+  }              // prototype instantiations.  Now accepted.
+
+Note that the representation of such operations is different from that of
+the nondependent version (the template-dependent case is represented using
+new eok_await/eok_yield operation kinds, whereas the nondependent case still
+uses enk_await/enk_yield nodes).
+
+
 6/19/18  [EDGcpfe/19664]
 Microsoft compatibility: constant expressions as arguments to alignas
 
