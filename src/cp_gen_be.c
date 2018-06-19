@@ -701,8 +701,10 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
   PREC_LOWEST,		/* eok_lvalue */
+#if COROUTINES_ALLOWED
   PREC_PREFIX,		/* eok_await */
   PREC_PREFIX,		/* eok_yield */
+#endif /* COROUTINES_ALLOWED */
   PREC_LOWEST,		/* eok_error */
   PREC_LOWEST		/* eok_last */
 };  /* generated_precedence */
