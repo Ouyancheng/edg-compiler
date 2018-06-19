@@ -1791,6 +1791,7 @@ ak_unrecognized.
           /* Scan a constant argument that is not a string literal.  Currently
              only integral constants are supported (or needed). */
           if (*sig == 't' && is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                              DFS_IS_SIZEOF |
                                               DFS_SINGLE_TYPE_REQUIRED)) {
             /* "ct" and what looks like a type-id follows. */
             *p_aap = scan_attr_type_arg(ap);
