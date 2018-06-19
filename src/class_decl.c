@@ -14365,7 +14365,7 @@ implicitly declared member functions.
            member function. */
         if (decl_state->is_inheriting_ctor &&
             sym->variant.routine.ptr->is_inheriting_ctor) {
-          if (cpp17_mode || microsoft_version_is(>=1914)) {
+          if (cpp17_mode || ms_version_is(>=1914)) {
             /* Inheriting constructors were reformulated in C++17 such that
                they are completely handled at the point of use (instead of
                synthesized at the point where the using-declaration appears).
