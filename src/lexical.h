@@ -2712,7 +2712,7 @@ extern void flush_tokens_with_stop_tokens_and_warning_flag(
                                          a_token_set_array  stop_tokens,
                                          a_boolean          suppress_warning);
 extern void flush_to_closing_paren(void);
-extern void flush_statement(void);
+extern void flush_if_or_else_statement(a_boolean is_if);
 extern void flush_tokens(void);
 extern void flush_tokens_without_warning(void);
 

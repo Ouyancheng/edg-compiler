@@ -14800,26 +14800,43 @@ Flush tokens until we reach an unmatched right parenthesis or brace.
 }  /* flush_to_closing_paren */
 
 
-void flush_statement(void)
+void flush_if_or_else_statement(a_boolean	is_if)
 /*
-Flush tokens until we reach a semicolon or an unmatched right brace.
+Flush tokens of a dependent statement of an "if" or "else" statement.
+If is_if is TRUE, this is an "if" statement with an "else", only flush to the
+semicolon or brace that ends the non-else part of the statement.
 */
 {
   if (curr_token == tok_lbrace) {
     flush_until_matching_token_full(/*limit_flush=*/FALSE);
     (void)get_token();
   } else {
-    a_token_set_array  stop_tokens;
-    /* Initialize a local stop token set.  Also stop on newline and end
-       of source for error cases. */
-    clear_token_set_array(stop_tokens);
-    incr_token_set_array_element(stop_tokens, tok_end_of_source);
-    incr_token_set_array_element(stop_tokens, tok_rbrace);
-    incr_token_set_array_element(stop_tokens, tok_semicolon);
-    flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
-                                                   /*suppress_warning=*/TRUE);
+      /* Special handling is needed for nested "if" statements so that
+         substatements that are "else if" statements are handled properly. */
+    if (!is_if && curr_token == tok_if) {
+      (void)get_token();
+      flush_if_or_else_statement(/*is_if=*/TRUE);
+      (void)get_token();
+      if (curr_token == tok_else) {
+        flush_if_or_else_statement(/*is_if=*/FALSE);
+      }  /* if */
+    } else {
+      /* Initialize a local stop token set.  Also stop on newline and end
+         of source for error cases. */
+      a_token_set_array  stop_tokens;
+      clear_token_set_array(stop_tokens);
+      incr_token_set_array_element(stop_tokens, tok_end_of_source);
+      incr_token_set_array_element(stop_tokens, tok_rbrace);
+      incr_token_set_array_element(stop_tokens, tok_lbrace);
+      incr_token_set_array_element(stop_tokens, tok_semicolon);
+      flush_tokens_with_stop_tokens_and_warning_flag(
+                                       stop_tokens, /*suppress_warning=*/TRUE);
+      if (curr_token == tok_lbrace) {
+        flush_until_matching_token_full(/*limit_flush=*/FALSE);
+      }  /* if */
+    }  /* if */
   }  /* if */
-}  /* flush_statement */
+}  /* flush_if_or_else_statement */
 
 
 a_boolean required_token(a_token_kind  token,

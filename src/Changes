@@ -1,5 +1,23 @@
 Version 4.15
 
+6/20/18  [EDGcpfe/19571]
+"if constexpr" not processed properly when not parsing non-class templates
+
+In modes where non-class templates are not parsed (e.g., permissive
+Microsoft mode), "if constexpr" statements in template contexts were
+sometimes not parsed properly.  Now fixed.
+
+  template <int I> struct A {
+    void f(int ch) {
+      if constexpr (I == 0) ; else if (ch == 0) ; else ;
+    }
+  };
+  int main() {
+    A<0> a;
+    a.f(1);
+  }
+
+
 6/20/18  [EDGcpfe/19755]
 Referring to local variables from nested local types
 
