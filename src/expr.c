@@ -30813,7 +30813,8 @@ a capture).
      class (the class itself or one of its member functions) or a
      default argument expression.  Note that inside_local_class is TRUE
      also when we're inside a lambda body. */
-  if (inside_local_class || expr_stack->is_default_arg_expression) {
+  if (curr_expr_is_potentially_evaluated() &&
+      (inside_local_class || expr_stack->is_default_arg_expression)) {
     if (sym_ptr->decl_scope == file_scope_number) {
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->is_class_member) {

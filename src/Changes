@@ -1,5 +1,24 @@
 Version 4.15
 
+6/20/18  [EDGcpfe/19755]
+Referring to local variables from nested local types
+
+The front end now more broadly permits referring to local variables from
+nested local types if that reference is from an unevaluated expression
+context.  For example:
+
+  void g() {
+    int x = 1;
+    struct S {
+      void f() { decltype(x) y; }  // Previously an error.  Now okay.
+    };
+  }
+
+As part of this change, member functions of local class types are now stored
+in the memory region of the enclosing function (as was already the case for
+the member functions of local closure classes).
+
+
 6/19/18  [EDGcpfe/19575]
 Ambiguous inheriting constructors in C++17 mode
 

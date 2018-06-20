@@ -2465,23 +2465,18 @@ static a_memory_region_number get_enclosing_memory_region(
 Determine if assoc_routine is a "top-level" routine.   If it is not,
 find the enclosing routine and return its memory region number.
 If it is top-level, return NULL_region_number.  A top-level function is any
-function that is neither a lambda defined in a function scope, nor the
-instantiation of a generic lambda defined in a function scope.
+function that is not a member function of a local class.
 */
 {
   a_memory_region_number	result = NULL_region_number;
-  a_type_ptr			lambda_class;
+  a_type_ptr			parent_class;
 
-  /* If the routine is a member of a closure class, get the class. */
-  (void)parent_is_lambda_closure(assoc_routine, &lambda_class);
-  if (lambda_class != NULL &&
-      (!assoc_routine->is_prototype_instantiation ||
-       prototype_instantiations_in_il)) {
-    /* Get the memory region of the function enclosing the lambda, if any.
-       If there is no enclosing function, then the lambda is a top-level
-       routine. */
-    a_scope_ptr	scope = NULL;
-    scope = get_parent_scope_of(lambda_class);
+  parent_class = parent_class_or_null(assoc_routine);
+  if (parent_class != NULL) {
+    /* Get the memory region of the function enclosing the parent class, if
+       any.  If there is no enclosing function, then assoc_routine is a
+       top-level routine. */
+    a_scope_ptr	scope = get_parent_scope_of(parent_class);
     while (scope != NULL && !scope_is(scope, sck_function) &&
            is_local_scope_kind(scope->kind)) {
       scope = scope->parent;
