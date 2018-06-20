@@ -2437,6 +2437,7 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
 done:;
 }  /* set_parent_scope_on_push */
 
+#if DO_IL_LOWERING
 
 a_boolean parent_is_lambda_closure(a_routine_ptr	routine,
 				   a_type_ptr		*closure_class)
@@ -2458,6 +2459,7 @@ returned in that pointer (otherwise the pointer is returned as NULL).
   return result_class != NULL;
 }  /* parent_is_lambda_closure */
 
+#endif /* DO_IL_LOWERING */
 
 static a_memory_region_number get_enclosing_memory_region(
 						a_routine_ptr	assoc_routine)
