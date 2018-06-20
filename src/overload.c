@@ -8780,7 +8780,8 @@ create_final_list:
       cfp->next = NULL;
       if (!*undecidable_because_of_error &&
           (overall_ambiguity ? (cfp->in_best_match_set_for_some_argument ||
-                                cfp->function_symbol->ambiguous) :
+                                (cfp->function_symbol != NULL &&
+                                 cfp->function_symbol->ambiguous)) :
                                cfp->in_best_match_set)) {
         /* Keep an entry that made the final list. */
         if (end_candidate_functions == NULL) {
