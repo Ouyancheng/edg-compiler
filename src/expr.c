@@ -2390,39 +2390,49 @@ done.
   a_pack_expansion_descr_ptr       pedep;
   a_pack_expansion_stack_entry_ptr pesep;
   a_boolean                        err;
+  a_boolean                        add_expr_copy = FALSE;
 
   /* Note this is similar to rescan_expression_list_context_expr. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   pedep = eriep->saved_operand.pack_expansion_descr;
   check_assertion(expr->is_pack_expansion && pedep != NULL);
-  any_more = begin_rescan_pack_expansion_context(pedep,
+  if (rcblock->ctws_state->ignore_enclosing_expansions &&
+      !pedep->uses_any_enclosing_packs) {
+    add_expr_copy = TRUE;
+  } else {
+    any_more = begin_rescan_pack_expansion_context(pedep,
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
                                                  &pesep, rcblock->options,
                                                  rcblock->ctws_state, &err);
-  /* Check if an error occurred (such as mismatched parameter pack lengths). */
-  if (err) subst_fail(rcblock->error_detected);
-  while (any_more) {
-    /* Rescan one iteration of the pack expansion and add the resulting
-       expression to the list. */
-    an_arg_list_elem_ptr alep = rescan_expr_as_arg_list_elem(expr, rcblock);
-    if (*expr_list == NULL) {
-      *expr_list = alep;
-    } else {
-      append_elem(*end_expr_list, alep);
-    }  /* if */
-    *end_expr_list = alep;
-    (void)end_potential_pack_expansion_context(pesep,
-                                               /*is_declarator=*/FALSE);
-    any_more = advance_to_next_pack_element(pesep);
-  }  /* while */
-  if ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0 &&
-       !pedep->uses_only_enclosing_packs) {
+    /* Check if an error occurred (such as mismatched parameter pack
+       lengths). */
+    if (err) subst_fail(rcblock->error_detected);
+    while (any_more) {
+      /* Rescan one iteration of the pack expansion and add the resulting
+         expression to the list. */
+      an_arg_list_elem_ptr alep = rescan_expr_as_arg_list_elem(expr, rcblock);
+      if (*expr_list == NULL) {
+        *expr_list = alep;
+      } else {
+        append_elem(*end_expr_list, alep);
+      }  /* if */
+      *end_expr_list = alep;
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
+  }  /* if */
+  if (add_expr_copy ||
+      ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0 &&
+        !pedep->uses_only_enclosing_packs)) {
     /* We're in a context where some pack elements might have been specified
        explicitly, but more such elements might be deduced.  We have to ensure
        that the substituted list keeps the ability to gain more elements (i.e.,
        this is really a dependent expression list still).  Append a copy of the
-       parameterized pack expansion. */
+       parameterized pack expansion.  We also add a copy of the original
+       expression (which might not be deduced pack) if the code above
+       suppressed the expansion because it was not needed. */
     an_expr_node_ptr     expr_copy = copy_expr_tree(expr,
                                                     CE_PRESERVE_RESCAN_INFO);
     an_operand           opnd;

@@ -462,6 +462,10 @@ typedef struct a_pack_expansion_descr {
 			/* TRUE if all of the pack references are to packs
 			   from enclosing templates.  These must be expanded
 			   during the declaration of a nested template. */
+  a_byte_boolean
+		uses_any_enclosing_packs;
+			/* TRUE if any of the pack references are to packs
+			   from enclosing templates. */
 } a_pack_expansion_descr;
 
 

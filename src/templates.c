@@ -601,6 +601,7 @@ Initialize a template argument substitution state block.
   csp->routine_type_levels = -1;
   csp->parent_levels = 0;
   csp->preserve_deduced_packs = FALSE;
+  csp->ignore_enclosing_expansions = FALSE;
 }  /* init_ctws_state */
 
 

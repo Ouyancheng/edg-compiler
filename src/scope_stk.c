@@ -10291,6 +10291,7 @@ to it.
   pedp->ellipsis_seen = FALSE;
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;
+  pedp->uses_any_enclosing_packs = FALSE;
   return pedp;
 }  /* alloc_pack_expansion_descr */
 
@@ -12015,6 +12016,9 @@ that list to pedp.
           if (!prp1->uses_enclosing_pack) {
             /* Record that this expansion uses only a non-enclosing pack. */
             pedp->uses_only_enclosing_packs = FALSE;
+          } else {
+            /* This expansion uses at least one enclosing pack. */
+            pedp->uses_any_enclosing_packs = TRUE;
           }  /* if */
           for (prp2 = prp1->next; prp2 != NULL; prp2 = prp2->next) {
             if (prp1->symbol == prp2->symbol) {
