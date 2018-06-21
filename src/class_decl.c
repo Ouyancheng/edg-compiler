@@ -16670,11 +16670,9 @@ template declaration and is NULL otherwise.
     }  /* if */
     if (decl_info->is_member_template) {
       /* Don't process the initializer of a variable template. */
-      srk_flags |= SRK_DEFINITION;
     } else if (delay_initializer_scan) {
       record_inclass_initializer_fixup(class_state, decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
-      srk_flags |= SRK_DEFINITION;
     } else if (var->is_inline ||
                is_valid_static_member_constant_type(
                                       member_type, var, constant_member,

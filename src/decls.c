@@ -6699,7 +6699,7 @@ of the variable.
 */
 {
   if (dps->dso_flags & DSO_CONSTEXPR) {
-    if (is_definition ||
+    if (is_definition || vp->initializer_in_class ||
         (vp->is_prototype_instantiation &&
          (could_be_dependent_class_type(vp->type) ||
           is_class_struct_union_type(vp->type)))) {

@@ -6921,13 +6921,18 @@ expression context) rather than a declaration.
   is_definition = !is_var_templ_instance ||
                   (is_use &&
                    (body_cache->tokens.first_token != NULL ||
-                    var_ptr->initializer_in_class));
+                    var_ptr->initializer_in_class) &&
+                  (!var_ptr->source_corresp.is_class_member ||
+                   var_ptr->is_inline ||
+                   tssp_of_prototype->
+                                variant.variable.has_out_of_class_definition));
   /* Call a routine to do processing common to various forms of variable
      declarations. */
   if (is_var_templ_instance && is_use) {
     update_variable_decl_info(var_ptr, &dps, is_definition);
   }  /* if */
-  if (is_definition &&
+  if ((is_definition ||
+       (is_use && var_ptr->init_kind == (an_init_kind)initk_none)) &&
       body_cache->tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
@@ -6957,7 +6962,9 @@ expression context) rather than a declaration.
       ssep->curr_construct_pragmas = saved_curr_construct_pragmas;
       ssep->pending_pragmas = saved_pending_pragmas;
     }  /* if */
-    master_instance_of(tip)->already_instantiated = TRUE;
+    if (is_definition) {
+      master_instance_of(tip)->already_instantiated = TRUE;
+    }  /* if */
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
        invalid token will have already been discarded. */
