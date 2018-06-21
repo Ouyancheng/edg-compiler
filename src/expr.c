@@ -30823,28 +30823,30 @@ a capture).
      class (the class itself or one of its member functions) or a
      default argument expression.  Note that inside_local_class is TRUE
      also when we're inside a lambda body. */
-  if (!curr_expr_is_potentially_evaluated()) {
-    /* References from non-evaluated contexts are generally fine.  However,
-       a decltype from a capturing lambda may need adjustment. */
-    if (in_lambda_body() && symbol_is(sym_ptr, sk_variable)) {
-      a_lambda_ptr  lambda;
-      lambda = scope_stack[depth_innermost_function_scope].lambda;
-      var = sym_ptr->variant.variable.ptr;
-      if (add_const != NULL && !lambda->is_mutable &&
-          var_is_copy_captured(lambda, var)) {
-          /* Consider:
-               int main() {
-                 float x;
-                 [=]{ decltype((x)) r = 1.2; };
-               }
-             decltype((x)) here produces type "reference to const float"
-             the lambda is non-mutable and hence x would be "const" if it
-             were captured. */
-        *add_const = TRUE;
+  if (inside_local_class || expr_stack->is_default_arg_expression) {
+    var = variable_for_symbol(sym_ptr);
+    if (!curr_expr_is_potentially_evaluated() &&
+        !var->has_variably_modified_type) {
+      /* References from non-evaluated contexts are generally fine (unless a
+         variably-modified type is involved).  However, a decltype from a
+         capturing lambda may need adjustment. */
+      if (in_lambda_body() && symbol_is(sym_ptr, sk_variable)) {
+        a_lambda_ptr  lambda;
+        lambda = scope_stack[depth_innermost_function_scope].lambda;
+        if (add_const != NULL && !lambda->is_mutable &&
+            var_is_copy_captured(lambda, var)) {
+            /* Consider:
+                 int main() {
+                   float x;
+                   [=]{ decltype((x)) r = 1.2; };
+                 }
+               decltype((x)) here produces type "reference to const float"
+               because the lambda is non-mutable and hence x would be "const"
+               if it were captured. */
+          *add_const = TRUE;
+        }  /* if */
       }  /* if */
-    }  /* if */
-  } else if (inside_local_class || expr_stack->is_default_arg_expression) {
-    if (sym_ptr->decl_scope == file_scope_number) {
+    } else if (sym_ptr->decl_scope == file_scope_number) {
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->is_class_member) {
       /* A reference to a class member is okay. */
@@ -30854,7 +30856,6 @@ a capture).
       /* A reference to a local variable.  Get the variable for the symbol. */
       check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
                           "bad_nested_function_variable_ref: bad sym kind");
-      var = sym_ptr->variant.variable.ptr;
       if (var->source_corresp.enclosing_routine == NULL) {
         /* Block extern declarations create symbols that are local but
            point to variables that are external.  The reference is okay
@@ -30908,10 +30909,7 @@ a capture).
              type of the operand. */
           *add_const = TRUE;
         }  /* if */
-        if (!expr_stack->potentially_evaluated &&
-            !var->has_variably_modified_type) {
-          /* The reference is acceptable. */
-        } else if (lambda_capture == NULL) {
+        if (lambda_capture == NULL) {
           /* The variable is the parent for an anonymous union, so the
              reference is not allowed. */
           check_assertion(var->is_anonymous_parent_object);
