@@ -1,5 +1,16 @@
 Version 4.15
 
+6/21/18  [EDGcpfe/19791]
+C++-generating back end: incorrect output for deduction guides
+
+In modes where template declarations are generated using saved strings,
+deduction guides were not emitted properly.  Now fixed.
+
+  template <class T1, class T2> struct A {};
+  template <class T1, class T2> A(T1, T2) -> A<T1, T2>;
+
+
+
 6/20/18  [EDGcpfe/19571]
 "if constexpr" not processed properly when not parsing non-class templates
 

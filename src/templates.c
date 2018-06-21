@@ -26493,6 +26493,13 @@ optionally prefixed with the keyword "explicit".
   set_membership_in_source_corresp(&proto->source_corresp, proto_sym);
   proto->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+#if RECORD_TEMPLATE_STRINGS
+  /* Stop the background caching and save the declaration up to this
+     point.  The cache is not used for instantiation -- it is only needed
+     if we are generating template strings. */
+  make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
+                           /*include_last_token=*/FALSE);
+#endif /* RECORD_TEMPLATE_STRINGS */
   /* Call a routine that manages the correspondence of entities between
      translation units to notify it of the new instance. */
   record_instantiation(proto_sym, tssp);
