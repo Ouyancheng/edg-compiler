@@ -2431,7 +2431,7 @@ done.
        that the substituted list keeps the ability to gain more elements (i.e.,
        this is really a dependent expression list still).  Append a copy of the
        parameterized pack expansion.  We also add a copy of the original
-       expression (which might not be deduced pack) if the code above
+       expression (which might not be a deduced pack) if the code above
        suppressed the expansion because it was not needed. */
     an_expr_node_ptr     expr_copy = copy_expr_tree(expr,
                                                     CE_PRESERVE_RESCAN_INFO);

@@ -1996,7 +1996,7 @@ typedef struct a_ctws_state {
   a_boolean	ignore_enclosing_expansions;
 			/* TRUE if this is the substitution of an enclosing
 			   pack expansion and such expansions should be
-			   ignored unless if the pack uses only non-enclosing
+			   ignored unless the pack uses only non-enclosing
 			   packs. */
 } a_ctws_state;
 
