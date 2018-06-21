@@ -13225,7 +13225,11 @@ the value representation of the integer value.
         if (this_bytes != NULL) {
           (void)memcpy(result_storage, this_bytes, size_t_arg(n_bytes));
           copy_address_structures(result_storage);
-          mark_complete_object_initialized(result_storage);
+          if (result_storage == complete_object) {
+            mark_complete_object_initialized(complete_object);
+          } else {
+            mark_subobject_initialized(result_storage, complete_object);
+          }  /* if */
         } else {
           do_constexpr_fail(result);
           info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
