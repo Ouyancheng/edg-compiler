@@ -30261,11 +30261,8 @@ icp.
                                        /*check_constexpr=*/FALSE,
                                        &dps->declarator_pos);
   }  /* if */
-  wrap_up_dynamic_init_full_expression(dip);
   /* Change the references to "use". */
   change_some_ref_kinds(operand.ref_entries_list, SRK_REFERENCE, SRK_USE);
-  pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
-                                 dps, (an_init_state *)NULL);
   if (err) {
     /* Nothing more to do. */
   } else if (bitwise_copy) {
@@ -30295,6 +30292,9 @@ icp.
     repeat_nonconstant_init(dip, orig_atype, etype, array_dip, n_elems);
     dip = array_dip;
   }  /* if */
+  wrap_up_dynamic_init_full_expression(dip);
+  pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
   if (dtor != NULL && !err) {
     /* Record the end-of-lifetime destructor. */
     record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
