@@ -3,8 +3,8 @@ Version 4.15
 6/21/18  [EDGcpfe/19753]
 Missing error on explicit instantiation of variable with in-class initializer
 
-A variable template that is initialized in-class is not allowed in an
-explicit instantiation directive because the in-class declaration is not
+A non-inline variable template that is initialized in-class is not allowed in
+an explicit instantiation directive because the in-class declaration is not
 considered a "definition" in that case.  A diagnostic is now issued.
 
   struct A {
