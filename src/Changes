@@ -1,5 +1,19 @@
 Version 4.15
 
+6/25/18  [EDGcpfe/19027,EDGcpfe/19280]
+Jumping past initializations in condition declarations
+
+The front end now diagnoses attempts to jump past condition declarations that
+contain initializations.  For example:
+
+  int main() {
+    goto L;           // Now an error in strict mode, because this jumps
+    if (int x = 4) {  // past the "int x = 4" initialization.
+  L:
+      return 0;
+  }
+
+
 6/21/18  [EDGcpfe/19753]
 Missing error on explicit instantiation of variable with in-class initializer
 

@@ -919,10 +919,6 @@ that is being generated.
         vp = cfdp->variant.init.variable;
         severity = es_none;
         if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
-          check_assertion(sp == NULL ||
-                          sp->kind == (a_statement_kind)stmk_init ||
-                          (C_mode() && microsoft_mode &&
-                           sp->kind == (a_statement_kind)stmk_block));
           if (!var_has_static_or_thread_storage_duration(vp)) {
             severity = es_warning;
             if (!C_mode()) {
@@ -3619,6 +3615,34 @@ is for an "else".
 }  /* dependent_statement_of_if */
 
 
+static void record_condition_initializations(an_il_entity_list_entry  *entry,
+                                             a_statement_ptr          sp)
+/*
+The given (possibly NULL) list of entities are being declared as part of the
+given statement, which is associated with a declaration in a condition (see
+scan_structured_control_value).  For each of those entities that is a variable
+with a dynamic initialization, record a cfdk_init control flow description that
+records that initialization (so attempts to jump over them will elicit an
+error).
+*/
+{
+  for  (; entry != NULL; entry = entry->next) {
+    if (entry->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+      a_variable_ptr  vp = (a_variable_ptr)entry->entity.ptr;
+      if (vp->init_kind == (an_init_kind)initk_dynamic) {
+        a_control_flow_descr_ptr  cfdp = alloc_control_flow_descr(
+                                         (a_control_flow_descr_kind)cfdk_init);
+        cfdp->variant.init.statement = sp;
+        cfdp->variant.init.variable = vp;
+        cfdp->variant.init.in_statement_expression =
+                                                 inside_statement_expression();
+        add_to_control_flow_descr_list(cfdp);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* record_condition_initializations */
+
+
 static void scan_structured_control_value(a_statement_ptr    sp,
                                           an_init_component  *cached_expr)
 /*
@@ -3684,6 +3708,9 @@ scope and an enk_condition node (the node is attached to sp).
     /* Scan the upcoming declaration.  In C++17, this may be an initialization
        statement (terminated by a semicolon).  Otherwise, it is a condition
        declaration which should be a single variable with an initializer. */
+    struct_stmt_stack_top().record_declared_entities = TRUE;
+    struct_stmt_stack_top().p_declared_entities = &entity_list;
+    entity_list = NULL;
     init_decl_parse_state(&dps);
     dps.keep_terminating_token = TRUE;
     scan_nonmember_declaration(&dps, (a_source_range*)NULL);
@@ -3727,6 +3754,9 @@ scope and an enk_condition node (the node is attached to sp).
         pos_error(ec_invalid_init_statement, &dps.start_pos);
       }  /* if */
     }  /* if */
+    record_condition_initializations(entity_list, sp);
+    struct_stmt_stack_top().record_declared_entities = FALSE;
+    struct_stmt_stack_top().p_declared_entities = NULL;
   }  /* if */
   if (initializer_scanned) {
     /* A C++17-style initializer was scanned (expression or declaration).
@@ -3741,6 +3771,7 @@ scope and an enk_condition node (the node is attached to sp).
       init_decl_parse_state(&dps);
       dps.keep_terminating_token = TRUE;
       scan_nonmember_declaration(&dps, (a_source_range*)NULL);
+      record_condition_initializations(entity_list, sp);
       end_potential_decl_statement();
     } else {
       end_potential_decl_statement();
@@ -4199,18 +4230,6 @@ See also 3.6.4.2.
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_switch, sp, (an_object_lifetime_ptr)NULL);
-  /* Add a switch block entry to the control_flow_descr_list.  The
-     corresponding end-of-entry is added at the end of this routine.  This
-     is done even though a switch statement usually involves a compound
-     statement, which could also serve as the switch block.  It's done
-     this way to handle the unusual case as well, e.g.,
-       switch (i) if (i > 0) ++i; else { int j = i; i += j; case 0:; }
-     Also, set the source position of "switch" in the entry that's
-     created. */
-  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
-  cfdp->source_pos = pos_curr_token;
-  cfdp->variant.block.is_switch_block = TRUE;
-  add_to_control_flow_descr_list(cfdp);
   /* Ignore the initial "switch". */
   check_assertion_str(curr_token == tok_switch,
                       "switch_statement: expected switch");
@@ -4226,6 +4245,18 @@ See also 3.6.4.2.
       pos_remark(ec_switch_selector_expr_is_constant, &error_position);
     }  /* if */
   }  /* if */
+  /* Add a switch block entry to the control_flow_descr_list.  The
+     corresponding end-of-entry is added at the end of this routine.  This
+     is done even though a switch statement usually involves a compound
+     statement, which could also serve as the switch block.  It's done
+     this way to handle the unusual case as well, e.g.,
+       switch (i) if (i > 0) ++i; else { int j = i; i += j; case 0:; }
+     Also, set the source position of "switch" in the entry that's
+     created. */
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+  cfdp->source_pos = sp->position;
+  cfdp->variant.block.is_switch_block = TRUE;
+  add_to_control_flow_descr_list(cfdp);
   /* Save the selector expression type for checking of the case label
      values. */
   struct_stmt_stack[depth_stmt_stack].type = sp->expr->type;
@@ -5469,10 +5500,6 @@ generated.
       sp = cfdp->variant.init.statement;
       vp = cfdp->variant.init.variable;
       if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
-        check_assertion(sp == NULL ||
-                        sp->kind == (a_statement_kind)stmk_init ||
-                        (C_mode() && microsoft_mode &&
-                         sp->kind == (a_statement_kind)stmk_block));
         /* We only issue a diagnostic for jumping over an initialization of
            an automatic variable (see [stmt.decl], para 3). */
         if (!var_has_static_or_thread_storage_duration(vp)) {
