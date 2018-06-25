@@ -13761,13 +13761,12 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         fp = type->variant.class_struct_union.field_list,
         fp = next_alloc_field(fp);
-        /* Retrieve the active field. */
-        afp = (a_field_ptr)*(void**)object;
-        if (afp == NULL) {
+        if (fp == NULL || (afp = (a_field_ptr)*(void**)object) == NULL) {
           /* This should only happen with unions that have no field (other
              than empty anonymous union parent objects), and therefore cannot
              have an active field. */
         } else {
+          /* afp describes the active field. */
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
           elem_con = alloc_constant((a_constant_repr_kind)ck_error);
