@@ -15331,8 +15331,13 @@ current scope.
           err = TRUE;
         }  /* if */
       } else {
-        sym = coalesce_and_lookup_generalized_identifier(
+        if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+         pos_error(ec_exp_identifier, &pos_curr_token);
+         err = TRUE;
+        } else {
+          sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+        }  /* if */
       }  /* if */
       if (err) {
         /* Diagnostic has already been issued. */
