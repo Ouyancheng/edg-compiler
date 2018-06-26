@@ -13130,16 +13130,28 @@ Generate a C++17 fold expression (only appears in templates).
   if (opnd->next == NULL && expr->variant.fold.left_associative) {
     /* Don't render a "left" operand. */
   } else {
+    a_boolean  node_marked_as_pack_expansion = opnd->is_pack_expansion;
+    /* Even if this is the expanded node, inhibit the generation of an
+       ellipsis after it since the fold expression expansion syntax is
+       different (the ellipsis is rendered explicitly below). */
+    opnd->is_pack_expansion = FALSE;
     gen_expression(opnd);
+    opnd->is_pack_expansion = node_marked_as_pack_expansion;
     write_tok_str(" ");
     write_tok_str(token_names[expr->variant.fold.operator_token]);
     opnd = opnd->next;
   }  /* if */
   write_tok_str(" ... ");
   if (opnd != NULL) {
+    a_boolean  node_marked_as_pack_expansion = opnd->is_pack_expansion;
+    /* Even if this is the expanded node, inhibit the generation of an
+       ellipsis after it since the fold expression expansion syntax is
+       different (the ellipsis is rendered explicitly above). */
+    opnd->is_pack_expansion = FALSE;
     write_tok_str(token_names[expr->variant.fold.operator_token]);
     write_tok_str(" ");
     gen_expression(opnd);
+    opnd->is_pack_expansion = node_marked_as_pack_expansion;
   }  /* if */
   write_tok_str(")");
 }  /* gen_fold_expression */
