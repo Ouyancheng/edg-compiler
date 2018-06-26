@@ -23435,9 +23435,15 @@ declaration from a using-declaration.)
       }  /* if */
     } else {
       /* Not "using typename ...". */
-      (void)coalesce_and_lookup_generalized_identifier(
+      if (!is_generalized_identifier_start(GID_DTOR_RECOGNIZED |
+                                           GID_TEMPLATE_ARGS_OPTIONAL)) {
+        pos_error(ec_exp_identifier, &pos_curr_token);
+        err = TRUE;
+      } else {
+        (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
+      }  /* if */
     }  /* if */
     if (!err && is_union_type(class_type)) {
       pos_error(ec_no_access_or_using_decl_in_union, &using_pos);
