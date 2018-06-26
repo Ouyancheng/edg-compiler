@@ -1,5 +1,23 @@
 Version 4.15
 
+6/26/18  [EDGcpfe/19452]
+GNU/Clang compatibility: Return expression checking in templates
+
+In GNU and Clang C++ modes, the front end no longer performs complete type
+checking on return expressions during the prototype instantiation of a
+template for cases where the types involved are nondependent.  For example:
+
+  template<typename T> int* f() {
+    return 42;  // Normally an error.  Now accepted in GNU and Clang mode
+  }             // even with --no_defer_parse_function_templates.
+
+Although previously an error was issued during the prototype instantiation of
+the template in GNU and Clang C++ modes, those modes deferred prototype
+instantiations by default in configurations without the C++-generating back
+end (see entry of 12/13/05).  Now these invalid cases are accepted even when
+the prototype instantiation actually takes place.
+
+
 6/25/18  [EDGcpfe/19027,EDGcpfe/19280]
 Jumping past initializations in condition declarations
 
