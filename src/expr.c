@@ -40825,8 +40825,11 @@ handle_deduced_return_type:
     if (is_template_dependent_context() &&
         (is_template_dependent_type(result.type) ||
          is_template_dependent_type(required_type) ||
-         ((gpp_mode || clang_mode) &&
-          curr_routine->is_prototype_instantiation))) {
+         (gpp_mode && curr_routine->is_prototype_instantiation))) {
+      /* If the returned expression or the declared return type is template-
+         dependent, we cannot perform full type checking.  GCC appears to
+         ignore type checking in template definitions even when the types are
+         known. */
       prep_generic_operand(&result);
       expression = make_node_from_operand(&result);
     } else if (return_by_cctor_case) {
