@@ -4889,6 +4889,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* while */
             if (bcp == NULL) break;
             get_mapped_byte_count(&persistent_map, bcp, offset);
+            /* Record the derivation step. */
+            record_subobject_derivation(value+offset, bcp);
             if (elem_con != NULL) {
               if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
@@ -4897,17 +4899,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               }  /* if */
               elem_con = elem_con->next;
             }  /* if */
-            /* Record the derivation step (not really needed if this is for
-               an assignment rather than for an initialization, but it is 
-               easier -- and probably cheaper -- to do this
-               indiscriminately). */
-            record_subobject_derivation(value+offset, bcp);
             mark_subobject_initialized(value+offset, complete_object);
             bcp = bcp->next;
           }  /* for */
           if (!result) break;
           for (;;) {
             a_byte_count  offset;
+            a_type_ptr  ftp;
             fp = next_alloc_field(fp);
             if (fp == NULL) {
               /* All fields are initialized: We're done. */
@@ -4925,10 +4923,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               break;
             }  /* if */
             get_mapped_byte_count(&persistent_map, fp, offset);
+            ftp = skip_typerefs(fp->type);
             if (elem_con == NULL) {
               /* No more initializers, but we have more fields.  Zero the
                  remainder of the class value. */
-              a_type_ptr  ftp = skip_typerefs(fp->type);
               init_subobject_to_zero(ips, value+offset, ftp, complete_object);
             } else if (constant_is(elem_con, ck_designator) &&
                        elem_con->variant.designator.is_field_designator &&
@@ -4949,6 +4947,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 this_bytes = set_up_param_ref_for_this_ptr(
                                              ips, tp, value, complete_object);
               }  /* if */
+              mark_complete_class_object_if_needed(ftp, value+offset);
               if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
                 do_constexpr_fail(result);
