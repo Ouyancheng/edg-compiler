@@ -3,15 +3,15 @@ Version 4.15
 6/26/18  [EDGcpfe/19796]
 C++-generating back end: Extraneous ellipsis in rendering of fold expressions
 
-The C++-generating back end previously generated extraneous ellipsis when
-rendering certain C++17 fold expressions.  For example:
+The C++-generating back end previously sometimes generated extraneous ellipses
+when rendering certain C++17 fold expressions.  For example:
 
   template<typename> bool V = false;
   template<bool> struct S {};
   template<typename ...Ts> S(Ts...) -> S<(V<Ts> && ...)>;
 
-Previously, the deduction guide was rendered as follows by the C++-generating
-back end:
+Previously, the deduction guide was rendered as follows by some configurations
+of the C++-generating back end:
 
   template< class ...Ts> S(Ts ...)->S< (V< Ts> ... && ... )> ; 
 
