@@ -14099,17 +14099,19 @@ Otherwise, the member is left unchanged.
     a_routine_type_supplement_ptr rtsp;
     rtsp = skip_typerefs(rtn->type)->variant.routine.extra_info;
     if (rtsp->exception_specification == NULL) {
-      if (rtn->compiler_generated &&
-          (special_kind_is(rtn, sfk_constructor) ||
-           special_kind_is(rtn, sfk_destructor) ||
-           (special_kind_is(rtn, sfk_operator) &&
-            rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
+      if ((rtn->compiler_generated &&
+           (special_kind_is(rtn, sfk_constructor) ||
+            special_kind_is(rtn, sfk_destructor) ||
+            (special_kind_is(rtn, sfk_operator) &&
+             rtn->variant.opname_kind == (an_opname_kind)onk_assign))) ||
+          (implicit_noexcept_enabled &&
+           special_kind_is(rtn, sfk_destructor))) {
         /* A compiler-generated constructor, destructor, or assignment
            operator is assumed to throw any exception that can be thrown by
            any subobject function the generated function will call. */
         a_class_symbol_supplement_ptr  cssp;
         cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
-        if (!strict_ansi_mode ||
+        if ((!strict_ansi_mode && rtn->compiler_generated) ||
             (special_kind_is(rtn, sfk_constructor) &&
              rtsp->param_type_list == NULL &&
              (cssp->has_instantiatable_field_initializers ||
@@ -20432,7 +20434,8 @@ routine issues an error accordingly when that happens.
   a_routine_type_supplement_ptr
               rtsp = rp->type->variant.routine.extra_info;
 
-  check_assertion((rp->compiler_generated || rp->is_defaulted) &&
+  check_assertion((rp->compiler_generated || rp->is_defaulted ||
+                   special_kind_is(rp, sfk_destructor)) &&
                   has_indeterminate_exception_spec(rp));
   if (special_kind_is(rp, sfk_constructor) && rtsp->param_type_list == NULL) {
     /* In the case of a default constructor, we may have to scan all the field

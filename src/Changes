@@ -1,5 +1,24 @@
 Version 4.15
 
+6/26/18  [EDGcpfe/19792]
+Spurious exception specification error on overriding destructor in C++11 mode
+
+Consider:
+
+  template<typename> struct S {};
+  struct B { virtual ~B(); };
+  void g() {
+    struct D: B {
+      ~D() {}  // Previously a spurious error.
+      S<int> si;
+    };
+  }
+
+Previously, the front end issued a spurious error claiming the exception
+specification of the destructor D does not match that of the overridden
+destructor of B.  That is now fixed.
+
+
 6/26/18  [EDGcpfe/19796]
 C++-generating back end: Extraneous ellipsis in rendering of fold expressions
 
