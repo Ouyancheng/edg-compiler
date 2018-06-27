@@ -3352,6 +3352,8 @@ invocations.
   slmp->contains_saved_macro_argument_text
                             = FALSE;
   slmp->is_whitespace_kwd   = FALSE;
+  slmp->is_raw_or_expanded_arg
+                            = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_symbol_ptr)NULL;
@@ -8279,7 +8281,8 @@ white_space_loop:
              escape. */
           add_deletion_source_line_modif(delete_from,
                                          curr_char_loc-delete_from,
-                                         /*for_comment=*/FALSE);
+                                         /*for_comment=*/FALSE,
+                                         /*raw_or_exp=*/FALSE);
           /* Clear the flag to be sure it is cleared for error exit cases.
              It will be set later to the location of further text if there is
              any. */
@@ -8470,7 +8473,8 @@ white_space_loop:
         add_deletion_source_line_modif(
                                     delete_source_from_loc,
                                     saved_curr_char_loc-delete_source_from_loc,
-                                    /*for_comment=*/FALSE);
+                                    /*for_comment=*/FALSE,
+                                    /*raw_or_exp=*/FALSE);
         delete_source_from_loc = curr_char_loc;
       }  /* if */
       goto white_space_loop;
@@ -8547,7 +8551,8 @@ white_space_loop:
                    escape. */
                 add_deletion_source_line_modif(comment_start_loc,
                                                curr_char_loc-comment_start_loc,
-                                               /*for_comment=*/TRUE);
+                                               /*for_comment=*/TRUE,
+                                               /*raw_or_exp=*/FALSE);
                 if (slmp->being_rescanned_for_token_pasting) {
                   /* If we are rescanning tokens to do the special
                      token-pasting for pcc mode or Microsoft mode, clear
@@ -8588,7 +8593,8 @@ white_space_loop:
             /* Delete the comment entirely, but leave the newline escape. */
             add_deletion_source_line_modif(comment_start_loc,
                                            curr_char_loc-comment_start_loc,
-                                           /*for_comment=*/TRUE);
+                                           /*for_comment=*/TRUE,
+                                           /*raw_or_exp=*/FALSE);
           }  /* if */
         }  /* if */
       } else {
@@ -8792,7 +8798,8 @@ normal_comment:
               }  /* if */
               add_deletion_source_line_modif(
                                       delete_from, delete_to-delete_from,
-                                      /*for_comment=*/delete_only_for_comment);
+                                      /*for_comment=*/delete_only_for_comment,
+                                      /*raw_or_exp=*/FALSE);
             }  /* if */
             /* Read a new line.  Note the parameter asking that the input
                stack not be popped, since we need to know about ends of
@@ -8845,7 +8852,8 @@ normal_comment:
             /* pcc mode; delete the comment entirely. */
             add_deletion_source_line_modif(comment_start_loc,
                                            curr_char_loc-comment_start_loc,
-                                           /*for_comment=*/TRUE);
+                                           /*for_comment=*/TRUE,
+                                           /*raw_or_exp=*/FALSE);
           } else {
             /* ANSI mode; replace the comment with a space. */
             replace_source_string_by_space(comment_start_loc,
@@ -12640,7 +12648,8 @@ modification will be added to restore the first token to the current line.
     orig_loc = curr_char_loc;
     add_deletion_source_line_modif(delete_source_from_loc,
                                    orig_loc - delete_source_from_loc,
-                                   /*for_comment=*/FALSE);
+                                   /*for_comment=*/FALSE,
+                                   /*raw_or_exp=*/FALSE);
   } else if (*orig_loc == ATTENTION_MARKER) {
     /* The call to skip_white_space() added one or more deletions in
        getting to the next token, including deleting the initial token.

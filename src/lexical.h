@@ -1397,6 +1397,13 @@ typedef struct a_source_line_modif {
 			   token that might have begun a whitespace keyword
 			   but the token that followed it (on a succeeding
 			   line) did not complete the keyword. */
+  a_bit_field	is_raw_or_expanded_arg:1;
+			/* TRUE if this modification represents either the
+			   raw or expanded version of an argument where the
+			   choice was deferred pending expansion of a
+			   nested macro invocation.  See the comments on
+			   choose_raw_or_expanded_arg in macro.c for
+			   details. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -2338,10 +2345,13 @@ extern a_source_line_modif_ptr add_source_line_modif(
 Add a source line modification entry to indicate deletion of num_chars
 characters starting at line_loc.  The inserted_chars area is used for the
 zero-length replacement string.  for_comment is TRUE if the modification is
-due to a comment.  If no text is to be deleted, nothing is done (there is
-no room for the ATTENTION_MARKER).
+due to a comment.  raw_or_exp is TRUE if the modification is for the raw or
+expanded version of a macro argument; see choos_raw_or_expanded_arg in
+macro.c for details.  If no text is to be deleted, nothing is done (there
+is no room for the ATTENTION_MARKER).
 */
-#define add_deletion_source_line_modif(line_loc, num_chars, for_comment)     \
+#define add_deletion_source_line_modif(line_loc, num_chars, for_comment,     \
+                                       raw_or_exp)                           \
 {                                                                            \
   if ((num_chars) > 0) {                                                     \
     a_source_line_modif_ptr dslmp;                                           \
@@ -2351,6 +2361,7 @@ no room for the ATTENTION_MARKER).
     dslmp->inserted_chars[1] = LE_END_OF_INSERTION;                          \
     dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
     dslmp->is_for_comment = for_comment;                                     \
+    dslmp->is_raw_or_expanded_arg = raw_or_exp;                              \
   }  /* if */                                                                \
 }  /* add_deletion_source_line_modif */
 

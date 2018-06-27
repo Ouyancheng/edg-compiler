@@ -1616,12 +1616,18 @@ ensure_macro_buffer_space.
           if (nested_slmp->inserted_text == nested_slmp->inserted_chars) {
             /* This is a deletion source line modification.  Just update
                the location of the deletion and skip over the deleted
-               characters. */
+               characters, unless they are part of a not-yet-resolved
+               choice between the raw and expanded versions of a macro
+               argument; in that case, the deleted text might still be used
+               and cannot be skipped.  (See choose_raw_or_expanded_arg for
+               details.) */
             rem_source_line_modif_from_hash_table(nested_slmp);
             nested_slmp->line_loc = dst - 1;
             add_source_line_modif_to_hash_table(nested_slmp);
-            src += nested_slmp->num_chars_to_delete - 1;
-            nested_slmp->num_chars_to_delete = 1;
+            if (!nested_slmp->is_raw_or_expanded_arg) {
+              src += nested_slmp->num_chars_to_delete - 1;
+              nested_slmp->num_chars_to_delete = 1;
+            }  /* if */
           } else {
             /* This deletion is for a macro replacement: skip over the
                replaced characters, copying only any attention markers
@@ -2948,7 +2954,9 @@ the result will be abcM3, while with
 the result will be abc xyz.  To support deferring the determination of
 whether to use the raw or expanded version of the argument until its
 eventual use is known, both versions are copied into the expanded text with
-their text deleted, and the construct preceded by an
+their text deleted, the modifications are marked with the
+is_raw_or_expanded_arg flag (to prevent the deletions from being compacted
+if the macro buffer is expanded), and the construct preceded by an
 LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.  When macro_invocation is about
 to read the first token of a macro argument, it sets use_raw_version_of_arg
 according to whether the corresponding parameter is used in a paste
@@ -2967,6 +2975,8 @@ an LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.
        deletion count in macro_buffer accordingly. */
     rem_source_line_modif(raw_slmp);
     free_source_line_modif(&raw_slmp);
+    /* Mark the expanded version as an ordinary deletion. */
+    exp_slmp->is_raw_or_expanded_arg = FALSE;
     adjust_deletion_counts(exp_slmp->line_loc, exp_slmp->num_chars_to_delete);
   } else {
     /* Remove the deletion source line modification from the expanded
@@ -2974,6 +2984,8 @@ an LE_RAW_OR_EXPANDED_ARGUMENT lexical escape.
        delete count in macro_buffer accordingly. */
     rem_source_line_modif(exp_slmp);
     free_source_line_modif(&exp_slmp);
+    /* Mark the raw version as an ordinary deletion. */
+    raw_slmp->is_raw_or_expanded_arg = FALSE;
     adjust_deletion_counts(raw_slmp->line_loc, raw_slmp->num_chars_to_delete);
   }  /* if */
   /* Ensure that this routine is not called again for this argument. */
@@ -7042,7 +7054,8 @@ end_arg_expansion:;
               /* Add the raw argument text and delete it. */
               (void)memcpy(src_loc, map->raw_text, size_t_arg(sect_len));
               add_deletion_source_line_modif(src_loc, sect_len,
-                                             /*for_comment=*/FALSE);
+                                             /*for_comment=*/FALSE,
+                                             /*raw_or_exp=*/TRUE);
               src_loc += sect_len;
               /* Add the expanded argument text. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -7066,7 +7079,8 @@ end_arg_expansion:;
                 *src_loc = ' ';
               }  /* if */
               add_deletion_source_line_modif(src_loc, sect_len,
-                                             /*for_comment=*/FALSE);
+                                             /*for_comment=*/FALSE,
+                                             /*raw_or_exp=*/TRUE);
               src_loc += sect_len;
               goto copy_done;
             }  /* if */
