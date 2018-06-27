@@ -8497,7 +8497,7 @@ static void gen_field_initializer(a_field_ptr  field)
 /*
 */
 {
-  a_boolean need_braces = FALSE;
+  a_boolean          need_braces = FALSE;
   a_dynamic_init_ptr dip = field->initializer;
 
   if (!field->has_direct_braced_initializer) {
