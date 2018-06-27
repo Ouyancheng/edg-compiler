@@ -8497,32 +8497,48 @@ static void gen_field_initializer(a_field_ptr  field)
 /*
 */
 {
-  a_boolean need_closing_brace = FALSE;
+  a_boolean need_braces = FALSE;
+  a_dynamic_init_ptr dip = field->initializer;
 
   if (!field->has_direct_braced_initializer) {
     write_tok_str(" = ");
-  } else if (!(field->initializer->is_braced_initializer &&
-               (field->initializer->kind ==
-                                        (a_dynamic_init_kind)dik_constructor ||
-                field->initializer->kind ==
-                              (a_dynamic_init_kind)dik_nonconstant_aggregate ||
-                (field->initializer->kind ==
-                                           (a_dynamic_init_kind)dik_constant &&
-                 !(field->initializer->variant.constant->kind !=
-                                      (a_constant_repr_kind)ck_aggregate ||
-                   constant_should_be_put_out_as_expr(
-                                   field->initializer->variant.constant)))))) {
-    /* gen_dynamic_init will supply the braces for a braced constructor
-       call.  Similarly, an aggregate will have its own set of braces.  A
-       constant aggregate from an expression, such as would be produced by
-       the invocation of a constexpr function, does need braces. */
-    write_tok_ch('{');
-    need_closing_brace = TRUE;
+  } else if (field->initializer->is_braced_initializer) {
+    /* The initializer was brace-enclosed in the source.  We need to
+       figure out whether gen_dynamic_init will provide those braces or
+       if they need to be put out here. */
+    if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      /* gen_dynamic_init will provide braces for these kinds. */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+      a_constant_ptr cp = dip->variant.constant;
+      if (cp->kind != (a_constant_repr_kind)ck_aggregate) {
+        /* A braced scalar initializer: braces must be supplied here. */
+        need_braces = TRUE;
+      } else if (cp->expr != NULL) {
+        /* The initializer will be put out as an expression.  Check to see
+           if the expression carries its own braces or not. */
+        if (cp->expr->kind == (an_expr_node_kind)enk_temp_init &&
+            cp->expr->variant.init.dynamic_init->is_braced_initializer) {
+          /* The braces will come from the expression. */
+        } else {
+          /* An aggregate expression such as might be the result of a
+             constexpr function invocation: braces must be supplied
+             here. */
+          need_braces = TRUE;
+        }  /* if */
+      } else {
+        /* An aggregate constant with no backing expression; braces will
+           be supplied by gen_dynamic_init. */
+      }  /* if */
+    }  /* if */
   }  /* if */
-  gen_dynamic_init(field->initializer, field->type, (an_expr_node_ptr)NULL,
+  if (need_braces) {
+    write_tok_ch('{');
+  }  /* if */
+  gen_dynamic_init(dip, field->type, (an_expr_node_ptr)NULL,
                    /*avoid_top_level_comma=*/TRUE,
                    /*obj_expr_of_mfunc_operator=*/FALSE);
-  if (need_closing_brace) {
+  if (need_braces) {
     write_tok_ch('}');
   }  /* if */
 }  /* gen_field_initializer */
