@@ -35534,22 +35534,33 @@ an enumerator.
        case. */
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
     if (constexpr_enabled && is_expression_operand(operand)) {
-      if (is_template_dependent_context() &&
-          operand_is_instantiation_dependent(operand)) {
+      a_boolean  template_context = is_template_dependent_context();
+      if (template_context && operand_is_instantiation_dependent(operand)) {
         /* Assume we'll be able to fold the operand after substitution. */
-        an_expr_node_ptr  node;
-        if (dest_type != NULL) {
-          generic_cast_operand(operand, dest_type, csf_none,
-                               /*is_implicit_cast=*/TRUE);
-        }  /* if */
-        node = make_node_from_operand(operand);
-        make_template_param_expr_constant(node, result_con);
+        make_template_param_constant_from_operand(operand, result_con,
+                                                  dest_type);
         goto done;
       } else {
-        /* Attempt to interpret the expression.  A failure will produce a
-           diagnostic indicating the reason the operand is non-constant. */
-        (void)expr_interpret_expression_operand(operand,
-                                                /*must_be_constant=*/TRUE);
+        /* Attempt to interpret the expression.  In non-template contexts,
+           a failure will produce a diagnostic indicating the reason the
+           operand is non-constant. */
+        a_boolean  force_constant = !template_context ||
+                                    expr_stack->possible_rescan_context;
+        if (!expr_interpret_expression_operand(operand, force_constant) &&
+            !force_constant) {
+          /* Even when the operand is not template-dependent in a shallow
+             sense, the result of the expression might still dependent on a
+             template parameter.  E.g.:
+                 struct S { unsigned x; };
+                 template<int I> void g() {
+                   constexpr S t{I};
+                   int ai[t.x];  // t.x here is an lvalue that, when
+                 }               // converted, depends on I.
+          */
+          make_template_param_constant_from_operand(operand, result_con,
+                                                    dest_type);
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (is_array_bound && is_constant_operand(operand)) {

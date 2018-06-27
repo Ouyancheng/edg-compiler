@@ -1,5 +1,23 @@
 Version 4.15
 
+6/27/18  [EDGcpfe/19662]
+Spurious error on template-dependent constant expression
+
+Consider:
+
+  struct S { unsigned x; };
+  template<int I> void g() {
+    constexpr S t{I};
+    int ai[t.x];  // Previously an error.  Now okay.
+  }
+
+The expression t.x here is not template-dependent when viewed as an lvalue,
+but its value as the "constant expression" for an array dimension is in fact
+dependent on the template parameter I.  Previously, the lack of a direct
+template dependence caused the front end to enforce the requirement of a known
+constant value, which in turn triggered a spurious error.  That is now fixed.
+
+
 6/26/18  [EDGcpfe/19792]
 Spurious exception specification error on overriding destructor in C++11 mode
 

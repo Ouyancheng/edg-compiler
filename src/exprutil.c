@@ -5678,6 +5678,25 @@ don't really have constant values.
 }  /* error_on_nonconstant_constant */
 
 
+void make_template_param_constant_from_operand(an_operand      *operand,
+                                               a_constant_ptr  result_con,
+                                               a_type_ptr      type)
+/*
+Turn the given operand into a ck_template_param constant (in *result_con).  If
+type is non-NULL, first perform an implicit generic cast of the operand to that
+type.
+*/
+{
+  an_expr_node_ptr  node;
+
+  if (type != NULL) {
+    generic_cast_operand(operand, type, csf_none, /*is_implicit_cast=*/TRUE);
+  }  /* if */
+  node = make_node_from_operand(operand);
+  make_template_param_expr_constant(node, result_con);
+}  /* make_template_param_constant_from_operand */
+
+
 void extract_constant_from_operand(an_operand     *operand,
                                    a_constant_ptr constant)
 /*
@@ -5737,8 +5756,8 @@ Extract the constant value from the operand *operand and place it in
                     (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
                     scope_stack_top().alias_in_template_decl) &&
                    operand_is_instantiation_dependent(operand)) {
-          an_expr_node_ptr  node = make_node_from_operand(operand);
-          make_template_param_expr_constant(node, constant);
+          make_template_param_constant_from_operand(operand, constant,
+                                                    (a_type_ptr)NULL);
         } else if (expr_error_should_be_issued()) {
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &operand->position);
@@ -6894,14 +6913,12 @@ the underlying expression.  This makes a constant of subkind tpck_expression.
 Return the operand in *result.
 */
 {
-  an_expr_node_ptr node;
   a_constant_ptr   con = local_constant();
   an_operand       orig_operand;
 
   orig_operand = *operand;
-  node = make_node_from_operand(operand);
   /* Build the ck_template_param constant. */
-  make_template_param_expr_constant(node, con);
+  make_template_param_constant_from_operand(operand, con, (a_type_ptr)NULL);
   /* Make the operand. */
   make_constant_operand(con, operand);
   restore_operand_details(operand, &orig_operand);

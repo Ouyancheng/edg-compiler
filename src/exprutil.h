@@ -2418,6 +2418,11 @@ extern a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
 extern a_boolean error_on_nonconstant_constant(a_constant        *constant,
                                                a_source_position *pos);
 
+extern void make_template_param_constant_from_operand(
+                                                    an_operand      *operand,
+                                                    a_constant_ptr  result_con,
+                                                    a_type_ptr      type);
+
 extern void extract_constant_from_operand(an_operand     *operand,
                                           a_constant_ptr constant);
 
