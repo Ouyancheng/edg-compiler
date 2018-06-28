@@ -2346,7 +2346,7 @@ Add a source line modification entry to indicate deletion of num_chars
 characters starting at line_loc.  The inserted_chars area is used for the
 zero-length replacement string.  for_comment is TRUE if the modification is
 due to a comment.  raw_or_exp is TRUE if the modification is for the raw or
-expanded version of a macro argument; see choos_raw_or_expanded_arg in
+expanded version of a macro argument; see choose_raw_or_expanded_arg in
 macro.c for details.  If no text is to be deleted, nothing is done (there
 is no room for the ATTENTION_MARKER).
 */
