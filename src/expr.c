@@ -39800,8 +39800,10 @@ and can have the following forms (see [stmt.ranged] for specifics):
                                 type_of_unknown_templ_param_nontype :
                                 error_type();
     }  /* if */
-    /* Mark the iterator variable as having a value. */
+    /* Mark the iterator variable as having a value and being referenced. */
     mark_variable_value_set(symbol_for(rbflp->iterator));
+    mark_referenced(symbol_for(rbflp->iterator),
+                    &rbflp->iterator->source_corresp.decl_position);
   }  /* if */
   /* Return to the outermost scope. */
   pop_block_scope(/*is_final=*/FALSE);

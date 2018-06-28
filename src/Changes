@@ -1,5 +1,17 @@
 Version 4.15
 
+6/28/18  [EDGcpfe/18187]
+Set the "referenced" flag on iterator variable of range-based-for
+
+Previously the "referenced" flag had not been set on iterator variables
+in range-based-for statements.  Now fixed.  For example (with --c++11):
+
+ #include <initializer_list>
+ void f() {
+   for (auto i : {1, 2, 3}) {}  // "i" is now "referenced"
+ }
+
+
 6/27/18  [EDGcpfe/19662]
 Spurious error on template-dependent constant expression
 
