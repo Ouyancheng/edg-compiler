@@ -1440,13 +1440,16 @@ Perform any pending checks indicated by the override_exception_check_entries
 list and free that list.
 */
 {
-  an_override_exception_check_entry_ptr  oecp;
+  an_override_exception_check_entry_ptr  oecp, *p_oecp;
 
-  oecp = override_exception_check_entries;
-  if (oecp != NULL) {
-    for (;; oecp = oecp->next) {
-      a_routine_ptr  brp = oecp->overridden_sym->variant.routine.ptr;
-      a_routine_ptr  drp = oecp->overriding_sym->variant.routine.ptr;
+  
+  p_oecp = &override_exception_check_entries;
+  oecp = *p_oecp;
+  while (oecp != NULL) {
+    a_routine_ptr  brp = oecp->overridden_sym->variant.routine.ptr;
+    a_routine_ptr  drp = oecp->overriding_sym->variant.routine.ptr;
+    a_type_ptr     dtp = parent_class_of(drp);
+    if (!dtp->incomplete) {
       if (type_has_less_restrictive_exception_spec(drp->type, brp->type)) {
         /* The exception specification for the overriding virtual function is
            less restrictive than that of the overridden function. */
@@ -1454,17 +1457,14 @@ list and free that list.
                                                 oecp->overridden_sym,
                                                 &oecp->diag_pos);
       }  /* if */
-      if (oecp->next == NULL) {
-        /* We just processed the last entry: Move the whole list to the
-           available entries list and terminate the loop. */
-        oecp->next = avail_override_exception_check_entries;
-        avail_override_exception_check_entries = 
-                                             override_exception_check_entries;
-        override_exception_check_entries = NULL;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
+      *p_oecp = oecp->next;
+      oecp->next = avail_override_exception_check_entries;
+      avail_override_exception_check_entries = oecp;
+    } else {
+      p_oecp = &oecp->next;
+    }  /* if */
+    oecp = *p_oecp;
+  }  /* while */
 }  /* process_override_exception_check_entries */
 
 
@@ -14099,19 +14099,17 @@ Otherwise, the member is left unchanged.
     a_routine_type_supplement_ptr rtsp;
     rtsp = skip_typerefs(rtn->type)->variant.routine.extra_info;
     if (rtsp->exception_specification == NULL) {
-      if ((rtn->compiler_generated &&
-           (special_kind_is(rtn, sfk_constructor) ||
-            special_kind_is(rtn, sfk_destructor) ||
-            (special_kind_is(rtn, sfk_operator) &&
-             rtn->variant.opname_kind == (an_opname_kind)onk_assign))) ||
-          (implicit_noexcept_enabled &&
-           special_kind_is(rtn, sfk_destructor))) {
+      if (rtn->compiler_generated &&
+          (special_kind_is(rtn, sfk_constructor) ||
+           special_kind_is(rtn, sfk_destructor) ||
+           (special_kind_is(rtn, sfk_operator) &&
+            rtn->variant.opname_kind == (an_opname_kind)onk_assign))) {
         /* A compiler-generated constructor, destructor, or assignment
            operator is assumed to throw any exception that can be thrown by
            any subobject function the generated function will call. */
         a_class_symbol_supplement_ptr  cssp;
         cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
-        if ((!strict_ansi_mode && rtn->compiler_generated) ||
+        if (!strict_ansi_mode ||
             (special_kind_is(rtn, sfk_constructor) &&
              rtsp->param_type_list == NULL &&
              (cssp->has_instantiatable_field_initializers ||
@@ -20434,8 +20432,7 @@ routine issues an error accordingly when that happens.
   a_routine_type_supplement_ptr
               rtsp = rp->type->variant.routine.extra_info;
 
-  check_assertion((rp->compiler_generated || rp->is_defaulted ||
-                   special_kind_is(rp, sfk_destructor)) &&
+  check_assertion((rp->compiler_generated || rp->is_defaulted) &&
                   has_indeterminate_exception_spec(rp));
   if (special_kind_is(rp, sfk_constructor) && rtsp->param_type_list == NULL) {
     /* In the case of a default constructor, we may have to scan all the field
