@@ -15263,7 +15263,9 @@ is the one associated with the template.
        parameters, and those do not come through here. */
     check_assertion(!prototype_instantiations_in_il ||
                     (tp->canonical_template != NULL &&
-                    tp->canonical_template->definition_template != tp));
+                     (tp->canonical_template->definition_template != tp ||
+                      (tp->kind == (a_template_kind)templk_variable &&
+                       parent_class_or_null(tp) != NULL))));
     is_definition = FALSE;
   } else {
     tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
@@ -17828,12 +17830,11 @@ this one is such a continuation.
                       "gen_variable_decl: declared_type is NULL");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
-  /* The is_definition flag is slightly different from the standard term
-     "definition" in that it is always TRUE for a declaration with an
-     initializer, including the case of an in-class declaration of a static
-     data member with an initializer (which is not always considered an actual
-     definition in the C++ standard). */
-  consider_initialization = is_definition;
+  if (curr_name_context_is_a_class()) {
+    consider_initialization = var->initializer_in_class;
+  } else {
+    consider_initialization = is_definition && !var->initializer_in_class;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI managed class types, static data members are defined in-class
      and initializers are therefore always considered. */

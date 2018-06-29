@@ -27742,11 +27742,17 @@ any non-empty template parameter lists that were scanned.
       } else if (symbol_is(sym, sk_variable_template)) {
         tssp = sym->variant.template_info;
       }  /* if */
-      if (decl_state->defines_something) {
-        /* Save a pointer to the token cache for the function body.  tssp may
-           be NULL in error cases. */
-        if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
-      } /* if */
+      if (tssp != NULL) {
+        /* Save a pointer to the token cache for the function body or
+           variable initializer if needed.  (tssp may be NULL in error
+           cases.) */
+        if ((symbol_is(sym, sk_variable_template) &&
+             tssp->variant.variable.prototype_variable->
+                                                       initializer_in_class) ||
+            decl_state->defines_something) {
+          p_template_body_cache = &tssp->cache.tokens;
+        }  /* if */
+      }  /* if */
     } else {
       a_symbol_locator   locator;
       a_func_info_block  func_info;
@@ -27795,10 +27801,18 @@ any non-empty template parameter lists that were scanned.
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any
            attributes that will need to be applied during instantiation. */
-        if (tssp != NULL &&
-            (!symbol_is(sym, sk_static_data_member) ||
-             decl_state->decl_parse.has_initializer)) {
-          p_template_body_cache = &tssp->cache.tokens;
+        if (tssp != NULL) {
+          if (symbol_is(sym, sk_variable_template)) {
+            if (!tssp->variant.variable.prototype_variable->
+                                                        initializer_in_class) {
+              /* Include an out-of-class initializer, if any, if none was
+                 specified in the in-class declaration. */
+              p_template_body_cache = &tssp->cache.tokens;
+            }  /* if */
+          } else if (!symbol_is(sym, sk_static_data_member) ||
+                     decl_state->decl_parse.has_initializer) {
+            p_template_body_cache = &tssp->cache.tokens;
+          }  /* if */
         }  /* if */
       } else if (is_function_template) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
