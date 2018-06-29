@@ -75,7 +75,7 @@ return expressions during the prototype instantiation of a template for cases
 where the types involved are nondependent.  For example:
 
   template<typename T> int* f() {
-    return 42;  // Normally an error.  Now accepted in GNU and Clang mode
+    return 42;  // Normally an error.  Now accepted in GNU mode
   }             // even with --no_defer_parse_function_templates.
 
 Although previously an error was issued during the prototype instantiation of
