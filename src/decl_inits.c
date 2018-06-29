@@ -3305,6 +3305,38 @@ issued if no more specific position is available.
       *p_icp = icp;
     }  /* if */
     is->class_to_look_in = saved_class_to_look_in;
+    if (exceptions_enabled && !is->initializer_must_be_constant &&
+        is->non_top_level_aggregate) {
+      /* Check if the aggregate has an associated destructor, and record that
+         destructor if needed.  (The case of a top-level aggregate is handled
+         elsewhere -- see prep_initializer_result). */
+      a_class_symbol_supplement_ptr
+              cssp = symbol_supplement_for_class(class_type);
+      if (has_deleted_or_nontrivial_destructor(cssp)) {
+        a_routine_ptr  dtor_rp = get_init_destructor(class_type, is, diag_pos);
+        if (dtor_rp != NULL && !is->check_validity_only) {
+          a_constant_ptr  orig_con = *init_con;
+          a_boolean       dynamic_con =
+                       orig_con->variant.aggregate.has_dynamic_init_component;
+          a_dynamic_init_ptr
+                          dip = alloc_dynamic_init((a_dynamic_init_kind)
+                                      (dynamic_con ? dik_nonconstant_aggregate
+                                                   : dik_constant));
+          dip->variant.constant = orig_con;
+          if (orig_con->is_partially_initialized) {
+            dip->is_partially_initialized = TRUE;
+          }  /* if */
+          record_dtor_in_dynamic_init(dtor_rp, dip,
+                                      !is->not_potentially_evaluated);
+          record_partial_aggregate_cleanup_destruction(dip,
+                                                       !is->not_evaluated);
+          *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+          (*init_con)->variant.dynamic_init = dip;
+          (*init_con)->type = class_type;
+          is->has_dynamic_init_component = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* aggr_init_class */
 

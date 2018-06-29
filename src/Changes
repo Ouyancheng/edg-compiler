@@ -1,5 +1,26 @@
 Version 4.15
 
+6/29/18  [EDGcpfe/19802]
+No destructions performed if an exception is thrown during some partial
+aggregate initialization
+
+In certain cases, no IL had been generated to perform destruction of
+objects created during partial aggregate initialization.  Now fixed.
+In the example below, c[0] had not been destroyed as a result of the throw:
+
+  int dtor_count = 0;
+  struct C {
+    int m;
+    ~C() { dtor_count++; }
+  };
+  int main() {
+    try {
+      static C c[] = { {4}, {(throw 1, 7)}, {dtor_count} };
+    } catch (...) {}
+    return !(dtor_count == 1);
+  }
+
+
 6/28/18  [EDGcpfe/18187]
 Set the "referenced" flag on iterator variable of range-based-for
 
