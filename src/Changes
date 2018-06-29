@@ -45,7 +45,7 @@ Consider:
   }
 
 Previously, the front end issued a spurious error claiming the exception
-specification of the destructor D does not match that of the overridden
+specification of the destructor of D does not match that of the overridden
 destructor of B.  That is now fixed.
 
 
