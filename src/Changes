@@ -30,7 +30,7 @@ template dependence caused the front end to enforce the requirement of a known
 constant value, which in turn triggered a spurious error.  That is now fixed.
 
 
-6/26/18  [EDGcpfe/19792]
+6/26/18  [EDGcpfe/16169,EDGcpfe/17445,EDGcpfe/19792]
 Spurious exception specification error on overriding destructor in C++11 mode
 
 Consider:
