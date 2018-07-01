@@ -27303,12 +27303,11 @@ is found in check_operation_node_consistency.)
 
 #endif /* CHECKING */
 
-#if DO_IL_LOWERING
 /*
-Return TRUE if type should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
+Helper macro used by type_is_nonreal.  Return TRUE if type is a nonreal
+class, nonreal alias template instantiation, or template parameter type.
 */
-#define ignore_type_in_back_end_no_typerefs(type)			\
+#define type_is_nonreal_no_typerefs(type)			\
   ((is_immediate_class_type(type) &&					\
     (type)->variant.class_struct_union.is_nonreal_class) ||		\
    (type->kind == (a_type_kind)tk_typeref &&				\
@@ -27317,19 +27316,42 @@ back ends.  This is TRUE for dependent template entities.
    ((type)->kind == (a_type_kind)tk_template_param && !is_auto_type(type)))
 
 
-a_boolean ignore_type_in_back_end(a_type_ptr	type)
+a_boolean type_is_nonreal(a_type_ptr	type)
 /*
-Return TRUE if type should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
+Return TRUE if type should is a nonreal class or typeref (i.e., for
+dependent template entities).
 */
 {
   a_type_ptr type_without_typerefs = skip_typerefs(type);
-  return (ignore_type_in_back_end_no_typerefs(type) ||
+  return (type_is_nonreal_no_typerefs(type) ||
           ((type)->kind == (a_type_kind)tk_typeref &&
-           ignore_type_in_back_end_no_typerefs(type_without_typerefs)));
-}  /* ignore_type_in_back_end */
+           type_is_nonreal_no_typerefs(type_without_typerefs)));
+}  /* type_is_nonreal */
 
-#endif /* DO_IL_LOWERING */
+
+a_boolean entity_is_nonreal(a_source_correspondence_ptr scp,
+                            an_il_entry_kind            kind)
+/*
+Return TRUE if the entity specified by scp and kind is a prototype
+instantiation, a nonreal instantiation, or a template-dependent type.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (kind == iek_type) {
+    result = type_is_nonreal((a_type_ptr)scp);
+  } else if (kind == iek_routine) {
+    a_routine_ptr rout = (a_routine_ptr)scp;
+    result = rout->is_prototype_instantiation;
+  } else if (kind == iek_variable) {
+    a_variable_ptr var =  (a_variable_ptr)scp;
+    result = var->is_prototype_instantiation || var->is_nonreal;
+  } else if (kind == iek_constant) {
+    a_constant_ptr cp = (a_constant_ptr)scp;
+    result = (cp->kind) == (a_constant_repr_kind)ck_template_param;
+  }  /* if */
+  return result;
+}  /* entity_is_nonreal */
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if COROUTINES_ALLOWED

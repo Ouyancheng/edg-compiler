@@ -496,12 +496,17 @@ Return TRUE if cp is a template nontype parameter pack.
   ((cp)->kind == (a_constant_repr_kind)ck_template_param &&		\
    (cp)->variant.template_param.is_pack)
 
+extern a_boolean type_is_nonreal(a_type_ptr	type);
+
+extern a_boolean entity_is_nonreal(a_source_correspondence_ptr scp,
+                                   an_il_entry_kind            kind);
+
 #if DO_IL_LOWERING
 /*
 When doing IL lowering, prototype instantiations are ignored during the
 lowering, mangling, and back end passes (since they aren't used).
 */
-extern a_boolean ignore_type_in_back_end(a_type_ptr	type);
+#define ignore_type_in_back_end(type) type_is_nonreal(type)
 
 /*
 Return TRUE if rout should be ignored by IL lowering and code generating

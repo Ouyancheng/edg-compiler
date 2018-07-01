@@ -1,5 +1,17 @@
 Version 4.15
 
+7/1/18   [EDGcpfe/19762]
+Routine to determine if an entity is nonreal
+
+In versions 4.11 and newer, information about prototype instantiations and
+other nonreal types is always included in the IL.  Interfaces were provided to
+let back-ends detect top-level entities that should be ignored to retain the
+previous behavior.  These interfaces are only available when DO_IL_LOWERING
+is TRUE.  A new interface is now provided to allow this kind of check to
+be done even without lowering.  The routine "entity_is_nonreal" can now
+be used for this purpose.
+
+
 6/29/18  [EDGcpfe/19802]
 No destructions performed if an exception is thrown during some partial
 aggregate initialization
