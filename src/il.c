@@ -27307,7 +27307,7 @@ is found in check_operation_node_consistency.)
 Helper macro used by type_is_nonreal.  Return TRUE if type is a nonreal
 class, nonreal alias template instantiation, or template parameter type.
 */
-#define type_is_nonreal_no_typerefs(type)			\
+#define type_is_nonreal_no_typerefs(type)				\
   ((is_immediate_class_type(type) &&					\
     (type)->variant.class_struct_union.is_nonreal_class) ||		\
    (type->kind == (a_type_kind)tk_typeref &&				\
@@ -27318,8 +27318,8 @@ class, nonreal alias template instantiation, or template parameter type.
 
 a_boolean type_is_nonreal(a_type_ptr	type)
 /*
-Return TRUE if type should is a nonreal class or typeref (i.e., for
-dependent template entities).
+Return TRUE if type is a nonreal class or typeref (i.e., for dependent
+template entities).
 */
 {
   a_type_ptr type_without_typerefs = skip_typerefs(type);
