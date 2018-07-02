@@ -1,5 +1,18 @@
 Version 4.15
 
+7/2/18   [EDGcpfe/17957]
+Allow an implementation-defined "using" attribute
+
+As a result of the changes for EDGcpfe/17695, the attribute "[[using]]" had
+resulted in an error (because an identifier had been expected to follow the
+"using" keyword).  A change has been made to treat this case as an
+implementation-defined "using" attribute (rather than a potential
+attribute-using-prefix), thus resulting in a warning rather than an error in
+this case (with --c++17):
+
+  int x [[using]];
+
+
 7/1/18   [EDGcpfe/19762]
 Routine to determine if an entity is nonreal
 

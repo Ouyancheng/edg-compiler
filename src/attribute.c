@@ -2337,9 +2337,13 @@ location in which the group appears.
   check_assertion(curr_token == tok_lbracket);
   (void)get_token();
   add_stop_token(tok_rbracket);
-  if (curr_token == tok_using && using_attribute_namespaces_enabled) {
+  if (curr_token == tok_using &&
+      using_attribute_namespaces_enabled &&
+      next_token() == tok_identifier) {
     /* A "using" prefix; scan the attribute namespace name and use it as
-       the namespace for all attributes in this group. */
+       the namespace for all attributes in this group.  If the "using" token
+       appears without a following identifier, assume "using" is an
+       implementation-defined attribute in such cases. */
     (void)get_token();
     if (!is_valid_attribute_identifier(curr_token)) {
       syntax_error(ec_exp_identifier);
