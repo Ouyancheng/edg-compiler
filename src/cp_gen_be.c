@@ -17287,6 +17287,7 @@ output_functional_notation_cast_arguments:
     case dik_expression:
     case dik_class_result_via_ctor:
       /* Expression. */
+      if (braced_init) write_tok_ch('{');
       /* Process any tags declared within the expression (e.g., in casts). */
       skip_embedded_declarations();
       if (expr == NULL) expr = dip->variant.expression;
@@ -17301,6 +17302,7 @@ output_functional_notation_cast_arguments:
       gen_initializer_expr(expr, init_entity_type,
                            expr_has_comma_operation(expr),
                            /*mbr_fcn_default_arg_expr=*/FALSE);
+      if (braced_init) write_tok_ch('}');
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like

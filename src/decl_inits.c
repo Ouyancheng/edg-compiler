@@ -4208,6 +4208,9 @@ initializer, already copied and substituted.
        Also produce a dynamic init entry if the caller requested it through the
        force_dynamic_init state flag. */
     prep_initializer_result(is, dtor_rp);
+    if (is->init_dip != NULL) {
+      is->init_dip->is_braced_initializer = TRUE;
+    }  /* if */
   }  /* if */
   if (is->any_uninitialized_const_or_ref_member && !is->init_error) {
     /* A const or reference field was not initialized.  Issue a diagnostic. */
