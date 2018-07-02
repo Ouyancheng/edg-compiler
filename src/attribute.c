@@ -2339,7 +2339,7 @@ location in which the group appears.
   add_stop_token(tok_rbracket);
   if (curr_token == tok_using &&
       using_attribute_namespaces_enabled &&
-      next_token() == tok_identifier) {
+      is_valid_attribute_identifier(next_token())) {
     /* A "using" prefix; scan the attribute namespace name and use it as
        the namespace for all attributes in this group.  If the "using" token
        appears without a following identifier, assume "using" is an
