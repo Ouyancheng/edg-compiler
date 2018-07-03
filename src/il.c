@@ -23042,9 +23042,22 @@ object lifetime.
   /* We assume the old point of insertion into the parent lifetime is
      irrelevant. */
   olp->parent_destruction_sublist = NULL;
+  /* Promote the destructions, if any. */
   if (olp->destructions != NULL) {
     move_destruction_to_curr_object_lifetime(olp->destructions);
     olp->destructions = NULL;
+  }  /* if */
+  /* Promote the child lifetimes, if any. */
+  if (olp->child_lifetime != NULL) {
+    an_object_lifetime_ptr  clp = olp->child_lifetime;
+    while (clp->next != NULL) {
+      clp->parent_lifetime = curr_object_lifetime;
+      clp = clp->next;
+    }  /* while */
+    clp->parent_lifetime = curr_object_lifetime;
+    clp->next = curr_object_lifetime->child_lifetime;
+    curr_object_lifetime->child_lifetime = olp->child_lifetime;
+    olp->child_lifetime = NULL;
   }  /* if */
 }  /* promote_lifetime_contents_to_curr_object_lifetime */
 
@@ -23220,8 +23233,8 @@ stopping when the object lifetime indicated by stop_at is reached.
 }  /* db_pending_destructions */
 
 
-static void db_object_lifetime_with_indentation(an_object_lifetime_ptr  olp,
-                                                a_const_char            *str)
+void db_object_lifetime_with_indentation(an_object_lifetime_ptr  olp,
+                                         a_const_char            *str)
 /*
 Display an object lifetime in a special format, for use when dump_lifetimes
 has been enabled at the command line.  The display line includes the current
@@ -23232,14 +23245,14 @@ stack, a string supplied by the caller, and the object lifetime "name".
   an_object_lifetime_ptr  parent = olp->parent_lifetime;
 
   fprintf(f_debug, "OL (%p)-%.4d..", (void*)olp, (int)pos_curr_token.seq);
-  if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
-    while (parent->kind == (an_object_lifetime_kind)olk_block_after_label) {
+  if (lifetime_is(olp, olk_block_after_label)) {
+    while (lifetime_is(parent, olk_block_after_label)) {
       parent = parent->parent_lifetime;
     }  /* while */
     parent = parent->parent_lifetime;
   }  /* if */
   for (; parent != NULL; parent = parent->parent_lifetime) {
-    if (parent->kind != (an_object_lifetime_kind)olk_block_after_label) {
+    if (lifetime_is(parent, olk_block_after_label)) {
       fputs("..", f_debug);
     }  /* if */
   }  /* for */
@@ -23560,14 +23573,12 @@ entry is needed.)
     } else {
       check_assertion(entity_kind == (an_il_entry_kind)iek_scope);
     }  /* if */
-#if DEBUG
-  } else if (db_flag_is_set("dump_lifetimes")) {
-    if (kind != (an_object_lifetime_kind)olk_expr_temporary ||
-        long_lifetime_temps) {
-      db_object_lifetime_with_indentation(olp, "Adding: ");
-    }  /* if */
-#endif /* DEBUG */
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("dump_lifetimes")) {
+    db_object_lifetime_with_indentation(olp, "Push or repush: ");
+  }  /* if */
+#endif /* DEBUG */
   /* Now set the new entry to be the current object lifetime. */
   curr_object_lifetime = olp;
 #if DEBUG
@@ -23577,24 +23588,6 @@ entry is needed.)
 }  /* push_or_repush_object_lifetime */
 
       
-void push_object_lifetime(an_il_entry_kind         entity_kind,
-                          char                     *entity_ptr,
-                          an_object_lifetime_kind  kind)
-/*
-Create a new object lifetime entry of the specified kind and push it onto the
-object lifetime stack by setting its parent pointer and then changing
-curr_object_lifetime to point to it.  Also, set its sibling pointer, and, if
-entity_ptr is non-NULL, bind it to the IL entity with which it is associated.
-(When entity_ptr is NULL, the binding takes place later, when we are sure the
-entry is needed.)
-*/
-{
-  push_or_repush_object_lifetime(entity_kind, entity_ptr,
-                                 (an_object_lifetime_ptr)NULL, kind,
-                                 /*is_reactivation=*/FALSE);
-}  /* push_object_lifetime */
-
-
 static a_boolean any_destruction_has_temp_lifetime(an_object_lifetime_ptr olp)
 /*
 Do through the destructions for lifetime *olp and return TRUE if any is
@@ -24086,25 +24079,13 @@ okay if a lifetime being left in the IL is not bound to an IL entry.
 #endif /* DEBUG */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 3) db_object_lifetime_stack();
+  if (debug_level >= 3 || db_flag_is_set("dump_lifetimes")) {
+    db_object_lifetime_stack();
+  }  /* if */
 #endif /* DEBUG */
   db_exit()
   return is_retained_in_il;
 }  /* pop_object_lifetime_full */
-
-
-a_boolean pop_object_lifetime(void)
-/*
-Pop an object lifetime off the object lifetimes stack.  Check whether it
-needs to be kept in the IL tree.  If not, unlink it from the IL and
-return it to the appropriate available list.  Return TRUE if the object
-lifetime is retained in the IL tree.
-*/
-{
-  a_boolean is_retained_in_il =
-                              pop_object_lifetime_full(/*unbound_okay=*/FALSE);
-  return is_retained_in_il;
-}  /* pop_object_lifetime */
 
 
 an_object_lifetime_ptr innermost_block_object_lifetime(

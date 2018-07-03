@@ -2240,6 +2240,9 @@ EXTERN an_object_lifetime_ptr
 			/* The top of the currently active object lifetime
 			   stack. */
 
+#define lifetime_is(olp, lifetime_kind)                                      \
+  ((olp)->kind == (an_object_lifetime_kind)(lifetime_kind))
+
 extern void add_to_end_of_destructions_list(
                     a_dynamic_init_ptr      dip,
                     an_object_lifetime_ptr  olp,
@@ -2275,9 +2278,10 @@ void push_or_repush_object_lifetime(an_il_entry_kind         entity_kind,
                                     an_object_lifetime_kind  kind,
                                     a_boolean                is_reactivation);
 
-extern void push_object_lifetime(an_il_entry_kind         entity_kind,
-                                 char                     *entity_ptr,
-                                 an_object_lifetime_kind  kind);
+#define push_object_lifetime(entity_kind, entity_ptr, kind)                  \
+  (push_or_repush_object_lifetime(entity_kind, entity_ptr,                   \
+                                 (an_object_lifetime_ptr)NULL, kind,         \
+                                 /*is_reactivation=*/FALSE))
 
 extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
 
@@ -2289,7 +2293,8 @@ extern void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp);
 
 extern a_boolean pop_object_lifetime_full(a_boolean unbound_okay);
 
-extern a_boolean pop_object_lifetime(void);
+#define pop_object_lifetime()                                                \
+  (pop_object_lifetime_full(/*unbound_okay=*/FALSE))
 
 extern an_object_lifetime_ptr innermost_block_object_lifetime(
                                              an_object_lifetime_ptr  olp);
@@ -2697,6 +2702,9 @@ extern void db_object_lifetime_stack(void);
 
 extern void db_pending_destructions(a_dynamic_init_ptr      dip,
                                     an_object_lifetime_ptr  stop_at);
+
+extern void db_object_lifetime_with_indentation(an_object_lifetime_ptr  olp,
+                                                a_const_char            *str);
 
 extern void db_object_lifetime_tree(an_object_lifetime_ptr olp);
 

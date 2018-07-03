@@ -2150,6 +2150,12 @@ given options and PREC_LOWEST precedence.
     wrap_lifetime = curr_object_lifetime;
     saved_stack_lifetime = expr_stack->lifetime;
     expr_stack->lifetime = wrap_lifetime;
+#if DEBUG
+    if (db_flag_is_set("dump_lifetimes")) {
+      db_object_lifetime_with_indentation(curr_object_lifetime,
+                                          "About to bundle: ");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   /* Scan the initializer expression and put it into an init-component. */
   icp = scan_expr_into_new_init_component(options);
@@ -2164,6 +2170,12 @@ given options and PREC_LOWEST precedence.
     }  /* if */
     curr_object_lifetime = saved_curr_lifetime;
     expr_stack->lifetime = saved_stack_lifetime;
+#if DEBUG
+    if (db_flag_is_set("dump_lifetimes")) {
+      db_object_lifetime_with_indentation(curr_object_lifetime,
+                                          "Bundling done: ");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   icp->bundled = bundle;
   /* Save any reference entries separately from the current expression. */

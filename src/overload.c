@@ -23298,46 +23298,15 @@ object lifetime context.
         icp->variant.expr.lifetime = NULL;
         check_assertion(curr_object_lifetime != NULL);
         if (wrap_lifetime != NULL) {
-          check_assertion(wrap_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary);
-          if (curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
-            if (is_useless_object_lifetime(curr_object_lifetime)) {
-              /* The current object lifetime is an expression temporary
-                 lifetime that is empty (perhaps one pushed by
-                 convert_initializer just to make sure there's a lifetime
-                 around a full expression).  Pop it to discard it, and
-                 re-push the wrap lifetime in its place. */
-              /* Find the current object lifetime in the expression stack
-                 so we can update that pointer too. */
-              an_expr_stack_entry *pese = expr_stack;
-              while (pese->lifetime != curr_object_lifetime) {
-                pese = pese->prev;
-                check_assertion(pese != NULL);
-              }  /* while */
-              (void)pop_object_lifetime();
-              push_or_repush_object_lifetime(iek_none, (char *)NULL,
-                                             wrap_lifetime,
-                                             wrap_lifetime->kind,
-                                             /*is_reactivation=*/FALSE);
-              pese->lifetime = wrap_lifetime;
-            } else {
-              /* The current object lifetime is an expression temporary
-                 lifetime, but it already has something in it.  Promote
-                 the contents of the wrap lifetime into the current
-                 object lifetime. */
-              promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
-              free_object_lifetime(wrap_lifetime);
-            }  /* if */
-          } else {
-            /* The current lifetime can be something other than an
-               expression temporary lifetime in long lifetime temporaries
-               mode.  Promote into the current lifetime, whatever it is,
-               in that case. */
-            check_assertion_or_expect_error(long_lifetime_temps);
-            promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
-            free_object_lifetime(wrap_lifetime);
-          }  /* if */
+          check_assertion(lifetime_is(wrap_lifetime, olk_expr_temporary));
+          /* Promote the contents of the wrap lifetime into the current object
+             lifetime.  The latter should be an expression temporary lifetime,
+             except perhaps in "long lifetime temporaries" mode. */
+          check_assertion_or_expect_error(
+                      lifetime_is(curr_object_lifetime, olk_expr_temporary) ||
+                      long_lifetime_temps);
+          promote_lifetime_contents_to_curr_object_lifetime(wrap_lifetime);
+          free_object_lifetime(wrap_lifetime);
         }  /* if */
       }  /* if */
     } else if (is_braced_init_component(icp)) {
