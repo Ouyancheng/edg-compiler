@@ -1,5 +1,25 @@
 Version 4.15
 
+7/3/18   [EDGcpfe/19800]
+Abort on Microsoft-mode in-class specialization
+
+Consider:
+
+  template<int N> struct S {
+    template<bool> struct B { using X = int; };
+    typedef typename B<!N>::X Y;
+    template<bool> void f(Y, int);
+    template<> void f<true>(Y, int);
+  };
+
+This previously aborted with an internal error ("missing default rescan info",
+in exprutil.c) because the front end attempted to substitute the dependent
+member typedef Y as if it were an alias template, as part of matching the
+in-class specialization to the member template S<N>::f.  This is now fixed:
+The front end no longer attempts to match in-class function template
+specializations during prototype instantiations.
+
+
 7/2/18   [EDGcpfe/17957]
 Allow an implementation-defined "using" attribute
 

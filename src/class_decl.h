@@ -126,6 +126,14 @@ a_type_ptr check_for_invalid_member_constant(a_decl_parse_state_ptr	dps,
 					     a_type_ptr			type,
 					     a_source_position_ptr	pos);
 
+extern a_symbol_ptr decl_dependent_class_scope_function(
+                                        a_boolean               friend_decl,
+                                        a_boolean               expl_spec,
+                                        a_symbol_locator        *locator,
+                                        a_decl_parse_state_ptr  dps,
+                                        a_func_info_block_ptr   func_info,
+                                        a_decl_pos_block        *pos_info);
+
 extern a_symbol_ptr class_member_template_declaration(
                                       struct a_tmpl_decl_state  *templ_state);
 

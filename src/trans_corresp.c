@@ -3068,7 +3068,8 @@ is in fact valid.
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
     if (match && !trans_unit_test_mode && !routine->is_inline &&
         (!routine->is_prototype_instantiation ||
-         routine->assoc_template->is_exported) &&
+         (routine->assoc_template != NULL &&
+          routine->assoc_template->is_exported)) &&
 #if GNU_EXTENSIONS_ALLOWED
         !(routine->is_weak || corresp_routine->is_weak) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4610,11 +4611,11 @@ are not checked.
              get to any a_template entry associated with an out-of-class
              definition of the member function. */
           if (routine->is_prototype_instantiation &&
-              corresp_routine->is_prototype_instantiation) {
-            a_symbol_ptr  sym = (a_symbol_ptr)routine
-                                                  ->source_corresp.assoc_info,
-                          corresp_sym = (a_symbol_ptr)corresp_routine
-                                                  ->source_corresp.assoc_info;
+              !routine->is_in_class_specialization &&
+              corresp_routine->is_prototype_instantiation &&
+              !corresp_routine->is_in_class_specialization) {
+            a_symbol_ptr  sym = symbol_for(routine),
+                          corresp_sym = symbol_for(corresp_routine);
             set_corresp_for_associated_templates(sym, corresp_sym);
           }  /* if */
         }  /* for */

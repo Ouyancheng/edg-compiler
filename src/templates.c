@@ -28502,6 +28502,33 @@ replaces it by a new symbol pointing to a new routine entry.
 }  /* replace_entry_for_duplicate_specialization */
 
 
+static void cache_inclass_specialization_definition(
+                                          a_tmpl_decl_state_ptr  decl_state,
+                                          a_func_info_block      *func_info)
+/*
+The current token starts a function definition for an explicit specialization
+appearing in class scope (a Microsoft extensions).  Cache that definition and
+create a corresponding routine fixup to scan the definition after the class is
+completed.  The closing brace is left for the caller to consume.
+*/
+{
+  a_decl_parse_state  *dps = &decl_state->decl_parse;
+  a_token_cache	      body_cache;
+
+  clear_token_cache(&body_cache, /*reusable=*/TRUE);
+  cache_function_template_body(decl_state, &body_cache,
+                               is_constructor_symbol(dps->sym),
+                               &dps->declarator_pos);
+  /* Add the specialization to the routine fixup list for the class
+     being defined.  This routine makes a copy of the body cache
+     so body_cache should not be discarded here. */
+  add_routine_fixup_for_specialization(decl_state->class_declared_in,
+                                       dps->sym, func_info, &body_cache);
+  /* Leave it to the caller to advance past the closing brace. */
+  *(decl_state->final_token_ptr) = tok_rbrace;
+}  /* cache_inclass_specialization_definition */
+
+
 static void full_specialization(a_tmpl_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -28773,8 +28800,36 @@ that follows.
         sym = fund_sym;
       }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
-        a_boolean  is_new_template_instance;
-        sym = find_matching_template_instance(
+        if (microsoft_mode && decl_state->class_declared_in != NULL &&
+            decl_state->class_declared_in
+                    ->variant.class_struct_union.is_prototype_instantiation) {
+          /* An in-class explicit specialization during a prototype
+             instantiation might still depend on template parameters.  If we
+             try to match it against the template using
+             find_matching_template_instance, that might trigger problems with
+             dependent member typedefs, for example.  Instead, we just create
+             a placeholder routine entry. */
+          dps->is_definition = (curr_token == tok_lbrace ||
+                                curr_token == tok_try ||
+                                curr_token == tok_colon ||
+                                func_info.is_deleted ||
+                                func_info.is_defaulted);
+          sym = decl_dependent_class_scope_function(
+                           decl_state->is_template_friend, /*expl_spec=*/TRUE,
+                           &locator, dps, &func_info, &decl_pos_block);
+          if (dps->is_definition) {
+            /* A Microsoft mode specialization that appears in a class context.
+               Cache the function body now and scan it later during the class
+               fixup process. */
+            cache_inclass_specialization_definition(decl_state, &func_info);
+            /* The param_id_list is needed because the func_info information
+               is on the routine fixup list.  Don't discard it below. */
+            keep_func_info = TRUE;
+          }  /* if */
+          goto done;
+        } else {
+          a_boolean  is_new_template_instance;
+          sym = find_matching_template_instance(
                         sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
                         /*in_class_specialization=*/decl_state->is_member_decl,
@@ -28783,49 +28838,50 @@ that follows.
                         es_error, &is_new_template_instance);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        /* The call to find_matching_template_instance above can cause a
-           partial instantiation, which, in turn, triggers the creation of a
-           source sequence entry in this configuration.  However, that is
-           superfluous in this case since we already have a source sequence
-           entry for the partial specialization (and any additional one might
-           need additional IL such as that needed to represent attributes).
-           Remove the superfluous source sequence entry if it was created. */
-        if (!saved_sses_disallowed && is_new_template_instance &&
-            sym != NULL && is_simple_function_symbol(sym)) {
-          a_source_sequence_entry_ptr  ssep;
-          rp = sym->variant.routine.ptr;
-          ssep = last_matching_source_sequence_entry((char*)rp);
-          if (ssep != NULL) {
-            if (rp->source_corresp.source_sequence_entry == ssep) {
-              rp->source_corresp.source_sequence_entry = NULL;
+          /* The call to find_matching_template_instance above can cause a
+             partial instantiation, which, in turn, triggers the creation of a
+             source sequence entry in this configuration.  However, that is
+             superfluous in this case since we already have a source sequence
+             entry for the partial specialization (and any additional one might
+             need additional IL such as that needed to represent attributes).
+             Remove the superfluous source sequence entry if it was created. */
+          if (!saved_sses_disallowed && is_new_template_instance &&
+              sym != NULL && is_simple_function_symbol(sym)) {
+            a_source_sequence_entry_ptr  ssep;
+            rp = sym->variant.routine.ptr;
+            ssep = last_matching_source_sequence_entry((char*)rp);
+            if (ssep != NULL) {
+              if (rp->source_corresp.source_sequence_entry == ssep) {
+                rp->source_corresp.source_sequence_entry = NULL;
+              }  /* if */
+              remove_from_src_seq_list(ssep);
             }  /* if */
-            remove_from_src_seq_list(ssep);
           }  /* if */
-        }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (sym == NULL) {
-          /* No match was found and an error was issued (or ignored in
-             some cases). */
-        } else if (microsoft_bugs && microsoft_version <= 1300) {
-          /* Microsoft allows specialization syntax to be used to define
-             non-template entities. */
-          microsoft_nonstd_specialization = TRUE;
-        } else if (sym->variant.routine.instance_ptr == NULL) {
-          /* Not a template instance. */
-          pos_sy_error(ec_entity_cannot_be_specialized,
-                       &locator.source_position, sym);
-          sym = NULL;
+          if (sym == NULL) {
+            /* No match was found and an error was issued (or ignored in
+               some cases). */
+          } else if (microsoft_bugs && microsoft_version <= 1300) {
+            /* Microsoft allows specialization syntax to be used to define
+               non-template entities. */
+            microsoft_nonstd_specialization = TRUE;
+          } else if (sym->variant.routine.instance_ptr == NULL) {
+            /* Not a template instance. */
+            pos_sy_error(ec_entity_cannot_be_specialized,
+                         &locator.source_position, sym);
+            sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (sym->variant.routine.ptr->is_generic_instance) {
-          /* A C++/CLI generic function cannot be specialized. */
-          pos_error(ec_invalid_generic_specialization,
-                    &locator.source_position);
-          sym = NULL;
+          } else if (sym->variant.routine.ptr->is_generic_instance) {
+            /* A C++/CLI generic function cannot be specialized. */
+            pos_error(ec_invalid_generic_specialization,
+                      &locator.source_position);
+            sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else {
-          /* Okay. */
-          is_instance = TRUE;
+          } else {
+            /* Okay. */
+            is_instance = TRUE;
+          }  /* if */
         }  /* if */
       } else if ((symbol_is(sym, sk_static_data_member) ||
                   symbol_is(sym, sk_variable)) &&
@@ -28987,9 +29043,9 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
         dps->is_definition = (curr_token == tok_lbrace ||
-                         curr_token == tok_try ||
-                         (curr_token == tok_colon && is_constructor) ||
-                         func_info.is_deleted || func_info.is_defaulted);
+                              curr_token == tok_try ||
+                              (curr_token == tok_colon && is_constructor) ||
+                              func_info.is_deleted || func_info.is_defaulted);
       }  /* if */
       dps->first_decl = !already_specialized;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
@@ -29452,22 +29508,12 @@ that follows.
             /* A Microsoft mode specialization that appears in a class context.
                Cache the function body now and scan it later during the class
                fixup process. */
-            a_token_cache	body_cache;
-
-            clear_token_cache(&body_cache, /*reusable=*/TRUE);
-            cache_function_template_body(decl_state, &body_cache,
-                                         is_constructor,
-                                         &locator.source_position);
-            /* Add the specialization to the routine fixup list for the class
-               being defined.  This routine makes a copy of the body cache
-               so body_cache should not be discarded here. */
-            add_routine_fixup_for_specialization(decl_state->class_declared_in,
-                                                 sym, &func_info, &body_cache);
-            /* An in-class specialization in implicitly inline. */
-            set_inline_flag(rp, TRUE);
+            cache_inclass_specialization_definition(decl_state, &func_info);
             /* The param_id_list is needed because the func_info information
                is on the routine fixup list.  Don't discard it below. */
             keep_func_info = TRUE;
+            /* An in-class specialization in implicitly inline. */
+            set_inline_flag(rp, TRUE);
             /* Determine if this is a copy constructor.  If so, set the class
                symbol supplement flags appropriately.  Note that in-class
                specializations are only permitted in Microsoft mode, so
@@ -29478,8 +29524,6 @@ that follows.
                                          rp, decl_state->class_declared_in,
                                          /*compiler_generated=*/FALSE);
             }  /* if */
-            /* Leave it to the caller to advance past the closing brace. */
-            *(decl_state->final_token_ptr) = tok_rbrace;
           } else {
             if (rp->source_corresp.is_class_member) {
               rp->defined_outside_of_parent = TRUE;
@@ -29495,6 +29539,7 @@ that follows.
         }  /* if */
       }  /* if */
     }  /* if */
+done:
     if (!keep_func_info) done_with_func_info(func_info);
     remove_stop_token(tok_semicolon);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

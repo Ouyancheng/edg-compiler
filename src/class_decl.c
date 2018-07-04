@@ -10724,21 +10724,27 @@ and issues a warning.
 }  /* check_for_invalid_friend_declaration */
 
 
-static a_symbol_ptr decl_dependent_friend_function(
+a_symbol_ptr decl_dependent_class_scope_function(
+                                        a_boolean               friend_decl,
+                                        a_boolean               expl_spec,
                                         a_symbol_locator        *locator,
-                                        a_type_ptr              function_type,
+                                        a_decl_parse_state      *dps,
                                         a_func_info_block_ptr   func_info,
-                                        a_member_decl_info_ptr  decl_info)
+                                        a_decl_pos_block        *pos_info)
 /*
-Create a routine and associated symbol for a template dependent friend
-declaration of type function_type.  The locator for the friend declarator and
-some extra declaration info are passed through locator, func_info, and
-decl_info.
-The routine symbol is returned (but not linked into the symbol table).
-The routine entry itself is linked into the IL only if prototype
-instantiations are recorded in the IL.
+Create a routine and associated symbol for a template dependent function
+declaration of type function_type appearing in class scope.  Although the
+declaration (and definition) of the function is template-dependent, it is not
+necessarily a template function (e.g., a friend function in a class template
+is an ordinary function).  The declaration is a friend declaration when
+friend_decl is TRUE and an (in-class) explicit specialization when exp_spec
+is TRUE.  The locator for the declarator and some extra declaration info are
+passed through locator, dps, func_info, and pos_info.  The routine symbol is
+returned (but not linked into the symbol table).  The routine entry itself is
+linked into the IL only if prototype instantiations are recorded in the IL.
 */
 {
+  a_type_ptr                    function_type = dps->type;
   a_symbol_ptr                  sym = NULL;
   a_symbol_kind                 sym_kind;
   a_symbol_ptr                  orig_sym = locator->specific_symbol;
@@ -10748,29 +10754,45 @@ instantiations are recorded in the IL.
   a_src_seq_secondary_decl_ptr  sssdp;
   a_source_sequence_entry_ptr   ssep = func_info->declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_decl_parse_state_ptr        dps = &decl_info->decl_state;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_decl_pos_block_ptr          pos_info = &decl_info->decl_pos_block;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean                     is_class_member;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* First create a symbol for this function (though it will not be linked
      into the symbol table. */
-  sym_kind = (a_symbol_kind)
-               (locator->is_class_member ? sk_member_function : sk_routine);
+  if (expl_spec) {
+    check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
+    is_class_member = TRUE;
+  } else {
+    is_class_member = locator->is_class_member;
+  }  /* if */
+  sym_kind = (a_symbol_kind)(is_class_member ? sk_member_function
+                                             : sk_routine);
   sym = alloc_symbol(sym_kind, locator->symbol_header,
                      &locator->source_position);
   dps->sym = sym;
   /* Make a routine entry for this member: */
-  rp = make_routine(function_type, (a_storage_class)sc_extern,
-                    prototype_instantiations_in_il ?
-                            depth_innermost_namespace_scope : NO_SCOPE_DEPTH);
+  rp = make_routine(function_type, (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
+  if (expl_spec) {
+    /* An in-class explicit specialization should be added to the current
+       class scope. */
+    add_to_routines_list(rp, depth_scope_stack);
+  } else if (prototype_instantiations_in_il) {
+    /* For friend placeholders, arbitrarily record the entry in the innermost
+       namespace scope. */
+    add_to_routines_list(rp, depth_innermost_namespace_scope);
+  }  /* if */
   rp->has_deducible_return_type = dps->has_deducible_return_type;
   /* Treat this as a prototype instantiation so that it doesn't end up in
      the IL if prototype_instantiations_in_il is FALSE.  (Note that even
      though is_prototype_instantiation is TRUE, is_template_function is FALSE
      unless an explicit template argument list is specified). */
   rp->is_prototype_instantiation = TRUE;
+  if (expl_spec) {
+    rp->is_specialized = TRUE;
+    if (is_class_member) {
+      rp->is_in_class_specialization = TRUE;
+    }  /* if */
+  }  /* if */
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
 #if BACK_END_IS_CP_GEN_BE
@@ -10779,11 +10801,11 @@ instantiations are recorded in the IL.
      must therefore be recorded in the IL entry here. */
   rp->source_corresp.qualification_needed = locator->is_qualified_name;
 #endif /* BACK_END_IS_CP_GEN_BE */
-  /* If a special function is named as a friend, adjust the placeholder entry
+  /* If a special function is being referred to, adjust the placeholder entry
      accordingly. */
-  if (decl_info->is_constructor) {
+  if (dps->do_flags & DO_IS_CONSTRUCTOR) {
     set_routine_special_kind(rp, (a_special_function_kind)sfk_constructor);
-  } else if (decl_info->is_destructor) {
+  } else if (locator->is_destructor_name) {
     set_routine_special_kind(rp, (a_special_function_kind)sfk_destructor);
   } else if (locator->is_operator_name) {
     set_routine_special_kind(rp, (a_special_function_kind)sfk_operator);
@@ -10791,14 +10813,19 @@ instantiations are recorded in the IL.
   } else if (locator->is_conversion_name) {
     set_routine_special_kind(rp, (a_special_function_kind)sfk_conversion);
   }  /* if */
-  if (locator->is_class_member) {
-    a_type_ptr  parent_type = qualifier_class_type(*locator);
+  if (is_class_member) {
+    a_type_ptr  parent_type;
+    if (expl_spec) {
+      parent_type = scope_stack_top().assoc_type;
+    } else {
+      parent_type = qualifier_class_type(*locator);
+    }  /* if */
     if (is_template_param_type(parent_type)) {
       parent_type = skip_typerefs(parent_type);
       parent_type = proxy_class_for_template_param(parent_type);
     }  /* if */
     set_class_membership(sym, &rp->source_corresp, parent_type);
-    if ((gpp_mode || microsoft_mode) &&
+    if (friend_decl && (gpp_mode || microsoft_mode) &&
         orig_sym != NULL && orig_sym->is_nonreal_member) {
       /* Microsoft and g++ allows a friend declaration that refers to
          an undeclared member of a prototype instantiation.  Check for
@@ -10827,7 +10854,9 @@ instantiations are recorded in the IL.
        set_inline_flag has been called. */
     set_inline_flag(rp, TRUE);
     rp->defined = sym->defined = TRUE;
-    rp->defined_in_friend_decl = TRUE;
+    if (friend_decl) {
+      rp->defined_in_friend_decl = TRUE;
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_type = func_info->declared_type;
     rp->declared_storage_class = dps->declared_storage_class;
@@ -10841,11 +10870,12 @@ instantiations are recorded in the IL.
                         make_decl_pos_supplement(in_file_scope(rp), pos_info);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
-    /* A dependent friend declaration that is not a definition.  If this
-       is neither a qualified name nor a template-id, issue a warning as
-       it is probably not what was intended. */
-    if (warning_on_non_template_friend && !guiding_decls_allowed &&
-        !locator->is_qualified_name && !locator->is_template_id &&
+    /* A dependent declaration that is not a definition.  If this is a friend
+       declaration with neither a qualified name nor a template-id, issue a
+       warning as it is probably not what was intended. */
+    if (friend_decl && warning_on_non_template_friend &&
+        !guiding_decls_allowed && !locator->is_qualified_name &&
+        !locator->is_template_id &&
         is_template_dependent_type(function_type)) {
       pos_sy_warning(ec_probable_guiding_friend, &locator->source_position,
                      sym);
@@ -10860,7 +10890,15 @@ instantiations are recorded in the IL.
       sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
                                                       pos_info);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      sssdp->friend_decl = TRUE;
+      if (friend_decl) {
+        sssdp->friend_decl = TRUE;
+      }  /* if */
+      if (expl_spec) {
+        /* If the function hadn't been specialized with modern syntax, it
+           would have looked like a member function and we would not have
+           gotten here. */
+        sssdp->specialized_with_new_syntax = TRUE;
+      }  /* if */
       ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
       ssep->entity.ptr  = (char *)sssdp;
     }  /* if */
@@ -10869,7 +10907,7 @@ instantiations are recorded in the IL.
   attach_decl_attributes(dps, /*is_primary_decl=*/func_info->is_definition);
   switch_back_to_original_region(region_to_switch_back_to);
   return sym;
-}  /* decl_dependent_friend_function */
+}  /* decl_dependent_class_scope_function */
 
 
 static a_symbol_ptr decl_friend_function(a_symbol_locator        *locator,
@@ -10948,8 +10986,10 @@ possibility.
         if (func_info->is_definition) {
           state->is_definition = TRUE;
         }  /* if */
-        sym = decl_dependent_friend_function(locator, function_type, func_info,
-                                             decl_info);
+        sym = decl_dependent_class_scope_function(
+                                    /*friend_decl=*/TRUE, /*expl_spec=*/FALSE,
+                                    locator, state, func_info,
+                                    &decl_info->decl_pos_block);
         state->sym = sym;
         state->first_decl = TRUE;
         goto decl_processed;
