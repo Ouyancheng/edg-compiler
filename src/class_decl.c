@@ -10724,6 +10724,9 @@ and issues a warning.
 }  /* check_for_invalid_friend_declaration */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* pos_info is not used in some configurations.
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_symbol_ptr decl_dependent_class_scope_function(
                                         a_boolean               friend_decl,
                                         a_boolean               expl_spec,
