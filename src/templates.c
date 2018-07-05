@@ -23596,7 +23596,6 @@ depends on a template parameter.
                                            param_type_ptr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position information from decl_pos_block. */
-  a_constant_ptr	param_con;
   update_decl_pos_info(&sym->variant.constant->source_corresp,
                        &decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
