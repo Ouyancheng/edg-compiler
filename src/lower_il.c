@@ -15935,6 +15935,20 @@ cast.  See lower_expr for typical invocation.
                       /*is_bool_controlling_expr_mask=*/0,
                       /*assume_expr_is_non_null_mask=*/0);
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      /* Lower a call to the __builtin_choose_expr builtin by replacing the
+         call by a call to either the second or third operand (depending on the
+         value of the first operand). */
+      { an_expr_node *bc_op = expr->variant.builtin_choose_expr.operands->next;
+        if (!expr->variant.builtin_choose_expr.choose_first) {
+          bc_op = bc_op->next;
+        }  /* if */
+        lower_expr(bc_op);
+        overwrite_node(expr, bc_op);
+      }
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */

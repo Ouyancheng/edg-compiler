@@ -1,5 +1,18 @@
 Version 4.15
 
+7/5/18   [EDGcpfe/19816]
+Lowering of __builtin_choose_expr
+
+A call to __builtin_choose_expr that escapes to lowering is now lowered
+(by replacing the call with the second or third operand depending on the
+value of the first operand).  This had caused problems (an assertion failure
+in lower_expr_full) in the Linux kernel build (with --gcc):
+
+  void f() {
+    asm("" : : "re"(__builtin_choose_expr(8, 0, ({}))));
+  }
+
+
 7/3/18   [EDGcpfe/19159,EDGcpfe/19800]
 Abort on Microsoft-mode in-class specialization
 
