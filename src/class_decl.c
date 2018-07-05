@@ -10740,7 +10740,7 @@ declaration of type function_type appearing in class scope.  Although the
 declaration (and definition) of the function is template-dependent, it is not
 necessarily a template function (e.g., a friend function in a class template
 is an ordinary function).  The declaration is a friend declaration when
-friend_decl is TRUE and an (in-class) explicit specialization when exp_spec
+friend_decl is TRUE and an (in-class) explicit specialization when expl_spec
 is TRUE.  The locator for the declarator and some extra declaration info are
 passed through locator, dps, func_info, and pos_info.  The routine symbol is
 returned (but not linked into the symbol table).  The routine entry itself is

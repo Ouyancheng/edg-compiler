@@ -9308,7 +9308,9 @@ one for the entity itself if it is a template.
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* And one for the entity itself if it is a template. */
-  if (template_arg_list != NULL) write_tok_str("template<> ");
+  if (template_arg_list != NULL || is_in_class_specialization) {
+    write_tok_str("template<> ");
+  }  /* if */
 }  /* gen_template_specialization_header */
 
 

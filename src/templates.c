@@ -28507,7 +28507,7 @@ static void cache_inclass_specialization_definition(
                                           a_func_info_block      *func_info)
 /*
 The current token starts a function definition for an explicit specialization
-appearing in class scope (a Microsoft extensions).  Cache that definition and
+appearing in class scope (a Microsoft extension).  Cache that definition and
 create a corresponding routine fixup to scan the definition after the class is
 completed.  The closing brace is left for the caller to consume.
 */
@@ -28809,11 +28809,12 @@ that follows.
              find_matching_template_instance, that might trigger problems with
              dependent member typedefs, for example.  Instead, we just create
              a placeholder routine entry. */
-          dps->is_definition = (curr_token == tok_lbrace ||
-                                curr_token == tok_try ||
-                                curr_token == tok_colon ||
-                                func_info.is_deleted ||
-                                func_info.is_defaulted);
+          if (curr_token == tok_lbrace || curr_token == tok_try ||
+              curr_token == tok_colon || func_info.is_deleted ||
+              func_info.is_defaulted) {
+            dps->is_definition = TRUE;
+            func_info.is_definition = TRUE;
+          }  /* if */
           sym = decl_dependent_class_scope_function(
                            decl_state->is_template_friend, /*expl_spec=*/TRUE,
                            &locator, dps, &func_info, &decl_pos_block);
@@ -29512,7 +29513,7 @@ that follows.
             /* The param_id_list is needed because the func_info information
                is on the routine fixup list.  Don't discard it below. */
             keep_func_info = TRUE;
-            /* An in-class specialization in implicitly inline. */
+            /* An in-class specialization is implicitly inline. */
             set_inline_flag(rp, TRUE);
             /* Determine if this is a copy constructor.  If so, set the class
                symbol supplement flags appropriately.  Note that in-class
