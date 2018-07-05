@@ -1,6 +1,6 @@
 Version 4.15
 
-7/3/18   [EDGcpfe/19800]
+7/3/18   [EDGcpfe/19159,EDGcpfe/19800]
 Abort on Microsoft-mode in-class specialization
 
 Consider:
