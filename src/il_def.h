@@ -16740,7 +16740,12 @@ typedef struct an_il_header {
                            strange data structure because the pointers can
                            point down into other memory regions; obviously,
                            this table is handled specially by memory management
-                           and in writing and reading the IL. */
+                           and in writing and reading the IL.  For function-
+			   scope memory regions this may point to a list of
+			   scopes, the first of which is the top-level function
+			   scope (additional entries represent function
+			   definitions lexically nested in the top-level
+			   function scope). */
   a_function_def_descr
 		*function_def_table;
 			/* Pointers to an array of entries describing top-level

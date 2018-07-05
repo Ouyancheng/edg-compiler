@@ -3319,7 +3319,7 @@ memory region and a pointer to it is returned.
 {
   a_function_def_descr_ptr	fddp;
   a_function_def_number		function_def_number;
-  a_scope_ptr			sp;
+  a_scope_ptr			sp, top_scope;
 
   check_assertion(assoc_routine != NULL);
   function_def_number = new_function_def_number();
@@ -3344,11 +3344,22 @@ memory region and a pointer to it is returned.
   assoc_routine->function_def_number = function_def_number;
   assoc_routine->memory_region = fddp->memory_region;
   /* Link this on the list of scopes in the region. */
-  if (il_header.region_scope_entry[curr_il_region_number] != NULL) {
-    il_header.region_scope_entry[curr_il_region_number]->prev = sp;
+  top_scope = il_header.region_scope_entry[curr_il_region_number];
+  if (top_scope == NULL) {
+    /* The usual case: A top-level function scope. */
+    il_header.region_scope_entry[curr_il_region_number] = sp;
+  } else {
+    /* A non-top-level function scope (i.e., a member function of a local
+       class, such as a lambda closure).  Insert it after the top-level
+       function scope. */
+    a_scope_ptr  tail_scopes = top_scope->next;
+    if (tail_scopes != NULL) {
+      tail_scopes->prev = sp;
+      sp->next = tail_scopes;
+    }  /* if */
+    top_scope->next = sp;
+    sp->prev = top_scope;
   }  /* if */
-  sp->next = il_header.region_scope_entry[curr_il_region_number];
-  il_header.region_scope_entry[curr_il_region_number] = sp;
 #if DEBUG
   if (db_flag_is_set("new_function_scope")) {
     db_scope(sp);

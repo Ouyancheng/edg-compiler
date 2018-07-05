@@ -629,7 +629,13 @@ it and remapping pointers.
                         (a_remap_function_ptr)NULL,
                         copy_termination_test,
                         /*clear_fe_pointers=*/FALSE);
-  scope->function_body_processing_finished = FALSE;
+  /* Reset function_body_processing_finished in all the function bodies in this
+     memory region to ensure that they will eventually be lowered.  (See also
+     finish_processing_for_function_bodies.) */
+  do {
+    scope->function_body_processing_finished = FALSE;
+    scope = scope->next;
+  } while (scope != NULL);
 }  /* move_routine_body_to_primary */
 
 
