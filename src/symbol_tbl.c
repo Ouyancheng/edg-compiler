@@ -15490,6 +15490,9 @@ and return a pointer to it.
   ptr->def_arg_has_not_been_scanned = FALSE;
   ptr->def_arg_from_other_decl = FALSE;
   ptr->is_pack = FALSE;
+  ptr->is_pack_expansion = FALSE;
+  ptr->is_pack_element = FALSE;
+  ptr->is_empty_pack = FALSE;
   ptr->do_prototype_instantiation = FALSE;
   ptr->is_dependent = FALSE;
   ptr->used_in_alias = FALSE;
@@ -15511,6 +15514,7 @@ and return a pointer to it.
     ptr->variant.templ = sym->variant.template_info;
   }  /* if */
   clear_template_param_default_arg_info(ptr);
+  ptr->param_num = 0;
   db_exit();
   return ptr;
 }  /* alloc_template_param */

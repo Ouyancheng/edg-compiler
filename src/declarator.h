@@ -212,7 +212,11 @@ abstract or real declarator.
 #define DI_IS_DEDUCTION_GUIDE ((a_decl_flag_set)0x100000)
 			/* If this bit is set the declaration is for a C++17
 			   deduction guide. */
-#define DI_LAST DI_IS_DEDUCTION_GUIDE;
+#define DI_IS_TEMPLATE_PARAM_PACK_EXPANSION  ((a_decl_flag_set)0x200000)
+			/* This bit is set for a template nontype parameter
+			   declaration in which the type is an expansion of
+			   an enclosing template parameter. */
+#define DI_LAST DI_IS_TEMPLATE_PARAM_PACK_EXPANSION
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DI_LAST)*/
 /* Constants defining bits in the output bit vector used in calls to

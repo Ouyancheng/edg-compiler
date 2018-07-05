@@ -1956,14 +1956,28 @@ is TRUE.  Otherwise it must be zero.
     rout_type = skip_typerefs(tssp->variant.function.routine->type);
     is_conversion_operator = is_conversion_function_symbol(template_sym);
   }  /* if */
-  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
-                                    &tpp, &tap);
+  begin_special_variadic_template_arg_list_traversal(
+                                 templ_param_list, templ_arg_list, &tpp, &tap);
   for (; tap != NULL;
-       prev_tap = tap, advance_to_next_template_arg(&tpp, &tap)) {
-    a_boolean	has_value = template_arg_has_value(tap);
+       prev_tap = tap,
+         special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
+    a_boolean	has_value;
+    /* If a start-of-expansion argument was returned, advance to the first
+       element of the pack. */
+    if (is_start_of_pack_expansion_templ_arg(tap)) {
+      if (tap->next != NULL && tap->next->is_pack_element) {
+        tap = tap->next;
+      } else {
+        continue;
+      }  /* if */
+    }  /* if */
+    has_value = template_arg_has_value(tap);
     if (tpp == NULL) {
-      check_assertion(is_templ_templ_param_check);
-      if (!tap->is_pack_element) result = FALSE;
+      if (is_templ_templ_param_check) {
+        if (!tap->is_pack_element) result = FALSE;
+      } else {
+        result = FALSE;
+      }  /* if */
       break;
     }  /* if */
     if (default_allowed && !has_value) {
@@ -10450,16 +10464,21 @@ doing C++17-style template template parameter matching.
     a_template_arg_ptr		prev_tap = NULL;
     a_template_arg_ptr		specified_tap;
     a_boolean			is_parameter_pack = FALSE;
+    a_boolean			is_special_pack = FALSE;
+    uint32_t			param_num = 0;
     /* Loop through the template parameter list and create a template
-       argument entry of the appropriate type for each parameter.
-       The is_parameter_pack flag is used to suppress the normal
-       advancement to the next parameter.  But when we run out of
-       supplied arguments we need to continue creating empty arguments
-       for the remainder of the list. */
+       argument entry of the appropriate type for each parameter.  The
+       is_parameter_pack flag is used to suppress the normal advancement
+       to the next parameter.  The is_special_pack also suppresses the
+       advancement.  But unlike is_parameter_pack, is_special_pack is
+       cleared when the set of parameters that resulted from the enclosing
+       expansion is exhausted.   When we run out of supplied arguments we
+       need to continue creating empty arguments for the remainder of the
+       list. */
     for (tpp = templ_param_list, specified_tap = partial_arg_list;
          tpp != NULL;
          specified_tap = specified_tap == NULL ? NULL : specified_tap->next,
-           tpp = is_parameter_pack &&
+           tpp = is_parameter_pack && !is_special_pack &&
            specified_tap != NULL ? tpp
                                  : (is_parameter_pack = FALSE, tpp->next)) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
@@ -10489,6 +10508,15 @@ doing C++17-style template template parameter matching.
         }  /* if */
         prev_tap = tap;
         is_parameter_pack = TRUE;
+        /* When a member template has a template parameter that is an
+           expansion of an enclosing pack, there can be N template parameters
+           that result from the expansion.  These will all have the same
+           "param_num".  When we encounter a set of those parameters, we
+           insert a start-of-pack entry at the start. */
+        if (tpp->is_pack_element) {
+          is_special_pack = TRUE;
+          param_num = tpp->param_num;
+        }  /* if */
       }  /* if */
       /* Don't create an empty argument for a parameter pack with no
          specified arguments. */
@@ -10512,7 +10540,7 @@ doing C++17-style template template parameter matching.
         /* An argument value was supplied.  Copy it to the newly created
            template argument. */
         tap->explicitly_specified = specified_tap->explicitly_specified;
-        tap->is_pack_element = is_parameter_pack;
+        tap->is_pack_element = is_parameter_pack || is_special_pack;
         if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
@@ -10594,6 +10622,9 @@ doing C++17-style template template parameter matching.
         prev_tap->next = tap;
       }  /* if */
       prev_tap = tap;
+      if (is_special_pack && tpp->param_num != param_num) {
+        is_special_pack = FALSE;
+      }  /* if */
     }  /* for */
   }  /* if */
   if (arg_kind_mismatch && new_list != NULL) {
@@ -19237,9 +19268,13 @@ a class template.
     }  /* if */
     /* If there have been parameters with default and this one doesn't have
        a default (and isn't a pack) then issue an error and exit the loop.
-       If this one is a pack, check that no parameter follows. */
-    if (!is_partial_specialization && template_param_is_pack(tpp)) {
-      if (tpp->next != NULL) {
+       If this one is a pack, check that no parameter follows.  A pack
+       expansion of an enclosing template parameter pack is not a pack
+       declaration, so there is not a problem having other parameters
+       after the expansion. */
+    if (!is_partial_specialization && template_param_is_pack(tpp) &&
+        !tpp->is_pack_expansion) {
+      if (tpp->next != NULL && tpp->param_num != tpp->next->param_num) {
         pos_error(ec_template_param_pack_not_at_end,
                   &tpp->param_symbol->decl_position);
       }  /* if */
@@ -22823,27 +22858,59 @@ parameter in the parameter list.
 }  /* prescan_function_template_default_arg_expr */
 
 
+static a_boolean type_uses_enclosing_pack(
+				a_type_ptr			type,
+				a_template_nesting_depth	nesting_depth)
+/*
+Determine whether type has a bottom type that is a template parameter from
+a parameter list whose depth is not nesting_depth.
+*/
+{
+  a_boolean	result = FALSE;
+
+  type = find_bottom_of_type(type);
+  if (type_is(type, tk_template_param) &&
+      type->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param &&
+      type->variant.template_param.is_pack) {
+    a_template_param_type_supplement_ptr	tptsp;
+    tptsp = type->variant.template_param.extra_info;
+    /* An "auto" template parameter is indicated by its nesting depth,
+       and should not be considered "enclosing". */
+    result = tptsp->coordinates.depth > NO_NESTING_DEPTH &&
+             tptsp->coordinates.depth != nesting_depth;
+  }  /* if */
+  return result;
+}  /* type_uses_enclosing_pack */
+
+
 static void scan_a_template_parameter_declaration(
-				a_symbol_locator	*param_locator,
-				a_type_ptr		*param_type_ptr,
-				a_boolean		*is_unnamed,
-				a_boolean		*template_dependent,
-				a_boolean		*is_pack,
-				a_boolean		*uses_auto,
-				a_decl_pos_block_ptr	decl_pos_block)
+			a_symbol_locator		*param_locator,
+			a_type_ptr			*param_type_ptr,
+			a_boolean			*is_unnamed,
+			a_boolean			*template_dependent,
+			a_boolean			*is_pack,
+			a_boolean			*uses_auto,
+			a_template_nesting_depth	nesting_depth,
+			a_decl_pos_block_ptr		decl_pos_block)
 /*
 Scan the declaration of a single template nontype parameter.  If the
 parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
 whether the nontype parameter is unnamed.  If the parameter type
 depends on a template parameter type, return TRUE in *template_dependent
 (if it is not NULL).  If the type of the parameter is followed by an
-ellipsis, return TRUE in *is_pack.  If the template parameter is declared
-with "auto" or "decltype(auto)", return TRUE in *uses_auto (if it is not
-NULL).  decl_pos_block is used to return additional position information
-about the components of the declaration.
+ellipsis, return TRUE in *is_pack.  If the template parameter is
+declared with "auto" or "decltype(auto)", return TRUE in *uses_auto
+(if it is not NULL).  nesting_depth is the nesting depth of the
+current template parameter list, or NO_NESTING_DEPTH when this routine
+is called to to rescan a dependent template parameter type.
+decl_pos_block is used to return additional position information about
+the components of the declaration.
 */
 {
-  a_decl_parse_state           state;
+  a_decl_parse_state			state;
+  a_boolean				is_pack_expansion;
+  a_decl_flag_set			di_flags;
 
   /* Scan the declaration specifiers. */
   init_decl_parse_state(&state);
@@ -22864,13 +22931,17 @@ about the components of the declaration.
         /*function_def_present=*/FALSE, /*is_main_function=*/FALSE,
         (state.dso_flags & DSO_NO_DECL_SPECIFIERS) == 0);
   }  /* if */
+  di_flags = DI_REAL_DECLARATOR_ALLOWED | DI_ABSTRACT_DECLARATOR_ALLOWED |
+             DI_IS_TEMPLATE_PARAM_DECL;
+  is_pack_expansion = nesting_depth != NO_NESTING_DEPTH &&
+                      type_uses_enclosing_pack(state.type, nesting_depth);
+  if (is_pack_expansion) di_flags |= DI_IS_TEMPLATE_PARAM_PACK_EXPANSION;
   /* Scan the declarator. */
-  declarator((DI_REAL_DECLARATOR_ALLOWED |
-              DI_ABSTRACT_DECLARATOR_ALLOWED |
-              DI_IS_TEMPLATE_PARAM_DECL),
-             &state, /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
-             (a_func_info_block_ptr)NULL, decl_pos_block);
-  if (is_pack != NULL) *is_pack = state.has_pack_ellipsis;
+  declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
+             param_locator, (a_func_info_block_ptr)NULL, decl_pos_block);
+  if (is_pack != NULL) {
+    *is_pack = state.has_pack_ellipsis;
+  }  /* if */
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
@@ -22981,15 +23052,18 @@ static a_symbol_ptr create_template_param_symbol(
 					a_symbol_kind		kind,
 					a_symbol_locator	*locator,
 					a_boolean		is_unnamed,
-					a_boolean		enter_sym)
+					a_boolean		is_rescan)
 /*
 Create the symbol for a template parameter.  Return the symbol.  is_unnamed
-is TRUE for unnamed symbols.  enter_sym is TRUE if the symbol should be
-entered into the symbol table.
+is TRUE for unnamed symbols.  is_rescan is TRUE if this is a rescan of a
+dependent parameter, in which case the symbol should not be entered into
+the symbol table.
 */
 {
   a_symbol_ptr	sym;
+  a_boolean	enter_sym;
 
+  enter_sym = !is_rescan && !is_non_initial_variadic_element();
   if (!is_unnamed) {
     if (enter_sym) {
       /* Create a symbol and enter it into the symbol table. */
@@ -23073,19 +23147,69 @@ when prototype instantiations are included in the IL.
 
 static void template_param_is_variadic(
 				a_symbol_ptr		sym,
+				a_boolean		is_pack_element,
+				a_boolean		is_non_initial,
 				a_template_param_ptr	tpp,
 				a_tmpl_decl_state_ptr	decl_state)
 /*
 Record that we have encountered a variadic template parameter (tpp) in a
 template parameter list.  sym is the template parameter symbol.
+is_pack_element is TRUE if this is a template parameter that is declared
+as an expansion of an enclosing template parameter pack.  is_non_initial
+is TRUE when is_pack_element is TRUE and this is not the first parameter
+of the expansion.
 */
 {
+  /* The is_pack_element in the symbol is set for all packs and pack
+     elements.  In the template parameter entry, the pack field is set
+     for pack declarations and the initial element of a pack expansion
+     (of enclosing packs). */
   sym->is_pack_element = TRUE;
-  tpp->is_pack = TRUE;
+  if (!is_pack_element || !is_non_initial) tpp->is_pack = TRUE;
+  if (is_pack_element) {
+    tpp->is_pack_element = TRUE;
+  }  /* if */
   decl_state->is_variadic = TRUE;
   decl_state->has_variadic_template_params = TRUE;
   scope_stack[depth_scope_stack].in_variadic_template = TRUE;
 }  /* template_param_is_variadic */
+
+
+/*
+Structure used to pass information about the current template parameter
+declaration between the routines used to scan such declarations.
+*/
+typedef struct a_tmpl_param_state *a_tmpl_param_state_ptr;
+typedef struct a_tmpl_param_state {
+  a_template_param_list_pos
+		list_pos;
+			/* The ordinal position of the template parameter.
+			   This value is distinct, even for entries created
+			   from pack expansions. */
+  uint32_t	param_number;
+			/* The ordinal position of the parameter (1, 2, ...).
+			   In the instantiation of a variadic template, this
+			   is the position of the corresponding parameter from
+			   the original template.  In other words, there can
+			   be missing or repeated values in the parameter list
+			   of the instantiation of a variadic template. */
+  a_pack_expansion_stack_entry_ptr
+		pack_expansion_stack_entry;
+			/* If the template parameter is a pack expansion,
+			   this points to the pack expansion stack entry
+			   for the expansion. */
+} a_tmpl_param_state;
+
+
+static void init_tmpl_param_state(a_tmpl_param_state_ptr	tpsp)
+/*
+Initialize the fields of the template parameter state block.
+*/
+{
+  tpsp->list_pos = 0;
+  tpsp->param_number = 0;
+  tpsp->pack_expansion_stack_entry = NULL;
+}  /* init_tmpl_param_state */
 
 
 static void scan_type_template_param_default_arg(a_template_param_ptr	tpp)
@@ -23142,7 +23266,7 @@ overall, and decl_pos_block provides additional position information.
 
   /* Create an sk_type symbol for the parameter. */
   sym = create_template_param_symbol((a_symbol_kind)sk_type, loc, !is_named,
-                                     /*enter_sym=*/TRUE);
+                                     /*is_rescan=*/FALSE);
   /* Allocate a template-param type.  This type is for front-end use
      only and will not appear in the IL passed on to the back end.  It
      is therefore not added to any scope types list. */
@@ -23183,14 +23307,18 @@ overall, and decl_pos_block provides additional position information.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
-  if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
+  if (is_pack) {
+    template_param_is_variadic(sym, /*is_pack_element=*/FALSE,
+                               /*is_non_initial=*/FALSE,
+                               template_param, decl_state);
+  }  /* if */
   return template_param;
 }  /* decl_type_template_param */
 
 
 static a_template_param_ptr scan_type_template_param(
 		a_tmpl_decl_state_ptr		decl_state,
-		a_template_param_list_pos	template_param_list_pos)
+		a_tmpl_param_state_ptr		param_state)
 /*
 Scan the declaration of a type template parameter.  Return the template
 parameter entry for the parameter.
@@ -23235,7 +23363,7 @@ parameter entry for the parameter.
     decl_pos_block.identifier_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  template_param = decl_type_template_param(template_param_list_pos,
+  template_param = decl_type_template_param(param_state->list_pos,
                                             is_named ? &locator_for_curr_id
                                                      : (a_symbol_locator*)NULL,
                                             is_named, is_pack,
@@ -23374,41 +23502,31 @@ is used in an auto template parameter.
 }  /* udpate_auto_template_param_type */
 
 
-static a_template_param_ptr scan_nontype_template_param(
-		a_tmpl_decl_state_ptr		decl_state,
-		a_template_param_list_pos	template_param_list_pos,
-		a_boolean			*param_cache_needed)
+static a_symbol_ptr make_nontype_template_param_symbol(
+			a_tmpl_decl_state_ptr		decl_state,
+			a_tmpl_param_state_ptr		param_state,
+			a_boolean			is_unnamed,
+			a_boolean			is_pack,
+			a_symbol_locator		*param_locator,
+			a_type_ptr			param_type_ptr)
 /*
-Scan the declaration of a nontype template parameter.  Return the template
-parameter entry for the parameter.  param_cache_needed is set to TRUE if
-a cache should be saved for rescanning when the type of the nontype parameter
-depends on a template parameter.
+Create the symbol a nontype template parameter.  Return the symbol.
+is_unnamed is TRUE if the parameter has no name or should be considered
+unnamed.  is_pack is TRUE if this is a template parameter pack declaration.
+param_locator points to the symbol locator for the identifier, or is NULL
+if there is no identifier.  param_type_ptr is the type of the nontype
+parameter.
 */
 {
-  a_type_ptr		param_type_ptr;
-  a_symbol_locator	param_locator;
-  a_constant_ptr	param_con;
-  a_boolean		is_unnamed;
-  a_template_param_ptr	template_param;
   a_symbol_ptr         	sym;
-  a_boolean		const_type_involves_template_param = FALSE;
-  a_boolean		is_pack = FALSE;
-  a_boolean		uses_auto = FALSE;
-  a_decl_pos_block	decl_pos_block;
+  a_constant_ptr	param_con;
 
-  clear_decl_pos_block(&decl_pos_block);
-  /* Scan the declaration of the type of the nontype parameter. */
-  scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
-                                        &is_unnamed,
-                                        &const_type_involves_template_param,
-                                        &is_pack, &uses_auto,
-                                        &decl_pos_block);
   /* Create a symbol and bind a template param constant to it. At each
-      point of instantiation an actual constant will be substituted. */
+     point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
                                      is_unnamed ? (a_symbol_locator*)NULL
-                                                : &param_locator,
-                                     is_unnamed, /*enter_sym=*/TRUE);
+                                                : param_locator,
+                                     is_unnamed, /*is_rescan=*/FALSE);
   sym->variant.constant = param_con =
                      fs_constant((a_constant_repr_kind)ck_template_param);
   param_con->type = param_type_ptr;
@@ -23417,7 +23535,7 @@ depends on a template parameter.
   param_con->variant.template_param.
                     variant.coordinates.depth = decl_state->nesting_depth;
   param_con->variant.template_param.
-                    variant.coordinates.position = template_param_list_pos;
+                    variant.coordinates.position = param_state->list_pos;
   param_con->variant.template_param.is_pack = is_pack;
   set_source_corresp(&param_con->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
@@ -23433,13 +23551,66 @@ depends on a template parameter.
     clear_source_corresp_name(&param_con->source_corresp);
   }  /* if */
   record_template_param_symbol(sym);
+  return sym;
+}  /* make_nontype_template_param_symbol */
+
+
+static a_template_param_ptr scan_nontype_template_param(
+		a_tmpl_decl_state_ptr		decl_state,
+		a_tmpl_param_state_ptr		param_state,
+		a_boolean			*param_cache_needed)
+/*
+Scan the declaration of a nontype template parameter.  Return the template
+parameter entry for the parameter.  param_cache_needed is set to TRUE if
+a cache should be saved for rescanning when the type of the nontype parameter
+depends on a template parameter.
+*/
+{
+  a_type_ptr		param_type_ptr;
+  a_symbol_locator	param_locator;
+  a_boolean		is_unnamed;
+  a_template_param_ptr	template_param;
+  a_symbol_ptr         	sym;
+  a_boolean		const_type_involves_template_param = FALSE;
+  a_boolean		is_pack = FALSE;
+  a_boolean		uses_auto = FALSE;
+  a_decl_pos_block	decl_pos_block;
+  a_pack_expansion_stack_entry_ptr
+			pesep;
+  a_boolean		is_pack_element;
+  a_boolean		is_non_initial_pack_element;
+
+  pesep = param_state->pack_expansion_stack_entry;
+  is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
+  is_non_initial_pack_element = is_non_initial_variadic_element();
+  clear_decl_pos_block(&decl_pos_block);
+  /* Scan the declaration of the type of the nontype parameter. */
+  scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
+                                        &is_unnamed,
+                                        &const_type_involves_template_param,
+                                        &is_pack, &uses_auto,
+                                        decl_state->nesting_depth,
+                                        &decl_pos_block);
+  sym = make_nontype_template_param_symbol(decl_state, param_state, is_unnamed,
+                                           is_pack, &param_locator,
+                                           param_type_ptr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position information from decl_pos_block. */
-  update_decl_pos_info(&param_con->source_corresp, &decl_pos_block);
+  a_constant_ptr	param_con;
+  update_decl_pos_info(&sym->variant.constant->source_corresp,
+                       &decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
-  if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
+  if (is_pack_element) {
+    template_param->is_pack_element = TRUE;
+  }  /* if */
+  if (is_pack) {
+    template_param_is_variadic(sym, is_pack_element,
+                               is_non_initial_pack_element,
+                               template_param, decl_state);
+    template_param->is_pack_expansion = pesep != NULL;
+  }  /* if */
   if (uses_auto) {
     template_param->uses_auto = TRUE;
     update_auto_template_param_type(param_type_ptr);
@@ -23581,7 +23752,7 @@ Scan the default argument of the template template parameter specified by tpp.
 
 static a_template_param_ptr scan_template_template_param(
 		a_tmpl_decl_state_ptr		parent_decl_state,
-		a_template_param_list_pos	template_param_list_pos,
+		a_tmpl_param_state_ptr		param_state,
 		a_boolean			is_rescan)
 /*
 Scan the declaration of a template template parameter.  Return the template
@@ -23655,7 +23826,7 @@ depends on a another template parameter.
   sym = create_template_param_symbol((a_symbol_kind)sk_class_template,
                                      is_named ? &locator_for_curr_id
                                               : (a_symbol_locator*)NULL,
-                                     !is_named, /*enter_sym=*/!is_rescan);
+                                     !is_named, is_rescan);
   templ_ptr = alloc_template();
   /* See if the parameter being declared has the same name as one of its
      template parameters. */
@@ -23698,7 +23869,7 @@ depends on a another template parameter.
   tssp->variant.class_template.template_template_param = TRUE;
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   templ_ptr->coordinates.depth = parent_decl_state->nesting_depth;
-  templ_ptr->coordinates.position = template_param_list_pos;
+  templ_ptr->coordinates.position = param_state->list_pos;
   templ_ptr->is_pack = is_pack;
   tssp->il_template_entry = templ_ptr;
   tssp->variant.class_template.argument_template = sym;
@@ -23722,7 +23893,9 @@ depends on a another template parameter.
                                     /*is_class_template=*/FALSE,
                                     /*is_partial_specialization=*/FALSE);
   if (is_pack) {
-    template_param_is_variadic(sym, template_param, parent_decl_state);
+    template_param_is_variadic(sym, /*is_pack_element=*/FALSE,
+                               /*is_non_initial=*/FALSE,
+                               template_param, parent_decl_state);
   }  /* if */
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
@@ -23776,6 +23949,33 @@ depends on a another template parameter.
 }  /* scan_template_template_param */
 
 
+static a_template_param_ptr make_empty_template_param(
+			a_tmpl_decl_state_ptr		decl_state,
+			a_tmpl_param_state_ptr		param_state)
+/*
+A template parameter declaration that expands an enclosing pack expands
+to an empty pack.  Add a placeholder parameter to record that information.
+*/
+{
+  a_symbol_ptr		sym;
+  a_template_param_ptr	template_param;
+
+  sym = make_nontype_template_param_symbol(decl_state, param_state,
+                                           /*is_unnamed=*/TRUE,
+                                           /*is_pack=*/TRUE,
+                                           (a_symbol_locator*)NULL,
+                                           error_type());
+  template_param = alloc_template_param(sym);
+  template_param->is_empty_pack = TRUE;
+  template_param->is_pack_element = TRUE;
+  template_param->is_pack_expansion = TRUE;
+  template_param_is_variadic(sym, /*is_pack_element=*/TRUE,
+                             /*is_non_initial_pack_element=*/FALSE,
+                             template_param, decl_state);
+  return template_param;
+}  /* make_empty_template_param */
+
+
 static void scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
@@ -23785,68 +23985,41 @@ first parameter.  Return a pointer to the linked list that is created
 to represent the template parameters.
 */
 {
-  a_template_param_ptr 		template_param;
-  a_template_param_ptr 		template_param_list = NULL;
-  a_template_param_ptr 		end_of_template_param_list = NULL;
-  a_boolean			param_cache_needed = FALSE;
-  a_template_param_list_pos	template_param_list_pos = 0;
-  a_token_sequence_number	first_tsn;
+  a_template_param_ptr			template_param;
+  a_template_param_ptr			template_param_list = NULL;
+  a_template_param_ptr			end_of_template_param_list = NULL;
+  a_boolean				param_cache_needed = FALSE;
+  a_token_sequence_number		first_tsn;
+  a_pack_expansion_stack_entry_ptr	pesep;
+  a_tmpl_param_state			param_state;
 
   db_enter(3, "scan_template_param_list");
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_gt);
+  init_tmpl_param_state(&param_state);
   /* Loop through the comma-separated list of template parameter
      declarations. */
   do {
     a_symbol_kind  param_kind;
     a_boolean      invalid_param = FALSE;
+    a_boolean      any_params;
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
     if (curr_token == tok_gt || curr_token == tok_end_of_source) {
       pos_error(ec_missing_template_param, &error_position);
       break;
     }  /* if */
-    ++template_param_list_pos;
-    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    /* param_number is the same for each parameter expanded from the same
+       pack, while list_pos is unique. */
+    ++param_state.param_number;
     add_stop_token(tok_comma);
-    first_tsn = curr_token_sequence_number;
-    /* Determine the kind of template parameter to be scanned.  C++/CLI
-       generics can only have type parameters. */
-    param_kind = determine_template_param_kind();
-    if (decl_state->is_generic && param_kind != (a_symbol_kind)sk_type) {
-      pos_error(ec_bad_param_kind_for_generic, &pos_curr_token);
-      invalid_param = TRUE;
-    }  /* if */
-    if (param_kind == (a_symbol_kind)sk_type) {
-      /* A type template parameter. */
-      template_param = scan_type_template_param(decl_state,
-                                                template_param_list_pos);
-    } else if (param_kind == (a_symbol_kind)sk_constant) {
-      template_param = scan_nontype_template_param(
-                             decl_state, template_param_list_pos,
-                             &param_cache_needed);
-    } else {
-      /* A template template parameter. */
-      template_param = scan_template_template_param(decl_state,
-                                                    template_param_list_pos,
-						    /*is_rescan=*/FALSE);
-      /* We can't tell yet whether the template template parameter
-         is dependent, so keep the cache. */
-      param_cache_needed = TRUE;
-    }  /* if */
-    if (param_cache_needed) {
-      /* If a template parameter cache is needed, make a copy from the
-         token cache that is being accumulated. */
-      copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
-                             curr_token_sequence_number,
-                             /*include_last_token=*/FALSE,
-                             &template_param->cache.tokens);
-      terminate_token_cache(&template_param->cache.tokens);
-      adjust_token_handles(&template_param->cache.tokens);
-    }  /* if */
-    end_caching_fetched_tokens();
-    if (!invalid_param) {
+    any_params = begin_potential_pack_expansion_context(&pesep);
+    param_state.pack_expansion_stack_entry = pesep;
+    if (!any_params) {
+      /* A pack expands to an empty expansion.  Add a placeholder
+         parameter. */
+      template_param = make_empty_template_param(decl_state, &param_state);
       /* Add the template param to the end of the list. */
       if (template_param_list == NULL) {
         template_param_list = template_param;
@@ -23858,11 +24031,66 @@ to represent the template parameters.
       }  /* if */
       end_of_template_param_list = template_param;
     }  /* if */
-    /* Make sure we are at the end of a template parameter. */
-    if (curr_token != tok_comma && curr_token != tok_gt) {
-      pos_error(ec_exp_comma_or_gt, &pos_curr_token);
-      flush_tokens();
-    }  /* if */
+    while (any_params) {
+      ++param_state.list_pos;
+      begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+      first_tsn = curr_token_sequence_number;
+      /* Determine the kind of template parameter to be scanned.  C++/CLI
+         generics can only have type parameters. */
+      param_kind = determine_template_param_kind();
+      if (decl_state->is_generic && param_kind != (a_symbol_kind)sk_type) {
+        pos_error(ec_bad_param_kind_for_generic, &pos_curr_token);
+        invalid_param = TRUE;
+      }  /* if */
+      if (param_kind == (a_symbol_kind)sk_type) {
+        /* A type template parameter. */
+        template_param = scan_type_template_param(decl_state, &param_state);
+      } else if (param_kind == (a_symbol_kind)sk_constant) {
+        template_param = scan_nontype_template_param(
+                             decl_state, &param_state,
+                             &param_cache_needed);
+      } else {
+        /* A template template parameter. */
+        template_param = scan_template_template_param(decl_state,
+                                                      &param_state,
+  						    /*is_rescan=*/FALSE);
+        /* We can't tell yet whether the template template parameter
+           is dependent, so keep the cache. */
+        param_cache_needed = TRUE;
+      }  /* if */
+      template_param->param_num = param_state.param_number;
+      if (param_cache_needed) {
+        /* If a template parameter cache is needed, make a copy from the
+           token cache that is being accumulated. */
+        copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
+                               curr_token_sequence_number,
+                               /*include_last_token=*/FALSE,
+                               &template_param->cache.tokens);
+        terminate_token_cache(&template_param->cache.tokens);
+        adjust_token_handles(&template_param->cache.tokens);
+      }  /* if */
+      end_caching_fetched_tokens();
+      if (!invalid_param) {
+        /* Add the template param to the end of the list. */
+        if (template_param_list == NULL) {
+          template_param_list = template_param;
+          /* Update the parameters list of the template_decl_info for this
+             declaration scope. */
+          decl_state->decl_info->parameters = template_param_list;
+        } else {
+          end_of_template_param_list->next = template_param;
+        }  /* if */
+        end_of_template_param_list = template_param;
+      }  /* if */
+      /* Make sure we are at the end of a template parameter. */
+      if (curr_token != tok_comma && curr_token != tok_gt) {
+        pos_error(ec_exp_comma_or_gt, &pos_curr_token);
+        flush_tokens();
+      }  /* if */
+      (void)end_potential_pack_expansion_context(
+                                               pesep, /*is_declarator=*/FALSE);
+      any_params = advance_to_next_pack_element(pesep);
+    }  /* while */
     remove_stop_token(tok_comma);
     /* Keep looping on a comma. */
   } while (loop_token(tok_comma));
@@ -23872,14 +24100,14 @@ to represent the template parameters.
   remove_stop_token(tok_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-  if (template_param_list_pos > USHRT_MAX) {
+  if (param_state.list_pos > USHRT_MAX) {
     pos_st_catastrophe(ec_templ_param_list_too_long,
                        &decl_state->decl_parse.start_pos, (char*)NULL);
   } else {
-    decl_state->decl_info->n_params = template_param_list_pos;
+    decl_state->decl_info->n_params = param_state.list_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (decl_state->is_generic) {
-      decl_state->num_parameters = template_param_list_pos;
+      decl_state->num_parameters = param_state.list_pos;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }
@@ -23974,6 +24202,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
+                                            NO_NESTING_DEPTH,
                                             &decl_pos_block);
       /* Skip past any tokens remaining in the cache.  Extra tokens will
          be present under certain error conditions and when a default argument
@@ -24107,6 +24336,7 @@ template parameters that depend on other template parameters.
   } else {
     a_tmpl_decl_state		parent_decl_state;
     a_template_param_ptr	new_param;
+    a_tmpl_param_state		param_state;
     /* Increment the count of pending default argument instantiations.
        This is used to detect infinite recursion. */
     ++pending_templ_templ_param_instantiations;
@@ -24127,10 +24357,11 @@ template parameters that depend on other template parameters.
        template template parameter scanning routine. */
     set_decl_state_for_template_template_rescan(&parent_decl_state, param_ptr);
     /* Rescan the template template parameter declaration. */
+    init_tmpl_param_state(&param_state);
+    param_state.list_pos = param_ptr->variant.templ->
+                                          il_template_entry->coordinates.depth;
     new_param = scan_template_template_param(
-                       &parent_decl_state,
-                       param_ptr->variant.templ->
-                                          il_template_entry->coordinates.depth,
+                       &parent_decl_state, &param_state,
                        /*is_rescan=*/TRUE);
     /* Scan the declaration specifiers. */
     /* Skip past any tokens remaining in the cache.  Extra tokens will
@@ -25643,6 +25874,7 @@ first declaration of the template.
   a_boolean		is_constructor;
   an_error_severity	severity;
   a_boolean		pack_seen = FALSE;
+  uint32_t		last_param_num = 0;
   a_template_symbol_supplement_ptr
 			tssp;
 
@@ -25693,7 +25925,12 @@ first declaration of the template.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (function_template_default_args_allowed && tpp->has_default_arg) {
+    if (tpp->param_num == last_param_num) {
+      /* This is a parameter produced by a pack expansion.  Only process the
+         first parameter of the pack. */
+      param_used = TRUE;
+    } else if (function_template_default_args_allowed &&
+               tpp->has_default_arg) {
       /* If the template has a default argument, consider the parameter
          to be used.  Such parameters are often intentionally unused and
          are used for techniques like "enable_if". */
@@ -25706,6 +25943,7 @@ first declaration of the template.
                                                         /*deduced_only=*/TRUE,
                                                         /*param_count=*/0);
     }  /* if */
+    last_param_num = tpp->param_num;
     if (is_conversion_operator && !param_used) {
       /* For conversion functions, the template parameters can be used in the
          return type.  (In standard conversion functions that is the only place
@@ -30912,6 +31150,7 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
     template_param->param_symbol->is_invisible = TRUE;
     template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
     template_param->variant.type->variant.template_param.is_auto_param = TRUE;
+    template_param->param_num = param_pos;
     apdp->template_type_parameter = template_param;
     /* Append the template parameter entry to the list pointed to by
        templ_state->decl_info. */
@@ -36853,13 +37092,25 @@ this routine that handles just the argument list and not the parameter
 list.
 */
 {
+  uint32_t	param_num;
+
   check_assertion(tap != NULL);
   *tap = (*tap)->next;
   /* If *tap points to a placeholder, skip to the next real argument. */
   skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
   if (*tap == NULL || !(*tap)->is_pack_element) {
     if (tpp != NULL && *tpp != NULL) {
+      param_num = (*tpp)->param_num;
       *tpp = (*tpp)->next;
+      if (param_num > 0) {
+        /* When an enclosing template parameter pack is used as a nontype
+           template parameter, there will be a set of parameters with a
+           given parameter number.  Skip over any remaining parameters
+           with the same parameter number. */
+        while (*tpp != NULL && (*tpp)->param_num == param_num) {
+          *tpp = (*tpp)->next;
+        }  /* while */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* advance_to_next_template_arg */
@@ -36904,11 +37155,23 @@ begin_special_variadic_template_arg_list_traversal.  See the comments in
 that routine for how this routine differs from advance_to_next_template_arg.
 */
 {
+  uint32_t	param_num;
+
   check_assertion(tap != NULL);
   *tap = (*tap)->next;
   /* Skip over any pack elements. */
   while ((*tap) != NULL && (*tap)->is_pack_element) *tap = (*tap)->next;
+  param_num = (*tpp)->param_num;
   *tpp = (*tpp)->next;
+  if (param_num > 0) {
+    /* When an enclosing template parameter pack is used as a nontype
+       template parameter, there will be a set of parameters with a
+       given parameter number.  Skip over any remaining parameters
+       with the same parameter number. */
+    while (*tpp != NULL && (*tpp)->param_num == param_num) {
+      *tpp = (*tpp)->next;
+    }  /* while */
+  }  /* if */
 }  /* special_variadic_advance_to_next_template_arg */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -37574,6 +37837,8 @@ a class template parameter list.
     }  /* if */
     new_tpp = make_copy_of_template_param_based_on_new_symbol(old_tpp,
                                                               new_sym);
+    /* Assign a new parameter number based on the position. */
+    new_tpp->param_num = pos;
     /* Update the coordinates of the new template parameter. */
     coord_ptr = coordinates_of_template_param(new_tpp);
     coord_ptr->depth = depth;

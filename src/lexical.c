@@ -16440,6 +16440,7 @@ all arguments were explicit.
   a_boolean                        saved_in_template_arg_list =
                                        scope_stack_top().in_template_arg_list;
   a_boolean                        too_many_args = FALSE;
+  a_boolean                        any_args_in_list = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_source_position                arg1_pos, arg2_pos, arg3_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16523,6 +16524,21 @@ all arguments were explicit.
       too_many_args = TRUE;
       break;
     }  /* if */
+    /* For a template parameter declared "T... n", if T is a template parameter
+       pack of an enclosing class template, and the enclosing class template
+       is being instantiated with an empty T, we need to include a placeholder
+       for the empty pack. */
+    while (param_ptr != NULL && param_ptr->is_empty_pack) {
+      /* Create a start of parameter pack placeholder. */
+      arg_ptr =
+             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+      /* Link this entry on to the argument list. */
+      if (arg_list == NULL) arg_list = arg_ptr;
+      if (last_arg != NULL) last_arg->next = arg_ptr;
+      last_arg = arg_ptr;
+      param_ptr = param_ptr->next;
+      if (orig_param_ptr != NULL) orig_param_ptr = orig_param_ptr->next;
+    }  /* while */
     any_args = begin_potential_pack_expansion_context_full(
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
@@ -16533,13 +16549,14 @@ next_integer_pack_element:
        "A<X, args...>" will be accepted when args is an empty pack. */
     if ((param_ptr == NULL || orig_param_ptr == NULL) && any_args) {
       too_many_args = TRUE;
-      if (curr_token == tok_gt && arg_list != NULL) {
+      if (curr_token == tok_gt && any_args_in_list) {
         pos_error(ec_expected_template_arg, &error_position);
       }  /* if */
       break;
     }  /* if */
     while (any_args) {
       a_boolean  is_secondary_integer_pack_elem = FALSE;
+      any_args_in_list = TRUE;
       if (integer_pack_elems == NULL) {
         if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
           /* Create a start of parameter pack placeholder. */

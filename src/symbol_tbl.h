@@ -2053,6 +2053,19 @@ typedef struct a_template_param {
 			   the template. */
   a_bit_field	is_pack:1;
 			/* TRUE if this is a template parameter pack. */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if this is a pack expansion of an enclosing
+			   template parameter pack.  This differs from
+			   is_pack_element, which is only TRUE for
+			   instantiations of packs, while this is also
+			   TRUE for declarations. */
+  a_bit_field	is_pack_element:1;
+			/* TRUE if this is a nontype template parameter
+			   expanded from an enclosing template parameter
+			   pack. */
+  a_bit_field	is_empty_pack:1;
+			/* TRUE if this is placeholder for an enclosing
+			   template parameter pack with an empty expansion. */
   a_bit_field	do_prototype_instantiation:1;
 			/* TRUE if a prototype instantiation should be done
 			   (or has been done) for this parameter. */
@@ -2133,6 +2146,13 @@ typedef struct a_template_param {
 			   tokens of the default argument expression.
 			   Only used when def_arg_involves_template_param is
 			   TRUE. */
+  uint32_t	param_num;
+			/* The ordinal position of the parameter (1, 2, ...).
+			   In the instantiation of a variadic template, this
+			   is the position of the corresponding parameter from
+			   the original template.  In other words, there can
+			   be missing or repeated values in the parameter list
+			   of the instantiation of a variadic template. */
 } a_template_param;
 
 

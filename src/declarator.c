@@ -7176,7 +7176,11 @@ etc.).
         ellipsis_pos = pos_curr_token;
         /* For function parameter pack declarations, the ellipsis is a sort of
            expansion (the type of the parameter must be a "pattern"), but for
-           template parameter declarations that is not the case. */
+           template parameter declarations that is sometimes not the case.
+           Something like a template parameter "int ...N" is a pack declaration
+           and not an expansion.  But for a template parameter that expands
+           an enclosing pack (e.g., "Enclosing_T ... N"), it is a pack
+           expansion. */
         if (input_flags & DI_IS_TEMPLATE_PARAM_DECL) {
           (void)get_token();
         } else {
