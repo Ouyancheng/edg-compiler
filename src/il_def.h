@@ -16712,35 +16712,35 @@ typedef enum /* a_source_language */ {
 } a_source_language;
 typedef struct an_il_header {
   a_source_file_ptr
-                primary_source_file;
-                        /* The description of the primary source file,
-                           and linkage to include file information.  In
-                           the front end, when there are secondary translation
-                           units, this is a list of the top-level files,
-                           one for each translation unit. */
-  a_scope_ptr   primary_scope;
-                        /* The file scope, and from there all the subscopes. */
-  a_routine_ptr main_routine;
-                        /* If "main" is defined in this compilation, this
-                           points to its routine entry.  Otherwise, it
-                           is NULL. */
-  a_const_char  *compiler_version;
-                        /* A string that identifies the compiler version. */
-  a_const_char  *time_of_compilation;
-                        /* A string that identifies the time of compilation. */
+		primary_source_file;
+			/* The description of the primary source file,
+			   and linkage to include file information.  In
+			   the front end, when there are secondary translation
+			   units, this is a list of the top-level files,
+			   one for each translation unit. */
+  a_scope_ptr	primary_scope;
+			/* The file scope, and from there all the subscopes. */
+  a_routine_ptr	main_routine;
+			/* If "main" is defined in this compilation, this
+			   points to its routine entry.  Otherwise, it
+			   is NULL. */
+  a_const_char	*compiler_version;
+			/* A string that identifies the compiler version. */
+  a_const_char	*time_of_compilation;
+			/* A string that identifies the time of compilation. */
   a_byte_boolean
-                plain_chars_are_signed;
-                        /* TRUE if the plain char type is signed. */
-  a_scope_ptr   *region_scope_entry;
-                        /* Pointer to an array of scope pointers.
-                           region_scope_entry[i] points to the scope entry
-                           for memory region i, or is NULL if the region's
-                           intermediate language is not currently in memory.
-                           Entry [0] is not used.  Note that this is a
-                           strange data structure because the pointers can
-                           point down into other memory regions; obviously,
-                           this table is handled specially by memory management
-                           and in writing and reading the IL.  For function-
+		plain_chars_are_signed;
+			/* TRUE if the plain char type is signed. */
+  a_scope_ptr	*region_scope_entry;
+			/* Pointer to an array of scope pointers.
+			   region_scope_entry[i] points to the scope entry
+			   for memory region i, or is NULL if the region's
+			   intermediate language is not currently in memory.
+			   Entry [0] is not used.  Note that this is a
+			   strange data structure because the pointers can
+			   point down into other memory regions; obviously,
+			   this table is handled specially by memory management
+			   and in writing and reading the IL.  For function-
 			   scope memory regions this may point to a list of
 			   scopes, the first of which is the top-level function
 			   scope (additional entries represent function
