@@ -1,5 +1,13 @@
 Version 4.15
 
+7/6/18   [EDGcpfe/19805]
+Internal error on rescanning of alias template
+
+In some complex cases involving the rescanning of alias templates, the
+front end previously aborted with an internal error in function
+push_expr_rescan_context_if_necessary.  That problem is now fixed.
+
+
 7/6/18   [EDGcpfe/19815]
 Missing diagnostic on redefinition of C++17 inline static data members
 
