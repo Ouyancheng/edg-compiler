@@ -10973,7 +10973,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     dps->sym = sym;
     var = sym->variant.static_data_member.variable;
-    if (inline_variables_allowed && var->is_inline) {
+    if (inline_variables_allowed && var->is_inline && !has_initializer) {
       /* In C++17, an inline static data member outside of a class definition
          (this includes constexpr members, which are implicitly inline) is
          considered a redundant declaration -- not a definition.  Such usage

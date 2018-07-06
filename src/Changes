@@ -1,5 +1,21 @@
 Version 4.15
 
+7/6/18   [EDGcpfe/19815]
+Missing diagnostic on redefinition of C++17 inline static data members
+
+Consider:
+
+  struct S {
+    static inline int i;
+  };
+  int S::i = 3;
+
+In C++17, the in-class declaration of the inline static data member is a
+definition, and so is the out-of-class declaration with an initializer.  The
+front end, however, previously failed to diagnose the duplicate definition.
+That is now fixed.
+
+
 7/6/18   [EDGcpfe/11739,EDGcpfe/16302,EDGcpfe/18966,EDGcpfe/17053]
 Template parameter packs in nontype template parameters
 
