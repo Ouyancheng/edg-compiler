@@ -9288,13 +9288,14 @@ variable that is a specialization, and template_arg_list is the
 template argument list for the entry (NULL for the variable/static data
 member case).  Put out "template<>" as the beginning of a specialization
 declaration.  More precisely, put out one "template<>" for each parent
-class that is a template (unless this is an in-class specialization), and
-one for the entity itself if it is a template.
+class that is a template (unless this is an in-class declaration), and
+one for the entity itself if it is a template.  is_in_class_specialization
+is TRUE if this is a Microsoft-style in-class specialization.
 */
 {
   /* If template classes are put out as specializations, the "template<>"
      is not put out for them. */
-  if (!is_in_class_specialization) {
+  if (!curr_name_context_is_a_class()) {
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     while (scp->is_class_member) {
       a_type_ptr parent_class = scp_parent_class(scp);
@@ -17899,7 +17900,7 @@ this one is such a continuation.
                                               name_ref);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&var->source_corresp,
-                                       curr_name_context_is_a_class(),
+                                       /*is_in_class_specialization=*/FALSE,
                                        var->template_info->template_arg_list);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
