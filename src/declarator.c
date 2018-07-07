@@ -7181,7 +7181,8 @@ etc.).
            and not an expansion.  But for a template parameter that expands
            an enclosing pack (e.g., "Enclosing_T ... N"), it is a pack
            expansion. */
-        if (input_flags & DI_IS_TEMPLATE_PARAM_DECL) {
+        if ((input_flags & DI_IS_TEMPLATE_PARAM_DECL) != 0 &&
+            (input_flags & DI_IS_TEMPLATE_PARAM_PACK_EXPANSION) == 0) {
           (void)get_token();
         } else {
           record_pack_expansion_ellipsis();
