@@ -24,7 +24,8 @@ front end, however, previously failed to diagnose the duplicate definition.
 That is now fixed.
 
 
-7/6/18   [EDGcpfe/11739,EDGcpfe/16302,EDGcpfe/18966,EDGcpfe/17053]
+7/6/18   [EDGcpfe/11739,EDGcpfe/16302,EDGcpfe/18966,EDGcpfe/17053,
+          EDGcpfe/19083]
 Template parameter packs in nontype template parameters
 
 Core issue 778 allowed pack expansions in the declarations of nontype
