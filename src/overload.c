@@ -9448,6 +9448,7 @@ and return NULL.  This routine is called only in C++ mode.
          time. */
       defer_overload_resolution = TRUE;
     } else if ((clang_mode || microsoft_mode) && !stricter_template_checking &&
+               !expr_stack->possible_rescan_context &&
                expr_stack->uses_this_operand) {
         /* In a template-dependent context Clang appears to defer resolution
            of a call of the form "f(<expr-list>)" where <expr-list> is
