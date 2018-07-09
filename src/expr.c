@@ -2138,7 +2138,7 @@ given options and PREC_LOWEST precedence.
   /* If the initializer is to be bundled, we put an object lifetime around
      each scanned expression.  Later, when we know how the expression is
      used, we may merge the lifetime into a parent expression lifetime. */
-  if (bundle && curr_object_lifetime != NULL) {
+  if (bundle && curr_object_lifetime != NULL && !curr_expr_kind_is_const()) {
     saved_curr_lifetime = curr_object_lifetime;
     if (curr_object_lifetime->kind == 
                                  (an_object_lifetime_kind)olk_expr_temporary) {
