@@ -3548,7 +3548,10 @@ particular situation.
     if (dip != NULL) {
       if (dtor != NULL) {
         record_dtor_in_dynamic_init(dtor, dip, !is->not_potentially_evaluated);
-        record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
+        if (!is->initializer_must_be_constant) {
+          record_partial_aggregate_cleanup_destruction(dip,
+                                                       !is->not_evaluated);
+        }  /* if */
       }  /* if */
       *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       (*init_con)->variant.dynamic_init = dip;
