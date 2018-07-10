@@ -18981,6 +18981,7 @@ expression, and return the result in *result (or an error indication in
     dps.is_new_expr_type = TRUE;
     dps.auto_type_allowed = auto_type_specifier_enabled;
     dps.trailing_return_type_allowed = trailing_return_types_enabled;
+    dps.declarator_pos = pos_curr_token;
     type_position = pos_curr_token;
     new_type_name(&dps, trapped_left_paren);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
