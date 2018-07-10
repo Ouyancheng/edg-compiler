@@ -190,6 +190,10 @@ Macros to test bits in a disambiguation flag set.
 #define abstract_declarator_allowed(flags)				\
   (((flags) & DFS_ABSTRACT_DECLARATOR_ALLOWED) != 0)
 
+#define declarator_only_check(flags)				\
+  (((flags) & ~(DFS_REAL_DECLARATOR_ALLOWED |				\
+                DFS_ABSTRACT_DECLARATOR_ALLOWED)) == 0)
+
 #define single_type_required(flags)					\
   (((flags) & DFS_SINGLE_TYPE_REQUIRED) != 0)
 
@@ -1408,7 +1412,13 @@ function_lparen:
        leave curr_token as the token following the initializer (usually a
        comma or a semicolon). */
     if (curr_token == tok_assign) {
-      prescan_initializer();
+      /* If we reach an "= x" initializer of a top-level declaration, we don't
+         need to look past the initializer. */
+      if (is_top_level && declarator_only_check(flags)) {
+         state->terminate = TRUE;
+      } else {
+        prescan_initializer();
+      }  /* if */
     } else {
       prescan_init_list();
     }  /* if */

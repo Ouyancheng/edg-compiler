@@ -1,5 +1,28 @@
 Version 4.15
 
+7/10/18  [EDGcpfe/17882]
+Disambiguation with initializer containing member function call
+
+A spurious error could result if a declaration that started with "typename"
+contained an initializer of the form "x.y<...".  Note that the error
+did not occur with "x.template y<...".  Now fixed.
+
+  template <typename T, int N> struct A {
+    typedef int B;
+  };
+  struct D {
+    template <typename T, int N> typename A<T, N>::B f();
+  };
+  template <typename T> struct C {
+    void g() {
+      D d;
+      typename A<T, 1>::B ab = d.f<T, 1>();
+    }
+  };
+ 
+template class C<int>;
+
+
 7/10/18  [EDGcpfe/18346,EDGcpfe/19456,EDGcpfe/19661]
 Spurious errors on attempts to fold constants in template contexts
 
