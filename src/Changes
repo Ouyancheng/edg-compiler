@@ -1,5 +1,20 @@
 Version 4.15
 
+7/10/18  [EDGcpfe/18346,EDGcpfe/19456,EDGcpfe/19661]
+Spurious errors on attempts to fold constants in template contexts
+
+Consider:
+
+  template<typename> struct S;
+  template<typename T, int = (int)S<T>()> struct R: R<T> {};
+
+When the front end parses the base-specifier "R<T>" it attempts to evaluate
+the default template argument "(int)S<T>()" (whose type is nondependent because
+of the cast to int).  Previously, this caused a spurious error to be emitted
+about the default argument expression not being a constant.  That is now fixed:
+The front end recognizes that the argument might be dependent in that context
+and creates a generic representation for the default argument accordingly.
+
 
 7/9/18   [EDGcpfe/19374]
 Clang and Microsoft compatibility: "this" in call arguments in SFINAE contexts

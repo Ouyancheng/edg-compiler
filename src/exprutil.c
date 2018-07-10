@@ -5754,7 +5754,9 @@ Extract the constant value from the operand *operand and place it in
           }  /* if */
         } else if ((is_prototype_instantiation_context() ||
                     (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
-                    scope_stack_top().alias_in_template_decl) &&
+                    scope_stack_top().alias_in_template_decl ||
+                    (scope_stack_top().in_nonreal_instantiation &&
+                     !scope_stack_top().is_rescan)) &&
                    operand_is_instantiation_dependent(operand)) {
           make_template_param_constant_from_operand(operand, constant,
                                                     (a_type_ptr)NULL);
