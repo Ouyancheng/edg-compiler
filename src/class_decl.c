@@ -10736,7 +10736,7 @@ a_symbol_ptr decl_dependent_class_scope_function(
                                         a_decl_pos_block        *pos_info)
 /*
 Create a routine and associated symbol for a template dependent function
-declaration of type function_type appearing in class scope.  Although the
+declaration of type dps->type appearing in class scope.  Although the
 declaration (and definition) of the function is template-dependent, it is not
 necessarily a template function (e.g., a friend function in a class template
 is an ordinary function).  The declaration is a friend declaration when
