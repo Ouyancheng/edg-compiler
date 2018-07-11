@@ -42,11 +42,12 @@ and creates a generic representation for the default argument accordingly.
 7/9/18   [EDGcpfe/19374]
 Clang and Microsoft compatibility: "this" in call arguments in SFINAE contexts
 
-The changes for EDGcpfe/16412,EDGcpfe/16428 caused the front end to treat calls
-with and argument that implicitly or explicitly involves "this" in a template
-as being unconditionally template-dependent in Clang and Microsoft modes.
-However, this could result in spurious errors ("template instantiation
-resulted in unexpected function type") in SFINAE substitution contexts.
+The changes for EDGcpfe/16412,EDGcpfe/16428 (in version 4.11) caused the front
+end to treat calls with an argument that implicitly or explicitly involves
+"this" in a template as being unconditionally template-dependent in Clang and
+Microsoft modes.  However, this could result in spurious errors ("template
+instantiation resulted in unexpected function type") in SFINAE substitution
+contexts.
 
   struct S {
     template <class T1, class T2>
