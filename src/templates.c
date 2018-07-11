@@ -23512,7 +23512,7 @@ static a_symbol_ptr make_nontype_template_param_symbol(
 			a_symbol_locator		*param_locator,
 			a_type_ptr			param_type_ptr)
 /*
-Create the symbol a nontype template parameter.  Return the symbol.
+Create the symbol for a nontype template parameter.  Return the symbol.
 is_unnamed is TRUE if the parameter has no name or should be considered
 unnamed.  is_pack is TRUE if this is a template parameter pack declaration.
 param_locator points to the symbol locator for the identifier, or is NULL
@@ -23586,7 +23586,7 @@ depends on a template parameter.
   is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
   is_non_initial_pack_element = is_non_initial_variadic_element();
   clear_decl_pos_block(&decl_pos_block);
-  /* Scan the declaration of the type of the nontype parameter. */
+  /* Scan the declaration of the nontype parameter. */
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
                                         &is_unnamed,
                                         &const_type_involves_template_param,
