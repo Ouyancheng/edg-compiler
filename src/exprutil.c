@@ -1736,6 +1736,7 @@ is pushed regardless of any of the other factors.
 #if GNU_EXTENSIONS_ALLOWED
   new_entry->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  new_entry->prefer_template_constant = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -13294,6 +13295,7 @@ of a subscript operation).
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
     make_error_operand(result);
   } else {
+    template_constant = expr_stack->prefer_template_constant;
     /* Some addressing operations should not be folded in some nonconstant
        contexts, because the expression form provides more explicit
        addressing information (which is useful for aliasing analysis). */
@@ -13301,6 +13303,10 @@ of a subscript operation).
        no point in checking them. */
     if (result_is_lvalue) {
       /* Can't fold to a constant for an lvalue result. */
+      try_folding = FALSE;
+    } else if (template_constant) {
+      /* Don't fold if we prefer a ck_template_param/tpck_expression
+         constant. */
       try_folding = FALSE;
     } else if (op == (an_expr_operator_kind)eok_psubtract ||
                op == (an_expr_operator_kind)eok_padd) {
@@ -13313,12 +13319,11 @@ of a subscript operation).
     /* Try to fold the operation if both operands are constants and the
        current expression is being evaluated. */
     did_not_fold = TRUE;
-    template_constant = FALSE;
     if (try_folding) {
       force_operand_to_constant_if_possible(operand_1);
       force_operand_to_constant_if_possible(operand_2);
     }  /* if */
-    if (try_folding && 
+    if (try_folding &&
         is_constant_operand(operand_1) && is_constant_operand(operand_2)) {
       /* If the operator could not be determined (because the operand types
          are incompatible), fold the operation to an error operand. */
@@ -13339,7 +13344,7 @@ of a subscript operation).
                               &did_not_fold, &template_constant,
                               operator_position);
       }  /* if */
-    } else if (constexpr_enabled &&
+    } else if (constexpr_enabled && !template_constant &&
                op == (an_expr_operator_kind)eok_lor &&
                is_constant_operand(operand_1) &&
                constant_bool_value_known_at_compile_time(
@@ -13350,7 +13355,7 @@ of a subscript operation).
       make_integer_constant_operand(result, (a_host_large_integer)1);
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       did_not_fold = FALSE;
-    } else if (constexpr_enabled &&
+    } else if (constexpr_enabled && !template_constant &&
                op == (an_expr_operator_kind)eok_land &&
                is_constant_operand(operand_1) &&
                constant_bool_value_known_at_compile_time(
@@ -13395,7 +13400,7 @@ of a subscript operation).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     if (did_not_fold) {
-      if (constexpr_enabled &&
+      if (constexpr_enabled && !template_constant &&
           (curr_expr_kind_is(ek_integral_constant) ||
            curr_expr_kind_is(ek_template_arg) ||
            (curr_expr_kind_is(ek_init_constant) &&
@@ -13452,6 +13457,9 @@ of a subscript operation).
              during the prototype instantiation, make a ck_template_param
              constant for the result. */
           make_template_param_expr_constant_operand(result);
+          if (clang_mode || gpp_mode) {
+            expr_stack->prefer_template_constant = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -14207,7 +14215,8 @@ token sequence number of the operator.
   } else {
     did_not_fold = TRUE;
     template_constant = (operand_is_dependent(operand) ||
-                         is_template_dependent_type(result_type));
+                         is_template_dependent_type(result_type) ||
+                         expr_stack->prefer_template_constant);
     if (op == (an_expr_operator_kind)eok_address_of || template_constant) {
       /* "&" doesn't get folded here.  It isn't handled by unary_operation
          and the constant case would involve a constant-addressed lvalue,

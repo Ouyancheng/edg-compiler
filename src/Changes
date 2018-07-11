@@ -1,5 +1,34 @@
 Version 4.15
 
+7/11/18  [EDGcpfe/18549]
+Member template parameters in class template instantiations
+
+Consider:
+
+  template<bool B> struct I { using type = int; };
+  template<typename T> struct S {
+    template<typename U = int,
+             typename I<sizeof(U) == 2 || sizeof(T) == 1>::type> void f(U);
+    template<typename U = int,
+             typename I<sizeof(U) == 2 || sizeof(T) == 2>::type> void f(U);
+  };
+  S<int> s;  // Now accepted in GNU and Clang modes.
+
+Assuming sizeof(int) is neither 1 nor 2, this example is invalid because the
+template parameter lists of the two otherwise identical declarations of
+S<int>::f are "functionally equivalent": They are not written equivalently,
+but they both behave identically for all instances of the member template.
+Specifically, they behave like the following simpler template parameter list
+
+    template<typename U = int, typename I<sizeof(U) == 2>::type> ...
+
+because "sizeof(T) == 1" and "sizeof(T) == 2" are both false for T = int.
+The language does not require a diagnostic for cases like these and it appears
+GCC and Clang accept the code above and other cases like it.  The front end now
+approximates that behavior in GNU and Clang mode (it accepts the example above
+and others like it).
+
+
 7/10/18  [EDGcpfe/17882]
 Disambiguation with initializer containing member function call
 

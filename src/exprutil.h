@@ -931,6 +931,14 @@ typedef struct an_expr_stack_entry {
 			   the GNU __extension__ keyword.  In that case, some
 			   diagnostics are inhibited. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field
+		prefer_template_constant:1;
+			/* Set to TRUE when it has already been established
+                           that we are dealing with an instantiation-dependent
+			   expression and we'd prefer a ck_template_param
+			   representation even for expressions with a specific
+			   known value (for compatibility with other
+                           compilers). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

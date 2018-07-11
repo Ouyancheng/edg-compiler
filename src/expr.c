@@ -10244,6 +10244,15 @@ error indication in *rcblock).
           conv_sym_for_member_operand_to_ptr_to_member(&operand,
                                                        &operator_position);
           copy_operand(&operand, result);
+        } else if (is_constant_operand(&operand) &&
+                   constant_is(&operand.variant.constant, ck_template_param) &&
+                   tpck_is(&operand.variant.constant, tpck_expression)) {
+          /* A generic expression (whose lvalueness is not necessarily known
+             a priori).   Create a generic address-of representation. */
+          prep_generic_operand_full(&operand, /*lvalue_expected=*/TRUE,
+                                    /*rvalue_expected=*/FALSE);
+          take_address_of_lvalue(&operand, &operator_position);
+          copy_operand(&operand, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */
