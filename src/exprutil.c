@@ -12034,6 +12034,14 @@ lvalue.  If there is an error, change the operand to an error operand.
        in Microsoft C++ mode. */
     revert_microsoft_rvalue_to_lvalue_if_possible(operand);
   }  /* if */
+  if (is_constant_operand(operand) &&
+      constant_is(&operand->variant.constant, ck_template_param) &&
+      tpck_is(&operand->variant.constant, tpck_expression)) {
+    /* A generic expression (whose lvalueness is not necessarily known a
+       priori).   Create a generic address-of representation. */
+    prep_generic_operand_full(operand, /*lvalue_expected=*/TRUE,
+                              /*rvalue_expected=*/FALSE);
+  }  /* if */
   /* 3.2.2.1:  A modifiable lvalue has to
        (a)  be an lvalue.
        (b)  not have array type.
