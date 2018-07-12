@@ -29039,7 +29039,7 @@ that follows.
         sym = fund_sym;
       }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
-        if (microsoft_mode && decl_state->class_declared_in != NULL &&
+        if (ms_extensions && decl_state->class_declared_in != NULL &&
             decl_state->class_declared_in
                     ->variant.class_struct_union.is_prototype_instantiation) {
           /* An in-class explicit specialization during a prototype
