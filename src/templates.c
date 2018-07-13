@@ -16277,13 +16277,22 @@ declared and before the partial instantiation of the function was done.
     an_exception_specification_ptr  esp, substituted_esp;
     substituted_esp = substituted_type->variant.routine.extra_info
                                       ->exception_specification;
+    esp = rout->type->variant.routine.extra_info->exception_specification;
     if (substituted_esp != NULL && !substituted_esp->arg_cached) {
-      esp = rout->type->variant.routine.extra_info->exception_specification;
       check_assertion(esp != NULL);
       if (esp->arg_cached) {
         rout->type->variant.routine.extra_info->exception_specification =
                                                               substituted_esp;
       }  /* if */
+    } else if (esp != NULL && substituted_esp == NULL &&
+               esp->compiler_generated) {
+      /* The type obtained by parsing the template declaration may include
+         a generated exception specification based on the specific function
+         being declared (e.g., an "operator delete").  The substituted type
+         may not include that specification since it performs the substitution
+         of the type independently of the associated specific function. */
+      substituted_type->variant.routine.extra_info
+                       ->exception_specification = esp;
     }  /* if */
   }  /* if */
   if (substituted_type == NULL ||

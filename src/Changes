@@ -1,5 +1,20 @@
 Version 4.15
 
+7/13/18  [EDGcpfe/19836]
+Spurious error on use of templated operator delete in C++17 mode
+
+Consider:
+
+  template<typename> struct S {};
+  template<typename T> void* operator new(__EDG_SIZE_TYPE__, S<T>);
+  template<typename T> void operator delete(void*, S<T>);
+  int *p = new(S<int>{}) int;  // Previously an error.  Now okay.
+
+Previously, the front end issued an error in C++17 mode about the type
+resulting from the instantiation of operator delete being different from the
+declared type of the template.  That is now fixed.
+
+
 7/11/18  [EDGcpfe/18549]
 Member template parameters in class template instantiations
 
