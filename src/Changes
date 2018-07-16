@@ -1,5 +1,23 @@
 Version 4.15
 
+7/16/18  [EDGcpfe/19251]
+Missing diagnostic and lowering abort on invalid constexpr defaulted definition
+
+Consider:
+
+  struct S {
+    struct N { int x; } n;
+    constexpr S();
+  };
+  constexpr S::S() = default;
+
+Previously, the front end aborted during the lowering of the S::S() constructor
+because the front end failed to diagnose the use of "constexpr" on a defaulted
+member whose defaulted definition is not constexpr (due to B::n not being
+initializable as a constant expression).  This is now fixed: An ordinary error
+is issued and the front end no longer aborts during lowering.
+
+
 7/16/18  [EDGcpfe/19576]
 Missing initializer on specialization of constexpr static data member template
 

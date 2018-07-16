@@ -3514,10 +3514,6 @@ defaulted) default constructor associated with cssp, or NULL if there is none.
 }  /* get_generated_default_ctor */
 
 
-/* Forward declaration. */
-static a_boolean check_if_constexpr_generated_default_constructor(
-                                                       a_type_ptr  class_type);
-
 void update_class_for_last_parsed_field_initializer(a_type_ptr  class_type)
 /*
 This is routine is called when the last field initializer of the given class
@@ -20549,7 +20545,7 @@ in some Microsoft modes, record that its body cannot be generated).
 }  /* generate_default_constructor */
 
 
-static a_boolean check_if_constexpr_generated_default_constructor(
+a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type)
 /*
 If the given class type has a generated default constructor, determine if that

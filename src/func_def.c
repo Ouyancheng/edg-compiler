@@ -2443,6 +2443,12 @@ in-class definitions of member functions.
   check_assertion(curr_token == tok_assign);
   (void)get_token();
   check_defaulted_or_deleted_function(dps, func_info, &pos_curr_token);
+  if (routine_ptr->is_defaulted && routine_ptr->is_declared_constexpr &&
+      special_kind_is(routine_ptr, sfk_constructor) &&
+      is_default_constructor(routine_ptr, /*is_declarative_context=*/TRUE)) {
+    check_if_constexpr_generated_default_constructor(
+                                                 parent_class_of(routine_ptr));
+  }  /* if */
   force_definition_of_compiler_generated_routine(routine_ptr);
   check_assertion(curr_token == tok_delete || curr_token == tok_default ||
                   (ms_extensions && microsoft_version >= 1400 &&

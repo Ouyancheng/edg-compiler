@@ -88,6 +88,9 @@ extern void ensure_inclass_static_member_constant_initializer_is_scanned(
 
 extern void resolve_indeterminate_exception_specification(a_routine_ptr  rp);
 
+extern a_boolean check_if_constexpr_generated_default_constructor(
+                                                       a_type_ptr  class_type);
+
 extern void complete_defaulted_exc_spec(a_routine_ptr  rp);
 
 extern void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
