@@ -8995,6 +8995,10 @@ means type-dependent rather than value-dependent.
          considered dependent. */
       is_dependent = TRUE;
     }  /* if */
+  } else if (is_constant_operand(operand)) {
+    if (constant_is(&operand->variant.constant, ck_template_param)) {
+      is_dependent = TRUE;
+    }  /* if */
   } else if (is_braced_init_list_operand(operand)) {
     /* See if a braced-init-list is dependent by checking its elements. */
     if (arg_list_is_dependent(operand->variant.braced_init_list)) {
