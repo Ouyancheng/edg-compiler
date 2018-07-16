@@ -1493,7 +1493,7 @@ of lambda expressions.
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (orig_ptp != NULL) {
-        declared_param_type = orig_ptp->type;
+        declared_param_type = orig_ptp->declared_type;
         orig_ptp = orig_ptp->next;
       } else {
         /* coverity[var_deref_op] - orig_param_id can't be NULL. */

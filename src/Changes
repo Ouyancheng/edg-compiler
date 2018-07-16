@@ -1,5 +1,19 @@
 Version 4.15
 
+7/16/18  [EDGcpfe/19591]
+Array bounds in parameter variables of prototype instantiations
+
+Consider:
+
+  template<unsigned N> struct S { void f(int const [N]); };
+  template<unsigned N> void S<N>::f(int const [N]) {}
+
+Previously, the parameter variable created for the prototype instantiation of
+S<N>::f did not record its array bound.  That in turn caused the C++-generating
+back to fail to render that bound in the definition of S<N>::f.  That problem
+is now fixed.
+
+
 7/13/18  [EDGcpfe/19836]
 Spurious error on use of templated operator delete in C++17 mode
 

@@ -517,9 +517,6 @@ array-to-pointer decay).
 */
 {
   a_type_ptr        declared_type;
-  a_param_id_ptr    param_id;
-  a_param_type_ptr  ptp, param_type_list;
-  a_boolean         fixup_needed;
 
   db_enter(4, "form_declared_type");
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
@@ -531,6 +528,7 @@ array-to-pointer decay).
     /* Make a copy of the type.  Note that default arg expressions, if any,
        will be copied later. */
     a_routine_type_supplement_ptr  copied_rtsp;
+    a_param_type_ptr               ptp;
     declared_type =
                copy_routine_type_with_param_types(type_ptr,
                                                   /*copy_default_args=*/FALSE);
@@ -542,62 +540,11 @@ array-to-pointer decay).
          type. */
       copied_rtsp->exception_specification = NULL;
     }  /* if */
-    fixup_needed = FALSE;
-    param_id = func_info->param_id_list;
-    param_type_list = copied_rtsp->param_type_list;
-    if (param_id != NULL && param_type_list != NULL) {
-      /* There is no need to create a new routine type entry if none of the
-         parameter types underwent adjustment. */
-      ptp = param_type_list;
-      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-        check_assertion(param_id->declared_type != NULL);
-        if (!identical_types(ptp->type, param_id->declared_type)) {
-          /* Some adjustment must have been done. */
-          fixup_needed = TRUE;
-          break;
-        }  /* if */
-        check_assertion_str((param_id->next == NULL) == (ptp->next == NULL),
-                            "form_declared_type: inconsistent param lists");
-      }  /* for */
-      if (fixup_needed) {
-        /* It's necessary to create a new type. */
-        ptp = param_type_list;
-        param_id = func_info->param_id_list;
-        for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-          a_type_ptr  tp = param_id->declared_type;
-          check_assertion(tp != NULL);
-          if (is_error_type(ptp->type) || is_error_type(tp)) {
-            /* Something went wrong with a parameter declaration.  In cases
-               with severe syntax errors, param_id_list and param_type_list
-               may be inconsistent.  To avoid error recovery issues, proceed
-               with the effective routine type. */
-            declared_type = type_ptr;
-            break;
-          } else {
-            if (!C_mode() && is_or_contains_template_param(tp)) {
-              if (is_function_type(tp) && !is_function_type(ptp->type)) {
-                /* Undo the change of a function type to pointer-to-function
-                   type. */
-                ptp->type = type_pointed_to(ptp->type);
-                check_assertion(is_function_type(ptp->type));
-              } else if (is_array_type(tp) && !is_array_type(ptp->type)) {
-                /* Undo array-to-pointer decay. */
-                a_type_ptr new_type = alloc_type((a_type_kind)tk_array);
-                new_type->variant.array.element_type =
-                                             type_pointed_to(ptp->type);
-                ptp->type = new_type;
-              } else if (is_qualified_type(tp)) {
-                ptp->type = make_identically_qualified_type(ptp->type, tp);
-              }  /* if */
-            } else {
-              ptp->type = tp;
-            }  /* if */
-            ptp->qualifiers = TQ_NONE;
-          }  /* if */
-          check_assertion((param_id->next == NULL) == (ptp->next == NULL));
-        }  /* for */
+    for (ptp = copied_rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+      if (ptp->declared_type != NULL) {
+        ptp->type = ptp->declared_type;
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
