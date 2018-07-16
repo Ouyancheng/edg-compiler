@@ -2446,7 +2446,7 @@ in-class definitions of member functions.
   if (routine_ptr->is_defaulted && routine_ptr->is_declared_constexpr &&
       special_kind_is(routine_ptr, sfk_constructor) &&
       is_default_constructor(routine_ptr, /*is_declarative_context=*/TRUE)) {
-    check_if_constexpr_generated_default_constructor(
+    (void)check_if_constexpr_generated_default_constructor(
                                                  parent_class_of(routine_ptr));
   }  /* if */
   force_definition_of_compiler_generated_routine(routine_ptr);
