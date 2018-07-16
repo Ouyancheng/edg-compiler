@@ -1,6 +1,23 @@
 Version 4.15
 
 7/16/18  [EDGcpfe/19251]
+Missing diagnostic and lowering abort on invalid fold expression operator
+
+Consider:
+
+  template<typename ... T> int f(T ...args) {
+    typedef decltype((args ! ...)) U;
+    return 42;
+  }
+  int y = f(1, 2);
+
+Previously, the front end abort during lowering because it failed to diagnose
+the invalid fold expression operator ("!" is not a binary operator).  This is
+now fixed: An ordinary error is issued and the front end no longer aborts
+during lowering.
+
+
+7/16/18  [EDGcpfe/19251]
 Missing diagnostic and lowering abort on invalid constexpr defaulted definition
 
 Consider:

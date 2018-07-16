@@ -46097,6 +46097,11 @@ function operand: The selector is then return in *bound_function_selector.
     /* Skip over the operator and the ellipsis. */
     op_token = curr_token;
     op_pos = pos_curr_token;
+    if (!is_valid_fold_operator(op_token)) {
+      pos_error(ec_invalid_fold_expression_operator, &op_pos);
+      err = TRUE;
+      op_token = (a_token_kind)tok_comma;
+    }  /* if */
     (void)get_token();
     check_assertion(curr_token == tok_ellipsis);
     ellipsis_pos = pos_curr_token;
@@ -46150,11 +46155,6 @@ function operand: The selector is then return in *bound_function_selector.
         err = TRUE;
       } else {
         (void)get_token();
-      }  /* if */
-      if (!is_valid_fold_operator(op_token)) {
-        pos_error(ec_invalid_fold_expression_operator, &op_pos);
-        err = TRUE;
-        op_token = (a_token_kind)tok_comma;
       }  /* if */
     }  /* if */
   }  /* if */
