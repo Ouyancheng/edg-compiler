@@ -20728,11 +20728,16 @@ Do IL lowering of the indicated scope and everything under it.
        promoted out later. */
     if (scope_kind == (a_scope_kind)sck_function) {
       promote_local_entities_to_file_scope(scope);
-      /* For classes that contain non-static data members that are
-         initialized, do the necessary lowering of the field initializers.
-         This is done early so that the rest of lowering can treat
-         these field initializers just like member initializers. */
-      copy_non_static_data_member_initializers_if_necessary(scope);
+      if (scope->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+          class_type_supp(parent_class_of(scope->variant.routine.ptr))->
+                                                       has_field_initializer) {
+        /* For classes that contain non-static data members that are
+           initialized, do the necessary lowering of the field initializers.
+           This is done early so that the rest of lowering can treat
+           these field initializers just like member initializers. */
+        copy_non_static_data_member_initializers_if_necessary(scope);
+      }  /* if */
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
       /* Before the scope is lowered, scan it (and recursively blocks
          contained therein) for any constructions or destructions that aren't

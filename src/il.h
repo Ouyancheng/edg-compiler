@@ -1538,6 +1538,14 @@ typedef int an_expr_copy_options_set;
 #define CE_PRESERVE_RESCAN_INFO 0x4000
 			/* When TRUE, rescan info is preserved in the copy of
 			   expression nodes. */
+#define CE_COPYING_DMI_DIP 0x8000
+			/* When TRUE, the dynamic initialization being copied
+			   is for a data member initializer.  In the IL,
+			   data member initializers have no lifetime, but
+			   should be treated as having a lifetime (because the
+			   copy will be placed in one).  In particular, this
+			   is required to handle overlapping lifetime
+			   destructions. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
@@ -2242,6 +2250,9 @@ EXTERN an_object_lifetime_ptr
 
 #define lifetime_is(olp, lifetime_kind)                                      \
   ((olp)->kind == (an_object_lifetime_kind)(lifetime_kind))
+
+extern void add_to_destructions_list(a_dynamic_init_ptr      dip,
+                                     an_object_lifetime_ptr  olp);
 
 extern void add_to_end_of_destructions_list(
                     a_dynamic_init_ptr      dip,

@@ -6961,6 +6961,9 @@ Display the indicated class type supplement entry.
   if (ptr->has_nodiscard_attribute) {
     disp_boolean("has_nodiscard_attribute", TRUE);
   }  /* if */
+  if (ptr->has_field_initializer) {
+    disp_boolean("has_field_initializer", TRUE);
+  }  /* if */
   if (ptr->removed_from_il) {
     disp_boolean("removed_from_il", TRUE);
   }  /* if */

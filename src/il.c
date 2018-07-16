@@ -13649,8 +13649,10 @@ options for the copy.  cblock is a control block for the copy.
   if (need_object_lifetime_pop) {
     (void)pop_object_lifetime();
   }  /* if */
-  if (dip->lifetime != NULL) {
-    /* This dynamic init is on a destruction list, so the copy must be
+  if (dip->lifetime != NULL || options & CE_COPYING_DMI_DIP) {
+    /* This dynamic init is on a destruction list (or will be because it is
+       a data member initializer -- which have no lifetimes in the IL and
+       is being copied into a constructor's scope), so the copy must be
        put on a destruction list in the current context. */
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
@@ -13663,9 +13665,10 @@ options for the copy.  cblock is a control block for the copy.
          evaluation (which is a compile-time evaluation). */
       expect_error();
     } else {
-      an_object_lifetime_kind kind = dip->lifetime->kind;
-      a_boolean               static_lifetime =
-                                          is_static_object_lifetime_kind(kind);
+      a_boolean  static_lifetime = FALSE;
+      if (dip->lifetime != NULL) {
+        static_lifetime = is_static_object_lifetime_kind(dip->lifetime->kind);
+      }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate) {
         static_lifetime = FALSE;
       }  /* if */
@@ -22796,8 +22799,8 @@ pragma has not yet been found for the given IL entity).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void add_to_destructions_list(a_dynamic_init_ptr      dip,
-                                     an_object_lifetime_ptr  olp)
+void add_to_destructions_list(a_dynamic_init_ptr      dip,
+                              an_object_lifetime_ptr  olp)
 /*
 Add the indicated dynamic init entry to the destructions list of the
 indicated object lifetime entry.

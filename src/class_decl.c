@@ -1177,10 +1177,6 @@ typedef struct a_class_def_state {
 			   anywhere in the declaration, or not at all.
 			   For example:
 			     struct S { (int a)[3]; };       */
-  a_bit_field	has_field_initializer:1;
-			/* TRUE if a field initializer has been seen.  (Used
-			   to diagnose multiple field initializers in
-			   unions.) */
   a_bit_field	rule_out_trivial_copy_for_volatile_class_field:1;
 			/* TRUE if trivial copying should be ruled out because
 			   a field of volatile class type has been seen where
@@ -1302,7 +1298,6 @@ class being defined.
   cdsp->base_destruction_required = FALSE;
   cdsp->trivial_deleted_subobject_destructor = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
-  cdsp->has_field_initializer = FALSE;
   cdsp->rule_out_trivial_copy_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_copy_for_deleted_ctor = FALSE;
   cdsp->rule_out_trivial_assign_for_volatile_class_field = FALSE;
@@ -17603,20 +17598,20 @@ nonstandard anonymous unions is_nonstd is TRUE.
                          sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
         if (sym->variant.field.ptr->has_initializer && class_type != NULL) {
-          a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
-          check_assertion(cdsp != NULL);
           if (class_type->kind == (a_type_kind)tk_union &&
-              cdsp->has_field_initializer) {
+              class_type_supp(class_type)->has_field_initializer) {
             diagnose_duplicate_union_field_init(parent_cssp, sym,
                                                 &sym->decl_position);
           } else {
-            cdsp->has_field_initializer = TRUE;
+            class_type_supp(class_type)->has_field_initializer = TRUE;
           }  /* if */
           if (!aggregate_classes_can_have_field_initializers) {
             /* Class types with data members that have field initializers
                aren't aggregate types in C++11 (but they are in C++14).  We
                take the view here that promoted fields also make the parent
                class a non-aggregate. */
+            a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
+            check_assertion(cdsp != NULL);
             cdsp->class_aggregate_ruled_out = TRUE;
           }  /* if */
         }  /* if */
@@ -19367,7 +19362,7 @@ information about the member declaration, respectively.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (class_type->kind == (a_type_kind)tk_union &&
-          class_state->has_field_initializer) {
+          class_type_supp(class_type)->has_field_initializer) {
         /* Unions can only have a single member with a field initializer.
            Issue an error, and discard the later initializer. */
         diagnose_duplicate_union_field_init(cssp, dps->sym,
@@ -19380,7 +19375,7 @@ information about the member declaration, respectively.
           (void)get_token();
         }  /* if */
       } else {
-        class_state->has_field_initializer = TRUE;
+        class_type_supp(class_type)->has_field_initializer = TRUE;
         field->has_initializer = TRUE;
         ++cssp->num_unparsed_field_initializers;
         fssp = dps->sym->variant.field.extra_info;
@@ -29515,7 +29510,8 @@ wrap_up_class_definition.
         report_virtual_function_ambiguities(class_type);
       }  /* if */
     } else if (!is_template_dependent_context()) {
-      if (constexpr_enabled && !class_state->has_field_initializer) {
+      if (constexpr_enabled &&
+          !class_type_supp(class_type)->has_field_initializer) {
         /* If there are no virtual base classes, a generated default
            constructor may be constexpr.  If there are no pending fixups for
            field initializers, we can determine this now.  Otherwise, we'll
