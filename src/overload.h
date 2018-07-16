@@ -800,6 +800,8 @@ a_boolean is_template_dependent_indefinite_function(an_operand *operand);
 
 extern a_boolean operand_is_dependent(an_operand *operand);
 
+extern a_boolean arg_list_is_type_dependent(an_arg_list_elem_ptr arg_list);
+
 extern a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list);
 
 extern a_boolean is_skipped_decltype_context(void);

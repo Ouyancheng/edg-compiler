@@ -1738,8 +1738,8 @@ constructs, in which case offsetof_case is TRUE.
     if (!C_mode() &&
         is_template_dependent_context() &&
         (operand_is_dependent(operand_1) ||
-         (subscript_is_expr_list ? arg_list_is_dependent(operand_2_list) :
-                                   operand_is_dependent(&operand_2)))) {
+         (subscript_is_expr_list ? arg_list_is_type_dependent(operand_2_list)
+                                 : operand_is_dependent(&operand_2)))) {
       /* There is at least one template-dependent operand, so build an
          expression with a generic operator.  We can't go to
          check_for_operator_overloading when we have an expression list,

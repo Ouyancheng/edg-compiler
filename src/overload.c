@@ -8995,13 +8995,9 @@ means type-dependent rather than value-dependent.
          considered dependent. */
       is_dependent = TRUE;
     }  /* if */
-  } else if (is_constant_operand(operand)) {
-    if (constant_is(&operand->variant.constant, ck_template_param)) {
-      is_dependent = TRUE;
-    }  /* if */
   } else if (is_braced_init_list_operand(operand)) {
     /* See if a braced-init-list is dependent by checking its elements. */
-    if (arg_list_is_dependent(operand->variant.braced_init_list)) {
+    if (arg_list_is_type_dependent(operand->variant.braced_init_list)) {
       is_dependent = TRUE;
     }  /* if */
   }  /* if */
@@ -9009,7 +9005,7 @@ means type-dependent rather than value-dependent.
 }  /* operand_is_dependent */
 
 
-a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list)
+a_boolean arg_list_is_type_dependent(an_arg_list_elem_ptr arg_list)
 /*
 Return TRUE if any of the operands on the given list is dependent.
 Specifically, this means type-dependent rather than value-dependent.
@@ -9026,14 +9022,47 @@ Specifically, this means type-dependent rather than value-dependent.
       }  /* if */
     } else {
       check_assertion(is_braced_init_component(alep));
-      if (arg_list_is_dependent(alep->variant.braced.list)) {
+      if (arg_list_is_type_dependent(alep->variant.braced.list)) {
         is_dependent = TRUE;
         break;
       }  /* if */
     }  /* if */
   }  /* for */
   return is_dependent;
-}  /* arg_list_is_dependent */
+}  /* arg_list_is_type_dependent */
+
+
+a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list)
+/*
+Return TRUE if any of the operands on the given list is dependent.
+Specifically, this means instantiation-dependent, not just type-dependent.
+*/
+{
+  a_boolean             is_dependent = FALSE;
+  an_arg_list_elem_ptr  alep;
+
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
+    if (is_expression_component(alep)) {
+      an_operand  *opnd = operand_of_arg_list_elem(alep);
+      if (operand_is_dependent(opnd)) {
+        is_dependent = TRUE;
+        break;
+      } else if (is_constant_operand(opnd)) {
+        if (constant_is(&opnd->variant.constant, ck_template_param)) {
+          is_dependent = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    } else {
+      check_assertion(is_braced_init_component(alep));
+      if (arg_list_is_type_dependent(alep->variant.braced.list)) {
+        is_dependent = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return is_dependent;
+}  /* arg_list_is_type_dependent */
 
 
 a_boolean is_skipped_decltype_context(void)
@@ -9406,7 +9435,7 @@ and return NULL.  This routine is called only in C++ mode.
         arg = operand_of_arg_list_elem(arg_list_elem);
       }  /* if */
       if (arg != NULL ? operand_is_dependent(arg) :
-                        arg_list_is_dependent(arg_list_elem)) {
+                        arg_list_is_type_dependent(arg_list_elem)) {
         dependent_call = TRUE;
         break;
       } else if (gpp_mode && arg != NULL && is_constant_operand(arg) &&
@@ -17846,7 +17875,7 @@ error.  conv_context describes the context of the conversion.
     }  /* if */
   } else if (is_template_dependent_context() &&
              (class_type->variant.class_struct_union.is_nonreal_class ||
-              (alep != NULL ? arg_list_is_dependent(alep) :
+              (alep != NULL ? arg_list_is_type_dependent(alep) :
                               operand_is_dependent(source_operand)))) {
     /* Assume we can convert to or from an unknown type in a prototype
        instantiation. */
