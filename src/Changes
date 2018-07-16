@@ -3,7 +3,7 @@ Version 4.15
 7/16/18  [EDGcpfe/19576]
 Missing initializer on specialization of constexpr static data member template
 
-The front end previous abort on the following example:
+The front end previously aborted on the following example:
 
   struct S {
     template<typename> static constexpr int x = 42;
