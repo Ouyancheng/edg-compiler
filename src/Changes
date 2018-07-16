@@ -1,6 +1,19 @@
 Version 4.15
 
-<<<<<<< Updated upstream
+7/16/18  [EDGcpfe/19576]
+Missing initializer on specialization of constexpr static data member template
+
+The front end previous abort on the following example:
+
+  struct S {
+    template<typename> static constexpr int x = 42;
+  };
+  template<> constexpr int S::x<void>;  // Previously aborted.  Now an error.
+
+because it failed to emit a diagnostic for the missing initializer on the
+explicit specialization.  That is now fixed.
+
+
 7/16/18  [EDGcpfe/19804]
 Incorrect exception handling cleanup of partially-initialized class objects
 
@@ -20,20 +33,6 @@ destructions to perform had been incorrect.  The following example (with
     C() : a1(A(T(1))), a2(A(T(3))) {}
   };
   C c;
-=======
-7/16/18  [EDGcpfe/19576]
-Missing initializer on specialization of constexpr static data member template
-
-The front end previous abort on the following example:
-
-  struct S {
-    template<typename> static constexpr int x = 42;
-  };
-  template<> constexpr int S::x<void>;  // Previously aborted.  Now an error.
-
-because it failed to emit a diagnostic for the missing initializer on the
-explicit specialization.  That is now fixed.
->>>>>>> Stashed changes
 
 
 7/16/18  [EDGcpfe/19591]
