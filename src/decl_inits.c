@@ -9361,7 +9361,8 @@ declaration that has internal linkage because of the explicit presence of a
             ((vp->decl_modifiers & DM_DLLEXPORT) != 0 &&
              vp->storage_class != (a_storage_class)sc_extern) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            sym->kind == (a_symbol_kind)sk_static_data_member) {
+            symbol_is(sym, sk_static_data_member) ||
+            (sym->is_class_member && vp->is_constexpr)) {
           /* In C++ const qualified variables that are internally linked
              must be initialized (ARM 7.1.6). */
           if (could_be_dependent_class_type(type)) {
@@ -9410,7 +9411,12 @@ declaration that has internal linkage because of the explicit presence of a
                                   &error_position, sym, skip_typerefs(type));
             } else {
               /* Issue an error or warning on omitting the initializer. */
-              sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
+              if (vp->is_constexpr) {
+                pos_error(ec_constexpr_variable_decl_must_be_definition,
+                          &error_position);
+              } else {
+                sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
