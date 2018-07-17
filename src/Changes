@@ -11,7 +11,7 @@ Consider:
   }
   int y = f(1, 2);
 
-Previously, the front end abort during lowering because it failed to diagnose
+Previously, the front end aborted during lowering because it failed to diagnose
 the invalid fold expression operator ("!" is not a binary operator).  This is
 now fixed: An ordinary error is issued and the front end no longer aborts
 during lowering.
