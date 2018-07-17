@@ -8993,7 +8993,7 @@ If scope represents a constructor whose class has non-static data member
 initialized fields, copy the dynamic initialization from the field(s) to
 the constructor initializer.
 
-Copying the initializer for the field is rather straight-forward; the hard
+Copying the initializer for the field is rather straightforward; the hard
 part is getting the destructions in the correct order.  On entry, the scope
 already has destructions for any mem-initializer initializations and this
 routine adds destructions for the initialized fields (which are not attached to

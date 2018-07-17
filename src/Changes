@@ -72,7 +72,7 @@ Incorrect exception handling cleanup of partially-initialized class objects
 In cases where temporary objects are created as a result of default member
 initializers and those objects have overlapping lifetimes, the list of
 destructions to perform had been incorrect.  The following example (with
---c++11), is such a case:
+--c++11) is such a case:
 
   struct T { T(int); ~T(); };
   struct A { A(T); ~A(); };
