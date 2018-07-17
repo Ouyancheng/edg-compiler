@@ -16631,7 +16631,6 @@ template declaration and is NULL otherwise.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   var->source_corresp.assembly_access = class_state->assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  attach_decl_attributes(decl_state, /*primary_decl=*/FALSE);
   update_variable_decl_modifiers(decl_state);
   if ((curr_token == tok_assign &&
        (is_expr_start_token(next_token()) ||
@@ -16810,6 +16809,8 @@ template declaration and is NULL otherwise.
       }  /* if */
     }  /* if */
   }  /* if */
+  attach_decl_attributes(decl_state,
+                         var->initializer_in_class && var->is_inline);
   /* Record the symbol declaration.  Usually it is a pure declaration (and the
      definition must appear outside the class definition), but in C++/CLI an
      in-class initializer makes the declaration a definition too.  Also,

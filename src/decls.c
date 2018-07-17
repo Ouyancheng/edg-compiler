@@ -11070,7 +11070,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
         }  /* if */
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      attach_decl_attributes(dps, /*primary_decl=*/TRUE);
+      attach_decl_attributes(dps, dps->is_definition);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       update_decl_pos_info(&var->source_corresp, decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

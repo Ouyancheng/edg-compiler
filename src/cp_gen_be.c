@@ -7908,6 +7908,9 @@ recorded).
 #if GNU_EXTENSIONS_ALLOWED
   a_float_kind       saved_float_kind = (a_float_kind)fk_last;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_variable_ptr     var = (entry_kind == iek_variable) ? (a_variable_ptr)scp
+                                                        : NULL;
+  a_boolean          primary_attrs_only = (sec_decl == NULL);
 
   if (!C_mode() && !force_unqualified_name &&
       scp != NULL && scp->is_class_member) {
@@ -7962,11 +7965,10 @@ recorded).
       set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the name. */
-    if (entry_kind == iek_variable &&
-        ((a_variable*)scp)->is_struct_binding_container) {
+    if (var != NULL && var->is_struct_binding_container) {
       /* A structured binding container has no name.  Render instead the
          bracketed list of bindings. */
-      gen_structured_bindings_list((a_variable*)scp);
+      gen_structured_bindings_list(var);
     } else if (gen_name_from_name_reference(
                                       name_ref, scp, entry_kind,
                                       /*is_declaration=*/TRUE,
@@ -7979,12 +7981,41 @@ recorded).
     } else {
       gen_decl_name(scp, entry_kind, force_unqualified_name);
     }  /* if */
-    if (entry_kind == iek_variable && ((a_variable*)scp)->is_parameter) {
-      attributes = ((a_variable*)scp)->variant.assoc_param_type->attributes;
+    if (var != NULL && var->is_parameter) {
+      attributes = var->variant.assoc_param_type->attributes;
     } else if (sec_decl == NULL) {
       attributes = scp->attributes;
+      if (var != NULL && scp->is_class_member) {
+        /* This is the primary declaration of a static data member, which
+           will be the in-class declaration if it is initialized in the
+           class and the out-of-class declaration otherwise. */
+        if (var->initializer_in_class) {
+          /* This is the in-class declaration, which will be the definition
+             if the variable is inline and otherwise not. */
+          primary_attrs_only = var->is_inline;
+        } else {
+          /* This is the out-of-class declaration, which is always a
+             definition if the in-class declaration does not have an
+             initializer. */
+          primary_attrs_only = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       attributes = sec_decl->attributes;
+      if (var != NULL && scp->is_class_member) {
+        /* This is a secondary declaration of a static data member, which
+           will be the in-class declaration if it is not initialized in
+           the class and the out-of-class declaration otherwise. */
+        if (var->initializer_in_class) {
+          /* This is the out-of-class declaration, which will be the
+             definition if the variable is not inline. */
+          primary_attrs_only = !var->is_inline;
+        } else {
+          /* This is the in-class declaration, which is never a definition
+             if it does not have an initializer. */
+          primary_attrs_only = FALSE;
+        }  /* if */
+      }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Emit any user-specified assembly symbol for this routine.
@@ -7997,8 +8028,7 @@ recorded).
       gnu_routine_supp(rout)->asm_name = NULL;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    gen_attributes(attributes, al_declarator_id,
-                   /*primary_only=*/(sec_decl == NULL));
+    gen_attributes(attributes, al_declarator_id, primary_attrs_only);
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
       push_name_context_if_member(scp);
@@ -18042,10 +18072,13 @@ this one is such a continuation.
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
     gen_sun_link_scope_specifiers(var->decl_modifiers);
-    if (var->is_constexpr &&
-        (var->source_corresp.is_class_member || is_definition)) {
-      /* Put out the "constexpr" keyword.  For ordinary variables (i.e., not
-         static data members) it should only appear on the definition. */
+    if (var->is_constexpr && is_definition) {
+      /* Put out the "constexpr" keyword.  For ordinary variables (i.e.,
+         not static data members) it should only appear on the definition.
+         For static data members, it should appear on the declaration with
+         the initializer, which will have the primary source sequence
+         entry, resulting in is_definition being TRUE, even if it's not the
+         "definition" as specified by the C++ Standard. */
       if (var->source_corresp.is_class_member &&
           var->init_kind == (an_init_kind)initk_none) {
         /* When rendering template instantiations as explicit specializations,
