@@ -1,5 +1,22 @@
 Version 4.15
 
+7/17/18  [EDGcpfe/19183]
+Abort in lowering on invalid use of lambdas in C++17 mode constant expressions
+
+Consider:
+
+  struct A { ~A() {} };
+  struct B {
+    A x;
+    constexpr int f() {return 29;}
+  };
+  template<typename T> T v[ ([]{ return B(); }()).f() ] ;
+
+Previously this resulted in an abort in C++17 mode during IL lowering (earlier
+standard modes were unaffected because in those modes lambdas cannot appear at
+all in constant expressions).  This is now fixed: An ordinary error is issued.
+
+
 7/16/18  [EDGcpfe/19251]
 Missing diagnostic and lowering abort on invalid fold expression operator
 

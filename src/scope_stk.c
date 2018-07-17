@@ -7957,6 +7957,7 @@ the scope stack is no longer available.
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
         !routine->is_prototype_instantiation &&
+        depth_template_declaration_scope == NO_SCOPE_DEPTH &&
         (delayed ||
          !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
       /* Do IL lowering (change the C++ IL into C IL). */
