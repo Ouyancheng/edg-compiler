@@ -23619,7 +23619,8 @@ depends on a template parameter.
     template_param_is_variadic(sym, is_pack_element,
                                is_non_initial_pack_element,
                                template_param, decl_state);
-    template_param->is_pack_expansion = pesep != NULL;
+    template_param->is_pack_expansion = pesep != NULL &&
+                                        pesep->instantiation_descr != NULL;
   }  /* if */
   if (uses_auto) {
     template_param->uses_auto = TRUE;
