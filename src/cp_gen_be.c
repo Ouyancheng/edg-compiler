@@ -5295,13 +5295,15 @@ al_id_equivalent attributes.
 }  /* gen_attribute_group_end */
 
 
-static void gen_attributes(an_attribute_ptr       attributes,
-                           an_attribute_location  syntactic_location,
-                           a_boolean              primary_only)
+static void gen_attributes_full(an_attribute_ptr       attributes,
+                                an_attribute_location  syntactic_location,
+                                a_boolean              primary_only,
+                                a_boolean              exclude_primary)
 /*
 Generate the non-internal attributes with the given syntactic location recorded
 in the given list.  If primary_only is TRUE, only generate attributes that are
-marked as being associated with the primary declaration.
+marked as being associated with the primary declaration.  If exclude_primary
+is TRUE, do not generate attributes associated with the primary declaration.
 */
 {
   an_attribute_ptr        ap;
@@ -5334,7 +5336,10 @@ marked as being associated with the primary declaration.
                                (a_byte_attribute_location)al_predeclarator)) {
       continue;
     }  /* if */
-    if (primary_only && !ap->on_primary_declaration) continue;
+    if ((primary_only && !ap->on_primary_declaration) ||
+        (exclude_primary && ap->on_primary_declaration)) {
+      continue;
+    }  /* if */
     if (ap->group != agp) {
       gen_attribute_group_start(ap, postfix_position);
       agp = ap->group;
@@ -5349,6 +5354,20 @@ marked as being associated with the primary declaration.
       gen_attribute_group_end(ap, postfix_position);
     }  /* if */
   }  /* if */
+}  /* gen_attributes_full */
+
+
+static void gen_attributes(an_attribute_ptr       attributes,
+                           an_attribute_location  syntactic_location,
+                           a_boolean              primary_only)
+/*
+Wrapper for gen_attributes_full that passes exclude_primary as FALSE.
+Parameter descriptions are given in the header comment for
+gen_attributes_full.
+*/
+{
+  gen_attributes_full(attributes, syntactic_location, primary_only,
+                      /*exclude_primary=*/FALSE);
 }  /* gen_attributes */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7911,6 +7930,7 @@ recorded).
   a_variable_ptr     var = (entry_kind == iek_variable) ? (a_variable_ptr)scp
                                                         : NULL;
   a_boolean          primary_attrs_only = (sec_decl == NULL);
+  a_boolean          exclude_primary_attrs = FALSE;
 
   if (!C_mode() && !force_unqualified_name &&
       scp != NULL && scp->is_class_member) {
@@ -7999,6 +8019,7 @@ recorded).
              initializer. */
           primary_attrs_only = TRUE;
         }  /* if */
+        exclude_primary_attrs = !primary_attrs_only;
       }  /* if */
     } else {
       attributes = sec_decl->attributes;
@@ -8015,6 +8036,7 @@ recorded).
              if it does not have an initializer. */
           primary_attrs_only = FALSE;
         }  /* if */
+        exclude_primary_attrs = !primary_attrs_only;
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -8028,7 +8050,8 @@ recorded).
       gnu_routine_supp(rout)->asm_name = NULL;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    gen_attributes(attributes, al_declarator_id, primary_attrs_only);
+    gen_attributes_full(attributes, al_declarator_id, primary_attrs_only,
+                        exclude_primary_attrs);
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
       push_name_context_if_member(scp);
