@@ -34,7 +34,7 @@ Consider:
 
 Previously this resulted in an abort in C++17 mode during IL lowering (earlier
 standard modes were unaffected because in those modes lambdas cannot appear at
-all in constant expressions).  This is now fixed: An ordinary error is issued.
+all in constant expressions).  This is now fixed.
 
 
 7/16/18  [EDGcpfe/19251]

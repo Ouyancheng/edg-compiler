@@ -3259,19 +3259,22 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
-    a_scope_depth                   saved_innermost_scope_that_affects_access;
-    a_symbol_ptr                    rout_sym = symbol_for(rout_ptr);
-    a_boolean                       trans_unit_pushed;
-    check_assertion(class_type->variant.class_struct_union.extra_info
-                              ->assoc_scope != NULL);
+    a_symbol_ptr   rout_sym = symbol_for(rout_ptr);
+    a_boolean      trans_unit_pushed;
+    a_scope_depth  saved_innermost_scope_that_affects_access,
+                   saved_depth_template_declaration_scope;
+    check_assertion(class_type_supp(class_type)->assoc_scope != NULL);
     /* Switch translation units if necessary. */
     trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
     /* Reset the innermost scope that affects access control so that any
        existing context on the scope stack does not affect the generation
-       of the function. */
+       of the function.  Similarly, reset the depth of the current template
+       declaration scope. */
     saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
     depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+    saved_depth_template_declaration_scope = depth_template_declaration_scope;
+    depth_template_declaration_scope = NO_SCOPE_DEPTH;
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
     push_class_and_template_reactivation_scope_full(
@@ -3332,6 +3335,7 @@ empty statement block.
     pop_scope();
     /* Terminate the class reactivation scope. */
     pop_class_reactivation_scope();
+    depth_template_declaration_scope = saved_depth_template_declaration_scope;
     depth_of_innermost_scope_that_affects_access_control =
                                     saved_innermost_scope_that_affects_access;
     /* Mark the symbol for this routine "defined". */
