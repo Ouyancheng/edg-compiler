@@ -1,5 +1,25 @@
 Version 4.15
 
+7/17/18  [EDGcpfe/19839]
+Structured bindings and decltype
+
+Structured bindings are often reference variables.  For example:
+
+  #include <utility>
+  void f() {
+    std::pair<int, int> p{ 1, 2 };
+    auto [x, y] = p;
+    static_assert(std::is_same<decltype(x), int>::value);
+        // Previously an error.  Now okay.
+  }
+
+In this case, x and y are references bound to the members of an unnamed
+variable (of the same type as p).  The front end therefore previously produced
+"int&" for "decltype(x)".  However, the standard actually requires the type
+underlying the reference to be produced by decltype in that case and the front
+end now does so (i.e., the static_assert in the example above now succeeds).
+
+
 7/17/18  [EDGcpfe/19183]
 Abort in lowering on invalid use of lambdas in C++17 mode constant expressions
 

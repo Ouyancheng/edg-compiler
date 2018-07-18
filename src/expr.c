@@ -13929,7 +13929,11 @@ id_case:
       /* Expression for simple id, lvalue or rvalue. */
       /* Note that parens are significant and are not skipped if present. */
       if (is_variable_node(expr)) {
-        result = node_variable(expr)->type;
+        a_variable_ptr  vp = node_variable(expr);
+        result = vp->type;
+        if (vp->is_struct_binding && is_reference_type(result)) {
+          result = type_pointed_to(result);
+        }  /* if */
       } else if (is_routine_node(expr)) {
         result = node_routine(expr)->type;
       } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
