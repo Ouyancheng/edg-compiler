@@ -40741,6 +40741,7 @@ wrap_up_coroutine_result_expression.)
     icp = parse_braced_init_list(/*bundle=*/FALSE);
     if (scope_stack_top().in_discarded_statement) {
       expression = make_expr_from_argument(icp);
+      expression = wrap_up_full_expression(expression);
       free_init_component_list(icp);
       goto done;
 #if COROUTINES_ALLOWED
