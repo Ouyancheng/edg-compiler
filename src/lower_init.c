@@ -9011,10 +9011,12 @@ lifetime list).
   a_dynamic_init_ptr      *last = NULL;
   a_dynamic_init_ptr      prev_init_with_destruction_in_olp = NULL;
   a_constructor_init_ptr  ctor_init;
-  a_routine_ptr           routine = scope->variant.routine.ptr;
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   a_constructor_init_ptr  prev_ctor_init = NULL;
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+#if CHECKING
+  a_routine_ptr           routine = scope->variant.routine.ptr;
+#endif /* CHECKING */
 
   check_assertion(scope->kind == (a_scope_kind)sck_function &&
                   routine->special_kind ==
