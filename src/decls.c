@@ -2160,7 +2160,10 @@ consistent with that of the previous declaration.
     }  /* if */
     if (rp != NULL && rp->compiler_generated &&
         !(new_esp != NULL && implicit_noexcept_enabled &&
-          (strict_ansi_mode || clang_mode))) {
+          (strict_ansi_mode || clang_mode) &&
+          special_kind_is(rp, sfk_operator) &&
+          (is_new_operator(rp->variant.opname_kind) ||
+           is_delete_operator(rp->variant.opname_kind) ))) {
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
