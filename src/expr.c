@@ -18929,8 +18929,6 @@ expression, and return the result in *result (or an error indication in
          get here for a rescan. */
       check_assertion(!is_gcnew);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      check_assertion(!has_braced_initializer &&
-                      braced_init_list == NULL);
       if (rcblock->argument_list == NULL) {
         /* Class template argument deduction doesn't require an initializer. */
         no_operand = TRUE;
@@ -18958,6 +18956,8 @@ expression, and return the result in *result (or an error indication in
           auto_alep = NULL;
         }  /* if */
       } else {
+        check_assertion(!has_braced_initializer &&
+                        braced_init_list == NULL);
         deduced = deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
                                    /*keep_placeholder=*/FALSE, &auto_operand,
                                    auto_alep, &type_position,
