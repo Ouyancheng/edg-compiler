@@ -153,7 +153,9 @@ Consider:
 
 Previously, the front end issued an error in C++17 mode about the type
 resulting from the instantiation of operator delete being different from the
-declared type of the template.  That is now fixed.
+declared type of the template.  (This was a regression introduced in version
+4.14 when exception specifications were made part of function types in C++17
+mode.  See the entry for EDGcpfe/17685,EDGcpfe/18637.)  That is now fixed.
 
 
 7/11/18  [EDGcpfe/18549]
