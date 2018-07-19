@@ -36786,9 +36786,20 @@ pointer to that entry (or NULL in error cases).  If needed, update *is
 (e.g., to indicate the presence of a dynamic initializer).
 */
 {
-  an_operand      *operand;
-  a_constant_ptr  cp;
+  an_operand          *operand;
+  a_constant_ptr      cp;
+  a_decl_parse_state  *dps = is->decl_parse_state;
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+  a_boolean           new_stack = FALSE;
 
+  check_assertion(is != NULL);
+  if (expr_stack == NULL) {
+    push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                    (an_expression_kind)ek_normal,
+                                    /*is_full_expr=*/TRUE, dps, is);
+    new_stack = TRUE;
+  }  /* if */
   check_assertion(is_expression_component(icp));
   operand = operand_of_arg_list_elem(icp);
   prep_generic_operand(operand);
@@ -36811,6 +36822,10 @@ pointer to that entry (or NULL in error cases).  If needed, update *is
     expect_error();
     cp = alloc_error_constant();
     is->init_error = TRUE;
+  }  /* if */
+  if (new_stack) {
+    pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                   dps, is);
   }  /* if */
   return cp;
 }  /* convert_generic_aggr_init_element */

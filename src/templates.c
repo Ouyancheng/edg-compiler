@@ -37976,7 +37976,7 @@ function parameter list) will be completed later.
     tssp->variant.function.constructor_symbol_for_guide = ctor_sym;
   }  /* if */
   tdip->enclosing_scope = parent_scope_of(proto_type);
-  tdip->enclosing_template_decl = tcp->decl_info;
+  tdip->enclosing_template_decl = tcp->decl_info->enclosing_template_decl;
   templ = alloc_template();
   tssp->il_template_entry = templ;
   templ->kind = (a_template_kind)templk_function;
