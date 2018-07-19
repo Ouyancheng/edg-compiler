@@ -4938,7 +4938,7 @@ std::nullptr_t.  This is now fixed.  For example, with --c++11:
   void f() {}
 
 
-11/4/17  [EDGcpfe/17567,EDGcpfe/18915]
+11/4/17  [EDGcpfe/17567,EDGcpfe/18915,EDGcpfe/19807]
 IA-64 ABI: mangling of vector types
 
 Previously the IA-64 ABI mangling for vector types used the vendor-extension

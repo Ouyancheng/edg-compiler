@@ -10084,7 +10084,8 @@ top_of_loop:
         if (!(gnu_mode && !clang_mode && gnu_abi_version < 50000)) {
           /* Later versions of GCC use the IA-64 ABI standard way to mangle
              a vector type. */
-          add_number_to_mangled_name((unsigned long)type->size, mctl);
+          add_number_to_mangled_name((unsigned long)num_vector_elements(type),
+                                     mctl);
           add_to_mangled_name('_', mctl);
         }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 415 */
