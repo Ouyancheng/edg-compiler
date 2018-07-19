@@ -37122,16 +37122,17 @@ type of element_operand and sets the variable type to the deduced type.
   if (iterator != NULL && var_declared_with_placeholder_type(iterator)) {
     /* The iterator variable is declared with "auto".  Perform the type
        deduction. */
-    if (deduce_placeholder_type(iterator->declared_with_decltype_auto,
-                                /*is_class_template=*/FALSE,
-                                /*is_direct_init=*/FALSE,
-                                /*parenthesized_init=*/FALSE,
-                                iterator->type, /*auto_type=*/(a_type_ptr)NULL,
-                                /*keep_placeholder=*/FALSE,
-                                element_operand, (an_arg_list_elem_ptr)NULL,
-                                &iterator->source_corresp.decl_position,
-                                &deduced_type, &deduced_auto_type,
-                                &still_dependent)) {
+    if (deduce_placeholder_type(
+                           iterator->declared_with_decltype_auto,
+                           iterator->declared_with_class_template_placeholder,
+                           /*is_direct_init=*/FALSE,
+                           /*parenthesized_init=*/FALSE,
+                           iterator->type, /*auto_type=*/(a_type_ptr)NULL,
+                           /*keep_placeholder=*/FALSE,
+                           element_operand, (an_arg_list_elem_ptr)NULL,
+                           &iterator->source_corresp.decl_position,
+                           &deduced_type, &deduced_auto_type,
+                           &still_dependent)) {
       /* Deduction succeeded. */
       iterator->type = deduced_type;
     } else if (still_dependent) {
