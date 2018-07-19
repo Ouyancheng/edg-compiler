@@ -978,7 +978,7 @@ should not be treated as a type for dependent name purposes.
       if (assoc_symbol != NULL) {
         if (!in_prescan && class_template_arg_deduction_enabled &&
             !locator_for_curr_id.is_template_id &&
-            is_class_template_symbol(assoc_symbol)) {
+            is_class_template_but_not_alias_symbol(assoc_symbol)) {
           /* We found a class template and we are doing class template
              argument deduction.  Create a placeholder type to represent
              the class template reference.  This is not done for a template-id

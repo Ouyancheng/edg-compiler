@@ -38297,6 +38297,7 @@ up-to-date.
        !ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
     /* Nothing to do. */
   } else {
+    check_assertion(!ct_tssp->variant.class_template.is_alias_template);
     if (ct_tssp->variant.class_template.implicit_deduction_guides_added) {
       /* Remove "interim guides". */
       /* FIXME */
