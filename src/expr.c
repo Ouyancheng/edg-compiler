@@ -2222,6 +2222,7 @@ resulting argument list is returned.
     expr_list = expr_stack->initializer_cache->first_init;
     end_expr_list = expr_stack->initializer_cache->last_init;
     clear_initializer_cache(expr_stack->initializer_cache);
+    unbundle_init_component_list_expressions(expr_list);
     after_cached_expr = TRUE;
   }  /* while */
   /* Check for an empty argument list (or the end, if we picked up some

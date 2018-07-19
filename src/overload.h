@@ -1133,6 +1133,9 @@ extern void value_initialization(a_type_ptr            dest_type,
                                  an_init_state         *is,
                                  a_boolean             *error_detected);
 
+extern
+void unbundle_init_component_list_expressions(an_init_component_ptr list);
+
 extern void unbundle_init_component_expressions(an_init_component_ptr icp);
 
 extern void keep_worst_match(an_arg_match_summary *new_arg_match,

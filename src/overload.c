@@ -23303,8 +23303,7 @@ done:
 }  /* make_initializer_list_object */
 
 
-static void unbundle_init_component_list_expressions(
-                                                    an_init_component_ptr list)
+void unbundle_init_component_list_expressions(an_init_component_ptr list)
 /*
 Unbundle all the expressions in the list of init components given by list.
 This is done when the whole list is going to be used at once, as for example
