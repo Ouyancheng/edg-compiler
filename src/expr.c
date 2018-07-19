@@ -637,7 +637,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         icp = elem_icp;
       }  /* if */
     }  /* if */
-    if (dps->is_struct_binding_decl && is_expression_component(icp) &&
+    if (dps->is_struct_binding_decl &&
+        icp != NULL && is_expression_component(icp) &&
         dps->type->kind != (a_type_kind)tk_pointer &&
         is_array_type(operand_of_arg_list_elem(icp)->type)) {
       /* For a declaration like "auto [x, y] = array;" where there is no
