@@ -4360,6 +4360,14 @@ position is available.
   } else {
     expr_icp = scan_full_initializer_expr_as_component(
                  dps, /*parenthesized=*/TRUE, /*allow_empty_expansion=*/TRUE);
+    if (anything_cached(&dps->prescanned_initializer_cache)) {
+      /* The cache contained multiple components, which is not valid in this
+         context. */
+      pos_error(ec_too_many_initializer_values,
+                init_component_pos(
+                                dps->prescanned_initializer_cache.first_init));
+      flush_initializer_cache(&dps->prescanned_initializer_cache);
+    }  /* if */
   }  /* if */
   if (expr_icp == NULL) {
     is_pack_expansion = TRUE;
