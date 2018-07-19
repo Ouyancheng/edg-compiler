@@ -2158,7 +2158,9 @@ consistent with that of the previous declaration.
              prev_decl->variant.static_data_member.instance_ptr->template_sym;
       }  /* if */
     }  /* if */
-    if (rp != NULL && rp->compiler_generated) {
+    if (rp != NULL && rp->compiler_generated &&
+        !(new_esp != NULL && implicit_noexcept_enabled &&
+          (strict_ansi_mode || clang_mode))) {
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
