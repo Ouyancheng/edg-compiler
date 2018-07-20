@@ -18983,7 +18983,7 @@ expression, and return the result in *result (or an error indication in
                                             auto_alep,
                                             /*to_front=*/TRUE,
                                             &dps.prescanned_initializer_cache);
-      } else {
+      } else if (!no_operand) {
         add_operand_to_initializer_cache(&auto_operand,
                                          /*to_front=*/TRUE,
                                          /*bundle=*/FALSE,
