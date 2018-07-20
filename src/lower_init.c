@@ -6296,15 +6296,15 @@ The generated routine looks like:
     }
   }
 
-Note that the created routine shares the same memory region as the
-current memory region (which is necessary because the IL that will be lowered
-herein may contain references to entities that have been allocated in the
-current memory region).
+Note that the created routine shares the current function's memory region
+instead of having its own (which is necessary because the IL that will be
+lowered herein may contain references to entities that have been allocated in
+the current memory region).
 
 repeated_con is the constant whose value is being used to initialize a number
 of array elements.  This (ck_aggregate) constant will be lowered in the
 context of the helper routine.  "type" is a pointer to the type of the
-element type being initialized.  The remaining arguments are passed through
+element being initialized.  The remaining arguments are passed through
 to lower_dynamic_init_aggregate_constant; see their description there.
 */
 {
