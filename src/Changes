@@ -1,5 +1,13 @@
 Version 4.15
 
+7/20/18  [EDGcpfe/19846]
+Emulation of GCC for core issue 429
+
+It appears that GCC 6.0.0 and later have implemented core issue 429
+(see the Changes for EDGcpfe/18899), so the front end's emulation has been
+updated accordingly.
+
+
 7/18/18  [EDGcpfe/19210]
 Replaceable operator new/delete declarations and exception specifications
 
