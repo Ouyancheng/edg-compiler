@@ -17975,12 +17975,15 @@ name lookup options.
           tap = get_template_arg_for_coordinates(coordinates, options,
                                                  &template_arg_list,
                                                  template_param_list);
-          check_assertion(tap == NULL ||
-                          (is_nontype_templ_arg(tap) &&
-                           !tap->is_array_bound_of_unknown_type));
-          if (tap != NULL && tap->variant.constant != NULL) {
-            /* Only use the template argument value if one was specified. */
-            con_copy = tap->variant.constant;
+          if (tap == NULL ||
+              (is_nontype_templ_arg(tap) &&
+               !tap->is_array_bound_of_unknown_type)) {
+            if (tap != NULL && tap->variant.constant != NULL) {
+              /* Only use the template argument value if one was specified. */
+              con_copy = tap->variant.constant;
+            }  /* if */
+          } else {
+            *copy_error = TRUE;
           }  /* if */
         }
         break;
