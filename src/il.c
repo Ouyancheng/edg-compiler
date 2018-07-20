@@ -18124,6 +18124,7 @@ name lookup options.
                                 constant,
                                 (a_host_large_unsigned)!expr_might_throw(expr),
                                 bool_type()->variant.integer.int_kind);
+              constant->type = bool_type();
             } else {
               /* sizeof/alignof. */
               complete_type_is_needed(new_type);
