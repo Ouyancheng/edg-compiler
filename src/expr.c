@@ -37110,9 +37110,9 @@ static void deduce_auto_type_in_enhanced_for_if_needed(
                                                a_variable_ptr iterator,
                                                an_operand     *element_operand)
 /*
-When the iterator variable of a for-each or range-based-for statement
-is declared with "auto", this routine performs the type deduction from the
-type of element_operand and sets the variable type to the deduced type.
+When the iterator variable of a for-each or range-based-for statement is
+declared with a placeholder type, this routine performs the type deduction from
+the type of element_operand and sets the variable type to the deduced type.
 */
 {
   a_type_ptr deduced_type;
@@ -37122,12 +37122,16 @@ type of element_operand and sets the variable type to the deduced type.
   if (iterator != NULL && var_declared_with_placeholder_type(iterator)) {
     /* The iterator variable is declared with "auto".  Perform the type
        deduction. */
+    a_type_ptr  auto_type = NULL;
+    if (iterator->declared_with_class_template_placeholder) {
+      auto_type = skip_typerefs(iterator->type);
+    }  /* if */
     if (deduce_placeholder_type(
                            iterator->declared_with_decltype_auto,
                            iterator->declared_with_class_template_placeholder,
                            /*is_direct_init=*/FALSE,
                            /*parenthesized_init=*/FALSE,
-                           iterator->type, /*auto_type=*/(a_type_ptr)NULL,
+                           iterator->type, auto_type,
                            /*keep_placeholder=*/FALSE,
                            element_operand, (an_arg_list_elem_ptr)NULL,
                            &iterator->source_corresp.decl_position,
