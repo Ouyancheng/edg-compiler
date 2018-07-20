@@ -4363,9 +4363,11 @@ position is available.
     if (anything_cached(&dps->prescanned_initializer_cache)) {
       /* The cache contained multiple components, which is not valid in this
          context. */
-      pos_error(ec_too_many_initializer_values,
-                init_component_pos(
+      if (!is_or_contains_error_type(dps->type)) {
+        pos_error(ec_too_many_initializer_values,
+                  init_component_pos(
                                 dps->prescanned_initializer_cache.first_init));
+      }  /* if */
       flush_initializer_cache(&dps->prescanned_initializer_cache);
     }  /* if */
   }  /* if */
