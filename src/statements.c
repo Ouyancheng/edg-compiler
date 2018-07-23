@@ -4080,7 +4080,7 @@ statement sequence.  The syntax is:
     discard_more_info_list(&diag_list);
     release_local_constant(&folded_con);
     sssep = &struct_stmt_stack[depth_stmt_stack];
-    if (is_template_dependent_context()) {
+    if (is_nonreal_instantiation_context()) {
       sssep->dependent_constexpr_if = TRUE;
       /* Clear the local entry used to record the cache positions for dependent
          constexpr ifs.  A copy will be made when this is added to the
