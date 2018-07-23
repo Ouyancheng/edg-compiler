@@ -4176,8 +4176,13 @@ statement sequence.  The syntax is:
   if (cicip_to_create != NULL) {
     /* Record the cached token handle of the end of the statement (for
        a constexpr if) */
-    cicip_to_create->ending_handle = curr_cached_token_handle;
-    add_to_constexpr_if_cache_hash_table(cicip_to_create, start_tsn);
+    if (curr_token == tok_end_of_source) {
+      /* Don't create the cached entry in certain error cases. */
+      expect_error();
+    } else {
+      cicip_to_create->ending_handle = curr_cached_token_handle;
+      add_to_constexpr_if_cache_hash_table(cicip_to_create, start_tsn);
+    }  /* if */
   }  /* if */
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
