@@ -3179,7 +3179,14 @@ template classes.
                      "mangled_encoding_for_address_constant: addr of unnamed");
       add_str_to_mangled_name(str, mctl);
 #else /* IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION < 415
+      /* This is wrong (the variable name may have been previously mangled,
+         thus resulting in names that cannot be demangled), but is left here
+         for backward ABI compatibility. */
       mangled_name_with_length(variable->source_corresp.name, mctl);
+#else /* ABI_COMPATIBILITY_VERSION >= 415 */
+      mangled_variable_name_with_possible_qualification(variable, mctl);
+#endif /* ABI_COMPATIBILITY_VERSION < 415 */
 #endif /* IA64_ABI */
     }  /* if */
   } else if (abkind == (an_address_base_kind)abk_routine) {

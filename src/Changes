@@ -1,5 +1,17 @@
 Version 4.15
 
+7/24/18  [EDGcpfe/19876]
+IA-64 ABI mangling for variable templates
+
+The mangling used for constants that represent the addresses of variable
+templates in IA-64 ABI configurations was incorrect and has now been fixed
+(when ABI_COMPATIBILITY_VERSION >= 415).  For example (with --c++17):
+
+  template <class T, T* t> T v1;
+  template <class T, T* t> T v2;
+  int *n = &v1<int, &v2<int, (int*)0 >>;
+
+
 7/20/18  [EDGcpfe/19846]
 Emulation of GCC for core issue 429
 
