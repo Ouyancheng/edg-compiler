@@ -539,6 +539,10 @@ typedef struct a_context {
 		is_function_try_block;
 			/* TRUE if this context is associated with a
 			   function-try-block. */
+  a_byte_boolean
+		is_generated_routine_context;
+			/* TRUE if the context is for a routine that has been
+			   created by lowering. */
   an_object_lifetime_ptr
 		successor_lifetime_at_statement;
 			/* If the object lifetime has a successor that begins

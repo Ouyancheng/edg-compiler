@@ -878,6 +878,7 @@ scope, or the lifetime from the parent context, will be used.
   context->saved_curr_object_lifetime = curr_object_lifetime;
   if (new_lifetime) curr_object_lifetime = lifetime;
   context->is_function_try_block = FALSE;
+  context->is_generated_routine_context = FALSE;
   /* The latest_initialization list starts at NULL for a new object lifetime,
      or is inherited from the parent if there is no new object lifetime. */
   context->latest_initialization = NULL;

@@ -6367,7 +6367,9 @@ tables).
 #if !INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
   check_assertion(long_lifetime_temps ||
                   (innermost_function_scope != NULL &&
-                   has_destructions(innermost_function_scope->lifetime)));
+                   (has_destructions(innermost_function_scope->lifetime) ||
+                    innermost_function_scope->variant.routine.ptr->
+                                                        compiler_generated)));
 #endif /* !INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* In the portable scheme, assign the region number to __eh_curr_region. */

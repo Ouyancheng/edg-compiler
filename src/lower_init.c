@@ -4152,6 +4152,7 @@ Can also be used when lowering C to generate a routine context.
     add_object_lifetime_to_function_scope(scope);
   }  /* if */
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
+  grcontext->context.is_generated_routine_context = TRUE;
   /* Initialize for lowering a function. */
   function_lower_init();
 }  /* push_generated_routine_context */
@@ -5953,7 +5954,7 @@ expression).
     /* Overwrite the constant with a harmless constant of the right kind.
        It's just a place-holder that gets overwritten by the dynamic
        initialization. */
-    desired_type = ipdp->modifiers->type;
+    desired_type = type_from_init_pos_descr(ipdp);
     if (C_mode()) {
 #if LOWER_COMPLEX && C99_IL_EXTENSIONS_SUPPORTED
       if (is_imaginary_type(desired_type)) {
@@ -6060,6 +6061,12 @@ contains a dynamic initialization.
     result = TRUE;
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
     result = has_aggregate_with_dynamic(con->variant.init_repeat.constant);
+  } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+             con->variant.dynamic_init->kind ==
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+             has_aggregate_with_dynamic(
+                               con->variant.dynamic_init->variant.constant)) {
+    result = TRUE;
   } else {
     result = FALSE;
   }  /* if */
@@ -6324,8 +6331,7 @@ to lower_dynamic_init_aggregate_constant; see their description there.
   /* Build the routine entry.  It has two parameters: a pointer to the
      beginning of the entity being initialized and a count. */
   pointer_type = skip_typerefs(type);
-  check_assertion(is_pointer_type(pointer_type) &&
-                  repeated_con->kind == (a_constant_repr_kind)ck_aggregate);
+  check_assertion(is_pointer_type(pointer_type));
   count_type = integer_type(targ_size_t_int_kind);
   rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
                        void_type(), pointer_type);
@@ -6365,11 +6371,17 @@ to lower_dynamic_init_aggregate_constant; see their description there.
   set_var_indirect_init_pos_descr(entity_var, &ipd);
   /* Now finish lowering the repeated constant in the context of the
      helper routine. */
-  lower_dynamic_init_aggregate_constant(repeated_con, &ipd,
-                                        dtor_case, source_desc,
-                                        others_follow_in_aggr,
-                                        &loop_insert_location,
-                                        keep_constant, options);
+  if (repeated_con->kind == (a_constant_repr_kind)ck_aggregate) {
+    lower_dynamic_init_aggregate_constant(repeated_con, &ipd,
+                                          dtor_case, source_desc,
+                                          others_follow_in_aggr,
+                                          &loop_insert_location,
+                                          keep_constant, options);
+  } else {
+    lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
+                          others_follow_in_aggr, &loop_insert_location,
+                          keep_constant, options);
+  }  /* if */
   /* Increment the pointer at the end of the loop. */
   ptr_increment = make_operator_node((an_expr_operator_kind)eok_post_incr,
                                      pointer_type,
@@ -6599,7 +6611,17 @@ represents a full expression).
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
           }  /* if */
         }  /* if */
-        if (repeated_con->kind == (a_constant_repr_kind)ck_aggregate) {
+        if (repeated_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+            repeated_con->variant.dynamic_init->kind !=
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+          /* Most repeated dynamic initialization can be handled without
+             invoking a generic "helper" routine (e.g., a dik_constructor will
+             invoke the library routines are effectively "helper" routines and
+             they take a repeated count). */
+          lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
+                                others_follow, insert_location, keep_constant,
+                                options);
+        } else {
           /* The repeated constant is an aggregate that contains dynamic
              initialization.  Such initialization requires a looping construct
              but it's likely that this initialization occurs in an expression
@@ -6626,21 +6648,17 @@ represents a full expression).
                                                                  keep_constant,
                                                                  options),
                               args, (an_expr_node_ptr)NULL, insert_location);
-        } else {
-          lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
-                                others_follow, insert_location, keep_constant,
-                                options);
-        }  /* if */
-        /* Remove the ck_init_repeat constant, in case the overall aggregate
-           is kept for the constant parts. */
-        if (prev_con == NULL) {
-          aggr_const->variant.aggregate.first_constant = NULL;
-        } else {
-          prev_con->next = NULL;
-        }  /* if */
-        if (aggr_const->variant.aggregate.last_constant == con_ptr) {
-          check_assertion(con_ptr->next == NULL);
-          aggr_const->variant.aggregate.last_constant = prev_con;
+          /* Remove the ck_init_repeat constant, in case the overall aggregate
+             is kept for the constant parts. */
+          if (prev_con == NULL) {
+            aggr_const->variant.aggregate.first_constant = NULL;
+          } else {
+            prev_con->next = NULL;
+          }  /* if */
+          if (aggr_const->variant.aggregate.last_constant == con_ptr) {
+            check_assertion(con_ptr->next == NULL);
+            aggr_const->variant.aggregate.last_constant = prev_con;
+          }  /* if */
         }  /* if */
       } else {
         /* Some constant that doesn't contain a ck_dynamic_init; lower it
@@ -9835,6 +9853,20 @@ C99 mode for the same reason.
       /* Initialization of a global variable from inside the routine
          generated for file-scope initializations. */
       eff_context = context_for_lifetime(lifetime);
+    } else if (curr_context->is_generated_routine_context) {
+      a_context_ptr cp;
+      /* In cases where a "helper" routine is generated by lowering, the
+         object lifetime won't match that of the generated function.  That's
+         okay if it matches a parent lifetime (but use the generated routine's
+         context for the destruction). */
+      for (cp = curr_context; cp != NULL && cp->is_generated_routine_context;
+           cp = cp->parent) {
+        if (cp->lifetime == lifetime) {
+          break;
+        }  /* if */
+      }  /* for */
+      check_assertion(cp != NULL);
+      eff_context = curr_context;
     } else {
       unexpected_condition_str(
      "lower_dynamic_init: dynamic init has lifetime other than curr lifetime");
