@@ -1,5 +1,18 @@
 Version 4.15
 
+7/25/18  [EDGcpfe/19580]
+Internal error on member alias template redeclaration
+
+An internal error could occur (in f_skip_typerefs) if an alias template
+was redeclared within a class template.  Now fixed.
+
+  template <class T> struct A {
+    template <class U> using X = U;
+    template <class U> using X = U;
+  };
+  A<int> a;
+
+
 7/24/18  [EDGcpfe/19876]
 IA-64 ABI mangling for variable templates
 

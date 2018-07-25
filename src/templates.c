@@ -27757,15 +27757,21 @@ alias
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Create the symbol for the prototype instantiation. */
-  create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
-                        /*is_partial_specialization=*/FALSE);
+  /* When orig_decl_tssp is set, sym points to a dummy symbol created above.
+     Don't create a prototype type in such cases as it will never be
+     filled-in later. */
+  if (!decl_state->is_alias_redecl ||
+      orig_decl_tssp->prototype_template == NULL) {
+    /* Create the symbol for the prototype instantiation. */
+    create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                          /*is_partial_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  update_decl_pos_info(
+    update_decl_pos_info(
            &tssp->variant.class_template.prototype_instantiation->
                                               variant.type.ptr->source_corresp,
                        &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   /* If this is a redeclaration, the original symbol is returned, not the
      one for the new declaration. */
   return orig_decl_sym;
