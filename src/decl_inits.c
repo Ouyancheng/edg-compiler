@@ -5693,7 +5693,17 @@ members of managed class types in some Microsoft modes.
   a_boolean                is_field = symbol_is(sym, sk_field);
   a_boolean                is_var_templ = symbol_is(sym, sk_variable_template);
   a_field_ptr              saved_field = NULL;
+  a_scope_stack_entry_ptr  ssep;
+  a_type_ptr               class_type;
 
+  /* Determine the class that is being defined. */
+  for (ssep = &scope_stack_top();
+       ssep != NULL && !scope_is(ssep, sck_class_struct_union);
+       ssep = previous_scope_of(ssep)) {}
+  check_assertion(ssep != NULL);
+  class_type = ssep->assoc_type;
+  check_assertion(class_type != NULL &&
+                  is_immediate_class_type(class_type));
   if (is_field) {
     /* Set the in_field_initializer flag while caching a field initializer. */
     saved_in_field_initializer = scope_stack_top().in_field_initializer;
@@ -5738,6 +5748,8 @@ members of managed class types in some Microsoft modes.
     field_for_curr_field_initializer = saved_field;
   }  /* if */
   if (is_prototype_instantiation_context() &&
+      class_type->variant.class_struct_union.is_prototype_instantiation &&
+      class_type->variant.class_struct_union.is_template_class &&
       (is_field || is_var_templ || gpp_mode)) {
     /* This is an initializer in the prototype instantiation of a class
        template or nested class of a class template.  Save the token numbers
