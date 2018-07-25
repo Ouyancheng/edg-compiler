@@ -26717,6 +26717,8 @@ optionally prefixed with the keyword "explicit".
                         scope_stack[decl_state->effective_decl_level].number) {
     pos_syty_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym,
                    dps->type);
+    decl_state->decl_scope_err = TRUE;
+    set_to_error_locator(*locator);
   }  /* if */
   /* A deduction guide is considered a definition. */
   dps->is_definition = func_info->is_definition;
@@ -26772,7 +26774,10 @@ optionally prefixed with the keyword "explicit".
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Add this to the list of guides for the class template. */
   ct_tssp = template_supplement_for_symbol(ct_sym);
-  add_deduction_guide(sym, &ct_tssp->variant.class_template.deduction_guides);
+  if (!locator->is_error) {
+    add_deduction_guide(sym,
+                        &ct_tssp->variant.class_template.deduction_guides);
+  }  /* if */
   update_function_template_default_args(decl_state, sym, tssp);
   return sym;
 }  /* deduction_guide_template_declaration */
