@@ -37816,7 +37816,7 @@ a class template parameter list.
       a_type_ptr				new_type;
       a_template_param_type_supplement_ptr	old_tptsp;
       a_template_param_type_supplement_ptr	new_tptsp;
-      old_type = old_sym->variant.type.ptr;
+      old_type = old_tpp->variant.type;
       old_tptsp = old_type->variant.template_param.extra_info;
       check_assertion(old_type->kind == (a_type_kind)tk_template_param);
       new_type = alloc_type(old_type->kind);
@@ -37831,7 +37831,7 @@ a class template parameter list.
       /* FIXME: Clear parent scope?   IL list issues? */
       new_sym->variant.type.ptr = new_type;
     } else if (new_sym->kind == (a_symbol_kind)sk_constant) {
-      a_constant_ptr	old_constant = old_sym->variant.constant;
+      a_constant_ptr	old_constant = old_tpp->variant.constant.ptr;
       a_constant_ptr	new_constant;
       new_constant = alloc_constant(old_constant->kind);
       copy_constant(old_constant, new_constant);
@@ -37840,7 +37840,7 @@ a class template parameter list.
       new_sym->variant.constant = new_constant;
     } else {
       a_template_ptr	old_template =
-                             old_sym->variant.template_info->il_template_entry;
+                             old_tpp->variant.templ->il_template_entry;
       a_template_ptr	new_template;
       check_assertion(new_sym->kind == (a_symbol_kind)sk_class_template);
       new_template = alloc_template();
