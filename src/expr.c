@@ -31956,7 +31956,8 @@ overloaded_function:
             /* A class template can be used as a placeholder type in a C++17
                function-style cast. */
             a_token_kind  next_tok = next_token();
-            if (next_tok == tok_lparen || next_tok == tok_lbrace) {
+            if ((next_tok == tok_lparen || next_tok == tok_lbrace) &&
+                is_class_template_but_not_alias_symbol(sym_ptr)) {
               a_type_ptr  placeholder;
               check_assertion(class_template_arg_deduction_enabled);
               placeholder = make_class_template_placeholder(
