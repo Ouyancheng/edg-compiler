@@ -6616,8 +6616,8 @@ represents a full expression).
                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
           /* Most repeated dynamic initialization can be handled without
              invoking a generic "helper" routine (e.g., a dik_constructor will
-             invoke the library routines are effectively "helper" routines and
-             they take a repeated count). */
+             invoke library routines that are effectively "helper" routines
+             and they take a repeated count). */
           lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
                                 others_follow, insert_location, keep_constant,
                                 options);
