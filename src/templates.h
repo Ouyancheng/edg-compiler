@@ -817,8 +817,10 @@ extern a_boolean template_template_arg_is_compatible_with_param(
 				a_template_ptr		arg_template,
 				a_template_ptr		param_template);
 
-extern a_boolean check_nontype_template_param_type(a_type_ptr         *p_type,
-                                                   a_source_position  *pos);
+extern
+a_boolean check_nontype_template_param_type(a_type_ptr         *p_type,
+                                            a_boolean          from_auto,
+                                            a_source_position  *pos);
 
 extern a_boolean equiv_template_param_lists(
 		a_template_param_ptr			old_list,

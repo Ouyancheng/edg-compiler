@@ -457,7 +457,8 @@ error type.
                          &still_dependent)) {
       /* The deduction succeeded.  Make sure the resulting type is valid as
          a nontype template parameter. */
-      if (check_nontype_template_param_type(&deduced_type, position)) {
+      if (check_nontype_template_param_type(&deduced_type, /*from_auto=*/TRUE,
+                                            position)) {
         result = TRUE;
       }  /* if */
     } else {

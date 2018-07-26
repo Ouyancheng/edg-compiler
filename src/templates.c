@@ -2328,12 +2328,14 @@ Return TRUE if there is a match, FALSE otherwise.
 
 
 a_boolean check_nontype_template_param_type(a_type_ptr         *p_type,
+                                            a_boolean          from_auto,
                                             a_source_position  *pos)
 /*
 If the given type is a valid type for a nontype template parameter return TRUE.
 Otherwise, return FALSE, and, if pos is non-NULL, issue an appropriate error at
 that position.  If the given type is an array or routine type (which are valid
 cases), the type is replaced by the corresponding decayed pointer type.
+from_auto is TRUE if the type was originally specified using an auto type.
 */
 {
   an_error_code  err_code;
@@ -2367,9 +2369,12 @@ cases), the type is replaced by the corresponding decayed pointer type.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_pointer:
-      if (type->variant.pointer.is_rvalue_reference) {
+      if (type->variant.pointer.is_rvalue_reference && !from_auto) {
         /* A template parameter cannot have an rvalue reference type as there
-           is no way it could be used. */
+           is no way it could be used.  An auto&& template parameter can
+           be deduced as a normal reference, so that is allowed.  This
+           from_auto flag will be TRUE if the type originally came from
+           an auto template parameter. */
         err_code = ec_rvalue_ref_template_parameter;
       } else {
         err_code = ec_no_error;
@@ -2484,8 +2489,10 @@ is_partial_ord_check is TRUE.  Otherwise it must be zero.
                                   templ_param_list,
                                   &template_sym->decl_position,
                                   CTWS_NO_OPTIONS, &copy_error, &ctws_state);
-          if (copy_error || !check_nontype_template_param_type(
-                                  &constant_type, (a_source_position*)NULL)) {
+          if (copy_error ||
+              !check_nontype_template_param_type(&constant_type,
+                                                 /*from_auto=*/FALSE,
+                                                 (a_source_position*)NULL)) {
             match = FALSE;
             continue;
           }  /* if */
@@ -10580,12 +10587,11 @@ doing C++17-style template template parameter matching.
             check_assertion(specified_tap->arg_operand != NULL);
             if (tpp->uses_auto) {
               /* For an auto template parameter, make sure the type matches
-                 the parameter.  Note that constant_type will be NULL
-                 below in this case. */
+                 the parameter. */
               if (!arg_matches_auto_template_param(
                            tpp->variant.constant.ptr->type,
                            (a_constant_ptr)NULL, specified_tap->arg_operand,
-                           (a_type_ptr*)NULL,
+                           &constant_type,
                            (a_source_position_ptr)NULL)) {
                 arg_kind_mismatch = TRUE;
                 break;
@@ -22974,7 +22980,10 @@ the components of the declaration.
   }  /* if */
   /* Check for invalid nontype parameter types and adjust those types if
      needed (array and function type decay). */
-  if (!check_nontype_template_param_type(&state.type, &state.start_pos)) {
+  if (!check_nontype_template_param_type(&state.type,
+                                         /*from_auto=*/uses_auto != NULL &&
+                                                       *uses_auto,
+                                         &state.start_pos)) {
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types.  (Incomplete types
        are a problem in particular.) */
