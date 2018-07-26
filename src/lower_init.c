@@ -4228,7 +4228,7 @@ Pop function corresponding to push_generated_routine_context.
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =
                                  grcontext->processing_file_scope_init_routine;
-  check_assertion(pending_stmk_init_statements == NULL);
+  insert_pending_stmk_init_statements(scope->assoc_block);
   pending_stmk_init_statements = grcontext->pending_stmk_init_statements;
   innermost_function_scope = grcontext->innermost_function_scope;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
