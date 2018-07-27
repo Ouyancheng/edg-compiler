@@ -4588,6 +4588,11 @@ template arguments, or NULL if deduction failed.
     report_excessive_rescan_depth();
     goto skip;
   }  /*  if */
+  if (tssp->is_error) {
+    /* Some error occurred in the declaration of the template.  Ignore it
+       here. */
+    goto skip;
+  }  /* if */
   ++(tssp->variant.function.pending_deductions);
   /* Push an instantiation scope that can be used by the substitution and
      deduction process to find information about the template. */

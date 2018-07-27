@@ -28312,6 +28312,12 @@ any non-empty template parameter lists that were scanned.
       /* Run end-of-declaration-parsing actions prior to scanning the function
          body. */
       run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
+      if (decl_state->decl_scope_err) {
+        /* Indicate that an error occurred in the declaration.  This
+           is used to prevent certain uses of the template that could be
+           problematic. */
+        tssp->is_error = TRUE;
+      }  /* if */
       /* Do the prototype instantiation of the function. */
       if (!decl_state->decl_scope_err && decl_state->defines_something &&
           !defer_function_prototype_instantiations) {
@@ -38058,6 +38064,7 @@ occurs during the creation of the template, a NULL symbol is returned.
   /* A rescan context is needed because nonreal types will be created
      below. */
   push_instantiation_scope_for_rescan(ct_sym);
+  if (ctor_tssp != NULL && ctor_tssp->is_error) goto done;
   sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
                                                ctor_sym);
   sym->decl_position = ctor_sym->decl_position;
