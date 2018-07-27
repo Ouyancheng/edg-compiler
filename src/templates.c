@@ -2372,7 +2372,7 @@ from_auto is TRUE if the type was originally specified using an auto type.
       if (type->variant.pointer.is_rvalue_reference && !from_auto) {
         /* A template parameter cannot have an rvalue reference type as there
            is no way it could be used.  An auto&& template parameter can
-           be deduced as a normal reference, so that is allowed.  This
+           be deduced as a normal reference, so that is allowed.  The
            from_auto flag will be TRUE if the type originally came from
            an auto template parameter. */
         err_code = ec_rvalue_ref_template_parameter;
