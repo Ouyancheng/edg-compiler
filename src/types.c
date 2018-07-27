@@ -6190,9 +6190,9 @@ check_typerefs:
       } else if (is_nonreal1 &&
                  (flags & ITF_EXACT_EQUIVALENCE) != 0 &&
                  !f_identical_types(type_1->variant.typeref.type,
-                                   type_2->variant.typeref.type, flags)) {
+                                    type_2->variant.typeref.type, flags)) {
         /* For cases not handled above, if we are looking for exact
-           equivalence, check then underlying types.  If they are not the
+           equivalence, check the underlying types.  If they are not the
            same, then we need to consider them to be different. */
         goto done;
       }  /* if */
