@@ -18569,14 +18569,13 @@ a constant that is the previous value incremented by one.
   an_expr_node_ptr operands;
 
   clear_constant(con, (a_constant_repr_kind)ck_template_param);
-  if (is_template_dependent_type(con->type)) {
-    con->type = prev_val->type;
-  } else {
+  con->type = prev_val->type;
+  if (!is_template_dependent_type(prev_val->type)) {
     /* Since we're not doing full semantics on the increment operation,
-       force a dependent type on the result type.  If we don't do this,
+       force a dependent type on the original value.  If we don't do this,
        back ends (including the C- and C++-generating back ends) may be
        surprised if they check for type consistency. */
-    con->type = type_of_unknown_templ_param_nontype;
+    prev_val->type = type_of_unknown_templ_param_nontype;
   }  /* if */
   con->variant.template_param.kind =
                               (a_template_param_constant_kind)tpck_expression;
