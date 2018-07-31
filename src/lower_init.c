@@ -11300,24 +11300,10 @@ arrays with class elements.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     size_node = args;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    /* Increase the requested size to allow for the runtime prefix used to
-       keep track of the array size to the argument for the operator new[]
-       call. */
+    /* Add the size of the runtime prefix used to keep track of the array
+       size to the argument for the operator new[] call. */
     { an_expr_node_ptr size_node_next = size_node->next;
-      if (ndsp->aligned_version) {
-        /* Use the requested alignment as the size so that the requested
-           alignment will be preserved.  This should be large enough; the
-           array prefix generally consists of two size_t elements.  Since
-           the default new alignment is clearly enough to allocate an
-           object of type size_t, and aligned allocation will only be used
-           for an extended alignment larger than the default new
-           alignment, the array prefix should fit with no problem. */
-        prefix_size_node = make_reusable_copy(size_node_next,
-                                              /*vars_can_change=*/FALSE);
-      } else {
-        /* Use the actual size needed for the runtime prefix. */
-        prefix_size_node = get_prefix_size_node(elem_type, new_routine);
-      }  /* if */
+      prefix_size_node = get_prefix_size_node(elem_type, new_routine);
       if (prefix_size_node != NULL) {
 #if !IA64_ABI
         prefix_size_node = add_cast_if_necessary(prefix_size_node,
@@ -11347,8 +11333,12 @@ arrays with class elements.
       /* Make "temp = (type *)((char *)temp + __array_new_prefix_size)". */
       temp_var_node = var_rvalue_expr(temp_var);
       temp_var_node = add_cast_if_necessary(temp_var_node, char_star_type());
+#if !IA64_ABI
+      temp_var_node->next = var_rvalue_expr(array_new_prefix_size_var);
+#else /* IA64_ABI */
       temp_var_node->next = make_reusable_copy(prefix_size_node,
                                                /*vars_can_change=*/FALSE);
+#endif /* IA64_ABI */
       add_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                     temp_var_node->type, temp_var_node);
       add_node = add_cast_if_necessary(add_node, ptr_elem_type);

@@ -31,32 +31,6 @@ possible internal errors.  Now fixed.
   int x[c.~A];
 
 
-7/30/18  [EDGcpfe/19163]
-Overaligned array allocation in the Cfront ABI
-
-In the Cfront ABI, heap allocation of an array of class objects is
-supported by prefixing the storage for the array with a data structure
-allowing the destructors of each array element to be invoked when the array
-is deleted; the amount of storage requested for an array allocation is
-increased by the size of that array prefix data structure. and the value
-returned by the new-expression is offset from the start of the block of
-storage to allow for the prefix.  This approach caused problems with the
-Cfront ABI for arrays of objects with extended alignment because, even
-though the overall block of storage returned by operator new[] satisfied
-the extended alignment requirement, the returned pointer was offset from
-the start of the allocated storage by the size of the array prefix data
-structure, which is smaller than any extended alignment.  As a result, the
-start of the array was not correctly aligned.  This is now fixed; when the
-aligned version of operator new[] is called, the storage request is
-increased by the requested alignment and the returned pointer is offset by
-that amount.  For example, in a Cfront-ABI configuration with --c++17:
-
-  struct alignas(64) S {
-    ~S();
-  };
-  S *p = new S[10];  // Array previously not aligned on a 64-byte boundary
-
-
 7/25/18  [EDGcpfe/19580]
 Internal error on member alias template redeclaration
 
