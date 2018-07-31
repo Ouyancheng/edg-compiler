@@ -18569,7 +18569,15 @@ a constant that is the previous value incremented by one.
   an_expr_node_ptr operands;
 
   clear_constant(con, (a_constant_repr_kind)ck_template_param);
-  con->type = prev_val->type;
+  if (is_template_dependent_type(con->type)) {
+    con->type = prev_val->type;
+  } else {
+    /* Since we're not doing full semantics on the increment operation,
+       force a dependent type on the result type.  If we don't do this,
+       back ends (including the C- and C++-generating back ends) may be
+       surprised if they check for type consistency. */
+    con->type = type_of_unknown_templ_param_nontype;
+  }  /* if */
   con->variant.template_param.kind =
                               (a_template_param_constant_kind)tpck_expression;
   /* Create a generic addition operation to increment the previous value. */
@@ -18587,6 +18595,7 @@ a constant that is the previous value incremented by one.
                                    variant.operation.compiler_generated = TRUE;
   release_local_constant(&one_val);
 }  /* increment_template_dependent_enum_constant */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_operator_returning_bool(an_expr_operator_kind op)
