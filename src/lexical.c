@@ -15640,7 +15640,9 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
             locator_for_curr_id = other_locator;
           }  /* if */
         }  /* if */
-        if (type_sym != NULL) dtor_or_finalizer_okay = TRUE;
+        if (type_sym != NULL && is_type_symbol(type_sym)) {
+          dtor_or_finalizer_okay = TRUE;
+        }  /* if */
       }  /* if */
       if (error_already_issued) {
         /* Skip this section if an error was already issued. */

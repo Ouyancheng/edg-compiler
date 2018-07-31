@@ -1,5 +1,21 @@
 Version 4.15
 
+7/31/18  [EDGcpfe/19909]
+Missing error on class template used as a destructor name
+
+In some cases, the front end failed to diagnose a class template used as a
+destructor name.  This could cause an incorrect symbol variant to be used,
+which in turn could result in various forms of incorrect behavior, including
+possible internal errors.  Now fixed.
+
+  class A {};
+  struct C {
+    template <class U> class A {};
+  };
+  C c;
+  int x[c.~A];
+
+
 7/30/18  [EDGcpfe/19163]
 Overaligned array allocation in the Cfront ABI
 
