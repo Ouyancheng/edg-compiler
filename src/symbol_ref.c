@@ -1843,6 +1843,11 @@ created for this entity; otherwise, it is NULL.
   a_source_correspondence  *scptr = NULL;
 
   if (is_definition) {
+    a_boolean  is_def_with_prior_init;
+    is_def_with_prior_init =
+           !(srk_flags & SRK_INITIALIZATION) &&
+           symbol_is(sym_ptr, sk_static_data_member) &&
+           sym_ptr->variant.static_data_member.variable->initializer_in_class;
     if (sym_ptr->defined) {
       /* This is a redefinition -- allowed for C variables at file scope, for
          macros, and for C++ typedefs. */
@@ -1861,9 +1866,7 @@ created for this entity; otherwise, it is NULL.
       }  /* if */
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (symbol_is(sym_ptr, sk_static_data_member) &&
-          sym_ptr->variant.static_data_member.variable->initializer_in_class &&
-          !(srk_flags & SRK_INITIALIZATION)) {
+      if (is_def_with_prior_init) {
         /* A static data member definition outside a class is not a primary
            declaration if the in-class declaration included an initializer. */
       } else {
@@ -1872,7 +1875,12 @@ created for this entity; otherwise, it is NULL.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       sym_ptr->defined = TRUE;
     }  /* if */
-    if (is_definition) {
+    if (is_definition && !is_def_with_prior_init) {
+      /* The source correspondence of an IL entry generally records the
+         position of the (possibly tentative) definition.  Two exceptions
+         are: (1) some redefinitions (for which the is_definition flag will
+         have been cleared above), and (2) out-of-class static data member
+         definitions associated with an in-class initializer. */
       sym_ptr->decl_position = *source_position;
       scptr = source_corresp_entry_for_symbol(sym_ptr);
       if (scptr != NULL) {
