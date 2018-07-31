@@ -21486,6 +21486,7 @@ thereof.
   } else if (!locator_for_curr_id.is_qualified_name &&
              !locator_for_curr_id.is_template_id &&
              scope_stack_top().in_prototype_instantiation &&
+             symbol_is(sym, sk_class_template) &&
              !is_template_template_param_symbol(sym) &&
              sym->decl_scope != (&scope_stack_top()-1)->number) {
     /* The name is unqualified, we are inside a prototype instantiation, the
