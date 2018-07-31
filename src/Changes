@@ -1,5 +1,20 @@
 Version 4.15
 
+7/31/18  [EDGcpfe/19795]
+__auto_type and arrays
+
+The GNU C extension "__auto_type" (see the entry of 12/9/15 for EDGcpfe/15176
+and EDGcpfe/16691) previously failed to perform array-to-pointer decay when
+deducing the type from an initializer.  For example, in GNU C11 mode:
+
+  double z[20];
+  __auto_type x = (z); // Previously an error.  Now okay.
+
+Previously, the type of x was deduced to be an array type, which resulted in
+an error since an array cannot be initialized in this way.  That is now fixed:
+A pointer type is deduced.
+
+
 7/31/18  [EDGcpfe/19909]
 Missing error on class template used as a destructor name
 

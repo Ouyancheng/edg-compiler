@@ -597,6 +597,10 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       deduced_type = error_type();
     } else {
       deduced_type = operand_of_arg_list_elem(icp)->type;
+      if (is_array_type(deduced_type)) {
+        deduced_type =
+                     type_after_array_to_pointer_transformation(deduced_type);
+      }  /* if */
       deduced_type = skip_typerefs(deduced_type);
     }  /* if */
     set_type_kind(auto_type, (a_type_kind)tk_typeref);
