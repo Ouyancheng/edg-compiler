@@ -18963,7 +18963,8 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
        be helpful. */
     expect_error();
   } else if (!dps->range_based_for && !dps->is_new_expr_type &&
-             !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
+             !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed &&
+               dps->auto_type_specifier_seen) &&
              (!dps->auto_type_allowed ||
               (dps->has_deducible_class_templ_args ? !is_initializing_decl(dps)
                                                    : !dps->has_initializer))) {
