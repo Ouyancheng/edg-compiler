@@ -155,7 +155,6 @@ standard-attribute syntax).
           make_attr_unrecognized(ap);
         }  /* if */
         p_from = &ap->next;
-        ap->next = NULL;
       }  /* if */
     } while (*p_from != NULL);
   }  /* if */
