@@ -1,5 +1,24 @@
 Version 4.15
 
+
+8/1/18   [EDGcpfe/19918]
+Microsoft/GNU compatibility: Cast of integer constant address in
+constant-expression
+
+The changes for EDGcpfe/19212 (which permit casting a zero address to an
+integer type in some modes) have been extended to also cover addresses with
+known integer constant values.  This is, e.g., useful to handle certain
+implementations of offsetof.  E.g.:
+
+  struct S1 { int a; long x; int b; };
+  using size_t = decltype(sizeof(42));
+  static_assert(((size_t)&reinterpret_cast<char&>((((S1*)0)->x)))%4 == 0, "");
+    // Now accepted in Microsoft and Clang C++11 modes.
+
+Here, the address of the lvalue "((S1*)0)->x" is a known integer constant
+value.
+
+
 7/31/18  [EDGcpfe/19795]
 __auto_type and arrays
 

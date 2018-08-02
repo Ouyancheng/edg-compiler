@@ -3865,32 +3865,33 @@ address they were shallowly copied from.
 }  /* copy_address_structures */
 
 
-static a_boolean is_null_address(a_constexpr_address  *cap)
+static a_boolean is_integer_address(a_constexpr_address  *cap,
+                                    an_integer_value     *val)
 /*
-Return TRUE if the given address represents a null address.  This checks for
-a "zero" address; not just for a "null pointer constant".
+Return TRUE if the given address represents a null address or a run-time
+address represented by a ck_integer constant.  If val is non-null, set *val to
+the corresponding integer value (zero for a null address).
 */
 {
   a_boolean  result;
 
   if (is_runtime_data_address(cap)) {
     a_constant_ptr  cp = cap->variant.addr_con;
-    if (constant_is(cp, ck_integer) &&
-        cmp_integer_values(&cp->variant.integer_value,
-                           /*op_1_signed=*/FALSE,
-                           (an_integer_value *)&zero_int,
-                           /*op_2_signed=*/FALSE) == 0) {
+    if (constant_is(cp, ck_integer)) {
       result = TRUE;
+      if (val != NULL) *val = cp->variant.integer_value;
     } else {
       result = FALSE;
     }  /* if */
   } else if (is_function_address(cap)) {
     result = cap->variant.routine == NULL;
+    if (result && val != NULL) *val = zero_int;
   } else {
     result = cap->address == NULL;
+    if (result && val != NULL) *val = zero_int;
   }
   return result;
-}  /* is_null_address */
+}  /* is_integer_address */
 
 
 /*
@@ -9470,8 +9471,11 @@ the value representation of the integer value.
             } else if (tp->kind == (a_type_kind)tk_integer &&
                        opnd1_type->kind == (a_type_kind)tk_pointer &&
                        ((gpp_mode && !clang_mode) || microsoft_mode) &&
-                       is_null_address((a_constexpr_address*)opnd1_value)) {
-              *(an_integer_value*)result_storage = zero_int;
+                       is_integer_address((a_constexpr_address*)opnd1_value,
+                                          (an_integer_value*)result_storage)) {
+              /* These kinds of casts are generally invalid, but GCC and MSVC
+                 appear to allow them on null-based addresses to permit
+                 traditional offsetof implementations. */
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
@@ -9487,7 +9491,8 @@ the value representation of the integer value.
                    and MSVC appear to allow them on null-based addresses to
                    permit traditional offsetof implementations. */
                 if (((gpp_mode && !clang_mode) || microsoft_mode) &&
-                    is_null_address((a_constexpr_address*)opnd1_value)) {
+                    is_integer_address((a_constexpr_address*)opnd1_value,
+                                       (an_integer_value*)NULL)) {
                   valid_cast = TRUE;
                 } else {
                   valid_cast = FALSE;
