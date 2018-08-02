@@ -22909,7 +22909,6 @@ static void scan_a_template_parameter_declaration(
 			a_boolean			*template_dependent,
 			a_boolean			*is_pack,
 			a_boolean			*uses_auto,
-			a_boolean			in_templ_templ_param,
 			a_template_nesting_depth	nesting_depth,
 			a_decl_pos_block_ptr		decl_pos_block)
 /*
@@ -22924,8 +22923,7 @@ declared with "auto" or "decltype(auto)", return TRUE in *uses_auto
 current template parameter list, or NO_NESTING_DEPTH when this routine
 is called to to rescan a dependent template parameter type.
 decl_pos_block is used to return additional position information about
-the components of the declaration.  is_templ_templ_param is TRUE if this
-is a template parameter that is part of a template parameter declaration.
+the components of the declaration.
 */
 {
   a_decl_parse_state			state;
@@ -23611,7 +23609,6 @@ depends on a template parameter.
                                         &is_unnamed,
                                         &const_type_involves_template_param,
                                         &is_pack, &uses_auto,
-                                        decl_state->is_template_template_param,
                                         decl_state->nesting_depth,
                                         &decl_pos_block);
   sym = make_nontype_template_param_symbol(decl_state, param_state, is_unnamed,
@@ -24225,7 +24222,6 @@ the resulting constant is stored in the pointer pointed to by "constant".
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
-                                            /*in_templ_templ_param=*/FALSE,
                                             NO_NESTING_DEPTH,
                                             &decl_pos_block);
       /* Skip past any tokens remaining in the cache.  Extra tokens will
