@@ -13,7 +13,7 @@ implementations of offsetof.  E.g.:
   struct S1 { int a; long x; int b; };
   using size_t = decltype(sizeof(42));
   static_assert(((size_t)&reinterpret_cast<char&>((((S1*)0)->x)))%4 == 0, "");
-    // Now accepted in Microsoft and Clang C++11 modes.
+    // Now accepted in Microsoft and GCC C++11 modes.
 
 Here, the address of the lvalue "((S1*)0)->x" is a known integer constant
 value.
