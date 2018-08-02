@@ -16285,8 +16285,8 @@ declared and before the partial instantiation of the function was done.
                                       ->exception_specification;
     esp = rout->type->variant.routine.extra_info->exception_specification;
     if (substituted_esp != NULL && !substituted_esp->arg_cached) {
-      check_assertion(esp != NULL);
-      if (esp->arg_cached) {
+      check_assertion_or_expect_error(esp != NULL);
+      if (esp != NULL && esp->arg_cached) {
         rout->type->variant.routine.extra_info->exception_specification =
                                                               substituted_esp;
       }  /* if */
