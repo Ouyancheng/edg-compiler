@@ -8258,28 +8258,34 @@ is the one associated with the definition of the enum.
         /* This constant involves a template parameter. */
         check_assertion(constant_is(enum_con, ck_template_param));
         explicit_enum_expr = TRUE;
-        if (base_con != NULL) {
-          /* We determined above that enum_con represents a cast. */
-          if (is_initial_implicit_zero) {
-            /* No explicit_expression is needed for the first constant. */
-            explicit_enum_expr = FALSE;
-          } else if (constant_is(base_con, ck_template_param) &&
-                     tpck_is(base_con, tpck_expression)) {
-            an_expr_node_ptr con_expr;
-            con_expr = expr_node_from_tpck_expression(base_con);
-            if (is_operation_node(con_expr)) {
-              if (node_operator_is(con_expr, eok_cast) &&
-                  con_expr->variant.operation.compiler_generated) {
-                /* Skip over a compiler-generated cast of the expression to
-                   the underlying type. */
-                con_expr = con_expr->variant.operation.operands;
-              }  /* if */
-              if (is_operation_node(con_expr) &&
-                  con_expr->variant.operation.compiler_generated)
-                /* The constant is a compiler-generated expression, which
-                   only occurs if it is the incremented value of the
-                   preceding constant; no explicit expression is needed. */
-                explicit_enum_expr = FALSE;
+        if (is_initial_implicit_zero) {
+          /* No explicit_expression is needed for the first constant. */
+          explicit_enum_expr = FALSE;
+        } else if (constant_is(enum_con, ck_template_param) &&
+                   tpck_is(enum_con, tpck_expression)) {
+          /* Check to see if the constant is a compiler-generated
+             expression, which only occurs with omitted enumerator
+             expressions. */
+          an_expr_node_ptr con_expr;
+          con_expr = expr_node_from_tpck_expression(enum_con);
+          if (is_operation_node(con_expr)) {
+            if (node_operator_is(con_expr, eok_cast) &&
+                con_expr->variant.operation.compiler_generated) {
+              /* Skip over a compiler-generated cast of the expression to
+                 the underlying type. */
+              con_expr = con_expr->variant.operation.operands;
+            }  /* if */
+            if (is_constant_node(con_expr)) {
+              a_constant_ptr dep_con = node_constant(con_expr);
+              if (constant_is(dep_con, ck_template_param) &&
+                  tpck_is(dep_con, tpck_expression)) {
+              con_expr = expr_node_from_tpck_expression(dep_con);
+            }  /* if */
+            if (is_operation_node(con_expr) &&
+                con_expr->variant.operation.compiler_generated)
+              /* The constant is a compiler-generated expression; no
+                 explicit expression is needed. */
+              explicit_enum_expr = FALSE;
             }  /* if */
           }  /* if */
         }  /* if */
