@@ -8351,10 +8351,11 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        instantiations of the generic lambda are done after the enclosing
        function scope has been popped. */
     delay_lowering = TRUE;
-  } else if (at_initial_scope_pop && routine->is_lambda_body) {
-    /* Lambda bodies are scanned while the parent closure class is still
-       on the scope stack.  The lowering of the lambda body must be delayed
-       until the closure class has been completed. */
+  } else if (at_initial_scope_pop && routine->source_corresp.is_class_member &&
+             type_is_lambda_closure(parent_class_of(routine))) {
+    /* Delay the lowering of closure members because the closure may still be
+       in the process of being defined, or some associated information may not
+       be recorded yet (such as the parent entity for mangling purposes). */
     delay_lowering = TRUE;
   } else if (routine->source_corresp.is_local_to_function &&
              in_unparented_lambda_appearing_in_def_arg()) {
@@ -8452,8 +8453,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
 
 #endif /* DO_IL_LOWERING */
 
-a_boolean should_delay_finishing_of_function_body(
-						a_routine_ptr	routine)
+a_boolean should_delay_finishing_of_function_body(a_routine_ptr  routine)
 /*
 Some routines must be kept in memory for later use.  Return TRUE if
 routine should be kept.

@@ -30710,8 +30710,8 @@ aren't allowed to capture variables from the surrounding function.)
     for (;;) {
       sd = scope_depth_for_capture(var, sd, &lambda);
       if (lambda == NULL) break;
-      if (symbol_for(lambda->closure_class)->variant.class_struct_union.
-                extra_info->lambda_immediately_inside_default_arg_expression) {
+      if (class_symbol_supp(symbol_for(lambda->closure_class))
+                         ->lambda_immediately_inside_default_arg_expression) {
         result = TRUE;
         break;
       }  /* if */
