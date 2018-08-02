@@ -11152,45 +11152,59 @@ As implemented here, this involves three steps:
     } else {
       check_assertion(kind == iek_routine);
       rp = (a_routine_ptr)scp;
-      tp = rp->type->variant.routine.return_type;
+#if ABI_COMPATIBILITY_VERSION >= 415
+      if ((clang_mode || gnu_version_is(>= 70000)) &&
+          rp->special_kind == (a_special_function_kind)sfk_conversion) {
+        /* Beginning with GCC 7.0.0, the abi_tags (if any) for the return type
+           of a conversion function are omitted from the mangled name of the
+           conversion routine.  This mimics clang's behavior. */
+        tp = NULL;
+      } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 415 */
+      /* Do not insert code here. */
+      {
+        tp = rp->type->variant.routine.return_type;
+      }  /* if */
     }  /* if */
-    tp = skip_typedefs(tp);
-    if (is_void_type(tp) || is_integral_type(tp) || is_floating_type(tp) ||
-        is_void_star_type(tp)) {
-      /* These types will never have abi_tag components, so skip the expensive
-         processing. */
-    } else {
-      check_assertion(abi_tag_implicit_routines == NULL);
-      /* Mark entities in the signature. */
-      ttt_scp_for_implicit_abi_tags = scp;
-      ttt_kind_for_implicit_abi_tags = kind;
-      set_signature_mark(scp, kind, TRUE);
-      /* Add implicit abi_tag attributes for the type. */
-      (void)traverse_type_tree(tp, ttt_add_implicit_abi_tags_for_type,
-                               ABI_TAG_TTT_FLAGS);
-      /* Unmark entries in the signature. */
-      set_signature_mark(scp, kind, FALSE);
-      ttt_scp_for_implicit_abi_tags = NULL;
-      ttt_kind_for_implicit_abi_tags = iek_none;
-      if (abi_tag_implicit_routines != NULL) {
-        /* Free the list of routines with implicit abi_tags. */
-        free_rlep_list(abi_tag_implicit_routines);
-        abi_tag_implicit_routines = NULL;
-      }  /* if */
-#if DEBUG
-      if (db_flag_is_set("abi_tag")) {
-        (void)fputs("Implicit abi_tags for ", f_debug);
-        db_name(scp);
-        (void)fputs(": ", f_debug);
-        if (scp->attributes == NULL ||
-            !scp->attributes->is_implicit_abi_tag_attribute) {
-          (void)fputs("none\n", f_debug);
-        } else {
-          db_attribute(scp->attributes);
-          (void)fputs("\n", f_debug);
+    if (tp != NULL) {
+      tp = skip_typedefs(tp);
+      if (is_void_type(tp) || is_integral_type(tp) || is_floating_type(tp) ||
+          is_void_star_type(tp)) {
+        /* These types will never have abi_tag components, so skip the
+           expensive processing. */
+      } else {
+        check_assertion(abi_tag_implicit_routines == NULL);
+        /* Mark entities in the signature. */
+        ttt_scp_for_implicit_abi_tags = scp;
+        ttt_kind_for_implicit_abi_tags = kind;
+        set_signature_mark(scp, kind, TRUE);
+        /* Add implicit abi_tag attributes for the type. */
+        (void)traverse_type_tree(tp, ttt_add_implicit_abi_tags_for_type,
+                                 ABI_TAG_TTT_FLAGS);
+        /* Unmark entries in the signature. */
+        set_signature_mark(scp, kind, FALSE);
+        ttt_scp_for_implicit_abi_tags = NULL;
+        ttt_kind_for_implicit_abi_tags = iek_none;
+        if (abi_tag_implicit_routines != NULL) {
+          /* Free the list of routines with implicit abi_tags. */
+          free_rlep_list(abi_tag_implicit_routines);
+          abi_tag_implicit_routines = NULL;
         }  /* if */
-      }  /* if */
+#if DEBUG
+        if (db_flag_is_set("abi_tag")) {
+          (void)fputs("Implicit abi_tags for ", f_debug);
+          db_name(scp);
+          (void)fputs(": ", f_debug);
+          if (scp->attributes == NULL ||
+              !scp->attributes->is_implicit_abi_tag_attribute) {
+            (void)fputs("none\n", f_debug);
+          } else {
+            db_attribute(scp->attributes);
+            (void)fputs("\n", f_debug);
+          }  /* if */
+        }  /* if */
 #endif /* DEBUG */
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */

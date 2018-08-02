@@ -1,5 +1,26 @@
 Version 4.15
 
+8/2/18   [EDGcpfe/19834]
+GCC compatibility: mangling of conversion functions
+
+GCC 7.0.0 made a change to suppress adding the abi_tags (if any) of the
+return type of a conversion function to its mangled name.  The front end
+now emulates that when ABI_COMPATIBILITY_VERSION >= 415.  The behavior for
+clang emulation mode was also changed.  This change affects both IA-64 and
+Cfront ABIs.  For example (with --gnu_version 70000):
+
+  namespace std {
+    inline namespace __cxx11  __attribute__((__abi_tag__("cxx11tag"))) {
+      class string {};
+    }
+  }
+  struct C {
+    operator std::string();   // No longer has "cxx11tag" in mangled name.
+  };
+  void f() {
+    std::string s = C();
+  }
+
 
 8/1/18   [EDGcpfe/19918]
 Microsoft/GNU compatibility: Cast of integer constant address in
