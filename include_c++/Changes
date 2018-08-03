@@ -1,5 +1,18 @@
 Version 4.15
 
+9/25/17  [EDGcpfe/10590,EDGcpfe/16574,EDGcpfe/17582]
+Implementation of some standard library utilities; new edg_internal_defines
+header file
+
+The run time library now implements std::get_terminate, std::get_new_handler,
+and std::uncaught_exceptions.
+
+Additionally, a new header file, edg_internal_defines.stdh has been added to
+introduce macros used to conceal differences in C++ versions when compiling
+the exceptions.stdh and new.stdh files.  Those files have been updated to use
+the new macros.
+
+
 9/25/17  [EDGcpfe/18806]
 Microsoft compatibility: exception specifications for allocation/deallocation
 functions

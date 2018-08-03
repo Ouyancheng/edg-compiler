@@ -24,6 +24,13 @@ run time library is built in GCC or clang emulation mode (because those types
 are not available otherwise).
 
 
+9/25/17  [EDGcpfe/10590,EDGcpfe/16574,EDGcpfe/17582]
+Implementation of some standard library utilities
+
+The run time library now implements std::get_terminate, std::get_new_handler,
+and std::uncaught_exceptions.
+
+
 9/25/17  [EDGcpfe/18806]
 Microsoft compatibility: exception specifications for allocation/deallocation
 functions
