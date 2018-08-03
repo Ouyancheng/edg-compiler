@@ -1186,7 +1186,9 @@ not being eliminated.
         if (type_is_lambda_closure(tp)) {
           class_symbol_supp(symbol_for(tp))
                     ->lambda_immediately_inside_default_arg_expression = FALSE;
+#if NEED_NAME_MANGLING
           class_type_supp(tp)->lambda_parent.routine = NULL;
+#endif /* NEED_NAME_MANGLING */
         }  /* if */
       }  /* if */
     }  /* for */
