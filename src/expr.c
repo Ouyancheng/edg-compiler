@@ -31456,7 +31456,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       /* Force overload processing on a symbol in a prototype instantiation
          that coexists with a using-declaration that might or might not
          overload it. */
-      check_assertion(is_function_or_template_symbol(sym_ptr));
+      check_assertion(is_function_or_template_symbol(sym_ptr) ||
+                      is_nontype_template_param_symbol(sym_ptr));
       force_indefinite_function = TRUE;
       rep = NULL;
     } else if (force_indefinite_function_in_skipped_decltype(sym_ptr)) {
