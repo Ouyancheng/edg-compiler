@@ -1174,6 +1174,23 @@ not being eliminated.
   if (rtsp->value_returned_by_cctor) {
     corresp_rtsp->value_returned_by_cctor = TRUE;
   }  /* if */
+  /* Any closures defined in the default arguments for the routine should
+     be disconnected from that routine. */
+  for (param = rtsp->param_type_list; param != NULL; param = param->next) {
+    an_il_entity_list_entry_ptr   entry;
+    for (entry = param->entities_defined_in_default_arg;
+         entry != NULL;
+         entry = entry->next) {
+      if (entry->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        a_type_ptr  tp = (a_type_ptr)entry->entity.ptr;
+        if (type_is_lambda_closure(tp)) {
+          class_symbol_supp(symbol_for(tp))
+                    ->lambda_immediately_inside_default_arg_expression = FALSE;
+          class_type_supp(tp)->lambda_parent.routine = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* for */
   corresp_routine->address_taken |= routine->address_taken;
   corresp_routine->called        |= routine->called;
   check_assertion((param == NULL && corresp_param == NULL) ||
