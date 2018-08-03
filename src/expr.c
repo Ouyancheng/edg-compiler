@@ -8544,6 +8544,24 @@ after_switch:;
                          (a_source_position *)NULL);
     result->is_name_followed_by_left_paren= member_name_followed_by_left_paren;
   } else {
+#if GNU_EXTENSIONS_ALLOWED
+    if (gpp_version_is(<70200) || clang_mode) {
+      /* GCC and Clang treat selections on the current instantiation as
+         dependent in expression contexts. */
+      if (class_struct_union_type != NULL &&
+          is_immediate_class_type(class_struct_union_type) &&
+          class_struct_union_type
+                    ->variant.class_struct_union.is_prototype_instantiation &&
+          !is_template_dependent_type(result->type)) {
+        result->type = type_of_unknown_templ_param_nontype;
+        if (is_expression_operand(result)) {
+          result->variant.expression->type = result->type;
+        } else if (is_constant_operand(result)) {
+          result->variant.constant.type = result->type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Not a bound function; the operand position reflects the entire
        selection. */
     set_operand_position(result, &operand_1->position, &end_position,
@@ -34829,19 +34847,6 @@ bad_start_of_primary:
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
       check_for_pcc_compound_assignment_operators();
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (gpp_mode || clang_mode) {
-      /* GCC and Clang treat the current instantiation as dependent in
-         expression contexts. */
-      a_type_ptr  tp = local_result.type;
-      if (tp != NULL) {
-        tp = skip_typerefs(tp);
-        if (is_immediate_class_type(tp) &&
-            tp->variant.class_struct_union.is_prototype_instantiation) {
-          local_result.type = type_of_unknown_templ_param_nontype;
-        }  /* if */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if the current token is an operator, and if so, whether it ends
        the current expression given its precedence and associativity. */
