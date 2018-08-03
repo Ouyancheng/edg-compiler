@@ -21740,17 +21740,59 @@ temporary is added.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean is_valid_constant_for_nontype_ref_arg(a_constant_ptr  cp)
+/*
+cp represents a constant being bound to a nontype template parameter of
+reference type.  Return TRUE if it is acceptable.
+*/
+{
+  a_boolean  valid = FALSE;
+
+  if (constant_is(cp, ck_template_param)) {
+    /* A matching nontype template parameter is okay. */
+    valid = TRUE;
+  } else if (constant_is(cp, ck_address)) {
+    if (cp->variant.address.kind == (an_address_base_kind)abk_variable &&
+        !is_any_reference_type(cp->variant.address.variant.variable->type) &&
+        !cp->variant.address.variant.variable->is_struct_binding &&
+        cp->variant.address.subobject_path == NULL) {
+      /* A nonreference variable whose "address" has been folded. */
+      valid = TRUE;
+    } else if (cp->variant.address.kind == (an_address_base_kind)abk_routine) {
+      /* A routine whose address has been folded. */
+      valid = TRUE;
+    }  /* if */
+  }  /* if */
+  return valid;
+}  /* is_valid_constant_for_nontype_ref_arg */
+
+
 static a_boolean is_invalid_nontype_arg_object(an_operand  *source_operand)
 /*
 The given operand represents an lvalue expression to be bound to a nontype
 template parameter of reference type.  Return TRUE if it is not a valid
-operand for such a binding.
+operand for such a binding.  This function may fold the given operand if
+appropriate.
 */
 {
   a_boolean  invalid = FALSE;
 
   if (is_expression_operand(source_operand)) {
-    an_expr_node_ptr  expr = skip_parens(source_operand->variant.expression);
+    an_expr_node_ptr  expr;
+    if (generalized_nontype_arguments &&
+        expr_interpret_expression_operand(source_operand,
+                                          /*must_be_constant=*/FALSE)) {
+      /* We successfully folded the given lvalue to a (reference) constant. */
+      if (is_any_reference_type(source_operand->type)) {
+        /* Although the constant has a reference type (ck_address, presumably),
+           the type of the "expression" is the underlying type. */
+        source_operand->type = type_pointed_to(source_operand->type);
+      }  /* if */
+      invalid = !is_valid_constant_for_nontype_ref_arg(
+                                           &source_operand->variant.constant);
+      goto done;
+    }  /* if */
+    expr = skip_parens(source_operand->variant.expression);
     /* Assume for now. */
     invalid = TRUE;
     /* Skip eok_ref_indirect nodes. */
@@ -21764,22 +21806,7 @@ operand for such a binding.
       /* A non-reference variable is okay. */
       invalid = FALSE;
     } else if (is_constant_node(expr)) {
-      a_constant_ptr  acp = node_constant(expr);
-      if (constant_is(acp, ck_template_param)) {
-        /* A matching nontype template parameter is okay. */
-        invalid = FALSE;
-      } else if (constant_is(acp, ck_address)) {
-        if (acp->variant.address.kind == (an_address_base_kind)abk_variable &&
-            !is_any_reference_type(acp->variant.address.variant.variable
-                                      ->type)) {
-          /* A nonreference variable whose "address" has been folded. */
-          invalid = FALSE;
-        } else if (acp->variant.address.kind ==
-                                          (an_address_base_kind)abk_routine) {
-          /* A routine whose address has been folded. */
-          invalid = FALSE;
-        }  /* if */
-      }  /* if */
+      invalid = !is_valid_constant_for_nontype_ref_arg(node_constant(expr));
     } else if (is_routine_node(expr) && expr->is_lvalue) {
       /* Binding a function to a reference is okay. */
       invalid = FALSE;
@@ -21798,6 +21825,7 @@ operand for such a binding.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   return invalid;
 }  /* is_invalid_nontype_arg_object */
 
@@ -22499,7 +22527,12 @@ the conversion.
   if (!leave_as_object) {
     /* Final step: add the reference-to to turn the glvalue or class prvalue
        into an rvalue for the reference. */
-    take_reference_to_operand(source_operand, is_rvalue_ref);
+    if (is_constant_operand(source_operand) &&
+        is_any_reference_type(source_operand->variant.constant.type)) {
+      /* Don't perform this step if the operand is a reference constant. */
+    } else {
+      take_reference_to_operand(source_operand, is_rvalue_ref);
+    }  /* if */
   }  /* if */
 end_of_routine:
   /* Restore the original source position, etc. */

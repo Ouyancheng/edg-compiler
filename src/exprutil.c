@@ -5262,7 +5262,10 @@ and return a pointer to it.
   }  /* if */
   node = alloc_node_for_constant(con);
   copy_operand_position_to_expr(operand, node);
-  node->is_lvalue = is_an_lvalue(operand);
+  if (is_an_lvalue(operand)) {
+    node->is_lvalue = TRUE;
+    node->type = operand->type;
+  }  /* if */
   release_local_constant(&local_con);
   return node;
 }  /* alloc_node_for_constant_operand */
@@ -5568,6 +5571,12 @@ and make *operand an error operand.
       constant->expr = NULL;
     }  /* if */
     make_constant_operand(constant, operand);
+    if (is_an_lvalue(&orig_operand) && is_any_reference_type(constant->type)) {
+      /* make_constant_operand turns reference ck_address entries into
+         prvalue operands.  Restore glvalueness. */
+      operand->state = orig_operand.state;
+      operand->type = orig_operand.type;
+    }  /* if */
     restore_operand_details(operand, &orig_operand);
     result = TRUE;
   } else {
