@@ -2473,7 +2473,9 @@ check_label_decl_seq:
           }  /* if */
         }  /* if */
         vp->used = TRUE;
-        if (vp->is_inline) {
+        if (vp->is_inline ||
+            (vp->is_template_variable && !vp->is_specialized &&
+             !vp->is_nonreal)) {
           /* This is called for inline variables to make sure that we know
              a definition of the inline instance may be needed. */
           set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);

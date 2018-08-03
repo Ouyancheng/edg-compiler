@@ -1,5 +1,12 @@
 Version 4.15
 
+8/3/18   [EDGcpfe/19244]
+Instantiation of default-initialized variable templates
+
+In some cases, default-initialized variable templates could be instantiated
+multiple times.  This could result in incorrect behavior.  Now fixed.
+
+
 8/2/18   [EDGcpfe/19834]
 GCC compatibility: mangling of conversion functions
 

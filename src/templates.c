@@ -6941,12 +6941,15 @@ expression context) rather than a declaration.
                                  tssp_of_prototype->pragmas_bound_to_template);
   is_definition = !is_var_templ_instance ||
                   (is_use &&
-                   (body_cache->tokens.first_token != NULL ||
+                   (template_sym->defined ||
                     var_ptr->initializer_in_class) &&
                   (!var_ptr->source_corresp.is_class_member ||
                    var_ptr->is_inline ||
                    tssp_of_prototype->
                                 variant.variable.has_out_of_class_definition));
+  if (is_definition) {
+    master_instance_of(tip)->already_instantiated = TRUE;
+  }  /* if */
   /* Call a routine to do processing common to various forms of variable
      declarations. */
   if (is_var_templ_instance && is_use) {
@@ -6982,9 +6985,6 @@ expression context) rather than a declaration.
                 ps_options);
       ssep->curr_construct_pragmas = saved_curr_construct_pragmas;
       ssep->pending_pragmas = saved_pending_pragmas;
-    }  /* if */
-    if (is_definition) {
-      master_instance_of(tip)->already_instantiated = TRUE;
     }  /* if */
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
