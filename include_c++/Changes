@@ -7,7 +7,7 @@ header file
 The run time library now implements std::get_terminate, std::get_new_handler,
 and std::uncaught_exceptions.
 
-Additionally, a new header file, edg_internal_defines.stdh has been added to
+Additionally, a new header file, edg_internal_defines.stdh, has been added to
 introduce macros used to conceal differences in C++ versions when compiling
 the exceptions.stdh and new.stdh files.  Those files have been updated to use
 the new macros.
