@@ -1,5 +1,23 @@
 Version 4.15
 
+8/3/18   [EDGcpfe/19935]
+Built-in functions invoked as pseudo-calls
+
+Some built-in functions aren't really "functions" at all and calls to them are
+handled specially as "pseudo-calls".  Previously, when such a pseudo-call
+appeared in a template-dependent context, the associated function was
+incorrectly marked as having its address taken (a_routine::address_taken flag
+set to TRUE).  For example:
+
+  template<typename T> bool f(T const *s) {
+    return __builtin_constant_p(*s);
+  }
+
+Previously, when the definition of f was parsed, the routine entry for
+__builtin_constant_p had its address_taken flag set to TRUE.  That is now
+fixed.
+
+
 8/3/18   [EDGcpfe/19244]
 Instantiation of default-initialized variable templates
 

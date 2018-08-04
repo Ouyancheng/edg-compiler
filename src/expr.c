@@ -4567,6 +4567,8 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     (void)get_token();
     add_matching_stop_token(tok_rparen);
   }  /* if */
+  change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                        SRK_REFERENCE);
   switch (bfk) {
     case bufk_launder:
       scan_and_process_builtin_launder_arg(operand, rcblock, result_op);
@@ -5835,6 +5837,7 @@ are expected to be NULL in that case.
       }  /* if */
     }  /* if */
   } else {
+    /* Neither a pseudo-destructor call, not a function object call. */
     /* If the operand is the name of a nonstatic member function
        (e.g., "A::f") convert it to a bound member function
        (e.g., "this->A::f").  This is done late so that A::f can be
