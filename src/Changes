@@ -1,5 +1,32 @@
 Version 4.15
 
+8/5/18   [EDGcpfe/19813]
+C++-generating back end: temporary names in generated explicit instantiations
+for template instances
+
+In configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+C++-generating back end attempts to put out explicit specializations
+representing implicitly-instantiated templates.  This is not always
+possible, however, because of language rules regarding ordering,
+visibility, or access of declarations, and the C++-generating back end
+attempts to suppress such explicit specializations.  The check for invalid
+explicit specializations failed to account for cases in which a local name
+or type is used as a template argument, however, resulting in uncompilable
+generated code, using undeclared names in namespace scope.  This is now
+fixed, and such explicit specializations are now suppressed.  For example,
+with --c++11:
+
+  template<typename T> struct S { };
+  template<typename T> S<T> f(T) { return S<T>(); };
+  void g() {
+    auto l = [](){};
+    f(l);  // Previously resulted in a generated explicit specialization like
+           // S<__T12345678> f(__T12345678), with __T12345678 undeclared
+  };
+
+
 8/3/18   [EDGcpfe/19935]
 Built-in functions invoked as pseudo-calls
 
