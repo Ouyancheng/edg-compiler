@@ -1884,7 +1884,10 @@ to default values.
 #if CENTERLINE_CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
+      /* Clear field of all variants for union-as-struct testing. */
+      pte->variant.integer.enum_info.constant_list = NULL;
       pte->variant.integer.enum_info.affiliated_type = NULL;
+      pte->variant.integer.enum_info.assoc_scope = NULL;
       pte->variant.integer.extra_info = alloc_integer_type_supplement();
       break;
 #if FIXED_POINT_ALLOWED
