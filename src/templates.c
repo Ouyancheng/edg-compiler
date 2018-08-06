@@ -35106,11 +35106,11 @@ emitted in this translation unit.
   } else if (var->is_template_variable) {
     /* C++ inline template variables should be emitted if they are explicitly
        instantiated. */
-    a_symbol_ptr		rout_sym;
+    a_symbol_ptr		var_sym;
     a_template_instance_ptr	tip;
-    rout_sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-    check_assertion(rout_sym != NULL);
-    tip = rout_sym->variant.variable.instance_ptr;
+    var_sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+    check_assertion(var_sym != NULL);
+    tip = template_instance_for_symbol(var_sym);
     if (tip->explicit_instantiation) {
       result = TRUE;
     }  /* if */
