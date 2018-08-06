@@ -9501,10 +9501,10 @@ instantiations are only permitted in namespace scope).
             break;
         }  /* switch */
         if (arg_scp != NULL) {
-          if (arg_scp->parent_scope == NULL) {
-            /* Probably a block-scope name that has been promoted to file
-               scope; the name cannot be referenced as a template argument
-               in namespace scope. */
+          if (arg_scp->enclosing_routine != NULL) {
+            /* A block-scope name that has been promoted to file scope; the
+               name cannot be referenced as a template argument in
+               namespace scope. */
             result = TRUE;
           } else if (arg_scp->is_class_member &&
                      !scp_parent_class(arg_scp)->has_been_defined &&
