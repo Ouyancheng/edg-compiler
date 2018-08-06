@@ -5837,7 +5837,7 @@ are expected to be NULL in that case.
       }  /* if */
     }  /* if */
   } else {
-    /* Neither a pseudo-destructor call, not a function object call. */
+    /* Neither a pseudo-destructor call, nor a function object call. */
     /* If the operand is the name of a nonstatic member function
        (e.g., "A::f") convert it to a bound member function
        (e.g., "this->A::f").  This is done late so that A::f can be
