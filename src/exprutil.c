@@ -3881,12 +3881,22 @@ pre-allocated entry.  Otherwise, a new entry is allocated.  In either case,
 a pointer to the filled-in rescan info entry is returned.
 */
 {
-  if (eriep == NULL) eriep = alloc_expr_rescan_info_entry();
+  a_pack_expansion_descr *pedep = NULL;
+
+  if (eriep == NULL) {
+    eriep = alloc_expr_rescan_info_entry();
+  } else {
+    pedep = eriep->saved_operand.pack_expansion_descr;
+  }  /* if */
   /* Note that we do not clear all fields.  In particular, operator_position
      and operator_token_sequence_number will often have been set previously
-     by record_operator_position_in_expr_rescan_info. */
+     by record_operator_position_in_expr_rescan_info.  Similarly, we restore
+     the pack-expansion information if it was previously recorded. */
   eriep->saved_operand = *operand;
   eriep->expression_kind = expr_stack->expression_kind;
+  if (pedep != NULL) {
+    eriep->saved_operand.pack_expansion_descr = pedep;
+  }  /* if */
   return eriep;
 }  /* save_operand_info_in_rescan_info_entry */
 
