@@ -1,5 +1,24 @@
 Version 4.15
 
+8/6/18   [EDGcpfe/19937]
+Constexpr interpreter and anonymous union variables
+
+The constexpr interpreter previously incorrectly assumed that the entity
+associated with an anonymous union is an data member when it actually is a
+variable.  That could lead to spurious aborts.  For example:
+
+  struct S { int x = 37; } s;
+  constexpr int f() {
+    union {
+      int x = s.x;  // Previously involved an invalid memory access.
+    };
+    return x;
+  }
+  constexpr int r = f();
+
+That is now fixed.
+
+
 8/5/18   [EDGcpfe/19813]
 C++-generating back end: temporary names in generated explicit instantiations
 for template instances
