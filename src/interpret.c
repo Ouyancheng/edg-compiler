@@ -3648,7 +3648,7 @@ to those anonymous union objects.
   a_byte_count              offset;
 
   au_parent = au_sym->variant.field.anonymous_parent_object;
-  if (au_parent != NULL) {
+  if (au_parent != NULL && symbol_is(au_parent, sk_field)) {
     a_type_ptr  au_type = au_parent->variant.field.ptr->type;
     if (au_type->kind == (a_type_kind)tk_union &&
         !au_type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
@@ -7943,19 +7943,21 @@ of the original *p_fp field in the representation of the returned *p_fp field.
   a_symbol_ptr  aufp_sym;
   a_byte_count  offset;
 
-  aufp = symbol_for(fp)->variant.field.anonymous_parent_object
-                       ->variant.field.ptr;
-  aufp_sym = symbol_for(aufp);
-  get_mapped_byte_count(&persistent_map, aufp, offset);
-  if (aufp_sym != NULL &&
-      aufp_sym->variant.field.anonymous_parent_object != NULL) {
-    /* aufp is not the top-most anonymous union.  Recurse to determine its
-       offset, and then replace it by the top-most anonymous union. */
-    offset += record_anon_union_active_field(&aufp, storage, complete_obj);
+  aufp_sym = symbol_for(fp)->variant.field.anonymous_parent_object;
+  if (symbol_is(aufp_sym, sk_field)) {
+    aufp = aufp_sym->variant.field.ptr;
+    get_mapped_byte_count(&persistent_map, aufp, offset);
+    if (aufp_sym->variant.field.anonymous_parent_object != NULL) {
+      /* aufp is not the top-most anonymous union.  Recurse to determine its
+         offset, and then replace it by the top-most anonymous union. */
+      offset += record_anon_union_active_field(&aufp, storage, complete_obj);
+    }  /* if */
+    mark_subobject_initialized(storage+offset, complete_obj);  
+    *(a_field_ptr*)(storage+offset) = fp;
+    *p_fp = aufp;
+  } else {
+    offset = 0;
   }  /* if */
-  mark_subobject_initialized(storage+offset, complete_obj);  
-  *(a_field_ptr*)(storage+offset) = fp;
-  *p_fp = aufp;
   return offset;
 }  /* record_anon_union_active_field */
 
