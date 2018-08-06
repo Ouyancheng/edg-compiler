@@ -18113,34 +18113,22 @@ this one is such a continuation.
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
     gen_sun_link_scope_specifiers(var->decl_modifiers);
-    if (var->is_constexpr) {
-      if (is_definition) {
-        /* Put out the "constexpr" keyword.  For ordinary variables (i.e.,
-           not static data members) it should only appear on the definition.
-           For static data members, it should appear on the declaration with
-           the initializer, which will have the primary source sequence
-           entry, resulting in is_definition being TRUE, even if it's not the
-           "definition" as specified by the C++ Standard. */
-        if (var->source_corresp.is_class_member &&
-            var->init_kind == (an_init_kind)initk_none) {
-          /* When rendering template instantiations as explicit
-             specializations, we may not have an initializer available
-             (i.e., the variable was not used in a way that requires its
-             initializer to be instantiated).  Rendering the explicit
-             specialization with the "constexpr" specifier but no
-             initializer would produce an error.  We therefore drop the
-             "constexpr" specifier and use the effective type (which will
-             have a const-qualifier in the non-reference case) instead. */
-          var_type = var->type;
-        } else {
-          write_tok_str("constexpr ");
-        }  /* if */
-      } else if (var->source_corresp.is_class_member) {
-        /* The non-initialized declaration of a static data member.  Use
-           the effective type, to pick up the implicit "const" qualifier
-           from the "constexpr" declaration, but omit "constexpr" since it
-           requires initialization. */
+    if (var->is_constexpr &&
+        (var->source_corresp.is_class_member || is_definition)) {
+      /* Put out the "constexpr" keyword.  For ordinary variables (i.e., not
+         static data members) it should only appear on the definition. */
+      if (var->source_corresp.is_class_member &&
+          var->init_kind == (an_init_kind)initk_none) {
+        /* When rendering template instantiations as explicit specializations,
+           we may not have an initializer available (i.e., the variable was
+           not used in a way that requires its initializer to be instantiated).
+           Rendering the explicit specialization with the "constexpr" specifier
+           but no initializer would produce an error.  We therefore drop the
+           "constexpr" specifier and use the effective type (which will have
+           a const-qualifier in the non-reference case) instead. */
         var_type = var->type;
+      } else {
+        write_tok_str("constexpr ");
       }  /* if */
     }  /* if */
     if (var->is_inline) {
