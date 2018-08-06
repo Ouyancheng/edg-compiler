@@ -29190,7 +29190,7 @@ that follows.
           /* If "thread_local" is specified on one declaration, it must be
              specified on all. */
           pos2_diagnostic(es_error,
-                   sym->variant.static_data_member.variable->is_thread_local ?
+                   var->is_thread_local ?
                                      ec_non_thread_local_follows_thread_local :
                                      ec_thread_local_follows_non_thread_local,
                    &locator.source_position,
