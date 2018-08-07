@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -181,6 +181,6 @@ extern void lower_c99_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

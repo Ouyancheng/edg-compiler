@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -49,6 +49,6 @@ operator delete.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

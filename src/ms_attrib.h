@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -155,6 +155,6 @@ EXTERN a_boolean
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2010-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 2010-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -133,6 +133,6 @@ of import_class_definition for portable assemblies.)
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2010-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 2010-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

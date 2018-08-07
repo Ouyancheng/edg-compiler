@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -209,6 +209,6 @@ call the static initializer functions.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

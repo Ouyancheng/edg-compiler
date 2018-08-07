@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -221,6 +221,6 @@ a_boolean __derived_to_base_conversion(void**		   p_ptr,
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

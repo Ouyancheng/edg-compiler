@@ -6,7 +6,7 @@ Front End is built.
 
 Currently, handles only two's complement machines.
 
-Copyright 1991, 1999-2017, Edison Design Group, Inc.
+Copyright 1991, 1999-2018, Edison Design Group, Inc.
 */
 
 /*

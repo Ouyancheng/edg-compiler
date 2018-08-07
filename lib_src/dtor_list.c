@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -327,6 +327,6 @@ Return zero if the registration is successful, or non-zero otherwise.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

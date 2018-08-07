@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -422,6 +422,6 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2017 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2018 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

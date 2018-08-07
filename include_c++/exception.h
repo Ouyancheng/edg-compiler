@@ -1,4 +1,4 @@
-/* Edison Design Group, 2000-2017. */
+/* Edison Design Group, 2000-2018. */
 /*
 The exception header should be included as "#include <exception>".
 This file is provided for compatibility with older programs that
