@@ -3938,6 +3938,9 @@ symbol to be used for the instantiation.
                                                   tip->template_sym);
     if (new_templ_sym == NULL) new_templ_sym = tip->template_sym;
     tip->template_used_for_instantiation = new_templ_sym;
+    /* Update the template_sym to refer to the one selected by partial
+       specialization. */
+    tip->template_sym = new_templ_sym;
   }  /* if */
   return tip->template_used_for_instantiation;
 }  /* check_variable_template_partial_specializations */
@@ -31735,6 +31738,7 @@ template entities.
         template_sym = check_variable_template_partial_specializations(tip);
       }  /* if */
       check_assertion(template_sym != NULL);
+      template_sym = prototype_template_if_template_symbol(template_sym);
       specialized = vp->is_specialized;
       specialization_defined = tip->instance_sym->defined;
       template_def = !vp->is_inline &&
