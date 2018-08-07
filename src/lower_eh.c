@@ -1432,7 +1432,7 @@ specification removed.
       is_ptr_to_member = TRUE;
     }  /* if */
     if (is_function_type(base_type)) {
-      check_assertion(!visited_yet(type));
+      a_boolean lowered_yet = visited_yet(type);
       save_esp =base_type->variant.routine.extra_info->exception_specification;
       if (is_nothrow_spec(save_esp)) {
         /* Create a copy of the function type without the exception
@@ -1442,7 +1442,7 @@ specification removed.
         copy_type(base_type, copied_type);
         base_type->variant.routine.extra_info->exception_specification =
                                                                       save_esp;
-        il_lowering_flag_of(copied_type) = FALSE;
+        il_lowering_flag_of(copied_type) = lowered_yet;
         copied_type->typeinfo_var = NULL;
         if (is_ptr_to_member) {
           /* Copy the original (pointer-to-member) type and replace the
@@ -1451,7 +1451,7 @@ specification removed.
           copied_type = alloc_type(orig_type->kind);
           copy_type(orig_type, copied_type);
           copied_type->variant.ptr_to_member.type = save_copied_type;
-          il_lowering_flag_of(copied_type) = FALSE;
+          il_lowering_flag_of(copied_type) = lowered_yet;
           copied_type->typeinfo_var = NULL;
         }  /* if */
         *non_throw_type = copied_type;
