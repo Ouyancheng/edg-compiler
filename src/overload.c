@@ -26406,8 +26406,9 @@ TRUE and FALSE is returned.
       /* Normally, we shouldn't get here since we checked for a dependent
          initializer earlier on.  However, class templates instantiated over
          error arguments are sometimes marked as "nonreal" (see
-         create_partial_instantiation_of_class). */
-      check_assertion(is_or_contains_error_type(deduced_type));
+         create_partial_instantiation_of_class).   Other severe error
+         situations may also end up here.*/
+      expect_error();
       *deduced_placeholder = error_type();
       goto done;
     } else {
