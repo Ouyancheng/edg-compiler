@@ -9,10 +9,10 @@ lead to an abort in the interpreter.  For example:
 
   struct X { int x; };
   struct Y {
-        union { int y; };
-	int d;
-	int &r = y ;
-	X g = X { [](auto x){ return X(); }(d) } ;
+    union { int y; };
+    int d;
+    int &r = y ;
+    X g = X { [](auto x){ return X(); }(d) } ;
   };
   constexpr Y v = { 37, 47 };
 
