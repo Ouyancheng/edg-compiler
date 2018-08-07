@@ -4,7 +4,7 @@ Version 4.15
 Constexpr interpreter and anonymous union variables
 
 The constexpr interpreter previously incorrectly assumed that the entity
-associated with an anonymous union is an data member when it actually is a
+associated with an anonymous union is a data member when it actually is a
 variable.  That could lead to spurious aborts.  For example:
 
   struct S { int x = 37; } s;
