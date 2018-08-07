@@ -13180,7 +13180,7 @@ the value representation of the integer value.
         }  /* if */
         if (dip->kind == (a_dynamic_init_kind)dik_zero &&
             dip->destructor == NULL) {
-          init_subobject_to_zero(ips, tmp_bytes, tp, tmp_bytes);
+          init_subobject_to_zero(ips, tmp_bytes, tp, tmp_complete_obj);
         } else if (!do_constexpr_dynamic_init(
                     ips, dip, &expr->position, tmp_bytes, tmp_complete_obj)) {
           do_constexpr_fail(result);

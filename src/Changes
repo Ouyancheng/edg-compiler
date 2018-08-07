@@ -1,5 +1,26 @@
 Version 4.15
 
+8/7/18   [EDGcpfe/19863]
+Abort in constexpr interpreter for certain subobject zero-initializations
+
+In some relatively complex cases, the interpretation of a zero-initialization
+could corrupt data managed by the constexpr interpreter, which in turn could
+lead to an abort in the interpreter.  For example:
+
+  struct X { int x; };
+  struct Y {
+        union { int y; };
+	int d;
+	int &r = y ;
+	X g = X { [](auto x){ return X(); }(d) } ;
+  };
+  constexpr Y v = { 37, 47 };
+
+Previously, the evaluation of "return X();" (which involves zero-initializing
+the return value) corrupted the representation of v.r in most configurations,
+which in turn triggered an abort in the interpreter.  That is now fixed.
+
+
 8/7/18   [EDGcpfe/18914]
 Spurious errors on pack expansions in SFINAE contexts
 
