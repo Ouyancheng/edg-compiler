@@ -2890,7 +2890,7 @@ front end starts up to find where the object is originally allocated.
 */
 {
   static a_boolean     map_ready = FALSE;
-  static a_byte_count  alloc_num = 0;
+  static a_byte_count  alloc_num = 0, prev_num;
 
   if (!map_ready) {
     init_data_map(&object_alloc_map, /*mask_width=*/5U);
@@ -2899,6 +2899,10 @@ front end starts up to find where the object is originally allocated.
   alloc_num += 1;
   if (alloc_num == object_alloc_to_intercept) {
     object_alloc_intercept();
+  }  /* if */
+  get_mapped_byte_count(&object_alloc_map, ptr, prev_num);
+  if (prev_num != 0) {
+    unmap_ptr(&object_alloc_map, ptr);
   }  /* if */
   map_byte_count(&object_alloc_map, ptr, alloc_num);
 }  /* track_complete_object_alloc */
@@ -5109,22 +5113,38 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     case ck_init_repeat:
       {
         a_constant_ptr  elem_con = con->variant.init_repeat.constant;
-        a_type_ptr      etp = skip_typerefs(elem_con->type);
-        a_targ_size_t   n_elems, k;
-        a_byte_count    elem_size;
-        n_elems = con->variant.init_repeat.count;
-        elem_size = value_bytes_for_type(ips, etp, &result);
-        if (!result) break;
-        for (k = 0; k<n_elems;) {
-          mark_complete_class_object_if_needed(etp, value);
-          if (!copy_val_from_constant(ips, elem_con, value, complete_object)) {
-            do_constexpr_fail(result);
-            break;
-          }  /* if */
-          mark_subobject_initialized(value, complete_object);
-          k  += 1;
-          value += elem_size;
-        }  /* for */
+        if (constant_is(elem_con, ck_dynamic_init) &&
+            elem_con->variant.dynamic_init->kind ==
+                                       (a_dynamic_init_kind)dik_constructor &&
+            elem_con->variant.dynamic_init
+                    ->variant.constructor.is_array_copy) {
+          /* A ck_init_repeat on top of a special dik_constructor entry that
+             represents copying an array through repeated constructor calls.
+             The whole copy (including the iteration for each element of the
+             array) will be handled by the interpretation of the dynamic
+             initializer entry. */
+          do_constexpr_dynamic_init(ips, elem_con->variant.dynamic_init,
+                                    &elem_con->source_corresp.decl_position,
+                                    value, complete_object);
+        } else {
+          a_type_ptr      etp = skip_typerefs(elem_con->type);
+          a_targ_size_t   n_elems, k;
+          a_byte_count    elem_size;
+          n_elems = con->variant.init_repeat.count;
+          elem_size = value_bytes_for_type(ips, etp, &result);
+          if (!result) break;
+          for (k = 0; k<n_elems;) {
+            mark_complete_class_object_if_needed(etp, value);
+            if (!copy_val_from_constant(ips, elem_con, value,
+                                        complete_object)) {
+              do_constexpr_fail(result);
+              break;
+            }  /* if */
+            mark_subobject_initialized(value, complete_object);
+            k  += 1;
+            value += elem_size;
+          }  /* for */
+        }  /* if */
       }
       break;
     case ck_void:
@@ -5274,7 +5294,7 @@ accordingly.
     /* Perform the copy by creating an "implied-source" dynamic initializer
        from the given *dip entry, and interpreting it for every element of
        the array. */
-    a_targ_size_t   k, length;
+    a_targ_size_t   k, length = 1;
     a_byte_count    elem_size;
     a_dynamic_init  dip_copy = *dip;
     dip_copy.variant.constructor.args = array_expr->next;
@@ -5282,8 +5302,17 @@ accordingly.
     dip_copy.variant.constructor
                     .is_copy_constructor_with_implied_source = TRUE;
     check_assertion(tp->kind == (a_type_kind)tk_array);
-    length = tp->variant.array.variant.number_of_elements;
-    elem_type = skip_typerefs(tp->variant.array.element_type);
+    elem_type = tp;
+    do {
+      a_targ_size_t  dim = elem_type->variant.array.variant.number_of_elements;
+      if (dim == 0 && !elem_type->variant.array.bound_is_zero) {
+        info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      length *= dim;
+      elem_type = skip_typerefs(elem_type->variant.array.element_type);
+    } while (elem_type->kind == (a_type_kind)tk_array);
     elem_size = value_bytes_for_type(ips, elem_type, &result);
     if (!result) goto done;
     /* Decay src_addr from the address of the array to the address of its
