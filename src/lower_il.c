@@ -18751,7 +18751,32 @@ under it.  Used in both C++ and C mode.
   an_asm_entry_ptr   aep = statement->variant.asm_entry;
   an_asm_operand_ptr aop;
   for (aop = aep->operands; aop != NULL; aop = aop->next) {
-    lower_full_expr(aop->expression, statement);
+    an_expr_node_ptr expr_copy, expr = aop->expression;
+    if (is_operation_node(expr) &&
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      /* Generally, a top-level lvalue expression can't be expressed in C,
+         but g++ accepts them.  The front end now accepts them and lowering
+         needs to re-write them as appropriate.  A single case is handled now,
+         other cases could be handled if necessary. */
+      if (node_operator_is(expr, eok_assign)) {
+        /* Re-write "b = a" as "*((b = a), tmp = &b)". */
+        a_variable_ptr tmp = make_lowered_temporary(
+                                                make_pointer_type(expr->type));
+        expr_copy = copy_expr_tree(expr->variant.operation.operands,
+                                   CE_NO_OPTIONS);
+        expr = make_comma_node(expr,
+                               make_var_assignment_expr(tmp,
+                                                        add_address_of_to_node(
+                                                                  expr_copy)));
+        expr = add_indirection_to_node(expr);
+        aop->expression = expr;
+      } else {
+        /* Not currently handled; give an error. */
+        pos_error(ec_compound_lvalue_as_asm_operand, &expr->position);
+        continue;
+      }  /* if */
+    }  /* if */
+    lower_full_expr(expr, statement);
   }  /* for */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* lower_asm_statement */
