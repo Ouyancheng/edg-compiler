@@ -12970,7 +12970,7 @@ list checking (e.g., for the presence of too few arguments).
       } else {
         /* Error: too few actual arguments.  (No default arguments.)
            Create error nodes for the missing arguments. */
-        an_expr_node_ptr  error_nodes = NULL, last_node;
+        an_expr_node_ptr  error_nodes = NULL, last_node = NULL;
         expr_pos_error(ec_too_few_arguments,
                        &arg_block->closing_paren_position);
         for (; ptp != NULL; ptp = ptp->next) {

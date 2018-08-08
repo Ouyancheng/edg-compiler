@@ -13214,7 +13214,7 @@ to an alias template, the substituted type is returned in *new_type
 */
 {
   a_template_arg_ptr			new_list;
-  a_symbol_ptr				new_sym;
+  a_symbol_ptr				new_sym = NULL;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
   a_template_symbol_supplement_ptr	tssp;
@@ -37757,7 +37757,7 @@ pointed to by orig_sym.  Return a pointer to the new symbol.
 {
   a_symbol_ptr				new_sym;
   a_template_symbol_supplement_ptr	orig_tssp = NULL;
-  a_template_symbol_supplement_ptr	new_tssp;
+  a_template_symbol_supplement_ptr	new_tssp = NULL;
 
   new_sym = alloc_symbol(orig_sym->kind, orig_sym->header,
                          &orig_sym->decl_position);

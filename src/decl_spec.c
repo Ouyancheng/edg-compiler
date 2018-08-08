@@ -2727,7 +2727,7 @@ otherwise.
 {
   a_type_ptr             result;
   a_boolean              success = FALSE;
-  a_host_large_unsigned  n;
+  a_host_large_unsigned  n = 0;
 
   (void)get_token();
   /* A '(' should be next. */

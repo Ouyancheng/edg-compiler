@@ -1420,7 +1420,7 @@ specification removed.
   a_boolean                       result = FALSE;
   a_type_ptr                      base_type;
   a_type_ptr                      copied_type;
-  a_type_ptr                      orig_type;
+  a_type_ptr                      orig_type = NULL;
   a_boolean                       is_ptr_to_member = FALSE;
   an_exception_specification_ptr  save_esp;
 

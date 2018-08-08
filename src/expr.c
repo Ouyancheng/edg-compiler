@@ -510,7 +510,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   a_boolean             is_full_expr = !dps->is_new_expr_type &&
                                        !dps->is_init_capture &&
                                        dps->sym != NULL;
-  a_decl_parse_state    *saved_decl_parse_state;
+  a_decl_parse_state    *saved_decl_parse_state = NULL;
 
   check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
   /* Usually an initializer is a full expression and we must push an entry
@@ -33156,7 +33156,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     a_type_ptr         base_dest_type;
     an_operand         operand;
     a_boolean          is_star_this = FALSE;
-    a_type_ptr         star_this_type;
+    a_type_ptr         star_this_type = NULL;
     a_dynamic_init_ptr dip;
     a_constant_ptr     init_con;
     a_routine_ptr      cctor_routine = NULL;

@@ -14110,7 +14110,7 @@ correspondence entry for the entity whose name this is.
     sizeof_t size_of_mangled_name = mctl->length; /* Including final null. */
     sizeof_t size_of_compressed_name, prefix_length;
     sizeof_t i;
-    char     buffer[20];
+    char     buffer[64];
 #define NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE 64
     a_compressible_string_pos_ptr
              hash_table[NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE];
