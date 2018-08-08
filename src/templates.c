@@ -37854,7 +37854,6 @@ a class template parameter list.
                                                            from_class_template;
       *new_tptsp = *old_tptsp;
       set_source_corresp(&new_type->source_corresp, new_sym);
-      /* FIXME: Clear parent scope?   IL list issues? */
       new_sym->variant.type.ptr = new_type;
     } else if (new_sym->kind == (a_symbol_kind)sk_constant) {
       a_constant_ptr	old_constant = old_tpp->variant.constant.ptr;
@@ -37862,7 +37861,6 @@ a class template parameter list.
       new_constant = alloc_constant(old_constant->kind);
       copy_constant(old_constant, new_constant);
       set_source_corresp(&new_constant->source_corresp, new_sym);
-      /* FIXME: Clear parent scope?   IL list issues? */
       new_sym->variant.constant = new_constant;
     } else {
       a_template_ptr	old_template =
@@ -37875,7 +37873,6 @@ a class template parameter list.
          of the new symbol. */
       new_template->template_info = new_sym->variant.template_info;
       set_source_corresp(&new_template->source_corresp, new_sym);
-      /* FIXME: Clear parent scope?   IL list issues? */
       new_sym->variant.template_info->il_template_entry = new_template;
     }  /* if */
     new_tpp = make_copy_of_template_param_based_on_new_symbol(old_tpp,
@@ -38172,7 +38169,6 @@ occurs during the creation of the template, a NULL symbol is returned.
   /* The routine uses nonreal types, so consider it a prototype
      instantiation. */
   rout->is_prototype_instantiation = TRUE;
-  /* FIXME: What list should this be added to? */
   add_to_routines_list(rout, NO_SCOPE_DEPTH);
   tssp->il_template_entry->prototype_instantiation.routine = rout;
   result_sym = sym;
