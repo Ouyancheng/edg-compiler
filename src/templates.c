@@ -38300,11 +38300,62 @@ ct_tssp and create implicit deduction guides for each constructor.
        constructor. */
     add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
                                            (a_type_ptr)NULL);
+    /* If the class template is incomplete, the default constructor guide
+       should be removed if and when the class template is completed. */
+    ct_tssp->variant.class_template.interim_implicit_deduction_guides =
+                                                is_incomplete_type(proto_type);
   }  /* if */
   /* Add the copy deduction candidate. */
   add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
                                          proto_type);
 }  /* create_implicit_deduction_guides */
+
+
+static void remove_hypothetical_default_guide(a_symbol_ptr	ct_sym)
+/*
+Remove the generated default deduction guide from the set of deduction
+guides.
+*/
+{
+  a_template_symbol_supplement_ptr
+                ct_tssp = template_supplement_for_symbol(ct_sym);
+  a_symbol_ptr	*prev_ptr = &ct_tssp->variant.class_template.deduction_guides;
+  a_symbol_ptr	guide_set = *prev_ptr;
+  a_symbol_ptr	guide_sym;
+  a_boolean	is_list;
+
+  if (symbol_is(guide_set, sk_overloaded_function)) {
+    is_list = TRUE;
+    prev_ptr = &guide_set->variant.overloaded_function.symbols;
+    guide_sym = *prev_ptr;
+  } else {
+    guide_sym = guide_set;
+  }  /* if */
+  for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
+    a_template_symbol_supplement_ptr	tssp;
+    check_assertion(symbol_is(guide_sym, sk_function_template));
+    tssp = template_supplement_for_symbol(guide_sym);
+    /* Look for a hypothetical guide with an empty parameter list. */
+    if (tssp->variant.function.constructor_symbol_for_guide == NULL) {
+      a_routine_ptr			rout;
+      a_type_ptr			rout_type;
+      a_routine_type_supplement_ptr	rtsp;
+      rout = tssp->variant.function.routine;
+      rout_type = skip_typerefs(rout->type);
+      rtsp = rout_type->variant.routine.extra_info;
+      /* Currently we only need to remove one guide, but the code is set
+         up to allow multiple guides to be removed, if needed. */
+      if (rtsp->param_type_list == NULL) {
+        /* Clear the deduction_guides pointer or the next pointer of the
+           previous symbol. */
+        *prev_ptr = is_list ? guide_sym->next : NULL;
+      } else {
+        prev_ptr = &guide_sym->next;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  ct_tssp->variant.class_template.interim_implicit_deduction_guides = FALSE;
+}  /* remove_hypothetical_default_guide */
 
 
 void update_implicit_deduction_guides(a_symbol_ptr  ct_sym)
@@ -38331,9 +38382,9 @@ up-to-date.
     /* Nothing to do. */
   } else {
     check_assertion(!ct_tssp->variant.class_template.is_alias_template);
-    if (ct_tssp->variant.class_template.implicit_deduction_guides_added) {
-      /* Remove "interim guides". */
-      /* FIXME */
+    if (ct_tssp->variant.class_template.interim_implicit_deduction_guides) {
+      /* Remove the default constructor guide previously created. */
+      remove_hypothetical_default_guide(ct_sym);
     }  /* if */
     /* Generate guides from constructors. */
     create_implicit_deduction_guides(ct_sym, ct_tssp);
