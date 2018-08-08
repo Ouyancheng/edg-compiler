@@ -1,5 +1,14 @@
 Version 4.15
 
+8/8/18   [EDGcpfe/19953]
+Updates to standard feature-test macros
+
+The front end has been updated to comply with the latest specification of
+the standard feature-test macros, Committee document P0941R2.  Primarily
+this consisted of changing the values of the macros from an integer to a
+long, e.g., 201603 became 201603L.
+
+
 8/7/18   [EDGcpfe/19863]
 Abort in constexpr interpreter for certain subobject zero-initializations
 
