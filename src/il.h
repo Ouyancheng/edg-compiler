@@ -1920,7 +1920,11 @@ typedef int a_ctws_options_set;
 #define CTWS_DEDUCTION_GUIDE		0x2000
 			/* TRUE when doing substitution to create a
 			   deduction guide routine type. */
-
+#define CTWS_NEW_CONTEXT		0x4000
+			/* TRUE if the substitution is being done on something
+			   outside of the original context of a function
+			   template that is being substituted (such as a
+			   default template argument). */
 
 /*
 Structure used to represent a set of function parameters that resulted from

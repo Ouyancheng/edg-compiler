@@ -1996,7 +1996,7 @@ is TRUE.  Otherwise it must be zero.
                                      templ_param_list,
                                      templ_arg_list, templ_param_list,
                                      &template_sym->decl_position,
-                                     CTWS_NO_OPTIONS,
+                                     CTWS_NEW_CONTEXT,
                                      /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
         if (copy_error ||
@@ -13266,12 +13266,13 @@ to an alias template, the substituted type is returned in *new_type
        of the template arguments, don't try to find a matching template
        class. */
     new_sym = NULL;
-  } else if (templ_param_is_alias && !template_sym->is_class_member) {
+  } else if (templ_param_is_alias &&
+             (options & CTWS_NEW_CONTEXT) == 0) {
     /* If the result of a template template parameter substitution is
        an alias template, do substitution on the prototype type so that
        a failure is a substitution failure, not a hard error.  This is
-       not done for aliases that are members because we need to instantiate
-       the enclosing class to get the correct alias definition. */
+       not done for substitutions that do not come immediately from the
+       current context as some of the enclosing context won't be correct. */
     a_type_ptr	proto_type;
     a_type_ptr	tp;
     proto_type = tssp->variant.class_template.prototype_instantiation
