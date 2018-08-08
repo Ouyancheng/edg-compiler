@@ -26726,10 +26726,13 @@ optionally prefixed with the keyword "explicit".
   locator->source_position = dps->specifiers_pos;
   if (ct_sym->decl_scope !=
                         scope_stack[decl_state->effective_decl_level].number) {
-    pos_syty_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym,
-                   dps->type);
+    pos_sy_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym);
     decl_state->decl_scope_err = TRUE;
     set_to_error_locator(*locator);
+  } else if (ct_sym->is_class_member &&
+             access_for_symbol(ct_sym) !=
+               scope_stack[decl_state->effective_decl_level].current_access) {
+    pos_sy_error(ec_bad_deduction_guide_access, &dps->specifiers_pos, ct_sym);
   }  /* if */
   /* A deduction guide is considered a definition. */
   dps->is_definition = func_info->is_definition;

@@ -2960,7 +2960,7 @@ ec_integer_pack_element_for_template;;"an integer pack element cannot match %n"
 ec_unexpected_designator;;"unexpected designator"
 ec_cannot_evaluate_builtin_offsetof;;"cannot evaluate __builtin_offsetof"
 ec_deduction_guide_def;;"deduction guide %t cannot be defined"
-ec_bad_deduction_guide_scope;;"deduction guide %t must be declared in the same scope as %n"
+ec_bad_deduction_guide_scope;;"deduction guide must be declared in the same scope as %n"
 ec_invalid_specifier_for_deduction_guide;;"invalid specifier for deduction guide declaration (only \"explicit\" is permitted)"
 ec_constexpr_mutable_field_load;;"mutable %n of a constant cannot be accessed in a constant expression"
 ec_member_function_modifier_on_static_member;;"function modifier does not apply to static member declaration"
@@ -2974,6 +2974,7 @@ ec_explicit_deduction_guide_in_copy_list_init;;"copy-list-initialization cannot 
 ec_deduction_guide;INTERNAL;"deduction guide"
 ec_invalid_udl_value;;"Invalid value for user-defined literal operator"
 ec_has_cpp_attrib_not_in_if;;"__has_cpp_attribute cannot appear outside of #if or #elif"
+ec_bad_deduction_guide_access;;"deduction guide must be declared with the same accessibility as %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

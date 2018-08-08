@@ -18647,8 +18647,10 @@ placeholder type corresponding to the template name that was just scanned).
   make_locator_for_symbol(ct_sym, locator);
   locator->source_position = dps->specifiers_pos;
   if (ct_sym->decl_scope != scope_num) {
-    pos_syty_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym,
-                   dps->type);
+    pos_sy_error(ec_bad_deduction_guide_scope, &dps->specifiers_pos, ct_sym);
+  } else if (ct_sym->is_class_member &&
+             access_for_symbol(ct_sym) != scope_stack_top().current_access) {
+    pos_sy_error(ec_bad_deduction_guide_access, &dps->specifiers_pos, ct_sym);
   }  /* if */
   check_deduction_guide_return_type(dps, ct_sym);
   /* Allocate a symbol representing the guide. */
