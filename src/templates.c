@@ -37986,7 +37986,7 @@ function parameter list) will be completed later.
   } else {
     is_hypothetical = TRUE;
   }  /* if */
-  tcp = cache_for_template(ct_tssp);
+  tcp = &ct_tssp->cache;
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
                      ctor_sym->header,
                      &null_source_position);
@@ -38063,7 +38063,7 @@ occurs during the creation of the template, a NULL symbol is returned.
     ctor_tssp = template_supplement_for_symbol(ctor_sym);
     ctor_rout = ctor_tssp->variant.function.routine;
   }  /* if */
-  tcp = cache_for_template(ct_tssp);
+  tcp = &ct_tssp->cache;
   /* A rescan context is needed because nonreal types will be created
      below. */
   push_instantiation_scope_for_rescan(ct_sym);
