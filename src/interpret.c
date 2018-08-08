@@ -5123,9 +5123,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
              The whole copy (including the iteration for each element of the
              array) will be handled by the interpretation of the dynamic
              initializer entry. */
-          do_constexpr_dynamic_init(ips, elem_con->variant.dynamic_init,
-                                    &elem_con->source_corresp.decl_position,
-                                    value, complete_object);
+          if (!do_constexpr_dynamic_init(
+                                      ips, elem_con->variant.dynamic_init,
+                                      &elem_con->source_corresp.decl_position,
+                                      value, complete_object)) {
+            do_constexpr_fail(result);
+          }  /* if */
         } else {
           a_type_ptr      etp = skip_typerefs(elem_con->type);
           a_targ_size_t   n_elems, k;
