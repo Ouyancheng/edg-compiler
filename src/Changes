@@ -16,7 +16,7 @@ This feature was added to C++17 through the standardization committee's paper
 number P0091r3 (with additional provisions added through P0620r0).
 
 
-8/8/18   [EDGcpfe/19639]
+8/8/18   [EDGcpfe/19638]
 GNU compatibility: lvalue expressions in asm statements
 
 Previously (see the Changes entry for EDGcpfe/11125) the front end had been

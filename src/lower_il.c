@@ -18754,7 +18754,7 @@ under it.  Used in both C++ and C mode.
     an_expr_node_ptr expr_copy, expr = aop->expression;
     if (is_operation_node(expr) &&
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      /* Generally, a top-level lvalue expression can't be expressed in C,
+      /* These kinds of top-level expressions don't produce lvalues in C,
          but g++ accepts them.  The front end now accepts them and lowering
          needs to re-write them as appropriate.  A single case is handled now,
          other cases could be handled if necessary. */
