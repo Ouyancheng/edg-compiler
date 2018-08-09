@@ -1,4 +1,4 @@
-Version 4.15
+Version 5.0, August 10, 2018
 
 9/25/17  [EDGcpfe/10590,EDGcpfe/16574,EDGcpfe/17582]
 Implementation of some standard library utilities; new edg_internal_defines
