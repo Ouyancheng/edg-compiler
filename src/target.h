@@ -1545,7 +1545,7 @@ EXTERN an_integer_kind
         targ_ia64_abi_use_int_static_init_guard
 #define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES                               \
         targ_ia64_abi_use_variant_array_cookies
-#define IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR                      \
+#define TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR                 \
         targ_ia64_abi_use_variant_ptr_to_member_function_repr
 #define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS                     \
         targ_ia64_abi_variant_ctors_and_dtors_return_this
