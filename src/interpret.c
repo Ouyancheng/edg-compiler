@@ -4913,6 +4913,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 break;
               }  /* if */
               elem_con = elem_con->next;
+            } else {
+              /* Either a trivial subobject or an error.  Just initialize
+                 the subobject to zero. */
+              init_subobject_to_zero(ips, value+offset, bcp->type,
+                                   complete_object);
             }  /* if */
             mark_subobject_initialized(value+offset, complete_object);
             bcp = bcp->next;
