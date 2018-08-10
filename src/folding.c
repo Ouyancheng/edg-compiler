@@ -1971,7 +1971,8 @@ for any diagnostics issued.
   constant_type = skip_typerefs(constant->type);
   new_type = skip_typerefs(new_type);
 
-  if (is_error_constant(constant) || is_error_type(new_type)) {
+  if (is_error_constant(constant) || is_error_type(new_type) ||
+      is_or_contains_error_type(constant_type)) {
     /* Changing to an error type, or the old constant is an error constant,
        so produce an error constant as result. */
     set_error_constant(new_constant);
