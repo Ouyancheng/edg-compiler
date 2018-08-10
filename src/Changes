@@ -1,5 +1,24 @@
 Version 5.1
 
+8/10/18  [EDGcpfe/19965]
+Constexpr interpretation of string literal copies
+
+In configurations with EXPENSIVE_CHECKING set to TRUE, the front end could
+abort in map_colliding_ptr when repeatedly copying the value of a string
+literal into an array.  For example:
+
+  constexpr int f() {
+    for (int i = 0; i<2; ++i) {
+      char s[1][1] = { "" };  // Previously could lead to an abort.
+    }
+    return 42;
+  }
+  int r[f()];
+
+In configurations with EXPENSIVE_CHECKING set to FALSE, more complex examples
+could potentially produce an invalid result.  That is now fixed.
+
+
 8/10/18  [EDGcpfe/19962]
 Fix IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR typo
 

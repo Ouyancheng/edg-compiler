@@ -4806,7 +4806,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         char_ptr = con->variant.string.value;
         /* Map the interpreter storage for the string back to the constant
            entry so that that constant can, if needed, be retrieved by
-           copy_interpreter_object_to_constant. */
+           copy_interpreter_object_to_constant.  For the rare case of a
+           string literal used as an rvalue, this is not valid (since an
+           rvalue cannot be reused), but we cannot tell here that the constant
+           is used as an rvalue: See the handling of enk_constant nodes for
+           the compensating code. */
         map_stack_bytes(ips, value, (a_byte*)con);
         curr_call_frame = ips->curr_call_frame;
         if (curr_call_frame != NULL && !in_file_scope(con) &&
@@ -4868,6 +4872,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                      ips, elem_con, value, complete_object)) {
                 do_constexpr_fail(result);
                 break;
+              } else if (constant_is(elem_con, ck_string) &&
+                         etp->kind == (a_type_kind)tk_array) {
+                /* The ck_string contents were copied to a separate array.
+                   Undo the mapping of the array storage to the ck_string
+                   entry since it is not a persistent association. */
+                unmap_stack_bytes(ips, value);
               }  /* if */
               if (constant_is(elem_con, ck_init_repeat)) {
                 repeat = elem_con->variant.init_repeat.count;
@@ -4941,7 +4951,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               elem_con = elem_con->next;
               continue;
             } else {
-              a_byte  *this_bytes = NULL;
+              a_byte  *this_bytes = NULL, *dst_bytes = value+offset;
               if (elem_con->implicit_aggr_element &&
                   con->variant.aggregate.has_dynamic_init_component &&
                   class_type_supp(tp)->anonymous_union_kind ==
@@ -4952,17 +4962,23 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 this_bytes = set_up_param_ref_for_this_ptr(
                                              ips, tp, value, complete_object);
               }  /* if */
-              mark_complete_class_object_if_needed(ftp, value+offset);
+              mark_complete_class_object_if_needed(ftp, dst_bytes);
               if (!copy_val_from_constant(
-                              ips, elem_con, value+offset, complete_object)) {
+                                 ips, elem_con, dst_bytes, complete_object)) {
                 do_constexpr_fail(result);
               } else {
                 if (fp->is_bit_field) {
                   /* Fit the value in the bit field width. */
-                  trim_bit_field(value+offset, fp->bit_size,
+                  trim_bit_field(dst_bytes, fp->bit_size,
                                  fp->bit_field_is_signed);
+                } else if (constant_is(elem_con, ck_string) &&
+                           ftp->kind == (a_type_kind)tk_array) {
+                  /* The ck_string contents were copied to a separate array.
+                     Undo the mapping of the array storage to the ck_string
+                     entry since it is not a persistent association. */
+                  unmap_stack_bytes(ips, dst_bytes);
                 }  /* if */
-                mark_subobject_initialized(value+offset, complete_object);
+                mark_subobject_initialized(dst_bytes, complete_object);
                 elem_con = elem_con->next;
               }  /* if */
               if (this_bytes != NULL) {
@@ -4980,7 +4996,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_field_ptr     fp;
           a_constant_ptr  elem_con;
           a_byte_count    offset;
-          a_byte          *this_bytes;
+          a_byte          *this_bytes, *dst_bytes;
           elem_con = con->variant.aggregate.first_constant;
           if (elem_con == NULL) {
             fp = tp->variant.class_struct_union.field_list;
@@ -5037,18 +5053,25 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                          ips, tp, value, complete_object);
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
+          dst_bytes = value+offset;
           if (!copy_val_from_constant(
-                              ips, elem_con, value+offset, complete_object)) {
+                              ips, elem_con, dst_bytes, complete_object)) {
             do_constexpr_fail(result);
           } else {
             if (fp->is_bit_field) {
               /* Fit the value in the bit field width. */
-              trim_bit_field(value+offset, fp->bit_size,
-                             fp->bit_field_is_signed);
+              trim_bit_field(dst_bytes, fp->bit_size, fp->bit_field_is_signed);
+            } else if (constant_is(elem_con, ck_string) &&
+                       skip_typerefs(fp->type)->kind ==
+                                                      (a_type_kind)tk_array) {
+              /* The ck_string contents were copied to a separate array.
+                 Undo the mapping of the array storage to the ck_string
+                 entry since it is not a persistent association. */
+              unmap_stack_bytes(ips, dst_bytes);
             }  /* if */
             /* Record the active field. */
             *(a_field_ptr*)value = fp;
-            mark_subobject_initialized(value+offset, complete_object);
+            mark_subobject_initialized(dst_bytes, complete_object);
           }  /* if */
           if (this_bytes != NULL) {
             /* Unmap "this" (possibly restoring a previously active
@@ -12978,6 +13001,17 @@ the value representation of the integer value.
           con_bytes = result_storage;
           result = copy_val_from_constant(ips, con, con_bytes,
                                           complete_object);
+          if (constant_is(con, ck_string)) {
+            /* An rvalue string constant is rare, but possible with structured
+               bindings:
+                 auto [sb] = "";
+               This initializes the unnamed array variable from an rvalue
+               string constant.  copy_val_from_constant will have mapped
+               con_bytes to con assuming it could reuse those bytes in the
+               future, but that is not the case for an rvalue: Undo the
+               mapping. */
+            unmap_stack_bytes(ips, con_bytes);
+          }  /* if */
         }  /* if */
       }
       break;
