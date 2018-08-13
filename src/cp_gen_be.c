@@ -8263,13 +8263,12 @@ is the one associated with the definition of the enum.
              expressions. */
           an_expr_node_ptr con_expr;
           con_expr = expr_node_from_tpck_expression(enum_con);
-          if (is_operation_node(con_expr)) {
-            if (node_operator_is(con_expr, eok_cast) &&
-                con_expr->variant.operation.compiler_generated) {
-              /* Skip over a compiler-generated cast of the expression to
-                 the underlying type. */
-              con_expr = con_expr->variant.operation.operands;
-            }  /* if */
+          while (is_operation_node(con_expr) &&
+                 node_operator_is(con_expr, eok_cast) &&
+                 con_expr->variant.operation.compiler_generated) {
+            /* Skip over a compiler-generated cast of the expression to
+               the underlying type. */
+            con_expr = con_expr->variant.operation.operands;
             if (is_constant_node(con_expr)) {
               a_constant_ptr dep_con = node_constant(con_expr);
               if (constant_is(dep_con, ck_template_param) &&
@@ -8277,12 +8276,12 @@ is the one associated with the definition of the enum.
                 con_expr = expr_node_from_tpck_expression(dep_con);
               }  /* if */
             }  /* if */
-            if (is_operation_node(con_expr) &&
-                con_expr->variant.operation.compiler_generated) {
-              /* The constant is a compiler-generated expression; no
-                 explicit expression is needed. */
-              explicit_enum_expr = FALSE;
-            }  /* if */
+          }  /* while */
+          if (is_operation_node(con_expr) &&
+              con_expr->variant.operation.compiler_generated) {
+            /* The constant is a compiler-generated expression; no
+               explicit expression is needed. */
+            explicit_enum_expr = FALSE;
           }  /* if */
         }  /* if */
       }  /* if */

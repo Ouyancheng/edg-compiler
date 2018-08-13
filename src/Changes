@@ -1,5 +1,25 @@
 Version 5.1
 
+8/13/18  [EDGcpfe/19967]
+C++-generating back end: missing expression for enumerator in class template
+
+The changes for EDGcpfe/19919 (in version 5.0) caused a regression for
+C++-generating back end configurations in which template definitions are
+generated from the prototype instantiation IL.  In particular, the
+expression giving the value of an enumerator defined in a class template
+definition could be lost in the generated code.  This is now fixed.  For
+example:
+
+  template <int R, int... E> struct S1;
+  template <int R>  struct S1<R> {
+    enum : int { X = 0 };
+  };
+  template <int R, int... Tail> struct S1<R, 0, Tail...> : S1<R+1> {
+    enum : int { X = 1 + S1<R+1>::X };  // Expression for X was omitted...
+  };
+  static_assert(S1<0, 0>::X == 1, "");  // ...so this assertion failed
+
+
 8/10/18  [EDGcpfe/19965]
 Constexpr interpretation of string literal copies
 
