@@ -25644,7 +25644,6 @@ supplement for this template should be returned to the caller.
     decl_state->decl_scope_err = TRUE;
   } else {
     dps->sym = var_sym;
-    attach_decl_attributes(dps, /*primary_decl=*/TRUE);
   }  /* if */
   if (decl_state->out_of_class_instantiation) {
     /* Get the cache that was saved during the out-of-class declaration. */
@@ -25794,6 +25793,9 @@ supplement for this template should be returned to the caller.
                               decl_state->decl_info);
       tssp->variant.variable.declarator_name_tsn = dps->declarator_name_tsn;
       tssp->variant.variable.has_out_of_class_definition = TRUE;
+    }  /* if */
+    if (!err) {
+      attach_decl_attributes(dps, /*primary_decl=*/TRUE);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&var->source_corresp, &decl_state->decl_pos_block);

@@ -1,5 +1,13 @@
 Version 5.1
 
+8/13/18  [EDGcpfe/19763]
+Delay attaching variable template attributes
+
+A change has been made to delay attaching attributes to variable templates
+such that the declaration information for the variable template is available
+when the attribute(s) are attached.
+
+
 8/13/18  [EDGcpfe/19967]
 C++-generating back end: missing expression for enumerator in class template
 
