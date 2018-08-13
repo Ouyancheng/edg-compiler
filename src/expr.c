@@ -8891,6 +8891,8 @@ the selection, not an operator token for the call.
       if (err) {
         /* Some error. */
         make_error_operand(result);
+        operand_will_not_be_used_because_of_error(operand_1);
+        operand_will_not_be_used_because_of_error(&operand_2);
       } else {
         /* The operands are compatible.  Determine the value category of the
            result.  C++03 had this to say:
