@@ -1,5 +1,25 @@
 Version 5.1
 
+8/13/18  [EDGcpfe/19969]
+Disable C++17 matching of template template arguments in some C++14 modes
+
+Version 5.0 includes C++17 generalized template template parameter
+matching (see EDGcpfe/18746).  Even though this was a defect report
+against C++14, g++, clang, and Microsoft do not enable the feature in
+C++14 mode.  We previously did not enable it in Microsoft C++14 mode.
+We now disable it in g++ and clang C++14 modes.  We are disabling this
+in those C++14 modes because it can break valid C++14 code.
+
+  template <typename... Ts> struct A {};
+  template <typename T> struct A<T> { typedef int type; };
+  struct B {};
+  template <template<typename... Ts> class P> void f(typename P<B>::type);
+  template <template<typename T> class P> void f(typename P<B>::type);
+  int main() {
+    f<A>(0);  // ambiguous with new matching rules
+  }
+
+
 8/13/18  [EDGcpfe/19763]
 Delay attaching variable template attributes
 

@@ -4811,6 +4811,12 @@ before this routine is called.
     if (exc_spec_in_func_type) {
       deduction_from_exc_spec_allowed = TRUE;
     }  /* if */
+  } else {
+    /* g++ and clang do not implement this as a DR in C++14 mode.  Note that
+       clang has this disabled by default even in C++17 mode (as of 6.0.1).
+       But we don't have a separate option to enable this, so we still
+       enable it in clang C++17 mode. */
+    generalized_template_template_matching = FALSE;
   }  /* if */
   if (clang_mode) {
     /* All versions of clang appear to accept attributes on enumerators. */
