@@ -1,5 +1,25 @@
 Version 5.1
 
+8/14/18  [EDGcpfe/8574]
+Diagnose multiple explicit instantiations of a class
+
+The front end failed to diagnose multiple explicit instantiations of a class
+template instance.  A discretionary error is now issued, except in Microsoft
+mode, where a warning is issued.  This can result in diagnostic changes
+in some cases.  In the example below, we formerly gave only an error that
+A<char>::f was explicitly instantiated more than once.  Now we give the
+error on the class A<char> instead.
+
+  template <typename T> struct A {
+    struct B { };
+    void f(){}
+  };
+  template struct A<int>;
+  template struct A<int>::B;  // now an error
+  template struct A<char>;
+  template struct A<char>;  // now an error
+
+
 8/13/18  [EDGcpfe/19969]
 Disable C++17 matching of template template arguments in some C++14 modes
 

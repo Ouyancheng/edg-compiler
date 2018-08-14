@@ -35750,7 +35750,8 @@ void update_instantiation_flags(a_symbol_ptr	      sym,
 				a_source_position     *pos,
                                 a_boolean	      is_class_instantiation,
                                 a_boolean	      is_pragma,
-                                a_boolean             is_dll_directive)
+                                a_boolean             is_dll_directive,
+				a_boolean             top_level)
 /*
 Given a pointer to either a routine, member function, or static data
 member symbol, update the instantiation flags as required for a given
@@ -35765,6 +35766,8 @@ processed, or for an explicit instantiation directive, is pk_instantiate for
 a normal instantiation directive or pk_do_not_instantiate for an "extern
 template" directive.  is_dll_directive is TRUE if the update is the result of
 applying a Microsoft dllimport or dllexport attribute to a template instance.
+top_level is TRUE if this is the call for the actual template, or FALSE if
+this routine is called indirectly for a class instantiation.
 */
 {
   a_template_instance_ptr	tip = NULL;
@@ -35792,9 +35795,17 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
         ignore_directive = TRUE;
       } else {
         /* A template cannot be instantiated more than once using an explicit
-           instantiation. */
-        sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
-                       ec_multiple_explicit_instantiations, sym);
+           instantiation.  The top-level and is_class_instantiation tests
+           are used to avoid duplicate diagnostics if a class instantiation,
+           which instantiates the class members, is done more than once.
+           This is a heuristic and can result in not issuing a diagnostic
+           for some cases, but that is okay because this is a "no diagnostic
+           required" rule. */
+        if (top_level ||
+            tip->class_explicitly_instantiated != is_class_instantiation) {
+          sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                         ec_multiple_explicit_instantiations, sym);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (ignore_directive) {
@@ -36045,6 +36056,17 @@ dllimport or dllexport attribute to a template instance.
           class_type->variant.class_struct_union.do_not_instantiate = TRUE;
         }  /* if */
       } else if (pragma_kind == (a_pragma_kind)pk_instantiate) {
+        if (top_level &&
+            class_type->variant.class_struct_union.explicitly_instantiated) {
+          /* A template cannot be instantiated more than once using an explicit
+             instantiation.  The top-level test prevents multiple diagnostics
+             on class instantiations, which cause the instantiation of
+             nested classes.  This is can result in not issuing a diagnostic
+             for some cases, but that is okay because this is a "no
+             diagnostic required" rule. */
+          sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                         ec_multiple_explicit_instantiations, sym);
+        }  /* if */
         class_type->variant.class_struct_union.do_not_instantiate = FALSE;
         class_type->variant.class_struct_union.explicitly_instantiated = TRUE;
         /* For explicitly instantiated classes a vtable will be emitted;
@@ -36080,7 +36102,8 @@ dllimport or dllexport attribute to a template instance.
                                         is_pragma, pragma_kind)) {
               update_instantiation_flags(list_sym, pragma_kind, pos,
                                          /*is_class_instantiation=*/TRUE,
-                                         is_pragma, is_dll_directive);
+                                         is_pragma, is_dll_directive,
+                                         /*top_level=*/FALSE);
             }  /* if */
           }  /* for */
         } else if (symbol_is(mem_sym, sk_static_data_member)) {
@@ -36088,7 +36111,8 @@ dllimport or dllexport attribute to a template instance.
                                       is_pragma, pragma_kind)) {
             update_instantiation_flags(mem_sym, pragma_kind, pos,
                                        /*is_class_instantiation=*/TRUE,
-                                       is_pragma, is_dll_directive);
+                                       is_pragma, is_dll_directive,
+                                       /*top_level=*/FALSE);
           }  /* if */
         } else if (is_class_struct_union_symbol(mem_sym) &&
                    !skip_nested_classes) {
@@ -36485,7 +36509,8 @@ instantiation.
         if (!err) {
           update_instantiation_flags(sym, kind, start_pos,
                                      /*is_class_instantiation=*/FALSE,
-                                     is_pragma, /*is_dll_directive=*/FALSE);
+                                     is_pragma, /*is_dll_directive=*/FALSE,
+                                     /*top_level=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
             make_instantiation_directive(kind, &state, sym, ssep,
@@ -36551,7 +36576,8 @@ instantiation.
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
-                                   is_pragma, /*is_dll_directive=*/FALSE);
+                                   is_pragma, /*is_dll_directive=*/FALSE,
+                                   /*top_level=*/TRUE);
         /* If a throw specification was mentioned in the instantiation
            directive, check that it matches up with that of the instantiated
            routine. */
@@ -36728,7 +36754,8 @@ assumed if the return type is omitted.
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
                                    /*is_class_instantiation=*/FALSE,
                                    /*is_pragma=*/TRUE,
-                                   /*is_dll_directive=*/FALSE);
+                                   /*is_dll_directive=*/FALSE,
+                                   /*top_level=*/TRUE);
       } else if ((symbol_is(sym, sk_variable) ||
                   symbol_is(sym, sk_static_data_member)) &&
                  template_instance_for_symbol(sym) != NULL) {
@@ -36737,7 +36764,8 @@ assumed if the return type is omitted.
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
                                    /*is_class_instantiation=*/FALSE,
                                    /*is_pragma=*/TRUE,
-                                   /*is_dll_directive=*/FALSE);
+                                   /*is_dll_directive=*/FALSE,
+                                   /*top_level=*/TRUE);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
