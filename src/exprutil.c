@@ -17268,20 +17268,34 @@ whether the call was folded or not.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
-      a_type_ptr this_type;
+      a_type_ptr  this_type, selector_type, this_class_type;
       if (unknown_dependent_function) {
         this_type = NULL;
       } else {
         this_type = implicit_this_param_type_of(function_type);
       }  /* if */
+      this_class_type = type_pointed_to(this_type);
+      this_class_type = skip_typerefs(this_class_type);
+      selector_type = bound_function_selector->type,
       selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
+      if (selector_is_object_pointer &&
+          is_any_ptr_or_ref_type(selector_type)) {
+        selector_type = type_pointed_to(selector_type);
+      }  /* if */
       if (unknown_dependent_function ||
           (is_template_dependent_context() &&
-           (is_template_dependent_type(bound_function_selector->type) ||
-            is_template_dependent_type(this_type)))) {
+           (is_template_dependent_type(selector_type) ||
+            is_template_dependent_type(this_type)) &&
+           !(type_is_lambda_closure(this_class_type) &&
+             identical_types_ignoring_qualifiers(this_class_type,
+                                                 selector_type)))) {
         /* In a prototype instantiation, a selector might have a type that's
-           not demonstrably related to the "this" type.  Leave it alone. */
+           not demonstrably related to the "this" type.  Leave it alone.
+           We make an exception for closure types in template-dependent
+           contexts: They are marked as nonreal, but we might want to attempt
+           normal semantic resolution so that an expression "[]{ return 1; }()"
+           can be evaluated at compile time.  */
 dependent_case:;
       } else {
         /* There shouldn't be a base-class adjustment here.  If there is,
@@ -17289,13 +17303,7 @@ dependent_case:;
            did not do their job. */
         if (CHECKING || /*lint !e506 */
             is_template_dependent_context()) {
-          a_type_ptr arg_class_type = bound_function_selector->type;
-          a_type_ptr this_class_type = type_pointed_to(this_type);
-          if (selector_is_object_pointer &&
-              !is_error_type(arg_class_type)) {
-            arg_class_type = type_pointed_to(arg_class_type);
-          }  /* if */
-          this_class_type = skip_typerefs(this_class_type);
+          a_type_ptr arg_class_type = selector_type;
           arg_class_type = skip_typerefs(arg_class_type);
           /* Using types_are_compatible so that an error type is considered
              compatible with anything. */

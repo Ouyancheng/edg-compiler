@@ -2282,7 +2282,7 @@ the fields implied by the lambda's capture list).
   a_symbol_ptr                   sym;
   a_class_symbol_supplement_ptr  cssp;
   a_class_type_supplement_ptr    ctsp;
-  a_boolean                      is_prototype_instantiation = FALSE;
+  a_boolean                      is_nonreal = FALSE;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -2341,13 +2341,12 @@ the fields implied by the lambda's capture list).
   }  /* if */
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
-  if (scope_stack_top().in_prototype_instantiation ||
-      scope_stack_top().in_nonreal_instantiation) {
-    /* If the lambda appears in a prototype instantiation context, mark it
-       as a nonreal class.  Local classes in such contexts are not marked
-       as prototype instantiations. */
+  if (is_template_dependent_context()) {
+    /* If the lambda appears in a template-dependent context, mark it as a
+       nonreal class.  (Local classes in such contexts are not marked as
+       prototype instantiations.  However, their member functions are.) */
     type->variant.class_struct_union.is_nonreal_class = TRUE;
-    is_prototype_instantiation = TRUE;
+    is_nonreal = TRUE;
   }  /* if */
   update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE,
                              /*is_event_interface=*/FALSE, decl_level,
@@ -2357,7 +2356,7 @@ the fields implied by the lambda's capture list).
      default argument is recorded in the associated a_param_type entry). */
   record_entity_defined_in_expression((char*)type, iek_type,
                                       /*in_file_scope=*/TRUE);
-  if (!is_prototype_instantiation || prototype_instantiations_in_il) {
+  if (!is_nonreal || prototype_instantiations_in_il) {
     add_lambda_closure_to_types_list(type, decl_level);
   } else {
     set_parent_scope_for_type(type, decl_level);
@@ -31370,16 +31369,28 @@ done:
 static void finish_lambda_routine_processing(a_lambda_ptr  *p_lambda)
 /*
 The given lambda has been completely parsed, and its closure type has been
-completed.  Perform any final processing for the closure type's operator()
-(notably, IL lowering).
+completed.  Perform any final processing for the closure type's member
+functions (notably, IL lowering for the call operator).
 In severe error cases, *p_lambda->lambda_routine can be NULL: Set *p_lambda to
 NULL in such cases.
 */
 {
   a_lambda_ptr   lambda = *p_lambda;
   a_routine_ptr  rp;
+  a_type_ptr     closure_class;
 
   check_assertion(lambda != NULL);
+  closure_class = lambda->closure_class;
+  if (closure_class != NULL &&
+      closure_class->variant.class_struct_union.is_nonreal_class) {
+    /* Mark all the member functions as prototype instantiations. */
+    a_scope_ptr  closure_scope = class_type_supp(closure_class)->assoc_scope;
+    if (closure_scope != NULL) {
+      for (rp = closure_scope->routines; rp != NULL; rp = rp->next) {
+        rp->is_prototype_instantiation = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   rp = lambda->lambda_routine;
   if (rp != NULL) {
     if (rp->function_def_number != NULL_function_def_number) {

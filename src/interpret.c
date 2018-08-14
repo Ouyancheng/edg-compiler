@@ -7692,7 +7692,14 @@ otherwise, return FALSE and update *ips accordingly.
     info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
-  } else if (callee->is_prototype_instantiation) {
+  } else if (callee->is_prototype_instantiation &&
+             !callee->is_lambda_body) {
+    /* It's generally not worth attempting to evaluate a call to a prototype
+       instantiation (it's not needed, and in most cases we'll run into a
+       dependent construct that cannot be evaluated anyway).  However, we make
+       an exception for lambdas in template-dependent contexts: They're always
+       marked as prototype instantiations, but we might like to evaluate
+       something like "[]{ return 42; }()" at compile time nonetheless. */
     info_with_pos_sym(ec_constexpr_call_not_interpretable,
                       &call_node->position, symbol_for(callee), ips);
     do_constexpr_fail(result);

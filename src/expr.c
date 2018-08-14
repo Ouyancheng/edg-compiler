@@ -5760,12 +5760,18 @@ are expected to be NULL in that case.
                                             operand->type;
     class_type = skip_typerefs(class_type);
     check_assertion(!operand->bound_function);
-    if (class_type->variant.class_struct_union.is_nonreal_class ||
+    if ((class_type->variant.class_struct_union.is_nonreal_class &&
+         !type_is_lambda_closure(class_type)) ||
         (class_type->incomplete &&
          (gpp_mode || clang_mode || microsoft_mode) &&
          is_prototype_instantiation_context())) {
       /* A call of an object of a nonreal class type in a prototype
-         instantiation cannot be resolved. */
+         instantiation cannot be resolved.  (Closure types in template-
+         dependent contexts are marked as nonreal because their definitions
+         may depend on template parameters, but we can resolve their member
+         functions and we want to be able to evaluate some cases like
+         "[]{ return 1; }()" at compile time even when it occurs in a
+         template-dependent context.) */
       routine_type = NULL;
       prep_generic_operand(operand);
       unknown_dependent_function = TRUE;
