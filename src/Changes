@@ -1,5 +1,34 @@
 Version 5.1
 
+8/15/18  [EDGcpfe/19899]
+Missing "static" on generated in-class explicit specialization
+
+Consider the following example:
+
+  template<typename T> struct X {
+    template<typename U> static auto f(U  &&u)->decltype(u.g());
+    typedef decltype(f(T())) type;
+  };
+  struct Y {
+    int g();
+  };
+  X<Y> xy;
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE and
+with a C++-generating back end targeting a Microsoft dialect an in-class
+explicit specialization of the static member X<Y>::f is rendered.  Previously,
+the rendering of that explicit specialization lacked the "static" specifier:
+
+  template<> struct X<Y>  { 
+    template< class U> static auto f(U && u)->decltype(((u.g())));
+    template<> auto f(Y && u)->decltype((u.g()));
+    typedef decltype((f(Y()))) type; 
+  }; 
+
+(note the missing "static" on the third line; this output has been reformatted
+here for readability).  That is now fixed.
+
+
 8/15/18  [EDGcpfe/19979]
 Prototype instantiation of member function template sometimes done too late
 

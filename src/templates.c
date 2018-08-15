@@ -1257,7 +1257,8 @@ itself recursively to process classes nested within this class.
         add_source_sequence_entry_for_partial_instantiation(
                                                 (char *)rout,
                                                 (an_il_entry_kind)iek_routine,
-                                                declared_type);
+                                                declared_type,
+                                                rout->declared_storage_class);
       }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -1318,7 +1319,8 @@ itself recursively to process classes nested within this class.
         add_source_sequence_entry_for_partial_instantiation(
                                            (char *)var,
                                            (an_il_entry_kind)iek_variable,
-                                           declared_type);
+                                           declared_type,
+                                           var->declared_storage_class);
       }
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -9064,7 +9066,8 @@ a type in certain ways (see template_arg_list_is_dependent).
       add_source_sequence_entry_for_partial_instantiation(
                                              (char *)class_type,
                                              (an_il_entry_kind)iek_type,
-                                             class_type);
+                                             class_type,
+                                             (a_storage_class)sc_unspecified);
     }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -9569,7 +9572,8 @@ template.
       source_sequence_entries_disallowed =
                                         enum_type->variant.integer.is_nonreal;
       add_source_sequence_entry_for_partial_instantiation(
-                                       (char*)enum_type, iek_type, enum_type);
+                                       (char*)enum_type, iek_type, enum_type,
+                                       (a_storage_class)sc_unspecified);
       /* A template instantiation is considered to always be "autonomous",
          even if its instantiation happens to be triggered by a reference
          in the declaration of another entity. */
@@ -17197,9 +17201,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->type = rout_type;
     /* Copy the storage class from the template, but map sc_unspecified into
        sc_extern, as the new routine does not have a definition yet. */
-    rp->storage_class = templ_rout->storage_class ==
-                   (a_storage_class)sc_unspecified ? (a_storage_class)sc_extern
-                                                   : templ_rout->storage_class;
+    rp->storage_class =
+         templ_rout->storage_class == (a_storage_class)sc_unspecified ?
+                      (a_storage_class)sc_extern : templ_rout->storage_class;
+    rp->declared_storage_class = templ_rout->declared_storage_class;
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
     rp->is_lambda_body = templ_rout->is_lambda_body;
@@ -17379,7 +17384,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       add_source_sequence_entry_for_partial_instantiation(
                                                (char *)rp,
                                                (an_il_entry_kind)iek_routine,
-                                               declared_type);
+                                               declared_type,
+                                               rp->declared_storage_class);
     }  /* if */
     /* Reset the insert point so that instantiations triggered will follow
        the entry representing the partial instantiation, not precede it. */

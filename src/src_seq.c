@@ -1925,13 +1925,16 @@ insert it at the appropriate place in another scope.
 
 
 void add_source_sequence_entry_for_partial_instantiation(
-                                          char               *ptr,
-                                          an_il_entry_kind   kind,
-                                          a_type_ptr         declared_type)
+                                     char               *ptr,
+                                     an_il_entry_kind   kind,
+                                     a_type_ptr         declared_type,
+                                     a_storage_class    declared_storage_class)
 /*
 Add a source sequence secondary declaration entry to represent the
 partial instantiation of the entity specified by the indicated entity.
 declared_type points to a type that should be recorded in the entry.
+declared_storage_class is the storage class (possible "unspecified") that
+appeared on the declaration).
 */
 {
   a_src_seq_secondary_decl_ptr  sssdp;
@@ -1961,6 +1964,10 @@ declared_type points to a type that should be recorded in the entry.
     sssdp->compiler_generated_forward_decl = TRUE;
     if (kind == (an_il_entry_kind)iek_type) {
       sssdp->autonomous_tag_decl = TRUE;
+    }  /* if */
+    if (declared_storage_class != (a_storage_class)sc_unspecified) {
+      sssdp->explicit_storage_class = TRUE;
+      sssdp->declared_storage_class = declared_storage_class;
     }  /* if */
     /* This partial instantiation can be triggered anywhere.  Use the
        position associated with the symbol. */

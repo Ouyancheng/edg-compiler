@@ -108,9 +108,10 @@ extern void reset_ss_list_instantiation_insert_point(void);
 extern a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type);
 
 extern void add_source_sequence_entry_for_partial_instantiation(
-                                            char               *ptr,
-                                            an_il_entry_kind   kind,
-                                            a_type_ptr         declared_type);
+                                   char               *ptr,
+                                   an_il_entry_kind   kind,
+                                   a_type_ptr         declared_type,
+                                   a_storage_class    declared_storage_class);
 
 extern void update_classes_in_ss_list(a_scope_stack_entry_ptr  src_ssep,
                                       a_scope_stack_entry_ptr  dst_ssep);
