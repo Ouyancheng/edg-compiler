@@ -5557,6 +5557,28 @@ operand).
 }  /* turn_mem_func_operand_into_unknown_function */
 
 
+static a_boolean lambda_closure_has_nondependent_call_type(a_type_ptr  ctp)
+/*
+ctp is a lambda closure type.  Return TRUE only if the associated call operator
+has a nondependent type, ignoring the "is_nonreal_class" flag on the closure
+type itself.
+*/
+{
+  a_routine_ptr  rp = lambda_body_for_closure(ctp);
+  a_boolean      result, is_nonreal;
+
+  is_nonreal = ctp->variant.class_struct_union.is_nonreal_class;
+  if (is_nonreal) {
+    ctp->variant.class_struct_union.is_nonreal_class = FALSE;
+  }  /* if */
+  result = rp != NULL && !is_template_dependent_type(rp->type);
+  if (is_nonreal) {
+    ctp->variant.class_struct_union.is_nonreal_class = is_nonreal;
+  }  /* if */
+  return result;
+}  /* lambda_closure_has_nondependent_call_type */
+
+
 static void scan_function_call(an_operand             *operand,
                                an_operand             *bound_function_selector,
                                a_rescan_control_block *rcblock,
@@ -5761,7 +5783,8 @@ are expected to be NULL in that case.
     class_type = skip_typerefs(class_type);
     check_assertion(!operand->bound_function);
     if ((class_type->variant.class_struct_union.is_nonreal_class &&
-         !type_is_lambda_closure(class_type)) ||
+         !(type_is_lambda_closure(class_type) &&
+           lambda_closure_has_nondependent_call_type(class_type))) ||
         (class_type->incomplete &&
          (gpp_mode || clang_mode || microsoft_mode) &&
          is_prototype_instantiation_context())) {
