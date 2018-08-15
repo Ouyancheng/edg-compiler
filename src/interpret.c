@@ -13761,7 +13761,19 @@ diagnostic in *ips.
       break;
     case tk_struct:
     case tk_class:
-      { a_base_class_ptr  bcp = base_classes_of(type);
+      if (type->variant.class_struct_union.is_nonreal_class) {
+        /* We may get this far when interpreting a lambda expression that is
+           nonreal only because it appears in a template-dependent context.
+           Interpreting such lambdas as an intermediate result is fine because
+           it can produce a nondependent value, but if it is the top-level
+           expression, we might create an odd constant value whose
+           representation is nondependent but whose type is nonreal (that,
+           e.g., causes problems in lowering/mangling). */
+        info_with_pos_type(ec_constexpr_type_invalid, &ips->position, type,
+                           ips);
+        do_constexpr_fail(result);
+      } else {
+        a_base_class_ptr  bcp = base_classes_of(type);
         a_field_ptr       fp = type->variant.class_struct_union.field_list;
         a_boolean         is_static_init_list;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
