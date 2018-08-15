@@ -15418,7 +15418,9 @@ decl_member_function, which handles in-class member function declarations.)
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->storage_class = (a_storage_class)sc_extern;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   rtn->declared_storage_class = dps->declared_storage_class;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if ((prototype_instantiations_in_il || tssp->is_generic) && !sym->is_error) {
     add_to_routines_list(rtn, NO_SCOPE_DEPTH);
   }  /* if */

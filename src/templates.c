@@ -17204,7 +17204,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->storage_class =
          templ_rout->storage_class == (a_storage_class)sc_unspecified ?
                       (a_storage_class)sc_extern : templ_rout->storage_class;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_storage_class = templ_rout->declared_storage_class;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
     rp->is_lambda_body = templ_rout->is_lambda_body;
