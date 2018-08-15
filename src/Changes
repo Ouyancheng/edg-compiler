@@ -24,7 +24,7 @@ expansion in the call of "h(args...)" in the example below.  Now fixed.
   }
 
 
-8/14/18  [EDGcpfe/19581,EDGcpfe/19702]
+8/14/18  [EDGcpfe/18084,EDGcpfe/19581,EDGcpfe/19702]
 Lambda expressions in template-dependent contexts
 
 Lambda expressions in certain template-dependent contexts could previously
