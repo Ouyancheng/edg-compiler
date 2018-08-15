@@ -1,5 +1,29 @@
 Version 5.1
 
+8/15/18  [EDGcpfe/19979]
+Prototype instantiation of member function template sometimes done too late
+
+In some cases, the order in which member functions have their bodies scanned
+at the end of a class definition could result in a member function template
+being instantiated before the prototype instantiation had been done.  This 
+could result in incorrect behavior, such as a spurious error on the pack
+expansion in the call of "h(args...)" in the example below.  Now fixed.
+
+  struct A {
+    struct B {
+      void g() { A a; a.f(1); }
+    };
+    void h(int){}
+    template<typename... Ts> void f(Ts... args) {
+      h(args...);
+    }
+  };
+  int main() {
+    A::B B;
+    B.g();
+  }
+
+
 8/14/18  [EDGcpfe/19581,EDGcpfe/19702]
 Lambda expressions in template-dependent contexts
 
