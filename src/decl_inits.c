@@ -8680,9 +8680,12 @@ initialized.  These are addressed in the course of the processing.
           scan_field_initializer_if_needed(field, class_type);
           if (user_defined && ctor_rout->is_constexpr) {
             if (field->initializer == NULL) {
+              a_memory_region_number  saved_region;
               pos_sy_error(ec_unbounded_constexpr_ctor_init_recursion,
                            &err_pos, field_sym);
+              switch_to_file_scope_region(&saved_region);
               field->initializer = make_error_constant_dynamic_init();
+              switch_back_to_original_region(saved_region);
             } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it
                  cannot be used for constexpr construction. */

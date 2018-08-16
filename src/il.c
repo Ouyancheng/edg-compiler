@@ -5179,13 +5179,10 @@ a_dynamic_init_ptr make_error_constant_dynamic_init(void)
 Return a dynamic init entry for an error constant.
 */
 {
-  a_dynamic_init_ptr      dip;
-  a_memory_region_number  saved_region;
+  a_dynamic_init_ptr  dip =
+                        alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
 
-  switch_to_file_scope_region(&saved_region);
-  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
   dip->variant.constant = alloc_error_constant();
-  switch_back_to_original_region(saved_region);
   return dip;
 }  /* make_error_constant_dynamic_init */
 
