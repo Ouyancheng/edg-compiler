@@ -8118,12 +8118,13 @@ case).
     {
       is_vacuous_destructor_reference = TRUE;
     }  /* if */
-  }  /* if */
-
+  }  /* if */ 
   if (need_operand_1_type_check) {
     a_type_ptr  tp = class_struct_union_type;
     a_boolean   is_class_type = is_immediate_class_type(tp);
-    if (!is_class_type || is_incomplete_type(tp)) {
+    if (!is_class_type || (is_incomplete_type(tp) &&
+                           !(is_template_dependent_context() &&
+                             (gpp_mode || clang_mode || microsoft_mode)))) {
       /* The first operand is not (a pointer to) a complete class, struct,
          or union.  This check was delayed to this point so that we could
          allow things like vacuous destructor references. */
