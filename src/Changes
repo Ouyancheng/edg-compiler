@@ -1,5 +1,23 @@
 Version 5.1
 
+8/16/18  [EDGcpfe/19977]
+Field selections on an incomplete type in template contexts
+
+Consider:
+
+  struct I;
+  template<typename> struct X {
+    X(X const &p) { p.f().g(); };  // Error: "p.f()" has incomplete type.
+    I const& f() const;
+  };
+
+The front end issues an error on the expression "p.f().g()" because "p.f()"
+has an incomplete type.  However, other compilers do not diagnose this because
+the invalid operation appears in a template-dependent context.  The front end
+therefore now inhibits the associated error in Microsoft, GNU, and Clang C++
+modes.
+
+
 8/15/18  [EDGcpfe/19979]
 Prototype instantiation of member function template sometimes done too late
 
