@@ -6516,14 +6516,15 @@ cases).
   if (!proto_tssp->variant.function.has_prototype_instantiation &&
       prototype_instantiation_should_be_done_for_function(template_sym)) {
     /* The prototype instantiation has not been done yet.  This could be
-       we are deferring the prototype instantiation of functions, or it can
-       occur because a member function template is being called but it has
-       not gone through fixup processing yet.  Do the prototype instantiation
-       now.  This may be a friend template of a class template, in which
-       case the prototype instantiation is only done for the definition in
-       the class template, but we can get here because of deferral of function
-       prototype instantiations.  Additional prototype instantiations of the
-       friend template are handled in function_prototype_instantiation. */
+       because we are deferring the prototype instantiation of functions, or
+       it can occur because a member function template is being called but it
+       has not gone through fixup processing yet.  Do the prototype
+       instantiation now.  This may be a friend template of a class template,
+       in which case the prototype instantiation is only done for the
+       definition in the class template, but we can get here because of
+       deferral of function prototype instantiations.  Additional prototype
+       instantiations of the friend template are handled in
+       function_prototype_instantiation. */
     function_prototype_instantiation(proto_sym);
   }  /* if */
   if (tssp->pending_instantiations >= max_pending_instantiations) {
