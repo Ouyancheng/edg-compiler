@@ -4645,8 +4645,15 @@ without a leading "&".  Do the output in the way described by octl.
     /* The associated function is a conversion function.  Generate
        its name from the type. */
     check_assertion(con->source_corresp.is_class_member);
-    form_class_qualifier(parent_class_of(con),
-                         /*for_ptr_to_data_member=*/FALSE, octl);
+    if (con->source_corresp.parent_scope == NULL) {
+      /* This should never happen with well-formed IL, but it can occur in
+         error situations and is useful for debug output. */
+      check_assertion(!octl->gen_compilable_code);
+      octl->output_str("<null parent scope>::", octl);
+    } else {
+      form_class_qualifier(parent_class_of(con),
+                           /*for_ptr_to_data_member=*/FALSE, octl);
+    }  /* if */
     octl->output_str("operator ", octl);
     form_type(con->variant.template_param.variant.
                                               unknown_function.conversion_type,

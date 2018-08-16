@@ -17481,14 +17481,21 @@ for the copy/substitution.
     /* This occurs for member constants specified in forms such as A<T>::x.
        Do substitution on the parent type and then look up the name in the
        updated class to see what the member is. */
-    a_symbol_ptr orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+    a_symbol_ptr orig_sym = symbol_for(con);
     check_assertion(orig_sym != NULL);
     /* For a tpck_unknown_function constant with an underlying symbol, use
        that symbol for the substitution. */
     if (is_unknown_function_constant(con)) {
-      a_symbol_ptr under_sym = con->variant.template_param.variant.
-                                                       unknown_function.symbol;
+      a_symbol_ptr under_sym = con->variant.template_param
+                                   .variant.unknown_function.symbol;
       if (under_sym != NULL) orig_sym = under_sym;
+    }  /* if */
+    if (con->source_corresp.parent_scope == NULL) {
+      /* In some error situations con->is_class_member may be NULL, but the
+         parent type might have been a nonreal class type with no associated
+         scope. */
+      copy_error = TRUE;
+      goto done;
     }  /* if */
     parent_type = parent_class_of(con);
     if (parent_type->source_corresp.member_of_unknown_base) {
@@ -17531,6 +17538,7 @@ for the copy/substitution.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   if (copy_error) sym = NULL;
   return sym;
 }  /* symbol_for_template_param_unknown_entity_con_after_substitution */
