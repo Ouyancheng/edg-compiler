@@ -4465,6 +4465,14 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
         pos_diagnostic(es_warning,
                        ec_invalid_alignment_reducing_attr,
                        &type->source_corresp.decl_position);
+      } else if (gnu_mode && !clang_mode) {
+        /* GCC uses the "last" alignas specifier, but seems to silently ignore
+           it when it is smaller than the base alignment of the enum.  E.g.,
+             enum alignas(16) alignas(1) E { };
+           ends up with alignof(E) == alignof(int). */
+        pos_diagnostic(es_warning,
+                       ec_invalid_alignment_reducing_attr,
+                       &type->source_corresp.decl_position);
       } else {
         pos_diagnostic(es_discretionary_error,
                        ec_invalid_alignment_reducing_attr,
