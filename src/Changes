@@ -1,5 +1,20 @@
 Version 5.1
 
+8/17/18  [EDGcpfe/19988]
+IA-64 ABI: Mangling of variable templates
+
+The IA-64 ABI requires that variable template names be mangled with the
+<unscoped-template-name> production which includes allocating a substitution
+for the variable template name.  The front end had failed to do that, resulting
+in incorrect mangled names in some instances (where a substitution is made
+after the variable template name appears in the mangled name).  This is
+now fixed (when ABI_COMPATIBILITY_VERSION >= 510).  For example, with --c++14:
+
+  enum E { e };
+  template <typename T, T t> T vt = T(0);
+  auto x = vt<E, e>;    // was _Z2vtI1ELS_0EE, now _Z2vtI1ELS0_0EE
+
+
 8/17/18  [EDGcpfe/19980]
 GNU compatibility: specifying alignment of enum type
 

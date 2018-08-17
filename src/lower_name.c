@@ -576,6 +576,7 @@ static void mangled_encoding_for_expression_full(
 static void mangled_name_with_possible_qualification(
                                                a_source_correspondence  *scp,
                                                an_il_entry_kind         kind,
+                                               a_template_ptr           tmpl,
                                                a_mangling_control_block *mctl);
 static void mangled_encoding_for_constant(
                                   a_constant_ptr           con,
@@ -4228,7 +4229,9 @@ do_unknown_function:
           { a_length_reservation length_reservation;
             reserve_space_for_length(&length_reservation, mctl);
             mangled_name_with_possible_qualification(&con->source_corresp,
-                                                     iek_constant, mctl);
+                                                     iek_constant,
+                                                     (a_template_ptr)NULL,
+                                                     mctl);
             fill_in_length(&length_reservation, mctl);
           }
 #else /* IA64_ABI */
@@ -12274,18 +12277,23 @@ list to the mangled name.
 }  /* add_variable_template_indication */
 
 
+#if !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510)
+/*ARGSUSED*/ /* <-- tmpl is not used in that case. */
+#endif /* !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510) */
 static void mangled_name_with_possible_qualification(
                                                 a_source_correspondence  *scp,
                                                 an_il_entry_kind         kind,
+                                                a_template_ptr           tmpl,
                                                 a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the class, namespace
 member, scoped enum type, or variable whose source correspondence is given by
-scp and whose kind is given by "kind".  This routine is called for static data
-member variables, namespace member variables, some file scope variables, scoped
-enumerators, and class and namespace member constants.  If the entity is a
-namespace or class member, appropriate qualification is added to the mangled
-name.
+scp and whose kind is given by "kind".  For the IA-64 ABI, if tmpl is non-NULL,
+it specifies the template for a variable template.  This routine is called for
+static data member variables, namespace member variables, some file scope
+variables, scoped enumerators, and class and namespace member constants.  If
+the entity is a namespace or class member, appropriate qualification is added
+to the mangled name.
 */
 {
   an_il_entity_list_entry_ptr sb_entity;
@@ -12403,8 +12411,25 @@ name.
     }  /* for */
     add_to_mangled_name('E', mctl);
   } else {
-    /* Output the name of the member. */
+    /* Output the name of the member/variable. */
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510
+    /* Variable templates are mangled as <unscoped-template-name> which
+       requires allocating a substitution. */
+    if (tmpl != NULL) {
+      if (add_substitution_if_available((char *)tmpl, iek_template,
+                                        /*is_pack_expansion=*/FALSE, mctl)) {
+        goto skip_mangling;
+      }  /* if */
+    }  /* if */
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510 */
     mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510
+    if (tmpl != NULL) {
+      alloc_substitution((char *)tmpl, iek_template,
+                         /*is_pack_expansion=*/FALSE, mctl);
+    }  /* if */
+skip_mangling:;
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510 */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (kind == iek_variable &&
@@ -12430,6 +12455,12 @@ Add to the mangled name the encoding for the name of the variable
 variable).
 */
 {
+  a_template_ptr                   tmpl = NULL;
+#if IA64_ABI
+  a_symbol_ptr                     sym, template_sym;
+  a_template_symbol_supplement_ptr tssp;
+#endif /* IA64_ABI */
+
   if (!has_name(variable) &&
       !struct_binding_container_needs_mangling(variable)) {
     /* An anonymous union can cause an unnamed member of a namespace:
@@ -12440,8 +12471,21 @@ variable).
     check_assertion(!variable->source_corresp.is_class_member);
     give_unnamed_member_variable_a_name(variable);
   }  /* if */
+#if IA64_ABI
+  sym = (a_symbol_ptr)(variable->source_corresp.assoc_info);
+  if (sym->variant.variable.instance_ptr != NULL &&
+      variable->is_template_variable &&
+      variable->template_info->template_arg_list != NULL) {
+    /* This is a variable template which (in the IA-64 ABI) requires a
+       substitution, so pass the template pointer for that purpose. */
+    template_sym = sym->variant.variable.instance_ptr->template_sym;
+    tssp = template_supplement_for_symbol(template_sym);
+    check_assertion(tssp != NULL);
+    tmpl = tssp->il_template_entry;
+  }  /* if */
+#endif /* IA64_ABI */
   mangled_name_with_possible_qualification(&variable->source_corresp,
-                                           iek_variable, mctl);
+                                           iek_variable, tmpl, mctl);
 }  /* mangled_variable_name_with_possible_qualification */
 
 
@@ -12726,7 +12770,8 @@ member constant, or (as an extension) a declared class member constant.
        same type. */
     add_mangled_name_prefix(&mctl);
     mangled_name_with_possible_qualification(&con->source_corresp,
-                                             iek_constant, &mctl);
+                                             iek_constant,
+                                             (a_template_ptr)NULL, &mctl);
 #if IA64_ABI
     if (scp_is_enum_member(&con->source_corresp) &&
         con->source_corresp.is_local_to_function &&
