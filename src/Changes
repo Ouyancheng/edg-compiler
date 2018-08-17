@@ -1,5 +1,25 @@
 Version 5.1
 
+8/17/18  [EDGcpfe/19983]
+Microsoft compatibility: access checking in SFINAE contexts
+
+Earlier versions of the Microsoft compiler did not perform access checking
+as part of the SFINAE process.  Starting with version 1900, they now do.
+We now enable SFINAE access checking in Microsoft mode when microsoft_version
+is >= 1900.
+
+  struct A {
+    template <class T> static typename T::X f(T);
+  };
+  class B {
+    typedef int X;
+  };
+  int main() {
+    B b;
+    A::f(b);  // now fails overload resolution
+  }
+
+
 8/16/18  [EDGcpfe/19977]
 Field selections on an incomplete type in template contexts
 
