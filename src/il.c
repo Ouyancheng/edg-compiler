@@ -17491,9 +17491,8 @@ for the copy/substitution.
       if (under_sym != NULL) orig_sym = under_sym;
     }  /* if */
     if (con->source_corresp.parent_scope == NULL) {
-      /* In some error situations con->is_class_member may be NULL, but the
-         parent type might have been a nonreal class type with no associated
-         scope. */
+      /* In some error situations the parent scope may be NULL, but the parent
+         type might have been a nonreal class type with no associated scope. */
       copy_error = TRUE;
       goto done;
     }  /* if */
