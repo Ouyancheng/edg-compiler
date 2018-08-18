@@ -22467,7 +22467,8 @@ and < end_tsn are included in the string.
         a_template_symbol_supplement_ptr	tssp;
         sym =   ctp->variant.extracted_template.symbol;
         tssp = template_supplement_for_symbol(sym);
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+    REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS
         if (sym->kind == (a_symbol_kind)sk_member_function &&
             !entity_cannot_be_specialized(sym)) {
           /* When source sequence entries for nonclass template instantiations
@@ -22478,7 +22479,7 @@ and < end_tsn are included in the string.
              body since it will be needed for instantiations.) */
           add_body_string = FALSE;
         }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
         if (add_body_string) { /*lint !e774*/
           add_token_cache_to_string(&tssp->cache.tokens);
         }  /* if */

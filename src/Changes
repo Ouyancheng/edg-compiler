@@ -1,5 +1,26 @@
 Version 5.1
 
+8/17/18  [EDGcpfe/19991]
+C++-generating back end: inline member function definitions of class templates
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+bodies of member functions defined inside class template definitions were
+removed from the generated code, leaving only the member function
+declarations.  This was done to accommodate very old versions of some
+compilers that issued spurious errors when an explicit specialization was
+provided for a member function defined inline in a class template.  Modern
+compilers do not exhibit this bug, so the front end has been changed to
+perform this removal only when the new configuration macro
+REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS is TRUE.  The default
+value for this new macro is FALSE, meaning the bodies of these member
+functions will appear in the generated code.  For example:
+
+  template<typename T> struct S{
+    void f() { } // Previously generated as "void f();" in some configurations
+  };
+
+
 8/17/18  [EDGcpfe/19988]
 IA-64 ABI: Mangling of variable templates
 

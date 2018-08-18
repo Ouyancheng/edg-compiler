@@ -1492,6 +1492,19 @@ would be less common.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
+If NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+following flag determines whether inline function bodies should be removed
+from the string form of class template definitions.  This capability
+provides a workaround for certain very old versions of some compilers that
+issued spurious errors when an explicit specialization was provided for a
+member function defined inline in a class template definition.  The flag
+has no effect in other configurations.
+*/
+#ifndef REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS
+#define REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS FALSE
+#endif /* REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS */
+
+/*
 Flag that indicates whether linkage specification blocks like
 	extern "C" { ... }
 should be represented explicitly in the source sequence entries list.
