@@ -2478,9 +2478,8 @@ option values if they were not already set by a command line option.
       cpp11_sfinae_enabled = (microsoft_version >= 1600);
     } /* if */
     if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
-      if (cpp11_sfinae_enabled &&
-          microsoft_mode && microsoft_version < 1900) {
-        /* Versions of MSVC prior to 1900 do not to implement access SFINAE.
+      if (cpp11_sfinae_enabled && microsoft_mode) {
+        /* Current versions of MSVC appear not to implement access SFINAE yet.
            However, Clang with the -fms-extensions flag does; so don't change
            modes that are not actually full Microsoft modes. */
         cpp11_sfinae_ignore_access = TRUE;
