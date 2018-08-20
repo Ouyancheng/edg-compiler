@@ -76,7 +76,9 @@ The front end issues an error on the expression "p.f().g()" because "p.f()"
 has an incomplete type.  However, other compilers do not diagnose this because
 the invalid operation appears in a template-dependent context.  The front end
 therefore now inhibits the associated error in Microsoft, GNU, and Clang C++
-modes.
+modes.  The front end did previously accept most cases like this in Microsoft,
+GNU, and Clang C++ modes using a different mechanism: For those cases, this is
+a regression introduced in version 5.0.
 
 
 8/15/18  [EDGcpfe/19979]
