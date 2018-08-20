@@ -2791,6 +2791,7 @@ An internal error has occurred.  Write the given message and abort.
 
 DOES_NOT_RETURN assertion_failed(a_const_char *filename,
 		                 int          line_number,
+		                 a_const_char *function,
 				 a_const_char *string1,
 				 a_const_char *string2)
 /*
@@ -2805,10 +2806,9 @@ An assertion has failed.  Abort the compilation.
 
   /* Make sure that formatting the internal error string won't overflow
      the buffer.  We subtract 100 from the buffer length to allow for
-     other information that is included in the message.  If the filename
-     is too long we print as many characters from the end of the string
-     as possible because the characters at the beginning probably contain
-     the directory portion of the name. */
+     other information that is included in the message.  Strip the directory
+     name of the file (if any). */
+  filename = start_of_file_name(filename);
   overflow = (int32_t)(strlen(filename) - max_filename_length);
   if (overflow > 0) {
     filename += overflow;
@@ -2819,8 +2819,8 @@ An assertion has failed.  Abort the compilation.
     sprintf(line_number_buffer, "%d", line_number);
   }  /* if */
   if (string1 == NULL) {
-    sprintf(buffer, "assertion failed at: \"%s\", line %s\n",
-            filename, line_number_buffer);
+    sprintf(buffer, "assertion failed at: \"%s\", line %s in %s\n",
+            filename, line_number_buffer, function);
   } else {
     /* Print the two strings.  Only separate them by a blank if the second
        string is not null. */
@@ -2831,8 +2831,8 @@ An assertion has failed.  Abort the compilation.
     } else {
       separator = " ";
     }  /* if */
-    sprintf(buffer, "assertion failed: %s%s%s (%s, line %s)\n", string1,
-            separator, string2, filename, line_number_buffer);
+    sprintf(buffer, "assertion failed: %s%s%s (%s, line %s in %s)\n", string1,
+            separator, string2, filename, line_number_buffer, function);
   }  /* if */
   internal_error(buffer);
 }  /* assertion_failed */
@@ -2845,6 +2845,7 @@ will be passed to assertion_failed at a later time.
 static struct {
   a_const_char *filename;
   int          line_number;
+  a_const_char *function;
   a_const_char *string1;
   a_const_char *string2;
 } expected_error_record;
@@ -2852,6 +2853,7 @@ static struct {
   
 void record_expected_error(a_const_char *filename,
                            int          line_number,
+                           a_const_char *function,
                            a_const_char *string1,
                            a_const_char *string2)
 /*
@@ -2868,6 +2870,7 @@ have no effect.
     /* No expected error has been recorded yet. */
     expected_error_record.filename = filename;
     expected_error_record.line_number = line_number;
+    expected_error_record.function = function;
     expected_error_record.string1 = string1;
     expected_error_record.string2 = string2;
   }  /* if */
@@ -2884,6 +2887,7 @@ expected_error.
   if (expected_error_record.filename != NULL && total_errors == 0) {
     assertion_failed(expected_error_record.filename,
                      expected_error_record.line_number,
+                     expected_error_record.function,
                      expected_error_record.string1,
                      expected_error_record.string2);
   }  /* if */

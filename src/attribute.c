@@ -1038,6 +1038,7 @@ static DOES_NOT_RETURN abort_for_misconfigured_attribute(
                                                 an_attribute_ptr  ap,
                                                 a_const_char      *filename,
                                                 int               line_number,
+                                                a_const_char      *function,
                                                 a_const_char      *msg)
 /*
 Abort with a message indicating the given file name, line number, and message.
@@ -1050,14 +1051,15 @@ through the macro check_attr_config.
   /* Create a parenthesized note, mentioning the attribute name, to be
      appended to the message. */
   (void)sprintf(attr_name, "(for attribute %s)", attribute_display_name(ap));
-  assertion_failed(filename, line_number, msg, attr_name); 
+  assertion_failed(filename, line_number, function, msg, attr_name); 
 }  /* abort_for_misconfigured_attribute */
 
 
 /* Macro to test an assertion regarding the attribute configuration tables. */
 #define check_attr_config(test, ap, msg)                                     \
   ((/*lint --e(774,506)*/(test)) ? (void)0 :                                 \
-    abort_for_misconfigured_attribute((ap), __FILE__, __LINE__, (char*)msg))
+    abort_for_misconfigured_attribute((ap), __FILE__, __LINE__, __func__,    \
+                                      (char*)msg))
 
 #else /* !CHECKING */
 

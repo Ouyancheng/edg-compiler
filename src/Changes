@@ -1,5 +1,14 @@
 Version 5.1
 
+8/20/18  [EDGcpfe/19957]
+Changes to assertion messages
+
+A change has been made to add __func__ to the diagnostic displayed when an
+assertion or internal error occurs in the front end.  This will help us to
+more quickly diagnose front end issues.  A change has also been made to
+strip the directory name (if any) from the file name that is reported.
+
+
 8/17/18  [EDGcpfe/19991]
 C++-generating back end: inline member function definitions of class templates
 
