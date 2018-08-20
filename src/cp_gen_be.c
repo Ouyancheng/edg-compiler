@@ -18918,12 +18918,14 @@ TRUE if the declaration following this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       } else if (rout->special_kind ==
                                      (a_special_function_kind)sfk_conversion &&
-                 msvc_is_generated_code_target) {
-        /* The Microsoft compiler has a bug that does not allow a
-           non-definition declaration of an explicit specialization of a
-           conversion function template.  Generate the definition here,
-           even though it would ordinarily be only a declaration, and mark
-           the routine entry so it won't be defined a second time. */
+                 msvc_is_generated_code_target &&
+                 msvc_target_version_number < 1600) {
+        /* Older versions of the Microsoft compiler have a bug that does
+           not allow a non-definition declaration of an explicit
+           specialization of a conversion function template.  When
+           targeting those versions, generate the definition here, even
+           though it would ordinarily be only a declaration, and mark the
+           routine entry so it won't be defined a second time. */
         goto handle_as_definition;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       }  /* if */

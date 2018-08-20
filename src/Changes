@@ -1,5 +1,43 @@
 Version 5.1
 
+8/20/18  [EDGcpfe/19900]
+C++-generating back end: ordering of generated explicit specialization of
+conversion function template
+
+In C++-generating back end configurations targeting MSVC for the generated
+code and with NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to TRUE, the definitions of generated explicit specializations of
+conversion function templates were sometimes put out too early, so that a
+reference in the body of such a function caused the implicit instantiation
+of a template that was later explicitly specialized. The reason for this
+potentially-problematic ordering was to work around a bug in early versions
+of the MSVC compiler; see the Changes entry of 2/4/07.  More recent
+versions of MSVC do not exhibit this bug, so when
+msvc_target_version_number is >= 1600, the generated explicit
+specializations of conversion function templates are put out in the correct
+location.  For example:
+
+  template<typename T> struct E {};
+  template <typename T, int N> E<T> g(T (&)[N]) {
+    return E<T>{};
+  }
+  template <typename T1> struct X {
+    template <typename T> operator E<T>() const {
+      T x[] = { T{} }; 
+      return g(x);
+    }
+  };
+  void start() {
+    (E<bool>)X<bool>();
+  }
+
+Previously, the generated explicit specialization of
+X<bool>::E::operator E<bool>, which contains a reference to g<bool,1>,
+appeared prior to the declaration of the explicit specialization of
+g<bool,1>.  As a result, g<bool,1> was implicitly instantiated before it
+was explicitly specialized, which is an error.  This is now fixed.
+
+
 8/20/18  [EDGcpfe/19974]
 C++-generating back end: Static data members with in-class initializers
 
