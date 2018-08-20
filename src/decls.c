@@ -11045,9 +11045,10 @@ the symbol through dps->sym and its linkage (which is always "none") through
          user-declared default constructor if the static data member's type
          is const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
       if (has_initializer ||
-          is_const_qualified_type(var->type) ?
-            type_has_user_provided_default_constructor(var->type) :
-            type_has_nontrivial_default_constructor(var->type)) {
+          (!var->initializer_in_class &&
+           (is_const_qualified_type(var->type) ?
+                type_has_user_provided_default_constructor(var->type) :
+                type_has_nontrivial_default_constructor(var->type)))) {
         srk_flags |= SRK_INITIALIZATION;
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,

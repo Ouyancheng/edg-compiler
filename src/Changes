@@ -1,5 +1,24 @@
 Version 5.1
 
+8/20/18  [EDGcpfe/19974]
+C++-generating back end: Static data members with in-class initializers
+
+Consider the following code in C++11 mode but not C++17 mode:
+
+  #include <initializer_list>
+  struct S {
+    static constexpr auto s{1.0};
+  };
+  constexpr decltype(S::s) S::s;
+
+The changes for EDGcpfe/19285 caused primary source sequence entries to be
+generated for both the in-class declaration and the out-of-class definition.
+That in turn, caused both to be rendered with the same "auto" type.  That
+regression is now fixed: The out-of-class definition now gets a secondary
+source sequence entry with its own type description and that description is
+correctly used to render the type as "decltype(S::s)".
+
+
 8/20/18  [EDGcpfe/19957]
 Changes to assertion messages
 
