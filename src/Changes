@@ -11,7 +11,7 @@ class_decl.c).  For example:
     auto& f() = delete;  // Previously aborted.  Now okay.
   };
 
-This is now fixed.  (See also EDGcpfe/19810, which resolved a variation of
+This is now fixed.  (See also EDGcpfe/18910, which resolved a variation of
 this issue.)
 
 
