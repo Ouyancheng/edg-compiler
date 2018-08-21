@@ -4019,11 +4019,7 @@ processing.
       /* For class template instances, we only complete ("instantiate") the
          exception specification if one is explicitly specified (to ensure
          that the explicit and implicit versions are equivalent). */
-      if (!is_unspecialized_template_class(class_type)) {
-        complete_defaulted_exc_spec(rp);
-      } else {
-        complete_defaulted_exc_spec_if_explicit(rp);
-      }  /* if */
+      complete_defaulted_exc_spec_if_explicit(rp);
     }  /* if */
   }  /* for */
 }  /* complete_all_defaulted_exc_specs */

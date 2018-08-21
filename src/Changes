@@ -1,5 +1,30 @@
 Version 5.1
 
+8/21/18  [EDGcpfe/18069,EDGcpfe/19947]
+Exception specifications and defaulted special member functions
+
+Consider the following example in C++11 or C++14 mode (but not C++17 mode):
+
+  struct E {
+     E();
+     E(E const&) = delete;
+  };
+  template<typename T> struct B {
+    B() noexcept(noexcept(T(T{})));
+  };
+  struct D: B<E> {
+    D() = default;
+  };
+
+Previously this elicited a warning or error (depending on the mode) about an
+attempt to reference the deleted copy constructor of E from the exception
+specification of B<E>::B().  That exception specification was instantiated to
+establish the exception specification of D::D().  Now, the instantiation of the
+exception specification is delayed until D::D() is actually used and hence no
+diagnostic is issued for this particular example.  This behavior was clarified
+by the resolution of Core issue 1330.
+
+
 8/21/18  [EDGcpfe/19888]
 Abort on use of deleted function with deducible return type
 
