@@ -13062,7 +13062,7 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       if (rp->has_deducible_return_type) {
         /* Something like "auto f() = delete;": Make sure the routine doesn't
            escape with "auto" as an actual return type.  We just record "int"
-           instead, with a placeholder typeref on top.  */
+           instead, with a placeholder typeref on top. */
         a_type_ptr  rtp = rp->type, return_type, placeholder_type;
         a_boolean   is_decltype_auto;
         return_type = rtp->variant.routine.return_type;
