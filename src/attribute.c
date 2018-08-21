@@ -1058,7 +1058,7 @@ is called through the macro check_attr_config.
 /* Macro to test an assertion regarding the attribute configuration tables. */
 #define check_attr_config(test, ap, msg)                                     \
   ((/*lint --e(774,506)*/(test)) ? (void)0 :                                 \
-    abort_for_misconfigured_attribute((ap), __FILE__, __LINE__, __func__,    \
+    abort_for_misconfigured_attribute((ap), __FILE__, __LINE__, __EDG_func__,\
                                       (char*)msg))
 
 #else /* !CHECKING */

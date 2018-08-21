@@ -6753,6 +6753,11 @@ file.
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */
   comment_undefined_macro_name(FULLY_RESOLVED_MACRO_POSITIONS);
 #endif /* defined(FULLY_RESOLVED_MACRO_POSITIONS) */
+#if defined(FUNC_AVAILABLE)
+  define_numeric_valued_macro(FUNC_AVAILABLE);
+#else /* !defined(FUNC_AVAILABLE) */
+  comment_undefined_macro_name(FUNC_AVAILABLE);
+#endif /* defined(FUNC_AVAILABLE) */
 #if defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED)
   define_numeric_valued_macro(
                             FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED);

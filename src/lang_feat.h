@@ -2386,6 +2386,19 @@ for some expressions that gcc without -O1 would return FALSE for.
 #define DEFAULT_GCC_CONST_VARIABLES_ALLOWED TRUE
 #endif /* ifndef DEFAULT_GCC_CONST_VARIABLES_ALLOWED */
 
+/*
+Flag that is true if the __func__ identifier is available.  That's the case
+for most C and C++ compilers, but some pre-C11 C compilers may not support it.
+*/
+#ifndef FUNC_AVAILABLE
+#define FUNC_AVAILABLE TRUE
+#endif /* ifndef FUNC_AVAILABLE */
+#if !FUNC_AVAILABLE
+#define __EDG_func__ "__func__ not available"
+#else /* FUNC_AVAILABLE */
+#define __EDG_func__ __func__
+#endif /* !FUNC_AVAILABLE */
+
 EXTERN int32_t
 		std_version;
 			/* A number of the form YYYYmm indicating the version

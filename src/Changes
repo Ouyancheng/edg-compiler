@@ -105,6 +105,11 @@ assertion or internal error occurs in the front end.  This will help us to
 more quickly diagnose front end issues.  A change has also been made to
 strip the directory name (if any) from the file name that is reported.
 
+Coincident with this change, __func__ is enabled in all modes.  For older
+compilers that may not support __func__, the FUNC_AVAILABLE configuration
+macro has been added (which can be set to FALSE to disable the use of
+__func__).
+
 
 8/17/18  [EDGcpfe/19991]
 C++-generating back end: inline member function definitions of class templates

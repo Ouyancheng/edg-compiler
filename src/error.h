@@ -192,7 +192,7 @@ extern void check_expected_errors(void);
    code is not being used. */
 #define check_assertion(test)						\
   ((/*lint --e(774,506)*/(test)) ? (void)0 :				\
-    assertion_failed(__FILE__, __LINE__, __func__,			\
+    assertion_failed(__FILE__, __LINE__, __EDG_func__,			\
                      (char *)NULL, (char *)NULL))
 
 /* Macro to test an assertion or ensure that errors will be issued before
@@ -200,51 +200,54 @@ extern void check_expected_errors(void);
    called). */
 #define check_assertion_or_expect_error(test)                                \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
-    record_expected_error(__FILE__, __LINE__, __func__,	(char *)NULL,        \
+    record_expected_error(__FILE__, __LINE__, __EDG_func__, (char *)NULL,    \
                           (char *)NULL);                                     \
   }
 /* Same as check_assertion_or_expect_error, but only check for errors (no
    other condition). */
 #define expect_error()                                                       \
   if (total_errors == 0) {                                                   \
-    record_expected_error(__FILE__, __LINE__, __func__,	(char *)NULL,        \
+    record_expected_error(__FILE__, __LINE__, __EDG_func__, (char *)NULL,    \
                           (char *)NULL);                                     \
   }
 /* Macro that generates an assertion failed internal error.  Intended to
    be used in the else clause of an if statement or the default case of a
    switch statement that is not intended to be reached. */
 #define unexpected_condition()						\
-  assertion_failed(__FILE__, __LINE__, __func__, (char *)NULL, (char *)NULL)
+  assertion_failed(__FILE__, __LINE__, __EDG_func__, (char *)NULL,      \
+                   (char *)NULL)
 /* Macros that are the same as above except that a string describing the
    assertion is provided. */
 #define check_assertion_str(test, string)                        \
   if (/*lint --e(774,506)*/!(test))                              \
-    assertion_failed(__FILE__, __LINE__, __func__, string, (char *)NULL);
+    assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL);
 #define check_assertion_or_expect_error_str(test, string)                    \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
-    record_expected_error(__FILE__, __LINE__, __func__, string, (char *)NULL);\
+    record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
+                          (char *)NULL);\
   }
 #define expect_error_str(string)                                             \
   if (total_errors == 0) {                                                   \
-    record_expected_error(__FILE__, __LINE__, __func__, string, (char *)NULL);\
+    record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
+                          (char *)NULL);\
   }
 #define unexpected_condition_str(string)  				\
-  assertion_failed(__FILE__, __LINE__, __func__, string, (char *)NULL)
+  assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 /* Macros that are the same as above except that two strings are provided.
    this is simply done to make it easier to use long strings as arguments. */
 #define check_assertion_str2(test, string1, string2)          \
   if (/*lint --e(774,506)*/!(test))                           \
-    assertion_failed(__FILE__, __LINE__, __func__, string1, string2);
+    assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2);
 #define check_assertion_or_expect_error_str2(test, string1, string2)         \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
-    record_expected_error(__FILE__, __LINE__, __func__, string1, string2);   \
+    record_expected_error(__FILE__, __LINE__, __EDG_func__, string1, string2);\
   }
 #define expect_error_str2(string1, string2)                                  \
   if (total_errors == 0) {                                                   \
-    record_expected_error(__FILE__, __LINE__, __func__, string1, string2);   \
+    record_expected_error(__FILE__, __LINE__, __EDG_func__, string1, string2);\
   }
 #define unexpected_condition_str2(string1, string2) 			\
-  assertion_failed(__FILE__, __LINE__, __func__, string1, string2)
+  assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
 #else /* !CHECKING */
 /* check_assertion must produce a void result. */
 #define check_assertion(test) ((void)0)
