@@ -1041,9 +1041,9 @@ static DOES_NOT_RETURN abort_for_misconfigured_attribute(
                                                 a_const_char      *function,
                                                 a_const_char      *msg)
 /*
-Abort with a message indicating the given file name, line number, and message.
-Also indicate the name of the affected attribute.  This function is called
-through the macro check_attr_config.
+Abort with a message indicating the given file name, line number, function,
+and message.  Also indicate the name of the affected attribute.  This function
+is called through the macro check_attr_config.
 */
 {
   char  attr_name[MAX_ATTRIBUTE_NAME_LENGTH+20];
