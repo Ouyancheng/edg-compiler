@@ -1,5 +1,20 @@
 Version 5.1
 
+8/21/18  [EDGcpfe/19888]
+Abort on use of deleted function with deducible return type
+
+Some cases of deleted function declarations with a deducible return type
+resulted in an internal error (in check_defaulted_or_deleted_function in
+class_decl.c).  For example:
+
+  struct S {
+    auto& f() = delete;  // Previously aborted.  Now okay.
+  };
+
+This is now fixed.  (See also EDGcpfe/19810, which resolved a variation of
+this issue.)
+
+
 8/20/18  [EDGcpfe/19900]
 C++-generating back end: ordering of generated explicit specialization of
 conversion function template

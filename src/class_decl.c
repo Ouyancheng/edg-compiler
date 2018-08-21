@@ -13061,17 +13061,19 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       rp->defined = TRUE;
       if (rp->has_deducible_return_type) {
         /* Something like "auto f() = delete;": Make sure the routine doesn't
-           escape with "auto" as an actual return type.  We just record "void"
-           instead, with a placeholder typeref on top. */
-        a_type_ptr  rtp = rp->type, return_type;
+           escape with "auto" as an actual return type.  We just record "int"
+           instead, with a placeholder typeref on top.  */
+        a_type_ptr  rtp = rp->type, return_type, placeholder_type;
         a_boolean   is_decltype_auto;
         return_type = rtp->variant.routine.return_type;
-        check_assertion(is_auto_type(return_type));
-        is_decltype_auto = return_type->variant.template_param.extra_info
-                                      ->coordinates.position
+        placeholder_type = find_bottom_of_type(return_type);
+        check_assertion(is_auto_type(placeholder_type));
+        is_decltype_auto = placeholder_type->variant.template_param.extra_info
+                                           ->coordinates.position
                                                   == DECLTYPE_AUTO_POS_NUMBER;
-        rtp->variant.routine.return_type =
-                       add_placeholder_typeref(void_type(), is_decltype_auto);
+        *placeholder_type =
+               *add_placeholder_typeref(integer_type((an_integer_kind)ik_int),
+                                        is_decltype_auto);
       }  /* if */
     }  /* if */
   } else if (func_info->is_defaulted) {
