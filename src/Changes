@@ -4,10 +4,10 @@ Version 5.1
 C++-generating back end: Missing static specifier for in-class explicit
 specialization of static member function template
 
-In C++-generating back end configurations in which
-NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE,
-the generated explicit specialization of a static member function template
-was put out without the "static" keyword.  For example, with
+In C++-generating back end configurations targeting MSVC for the generated
+code and with NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to TRUE, the generated explicit specialization of a static member function
+template was put out without the "static" keyword.  For example, with
 --microsoft_version=1910:
 
   template<typename T> struct A {
