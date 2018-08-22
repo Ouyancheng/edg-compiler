@@ -2209,7 +2209,7 @@ no_access_check_on_friend_declarator_ids.
 #endif /* DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS */
 
 /*
-Flag that is true if the asm string manipulation routines and data
+Flag that is TRUE if the asm string manipulation routines and data
 structures are needed.  These are needed when asm functions are allowed
 or when Microsoft extensions (including Microsoft asms) are allowed.
 */
@@ -2364,7 +2364,7 @@ warning_on_lossy_conversion.  The behavior can also be controlled by the
 #endif /* ifndef DEFAULT_WARNING_ON_LOSSY_CONVERSION */
 
 /*
-Flag that is true if the C++ deprecated conversion from string literal
+Flag that is TRUE if the C++ deprecated conversion from string literal
 to char * should be allowed by default in C++11 mode (which is nonstandard).
 The conversion is standard in C++ before C++11 (i.e., enabled regardless
 of the setting of this macro), and is also made to match the emulated
@@ -2375,7 +2375,7 @@ compilers in Microsoft and GNU modes.
 #endif /* ifndef DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED */
 
 /*
-Flag that is true if in gcc mode initialized const integral variables
+Flag that is TRUE if in gcc mode initialized const integral variables
 are usable as constants.  gcc allows that only when -O1 or above
 is specified, but by default we allow it always (since we don't have
 an option comparable to the -O option).  Note that the downside to
@@ -2387,16 +2387,16 @@ for some expressions that gcc without -O1 would return FALSE for.
 #endif /* ifndef DEFAULT_GCC_CONST_VARIABLES_ALLOWED */
 
 /*
-Flag that is true if the __func__ identifier is available.  That's the case
+Flag that is TRUE if the __func__ identifier is available.  That's the case
 for most C and C++ compilers, but some pre-C11 C compilers may not support it.
 */
 #ifndef FUNC_AVAILABLE
 #define FUNC_AVAILABLE TRUE
 #endif /* ifndef FUNC_AVAILABLE */
 #if !FUNC_AVAILABLE
-#define __EDG_func__ "__func__ not available"
+#define __EDG_func__ (a_const_char*)"__func__ not available"
 #else /* FUNC_AVAILABLE */
-#define __EDG_func__ __func__
+#define __EDG_func__ (a_const_char*)__func__
 #endif /* !FUNC_AVAILABLE */
 
 EXTERN int32_t
