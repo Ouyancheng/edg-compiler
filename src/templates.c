@@ -21583,7 +21583,7 @@ declaration of a partial specialization declared outside of its class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                         is_abstract = FALSE, is_final = FALSE,
                                     is_sealed = FALSE;
-  an_attribute_ptr                  attributes = NULL;
+  an_attribute_ptr                  tag_attributes, attributes = NULL;
   an_attribute_ptr                  *p_attributes = &attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed = FALSE;
@@ -21710,7 +21710,12 @@ declaration of a partial specialization declared outside of its class.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass "class", "struct", "union", or "__interface". */
   (void)get_token();
-  *last_attribute_link(p_attributes) = scan_attributes(al_tag_name);
+  tag_attributes = scan_attributes(al_tag_name);
+  if (decl_state->is_template_friend) {
+    /* Attributes cannot apply to friend declarations (only definitions). */
+    disallow_attributes(&tag_attributes, es_default);
+  }  /* if */
+  *last_attribute_link(p_attributes) = tag_attributes;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
     /* Scan any Microsoft extended decl modifiers that may be present

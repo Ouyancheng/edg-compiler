@@ -1,5 +1,17 @@
 Version 5.1
 
+8/22/18  [EDGcpfe/19465]
+Attributes applied to friend template declarations
+
+The C++ standard prohibits a non-defining friend declaration from having
+an attribute.  The front end had silently accepted such attributes and now
+gives an error.  For example (with --c++14):
+
+  struct S {
+    template <class> friend class [[deprecated]] X;
+  };
+
+
 8/21/18  [EDGcpfe/19899]
 C++-generating back end: Missing static specifier for in-class explicit
 specialization of static member function template
