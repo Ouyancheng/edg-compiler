@@ -2798,60 +2798,48 @@ DOES_NOT_RETURN assertion_failed(a_const_char *filename,
 An assertion has failed.  Abort the compilation.
 */
 {
-  char		*buffer;
-  char		line_number_buffer[32];
-  size_t        buffer_length;
+  a_text_buffer_ptr buffer;
+  char		    line_number_buffer[32];
 
-#define ASSERTION_STRING_1 "assertion failed at: \"%s\", line %s in %s\n"
-#define ASSERTION_STRING_2 "assertion failed: %s%s%s (%s, line %s in %s)\n"
-  /* Allocate a buffer large enough to hold the message.  Don't use internal
-     routines for memory allocation (because they may not be initialized yet
-     or may be reporting a failure themselves).  Strip the directory name of
-     the file (if any). */
+  /* Strip the directory name of the file (if any).  Use the text buffer
+     facilities to ensure there are no buffer overruns. */
   filename = start_of_file_name(filename);
   if (suppress_assertion_line_number) {
     (void)strcpy(line_number_buffer, "<suppressed>");
   } else {
     sprintf(line_number_buffer, "%d", line_number);
   }  /* if */
-  buffer_length = strlen(filename) + 
-                  strlen(line_number_buffer) +
-                  strlen(function);
+  buffer = alloc_text_buffer(1024);
+  add_string_to_text_buffer(buffer, "assertion failed");
   if (string1 == NULL) {
-    buffer_length += strlen(ASSERTION_STRING_1);
+    add_string_to_text_buffer(buffer, " at: \"");
+    add_string_to_text_buffer(buffer, filename);
+    add_string_to_text_buffer(buffer, "\"");
   } else {
-    buffer_length += strlen(ASSERTION_STRING_2) +
-                     strlen(string1) +
-                     1 +
-                     ((string2 == NULL) ? 0 : strlen(string2));
-  }  /* if */
-  buffer = (char *)malloc(buffer_length+1);
-  if (buffer == NULL) {
-    /* No memory (which may be what the caller is trying to report).  Use a
-       static buffer. */
-    internal_error(
-     "assertion_failed: cannot report error due to out-of-memory condition\n");
-  } else {
-    if (string1 == NULL) {
-      sprintf(buffer, ASSERTION_STRING_1, filename, line_number_buffer,
-              function);
+    a_const_char *separator;
+    add_string_to_text_buffer(buffer, ": ");
+    add_string_to_text_buffer(buffer, string1);
+    if (string2 == NULL || strlen(string2) == 0) {
+      separator = "";
+      if (string2 == NULL) string2 = "";
     } else {
-      /* Print the two strings.  Only separate them by a blank if the second
-         string is not null. */
-      a_const_char *separator;
-      if (string2 == NULL || strlen(string2) == 0) {
-        separator = "";
-        if (string2 == NULL) string2 = "";
-      } else {
-        separator = " ";
-      }  /* if */
-      sprintf(buffer, ASSERTION_STRING_2, string1, separator, string2,
-              filename, line_number_buffer, function);
+      separator = " ";
     }  /* if */
-    internal_error((a_const_char*)buffer);
+    add_string_to_text_buffer(buffer, separator);
+    add_string_to_text_buffer(buffer, string2);
+    add_string_to_text_buffer(buffer, " (");
+    add_string_to_text_buffer(buffer, filename);
   }  /* if */
-#undef ASSERTION_STRING_1
-#undef ASSERTION_STRING_2
+  add_string_to_text_buffer(buffer, ", line ");
+  add_string_to_text_buffer(buffer, line_number_buffer);
+  add_string_to_text_buffer(buffer, " in ");
+  add_string_to_text_buffer(buffer, function);
+  if (string1 != NULL) {
+    add_char_to_text_buffer(buffer, ')');
+  }  /* if */
+  add_char_to_text_buffer(buffer, '\n');
+  add_char_to_text_buffer(buffer, '\0');
+  internal_error(buffer->buffer);
 }  /* assertion_failed */
 
 
