@@ -1,5 +1,35 @@
 Version 5.1
 
+8/22/18  [EDGcpfe/20017]
+C++-generating back end: Generated explicit specializations for function
+templates with decltype-specifier return types
+
+The Microsoft compiler has a bug that causes it not to accept explicit
+specializations of function templates where the return type is a
+decltype-specifier whose operand is a member access expression.  The
+C++-generating back end, configured with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE
+previously put out generated explicit specializations for instances of
+such function templates, resulting in correct code that was erroneously
+rejected by MSVC.  This has now been fixed by suppressing these explicit
+specializations when msvc_is_generated_code_target is TRUE.  For example,
+with --microsoft_version=1910:
+
+  struct S { int f(); } s;
+  template<typename T> decltype(s.f()) g(T x);
+  int i = g(s);
+
+The generated code for this example previously included a declaration of
+the explicit specialization
+
+  template<> decltype((s.f())) g(S x);
+
+which the Microsoft compiler rejected with "error C2912: explicit
+specialization 'int g(S)' is not a specialization of a function template."
+The generated code no longer contains this explicit specialization, thus
+avoiding the spurious MSVC error.
+
+
 8/21/18  [EDGcpfe/19899]
 C++-generating back end: Missing static specifier for in-class explicit
 specialization of static member function template
