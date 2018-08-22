@@ -19114,6 +19114,16 @@ handle_as_definition:
   if (!discard_declaration && has_suppressed_parent(&rout->source_corresp)) {
     discard_declaration = TRUE;
   }  /* if */
+  if (!discard_declaration && curr_name_context_is_a_class() &&
+      !friend_decl && rtsp->this_class == NULL) {
+    /* This is an in-class specialization of a static member function.  The
+       primary member function will have been marked as static by virtue of
+       its declared_storage_class being sc_static.  However, generated
+       instances do not inherit that setting, so we base the presence of
+       the static keyword in these cases on the absence of a "this"
+       parameter. */
+    storage_class = (a_storage_class)sc_static;
+  }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (discard_declaration) {
     /* Discard this declaration. */

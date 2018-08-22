@@ -1,5 +1,28 @@
 Version 5.1
 
+8/21/18  [EDGcpfe/19899]
+C++-generating back end: Missing static specifier for in-class explicit
+specialization of static member function template
+
+In C++-generating back end configurations targeting MSVC for the generated
+code and with NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to TRUE, the generated explicit specialization of a static member function
+template was put out without the "static" keyword.  For example, with
+--microsoft_version=1910:
+
+  template<typename T> struct A {
+    template<typename U> static auto f(U&& u)->decltype(u.g());
+    typedef decltype(f(T())) type;
+  };
+  struct B {
+    int g();
+  };
+  A<B> ab;
+
+In this example, the explicit specialization for A<B>::f(B&&) previously
+lacked the "static" keyword.  This is now fixed.
+
+
 8/21/18  [EDGcpfe/18069,EDGcpfe/19947]
 Exception specifications and defaulted special member functions
 
