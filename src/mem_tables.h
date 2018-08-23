@@ -398,7 +398,7 @@ more than once.
 #define checked_trans_unit_copy_address_of(ptr)                    \
   (trans_unit_copy_address_of(                                     \
     ((in_file_scope(ptr) && in_secondary_trans_unit(ptr)) ? (void)0 :   \
-       assertion_failed(__FILE__, __LINE__, __func__, (char *)NULL,\
+       assertion_failed(__FILE__, __LINE__, __EDG_func__, (char *)NULL, \
                         (char *)NULL), \
      ptr)))
 #else /* !CHECKING */
