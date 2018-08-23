@@ -1363,6 +1363,8 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_cpp17_mode, "c++17", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_cpp20_mode, "c++20", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -2134,7 +2136,8 @@ Returns TRUE if a C++ mode is explicitly specified.
   if (option_kind_used[(int)optk_cpp03_mode] ||
       option_kind_used[(int)optk_cpp11_mode] ||
       option_kind_used[(int)optk_cpp14_mode] ||
-      option_kind_used[(int)optk_cpp17_mode]) {
+      option_kind_used[(int)optk_cpp17_mode] ||
+      option_kind_used[(int)optk_cpp20_mode]) {
     /* C++ mode was enabled by a command line option. */
     result = TRUE;
   }  /* if */
@@ -10248,10 +10251,15 @@ enable_microsoft_mode:
         type_traits_helpers_enabled = opt_value;
         break;
       case optk_cpp17_mode:
-        /* Enable C++ features added as part of C++17.  The value used for
+        /* Enable C++ features added as part of C++17. */
+        std_version = 201703;
+        set_C_dialect(C_dialect_cplusplus);
+        break;
+      case optk_cpp20_mode:
+        /* Enable C++ features added as part of C++20.  The value used for
            std_version below is just a placeholder until the official value
            (and standard name) is known. */
-        std_version = 201701;
+        std_version = 202000;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp14_mode:

@@ -2409,8 +2409,8 @@ EXTERN int32_t
 			   that standard has no corresponding macro).  For
 			   standards in development YYYY represents the year
 			   in which the standard is expected to be ratified
-			   (e.g., it might be 2022 for an anticipated C++22
-			   mode) and mm is 00. */
+			   and mm is 00 (e.g., it might be 204200 for an
+			   anticipated C++42 mode). */
 
 EXTERN a_boolean
                 implicit_microsoft_cpp11_mode;
@@ -2443,7 +2443,13 @@ by the C++14 standard or later C++ standards.
 Macro that is TRUE when the front end should accept language features defined
 by the C++17 standard or later C++ standards.
 */
-#define cpp17_mode (!C_mode() && std_version >= 201701)
+#define cpp17_mode (!C_mode() && std_version >= 201703)
+
+/*
+Macro that is TRUE when the front end should accept language features defined
+by the C++20 standard or later C++ standards.
+*/
+#define cpp20_mode (!C_mode() && std_version >= 202000)
 
 EXTERN a_boolean
 		right_shift_can_be_angle_brackets;

@@ -10369,7 +10369,9 @@ command line -D options.
     a_const_char *cpp11_date = "201103L";
     a_const_char *gnu_cpp14_date = "201300L";
     a_const_char *cpp14_date = "201402L";
-    if (ms_extensions && !clang_mode) {
+    if (cpp20_mode) {
+      val = "202000L";
+    } else if (ms_extensions && !clang_mode) {
       if (microsoft_version < 1310) {
         val = "1";
 #if MICROSOFT_EXTENSIONS_ALLOWED

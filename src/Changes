@@ -1,5 +1,19 @@
 Version 5.1
 
+
+8/23/18  [EDGcpfe/20000]
+C++20 mode
+
+The front end now accepts a new "--c++20" command-line option (as does the
+eccp.sh script).  This option will enable features for the standard under
+development (which is expected to be completed in 2020).  For now, it sets
+the value of the global variable std_version to 202000 and the value of the
+predefined __cplusplus macro to 202000L; those values will eventually be
+updated to match the official __cplusplus value when the forthcoming standard
+is approved.  A new macro cpp20_mode is also available in the front end to
+test whether it runs in C++20 mode.
+
+
 8/22/18  [EDGcpfe/20017]
 C++-generating back end: Generated explicit specializations for function
 templates with decltype-specifier return types

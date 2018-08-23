@@ -324,6 +324,7 @@ typedef enum /*an_option_kind*/ {
   optk_stricter_template_checking,
   optk_exc_spec_in_func_type,
   optk_aligned_new,
+  optk_cpp20_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
