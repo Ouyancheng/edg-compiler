@@ -19130,7 +19130,7 @@ handle_as_definition:
     discard_declaration = TRUE;
   }  /* if */
   if (!discard_declaration && rout->template_arg_list != NULL &&
-      !rout->is_specialized) {
+      !rout->is_specialized && !rout->is_prototype_instantiation) {
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
     if (!special_kind_is(rout, sfk_deduction_guide) &&
