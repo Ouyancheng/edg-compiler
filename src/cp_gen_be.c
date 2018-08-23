@@ -18838,7 +18838,7 @@ static void check_for_member_access_expr(
 /*
 This routine is called by traverse_expr from
 is_decltype_with_member_access_expr.  It stops the traversal and sets
-tblock->result to TRUE when it finds an a member access expression.
+tblock->result to TRUE when it finds a member access expression.
 */
 {
   if (is_operation_node(expr)) {
@@ -18867,7 +18867,8 @@ tblock->result to TRUE when it finds an a member access expression.
 
 static a_boolean is_decltype_with_member_access_expr(a_type_ptr type)
 /*
-Return TRUE if type is a decltype typeref in which the
+Return TRUE if type is a decltype typeref in which the operand contains a
+member access expression.
 */
 {
   a_boolean result = FALSE;
@@ -18884,6 +18885,7 @@ Return TRUE if type is a decltype typeref in which the
   }  /* if */
   return result;
 }  /* is_decltype_with_member_access_expr */
+
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void gen_routine_decl(a_boolean suppress_specifiers,

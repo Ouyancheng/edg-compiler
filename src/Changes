@@ -8,7 +8,7 @@ The Microsoft compiler has a bug that causes it not to accept explicit
 specializations of function templates where the return type is a
 decltype-specifier whose operand is a member access expression.  The
 C++-generating back end, configured with
-NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
 previously put out generated explicit specializations for instances of
 such function templates, resulting in correct code that was erroneously
 rejected by MSVC.  This has now been fixed by suppressing these explicit
