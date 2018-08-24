@@ -31893,7 +31893,7 @@ For example:
     if (cpp20_mode && lambda->capture_list == NULL &&
         !lambda->has_capture_default) {
       /* In C++20, the default constructor and the copy/move constructors of a
-         lambda introduced with "[]" are simply defaulted; not deleted.  */
+         lambda introduced with "[]" are simply defaulted, not deleted.  */
     } else {
       generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
       gsfd.suppress_copy_assign = TRUE;

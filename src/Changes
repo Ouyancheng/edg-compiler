@@ -9,8 +9,8 @@ defaulted copy/mode-assignment operators (in C++17 mode these special members
 are deleted).  For example:
 
   auto cmp = [](auto x, auto y) { return x > y; };
-  decltype(cmp) c;
-  void g() {  // Valid in C++20 mode (error in C++17 mode).
+  decltype(cmp) c;  // Valid in C++20 mode (error in C++17 mode).
+  void g() {
     c = c;  // Valid in C++20 mode (error in C++17 mode).
   }
 
