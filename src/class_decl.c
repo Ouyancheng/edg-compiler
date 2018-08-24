@@ -20907,7 +20907,8 @@ record that fact in *gsfd.
          deleted in C++11 mode (GCC does not appear to enforce this).  Its
          implicitly-declared default constructor need not actually be
          generated. */
-    } else if (class_type_supp(class_type)->is_lambda_closure_class) {
+    } else if (class_type_supp(class_type)->is_lambda_closure_class &&
+               cssp->trivial_default_constructor != NULL) {
       /* A deleted constructor was already declared (but not recorded in
          cssp->constructor if it was trivial). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -31889,9 +31890,15 @@ For example:
     init_generated_special_function_descr(&gsfd);
     generate_lambda_conversion_functions_if_needed(lambda, &class_state,
                                                    &func_info);
-    generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
+    if (cpp20_mode && lambda->capture_list == NULL &&
+        !lambda->has_capture_default) {
+      /* In C++20, the default constructor and the copy/move constructors of a
+         lambda introduced with "[]" are simply defaulted; not deleted.  */
+    } else {
+      generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
+      gsfd.suppress_copy_assign = TRUE;
+    }  /* if */
     gsfd.copy_assign_qualifiers = TQ_CONST;
-    gsfd.suppress_copy_assign = TRUE;
     generate_copy_assignment_operator(&class_state, &gsfd);
   }
   /* Record the capture list and complete the closure class. */
