@@ -33455,6 +33455,14 @@ Scan a C++ lambda expression, e.g., something like
     /* A lambda is not allowed in a noexcept specifier. */
     expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
     err = TRUE;
+  } else if (expr_stack->possible_rescan_context &&
+             !(expr_stack->is_template_arg_expression &&
+               scope_is(&scope_stack_top(), sck_template_declaration))) {
+    /* Lambdas are not permitted in "signature" contexts, including template
+       arguments (we permit default argument contexts, but an error will be
+       issued if such an argument is instantiated). */
+    expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
+    err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
     /* A lambda in a context where we won't know until later if the
        context is evaluated (e.g., the operand of a typeid). */

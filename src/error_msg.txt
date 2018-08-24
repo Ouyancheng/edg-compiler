@@ -2975,6 +2975,7 @@ ec_deduction_guide;INTERNAL;"deduction guide"
 ec_invalid_udl_value;;"Invalid value for user-defined literal operator"
 ec_has_cpp_attrib_not_in_if;;"__has_cpp_attribute cannot appear outside of #if or #elif"
 ec_bad_deduction_guide_access;;"deduction guide must be declared with the same accessibility as %n"
+ec_lambda_not_allowed_here;;"a lambda is not permitted in this context"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
