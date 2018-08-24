@@ -28,6 +28,9 @@ are deleted).  For example:
     c = c;  // Valid in C++20 mode (error in C++17 mode).
   }
 
+This feature was added to the working paper for the next standard through
+paper number P0624R2.
+
 
 8/23/18  [EDGcpfe/20000]
 C++20 mode
