@@ -19302,7 +19302,7 @@ information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   dps->has_initializer = field_initializers_enabled &&
-                         !decl_info->is_bit_field &&
+                         (!decl_info->is_bit_field || cpp20_mode) &&
                          (curr_token == tok_assign ||
                           curr_token == tok_lbrace ||
                           curr_token == tok_removed_expr) &&
@@ -27936,7 +27936,7 @@ that is provided if this is a member template declaration.
         /* Non-static data member (= field). */
         scan_nonstatic_data_member(&locator, class_state, &decl_info);
       }  /* if */
-      if (C_dialect == C_dialect_cplusplus) {
+      if (!C_mode() && !cpp20_mode) {
         /* Issue an error if there appears to be an attempt to initialize a
            data member within the class definition. */
         if (curr_token == tok_assign) {
