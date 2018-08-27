@@ -33455,12 +33455,22 @@ Scan a C++ lambda expression, e.g., something like
     /* A lambda is not allowed in a noexcept specifier. */
     expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
     err = TRUE;
-  } else if (expr_stack->possible_rescan_context &&
-             !(expr_stack->is_template_arg_expression &&
-               scope_is(&scope_stack_top(), sck_template_declaration))) {
-    /* Lambdas are not permitted in "signature" contexts, including template
-       arguments (we permit default argument contexts, but an error will be
-       issued if such an argument is instantiated). */
+  } else if (scope_stack_top().in_template_arg_list ||
+             (expr_stack->possible_rescan_context &&
+              (scope_is(&scope_stack_top(), sck_func_prototype) ||
+               (scope_is(&scope_stack_top(), sck_template_declaration) &&
+                !scope_stack_top().tmpl_decl_state
+                                  ->decl_parse.is_template_declaration)) &&
+              !(expr_stack->is_template_arg_expression &&
+                scope_is(&scope_stack_top(), sck_template_declaration)))) {
+    /* Lambdas are not permitted in various contexts that might result in them
+       becoming part of a signature.  This includes:
+          - template argument lists.
+          - function and function template parameters and return types
+            (default arguments are okay),
+          - template parameter lists (we permit default template argument
+            contexts, but an error will be issued if such an argument is
+            instantiated). */
     expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
     err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
