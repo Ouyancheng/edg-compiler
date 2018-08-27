@@ -30617,7 +30617,7 @@ look_for_var:
     a_type_ptr class_type = scope_stack[sd].assoc_type;
     if (class_type_supp(class_type)->is_lambda_closure_class) {
       /* This is an intermediate lambda. */
-      if (lambda != NULL) {
+      if (lambda != NULL && sd < depth_scope_stack) {
         /* Report the intermediate lambda to the caller. */
         a_scope_depth  body_depth = sd+1; 
         if (scope_is(&scope_stack[body_depth], sck_template_instantiation)) {

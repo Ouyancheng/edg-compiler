@@ -2871,20 +2871,38 @@ appears.  Diagnostics may be emitted at the given position.
 */
 {
   a_boolean  is_local_class = FALSE;
+  a_type_ptr  class_type = tag_sym->variant.class_struct_union.type;
 
   if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
       inside_local_class) {
     /* This declaration appears within a function or block scope, or else it
        is a nested class declaration within a local class.  In either case,
        it is a local class. */
+    a_routine_ptr  rp = NULL;
     is_local_class = TRUE;
     if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-      innermost_function_scope->variant.routine.ptr
-                              ->contains_local_class_type = TRUE;
+      rp = innermost_function_scope->variant.routine.ptr;
+      rp->contains_local_class_type = TRUE;
+    } else {
+      a_scope_stack_entry_ptr  ssep = &scope_stack[decl_level];
+      if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        rp = scope_stack[decl_level].assoc_routine;
+      } else if (scope_is(ssep, sck_class_struct_union) ||
+                 scope_is(ssep, sck_class_reactivation)) {
+        rp = ssep->assoc_type->source_corresp.enclosing_routine;
+      } else {
+        expect_error();
+        for (; !scope_is(ssep, sck_file); ssep -= 1) {
+          if (scope_is(ssep, sck_function)) {
+            rp = ssep->assoc_routine;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
+    class_type->source_corresp.enclosing_routine = rp;
   }  /* if */
   if (!C_mode()) {
-    a_type_ptr  class_type = tag_sym->variant.class_struct_union.type;
     switch (scope_stack[decl_level].kind) {
       case sck_class_struct_union:
         /* A new class name is being declared within a class scope. */
