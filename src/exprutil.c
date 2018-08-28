@@ -3933,7 +3933,11 @@ entry attached to the expression node so it will be available for the rescan.
   eriep = save_operand_info_in_rescan_info_entry(operand, node->rescan_info);
   node->rescan_info = eriep;
   if (is_explicitly_typed_operator_node(node)) {
-    eriep->type = node->type;
+    if (node->orig_lvalue_type != NULL) {
+      eriep->type = node->orig_lvalue_type;
+    } else {
+      eriep->type = node->type;
+    }  /* if */
   }  /* if */
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
