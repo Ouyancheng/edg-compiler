@@ -1,5 +1,17 @@
 Version 5.1
 
+8/28/18  [EDGcpfe/20046]
+Spurious "no constant" error on not-evaluated construct
+
+Consider:
+
+  constexpr int n = true ? 1 : *new int{0};
+
+Previously, this resulted in the front end issuing a spurious error about the
+new-expression not producing a constant value even though that new-expression
+is not evaluated.  That is now fixed.
+
+
 8/28/18  [EDGcpfe/19948]
 Assertion failure in make_cast_rescan_operands
 
