@@ -5689,6 +5689,7 @@ members of managed class types in some Microsoft modes.
   a_token_sequence_number  last_tsn;
   a_token_sequence_number  last_tsn_for_cache;
   a_token_set_array        stop_tokens;
+  a_boolean                saved_in_disambiguation = FALSE;
   a_boolean                saved_in_field_initializer = FALSE;
   a_boolean                is_field = symbol_is(sym, sk_field);
   a_boolean                is_var_templ = symbol_is(sym, sk_variable_template);
@@ -5720,9 +5721,14 @@ members of managed class types in some Microsoft modes.
   incr_token_set_array_element(stop_tokens, tok_rbrace);
   first_tsn = curr_token_sequence_number;
   /* We'll create a cache of uncoalesced tokens by creating the cache from the
-     background cache.  (Finding the end of the cache is done by coalescing,
+     background cache.  Finding the end of the cache is done by coalescing,
      however, because we shouldn't stop on a comma in a template argument
-     list.) */
+     list.  Coalescing means we may parse arbitrary code (while processing
+     template argument lists or instantiating templates), which might trigger
+     diagnostics: Setting the scope_stack_top().in_disambiguation flag ensures
+     duplicate diagnostics will be emitted only once. */
+  saved_in_disambiguation = scope_stack_top().in_disambiguation;
+  scope_stack_top().in_disambiguation = TRUE;
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   /* Skip to the end of the initializer tokens (by passing a NULL cache, no
      additional caching is done besides background caching). */
@@ -5742,6 +5748,7 @@ members of managed class types in some Microsoft modes.
   adjust_token_handles(token_cache);
   terminate_token_cache(token_cache);
   end_caching_fetched_tokens();
+  scope_stack_top().in_disambiguation = saved_in_disambiguation;
   if (is_field) {
     /* Restore the in_field_initializer flag. */
     scope_stack_top().in_field_initializer = saved_in_field_initializer;
