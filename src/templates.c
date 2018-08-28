@@ -18410,9 +18410,7 @@ instance to the definitions list for the template.
        a static data member def entry and set the pointers to bind them
        all together. */
     a_template_instance_ptr		tip = alloc_template_instance();
-    a_variable_ptr			proto_var;
     a_template_symbol_supplement_ptr	tssp;
-    proto_var = variable_for_symbol(sym);
     if (symbol_is(var_sym, sk_static_data_member)) {
       var_sym->variant.static_data_member.instance_ptr = tip;
       tip->instance_sym = var_sym;
