@@ -1,5 +1,29 @@
 Version 5.1
 
+8/28/18  [EDGcpfe/19948]
+Assertion failure in make_cast_rescan_operands
+
+In fairly complex situations involving a cast operation in an alias template,
+the front end failed an assertion check in make_cast_rescan_operands because
+of missing information in the structures supporting expression SFINAE.  For
+example:
+
+  template<typename, typename> struct P {
+    static bool const value = true;
+  };
+  template <bool ...> struct I;
+  template <bool ...Bs> using A = P<I<Bs...>, I<((void)Bs, true)...>>;
+  template<typename ...> struct X {
+    template<typename T> void f(T) noexcept(A<sizeof(T)>::value);
+  };
+  int main() {
+    X<long> x;
+    x.f(0);  // Previously triggered an abort.
+  }
+
+That is now fixed.
+
+
 8/28/18  [EDGcpfe/20030]
 Assertion failure with constexpr static data member template
 
