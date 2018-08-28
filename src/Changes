@@ -1,5 +1,21 @@
 Version 5.1
 
+8/28/18  [EDGcpfe/20030]
+Assertion failure with constexpr static data member template
+
+The changes for EDGcpfe/19753, included in version 5.0, could cause an
+assertion failure (in record_cache_checksum) in some configurations for a
+constexpr static data member template of a class template.  For example, in
+configurations with COMPILE_MULTIPLE_TRANSLATION_UNITS set to TRUE, the
+following example with --c++17 aborted when compiled with another
+translation unit:
+
+  template<class T> struct A {
+    template<class> static constexpr bool is_ok = true;
+  };
+  A<int> p;
+
+
 8/28/18  [EDGcpfe/18424]
 Visibility of a function during deduction
 

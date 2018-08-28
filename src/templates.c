@@ -18411,6 +18411,7 @@ instance to the definitions list for the template.
        all together. */
     a_template_instance_ptr		tip = alloc_template_instance();
     a_variable_ptr			proto_var;
+    a_template_symbol_supplement_ptr	tssp;
     proto_var = variable_for_symbol(sym);
     if (symbol_is(var_sym, sk_static_data_member)) {
       var_sym->variant.static_data_member.instance_ptr = tip;
@@ -18419,13 +18420,12 @@ instance to the definitions list for the template.
       /* In the variable template case, var_sym points to the variable
          template symbol, but the symbol for var_for_decl is the prototype
          instantiation variable symbol. */
-      a_symbol_ptr proto_sym = symbol_for(var_for_decl);
+      a_symbol_ptr	proto_sym = symbol_for(var_for_decl);
       proto_sym->variant.variable.instance_ptr = tip;
       tip->instance_sym = proto_sym;
     }  /* if */
     tip->template_sym = sym;
     if (symbol_is(var_sym, sk_static_data_member)) {
-      a_template_symbol_supplement_ptr	tssp;
       /* Link the new entry to the start of the definition list of the static
          data member template. */
       tssp = sym->variant.static_data_member.instance_ptr->template_info;
@@ -18436,7 +18436,6 @@ instance to the definitions list for the template.
       var_for_decl->is_template_variable = TRUE;
       var_for_decl->template_info = alloc_variable_template_info();
     } else {
-      a_template_symbol_supplement_ptr	tssp;
       a_template_symbol_supplement_ptr	proto_tssp;
       a_symbol_list_entry_ptr		slep;
       check_assertion(symbol_is(sym, sk_variable_template));
@@ -18454,8 +18453,7 @@ instance to the definitions list for the template.
     }  /* if */
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
-    var_for_decl->template_info->assoc_template =
-                                      proto_var->template_info->assoc_template;
+    var_for_decl->template_info->assoc_template = tssp->il_template_entry;
   }  /* if */
   db_exit();
 }  /* find_variable_member_template */
@@ -25014,8 +25012,9 @@ set, and its source sequence entry, if any, has been put out.)
             }  /* if */
             il_template_entry->canonical_template =
                                             var->template_info->assoc_template;
-            if (decl_state->defines_something &&
-                decl_state->class_declared_in == NULL) {
+            if ((decl_state->defines_something &&
+                 decl_state->class_declared_in == NULL) ||
+                var->initializer_in_class) {
               il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
             }  /* if */
