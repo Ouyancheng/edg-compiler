@@ -1,5 +1,26 @@
 Version 5.1
 
+8/28/18  [EDGcpfe/18424]
+Visibility of a function during deduction
+
+Consider:
+
+  namespace N {
+    template<typename> void f();
+    void f();
+    template <typename T, typename> auto f() -> decltype(f<T>());  // (1)
+  }
+  using R = decltype(N::f<double>());  // Previously triggered an error.
+                                       // Now okay.
+
+The resolution of the call "N::f<double>()" causes the front end to substitute
+double for T in template (1), which in turn requires the substitution of the
+call "f<double>()" in the return type of (1).  Previously, the front end
+erroneously considered template (1) in the resolution of that latter call,
+which resulted in unbounded recursion that was eventually stopped with an
+error message.  That is now fixed.
+
+
 8/24/18  [EDGcpfe/20049]
 Lambdas in template arguments
 

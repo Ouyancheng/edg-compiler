@@ -6822,7 +6822,13 @@ current scope.
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
   check_assertion(ssep->template_decl_info != NULL);
-  decl_seq_number = ssep->template_decl_info->decl_seq;
+  if (ssep->is_rescan && ssep->template_sym != NULL) {
+    /* When rescanning a template X, only declarations prior to X are
+       visible. */
+    decl_seq_number = ssep->template_sym->decl_seq-1;
+  } else {
+    decl_seq_number = ssep->template_decl_info->decl_seq;
+  }  /* if */
   return decl_seq_number;
 }  /* f_get_effective_decl_seq */
 
