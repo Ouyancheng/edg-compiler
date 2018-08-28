@@ -23524,7 +23524,6 @@ will be an lvalue instead of the usual prvalue.
   an_operand           operand;
   a_boolean            dest_type_is_class =
                                          is_class_struct_union_type(dest_type);
-  a_boolean            delay_folding = FALSE;
   a_boolean            saved_suppress_diagnostics = FALSE;
   a_boolean            saved_any_suppressed_error = FALSE;
   a_boolean            issue_errors = TRUE;
