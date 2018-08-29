@@ -8060,8 +8060,8 @@ typedef struct a_class_type_supplement {
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
-			   the template from which they were generated;
-			   otherwise, this is NULL. */
+			   template from which they were generated; otherwise,
+			   this is NULL. */
   a_template_arg_ptr
 		template_arg_list;
 			/* For classes that are instantiations of a class
