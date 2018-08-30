@@ -3881,6 +3881,12 @@ A pointer to the expression created is returned.
                                          NULL, arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
+  if (is_aligned_del) {
+    /* Use a copy of the pointer to the array, so we can use it later for
+       calculating the number of elements in the array and the start of the
+       complete block (including the array prefix). */
+    entity_node = make_reusable_copy(entity_node, /*vars_can_change=*/TRUE);
+  }  /* if */
   entity_node = add_cast(entity_node, void_star_type());
   arg_expr_list = entity_node;
   entity_node->next = size_elem_node;
@@ -3943,6 +3949,13 @@ A pointer to the expression created is returned.
                                                     size_t_type, size_t_type,
                                                     make_dtor_type(), NULL,
                                                     NULL, NULL, arg_expr_list);
+      /* Make sure the temporary for the pointer to the array storage is
+         saved outside the arguments to the call, so that there won't be
+         problems with different orders of evaluation of the arguments. */
+      orig_entity_node->next = call_node;
+      call_node = make_operator_node(eok_comma, void_type(), orig_entity_node);
+      orig_entity_node = make_reusable_copy(orig_entity_node,
+                                            /*vars_can_change=*/TRUE);
     } else if (is_sized_del) {
       /* The call looks like
            __cxa_vec_delete3(entity_node, size_elem, padding, dtor_addr_node,
