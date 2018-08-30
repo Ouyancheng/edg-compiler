@@ -3953,7 +3953,8 @@ A pointer to the expression created is returned.
          saved outside the arguments to the call, so that there won't be
          problems with different orders of evaluation of the arguments. */
       orig_entity_node->next = call_node;
-      call_node = make_operator_node(eok_comma, void_type(), orig_entity_node);
+      call_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                     void_type(), orig_entity_node);
       orig_entity_node = make_reusable_copy(orig_entity_node,
                                             /*vars_can_change=*/TRUE);
     } else if (is_sized_del) {
