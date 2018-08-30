@@ -32,6 +32,7 @@ expr.c -- Expression scanning routines.
 #if COROUTINES_ALLOWED
 #include "func_def.h"
 #endif /* COROUTINES_ALLOWED */
+#include "interpret.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -43448,7 +43449,26 @@ standard form).  Assumes copy-initialization ("="-form).
                                         /*always_allow_braced=*/FALSE);
     convert_initializer(icp, dps->type, /*is_var_init=*/TRUE,
                         /*fill_in_dtor=*/TRUE, &dps->init_state);
-    copy_constant(dps->init_state.init_con, constant);
+    if (dps->init_state.init_error) {
+      set_error_constant(constant);
+    } else if (dps->init_state.init_dip != NULL) {
+      a_diag_list     diag_list;
+      clear_diag_list(&diag_list);
+      check_assertion(constexpr_enabled);
+      if (!interpret_dynamic_init(dps->init_state.init_dip,
+                                  init_component_pos(icp), dps->type,
+                                  constant, &diag_list)) {
+        a_diagnostic_ptr  dp;
+        dp = pos_start_error(ec_expr_not_constant, init_component_pos(icp));
+        add_more_info_list(dp, &diag_list);
+        end_diagnostic(dp);
+        set_error_constant(constant);
+      }  /* if */
+      discard_more_info_list(&diag_list);
+    } else {
+      check_assertion(dps->init_state.init_con != NULL);
+      copy_constant(dps->init_state.init_con, constant);
+    }  /* if */
     free_init_component_list(icp);
     pop_expr_stack_for_initializer(saved_expr_stack,
                                    /*is_full_expr=*/TRUE,
