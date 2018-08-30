@@ -21512,9 +21512,9 @@ thereof.
                              class_type_supp(enclosing_class)->assoc_template;
     if (enclosing_template != NULL) {
       a_symbol_ptr  enclosing_sym = symbol_for(enclosing_template);
-      enclosing_sym = prototype_template_of(enclosing_sym);
-      enclosing_sym = primary_template_of(enclosing_sym);
       if (symbol_is(enclosing_sym, sk_class_template)) {
+        enclosing_sym = prototype_template_of(enclosing_sym);
+        enclosing_sym = primary_template_of(enclosing_sym);
         sym = prototype_template_of(sym);
         sym = primary_template_of(sym);
         if (sym != enclosing_sym) {
