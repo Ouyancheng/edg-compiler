@@ -1,5 +1,17 @@
 Version 5.1
 
+8/29/18  [EDGcpfe/19163]
+Allocation of arrays of overaligned types
+
+In some configurations, the front end failed to correctly satisfy the
+alignment requirements of an array of a type with an extended alignment
+(see EDGcpfe/17696).  This is now fixed; the array prefix (extra space
+allocated before an array to contain information about the size of the
+array) is now expanded to the alignment size so that the array will begin
+on an appropriate alignment boundary following the start of the allocated
+storage.
+
+
 8/28/18  [EDGcpfe/20030]
 Assertion failure with constexpr static data member template
 

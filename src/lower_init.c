@@ -2786,6 +2786,24 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 }  /* size_elem_node_from_pointer_type */
 
 
+static an_expr_node_ptr alignment_node_from_pointer_type(a_type_ptr ptr_type)
+/*
+Build an expression node for the constant that is the alignment of the
+element type of the array pointed to by ptr_type, and return a pointer to
+it.
+*/
+{
+  a_type_ptr       elem_type;
+  an_expr_node_ptr alignment_node;
+
+  elem_type = new_delete_base_type_from_operation_type(
+                                                    type_pointed_to(ptr_type));
+  alignment_node = node_for_host_large_integer(
+             (a_host_large_integer)elem_type->alignment, targ_size_t_int_kind);
+  return alignment_node;
+}  /* alignment_node_from_pointer_type */
+
+
 static an_expr_node_ptr expr_for_pointer_to_routine(a_routine_ptr routine,
                                                     a_type_ptr    ptr_type)
 /*
@@ -3788,10 +3806,15 @@ A pointer to the expression created is returned.
   a_type_ptr       entity_type = entity_node->type;
 #if !IA64_ABI
   an_expr_node_ptr is_two_arg_node, free_storage_node;
-#else /* IA64_ABI */
-  an_expr_node_ptr prefix_size_node;
 #endif /* IA64_ABI */
+  an_expr_node_ptr prefix_size_node;
+  an_expr_node_ptr orig_entity_node = entity_node;
+  a_boolean        is_aligned_del = FALSE;
+  a_boolean        is_sized_del = FALSE;
 
+  if (delete_routine != NULL) {
+    is_sized_del = is_sized_delete(delete_routine, &is_aligned_del);
+  }  /* if */
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_type);
 #if !IA64_ABI
@@ -3799,15 +3822,22 @@ A pointer to the expression created is returned.
     /* -1 tells the runtime to use the array size from the "new[]". */
     num_elem_node = num_elem_node_from_count((a_targ_ptrdiff_t)-1);
   }  /* if */
-  if (delete_routine == NULL) {
+  if (delete_routine == NULL || is_aligned_del) {
     /* The call looks like
          __vec_delete(entity_node, num_elems, size_elem, dtor_addr_node,
                       free_storage, 0)
        The final argument is never used.  It's there for cfront compatibility.
     */
-    /* Build the "free_storage" argument: 1 to free storage, 0 otherwise. */
-    free_storage_node = node_for_integer_constant(free_storage ? 1L : 0L,
-                                                  (an_integer_kind)ik_int);
+    /* Build the "free_storage" argument: 1 to free storage, 0 otherwise.
+       Use 0 for a deallocation function that takes an alignment, as the
+       deallocation function will be called separately below. */
+    free_storage_node =
+           node_for_integer_constant(free_storage && !is_aligned_del ? 1L : 0L,
+                                     (an_integer_kind)ik_int);
+    if (is_aligned_del) {
+      orig_entity_node = make_reusable_copy(entity_node,
+                                            /*vars_can_change=*/TRUE);
+    }  /* if */
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
@@ -3825,7 +3855,6 @@ A pointer to the expression created is returned.
                                          integer_type((an_integer_kind)ik_int),
                                          NULL, arg_expr_list);
   } else {
-    a_boolean is_aligned_delete;
     /* There's a special delete routine, so use the call
        __array_delete(entity_node, num_elems, size_elem, dtor_addr_node,
                       delete_routine, is_two_arg)
@@ -3834,8 +3863,7 @@ A pointer to the expression created is returned.
     */
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     is_two_arg_node = node_for_integer_constant(
-                              is_sized_delete(delete_routine,
-                                              &is_aligned_delete) ? 1L : 0L,
+                              is_sized_del ? 1L : 0L,
                               (an_integer_kind)ik_int);
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
@@ -3897,10 +3925,25 @@ A pointer to the expression created is returned.
                                                     NULL, NULL, arg_expr_list);
     }  /* if */
   } else {
-    a_boolean is_aligned_delete;
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     check_assertion(num_elem_node == NULL && free_storage);
-    if (is_sized_delete(delete_routine, &is_aligned_delete)) {
+    if (is_aligned_del) {
+      /* The call looks like
+           __cxa_vec_dtor(entity_node, num_elems, size_elem, dtor_addr_node)
+      */
+      /* Splice in the node for the number of elements. */
+      num_elem_node = expr_for_num_elements_in_cookie(orig_entity_node);
+      entity_node->next = num_elem_node;
+      num_elem_node->next = size_elem_node;
+      size_elem_node->next = dtor_addr_node;
+      call_node = make_prototyped_runtime_call_full("__cxa_vec_dtor",
+                                                    &vec_dtor_routine,
+                                                    void_type(),
+                                                    void_star_type(),
+                                                    size_t_type, size_t_type,
+                                                    make_dtor_type(), NULL,
+                                                    NULL, NULL, arg_expr_list);
+    } else if (is_sized_del) {
       /* The call looks like
            __cxa_vec_delete3(entity_node, size_elem, padding, dtor_addr_node,
                              delete_routine)
@@ -3934,6 +3977,87 @@ A pointer to the expression created is returned.
     }  /* if */
   } /* if */
 #endif /* !IA64_ABI */
+  if (is_aligned_del) {
+    /* The deallocation function must be called explicitly when it takes
+       an alignment value. */
+    an_expr_node_ptr alignment_node =
+                                 alignment_node_from_pointer_type(entity_type);
+    an_expr_node_ptr storage_node;
+    /* We need to call the deallocation function with the correct
+       arguments, so we don't want the cast that was added by
+       expr_for_pointer_to_delete above. */
+    delete_addr_node = function_addr_expr(delete_routine);
+    /* Subtract the alignment from the address of the array to get the
+       pointer to the storage block to deallocate and cast it to void* to
+       match the deallocation function's parameter type. */
+    storage_node = add_cast_if_necessary(orig_entity_node, char_star_type());
+    storage_node->next = alignment_node;
+    storage_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
+                                      char_star_type(), storage_node);
+    storage_node = add_cast(storage_node, void_star_type());
+    if (is_sized_del) {
+      /* The call will be operator delete[](ptr, size, alignment).  We need
+         to calculate the size of the block from the value of the cookie. */
+      an_expr_node_ptr storage_size_node;
+#if IA64_ABI
+      /* In the IA64_ABI, the cookie is a size_t value just before the
+         start of the array that holds the number of elements in the array
+         (already fetched in num_elem_node). Multiply that by the size of
+         each element to get the number of bytes in the array in
+         storage_size_node. */
+      storage_size_node = make_reusable_copy(num_elem_node,
+                                             /*vars_can_change=*/TRUE);
+      storage_size_node->next = copy_expr_tree(size_elem_node, CE_NO_OPTIONS);
+      storage_size_node =
+                        make_operator_node((an_expr_operator_kind)eok_multiply,
+                                           size_elem_node->type,
+                                           storage_size_node);
+#else /* !IA64_ABI */
+      /* In the Cfront ABI, the cookie is a structure of two size_t
+         elements, located __array_new_prefix_size bytes before the
+         beginning of the array; the first element gives the number of
+         bytes in the array.  Fetch it in storage size node. */
+      prefix_size_node = get_prefix_size_node(type_pointed_to(entity_type),
+                                              (a_routine_ptr)NULL);
+      storage_size_node = make_reusable_copy(orig_entity_node,
+                                             /*vars_can_change=*/TRUE);
+      storage_size_node = add_cast_if_necessary(storage_size_node,
+                                                char_star_type());
+      storage_size_node->next = prefix_size_node;
+      storage_size_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_psubtract,
+                                          storage_size_node->type,
+                                          storage_size_node);
+      storage_size_node = add_cast(storage_size_node,
+                                   make_pointer_type(size_t_type));
+      storage_size_node = make_operator_node(
+                                           (an_expr_operator_kind)eok_indirect,
+                                           size_t_type, storage_size_node);
+#endif /* IA64_ABI */
+      /* At this point, storage_size_node has the number of bytes in the
+         array.  Add the array prefix size, which is the same as the
+         element alignment, to get the total number of allocated bytes and
+         link it between the pointer to the storage and the alignment in
+         the argument list. */
+      storage_size_node->next = copy_expr_tree(alignment_node, CE_NO_OPTIONS);
+      storage_size_node = make_operator_node((an_expr_operator_kind)eok_add,
+                                             size_elem_node->type,
+                                             storage_size_node);
+      storage_size_node->next = copy_expr_tree(alignment_node, CE_NO_OPTIONS);
+      storage_node->next = storage_size_node;
+    } else {
+      /* The call will be operator delete[](ptr, alignment). */
+      storage_node->next = copy_expr_tree(alignment_node, CE_NO_OPTIONS);
+    }  /* if */
+    delete_addr_node->next = storage_node;
+    /* Make a comma node linking the library call for the destructors
+       with the call to the deallocation function and return that comma
+       node as the result. */
+    call_node->next = make_operator_node((an_expr_operator_kind)eok_call,
+                                         void_type(), delete_addr_node);
+    call_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                   void_type(), call_node);
+  }  /* if */
   return call_node;
 }  /* make_vec_delete_call */
 
@@ -11300,14 +11424,35 @@ arrays with class elements.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     size_node = args;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    /* Add the size of the runtime prefix used to keep track of the array
-       size to the argument for the operator new[] call. */
+    /* Increase the requested size in the operator new[] call to allow
+       space for the runtime prefix used to keep track of the array
+       size. */
     { an_expr_node_ptr size_node_next = size_node->next;
-      prefix_size_node = get_prefix_size_node(elem_type, new_routine);
-      if (prefix_size_node != NULL) {
-#if !IA64_ABI
+      if (ndsp->aligned_version) {
+        /* Use the requested alignment as the size of the prefix so that
+           the alignment of the actual object, offset by that amount from
+           the start of the allocated block, will be correct.  This amount
+           should be large enough: The array prefix for an overaligned
+           allocation consists of three size_t elements.  We assume that
+           the default new alignment is larger than an object of type
+           size_t (this is enforced in check_target_configuration in
+           CHECKING configurations), and aligned allocation will only be
+           used for an extended alignment larger than the default new
+           alignment, the array prefix should fit with no problem. */
+        prefix_size_node = make_reusable_copy(size_node_next,
+                                              /*vars_can_change=*/FALSE);
         prefix_size_node = add_cast_if_necessary(prefix_size_node,
                                                  size_node->type);
+      } else {
+        /* Use the actual size needed for the runtime prefix. */
+        prefix_size_node = get_prefix_size_node(elem_type, new_routine);
+      }  /* if */
+      if (prefix_size_node != NULL) {
+#if !IA64_ABI
+        if (!ndsp->aligned_version) {
+          prefix_size_node = add_cast_if_necessary(prefix_size_node,
+                                                   size_node->type);
+        }  /* if */
 #endif /* !IA64_ABI  */
         size_node->next = prefix_size_node;
         size_node = make_operator_node((an_expr_operator_kind)eok_add,
@@ -11333,12 +11478,8 @@ arrays with class elements.
       /* Make "temp = (type *)((char *)temp + __array_new_prefix_size)". */
       temp_var_node = var_rvalue_expr(temp_var);
       temp_var_node = add_cast_if_necessary(temp_var_node, char_star_type());
-#if !IA64_ABI
-      temp_var_node->next = var_rvalue_expr(array_new_prefix_size_var);
-#else /* IA64_ABI */
       temp_var_node->next = make_reusable_copy(prefix_size_node,
                                                /*vars_can_change=*/FALSE);
-#endif /* IA64_ABI */
       add_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                     temp_var_node->type, temp_var_node);
       add_node = add_cast_if_necessary(add_node, ptr_elem_type);
