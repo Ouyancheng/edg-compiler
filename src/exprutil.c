@@ -3901,6 +3901,23 @@ a pointer to the filled-in rescan info entry is returned.
 }  /* save_operand_info_in_rescan_info_entry */
 
 
+static a_boolean is_explicitly_typed_operator_node(an_expr_node_ptr  node)
+/*
+Return TRUE if the given node is one with a specific specified type (e.g.,
+representing a cast or a new-expression).
+*/
+{
+  
+  return is_operation_node(node) ?
+             is_cast_operation_node(node)
+           : (node->kind == (an_expr_node_kind)enk_temp_init ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              node->kind == (an_expr_node_kind)enk_gcnew ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              node->kind == (an_expr_node_kind)enk_new_delete);
+}  /* is_explicitly_typed_operator_node */
+
+
 static void save_operand_info_in_expr_rescan_info_entry(
                                                      an_operand       *operand,
                                                      an_expr_node_ptr node)
@@ -3915,6 +3932,19 @@ entry attached to the expression node so it will be available for the rescan.
 
   eriep = save_operand_info_in_rescan_info_entry(operand, node->rescan_info);
   node->rescan_info = eriep;
+  if (is_explicitly_typed_operator_node(node)) {
+    if (node->kind == (an_expr_node_kind)enk_new_delete) {
+      eriep->type = node->variant.new_delete->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (node->kind == (an_expr_node_kind)enk_gcnew) {
+      eriep->type = node->variant.gcnew_info->type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (node->orig_lvalue_type != NULL) {
+      eriep->type = node->orig_lvalue_type;
+    } else {
+      eriep->type = node->type;
+    }  /* if */
+  }  /* if */
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
 
@@ -4025,16 +4055,7 @@ and type is the specified type.
   if (expr_stack->possible_rescan_context &&
       !is_error_node(expr)) {
     an_expr_rescan_info_entry_ptr eriep;
-#if CHECKING
-    if (!(is_cast_operation_node(expr) ||
-          expr->kind == (an_expr_node_kind)enk_temp_init ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          expr->kind == (an_expr_node_kind)enk_gcnew ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          expr->kind == (an_expr_node_kind)enk_new_delete)) {
-      unexpected_condition();
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(is_explicitly_typed_operator_node(expr));
     record_operator_position_in_expr_rescan_info(expr, start_position,
                                                  NO_TOKEN_SEQUENCE_NUMBER,
                                                  type_position);
