@@ -4806,6 +4806,20 @@ the lambda.  NULL otherwise.
 }  /* fixup_instantiation_scopes */
 
 
+/*
+Instantiating a template or rescanning its template parameters (or default
+template arguments) creates a new context and if we were previously inside a
+local class that is now probably no longer the case.  This macro updates the
+global inside_local_class flag when instantiating/rescanning a specific
+template.
+*/
+#define set_inside_local_class_flag_for_template(templ_sym)                  \
+  { inside_local_class =                                                     \
+          templ_sym != NULL && templ_sym->is_class_member &&                 \
+          sym_parent_class(templ_sym)->source_corresp.is_local_to_function;  \
+  }
+
+
 static void push_simple_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
@@ -4822,9 +4836,10 @@ scopes.
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			saved_innermost_scope_that_affects_access;
 
+  set_inside_local_class_flag_for_template(template_sym);
   saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
- (void)push_scope_full((a_scope_kind)sck_template_instantiation,
+  (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                         decl_info->declaration_scope, assoc_type,
                         assoc_routine, (a_namespace_ptr)NULL, instance_sym,
                         template_sym, template_arg_list, decl_info,
@@ -5023,9 +5038,7 @@ class to be defined.
      class.  This will be restored to the correct state when the last scope
      pushed by this routine is popped.  The same is done for the flag that
      indicates whether we are within a function scope. */
-  inside_local_class =
-          template_sym != NULL && template_sym->is_class_member &&
-          sym_parent_class(template_sym)->source_corresp.is_local_to_function;
+  set_inside_local_class_flag_for_template(template_sym);
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   innermost_function_scope = NULL;
   saved_innermost_scope_that_affects_access =
