@@ -3932,7 +3932,7 @@ entry attached to the expression node so it will be available for the rescan.
 
   eriep = save_operand_info_in_rescan_info_entry(operand, node->rescan_info);
   node->rescan_info = eriep;
-  if (is_explicitly_typed_operator_node(node)) {
+  if (is_explicitly_typed_operator_node(node) && eriep->type == NULL) {
     /* A node with an explicitly-specified type (a cast or a new/gcnew):
        Record that type in the rescan info. */
     if (node->kind == (an_expr_node_kind)enk_new_delete) {
@@ -3942,7 +3942,19 @@ entry attached to the expression node so it will be available for the rescan.
       eriep->type = node->variant.gcnew_info->type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (node->orig_lvalue_type != NULL) {
-      eriep->type = node->orig_lvalue_type;
+      if (node->variant.operation.is_reference_cast) {
+        if (node->variant.operation.is_rvalue_reference_cast) {
+          eriep->type = make_rvalue_reference_type(node->orig_lvalue_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (node->variant.operation.is_tracking_reference_cast) {
+          eriep->type = make_tracking_reference_type(node->orig_lvalue_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else {
+          eriep->type = make_reference_type(node->orig_lvalue_type);
+        }  /* if */
+      } else {
+        eriep->type = node->orig_lvalue_type;
+      }  /* if */
     } else {
       eriep->type = node->type;
     }  /* if */
