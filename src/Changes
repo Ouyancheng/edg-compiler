@@ -32,7 +32,7 @@ Microsoft behaviors of the conditional operator (like --no_ms_permissive; see
 the entry for EDGcpfe/17992).
 
 
-8/30/18  [EDGcpfe/20048]
+8/30/18  [EDGcpfe/20048,EDGcpfe/20059]
 Abort on friend class template in nested class of class template
 
 The changes for EDGcpfe/18892 in version 5.0 introduced a regression causing
