@@ -10,7 +10,7 @@ GNU/Clang __builtin_va_arg operator to a template-dependent type.  For example:
     T x;
     __builtin_va_arg(x, int);  // Previously an error.  Now okay.
   }
-  template void g<int>();
+  template void g<__builtin_va_list>();
 
 That is now fixed.
 
