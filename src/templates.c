@@ -21792,7 +21792,17 @@ declaration of a partial specialization declared outside of its class.
           err = TRUE;
           decl_state->is_partial_specialization = FALSE;
         }  /* if */
-        if (sym != NULL) decl_state->is_partial_specialization = TRUE;
+        if (sym != NULL) {
+          decl_state->is_partial_specialization = TRUE;
+          if (is_class_struct_union_symbol(sym) &&
+              !sym->variant.class_struct_union.type
+                  ->variant.class_struct_union.is_prototype_instantiation) {
+            /* If the symbol is not marked as a prototype instantiation yet,
+               then this is the first time we're marking it as a partial
+               specialization. */
+            decl_state->decl_parse.first_decl = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (sym != NULL && gpp_mode && gnu_version >= 30400 &&
           symbol_is(sym, sk_type)) {
@@ -25354,7 +25364,7 @@ a_symbol_ptr variable_template_partial_specialization(
 				a_tmpl_decl_state_ptr	decl_state,
 				a_symbol_locator	*locator)
 /*
-ps_sym is points to a variable template instance such as x<T*>.  See if
+orig_sym is points to a variable template instance such as x<T*>.  See if
 there is a variable template "x" for which this should be considered a
 partial specialization.  If so, create a new variable template symbol
 for the partial specialization, link it to the primary template, and
@@ -25401,6 +25411,7 @@ return NULL.
       a_variable_template_info_ptr	vtip;
       a_variable_ptr			ps_var;
       a_template_symbol_supplement_ptr	tssp;
+      decl_state->decl_parse.first_decl = TRUE;
       ps_sym = create_variable_template_symbol(decl_state, locator);
       ps_sym->decl_scope = primary_sym->decl_scope;
       tssp = ps_sym->variant.template_info;

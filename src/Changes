@@ -1,5 +1,23 @@
 Version 5.1
 
+8/30/18  [EDGcpfe/19761]
+Partial specializations and "first_decl" flag
+
+While parsing a declaration, the front end keeps track of information about
+that declaration in an entry of type a_decl_parse_state.  One of the flags in
+such entries is "first_decl", which indicates whether this is the first
+declaration of the underlying entity.  Now the front end sets that flag to
+TRUE the first time a specific partial specialization is seen.  For example:
+
+  template<typename T> struct X;      // Primary template.
+  template<typename T> struct X<T*>;
+                             // Partial specialization: first_decl == TRUE.
+  template<typename T> struct X<T*>;
+                             // Partial specialization: first_decl == FALSE.
+  template<typename T> struct X<T&>;
+                             // Partial specialization: first_decl == TRUE.
+
+
 8/30/18  [EDGcpfe/19934]
 Microsoft C++ compatibility: Copy elision and conditional operators
 
