@@ -46,8 +46,8 @@ example:
     };
   };
 
-where a friend class template in a nested class of a class template refers
-names a member template of the enclosing class template.  That is now fixed.
+where a friend class template in a nested class of a class template names a
+member template of the enclosing class template.  That is now fixed.
 
 
 8/30/18  [EDGcpfe/20046]
