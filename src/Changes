@@ -1,5 +1,20 @@
 Version 5.1
 
+8/30/18  [EDGcpfe/19679]
+__builtin_va_arg and templates
+
+The front end previously issued spurious type errors when applying the
+GNU/Clang __builtin_va_arg operator to a template-dependent type.  For example:
+
+  template<typename T> void g() {
+    T x;
+    __builtin_va_arg(x, int);  // Previously an error.  Now okay.
+  }
+  template void g<int>();
+
+That is now fixed.
+
+
 8/30/18  [EDGcpfe/19761]
 Partial specializations and "first_decl" flag
 
