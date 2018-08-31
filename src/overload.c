@@ -20345,8 +20345,12 @@ for a return, because the caller will do the destruction).
     dip = temp_init_node->variant.init.dynamic_init;
     /* Avoid problems with dynamic inits with kind dik_none, created for
        functional-notation casts with no arguments (e.g., X()) for classes
-       with no constructors. */
-    if (dip->kind != (a_dynamic_init_kind)dik_none) {
+       with no constructors.  Microsoft compilers also appear not to perform
+       return value optimizations when the temporaries come through a
+       conditional operator. */
+    if (dip->kind != (a_dynamic_init_kind)dik_none &&
+        !(microsoft_mode && ms_permissive && !mandatory_copy_elision &&
+          dip->is_result_for_class_rvalue_question_mark)) {
       is_usable_temp_init = TRUE;
       /* Take the dynamic init off whatever destruction list it is on, if any,
          because it will be given to the caller, who will put it on a
