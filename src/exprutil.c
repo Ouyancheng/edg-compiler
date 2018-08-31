@@ -3933,6 +3933,8 @@ entry attached to the expression node so it will be available for the rescan.
   eriep = save_operand_info_in_rescan_info_entry(operand, node->rescan_info);
   node->rescan_info = eriep;
   if (is_explicitly_typed_operator_node(node)) {
+    /* A node with an explicitly-specified type (a cast or a new/gcnew):
+       Record that type in the rescan info. */
     if (node->kind == (an_expr_node_kind)enk_new_delete) {
       eriep->type = node->variant.new_delete->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
