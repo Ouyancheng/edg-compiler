@@ -63,15 +63,17 @@ is not evaluated.  That is now fixed.
 
 
 8/29/18  [EDGcpfe/19163]
-Allocation of arrays of overaligned types
+Allocation and freeing of arrays of overaligned types
 
 In some configurations, the front end failed to correctly satisfy the
 alignment requirements of an array of a type with an extended alignment
-(see EDGcpfe/17696).  This is now fixed; the array prefix (extra space
-allocated before an array to contain information about the size of the
-array) is now expanded to the alignment size so that the array will begin
-on an appropriate alignment boundary following the start of the allocated
-storage.
+(see EDGcpfe/17696).  In addition, the deallocation function was invoked
+using an incorrect calling sequence that omitted the alignment parameter.
+These issues are now fixed; the array prefix (extra space allocated before
+an array to contain information about the size of the array) is now
+expanded to the alignment size so that the array will begin on an
+appropriate alignment boundary following the start of the allocated
+storage, and the deallocation function is now invoked correctly.
 
 
 8/28/18  [EDGcpfe/20030]
