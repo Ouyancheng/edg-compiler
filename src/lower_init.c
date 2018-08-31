@@ -3862,9 +3862,8 @@ A pointer to the expression created is returned.
        routine, 0 otherwise.
     */
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
-    is_two_arg_node = node_for_integer_constant(
-                              is_sized_del ? 1L : 0L,
-                              (an_integer_kind)ik_int);
+    is_two_arg_node = node_for_integer_constant(is_sized_del ? 1L : 0L,
+                                                (an_integer_kind)ik_int);
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
@@ -3882,7 +3881,7 @@ A pointer to the expression created is returned.
   }  /* if */
 #else /* IA64_ABI */
   if (is_aligned_del) {
-    /* Use a copy of the pointer to the array, so we can use it later for
+    /* Make a copy of the pointer to the array, so we can use it later for
        calculating the number of elements in the array and the start of the
        complete block (including the array prefix). */
     entity_node = make_reusable_copy(entity_node, /*vars_can_change=*/TRUE);
@@ -4030,7 +4029,7 @@ A pointer to the expression created is returned.
       /* In the Cfront ABI, the cookie is a structure of two size_t
          elements, located __array_new_prefix_size bytes before the
          beginning of the array; the first element gives the number of
-         bytes in the array.  Fetch it in storage size node. */
+         bytes in the array.  Fetch it in storage_size_node. */
       prefix_size_node = get_prefix_size_node(type_pointed_to(entity_type),
                                               (a_routine_ptr)NULL);
       storage_size_node = make_reusable_copy(orig_entity_node,
@@ -11445,14 +11444,7 @@ arrays with class elements.
       if (ndsp->aligned_version) {
         /* Use the requested alignment as the size of the prefix so that
            the alignment of the actual object, offset by that amount from
-           the start of the allocated block, will be correct.  This amount
-           should be large enough: The array prefix for an overaligned
-           allocation consists of three size_t elements.  We assume that
-           the default new alignment is larger than an object of type
-           size_t (this is enforced in check_target_configuration in
-           CHECKING configurations), and aligned allocation will only be
-           used for an extended alignment larger than the default new
-           alignment, the array prefix should fit with no problem. */
+           the start of the allocated block, will be correct. */
         prefix_size_node = make_reusable_copy(size_node_next,
                                               /*vars_can_change=*/FALSE);
         prefix_size_node = add_cast_if_necessary(prefix_size_node,
