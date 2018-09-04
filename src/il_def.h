@@ -3739,8 +3739,7 @@ typedef struct a_dynamic_init {
                            constant entry for which one or more of the
                            entries on its linked list are ck_dynamic_init
                            constants. */
-    /* When kind == dik_expression or
-       kind == dik_class_result_via_ctor: */
+    /* When kind == dik_expression or kind == dik_class_result_via_ctor: */
     an_expr_node_ptr
 		expression;
 			/* The expression that gives the initial value
