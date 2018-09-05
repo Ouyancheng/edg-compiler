@@ -1,5 +1,23 @@
 Version 5.1
 
+9/4/18   [EDGcpfe/14767,EDGcpfe/15614,EDGcpfe/16304,EDGcpfe,16427,
+          EDGcpfe/18826]
+Clang-style feature-test macro operators in non-clang modes
+
+The front end by default now enables the clang feature-test macro operators
+__has_feature, __has_extension, __has_include, __has_include_next,
+__has_attribute, __has_builtin, and __is_identifier in all modes.  These
+macro operators will remain undefined if the new configuration macro
+DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES is defined as FALSE.  (The
+__has_include macro operator will continue to be defined in C++17 mode and
+when the global variable define_portable_feature+_test_macros is TRUE,
+regardless of the value of the new configuration macro.)  For example, with
+--g++:
+
+  #if __has_feature(cxx_alignas)  // Previously an error, now accepted
+  #endif
+
+
 8/30/18  [EDGcpfe/19679]
 __builtin_va_arg and templates
 

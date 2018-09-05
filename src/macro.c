@@ -239,35 +239,35 @@ static a_boolean
 			   white space onto a new source line. */
 
 static a_symbol_ptr
-		clang_has_feature_symbol;
+		has_feature_symbol;
 			/* Pointer to the symbol entry for the special
-			   macro "__has_feature", which is used in clang
-			   mode. */
+			   macro "__has_feature", which used in clang
+			   mode and optionally in all modes. */
 
 static a_symbol_ptr
-		clang_has_extension_symbol;
+		has_extension_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_extension", which is used in clang
-			   mode. */
+			   mode and optionally in all modes. */
 
 static a_symbol_ptr
 		has_include_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_include", which is used in clang
 			   mode and when the portable feature test macros
-			   are enabled. */
+			   are enabled or, optionally, in all modes. */
 
 static a_symbol_ptr
-		clang_has_include_next_symbol;
+		has_include_next_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_include_next", which is used in
-			   clang mode. */
+			   clang mode and optionally in all modes. */
 
 static a_symbol_ptr
-		clang_has_attribute_symbol;
+		has_attribute_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_attribute", which is used in clang
-			   mode. */
+			   mode and optionally in all modes. */
 
 static a_symbol_ptr
 		has_cpp_attribute_symbol;
@@ -277,16 +277,16 @@ static a_symbol_ptr
 			   in the current emulation. */
 
 static a_symbol_ptr
-		clang_has_builtin_symbol;
+		has_builtin_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_builtin", which is used in clang
-			   mode. */
+			   mode and optionally in all modes. */
 
 static a_symbol_ptr
-		clang_is_identifier_symbol;
+		is_identifier_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__is_identifer", which is used in clang
-			   mode. */
+			   mode and optionally in all modes. */
 
 static a_boolean
 		use_raw_version_of_arg;
@@ -4763,18 +4763,18 @@ END_EXTERN_C_BLOCK
 static a_const_char *clang_feature_test_id(a_macro_arg_ptr   macro_arg,
                                            a_source_position *error_pos)
 /*
-macro_arg is the argument of a clang feature-test macro (__has_feature,
-__has_extension, __has_attribute, or __has_builtin); whether the raw_text
-or expanded_text is used depends on the value of clang_version.  The
-argument must be an identifier, which means that either the text is an
-identifier or (if the expanded text is being used) its first character is
-an ATTENTION_MARKER denoting the expansion of a macro invocation, which
-might itself be the expansion of a macro invocation, etc.  If the ultimate
-expansion is not a simple identifier, report an error at error_pos and
-return NULL.  Otherwise, return a pointer to the identifier (after
-stripping leading/trailing double-underscores, if present).  The returned
-pointer may point into a local buffer, which will be overwritten by
-subsequent calls.
+macro_arg is the argument of a clang-style feature-test macro
+(__has_feature, __has_extension, __has_attribute, or __has_builtin);
+whether the raw_text or expanded_text is used depends on the value of
+clang_version.  The argument must be an identifier, which means that either
+the text is an identifier or (if the expanded text is being used) its first
+character is an ATTENTION_MARKER denoting the expansion of a macro
+invocation, which might itself be the expansion of a macro invocation, etc.
+If the ultimate expansion is not a simple identifier, report an error at
+error_pos and return NULL.  Otherwise, return a pointer to the identifier
+(after stripping leading/trailing double-underscores, if present).  The
+returned pointer may point into a local buffer, which will be overwritten
+by subsequent calls.
 */
 {
   a_source_line_modif_ptr slmp;
@@ -4783,11 +4783,12 @@ subsequent calls.
   a_const_char            *p;
   static char             buff[MAX_CLANG_FEATURE_NAME_LEN];
 
-  if (clang_version < 30300) {
-    /* Versions before 3.3 macro-expand the argument. */
+  if (clang_mode && clang_version < 30300) {
+    /* Clang versions before 3.3 macro-expand the argument. */
     id = macro_arg->expanded_text;
   } else {
-    /* Versions 3.3 and later do not macro-expand the argument. */
+    /* Clang versions 3.3 and later, as well as in non-clang mode, do not
+       macro-expand the argument. */
     id = macro_arg->raw_text;
   }  /* if */
   while (*id == ATTENTION_MARKER) {
@@ -5570,10 +5571,10 @@ make_inert_macro:
         ensure_arg_raw_text_space(length+3, special_macro_arg);
         sprintf(repl_text, "\"%s\"", time_str);
       } else if (macro_symbol == has_include_symbol ||
-                 macro_symbol == clang_has_include_next_symbol) {
+                 macro_symbol == has_include_next_symbol) {
         /* The clang, C++17, and WG21 SG10 __has_include macro or the
-           clang-only has_include_next macro.  Has the value 1 if the named
-           header file would be found by #include or #include_next,
+           clang-style has_include_next macro.  Has the value 1 if the
+           named header file would be found by #include or #include_next,
            respectively, and 0 otherwise. */
         a_boolean    file_found;
         a_seq_number org_seq = curr_seq_number;
@@ -5592,7 +5593,7 @@ make_inert_macro:
           save_delete_source_from_loc = delete_source_from_loc;
           delete_source_from_loc = NULL;
           file_found =
-               scan_has_include(macro_symbol == clang_has_include_next_symbol);
+                     scan_has_include(macro_symbol == has_include_next_symbol);
           if (curr_seq_number != org_seq) {
             /* We moved to a new source line while scanning the macro
                invocation; delete from the beginning of the current source
@@ -5605,10 +5606,10 @@ make_inert_macro:
           --macro_depth;
           strcpy(repl_text, file_found ? "1" : "0");
         }  /* if */
-      } else if (macro_symbol == clang_is_identifier_symbol) {
-        /* The clang __is_identifier macro.  Takes one argument and has the
-           value 1 if it is an identifier, 0 if it's anything else (e.g., a
-           reserved word). */
+      } else if (macro_symbol == is_identifier_symbol) {
+        /* The clang-style __is_identifier macro.  Takes one argument and
+           has the value 1 if it is an identifier, 0 if it's anything else
+           (e.g., a reserved word). */
         a_boolean saved_fetch_pp_tokens = fetch_pp_tokens;
         a_boolean saved_in_preprocessing_directive =
                                                     in_preprocessing_directive;
@@ -6579,14 +6580,14 @@ end_arg_expansion:;
          invocation had none or too many.  A diagnostic was issued above;
          here, just make the value 0 to indicate failure. */
       strcpy(repl_text, "0");
-    } else if (macro_symbol == clang_has_feature_symbol ||
-               macro_symbol == clang_has_extension_symbol) {
-      /* This is the clang __has_feature or __has_extension macro.  For
-         __has_extension, the result is the value 1 if the named feature or
-         type trait helper is available in the current execution of the
-         front end and 0 otherwise.  __has_feature tests both whether the
-         feature is enabled and that the current C++ version contains the
-         feature. */
+    } else if (macro_symbol == has_feature_symbol ||
+               macro_symbol == has_extension_symbol) {
+      /* This is the clang-style __has_feature or __has_extension macro.
+         For __has_extension, the result is the value 1 if the named
+         feature or type trait helper is available in the current execution
+         of the front end and 0 otherwise.  __has_feature tests both
+         whether the feature is enabled and that the current C++ version
+         contains the feature. */
       a_const_char *feature_name = clang_feature_test_id(map, &arg_position);
       a_boolean    feature_supported = FALSE;
       if (feature_name != NULL) {
@@ -6600,12 +6601,11 @@ end_arg_expansion:;
                                       compare_feature_names);
         if (feature != NULL) {
           feature_supported = (feature->enabled != NULL && *feature->enabled);
-          if (feature_supported && clang_mode &&
-              macro_symbol == clang_has_feature_symbol &&
+          if (feature_supported && macro_symbol == has_feature_symbol &&
               std_version < feature->feature_ver) {
             /* The feature is not part of the specified version of the C++
-               Standard, so clang's __has_feature says it's not supported,
-               although __has_extension would say it is. */
+               Standard, so __has_feature says it's not supported, although
+               __has_extension would say it is. */
             feature_supported = FALSE;
           }  /* if */
         } else if (type_traits_helpers_enabled) {
@@ -6620,10 +6620,10 @@ end_arg_expansion:;
         }  /* if */
       }  /* if */
       strcpy(repl_text, feature_supported ? "1" : "0");
-    } else if (macro_symbol == clang_has_attribute_symbol) {
-      /* The clang __has_attribute macro.  Has the value 1 if the named
-         attribute is available in the current execution of the front end
-         and 0 otherwise. */
+    } else if (macro_symbol == has_attribute_symbol) {
+      /* The clang-style __has_attribute macro.  Has the value 1 if the
+         named attribute is available in the current execution of the front
+         end and 0 otherwise. */
       a_const_char *attribute_name = clang_feature_test_id(map, &arg_position);
       if (attribute_name != NULL &&
           attribute_is_supported(attribute_name, af_gnu)) {
@@ -6668,8 +6668,8 @@ end_arg_expansion:;
         }  /* if */
       }  /* if */
       strcpy(repl_text, value);
-    } else if (macro_symbol == clang_has_builtin_symbol) {
-      /* The clang __has_builtin macro.  Has the value 1 if the named
+    } else if (macro_symbol == has_builtin_symbol) {
+      /* The clang-style __has_builtin macro.  Has the value 1 if the named
          builtin function is available in the current execution of the
          front end and 0 otherwise. */
 #if BUILTIN_FUNCTIONS_ENABLED
@@ -10865,26 +10865,29 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+#if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
+  /* Restrict the feature-test operators to clang mode only. */
   if (clang_mode) {
-    /* Feature-test macros for clang mode.  Like the preceding macros, they
-       are entered with a NULL replacement text and expanded appropriately
-       in macro_invocation. */
-    clang_has_feature_symbol = enter_predef_macro_full(
+#endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
+    /* Feature-test macros for clang mode and, optionally, in all modes.
+       Like the preceding macros, they are entered with a NULL replacement
+       text and expanded appropriately in invocation. */
+    has_feature_symbol = enter_predef_macro_full(
                                              (char *)NULL, "__has_feature",
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
-    clang_has_extension_symbol = enter_predef_macro_full(
+    has_extension_symbol = enter_predef_macro_full(
                                              (char *)NULL, "__has_extension",
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
-    clang_has_attribute_symbol = enter_predef_macro_full(
+    has_attribute_symbol = enter_predef_macro_full(
                                              (char *)NULL, "__has_attribute",
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
-    clang_has_builtin_symbol = enter_predef_macro_full(
+    has_builtin_symbol = enter_predef_macro_full(
                                              (char *)NULL, "__has_builtin",
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
@@ -10895,7 +10898,7 @@ command line -D options.
        processing, these macros are defined as object-like, not
        function-like, and the argument is scanned and processed directly by
        scan_has_include. */
-    clang_has_include_next_symbol = enter_predef_macro(
+    has_include_next_symbol = enter_predef_macro(
                                             (char *)NULL, "__has_include_next",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
@@ -10905,12 +10908,15 @@ command line -D options.
     /* Similarly, __is_identifier expects exactly one token that either is
        or is not an identifier, so normal macro argument processing is also
        not appropriate. */
-    clang_is_identifier_symbol = enter_predef_macro(
+    is_identifier_symbol = enter_predef_macro(
                                             (char *)NULL, "__is_identifier",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (define_portable_feature_test_macros || cpp17_mode)) {
+#if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
+  }  /* if */
+#endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
+  if (has_include_symbol == NULL && C_dialect == C_dialect_cplusplus &&
+      (define_portable_feature_test_macros || cpp17_mode)) {
     /* __has_include is a WG21 SG10 recommendation and is part of standard
        C++17, so it must be defined even if we are not in clang mode. */
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
@@ -11073,13 +11079,13 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(time_macro_symbol),
       pch_saved_var_array_elem(base_file_macro_symbol),
       pch_saved_var_array_elem(stdc_macro_symbol),
-      pch_saved_var_array_elem(clang_has_feature_symbol),
-      pch_saved_var_array_elem(clang_has_extension_symbol),
+      pch_saved_var_array_elem(has_feature_symbol),
+      pch_saved_var_array_elem(has_extension_symbol),
       pch_saved_var_array_elem(has_include_symbol),
-      pch_saved_var_array_elem(clang_has_include_next_symbol),
-      pch_saved_var_array_elem(clang_has_attribute_symbol),
-      pch_saved_var_array_elem(clang_has_builtin_symbol),
-      pch_saved_var_array_elem(clang_is_identifier_symbol),
+      pch_saved_var_array_elem(has_include_next_symbol),
+      pch_saved_var_array_elem(has_attribute_symbol),
+      pch_saved_var_array_elem(has_builtin_symbol),
+      pch_saved_var_array_elem(is_identifier_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(assert_predicates),
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -11112,13 +11118,13 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(time_macro_symbol);
   register_trans_unit_variable(base_file_macro_symbol);
   register_trans_unit_variable(stdc_macro_symbol);
-  register_trans_unit_variable(clang_has_feature_symbol);
-  register_trans_unit_variable(clang_has_extension_symbol);
+  register_trans_unit_variable(has_feature_symbol);
+  register_trans_unit_variable(has_extension_symbol);
   register_trans_unit_variable(has_include_symbol);
-  register_trans_unit_variable(clang_has_include_next_symbol);
-  register_trans_unit_variable(clang_has_attribute_symbol);
-  register_trans_unit_variable(clang_has_builtin_symbol);
-  register_trans_unit_variable(clang_is_identifier_symbol);
+  register_trans_unit_variable(has_include_next_symbol);
+  register_trans_unit_variable(has_attribute_symbol);
+  register_trans_unit_variable(has_builtin_symbol);
+  register_trans_unit_variable(is_identifier_symbol);
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   register_trans_unit_variable(assert_predicates);
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -11155,13 +11161,13 @@ after this function.
   end_of_macro_arg_list = NULL;
   stdc_macro_symbol = NULL;
   stdc_value = FALSE;
-  clang_has_feature_symbol = NULL;
-  clang_has_extension_symbol = NULL;
+  has_feature_symbol = NULL;
+  has_extension_symbol = NULL;
   has_include_symbol = NULL;
-  clang_has_include_next_symbol = NULL;
-  clang_has_attribute_symbol = NULL;
-  clang_has_builtin_symbol = NULL;
-  clang_is_identifier_symbol = NULL;
+  has_include_next_symbol = NULL;
+  has_attribute_symbol = NULL;
+  has_builtin_symbol = NULL;
+  is_identifier_symbol = NULL;
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   assert_predicates = NULL;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */

@@ -6463,6 +6463,13 @@ file.
 #else /* !defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
   comment_undefined_macro_name(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
 #endif /* defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
+#if defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES)
+  define_numeric_valued_macro(
+                             DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES);
+#else /* !defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES) */
+  comment_undefined_macro_name(
+                             DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES);
+#endif /* defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES) */
 #if defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD)
   define_numeric_valued_macro(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD);
 #else /* !defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD) */
