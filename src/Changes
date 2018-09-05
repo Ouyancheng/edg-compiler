@@ -1,6 +1,6 @@
 Version 5.1
 
-9/4/18   [EDGcpfe/14767,EDGcpfe/15614,EDGcpfe/16304,EDGcpfe,16427,
+9/4/18   [EDGcpfe/14767,EDGcpfe/15614,EDGcpfe/16304,EDGcpfe/16427,
           EDGcpfe/18826]
 Clang-style feature-test macro operators in non-clang modes
 
