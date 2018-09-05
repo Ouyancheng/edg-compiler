@@ -10868,6 +10868,8 @@ command line -D options.
 #if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
   /* Restrict the feature-test operators to clang mode only. */
   if (clang_mode) {
+#else /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
+  {
 #endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
     /* Feature-test macros for clang mode and, optionally, in all modes.
        Like the preceding macros, they are entered with a NULL replacement
@@ -10914,6 +10916,8 @@ command line -D options.
                                             /*ref_suppresses_pch_file=*/FALSE);
 #if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
   }  /* if */
+#else /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
+  }
 #endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
   if (has_include_symbol == NULL && C_dialect == C_dialect_cplusplus &&
       (define_portable_feature_test_macros || cpp17_mode)) {
