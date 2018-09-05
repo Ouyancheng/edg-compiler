@@ -16221,7 +16221,18 @@ represents an explicit cast.
        of the temporary as a prvalue. */
     temp_init_node->type = prvalue_type(temp_type);
   }  /* if */
-  dip->is_explicit_cast = is_explicit_cast;
+  if (is_explicit_cast) {
+    dip->is_explicit_cast = TRUE;
+    if (constexpr_enabled ) {
+      /* dip might be the result of constexpr evaluation of a constructor call,
+         in which case an underlying dik_constructor entry should also be
+         marked as representing an explicit cast. */
+      a_dynamic_init_ptr  udip = skip_constexpr_ctor_eval(dip);
+      if (udip != dip) {
+        udip->is_explicit_cast = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
      point of view) part of this scope.  That's important, because it has to

@@ -1,5 +1,32 @@
 Version 5.1
 
+9/5/18   [EDGcpfe/20057]
+Explicit casts and folding constructor calls
+
+Consider:
+
+  struct S {
+    constexpr S(float const&) {}
+    void f() {};
+  };
+  int g() {
+    static_cast<S>(0).f(); // (1)
+    return 0;
+  }
+
+The static_cast construct produces two dynamic initialization entries: One
+that represents the underlying constructor call as is (i.e., a dik_constructor
+entry), and one that results from folding that constructor call (a dik_constant
+entry).  Previously, only the latter (dik_constant) entry was marked as
+representing an explicit cast.  The lack of that marking on the unfolded entry
+caused the C++-generating back end to render line (1) as
+
+	(0).f();
+
+which is clearly an error.  That is now fixed: Both dynamic initialization
+entries are now marked as representing an explicit cast.
+
+
 9/4/18   [EDGcpfe/14767,EDGcpfe/15614,EDGcpfe/16304,EDGcpfe/16427,
           EDGcpfe/18826]
 Clang-style feature-test macro operators in non-clang modes
