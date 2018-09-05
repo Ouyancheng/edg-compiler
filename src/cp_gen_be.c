@@ -11281,7 +11281,12 @@ Generate code for a new or delete operation.
           tkind == (a_type_kind)tk_float ||
           is_class_type_kind(tkind) ||
           (tkind == (a_type_kind)tk_typeref &&
-           typeref_is_typedef(temp_type))) {
+           typeref_is_typedef(temp_type)) ||
+          (tkind == (a_type_kind)tk_template_param &&
+           temp_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+           temp_type->variant.template_param.extra_info->coordinates.depth ==
+                                                    AUTO_TYPE_NESTING_DEPTH)) {
         /* Simple cases that don't need parentheses. */
         need_type_parens = FALSE;
       } else if (is_array_type(type) && ndsp->number_of_elements != NULL) {

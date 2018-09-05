@@ -1,5 +1,18 @@
 Version 5.1
 
+9/5/18   [EDGcpfe/19559]
+C++-generating back end: new auto with dependent initializer
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end incorrectly
+parenthesized the "auto" keyword in the generated code when it is used
+as a new-type-id with a dependent initializer.  This is now fixed.  For
+example, with --c++11:
+
+  template <class T> auto f(T t) ->
+    decltype(new auto(t));   // Previously generated as "new (auto)(t)"
+
+
 9/5/18   [EDGcpfe/20057]
 Explicit casts and folding constructor calls
 
