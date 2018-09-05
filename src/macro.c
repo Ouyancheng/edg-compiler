@@ -4787,7 +4787,7 @@ by subsequent calls.
     /* Clang versions before 3.3 macro-expand the argument. */
     id = macro_arg->expanded_text;
   } else {
-    /* Clang versions 3.3 and later, as well as in non-clang mode, do not
+    /* Clang versions 3.3 and later, as well as non-clang mode, do not
        macro-expand the argument. */
     id = macro_arg->raw_text;
   }  /* if */
