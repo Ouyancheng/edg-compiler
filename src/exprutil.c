@@ -16223,7 +16223,7 @@ represents an explicit cast.
   }  /* if */
   if (is_explicit_cast) {
     dip->is_explicit_cast = TRUE;
-    if (constexpr_enabled ) {
+    if (constexpr_enabled) {
       /* dip might be the result of constexpr evaluation of a constructor call,
          in which case an underlying dik_constructor entry should also be
          marked as representing an explicit cast. */
