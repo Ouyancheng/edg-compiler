@@ -15047,7 +15047,9 @@ otherwise NULL.
     con = dip->variant.constant;
   } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
     an_expr_node_ptr expr = dip->variant.expression;
-    if (is_constant_node(expr)) con = node_constant(expr);
+    if (expr != NULL && is_constant_node(expr)) {
+      con = node_constant(expr);
+    }  /* if */
   }  /* if */
   return con;
 }  /* constant_value_of_dynamic_init */
