@@ -7,7 +7,7 @@ Consider:
 
   struct C {
     virtual ~C() {}
-    class F { friend C::~C(); } ;
+    class F { friend C::~C(); };
   };
 
 The front end previously issued a spurious error on the friend declaration
