@@ -1,5 +1,32 @@
 Version 5.1
 
+9/6/18   [EDGcpfe/19910]
+Defaulted copy constructors and rvalue reference members
+
+An rvalue reference member in a class type causes any associated defaulted
+copy constructor to be deleted.  E.g.:
+
+  struct S { int &&rr; };
+  void g(S &p) {
+    S s(p);  // Error: The copy constructor of S is deleted.
+  }
+
+However, the front end previously applied that rule unreliably, particularly
+in cases with user-declared move constructors or move assignment operators.
+For example:
+
+  struct X {
+    int &&r;
+    X(X const&) = default;
+    X(X&&);
+  };
+  void f(X &p) {
+    X x(p);  // Previously erroneously accepted.  Now an error.
+  }
+
+That is now fixed.
+
+
 9/6/18   [EDGcpfe/20073]
 Microsoft compatibility: variadic static data member initializer regression
 

@@ -20133,6 +20133,8 @@ warnings or remarks may be issued.
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
         }  /* if */
+      }  /* if */
+      if (!gsfd->suppress_copy_ctor) {
         if (is_rvalue_reference_type(utp)) {
           /* An rvalue reference field also suppresses the copy constructor. */
           gsfd->suppress_copy_ctor = TRUE;
