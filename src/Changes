@@ -1,5 +1,24 @@
 Version 5.1
 
+9/6/18   [EDGcpfe/20073]
+Microsoft compatibility: variadic static data member initializer regression
+
+A change made in version 5.0 caused a regression in the processing of
+static data members with out-of-class initializers involving pack
+expansions.  This only occurred in modes that do not do non-class
+prototype instantiations (typically permissive Microsoft mode).  Now
+fixed.
+
+  template <typename... T> struct X {
+    static int arr[sizeof...(T)];
+  };
+  template <typename... T> int X<T...>::arr[sizeof...(T)] = { sizeof(T)... };
+  int main() {
+    X<int, float> x;
+    x.arr[0];
+  }
+
+
 9/5/18   [EDGcpfe/19872]
 C++-generating back end: zero-initialization of objects with aggregate class
 type

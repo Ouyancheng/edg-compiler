@@ -25775,6 +25775,11 @@ supplement for this template should be returned to the caller.
     }  /* if */
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    /* For the is_template_variable case, these should already be set, but
+       they won't already be set for static data members. */
+    tssp->is_variadic = decl_state->is_variadic;
+    tssp->has_variadic_template_params =
+                                     decl_state->has_variadic_template_params;
     /* Save the information needed to create an instantiation based
        on the definition of the template.  First, save the initializer
        expression.  For a static data member initialized in-class, don't
