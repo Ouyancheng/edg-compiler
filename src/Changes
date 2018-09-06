@@ -1,5 +1,19 @@
 Version 5.1
 
+9/6/18   [EDGcpfe/19986]
+Spurious error on nested friend destructor declaration
+
+Consider:
+
+  struct C {
+    virtual ~C() {}
+    class F { friend C::~C(); } ;
+  };
+
+The front end previously issued a spurious error on the friend declaration
+claiming an incompatible exception specification.  That is now fixed.
+
+
 9/6/18   [EDGcpfe/19910]
 Defaulted copy constructors and rvalue reference members
 

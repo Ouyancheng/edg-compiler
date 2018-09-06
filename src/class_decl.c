@@ -15004,6 +15004,8 @@ implicitly declared member functions.
         set_target_of_conversion_function_flag_if_needed(
                                                     return_type_of(rtn->type));
       }  /* if */
+    } else if (special_kind_is(rtn, sfk_destructor)) {
+      update_routine_type_exception_specification_if_needed(rtn, &rtn->type);
     }  /* if */
     if (exceptions_enabled && !decl_state->is_inheriting_ctor) {
       /* Don't attempt to generate an exception specification for an inheriting
