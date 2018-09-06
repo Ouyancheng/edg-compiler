@@ -17515,8 +17515,18 @@ and the output of the type name.
       /* No initialization.  Nothing goes inside the parentheses or braces. */
       break;
     case dik_zero:
-      /* Zero initialization, as in "A()" when A has no constructor.  Nothing
-         goes inside the parentheses or braces. */
+      /* Zero initialization, as in "A()" when A has no constructor. */
+      if (paren_form && is_var_init) {
+        /* The initializer needs disambiguation to avoid looking like a
+           function declaration: instead of x(), put out x((T())). */
+        init_entity_type =
+                skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
+        write_tok_ch('(');
+        gen_type_name(init_entity_type);
+        write_tok_str("())");
+      } else {
+        /* Nothing goes inside the parentheses or braces. */
+      }  /* if */
       break;
     case dik_constant:
       /* Constant (simple or aggregate). */

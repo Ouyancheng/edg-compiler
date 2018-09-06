@@ -1,5 +1,18 @@
 Version 5.1
 
+9/5/18   [EDGcpfe/19872]
+C++-generating back end: zero-initialization of objects with aggregate class
+type
+
+In cases where a variable with an aggregate class type is zero-initialized
+using the parenthesized form of direct initialization, the C++-generating
+back end put out the initializer as simply "()", incorrectly declaring the
+variable as a function.  This is now fixed.  For example:
+
+  struct T { int x; };
+  T s((T()));   // Previously generated as "T s();", a function declaration
+
+
 9/5/18   [EDGcpfe/19559]
 C++-generating back end: new auto with dependent initializer
 
