@@ -10923,7 +10923,8 @@ possibility.
 
   db_enter(3, "decl_friend_function");
   if (is_template_dependent_context() &&
-      !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      !scope_stack[depth_scope_stack].in_prototype_instantiation &&
+      !scope_stack[depth_scope_stack].in_nonreal_instantiation) {
     /* Template dependent friend declarations should only be encountered in
        prototype instantiation scopes, but severe syntax errors can get us
        here nonetheless.  In that case we just skip the friend processing. */
