@@ -59,7 +59,7 @@ Consider:
     return 0;
   }
 
-The static_cast construct produces two dynamic initialization entries: One
+The static_cast construct produces two dynamic initialization entries: one
 that represents the underlying constructor call as is (i.e., a dik_constructor
 entry), and one that results from folding that constructor call (a dik_constant
 entry).  Previously, only the latter (dik_constant) entry was marked as
