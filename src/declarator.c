@@ -6857,6 +6857,8 @@ etc.).
        function declaration. */
     func_info = NULL;
   }  /* if */
+  /* Set the locator to indicate there is no identifier. */
+  if (locator != NULL) set_to_error_locator(*locator);
   /* Scan a list of pointer, reference and pointer-to-member declarators. */
   complete_type = pointer_declarator(specifiers_type, state,
                                      /*reference_allowed=*/!C_mode(),
@@ -7721,7 +7723,7 @@ past_postfix_declarator_operators:
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
   if (specifiers_type != NULL) {
-    /* This is a top-level call to r_declarator.  Do some checks for special
+    /* This is a top-level call to declarator.  Do some checks for special
        member functions and set complete_type appropriately, so that it can
        be added as return type to the associated routine type. */
     if (!(input_flags & DI_OPERATOR_NAME_ALLOWED) && locator != NULL &&
