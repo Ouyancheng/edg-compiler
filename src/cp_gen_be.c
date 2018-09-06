@@ -286,6 +286,10 @@ typedef struct a_name_context {
 			   dependent bases.  (For efficiency, this will only
 			   be set to TRUE if the target compiler searches
 			   dependent bases during unqualified lookup.) */
+  a_byte_boolean
+		terminate_search;
+			/* TRUE if scopes outside this one should be
+			   ignored by scope_is_in_name_context_stack. */
 } a_name_context;
 
 static a_name_context_ptr
@@ -934,6 +938,7 @@ hidden name entries that apply to the base class list should be processed.
   ncp->has_dependent_base = FALSE;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
+  ncp->terminate_search = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -1158,6 +1163,10 @@ Return TRUE if the indicated scope is currently on the name context stack.
                                        parent_namespace->variant.assoc_scope) {
         scope_in_stack = TRUE;
       }  /* if */
+    }  /* if */
+    if (ncp->terminate_search) {
+      /* End the scan here, regardless of the result. */
+      break;
     }  /* if */
   }  /* for */
   return scope_in_stack;
@@ -18680,10 +18689,18 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
                    al_declarator_id, /*primary_only=*/(sec_decl == NULL));
-    if (!force_unqualified_name) {
+    if (!force_unqualified_name || friend_decl) {
       /* Push the name context for a class/namespace member. */
+      a_name_context_ptr orig_ncp = curr_name_context;
       push_name_context_if_member(scp);
       *context_pop_needed = TRUE;
+      if (curr_name_context != orig_ncp && friend_decl &&
+          gcc_is_generated_code_target) {
+        /* G++ has a bug that requires qualification of names from the
+           current scope that appear in the parameter list if the name in a
+           friend declaration is qualified with a different scope. */
+        curr_name_context->terminate_search = TRUE;
+      }  /* if */
     }  /* if */
     if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
       /* Follow the source sequence list for the function. */

@@ -1,5 +1,26 @@
 Version 5.1
 
+9/6/18   [EDGcpfe/19743]
+C++-generating back end: qualification in friend function declaration
+
+G++ has a bug that causes it to ignore names in the current lexical scope
+that appear in the parameter list of a friend declaration from a different
+scope.  The C++-generating back end previously put out such names without
+qualification, triggering spurious errors when the generated code was
+compiled with g++.  This is now fixed; when gcc_is_generated_code_target
+is TRUE, such names will now be qualified in the generated code.  For
+example, with --g++:
+
+  namespace N1 { class B;  }
+  namespace N2 { void f(N1::B& b); }
+  namespace N1 {
+    class A {
+      friend void N2::f(N1::B & b);  // Previously generated as
+                                     // N2::f(B & b), triggering the g++ bug
+    };
+  }
+
+
 9/6/18   [EDGcpfe/19986]
 Spurious error on nested friend destructor declaration
 
