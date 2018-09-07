@@ -1,5 +1,24 @@
 Version 5.1
 
+9/6/18   [EDGcpfe/19806]
+C++-generating back end: clang mode elaborated-type-specifiers and inline
+namespaces
+
+The changes for EDGcpfe/16279 (in version 4.11) sometimes resulted in
+incorrectly dropping necessary name qualifiers when the named entity is a
+member of a nested inline namespace, yielding output that could not be
+compiled.  This is now fixed.  For example, with --c++11 --clang:
+
+  namespace std {
+    inline namespace __1 {
+      template <class _Tp> struct hash;
+    }
+  }
+  template <class C> class Foo {
+    friend struct std::hash<C>;  // Previously generated as "struct hash<C>"
+  };
+
+
 9/6/18   [EDGcpfe/19982]
 Abort in Microsoft mode on nonreal constexpr friend declaration
 

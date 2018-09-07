@@ -3826,32 +3826,37 @@ namespace.  options gives a set of options for gen_name.  See gen_name for
 the meaning of need_closing_paren.
 */
 {
-  if (clang_is_generated_code_target && nsp->is_inline &&
+  if (clang_is_generated_code_target &&
       (options & GN_ELAB_TYPE_SPEC_AS_DECL)) {
-    /* The clang compiler has a bug that issues a spurious error if a
-       qualified name appears in an elaborated-type-specifier used as a
-       type declaration, so we must be careful not to add a qualifier for
-       an inline namespace where one did not appear in the source. */
+    /* The clang compiler has a bug that issues a spurious error if the
+       name of an inline namespace appears as a qualifier in an
+       elaborated-type-specifier used as a type declaration, so we must be
+       careful not to add a qualifier for an inline namespace where one did
+       not appear in the source. */
+    while (nsp != NULL && (nsp->is_inline ||
+                           !has_name_before_mangling(nsp))) {
+      nsp = parent_namespace_or_null(nsp);
+    }  /* while */
   } else {
     /* If the namespace at this level is unnamed, skip it and move up one
        level. */
     while (nsp != NULL && !has_name_before_mangling(nsp)) {
       nsp = parent_namespace_or_null(nsp);
     }  /* while */
-    if (nsp != NULL) {
-      /* Use recursion to handle multiple levels of nesting. */
-      gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
-               need_closing_paren);
-    } else if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
-      /* Parentheses are needed to avoid treating a preceding name as part
-         of the qualifier, e.g., A (::B) and not A ::B. */
-      write_ch('(');
-      *need_closing_paren = TRUE;
-    }  /* if */
-    /* Write either the scope operator following the namespace name or, if
-       the top-level namespace was unnamed, the global scope operator. */
-    write_tok_str("::");
   }  /* if */
+  if (nsp != NULL) {
+    /* Use recursion to handle multiple levels of nesting. */
+    gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
+             need_closing_paren);
+  } else if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
+    /* Parentheses are needed to avoid treating a preceding name as part
+       of the qualifier, e.g., A (::B) and not A ::B. */
+    write_ch('(');
+    *need_closing_paren = TRUE;
+  }  /* if */
+  /* Write either the scope operator following the namespace name or, if
+     the top-level namespace was unnamed, the global scope operator. */
+  write_tok_str("::");
 }  /* gen_namespace_qualifier */
 
 
