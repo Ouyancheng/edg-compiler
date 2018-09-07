@@ -3855,7 +3855,7 @@ the meaning of need_closing_paren.
     *need_closing_paren = TRUE;
   }  /* if */
   /* Write either the scope operator following the namespace name or, if
-     the top-level namespace was unnamed, the global scope operator. */
+     the top-level namespace was skipped, the global scope operator. */
   write_tok_str("::");
 }  /* gen_namespace_qualifier */
 
