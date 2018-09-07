@@ -815,8 +815,10 @@ there is additional processing to be done.
   a_source_correspondence  *scp = NULL;
 
   db_enter(5, "add_pragma_to_il");
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Pragmas are never added to the IL inside a prototype instantiation. */
+  if (scope_stack_top().in_prototype_instantiation ||
+      scope_stack_top().in_nonreal_instantiation) {
+    /* Pragmas are never added to the IL inside a prototype or nonreal
+       instantiation. */
   } else if (in_constexpr_if_discarded_statement()) {
     /* Pragmas from C++17 constexpr if discarded statements are not added
        to the IL. */
