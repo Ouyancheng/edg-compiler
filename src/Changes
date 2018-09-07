@@ -1,5 +1,17 @@
 Version 5.1
 
+9/7/18   [EDGcpfe/20069]
+Internal error on lambda capture by copy when generating cross-reference file
+
+An internal error could occur (in write_xref_entry) when the front end is
+generating a cross-reference file (e.g., with --xref=x.log) on a lambda
+capture by copy.  Now fixed.
+
+  void f(int i) {
+    [&, i]{ };
+  }
+
+
 9/6/18   [EDGcpfe/19806]
 C++-generating back end: clang mode elaborated-type-specifiers and inline
 namespaces

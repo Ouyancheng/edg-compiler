@@ -33253,8 +33253,9 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
              point to the variable.  Temporarily reset the link. */
           a_variable_ptr  saved_var = var_sym->variant.variable.ptr;
           var_sym->variant.variable.ptr = var;
-          record_symbol_reference(lcp->capture_by_reference ? SRK_ADDRESS_TAKEN
-                                                            : SRK_USE,
+          record_symbol_reference((lcp->capture_by_reference
+                                          ? SRK_ADDRESS_TAKEN
+                                          : SRK_USE) | SRK_REFERENCE,
                                   var_sym, &lcp->position,
                                   /*update_il_entry=*/TRUE);
           var_sym->variant.variable.ptr = saved_var;
