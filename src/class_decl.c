@@ -909,26 +909,33 @@ Place a partial-override entry on the available list, so it can be reused.
 }  /* free_override_registry_entry */
 
 /*
-Data structure to record an override pair whose exception specification
-relationship must be checked after the complete class definition has been
-seen.
+Data structure to record an exception specification check that must be
+performed after the complete class definition has been seen.  Currently,
+this handles two kinds of checks: (1) a constraint check one a virtual
+function overriding another one, and (2) a redeclaration check for friend
+declarations.
 */
-typedef struct an_override_exception_check_entry
-                                *an_override_exception_check_entry_ptr;
-typedef struct an_override_exception_check_entry {
-  an_override_exception_check_entry_ptr
+typedef struct a_pending_exception_check_entry
+                                *a_pending_exception_check_entry_ptr;
+typedef struct a_pending_exception_check_entry {
+  a_pending_exception_check_entry_ptr
 		next;
 			/* Pointer to the next entry for this class (or NULL
 			   if none). */
-  a_symbol_ptr	overridden_sym, overriding_sym;
-			/* Representation of the base class member and the
-			   derived class member that overrides it,
-			   respectively. */
+  a_symbol_ptr	sym, overridden_sym;
+			/* sym is the routine whose exception entry check is
+			   pending.  If this check is to check a virtual
+			   override, overridden_sym is the corresponding base
+			   class member; otherwise, overridden_sym is NULL. */
+  a_type_ptr	new_type;
+			/* For a redeclaration check (i.e., not an override
+			   check) this is the type specified on the
+			   redeclaration.  Otherwise NULL. */
   a_source_position
 		diag_pos;
 			/* The position at which to issue a diagnostic in case
 			   of an exception specification mismatch. */
-} an_override_exception_check_entry;
+} a_pending_exception_check_entry;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -1339,11 +1346,11 @@ static void complete_class_definition(a_type_ptr         class_type,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Available list of override exception check entries. */
-static an_override_exception_check_entry_ptr
-		avail_override_exception_check_entries;
+static a_pending_exception_check_entry_ptr
+		avail_pending_exception_check_entries;
 
-static an_override_exception_check_entry_ptr
-		override_exception_check_entries;
+static a_pending_exception_check_entry_ptr
+		pending_exception_check_entries;
 			/* A list of entries describing override pairs whose
 			   exception specification relationship should be
 			   checked only after exception specifications are
@@ -1354,51 +1361,52 @@ static an_override_exception_check_entry_ptr
 Counter to track total use of memory.
 */
 static unsigned long
-		num_override_exception_check_entries;
+		num_pending_exception_check_entries;
 
-unsigned long db_show_override_exception_check_entries_used(
+unsigned long db_show_pending_exception_check_entries_used(
                                                     unsigned long grand_total)
 {
   unsigned long  num, size, total;
 
   db_space_used_lost("override exc chk entries",
-                     avail_override_exception_check_entries,
-                     num_override_exception_check_entries,
-                     an_override_exception_check_entry);
+                     avail_pending_exception_check_entries,
+                     num_pending_exception_check_entries,
+                     a_pending_exception_check_entry);
   return grand_total;
-}  /* db_show_override_exception_check_entries_used */
+}  /* db_show_pending_exception_check_entries_used */
 
 #endif /* DEBUG */
 
-static void record_override_exception_check(
-                                         a_symbol_ptr           overriding_sym,
-                                         a_symbol_ptr           overridden_sym,
-                                         a_source_position      *diag_pos)
+static void record_pending_exception_check(a_symbol_ptr       sym,
+                                           a_symbol_ptr       overridden_sym,
+                                           a_type_ptr         new_type,
+                                           a_source_position  *diag_pos)
 /*
-Allocate an override exception check entry and add it to the list pointed to
-by the file-scope variable override_exception_check_entries.  Initialize the
+Allocate a pending exception check entry and add it to the list pointed to by
+the file-scope variable pending_exception_check_entries.  Initialize the
 record with the given information.
 */
 {
-  an_override_exception_check_entry_ptr  oecp;
+  a_pending_exception_check_entry_ptr  oecp;
 
-  if (avail_override_exception_check_entries != NULL) {
-    oecp = avail_override_exception_check_entries;
-    avail_override_exception_check_entries =
-                                 avail_override_exception_check_entries->next;
+  if (avail_pending_exception_check_entries != NULL) {
+    oecp = avail_pending_exception_check_entries;
+    avail_pending_exception_check_entries =
+                                 avail_pending_exception_check_entries->next;
   } else {
-    oecp = (an_override_exception_check_entry_ptr)
-                          alloc_fe(sizeof(an_override_exception_check_entry));
+    oecp = (a_pending_exception_check_entry_ptr)
+                           alloc_fe(sizeof(a_pending_exception_check_entry));
 #if DEBUG
-    ++num_override_exception_check_entries;
+    ++num_pending_exception_check_entries;
 #endif /* DEBUG */
   }  /* if */
-  oecp->next = override_exception_check_entries;
-  override_exception_check_entries = oecp;
+  oecp->next = pending_exception_check_entries;
+  pending_exception_check_entries = oecp;
+  oecp->sym = sym;
   oecp->overridden_sym = overridden_sym;
-  oecp->overriding_sym = overriding_sym;
+  oecp->new_type = new_type;
   oecp->diag_pos = *diag_pos;
-}  /* record_override_exception_check */
+}  /* record_pending_exception_check */
 
 
 static void report_override_exception_spec_mismatch(
@@ -1429,38 +1437,50 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 }  /* report_override_exception_spec_mismatch */
 
 
-static void process_override_exception_check_entries(void)
+static void process_pending_exception_check_entries(void)
 /*
-Perform any pending checks indicated by the override_exception_check_entries
+Perform any pending checks indicated by the pending_exception_check_entries
 list and free that list.
 */
 {
-  an_override_exception_check_entry_ptr  oecp, *p_oecp;
+  a_pending_exception_check_entry_ptr  oecp, *p_oecp;
 
-  
-  p_oecp = &override_exception_check_entries;
+  p_oecp = &pending_exception_check_entries;
   oecp = *p_oecp;
   while (oecp != NULL) {
-    a_routine_ptr  brp = oecp->overridden_sym->variant.routine.ptr;
-    a_routine_ptr  drp = oecp->overriding_sym->variant.routine.ptr;
-    a_type_ptr     dtp = parent_class_of(drp);
-    if (!dtp->incomplete) {
-      if (type_has_less_restrictive_exception_spec(drp->type, brp->type)) {
-        /* The exception specification for the overriding virtual function is
-           less restrictive than that of the overridden function. */
-        report_override_exception_spec_mismatch(oecp->overriding_sym,
-                                                oecp->overridden_sym,
-                                                &oecp->diag_pos);
+    a_routine_ptr  rp = oecp->sym->variant.routine.ptr;
+    a_type_ptr     tp = parent_class_of(rp);
+    if (!tp->incomplete) {
+      if (oecp->overridden_sym != NULL) {
+        /* This entry is to check a virtual override constraint. */
+        a_routine_ptr  brp = oecp->overridden_sym->variant.routine.ptr;
+        if (type_has_less_restrictive_exception_spec(rp->type, brp->type)) {
+          /* The exception specification for the overriding virtual function
+             is less restrictive than that of the overridden function. */
+          report_override_exception_spec_mismatch(oecp->sym,
+                                                  oecp->overridden_sym,
+                                                  &oecp->diag_pos);
+        }  /* if */
+      } else {
+        /* This entry is to check a friend declaration override constraint. */
+        if (special_kind_is(rp, sfk_destructor) ||
+            (special_kind_is(rp, sfk_operator) &&
+             is_delete_operator(rp->variant.opname_kind))) {
+          update_routine_type_exception_specification_if_needed(
+                                                         rp, &oecp->new_type);
+        }  /* if */
+        check_exception_specification(oecp->new_type, oecp->sym,
+                                      &oecp->diag_pos, /*is_redecl=*/TRUE);
       }  /* if */
       *p_oecp = oecp->next;
-      oecp->next = avail_override_exception_check_entries;
-      avail_override_exception_check_entries = oecp;
+      oecp->next = avail_pending_exception_check_entries;
+      avail_pending_exception_check_entries = oecp;
     } else {
       p_oecp = &oecp->next;
     }  /* if */
     oecp = *p_oecp;
   }  /* while */
-}  /* process_override_exception_check_entries */
+}  /* process_pending_exception_check_entries */
 
 
 #if IA64_ABI
@@ -4176,7 +4196,7 @@ after a class instantiation.
   }  /* if */
   /* Check the exception specification relationship for override pairs now that
      we are sure that the exception specifications are known. */
-  process_override_exception_check_entries();
+  process_pending_exception_check_entries();
   /* If we pushed a translation unit above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
   db_exit();
@@ -6189,7 +6209,8 @@ return_types_are_override_compatible.
       rout->is_prototype_instantiation) {
     /* This check cannot be done reliably for dependent instantiations. */
   } else {
-    record_override_exception_check(overrider_sym, overridden_sym, source_pos);
+    record_pending_exception_check(overrider_sym, overridden_sym,
+                                   (a_type_ptr)NULL, source_pos);
   }  /* if */
   check_deleted_function_overrides(overrider_sym, overridden_sym, source_pos);
   if (rp->final) {
@@ -11190,16 +11211,12 @@ possibility.
           }  /* if */
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
-          /* Do exception specification compatibility checking. */
-          if (special_kind_is(rp, sfk_destructor) ||
-              (special_kind_is(rp, sfk_operator) &&
-               is_delete_operator(rp->variant.opname_kind))) {
-            update_routine_type_exception_specification_if_needed(
-                                                          rp, &function_type);
-          }  /* if */
-          check_exception_specification(function_type, sym,
-                                        &func_info->throw_position,
-                                        /*is_redecl=*/TRUE);
+          /* Record an entry to check the exception specification on the
+             declaration.  We don't do it right away because in some cases the
+             types to check require the enclosing class types to be completed
+             (e.g., when checking destructors). */
+          record_pending_exception_check(
+             sym, (a_symbol*)NULL, function_type, &func_info->throw_position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
             a_name_reference_ptr  name_ref = NULL;
@@ -15005,8 +15022,6 @@ implicitly declared member functions.
         set_target_of_conversion_function_flag_if_needed(
                                                     return_type_of(rtn->type));
       }  /* if */
-    } else if (special_kind_is(rtn, sfk_destructor)) {
-      update_routine_type_exception_specification_if_needed(rtn, &rtn->type);
     }  /* if */
     if (exceptions_enabled && !decl_state->is_inheriting_ctor) {
       /* Don't attempt to generate an exception specification for an inheriting
@@ -32593,8 +32608,8 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
-      pch_saved_var_array_elem(avail_override_exception_check_entries),
-      pch_saved_var_array_elem(override_exception_check_entries),
+      pch_saved_var_array_elem(avail_pending_exception_check_entries),
+      pch_saved_var_array_elem(pending_exception_check_entries),
       pch_saved_var_array_elem(avail_initializer_fixup),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_quasi_override_descrs),
@@ -32610,7 +32625,7 @@ One-time initialization for class_decl.c static variables.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_quasi_override_descrs_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      pch_saved_var_array_elem(num_override_exception_check_entries),
+      pch_saved_var_array_elem(num_pending_exception_check_entries),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -32621,7 +32636,7 @@ One-time initialization for class_decl.c static variables.
   register_trans_unit_variable(deferred_friend_fixup_list);
   register_trans_unit_variable(deferred_friend_fixup_list_tail);
   register_trans_unit_variable(use_deferred_friend_fixup_list);
-  register_trans_unit_variable(override_exception_check_entries);
+  register_trans_unit_variable(pending_exception_check_entries);
 }  /* class_decl_one_time_init */
 
 
@@ -32641,7 +32656,7 @@ translation unit.
                                     ms_extensions;
   deferred_friend_fixup_list = NULL;
   deferred_friend_fixup_list_tail = NULL;
-  override_exception_check_entries = NULL;
+  pending_exception_check_entries = NULL;
 }  /* class_decl_trans_unit_init */
 
 
@@ -32654,7 +32669,7 @@ Initializations for class declaration processing.
   avail_routine_fixup = NULL;
   avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
-  avail_override_exception_check_entries = NULL;
+  avail_pending_exception_check_entries = NULL;
   avail_initializer_fixup = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_quasi_override_descrs = NULL;
@@ -32673,7 +32688,7 @@ Initializations for class declaration processing.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   num_quasi_override_descrs_allocated = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  num_override_exception_check_entries = 0;
+  num_pending_exception_check_entries = 0;
 #endif /* DEBUG */
   return;
 }  /* class_decl_init */

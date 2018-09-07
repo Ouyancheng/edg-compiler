@@ -361,7 +361,7 @@ extern unsigned long db_show_quasi_override_descrs_used(
                                                    unsigned long grand_total);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern unsigned long db_show_override_exception_check_entries_used(
+extern unsigned long db_show_pending_exception_check_entries_used(
                                                    unsigned long grand_total);
 
 #if IA64_ABI

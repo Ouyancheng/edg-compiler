@@ -16747,7 +16747,7 @@ for space tracking purposes.
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);
   grand_total = db_show_initializer_fixups_used(grand_total);
-  grand_total = db_show_override_exception_check_entries_used(grand_total);
+  grand_total = db_show_pending_exception_check_entries_used(grand_total);
 #if IA64_ABI
   grand_total = db_show_covariant_overrides_used(grand_total);
 #endif /* IA64_ABI */
