@@ -131,16 +131,22 @@ fixed.
 
 
 9/5/18   [EDGcpfe/19872]
-C++-generating back end: zero-initialization of objects with aggregate class
-type
+C++-generating back end: direct-initialization from explicit temporary
 
-In cases where a variable with an aggregate class type is zero-initialized
-using the parenthesized form of direct initialization, the C++-generating
-back end put out the initializer as simply "()", incorrectly declaring the
-variable as a function.  This is now fixed.  For example:
+In cases where a variable is initialized using the parenthesized form of
+direct-initialization and the initializer is an explicit temporary of the
+form T(), the C++-generating back end put out the initializer in a form
+that incorrectly declared the variable as a function.  This is now fixed.
+For example, with --c++11:
 
-  struct T { int x; };
-  T s((T()));   // Previously generated as "T s();", a function declaration
+  struct A { };
+  A a((A()));  // Previously generated as "A a();", a function declaration
+  struct B {
+    B(A);
+  };
+  B b((A()));  // Previously generated as "B b(A());", a function declaration
+               // (declaring b as a function taking a pointer to a function
+               // returning A)
 
 
 9/5/18   [EDGcpfe/19559]

@@ -16953,6 +16953,7 @@ to add extra parentheses to disambiguate.
 {
   a_boolean may_look_like_type = FALSE;
 
+  expr = assoc_expr_if_constant(expr);
   if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
     if (dip->is_explicit_cast) {
