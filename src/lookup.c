@@ -1313,6 +1313,14 @@ specifies the options being used for the lookup.
     /* The symbols refer to the same kind of entity -- check further. */
     if (sym1->kind == (a_symbol_kind)sk_variable) {
       result = sym1->variant.variable.ptr == sym2->variant.variable.ptr;
+    } else if (symbol_is(sym1, sk_namespace) ) {
+      /* A namespace is considered equivalent to a namespace alias that refers
+         to the same namespace. */
+      a_namespace_ptr	ns1 = sym1->variant.namespace_info.ptr;
+      a_namespace_ptr	ns2 = sym2->variant.namespace_info.ptr;
+      ns1 = skip_namespace_aliases(ns1);
+      ns2 = skip_namespace_aliases(ns2);
+      result = ns1 == ns2;
     } else if (sym1->kind == (a_symbol_kind)sk_routine) {
       a_routine_ptr	rp1 = sym1->variant.routine.ptr;
       a_routine_ptr	rp2 = sym2->variant.routine.ptr;
