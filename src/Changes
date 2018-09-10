@@ -1,5 +1,21 @@
 Version 5.1
 
+9/10/18  [EDGcpfe/19774]
+Braced pack expansions in prototype instantiations
+
+Consider:
+
+  #include <initializer_list>
+  void g(std::initializer_list<int>);
+  template<int ... Vs> void f() {
+    g({ Vs... });  // Previously lost the "...".
+  }
+
+The front end previously did not correctly record the pack expansion in the
+call to g.  That caused certain C++-generating back end configurations to
+render the call without the ellipsis (which is incorrect).  That is now fixed.
+
+
 9/10/18  [EDGcpfe/18906,EDGcpfe/20006]
 Value of __cplusplus in C++17 mode
 

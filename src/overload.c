@@ -9013,14 +9013,18 @@ means type-dependent rather than value-dependent.
 a_boolean arg_list_is_type_dependent(an_arg_list_elem_ptr arg_list)
 /*
 Return TRUE if any of the operands on the given list is dependent.
-Specifically, this means type-dependent rather than value-dependent.
+Specifically, this means type-dependent rather than value-dependent.  The
+presence of a pack expansion in the list also makes it "type dependent".
 */
 {
   a_boolean            is_dependent = FALSE;
   an_arg_list_elem_ptr alep;
 
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
-    if (is_expression_component(alep)) {
+    if (alep->pack_expansion_descr != NULL) {
+      is_dependent = TRUE;
+      break;
+    } else if (is_expression_component(alep)) {
       if (operand_is_dependent(operand_of_arg_list_elem(alep))) {
         is_dependent = TRUE;
         break;
