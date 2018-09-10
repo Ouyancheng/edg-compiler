@@ -2548,7 +2548,7 @@ For example (with --c++17):
     void m(void);
   };
   void f(void) {
-    try {try
+    try {
       throw &S::m; // throw of potentially-throwing member function
     }
     catch(void(S::*)(void) noexcept) { }  // not caught
