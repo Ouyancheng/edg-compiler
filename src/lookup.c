@@ -2579,6 +2579,7 @@ that do normal id lookup processing.
 {
   a_boolean	skip_scope = FALSE;
   a_symbol_ptr	sym = NULL;
+  a_boolean	saved_check_decl_seq;
 
   if (cfront_2_1_mode &&
       kind == (a_scope_kind)sck_class_reactivation &&
@@ -2652,6 +2653,8 @@ that do normal id lookup processing.
             if (tpp->param_symbol->header == locator->symbol_header) {
               sym = tpp->param_symbol;
               process_single_symbol = TRUE;
+              /* Suppress the decl_seq check for template parameters. */
+              lookup_state->check_decl_seq = FALSE;
               break;
             }  /* if */
           }  /* for */
@@ -2799,6 +2802,7 @@ that do normal id lookup processing.
       }  /* if */
     }  /* if */
   }  /* if */
+  lookup_state->check_decl_seq = saved_check_decl_seq;
   return sym;
 }  /* inactive_scope_lookup */
 

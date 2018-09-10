@@ -1846,6 +1846,10 @@ typedef struct a_template_decl_info {
 			   the template declaration.  Used during lookup
 			   to exclude names not visible at the point of
 			   template definition. */
+  a_decl_sequence_number
+		starting_decl_seq;
+			/* For class templates, the declaration sequence
+			   number at the point of the template declaration. */
   a_nondependent_call_info_ptr
 		nondependent_calls;
 			/* A list of entries that describe the nondependent

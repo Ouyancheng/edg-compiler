@@ -4816,7 +4816,7 @@ be completed here.
            the class will be visible to the function prototype
            instantiations. */
         saved_decl_seq_counter = decl_seq_counter;
-        decl_seq_counter = body_cache->decl_info->decl_seq;
+        decl_seq_counter = body_cache->decl_info->starting_decl_seq;
       }  /* if */
       /* Scan the base specifiers list, if any, and the body of the class.
          The pending class definition counter is incremented while processing
@@ -28243,6 +28243,7 @@ any non-empty template parameter lists that were scanned.
            the declarative information looking for gross syntax errors. */
         prototype_okay = TRUE;
         assoc_template_of(prototype_type) = tssp->il_template_entry;
+        decl_state->decl_info->starting_decl_seq = ++decl_seq_counter;
         instantiate_class_template(sym, prototype_type,
                                    &class_templ_cache_segments, decl_state);
         prototype_type->source_corresp.decl_position = sym->decl_position;

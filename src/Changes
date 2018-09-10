@@ -1,5 +1,29 @@
 Version 5.1
 
+9/10/18  [EDGcpfe/19635]
+Incorrect lookup when doing deferral of function prototype instantiations
+
+When the front end is deferring function prototype instantiations (e.g.,
+in g++ or clang mode), some symbols declare in the instantiation of a
+class template could incorrectly be ignored by the lookup in a function
+template defined immediately after the class template.  In the example
+below, the friend function g was considered to be not visible as a
+non-dependent function in the prototype instantiation of f().  Now fixed.
+
+  template <typename T> struct A {
+    typedef A<T> U;
+    A() {}
+    friend inline void g(U& u) { }
+  };
+  template <typename T> void f() {
+    A<float> y;
+    g(y);
+  }
+  int main() {
+    f<void>();
+  }
+
+
 9/7/18   [EDGcpfe/20069]
 Internal error on lambda capture by copy when generating cross-reference file
 
