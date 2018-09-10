@@ -2581,6 +2581,7 @@ that do normal id lookup processing.
   a_symbol_ptr	sym = NULL;
   a_boolean	saved_check_decl_seq;
 
+  saved_check_decl_seq = lookup_state->check_decl_seq;
   if (cfront_2_1_mode &&
       kind == (a_scope_kind)sck_class_reactivation &&
       lookup_state->skip_first_class_reactivation) {
