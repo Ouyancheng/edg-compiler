@@ -1,5 +1,16 @@
 Version 5.1
 
+9/10/18  [EDGcpfe/18906,EDGcpfe/20006]
+Value of __cplusplus in C++17 mode
+
+The front end has now been updated to set the value of the __cplusplus
+built-in macro in C++17 mode as required by the emulation mode in effect:
+to 201703L in strict and default modes; to 201500L or 201703L in g++ mode,
+depending on the value of gnu_version; and to 201406L or 201703L in clang
+mode, depending on the value of clang_version.  It remains at 199711L in
+all Microsoft modes.
+
+
 9/10/18  [EDGcpfe/18393,EDGcpfe/20052]
 Core issue 2218: Equivalence of namespace and namespace alias in lookup
 

@@ -10369,6 +10369,9 @@ command line -D options.
     a_const_char *cpp11_date = "201103L";
     a_const_char *gnu_cpp14_date = "201300L";
     a_const_char *cpp14_date = "201402L";
+    a_const_char *gnu_cpp17_date = "201500L";
+    a_const_char *clang_cpp17_date = "201406L";
+    a_const_char *cpp17_date = "201703L";
     if (cpp20_mode) {
       val = "202000L";
     } else if (ms_extensions && !clang_mode) {
@@ -10385,13 +10388,15 @@ command line -D options.
     } else if (gpp_mode && !clang_mode) {
       if (gnu_version < 40700) {
         val = "1";
-      } else if (cpp17_mode && gnu_version >= 50000) {
-        /* Temporary value that GCC uses for -std=c++1z: */
-        val = "201500L";
+      } else if (cpp17_mode && gnu_version >= 50100) {
+        /* Version 5.1 of g++ was the first to accept -std=c++1z but set
+           the value of __cplusplus to 201500L.  Beginning with version
+           7.1, g++ used the correct value. */
+        val = (gnu_version >= 70100) ? cpp17_date : gnu_cpp17_date;
       } else if (cpp14_mode && gnu_version >= 40900) {
         /* Version 4.9 of g++ was the first to accept -std=c++14 but set
            the value of __cplusplus to 201300L.  Beginning with version
-           5.1, g++ uses the correct value. */
+           5.1, g++ used the correct value. */
         val = (gnu_version >= 50100) ? cpp14_date : gnu_cpp14_date;
       } else if (cpp11_mode) {
         val = cpp11_date;
@@ -10400,9 +10405,13 @@ command line -D options.
       }  /* if */
     } else if (any_cfront_mode()) {
       val = "1";
-    } else if (cpp17_mode && clang_mode) {
-      /* Temporary value that clang uses for -std=c++1z: */
-      val = "201406L";
+    } else if (cpp17_mode) {
+      if (clang_mode && clang_version < 50000) {
+        /* Temporary value that clang used for -std=c++1z: */
+        val = clang_cpp17_date;
+      } else {
+        val = cpp17_date;
+      }  /* if */
     } else if (cpp14_mode) {
       val = cpp14_date;
     } else if (cpp11_mode) {
