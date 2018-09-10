@@ -911,7 +911,7 @@ Place a partial-override entry on the available list, so it can be reused.
 /*
 Data structure to record an exception specification check that must be
 performed after the complete class definition has been seen.  Currently,
-this handles two kinds of checks: (1) a constraint check one a virtual
+this handles two kinds of checks: (1) a constraint check for a virtual
 function overriding another one, and (2) a redeclaration check for friend
 declarations.
 */
@@ -923,8 +923,8 @@ typedef struct a_pending_exception_check_entry {
 			/* Pointer to the next entry for this class (or NULL
 			   if none). */
   a_symbol_ptr	sym, overridden_sym;
-			/* sym is the routine whose exception entry check is
-			   pending.  If this check is to check a virtual
+			/* sym is the routine whose exception specification
+			   check is pending.  If this check is for a virtual
 			   override, overridden_sym is the corresponding base
 			   class member; otherwise, overridden_sym is NULL. */
   a_type_ptr	new_type;
@@ -1351,10 +1351,10 @@ static a_pending_exception_check_entry_ptr
 
 static a_pending_exception_check_entry_ptr
 		pending_exception_check_entries;
-			/* A list of entries describing override pairs whose
-			   exception specification relationship should be
-			   checked only after exception specifications are
-			   known to be established. */
+			/* A list of entries describing declarations whose
+			   exception specifications should be checked against
+			   other declarations only after exception
+			   specifications are known to be established. */
 #if DEBUG
 
 /*
@@ -1368,7 +1368,7 @@ unsigned long db_show_pending_exception_check_entries_used(
 {
   unsigned long  num, size, total;
 
-  db_space_used_lost("override exc chk entries",
+  db_space_used_lost("pending exc chk entries",
                      avail_pending_exception_check_entries,
                      num_pending_exception_check_entries,
                      a_pending_exception_check_entry);
@@ -1387,25 +1387,25 @@ the file-scope variable pending_exception_check_entries.  Initialize the
 record with the given information.
 */
 {
-  a_pending_exception_check_entry_ptr  oecp;
+  a_pending_exception_check_entry_ptr  pecp;
 
   if (avail_pending_exception_check_entries != NULL) {
-    oecp = avail_pending_exception_check_entries;
+    pecp = avail_pending_exception_check_entries;
     avail_pending_exception_check_entries =
                                  avail_pending_exception_check_entries->next;
   } else {
-    oecp = (a_pending_exception_check_entry_ptr)
+    pecp = (a_pending_exception_check_entry_ptr)
                            alloc_fe(sizeof(a_pending_exception_check_entry));
 #if DEBUG
     ++num_pending_exception_check_entries;
 #endif /* DEBUG */
   }  /* if */
-  oecp->next = pending_exception_check_entries;
-  pending_exception_check_entries = oecp;
-  oecp->sym = sym;
-  oecp->overridden_sym = overridden_sym;
-  oecp->new_type = new_type;
-  oecp->diag_pos = *diag_pos;
+  pecp->next = pending_exception_check_entries;
+  pending_exception_check_entries = pecp;
+  pecp->sym = sym;
+  pecp->overridden_sym = overridden_sym;
+  pecp->new_type = new_type;
+  pecp->diag_pos = *diag_pos;
 }  /* record_pending_exception_check */
 
 
@@ -1443,42 +1443,42 @@ Perform any pending checks indicated by the pending_exception_check_entries
 list and free that list.
 */
 {
-  a_pending_exception_check_entry_ptr  oecp, *p_oecp;
+  a_pending_exception_check_entry_ptr  pecp, *p_pecp;
 
-  p_oecp = &pending_exception_check_entries;
-  oecp = *p_oecp;
-  while (oecp != NULL) {
-    a_routine_ptr  rp = oecp->sym->variant.routine.ptr;
+  p_pecp = &pending_exception_check_entries;
+  pecp = *p_pecp;
+  while (pecp != NULL) {
+    a_routine_ptr  rp = pecp->sym->variant.routine.ptr;
     a_type_ptr     tp = parent_class_of(rp);
     if (!tp->incomplete) {
-      if (oecp->overridden_sym != NULL) {
+      if (pecp->overridden_sym != NULL) {
         /* This entry is to check a virtual override constraint. */
-        a_routine_ptr  brp = oecp->overridden_sym->variant.routine.ptr;
+        a_routine_ptr  brp = pecp->overridden_sym->variant.routine.ptr;
         if (type_has_less_restrictive_exception_spec(rp->type, brp->type)) {
           /* The exception specification for the overriding virtual function
              is less restrictive than that of the overridden function. */
-          report_override_exception_spec_mismatch(oecp->sym,
-                                                  oecp->overridden_sym,
-                                                  &oecp->diag_pos);
+          report_override_exception_spec_mismatch(pecp->sym,
+                                                  pecp->overridden_sym,
+                                                  &pecp->diag_pos);
         }  /* if */
       } else {
-        /* This entry is to check a friend declaration override constraint. */
+        /* This entry is to check a friend declaration constraint. */
         if (special_kind_is(rp, sfk_destructor) ||
             (special_kind_is(rp, sfk_operator) &&
              is_delete_operator(rp->variant.opname_kind))) {
           update_routine_type_exception_specification_if_needed(
-                                                         rp, &oecp->new_type);
+                                                         rp, &pecp->new_type);
         }  /* if */
-        check_exception_specification(oecp->new_type, oecp->sym,
-                                      &oecp->diag_pos, /*is_redecl=*/TRUE);
+        check_exception_specification(pecp->new_type, pecp->sym,
+                                      &pecp->diag_pos, /*is_redecl=*/TRUE);
       }  /* if */
-      *p_oecp = oecp->next;
-      oecp->next = avail_pending_exception_check_entries;
-      avail_pending_exception_check_entries = oecp;
+      *p_pecp = pecp->next;
+      pecp->next = avail_pending_exception_check_entries;
+      avail_pending_exception_check_entries = pecp;
     } else {
-      p_oecp = &oecp->next;
+      p_pecp = &pecp->next;
     }  /* if */
-    oecp = *p_oecp;
+    pecp = *p_pecp;
   }  /* while */
 }  /* process_pending_exception_check_entries */
 
@@ -4194,8 +4194,8 @@ after a class instantiation.
     }  /* for */
     free_list_of_type_list_entries(list_to_free);
   }  /* if */
-  /* Check the exception specification relationship for override pairs now that
-     we are sure that the exception specifications are known. */
+  /* Check pending exception specification constraints now that we are sure
+     that the exception specifications are known. */
   process_pending_exception_check_entries();
   /* If we pushed a translation unit above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
