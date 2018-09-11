@@ -31,7 +31,7 @@ all Microsoft modes.
 Core issue 2218: Equivalence of namespace and namespace alias in lookup
 
 Core issue 2218 clarified that the B in B::x is not ambiguous in the example
-below because the names A::C and C::B denote the same entity.  We now
+below because the names A::B and C::B denote the same entity.  We now
 implement the resolution of this issue.
 
   namespace A { namespace B { int x; } }
