@@ -14280,8 +14280,14 @@ not_direct_binding_case:
                                             ec_no_error, &std_conversion)) {
           /* This conversion function returns a type that can be converted
              via a standard conversion to the type we want. */
-          if ((conv_context & CCO_CONVERTED_CONSTANT_EXPR) != 0 &&
-              source_operand != NULL) {
+          if (conversion_routine->template_arg_list != NULL &&
+              std_conversion.nontrivial_conversion) {
+            /* When the conversion function is a specialization of a conversion
+               function template, the implicit conversion that follows much be
+               of "exact match" rank (see, e.g., N4750 [over.ics.user]/3). */
+            compatible = FALSE;
+          } else if ((conv_context & CCO_CONVERTED_CONSTANT_EXPR) != 0 &&
+                     source_operand != NULL) {
             /* In a "converted constant expression" context, not all standard
                conversions are acceptable (e.g., a floating-point -> integer
                conversion should be rejected). */
