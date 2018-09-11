@@ -1491,21 +1491,29 @@ Free the dynamic init dtor fixup entry pointed to by didfp.
 }  /* free_dynamic_init_dtor_fixup */
 
 
-void if_evaluating_mark_routine_referenced(a_routine_ptr     routine)
+void if_evaluating_mark_routine_referenced(a_routine_ptr  routine)
 /*
 Mark the indicated routine as actually referenced, but only if the current
 expression is being evaluated.  This routine is an interface to
-mark_routine_referenced.
+mark_routine_referenced.  One effect of calling this function is that the
+given routine may be instantiated.
 */
 {
   if (curr_expr_is_potentially_evaluated() &&
-      !expr_stack->template_deduction_context) {
+      (!expr_stack->template_deduction_context || routine->is_constexpr)) {
+    /* A reference during deduction is "tentative" and therefore the routine
+       should not be marked as referenced.  However, even during deduction we
+       may have to evaluate a call to a constexpr routine, and thus we must
+       ensure the function is instantiated.  Passing the "elided_reference"
+       flag mark_routine_referenced_full has the desired effect for such
+       cases. */
     /* Routines referenced in default argument expressions are not
        instantiated until there is a use of the default argument expression. */
     mark_routine_referenced_full(routine,
                                  /*instantiate=*/
                                        !expr_stack->is_default_arg_expression,
-                                 /*elided_reference=*/FALSE);
+                                 /*elided_reference=*/
+                                      expr_stack->template_deduction_context);
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
 

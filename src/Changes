@@ -1,5 +1,23 @@
 Version 5.1
 
+9/11/18  [EDGcpfe/19634]
+Deduction failure due to failure of instantiation of constexpr function
+
+Consider:
+
+  template<typename> struct X {
+    friend constexpr bool operator==(X, X) { return true; }
+  };
+  template<typename P, bool = (P() == P())> void g(P) {}
+  int main() {
+    g(X<void>());  // Previously an error.  Now okay.
+  }
+
+Previously, the front end failed to resolve the call to g because during the
+substitution of "P() == P()" is did not instantiate the body of operator==
+(and therefore couldn't evaluate the expression).  That is now fixed.
+
+
 9/10/18  [EDGcpfe/19774]
 Braced pack expansions in prototype instantiations
 
