@@ -14283,7 +14283,7 @@ not_direct_binding_case:
           if (conversion_routine->template_arg_list != NULL &&
               std_conversion.nontrivial_conversion) {
             /* When the conversion function is a specialization of a conversion
-               function template, the implicit conversion that follows much be
+               function template, the implicit conversion that follows must be
                of "exact match" rank (see, e.g., N4750 [over.ics.user]/3). */
             compatible = FALSE;
           } else if ((conv_context & CCO_CONVERTED_CONSTANT_EXPR) != 0 &&
