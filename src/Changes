@@ -1,5 +1,17 @@
 Version 5.1
 
+
+9/12/18  [EDGcpfe/16636]
+Spurious error on cast to rvalue reference involving a conversion
+
+The front end previously issued a spurious error on the following cast:
+
+  char c = 1;
+  int const &&r = static_cast<int const&&>(c);
+
+That is now fixed.
+
+
 9/12/18  [EDGcpfe/18522,EDGcpfe/20102]
 Spurious "not a literal type" error for lambda closure class
 

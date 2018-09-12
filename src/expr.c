@@ -21878,13 +21878,6 @@ called only in C++ mode.
             conversion.result_is_a_glvalue = FALSE;
             determined_conversion = &conversion;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          } else if (!early_lvalue_check &&
-                     cast_to_rvalue_reference &&
-                     !rvalue_ref_can_be_bound_to(operand)) {
-            /* An rvalue reference cannot be bound to an lvalue.  This is
-               checked after conversion functions that can change the value
-               category have been checked for, since the restriction is
-               on what the reference binds to, not the original expression. */
           } else {
             /* Neither the source type nor the destination underlying type is
                a class.  See whether the source operand can be converted
@@ -23093,7 +23086,14 @@ if it's not valid).
 
   /* Remember the expression at the start, so we can see what we added. */
   operand_expression = expr_node_from_operand(operand);
-  /* Check for user-defined conversions and casts to reference type. */
+  /* Check for user-defined conversions and casts to reference type.  Despite
+     the name of the function, this function not only deals with user-defined
+     conversions; it also handles reference bindings that involve a conversion
+     to a temporary.  For example:
+       char c = 1;
+       int const &&r = static_cast<int const&&>(c);
+     will result in processed_as_udc being set to TRUE.
+  */
   check_user_defined_conversions_for_cast(type_cast_to, operand,
                                           source_form,
                                           &allow_rvalue_on_rewrite,
