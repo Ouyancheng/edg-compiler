@@ -1505,7 +1505,7 @@ given routine may be instantiated.
        should not be marked as referenced.  However, even during deduction we
        may have to evaluate a call to a constexpr routine, and thus we must
        ensure the function is instantiated.  Passing the "elided_reference"
-       flag mark_routine_referenced_full has the desired effect for such
+       flag to mark_routine_referenced_full has the desired effect for such
        cases. */
     /* Routines referenced in default argument expressions are not
        instantiated until there is a use of the default argument expression. */

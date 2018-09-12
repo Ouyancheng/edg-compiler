@@ -20,7 +20,7 @@ does.  For example:
 
 
 9/11/18  [EDGcpfe/19634]
-Deduction failure due to failure of instantiation of constexpr function
+Deduction failure due to failure to instantiate constexpr function
 
 Consider:
 
@@ -33,7 +33,7 @@ Consider:
   }
 
 Previously, the front end failed to resolve the call to g because during the
-substitution of "P() == P()" is did not instantiate the body of operator==
+substitution of "P() == P()" it did not instantiate the body of operator==
 (and therefore couldn't evaluate the expression).  That is now fixed.
 
 
