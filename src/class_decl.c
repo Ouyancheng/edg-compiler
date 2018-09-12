@@ -29242,6 +29242,10 @@ flag is set in the class symbol supplement of the given type.
     } else if (has_nonliteral_type_subobject(type)) {
       /* Literal class types cannot have a subobject of nonliteral type. */
       cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if (is_closure_class_symbol(symbol_for(type))) {
+      /* A closure class that meets the above criteria is a literal class
+         type. */
+      cssp->known_to_be_a_literal_type = TRUE;
     } else if (cssp->is_class_aggregate) {
       /* Aggregate class types are literal types if they meet the previous
          constraints. */
