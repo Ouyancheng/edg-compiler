@@ -1,7 +1,7 @@
 Version 5.1
 
 
-9/12/18  [EDGcpfe/16636]
+9/12/18  [EDGcpfe/16636,EDGcpfe/19422]
 Spurious error on cast to rvalue reference involving a conversion
 
 The front end previously issued a spurious error on the following cast:
