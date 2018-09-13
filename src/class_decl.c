@@ -11209,29 +11209,40 @@ possibility.
             pos_sy_error(ec_bad_scope_for_definition,
                          &locator->source_position, sym);
           }  /* if */
-          record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                                    declarator_ssep);
+          {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            /* Temporarily clear the compiler_generated flag since this is an
+               actual user-declaration, and hence we want to ensure that a
+               source sequence entry is associated with it. */
+            a_boolean  compiler_generated = rp->compiler_generated;
+            if (compiler_generated) rp->compiler_generated = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            record_symbol_declaration(srk_flags, sym,
+                                      &locator->source_position,
+                                      declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            if (compiler_generated) rp->compiler_generated = TRUE;
+            if (!func_info->is_definition) {
+              a_name_reference_ptr  name_ref = NULL;
+              if (record_name_references_in_context()) {
+                name_ref = qualifiable_name_reference(locator,
+                                                      &rp->source_corresp);
+              }  /* if */
+              /* Since this is a non-defining entry, it is represented by a
+                 secondary-decl entry in the source sequence list.  Enter the
+                 current function type. */
+              (void)update_src_seq_secondary_decl(
+                               (char *)rp, func_info->declared_type, name_ref,
+                               SSSD_FRIEND_DECL, &decl_info->decl_pos_block);
+            }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          }
           /* Record an entry to check the exception specification on the
              declaration.  We don't do it right away because in some cases the
              types to check require the enclosing class types to be completed
              (e.g., when checking destructors). */
           record_pending_exception_check(
              sym, (a_symbol*)NULL, function_type, &func_info->throw_position);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (!func_info->is_definition) {
-            a_name_reference_ptr  name_ref = NULL;
-            if (record_name_references_in_context()) {
-              name_ref = qualifiable_name_reference(locator,
-                                                    &rp->source_corresp);
-            }  /* if */
-            /* Since this is a non-defining entry, it is represented by a
-               secondary-decl entry in the source sequence list.  Enter the
-               current function type. */
-            (void)update_src_seq_secondary_decl(
-                               (char *)rp, func_info->declared_type, name_ref,
-                               SSSD_FRIEND_DECL, &decl_info->decl_pos_block);
-          }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           attach_decl_attributes(state, /*is_primary_decl=*/FALSE);
         }  /* if */
       }  /* if */
