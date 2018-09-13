@@ -1,5 +1,32 @@
 Version 5.1
 
+9/13/18  [EDGcpfe/19537]
+GNU C++ compatibility: Nonstandard function name lookups
+
+In GNU C++ modes, the front end previously handled dependent function calls
+with unqualified names in a nonstandard way: This caused declarations appearing
+after the call to be considered for the non-argument-dependent part of the
+lookup (see the entries for EDGcpfe/7846 and EDGcpfe/12925).  That nonstandard
+behavior is now disabled in GNU C++ modes with gnu_version >= 40700.  With that
+change, the front end now accepts the following case in GNU C++ mode with
+gnu_version >= 40700:
+
+  namespace N {
+    struct F {
+      template<typename X, typename Y>
+        auto operator()(X x, Y y) -> decltype(f(x, y));  // (1)
+    };
+    F f;  // (2)
+  }
+  struct S { friend void f(int, S); };  // (3)
+  void g() { N::f(1, S()); }
+
+Previously, this failed in GNU C++ modes because during the instantiation of
+N::F::operator() the call f(x, y) on line (1) found the function object
+declared on line (2) instead of the friend declaration on line (3) (the
+latter is found through argument-dependent lookup).
+
+
 9/13/18  [EDGcpfe/19553]
 Invalid source sequence entry for friend declaration
 
