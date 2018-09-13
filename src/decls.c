@@ -8870,7 +8870,8 @@ for use in generating cross-reference output describing this declaration.
           /* The declarations are compatible.  Form the composite type. */
           *old_type = routine_ptr->type;
           if (C_dialect == C_dialect_cplusplus) {
-            if (idlb.is_local_class_friend_decl) {
+            if (idlb.is_local_class_friend_decl &&
+                !locator->is_qualified_name) {
               /* A local class friend declaration must refer to a function
                  declared within the immediately enclosing non-class scope.
                  (See 14.3/11 in N4750, for example.) */
@@ -9046,7 +9047,7 @@ for use in generating cross-reference output describing this declaration.
             redecl_error_already_issued = TRUE;
           }  /* if */
         } else {
-          if (idlb.is_local_class_friend_decl && !locator->is_qualified_name) {
+          if (idlb.is_local_class_friend_decl) {
             /* A local class friend declaration requires a prior declaration
                in the scope that encloses the class definition.  (See 14.3/11
                in N4750, for example.)*/
