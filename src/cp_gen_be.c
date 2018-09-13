@@ -18695,8 +18695,13 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
                    al_declarator_id, /*primary_only=*/(sec_decl == NULL));
-    if (!force_unqualified_name || friend_decl) {
-      /* Push the name context for a class/namespace member. */
+    if (!force_unqualified_name ||
+        (friend_decl && !clang_is_generated_code_target)) {
+      /* Push the name context for a class/namespace member: the qualifier
+         for the function name implicitly applies to names in the
+         parameter list.  We do not do this for friend declarations if
+         clang is the target compiler, because it does not apply the
+         implicit qualification in friend declarations. */
       a_name_context_ptr orig_ncp = curr_name_context;
       push_name_context_if_member(scp);
       *context_pop_needed = TRUE;
