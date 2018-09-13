@@ -9046,7 +9046,7 @@ for use in generating cross-reference output describing this declaration.
             redecl_error_already_issued = TRUE;
           }  /* if */
         } else {
-          if (idlb.is_local_class_friend_decl) {
+          if (idlb.is_local_class_friend_decl && !locator->is_qualified_name) {
             /* A local class friend declaration requires a prior declaration
                in the scope that encloses the class definition.  (See 14.3/11
                in N4750, for example.)*/
