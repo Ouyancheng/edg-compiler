@@ -10,7 +10,7 @@ that did not point to an IL entry and that in turn likely resulted in an abort
 later on (access through a null pointer).  For example:
 
   struct B { B& operator=(B const&); };
-  struct D: S {};
+  struct D: B {};
   struct S {
     friend D& D::operator=(D const&);  // Previously resulted in invalid IL.
   };
