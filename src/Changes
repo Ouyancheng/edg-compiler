@@ -1,5 +1,13 @@
 Version 5.1
 
+9/13/18  [EDGcpfe/19875]
+Friend function declarations in local classes
+
+A friend function declaration in a local class must match a declaration in the
+immediately-enclosing nonclass scope.  Previously, the front end only diagnosed
+this in strict mode.  Now it is diagnosed in all modes: A discretionary error
+in strict, GNU, and Clang modes, and a warning otherwise.
+
 
 9/12/18  [EDGcpfe/16636,EDGcpfe/19422]
 Spurious error on cast to rvalue reference involving a conversion

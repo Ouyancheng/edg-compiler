@@ -8870,18 +8870,21 @@ for use in generating cross-reference output describing this declaration.
           /* The declarations are compatible.  Form the composite type. */
           *old_type = routine_ptr->type;
           if (C_dialect == C_dialect_cplusplus) {
-            if (strict_ansi_mode && idlb.is_local_class_friend_decl) {
+            if (idlb.is_local_class_friend_decl) {
               /* A local class friend declaration must refer to a function
-                 declared within the immediately enclosing non-class scope. */
+                 declared within the immediately enclosing non-class scope.
+                 (See 14.3/11 in N4750, for example.) */
               a_symbol_ptr  prior_decl = idlb.prior_decl_in_enclosing_scope;
-
               if (prior_decl != NULL &&
                   prior_decl->decl_scope !=
                            scope_stack[effective_decl_level].number) {
                 /* There was a prior declaration, but it wasn't in the
                    innermost enclosing non-class scope. */
-                pos_diagnostic(strict_ansi_discretionary_severity,
-                               ec_local_class_friend_requires_prior_decl,
+                an_error_severity  sev = es_warning;
+                if (strict_ansi_mode || clang_mode || gpp_mode) {
+                  sev = es_discretionary_error;
+                }  /* if */
+                pos_diagnostic(sev, ec_local_class_friend_requires_prior_decl,
                                &locator->source_position);
               }  /* if */
             }  /* if */
@@ -9002,9 +9005,6 @@ for use in generating cross-reference output describing this declaration.
          parameters list.  Also check some C++/CLI constraints on default
          arguments. */
       check_default_args(dps);
-      if (is_friend_decl && !friend_function_injection_enabled) {
-        set_invisible = TRUE;
-      }  /* if */
       symbol_for_overloading = overload_symbol == NULL ? homonym_symbol :
                                                          overload_symbol;
       if (homonym_symbol != NULL &&
@@ -9035,7 +9035,6 @@ for use in generating cross-reference output describing this declaration.
       }  /* if */
       if (is_friend_decl) {
         a_symbol_ptr  prior_decl = idlb.prior_decl_in_enclosing_scope;
-
         if (prior_decl != NULL) {
           if (!is_function_symbol(fundamental_symbol_of(prior_decl))) {
             /* Issue an error for a case like this:
@@ -9047,13 +9046,20 @@ for use in generating cross-reference output describing this declaration.
             redecl_error_already_issued = TRUE;
           }  /* if */
         } else {
-          if (strict_ansi_mode && idlb.is_local_class_friend_decl) {
+          if (idlb.is_local_class_friend_decl) {
             /* A local class friend declaration requires a prior declaration
-               in the scope that encloses the class definition. */
-            pos_diagnostic(strict_ansi_discretionary_severity,
-                           ec_local_class_friend_requires_prior_decl,
+               in the scope that encloses the class definition.  (See 14.3/11
+               in N4750, for example.)*/
+            an_error_severity  sev = es_warning;
+            if (strict_ansi_mode || clang_mode || gpp_mode) {
+              sev = es_discretionary_error;
+            }  /* if */
+            pos_diagnostic(sev, ec_local_class_friend_requires_prior_decl,
                            &locator->source_position);
           }  /* if */
+        }  /* if */
+        if (!friend_function_injection_enabled) {
+          set_invisible = TRUE;
         }  /* if */
       } else if (!C_mode() && idlb.is_block_extern_decl &&
                  idlb.prior_decl_in_enclosing_scope != NULL) {
