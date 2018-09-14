@@ -10731,7 +10731,14 @@ typedef struct a_field {
 		initializer;
 			/* The initializer specified on the field (initializers
 			   on nonstatic data members are a C++11 feature).
-			   NULL if there is no such initializer. */
+			   NULL if there is no such initializer.  Note that,
+			   in configurations that do lowering, this initializer
+			   is not lowered.  Rather, when the field is used in
+			   a context where initialization is required, the
+			   unlowered initializer is copied to the appropriate
+			   location and lowered at that point.  See
+			   copy_non_static_data_member_initializers_if_
+                                                                  necessary. */
   an_il_entity_list_entry_ptr
 		entities_defined_in_initializer;
 			/* A list of entities defined in the initializer
