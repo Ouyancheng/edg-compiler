@@ -30,8 +30,8 @@ latter is found through argument-dependent lookup).
 9/13/18  [EDGcpfe/19553]
 Invalid source sequence entry for friend declaration
 
-In configuration with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front end
-failed to correctly record a source sequence entry for a friend declaration
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front
+end failed to correctly record a source sequence entry for a friend declaration
 referring to a generated member.  Instead, a source sequence entry was created
 that did not point to an IL entry and that in turn likely resulted in an abort
 later on (access through a null pointer).  For example:
