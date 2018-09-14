@@ -6114,11 +6114,14 @@ be found by the substitution process.
 }  /* create_variadic_param_info_for_routine */
 
 
-void copy_exc_spec_from_prototype_template(an_exception_specification_ptr  esp)
+void copy_exc_spec_from_prototype_template(
+                                  an_exception_specification_ptr  esp,
+                                  a_boolean                       *copy_error)
 /*
 esp is the exception specification of a subordinate member template.  Update
 it by copying the exception specification of the corresponding prototype
-template with any needed substitutions.
+template with any needed substitutions.  In case of substitution errors set
+*copy_error TRUE if copy_error is non-NULL or issue a diagnostic otherwise.
 */
 {
   a_routine_ptr  rp = esp->variant.routine;
@@ -6142,7 +6145,8 @@ template with any needed substitutions.
     instantiate_exception_spec_if_needed(symbol_for(proto_rp));
   }  /* if */
   if (proto_esp->copy_from_prototype) {
-    copy_exc_spec_from_prototype_template(esp);
+    copy_exc_spec_from_prototype_template(esp, copy_error);
+    if (copy_error != NULL && *copy_error) goto done;
   }  /* if */
   check_assertion(!proto_esp->arg_cached && !proto_esp->indeterminate &&
                   !proto_esp->copy_from_prototype);
@@ -6168,6 +6172,9 @@ template with any needed substitutions.
         if (!constant_is(esp->variant.noexcept_arg, ck_template_param)) {
           esp->throw_any = is_false_constant(esp->variant.noexcept_arg);
         }  /* if */
+      } else if (copy_error != NULL) {
+        *copy_error = TRUE;
+        goto done;
       } else if (!was_err) {
         pos_error(ec_invalid_noexcept_specifier_operand,
                   &rp->source_corresp.decl_position);
@@ -6179,6 +6186,7 @@ template with any needed substitutions.
                                                                      == NULL);
   }  /* if */
   rtsp->exception_specification = esp;
+done:;
 }  /* copy_exc_spec_from_prototype_template */
 
 
@@ -13855,7 +13863,11 @@ parameters, see copy_type_with_substitution.
     new_esp = esp;
     goto done;
   } else if (esp->copy_from_prototype) {
-    copy_exc_spec_from_prototype_template(esp);
+    copy_exc_spec_from_prototype_template(esp, copy_error);
+    if (*copy_error) {
+      new_esp = NULL;
+      goto done;
+    }  /* if */
   }  /* if */
   new_esp = alloc_exception_specification();
   if (esp->indeterminate) {

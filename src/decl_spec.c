@@ -9704,6 +9704,50 @@ the declaration that is being parsed.
 }  /* process_class_template_placeholder */
 
 
+/*ARGSUSED*/
+static void clear_template_deduction_context_flag(a_decl_parse_state  *dps)
+/*
+Helper callback for check_for_rescannable_alias to reset the flag indicating
+whether a 
+*/
+{
+  if (dps->last_declarator) {
+    scope_stack_top().in_template_deduction_context = FALSE;
+  }  /* if */
+}  /* clear_template_deduction_context_flag */
+
+
+void check_for_rescannable_alias(a_decl_parse_state  *dps)
+/*
+If we're parsing a member type alias (including a typedef) in a prototype
+instantiation, set the flag ensuring that any expressions in the type alias
+can be rescanned later on.  For example, consider:
+
+  template<int> struct M;
+  template<typename... Ts> struct S {
+    using SType = M<sizeof...(Ts)>;
+    S();
+    template<typename...> S() noexcept(SType::X);
+  };
+  int main() { S<>(); }
+
+Here, SType::X will be recorded as M<sizeof...(Ts)>::X and then substituted
+(which in this case will fail since M<0> is incomplete).  Make sure the flag
+is reset when the member type alias has been scanned.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+
+  if (scope_is(ssep, sck_class_struct_union) &&
+      ssep->in_prototype_instantiation &&
+      !ssep->in_template_deduction_context) {
+    ssep->in_template_deduction_context = TRUE;
+    add_end_of_parse_action(clear_template_deduction_context_flag, dps,
+                            /*secondary_decls=*/TRUE);
+  }  /* if */
+}  /* check_for_rescannable_alias */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -9893,6 +9937,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         /* Reset the local indication of seeing a GNU "__extension__" keyword
            (so it won't apply to the type underlying the typedef). */
         marked_as_gnu_extension = FALSE;
+        check_for_rescannable_alias(state);
         goto storage_class_specifier;
       case tok_ellipsis:
         if (variadic_templates_enabled &&

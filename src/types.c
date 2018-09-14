@@ -8142,7 +8142,7 @@ Return TRUE if the given exception specification is of the form "noexcept",
 
   if (esp != NULL && !esp->arg_cached && !esp->indeterminate) {
     if (esp->copy_from_prototype) {
-      copy_exc_spec_from_prototype_template(esp);
+      copy_exc_spec_from_prototype_template(esp, (a_boolean*)NULL);
     }  /* if */
     if (esp->throw_any) {
       /* This case eliminates "noexcept(<false-constant>)" and

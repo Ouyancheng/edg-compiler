@@ -224,6 +224,7 @@ be restored).
     dps->keep_terminating_token = FALSE;
     dps->is_nontype_template_param = FALSE;
     dps->retrieve_initializer_from_cache = FALSE;
+    dps->last_declarator = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -433,6 +434,7 @@ some associated callback entries should not be freed).
       action->next = avail_decl_parse_callbacks;
       action->callback_fn = NULL;
       avail_decl_parse_callbacks = action;
+      if (!more_declarators) dps->last_declarator = TRUE;
     } else {
       /* Leave the current action in the list for subsequent declarators, and
          move to the next action. */
@@ -2129,12 +2131,12 @@ consistent with that of the previous declaration.
     old_esp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
     if (old_esp != NULL && old_esp->copy_from_prototype) {
-      copy_exc_spec_from_prototype_template(old_esp);
+      copy_exc_spec_from_prototype_template(old_esp, (a_boolean*)NULL);
     }  /* if */
     new_esp = skip_typerefs(new_rout_type)->
                     variant.routine.extra_info->exception_specification;
     if (new_esp != NULL && new_esp->copy_from_prototype) {
-      copy_exc_spec_from_prototype_template(new_esp);
+      copy_exc_spec_from_prototype_template(new_esp, (a_boolean*)NULL);
     }  /* if */
     /* Set error_code for issuing diagnostics. */
     if (is_redecl) {
@@ -15593,6 +15595,7 @@ semicolon.
     set_to_error_locator(loc);
   }  /* if */
   (void)get_token();
+  check_for_rescannable_alias(dps);
   /* Although the alias name is not technically a "declarator-id", it has
      exactly the same function and relation to any subsequent attributes.
      We therefore record the attributes with al_declarator_id. */

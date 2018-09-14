@@ -860,7 +860,8 @@ extern a_boolean equiv_templates(a_template_ptr			templ1,
 				 an_equiv_templates_options_set	options);
 
 extern void copy_exc_spec_from_prototype_template(
-                                         an_exception_specification_ptr  esp);
+                                  an_exception_specification_ptr  esp,
+                                  a_boolean                       *copy_error);
 
 extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
 

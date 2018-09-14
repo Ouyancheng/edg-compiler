@@ -1,5 +1,25 @@
 Version 5.1
 
+9/14/18  [EDGcpfe/19160,EDGcpfe/20101]
+Abort or spurious failure in C++17-mode substitution of noexcept specifier
+
+Consider:
+
+  template<int> struct M;
+  template<typename... Ts> struct S {
+    using SType = M<sizeof...(Ts)>;
+    S();
+    template<typename...> S() noexcept(SType::X);
+  };
+  int main() { S<>(); }
+
+In C++17 mode, the noexcept specifier is part of the function type and overload
+resolution therefore attempts to substitute SType::X in the candidate template
+S<>::S().  Previously that triggered an internal error in get_expr_rescan_info
+(exprutil.c).  Other similar cases did not cause the front end to abort but to
+issue a spurious error instead.  That problem is now fixed.
+
+
 9/14/18  [EDGcpfe/19420,EDGcpfe/19421,EDGcpfe/19465,EDGcpfe/19474]
 Attributes on redeclarations of class templates
 

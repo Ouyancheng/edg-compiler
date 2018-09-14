@@ -137,6 +137,8 @@ extern void typename_specifier(a_type_ptr            *type_ptr,
 extern a_boolean is_constructor_decl(a_type_ptr          class_type,
                                      a_decl_parse_state  *dps);
 
+extern void check_for_rescannable_alias(a_decl_parse_state  *dps);
+
 extern void decl_specifiers(a_decl_flag_set             input_flags,
                             a_decl_parse_state          *state,
                             a_decl_pos_block_ptr        decl_pos_block);

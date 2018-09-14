@@ -1026,6 +1026,9 @@ typedef struct a_decl_parse_state {
 			   initializer should be retrieved from
 			   prescanned_initializer_cache (instead of using the
 			   usual expression scanning routines). */
+  a_bit_field	last_declarator:1;
+			/* TRUE to indicate end-of-parse actions for the last
+			   declarator are being run. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
