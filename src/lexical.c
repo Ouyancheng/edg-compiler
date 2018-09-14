@@ -22192,6 +22192,7 @@ of characters added.
         /* The literal is associated with a literal operator template, so
            the constant contains the spelling of the literal. */
         use_token_spelling = TRUE;
+        constant = ctp->variant.ud_lit.spelling_con;
       } else if (symbol_is(ud_lit_op_sym, sk_routine)) {
         a_routine_ptr rout;
         rout = ud_lit_op_sym->variant.routine.ptr;
