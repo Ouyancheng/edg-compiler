@@ -1971,6 +1971,7 @@ families need not be equal.
     while (aap1 != NULL && aap2 != NULL && result) {
       if (aap1->kind != aap2->kind) {
         result = FALSE;
+        break;
       } else {
         switch (aap1->kind) {
           case aak_empty:
@@ -9062,6 +9063,204 @@ any family is permitted, with standard attributes given preference.
   }  /* if */
   return supported;
 }  /* attribute_is_supported */
+
+
+static a_boolean get_alignment_value(an_attribute_ptr  ap)
+/*
+Return the value of the specified alignment attribute.  Alignment values can
+be constants or types (in which case the alignment of the type is used).
+*/
+{
+  a_host_large_integer  result = 0;
+  an_attribute_arg_ptr  aap = ap->arguments;
+
+  check_assertion(aap != NULL);
+  switch (aap->kind) {
+    case aak_constant:
+      (void)get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
+                                 MAX_HOST_LARGE_INTEGER, &result);
+      break;
+    case aak_type:
+      result = aap->variant.type->alignment;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* get_alignment_value */
+
+
+static void equivalent_align_attribute(an_attribute_ptr  old_ap,
+                                       an_attribute_ptr  new_ap,
+                                       a_source_position *def_pos,
+                                       a_boolean         is_definition)
+
+/*
+Issue a diagnostic if alignment attributes from two declarations are not
+equivalent.  The position for the diagnostic, if any, is given by *def_pos.
+is_definition is TRUE if the new attribute (new_ap) appears on a definition.
+*/
+{
+  a_diag_list       diag_list;
+  a_diagnostic_ptr  dp;
+
+  if (is_definition) {
+    if (new_ap == NULL) {
+      /* If a previous declaration specified an alignment but the
+         definition does not, give an error. */
+      clear_diag_list(&diag_list);
+      dp = pos_start_error(ec_no_alignment_on_definition, def_pos);
+      more_info_diagnostic(ec_attribute_declared_here, &old_ap->position,
+                           &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+    } else {
+      /* If a previous declaration specified an alignment, it must
+         be effectively the same as the alignment specified on the
+         definition.  That can be hard to diagnose on a prototype
+         instantiation so just flag the obvious cases here. */
+      if ((old_ap->arguments->kind == (an_attribute_arg_kind)aak_type &&
+           old_ap->arguments->variant.type != NULL &&
+           is_template_dependent_type(old_ap->arguments->variant.type)) ||
+          (new_ap->arguments->kind == (an_attribute_arg_kind)aak_type &&
+           new_ap->arguments->variant.type != NULL &&
+           is_template_dependent_type(new_ap->arguments->variant.type))) {
+        /* Assume a template dependent type could match. */
+      } else if (equivalent_attributes(old_ap, new_ap,
+                                       /*ignore_family=*/FALSE)) {
+        /* Same arguments. */
+      } else {
+        /* Alignment arguments are not equivalent (but they may have the
+           same values). */
+        a_host_large_integer old_align = get_alignment_value(old_ap);
+        a_host_large_integer new_align = get_alignment_value(new_ap);
+        if (old_align != new_align) {
+          clear_diag_list(&diag_list);
+          dp = pos_start_error(ec_align_not_equivalent, &new_ap->position);
+          more_info_diagnostic(ec_attribute_declared_here, &old_ap->position,
+                               &diag_list);
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* equivalent_align_attribute */
+
+
+void apply_attributes_to_prototype_instantiation(
+                                an_attribute_ptr                 new_list,
+                                a_template_symbol_supplement_ptr tssp,
+                                a_source_position                *def_pos,
+                                a_boolean                        is_definition)
+/*
+This routine applies the set of attributes in new_list to the class template
+specified by tssp.  The source position (for diagnostics) of the template
+declaration is given by *def_pos.  is_definition is TRUE if the template being
+declared is also a definition.
+
+For non-template class types, attributes are applied immediately, and
+re-checked at each redeclaration, but for the template case, attributes
+applied to class templates are basically cached (in tssp->attributes) until an
+instantiation occurs, at which time they are applied to the resulting class
+type.  This routine examines attributes (if any) on an existing declaration
+and reconciles them with the set of attributes specified on the current
+declaration.  Diagnostics are issues where applicable, and any applicable
+attributes from new_list are applied to tssp->attributes.
+*/
+{
+  an_attribute_ptr  new_ap, old_ap, *app, next_ap;
+
+  /* First, look at all attributes that are already attached to the prototype
+     instantiation and see if there is an attribute of the same kind in
+     the new list. */
+  for (app = &tssp->attributes; *app != NULL; app = &(*app)->next) {
+    old_ap = *app;
+    if (is_std_attribute(old_ap)) {
+      switch (old_ap->kind) {
+        case ak_align:
+          /* Issue an error if the alignment attribute is not equivalent
+             to a prior one. */
+          new_ap = find_attribute(old_ap->kind, new_list);
+          equivalent_align_attribute(old_ap, new_ap, def_pos, is_definition);
+          break;
+        case ak_deprecated:
+        case ak_maybe_unused:
+          /* Declarations and definitions do not need to match, but if the
+             attribute appears anywhere, it applies to the entity.  In this
+             case the attribute is already attached to the prototype
+             instantiation so no action is needed. */
+          break;
+        case ak_carries_dependency:
+        case ak_noreturn:
+        case ak_fallthrough:
+          /* Should not appear here (error given elsewhere). */
+          break;
+        case ak_nodiscard:
+          /* The standard doesn't specify what to do here. */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
+  }  /* for */
+  /* app now points to the last entry in the old attribute list (and any
+     new attributes will be appended). */
+  /* Now make a pass through the "new" attribute list to see if requirements
+     have been met. */
+  for (new_ap = new_list; new_ap != NULL; new_ap = next_ap) {
+    next_ap = new_ap->next;
+    new_ap->next = NULL;
+    if (is_std_attribute(new_ap)) {
+      a_boolean add = FALSE;
+      old_ap = find_attribute(new_ap->kind, tssp->attributes);
+      switch (new_ap->kind) {
+        case ak_align:
+          if (old_ap == NULL) {
+            /* No alignment on a previous declaration is okay. */
+            add = TRUE;
+          } else {
+            /* If a previous declaration had an alignment; the standard
+               requires that the two be equivalent.  Note that equivalency was
+               checked in the first loop, so no need to do it again here.
+               The original attribute is kept (and the new one discarded). */
+          }  /* if */
+          break;
+        case ak_deprecated:
+        case ak_maybe_unused:
+          /* Declarations and definitions do not need to match, but if the
+             attribute appears anywhere, it applies to the entity.  Add it
+             if it's not already there. */
+          if (old_ap == NULL) {
+            add = TRUE;
+          }  /* if */
+          break;
+        case ak_fallthrough:
+        case ak_carries_dependency:
+        case ak_noreturn:
+          /* Should not appear here (error given elsewhere). */
+          break;
+        case ak_nodiscard:
+        default:
+          /* Unspecified; add it if it's not already there. */
+          if (old_ap == NULL) {
+            add = TRUE;
+          }  /* if */
+          break;
+      }  /* switch */
+      if (add) {
+        /* Add the new attribute to the list of attributes for this prototype
+           instantiation. */
+        if (*app == NULL) {
+          *app = new_ap;
+        } else {
+          (*app)->next = new_ap;
+        }  /* if */
+        app = &new_ap;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* apply_attributes_to_prototype_instantiation */
 
 
 void attribute_one_time_init(void)

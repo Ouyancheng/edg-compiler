@@ -21579,7 +21579,7 @@ declaration of a partial specialization declared outside of its class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                         is_abstract = FALSE, is_final = FALSE,
                                     is_sealed = FALSE;
-  an_attribute_ptr                  attributes = NULL;
+  an_attribute_ptr                  attributes = NULL, tag_attributes;
   an_attribute_ptr                  *p_attributes = &attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed = FALSE;
@@ -21706,7 +21706,14 @@ declaration of a partial specialization declared outside of its class.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass "class", "struct", "union", or "__interface". */
   (void)get_token();
-  *last_attribute_link(p_attributes) = scan_attributes(al_tag_name);
+  tag_attributes = scan_attributes(al_tag_name);
+  if (friend_token_seen) {
+    /* Standard attributes can only appear on friend definitions and class
+       types cannot be defined in a friend declaration, so no standard
+       attribute is applicable here. */
+    disallow_attributes(&tag_attributes, es_default);
+  }  /* if */
+  *last_attribute_link(p_attributes) = tag_attributes;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
     /* Scan any Microsoft extended decl modifiers that may be present
@@ -22409,7 +22416,15 @@ friend_template_checks_done:
        template information to reflect this. */
     record_specialization(sym, tssp, &locator.source_position);
   }  /* if */
-  if (tssp->attributes == NULL || is_definition) {
+  if (is_redecl) {
+    /* For a redeclaration, verify that any attributes are consistent with
+       the previous declaration. */
+    apply_attributes_to_prototype_instantiation(attributes, tssp,
+                                                &locator.source_position,
+                                                is_definition);
+    attributes = NULL;
+  } else {
+    /* Initial declaration; store the attributes for later. */
     tssp->attributes = attributes;
   }  /* if */
   if (tssp->variant.class_template.prototype_instantiation == NULL) {

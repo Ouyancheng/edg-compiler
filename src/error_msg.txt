@@ -2976,6 +2976,9 @@ ec_invalid_udl_value;;"Invalid value for user-defined literal operator"
 ec_has_cpp_attrib_not_in_if;;"__has_cpp_attribute cannot appear outside of #if or #elif"
 ec_bad_deduction_guide_access;;"deduction guide must be declared with the same accessibility as %n"
 ec_lambda_not_allowed_here;;"a lambda is not permitted in this context"
+ec_align_not_equivalent;;"specified alignment is not equivalent to previous declaration"
+ec_no_alignment_on_definition;;"no alignment specified on definition; previous declaration had specified an alignment"
+ec_previously_declared_with_attribute;;"previous declaration specified %sq attribute (missing on this definition)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

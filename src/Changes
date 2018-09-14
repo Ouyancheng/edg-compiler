@@ -1,5 +1,26 @@
 Version 5.1
 
+9/14/18  [EDGcpfe/19420,EDGcpfe/19421,EDGcpfe/19465,EDGcpfe/19474]
+Attributes on redeclarations of class templates
+
+Previously, attributes on a class template redeclaration simply replaced any
+attributes from a previous declaration.  Now a class template redeclaration is
+checked to ensure that it is compatible with attributes (if any) specified on
+an earlier declaration.  For example (with --c++14):
+
+  template <class> struct alignas(char) S;
+  template <class> struct S {};   // Now elicits an error.
+
+Additionally, an error is now given when attributes appear on a friend
+declaration of a class template (because attributes only appertain to friend
+definitions and a class cannot be defined in a friend declaration).  For
+example (with --c++14):
+
+  struct S {
+    template <class> friend union [[deprecated]] U;
+  };
+
+
 9/14/18  [EDGcpfe/20090,EDGcpfe/20129]
 Assertion failure with UDL using literal operator template
 

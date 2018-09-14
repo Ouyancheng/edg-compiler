@@ -314,6 +314,12 @@ typedef struct an_attr_name_map_entry *an_attr_name_map_entry_ptr;
 extern a_boolean attribute_is_supported(a_const_char        *name,
                                         an_attribute_family family);
 
+extern void apply_attributes_to_prototype_instantiation(
+                               an_attribute_ptr                 new_list,
+                               a_template_symbol_supplement_ptr tssp,
+                               a_source_position                *def_pos,
+                               a_boolean                        is_definition);
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);
