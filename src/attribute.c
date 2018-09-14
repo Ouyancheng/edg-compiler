@@ -9065,7 +9065,7 @@ any family is permitted, with standard attributes given preference.
 }  /* attribute_is_supported */
 
 
-static a_boolean get_alignment_value(an_attribute_ptr  ap)
+static a_host_large_integer get_alignment_value(an_attribute_ptr  ap)
 /*
 Return the value of the specified alignment attribute.  Alignment values can
 be constants or types (in which case the alignment of the type is used).
