@@ -668,7 +668,8 @@ the value of the global variable std_version to 202000 and the value of the
 predefined __cplusplus macro to 202000L; those values will eventually be
 updated to match the official __cplusplus value when the forthcoming standard
 is approved.  A new macro cpp20_mode is also available in the front end to
-test whether it runs in C++20 mode.
+test whether it runs in C++20 mode.  In addition, std_version is now set to
+201703 for C++17 mode; it was previously set to the temporary value 201701.
 
 
 8/22/18  [EDGcpfe/20017]
