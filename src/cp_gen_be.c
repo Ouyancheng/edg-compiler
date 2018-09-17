@@ -16651,8 +16651,8 @@ one that yields the value) of a statement expression.
         } else {
           a_routine_ptr curr_routine =
                                  innermost_function_scope->variant.routine.ptr;
-          a_type_ptr curr_routine_type = skip_typerefs(curr_routine->type);
-          a_type_ptr return_type =
+          a_type_ptr    curr_routine_type = skip_typerefs(curr_routine->type);
+          a_type_ptr    return_type =
                                 curr_routine_type->variant.routine.return_type;
           /* Put out the return statement. */
           write_tok_str("return");
@@ -16668,13 +16668,20 @@ one that yields the value) of a statement expression.
                                  /*need_parens=*/FALSE,
                                  /*mbr_fcn_default_arg_expr=*/FALSE);
           } else {
-            /* The return value is passed via a copy constructor call. */
+            /* The return value is passed via a copy constructor call.  We
+               need to push the function prototype in case the return type
+               has an enk_param_ref embedded in a decltype-specifier. */
+            a_func_prototype_stack_entry fpse;
+            fpse.function_type = curr_routine_type;
+            fpse.outside_parameter_list = TRUE;
+            push_function_prototype(&fpse, &octl);
             check_assertion(statement->variant.return_dynamic_init != NULL);
             write_space();
             gen_dynamic_init(statement->variant.return_dynamic_init,
                              return_type, (an_expr_node_ptr)NULL,
                              /*avoid_top_level_comma=*/FALSE,
                              /*obj_expr_of_mfunc_operator=*/FALSE);
+            pop_function_prototype(&octl);
           }  /* if */
           write_tok_ch(';');
         }  /* if */
