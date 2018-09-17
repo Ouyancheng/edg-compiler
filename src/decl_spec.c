@@ -9704,11 +9704,11 @@ the declaration that is being parsed.
 }  /* process_class_template_placeholder */
 
 
-/*ARGSUSED*/
 static void clear_template_deduction_context_flag(a_decl_parse_state  *dps)
 /*
 Helper callback for check_for_rescannable_alias to reset the flag indicating
-whether a 
+whether the declaration described by *dps occurred in a template deduction
+context (where embedded expressions may need to be rescanned).
 */
 {
   if (dps->last_declarator) {
