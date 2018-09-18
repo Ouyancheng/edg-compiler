@@ -1,5 +1,26 @@
 Version 5.1
 
+9/18/18  [EDGcpfe/19601]
+Structured binding and member accessibility
+
+When using structured bindings with class members, the original specification
+required the class members to be declared "public".  The committee's paper
+P0969r0 later revised that to only require the member to be accessible in the
+context of the structured binding declaration.  The front end now implements
+the latter rule (except in modes corresponding to compilers that implement the
+original rule, such as Clang mode).  For example:
+
+  struct S {
+    friend void g();
+  private:
+     int i;
+  };
+  void g() {
+    S x{};
+    auto [y] = x; // Previously an error.  Now okay in many modes.
+  }
+
+
 9/17/18  [EDGcpfe/20148]
 C++-generating back end: assertion failure with decltype-specifier return type
 

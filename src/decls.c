@@ -17564,7 +17564,12 @@ can be fully determined.
         tqs &= ~TQ_CONST;
       }  /* if */
       btype = make_qualified_type(btype, tqs);
-      if (fp->source_corresp.access != (an_access_specifier)as_public) {
+      if ((gpp_version_is(<80000) || clang_mode || ms_version_is(<1915)) ?
+              fp->source_corresp.access != (an_access_specifier)as_public
+            : !have_access_to_symbol(symbol_for(fp))) {
+        /* The original specification for structured bindings only permitted
+           binding public members.  P0969r0 changed to rule to just requiring
+           that the members be accessible. */
         pos_sy_error(ec_struct_binding_private_member,
                      &vp->source_corresp.decl_position, symbol_for(fp));
         err = TRUE;
