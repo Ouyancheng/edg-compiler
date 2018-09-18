@@ -30118,6 +30118,36 @@ in *operand.  It's an lvalue for the field.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+static a_boolean symbol_is_valid_get_for_struct_binding(a_symbol_ptr  sym)
+/*
+The given symbol was found when looking up "get" in a class associated with a
+structured binding declaration.  Return TRUE if that includes at least one
+function template with a leading nontype template parameter.
+*/
+{
+  a_boolean                 result = FALSE, is_list;
+
+
+  is_list = symbol_is(sym, sk_overloaded_function);
+  if (is_list) {
+    sym = sym->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; sym != NULL; sym = (is_list ? sym->next : NULL)) {
+    if (symbol_is(sym, sk_function_template)) {
+      a_template_decl_info_ptr  tdip;
+      tdip = sym->variant.template_info->cache.decl_info;
+      check_assertion(tdip != NULL);
+      if (tdip->parameters != NULL &&
+          symbol_is(tdip->parameters->param_symbol, sk_constant)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* symbol_is_valid_get_for_struct_binding */
+
+
 void determine_get_call_for_tuple_like_binding(
                                            a_variable_ptr     container,
                                            a_type_ptr         tp,
@@ -30147,7 +30177,10 @@ is an lvalue.
   clear_locator(&loc, diag_pos);
   (void)find_symbol("get", sizeof("get")-1, &loc);
   mem_sym = class_qualified_id_lookup(&loc, tp, IDL_NO_OPTIONS);
-  if (mem_sym != NULL) {
+  if (mem_sym != NULL &&
+      (clang_version_is(<70000) || gnu_version_is(<80000) ||
+       ms_version_is(<1915) ||
+       symbol_is_valid_get_for_struct_binding(mem_sym))) {
     /* We have to evaluate "e.get<i>()".  This is more complex than it seems
        because "e.get<i>" might designate a static member function or a
        variable template instance rather than a bound member function.  For

@@ -2672,6 +2672,7 @@ option values if they were not already set by a command line option.
           aggregate_classes_can_have_bases = TRUE;
           auto_template_params_enabled = TRUE;
         }  /* if */
+        constexpr_lambdas_enabled = TRUE;
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
