@@ -520,12 +520,26 @@ swallowed); otherwise, it's "="-form or "{...}" form.
      already have been pushed in that case. */
   if (is_full_expr) {
     if (dps->in_class_scope) {
-      /* In-class initializers are only valid for static const data members of
-         integral or enum type: Scan an integral constant expression.  GNU and
-         Microsoft modes allow other kinds of constant-expressions, but we do
-         not permit the combination of those extensions with the "auto" type
-         specifier.  (See scan_member_constant_initializer_expression.) */
-      expr_kind = (an_expression_kind)ek_integral_constant;
+      /* In-class initializers are only valid for static const data members
+         of integral or enum type, for constexpr static data members of
+         literal type. and for inline static data members. For
+         non-constexpr inline static data members, scan a normal
+         expression; otherwise, scan an integral constant expression.  GNU
+         and Microsoft modes allow other kinds of constant-expressions, but
+         we do not permit the combination of those extensions with the
+         "auto" type specifier.  (See
+         scan_member_constant_initializer_expression.) */
+      a_boolean is_non_constexpr_inline_sdm = FALSE;
+      if (dps->sym != NULL &&
+          dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr var = dps->sym->variant.static_data_member.variable;
+        if (var != NULL && var->is_inline && !var->is_constexpr) {
+          is_non_constexpr_inline_sdm = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!is_non_constexpr_inline_sdm) {
+        expr_kind = (an_expression_kind)ek_integral_constant;
+      }  /* if */
     }  /* if */
     push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                     expr_kind, is_full_expr,

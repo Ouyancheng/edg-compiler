@@ -1,5 +1,22 @@
 Version 5.1
 
+9/18/18  [EDGcpfe/20145]
+Inline static data members with deduced types
+
+The front end previously rejected an inline static data member with a
+deduced type if the initializer is not a constant expression.  This is now
+fixed.  For example, with --c++17:
+
+  struct wrapper {
+    wrapper() {}
+  };
+
+  struct wrapped_object {
+    inline static auto y = wrapper();  // Previously elicited a "must have a
+                                       // constant value" error, now okay
+  };
+
+
 9/18/18  [EDGcpfe/19601]
 Structured binding and member accessibility
 
