@@ -9065,29 +9065,73 @@ any family is permitted, with standard attributes given preference.
 }  /* attribute_is_supported */
 
 
-static a_host_large_integer get_alignment_value(an_attribute_ptr  ap)
+static a_boolean attribute_is_template_dependent(an_attribute_ptr ap)
 /*
-Return the value of the specified alignment attribute.  Alignment values can
-be constants or types (in which case the alignment of the type is used).
+Returns TRUE if any of the arguments to the attribute are template-dependent.
 */
 {
-  a_host_large_integer  result = 0;
-  an_attribute_arg_ptr  aap = ap->arguments;
+  an_attribute_arg_ptr  aap;
+  a_boolean             result = FALSE;
 
-  check_assertion(aap != NULL);
-  switch (aap->kind) {
-    case aak_constant:
-      (void)get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
-                                 MAX_HOST_LARGE_INTEGER, &result);
+  for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+    if ((aap->kind == (an_attribute_arg_kind)aak_constant &&
+         aap->variant.constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param) ||
+        (aap->kind == (an_attribute_arg_kind)aak_type &&
+         is_template_dependent_type(aap->variant.type)) ||
+        (aap->kind == (an_attribute_arg_kind)aak_expression &&
+         is_template_dependent_type(aap->variant.expr->type))) {
+      result = TRUE;
       break;
-    case aak_type:
-      result = aap->variant.type->alignment;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+    }  /* if */
+  }  /* if */
   return result;
-}  /* get_alignment_value */
+}  /* attribute_is_template_dependent */
+
+
+static a_host_large_integer get_strictest_alignment_value(
+                                                         an_attribute_ptr *oap)
+/*
+Return the value of the strictest alignment attribute in the list beginning
+with *oap.  Alignment values can be constants or types (in which case the
+alignment of the type is used).  For template-dependent alignment arguments,
+return MAX_HOST_LARGE_INTEGER.  *oap is set to the alignment attribute with the
+strictest attribute.
+*/
+{
+  a_host_large_integer  alignment, max = 0;
+  an_attribute_arg_ptr  aap;
+  an_attribute_ptr      ap;
+
+  for (ap = *oap; ap != NULL; ap = ap->next) {
+    if (ap->kind == (a_byte_attribute_kind)ak_align) {
+      if (attribute_is_template_dependent(ap)) {
+        /* A dependent alignment can have any value; assume it is the
+           strictest. */
+        alignment = MAX_HOST_LARGE_INTEGER;
+      } else {
+        aap = ap->arguments;
+        alignment = 0;
+        switch (aap->kind) {
+          case aak_constant:
+            (void)get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
+                                       MAX_HOST_LARGE_INTEGER, &alignment);
+            break;
+          case aak_type:
+            alignment = aap->variant.type->alignment;
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }  /* if */
+      if (alignment > max) {
+        max = alignment;
+        *oap = ap;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return max;
+}  /* get_strictest_alignment_value */
 
 
 static void equivalent_align_attribute(an_attribute_ptr  old_ap,
@@ -9115,32 +9159,50 @@ is_definition is TRUE if the new attribute (new_ap) appears on a definition.
       add_more_info_list(dp, &diag_list);
       end_diagnostic(dp);
     } else {
+      /* There may be multiple alignment attributes on both the prior
+         declaration as well as the current one.  Look for the strictest
+         alignment on both lists and compare those. */
+      a_host_large_integer old_align = get_strictest_alignment_value(&old_ap);
+      a_host_large_integer new_align = get_strictest_alignment_value(&new_ap);
       /* If a previous declaration specified an alignment, it must
          be effectively the same as the alignment specified on the
          definition.  That can be hard to diagnose on a prototype
          instantiation so just flag the obvious cases here. */
-      if ((old_ap->arguments->kind == (an_attribute_arg_kind)aak_type &&
-           old_ap->arguments->variant.type != NULL &&
-           is_template_dependent_type(old_ap->arguments->variant.type)) ||
-          (new_ap->arguments->kind == (an_attribute_arg_kind)aak_type &&
-           new_ap->arguments->variant.type != NULL &&
-           is_template_dependent_type(new_ap->arguments->variant.type))) {
-        /* Assume a template dependent type could match. */
-      } else if (equivalent_attributes(old_ap, new_ap,
+      if (equivalent_attributes(old_ap, new_ap,
                                        /*ignore_family=*/FALSE)) {
-        /* Same arguments. */
+        /* Same arguments.  Leave the lists as they are. */
       } else {
-        /* Alignment arguments are not equivalent (but they may have the
-           same values). */
-        a_host_large_integer old_align = get_alignment_value(old_ap);
-        a_host_large_integer new_align = get_alignment_value(new_ap);
-        if (old_align != new_align) {
-          clear_diag_list(&diag_list);
-          dp = pos_start_error(ec_align_not_equivalent, &new_ap->position);
-          more_info_diagnostic(ec_attribute_declared_here, &old_ap->position,
-                               &diag_list);
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
+        a_boolean err = FALSE;
+        if (attribute_is_template_dependent(old_ap) ||
+            attribute_is_template_dependent(new_ap)) {
+          /* Assume a template-dependent (or value-dependent) type could
+             match. */
+        } else {
+          /* Alignment arguments are not the same (but they may still have
+             equivalent values). */
+          if (old_align != new_align) {
+            clear_diag_list(&diag_list);
+            dp = pos_start_error(ec_align_not_equivalent, &new_ap->position);
+            more_info_diagnostic(ec_attribute_declared_here, &old_ap->position,
+                                 &diag_list);
+            add_more_info_list(dp, &diag_list);
+            end_diagnostic(dp);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!err) {
+          /* The two lists are equivalent (or, more likely, template-
+             dependent), but not identical.  In this case, replace the
+             alignment attributes in the declaration with those in the
+             definition (leaving other attributes as they were).  This is
+             accomplished by marking them unrecognized (the new attributes will
+             be added as part of the normal processing). */
+          do {
+            if (old_ap->kind == (a_byte_attribute_kind)ak_align) {
+              make_attr_unrecognized(old_ap);
+            }  /* if */
+            old_ap = old_ap->next;
+          } while (old_ap != NULL);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9165,24 +9227,34 @@ applied to class templates are basically cached (in tssp->attributes) until an
 instantiation occurs, at which time they are applied to the resulting class
 type.  This routine examines attributes (if any) on an existing declaration
 and reconciles them with the set of attributes specified on the current
-declaration.  Diagnostics are issues where applicable, and any applicable
+declaration.  Diagnostics are issued where applicable, and any applicable
 attributes from new_list are applied to tssp->attributes.
 */
 {
   an_attribute_ptr  new_ap, old_ap, *app, next_ap;
+  an_attribute_ptr  added_tail, added_head = NULL;
+  a_boolean         align_processed = FALSE;
 
   /* First, look at all attributes that are already attached to the prototype
      instantiation and see if there is an attribute of the same kind in
      the new list. */
   for (app = &tssp->attributes; *app != NULL; app = &(*app)->next) {
     old_ap = *app;
-    if (is_std_attribute(old_ap)) {
+    if (is_std_attribute(old_ap) ||
+        old_ap->kind == (a_byte_attribute_kind)ak_align) {
       switch (old_ap->kind) {
         case ak_align:
-          /* Issue an error if the alignment attribute is not equivalent
-             to a prior one. */
-          new_ap = find_attribute(old_ap->kind, new_list);
-          equivalent_align_attribute(old_ap, new_ap, def_pos, is_definition);
+          /* Issue an error if the alignment attribute(s) are not equivalent
+             to a prior declaration. */
+          if (!align_processed) {
+            new_ap = find_attribute(ak_align, new_list);
+            equivalent_align_attribute(old_ap, new_ap, def_pos, is_definition);
+            /* The call to equivalent_align_attribute above has processed all
+               applicable ak_align attributes, so there's no need to do the
+               check for further ak_align attributes (but don't exit the loop
+               in case there are other attribute kinds). */
+             align_processed = TRUE;
+           }  /* if */
           break;
         case ak_deprecated:
         case ak_maybe_unused:
@@ -9191,15 +9263,18 @@ attributes from new_list are applied to tssp->attributes.
              case the attribute is already attached to the prototype
              instantiation so no action is needed. */
           break;
-        case ak_carries_dependency:
-        case ak_noreturn:
-        case ak_fallthrough:
-          /* Should not appear here (error given elsewhere). */
-          break;
         case ak_nodiscard:
           /* The standard doesn't specify what to do here. */
           break;
+        case ak_unrecognized:
+          /* Probably an error from earlier; ignore it here. */
+          break;
+        case ak_carries_dependency:
+        case ak_noreturn:
+        case ak_fallthrough:
         default:
+          /* These do not appertain to class types (and have been turned
+             into ak_unrecognized if they do appear). */
           unexpected_condition();
       }  /* switch */
     }  /* if */
@@ -9211,7 +9286,8 @@ attributes from new_list are applied to tssp->attributes.
   for (new_ap = new_list; new_ap != NULL; new_ap = next_ap) {
     next_ap = new_ap->next;
     new_ap->next = NULL;
-    if (is_std_attribute(new_ap)) {
+    if (is_std_attribute(new_ap) ||
+        new_ap->kind == (a_byte_attribute_kind)ak_align) {
       a_boolean add = FALSE;
       old_ap = find_attribute(new_ap->kind, tssp->attributes);
       switch (new_ap->kind) {
@@ -9235,11 +9311,6 @@ attributes from new_list are applied to tssp->attributes.
             add = TRUE;
           }  /* if */
           break;
-        case ak_fallthrough:
-        case ak_carries_dependency:
-        case ak_noreturn:
-          /* Should not appear here (error given elsewhere). */
-          break;
         case ak_nodiscard:
         default:
           /* Unspecified; add it if it's not already there. */
@@ -9247,19 +9318,37 @@ attributes from new_list are applied to tssp->attributes.
             add = TRUE;
           }  /* if */
           break;
+        case ak_unrecognized:
+          /* Probably an error from earlier; ignore it here. */
+          break;
+        case ak_carries_dependency:
+        case ak_noreturn:
+        case ak_fallthrough:
+          /* These do not appertain to class types (and have been turned
+             into ak_unrecognized if they do appear). */
+          unexpected_condition();
       }  /* switch */
       if (add) {
         /* Add the new attribute to the list of attributes for this prototype
-           instantiation. */
-        if (*app == NULL) {
-          *app = new_ap;
+           instantiation (keep the list separate until the end of this
+           function). */
+        if (added_head == NULL) {
+          added_head = new_ap;
         } else {
-          (*app)->next = new_ap;
+          added_tail->next = new_ap;
         }  /* if */
-        app = &new_ap;
+        added_tail = new_ap;
       }  /* if */
     }  /* if */
   }  /* for */
+  if (added_head != NULL) {
+    /* Some attributes need to be added to the original list. */
+    if (*app == NULL) {
+      *app = added_head;
+    } else {
+      (*app)->next = added_head;
+    }  /* if */
+  }  /* if */
 }  /* apply_attributes_to_prototype_instantiation */
 
 
