@@ -1012,9 +1012,11 @@ child files encountered.
     time_t	mod_time;
     /* Only do this for include files, not for the primary source file
        or for the source file entry associated with a primary source
-       file from which precompiled header information has been restored. */
-    if (sfp->is_include_file) {
-      check_assertion(sfp->full_name != NULL);
+       file from which precompiled header information has been restored.
+       Ignore entries with a NULL full_name.  These are mostly created by
+       #line directives (that should suppress PCH creation), but they can be
+       created by other things like the GCC system_header pragma. */
+    if (sfp->is_include_file && sfp->full_name != NULL) {
       (void)get_file_modification_time(sfp->full_name, &mod_time);
       pch_write_string(sfp->full_name);
       pch_write_value(mod_time);
