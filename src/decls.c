@@ -17568,7 +17568,7 @@ can be fully determined.
               fp->source_corresp.access != (an_access_specifier)as_public
             : !have_access_to_symbol(symbol_for(fp))) {
         /* The original specification for structured bindings only permitted
-           binding public members.  P0969r0 changed to rule to just requiring
+           binding public members.  P0969R0 changed to rule to just requiring
            that the members be accessible. */
         pos_sy_error(ec_struct_binding_private_member,
                      &vp->source_corresp.decl_position, symbol_for(fp));
