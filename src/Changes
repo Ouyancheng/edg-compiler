@@ -1,5 +1,14 @@
 Version 5.1
 
+9/18/18  [EDGcpfe/20162]
+GNU compatibility: PCH issue with system_header pragma
+
+If a include file contained a "#pragma GCC system_header" directive, and
+that file was not found as a "system include" (i.e., via --sys_include),
+an internal error could occur if that compilation produced a PCH file that
+was later consumed.  Now fixed.
+
+
 9/18/18  [EDGcpfe/20145]
 Inline static data members with deduced types
 

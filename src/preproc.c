@@ -3179,7 +3179,7 @@ Handle
       record_start_of_source_file(
                                actual_sfp, (a_seq_number)seq_number_last_read,
                                curr_ise->line_number, curr_ise->file_name,
-                               /*full_name=*/(char *)NULL,
+                               curr_ise->full_name,
                                /*name_as_written=*/(char *)NULL,
                                &curr_ise->assoc_il_file,
                                actual_sfp->is_include_file,
