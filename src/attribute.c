@@ -9232,7 +9232,7 @@ attributes from new_list are applied to tssp->attributes.
 */
 {
   an_attribute_ptr  new_ap, old_ap, *app, next_ap;
-  an_attribute_ptr  added_tail, added_head = NULL;
+  an_attribute_ptr  added_tail = NULL, added_head = NULL;
   a_boolean         align_processed = FALSE;
 
   /* First, look at all attributes that are already attached to the prototype
