@@ -522,7 +522,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     if (dps->in_class_scope) {
       /* In-class initializers are only valid for static const data members
          of integral or enum type, for constexpr static data members of
-         literal type. and for inline static data members. For
+         literal type, and for inline static data members. For
          non-constexpr inline static data members, scan a normal
          expression; otherwise, scan an integral constant expression.  GNU
          and Microsoft modes allow other kinds of constant-expressions, but
