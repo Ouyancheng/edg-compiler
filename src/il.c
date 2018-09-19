@@ -5187,6 +5187,27 @@ Return a dynamic init entry for an error constant.
 }  /* make_error_constant_dynamic_init */
 
 
+static a_boolean is_context_where_instance_is_needed(void)
+/*
+Return TRUE if we are in a "real" context where a reference to a function
+or variable should result in the instantiation of the entity.  This is FALSE
+in template-dependent contexts and discarded statements of constexpr if
+statements.
+*/
+{
+  a_boolean	result = TRUE;
+  if (is_template_dependent_context()) {
+    /* Do not instantiate things referenced from contexts such as prototype
+       instantiations. */
+    result = FALSE;
+  } else if (in_constexpr_if_discarded_statement()) {
+    /* Do not instantiate things in the discarded branch of a constexpr if. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_context_where_instance_is_needed */
+
+
 void set_routine_address_constant(a_routine_ptr routine,
                                   a_constant    *con,
                                   a_boolean     set_address_taken_flag)
@@ -5215,7 +5236,7 @@ Set the address_taken flag on the indicated variable.
     a_symbol_ptr var_sym;
     variable->address_taken = TRUE;
     var_sym = symbol_for(variable);
-    if (var_sym != NULL) {
+    if (var_sym != NULL && is_context_where_instance_is_needed()) {
       set_instance_required(var_sym, TRUE, SIR_DEFER_INLINE);
     }  /* if */
     /* For a parameter, set param_value_has_been_changed. */
@@ -22428,11 +22449,8 @@ routine as actually referenced.
   if (routine->routine_fixup != NULL) {
     add_to_deferred_friend_function_fixup_list(routine->routine_fixup);
   }  /* if */
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Do not instantiate things referenced from prototype instantiations. */
-    instantiate = FALSE;
-  } else if (in_constexpr_if_discarded_statement()) {
-    /* Do not instantiate things in the discarded branch of a constexpr if. */
+  if (!is_context_where_instance_is_needed()) {
+    /* Do not instantiate things referenced from dependent contexts, etc. */
     instantiate = FALSE;
   } else if (instantiate &&
              translation_unit_needed_only_for_exported_templates) {

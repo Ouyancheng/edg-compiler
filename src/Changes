@@ -1,5 +1,22 @@
 Version 5.1
 
+9/19/18  [EDGcpfe/20154,EDGcpfe/20166]
+Taking the address of a dependent variable template instance
+
+While processing a template declaration, the front end sometimes treated a
+dependent reference of a variable template as non-dependent.  This could
+result in an internal error (in check_for_nonreal_instance) in configurations
+with EXPENSIVE_CHECKING enabled.  In this example, it could also result in
+a spurious "declaration is incompatible" error in g++ mode.  Now fixed.
+
+  template <typename T> T v {};
+  template <typename T> struct A {};
+  template <typename T> auto& f = v<A<T>>;
+  int main() {
+    f<int>;
+  }
+
+
 9/18/18  [EDGcpfe/19600]
 Structured bindings and "get" accessors
 
