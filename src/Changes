@@ -22,14 +22,14 @@ Structured bindings and "get" accessors
 
 The decomposition of class types through structured bindings can be customized
 through "get" accessors.  Such accessors can be members of the class to be
-decomposed or they can be namespace-scoped templates (usually found through
-argument-dependent lookup).  Originally, the member case was considered as soon
-as the class to be decomposed contained a declaration of a member named "get":
-If that member was not a template with a leading nontype template parameter, an
-error ensued when the decomposition operations attempted to evaluate e.get<i>()
-for the unnamed variable e underlying the structured binding declaration.  The
+decomposed or they can be namespace-scoped templates (found through argument-
+dependent lookup).  Originally, the member case was considered as soon as the
+class to be decomposed contained a declaration of a member named "get": If that
+member was not a template with a leading nontype template parameter, an error
+ensued when the decomposition operations attempted to evaluate e.get<i>() for
+the unnamed variable e underlying the structured binding declaration.  The
 standardization committee later revised that rule to ignore "get" members
-unless at least one of the members if a function template with a leading
+unless at least one of the members is a function template with a leading
 nontype template parameter.  The revised rule was introduced through paper
 P0961R1.  The front end now implements the revised rule, except in modes
 corresponding to compilers that do not yet implement the new rule.
