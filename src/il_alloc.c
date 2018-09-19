@@ -2110,6 +2110,7 @@ to default values.
       pte->variant.typeref.is_prototype_instantiation = FALSE;
       pte->variant.typeref.is_bases = FALSE;
       pte->variant.typeref.direct_bases = FALSE;
+      pte->variant.typeref.is_injected_class_name = FALSE;
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       pte->variant.typeref.is_lowered_complex_type = FALSE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */

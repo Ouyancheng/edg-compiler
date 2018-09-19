@@ -2175,12 +2175,14 @@ static a_boolean is_member_typedef_that_should_be_ignored(
 /*
 "type" is a typedef.  Return TRUE if the typedef is one that should be
 replaced with the underlying type.  This is done for typedefs that are
-members of template classes.
+members of template classes.  It is also done for injected class names.
 */
 {
   a_boolean	result = FALSE;
 
-  if (octl->remove_template_typedefs) {
+  if (type->variant.typeref.is_injected_class_name) {
+    result = TRUE;
+  } else if (octl->remove_template_typedefs) {
     if (type->source_corresp.is_class_member) {
       /* Drop the typedef if it was defined in a template class.  This is
          done even if the class was specialized. */

@@ -1,5 +1,25 @@
 Version 5.1
 
+9/19/18  [EDGcpfe/20098]
+Use of injected class name as a template template argument
+
+An injected class name of a class template can be used as both a type template
+argument and a template template argument.  This worked in some cases, but
+not as an explicit template argument in a function template call.  Now
+fixed.  This is a small IL CHANGE in that classes now contain a typeref
+that refers to the enclosing class.   Formerly, only a special symbol
+was created for the injected class name.
+
+  template <typename T> struct A {
+    template <template<typename> class> void f(){}
+    void g() { f<A>(); }
+  };
+  int main() {
+    A<int> a;
+    a.g();
+  }
+
+
 9/19/18  [EDGcpfe/19949]
 C++-generating back end: inherited constructor from dependent base
 

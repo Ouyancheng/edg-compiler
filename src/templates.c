@@ -10459,13 +10459,17 @@ doing C++17-style template template parameter matching.
          tpp = tpp->is_pack ? tpp : tpp->next,
            tap = tap == NULL ? NULL : tap->next) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
+      a_templ_arg_kind		arg_kind_of_param;
+      arg_kind_of_param = templ_arg_kind_for_symbol_kind(sym_kind);
       /* Skip any pack expansion placeholders. */
       while (tap != NULL && is_start_of_pack_expansion_templ_arg(tap)) {
         tap_is_pack = TRUE;
         tap = tap->next;
       }  /* while */
-      if (tap != NULL &&
-          templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
+      if (tap != NULL && arg_kind_of_param != tap->kind &&
+          arg_kind_of_param != (a_templ_arg_kind)tak_template) {
+        /* Allow a template template parameter mismatch now, in case the
+           argument is an injected class name. */
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
@@ -10548,8 +10552,11 @@ doing C++17-style template template parameter matching.
       } else {
         arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
         tap = alloc_template_arg(arg_kind);
-        if (specified_tap != NULL && specified_tap->kind != arg_kind) {
-          /* This should only occur in error cases. */
+        if (specified_tap != NULL && specified_tap->kind != arg_kind &&
+            arg_kind != (a_templ_arg_kind)tak_template) {
+          /* This should only occur in error cases.  Allow a template template
+             mismatch to allow the special injected class name handling
+             below. */
           expect_error();
           arg_kind_mismatch = TRUE;
           break;
@@ -10564,7 +10571,29 @@ doing C++17-style template template parameter matching.
         if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
-          tap->variant.templ = specified_tap->variant.templ;
+          a_template_ptr	templ = NULL;
+          if (is_template_templ_arg(specified_tap)) {
+            templ = specified_tap->variant.templ.ptr;
+          } else if (is_type_templ_arg(specified_tap)) {
+            /* The specified argument was a type, but the parameter is a
+               template template parameter.   If the argument is an injected
+               class name, get the associated class template. */
+            a_type_ptr		tp = specified_tap->variant.type;
+            a_symbol_ptr	type_sym = symbol_for(tp);
+            if (type_sym != NULL && is_injected_template_symbol(type_sym)) {
+              a_symbol_ptr	templ_sym;
+              templ_sym = class_template_for_injected_template_symbol(
+                                                                    type_sym);
+              templ_sym = template_argument_if_template_template_param(
+                                                                    templ_sym);
+              templ = templ_sym->variant.template_info->il_template_entry;
+            }  /* if */
+          }  /* if */
+          if (templ == NULL) {
+            arg_kind_mismatch = TRUE;
+            break;
+          }  /* if */
+          tap->variant.templ.ptr = templ;
         } else {
           a_type_ptr		constant_type = NULL;
           a_constant_ptr	constant;
@@ -14056,15 +14085,19 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  /* Normally copying a type such as A<T>::X won't result in a change if
-     A<T> is a prototype instantiation and T is not replaced with a real
-     type.  But such a type will be replaced in deduction guides.  If
-     the type is a typedef, use the underlying type so that we don't
-     end up with an incorrect A<T'>::X. */
-  if (type->source_corresp.is_class_member &&
-      (options & CTWS_DEDUCTION_GUIDE) != 0 &&
-      type->kind == (a_type_kind)tk_typeref) {
-    type = skip_typerefs_not_dependent_decltypes(type);
+  if (type->source_corresp.is_class_member && type_is(type, tk_typeref)) {
+    /* Normally copying a type such as A<T>::X won't result in a change if
+       A<T> is a prototype instantiation and T is not replaced with a real
+       type.  But such a type will be replaced in deduction guides.  If
+       the type is a typedef, use the underlying type so that we don't
+       end up with an incorrect A<T'>::X. */
+    if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+      type = skip_typerefs_not_dependent_decltypes(type);
+    } else if (type->variant.typeref.is_injected_class_name) {
+      /* If this is the injected type name, do the substitution using the
+         actual class type. */
+      type = skip_typerefs(type);
+    }  /* if */
   }  /* if */
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
