@@ -1,5 +1,23 @@
 Version 5.1
 
+9/19/18  [EDGcpfe/19949]
+C++-generating back end: inherited constructor from dependent base
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, when msvc_is_generated_code_target is TRUE, the
+C++-generating back end sometimes put out a using-declaration for an
+inherited constructor from a dependent base class using different names for
+the class and for the nested-name-specifier.  This is now fixed.  For
+example, with --microsoft --parse_templates:
+
+  template <class T> struct derived : T {
+    using base_type = T;
+    using base_type::base_type;  // Previously generated as "base_type::T"
+  };
+  struct base {};
+  derived<base> x;
+
+
 9/19/18  [EDGcpfe/20154,EDGcpfe/20166]
 Taking the address of a dependent variable template instance
 

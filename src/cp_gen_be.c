@@ -3693,15 +3693,20 @@ and return TRUE; otherwise, return FALSE.
 }  /* synthesize_decltype_specifier */
 
 
-static void gen_class_qualifier(a_type_ptr             class_type,
-                                a_gen_name_options_set options,
-                                a_boolean              *need_closing_paren)
+static a_type_ptr gen_class_qualifier(
+                                    a_type_ptr             class_type,
+                                    a_gen_name_options_set options,
+                                    a_boolean              *need_closing_paren)
 /*
 Generate a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.  options gives a set of options for gen_name.  See gen_name
-for the meaning of need_closing_paren.
+class type and return the type that was actually used in the output (which
+can be different from class_type under some circumstances and will be NULL
+if no qualifier is actually put out).  options gives a set of options for
+gen_name.  See gen_name for the meaning of need_closing_paren.
 */
 {
+  a_type_ptr actual_type_used;
+
   /* Ignore anonymous union levels. */
   while (class_type_supp(class_type)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field ||
@@ -3709,12 +3714,15 @@ for the meaning of need_closing_paren.
                  ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     class_type = parent_class_of(class_type);
   }  /* while */
+  actual_type_used = class_type;
   if (class_type_supp(class_type)->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
+    actual_type_used = NULL;
   } else if (!has_name_before_mangling(class_type) &&
              class_type->variant.class_struct_union.proxy_class) {
     /* Ignore an unnamed proxy class -- it wasn't there in the source. */
+    actual_type_used = NULL;
   } else if (class_type->replace_by_generated_typedef) {
     /* Replace the reference to this class type by a reference to a
        generated typedef. */
@@ -3743,6 +3751,7 @@ for the meaning of need_closing_paren.
         /* Use the typedef instead of the underlying type. */
         gen_name(&substitute_typedef->source_corresp, iek_type,
                  options | GN_QUALIFIER, need_closing_paren);
+        actual_type_used = substitute_typedef;
       } else if (template_param_type->kind == (a_type_kind)tk_template_param &&
                  template_param_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
@@ -3757,6 +3766,7 @@ for the meaning of need_closing_paren.
         /* Use the name of the dependent type directly. */
         gen_name(&template_param_type->source_corresp, iek_type,
                  options | GN_QUALIFIER, need_closing_paren);
+        actual_type_used = template_param_type;
       }  /* if */
     } else if (clang_is_generated_code_target &&
                class_type->
@@ -3798,6 +3808,7 @@ for the meaning of need_closing_paren.
     }  /* if */
     write_tok_str("::");
   }  /* if */
+  return actual_type_used;
 }  /* gen_class_qualifier */
 
 
@@ -3810,10 +3821,10 @@ in a pointer to data member type.  This is a wrapper for
 gen_class_qualifier, used as the output_class_qualifier function in the
 il_to_str output control block.  */
 {
-  gen_class_qualifier(class_type,
-                      for_ptr_to_data_member ? GN_PTR_TO_DATA_MEMBER
-                                             : GN_NO_OPTIONS,
-                      (a_boolean *)NULL);
+  (void)gen_class_qualifier(class_type,
+                            for_ptr_to_data_member ? GN_PTR_TO_DATA_MEMBER
+                                                   : GN_NO_OPTIONS,
+                            (a_boolean *)NULL);
 }  /* gen_class_qualifier_wrapper */
 
 
@@ -4577,8 +4588,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           /* Do not insert code here. */
           {
             /* A normal class qualifier. */
-            gen_class_qualifier(qualifier, qualifier_options,
-                                need_closing_paren);
+            (void)gen_class_qualifier(qualifier, qualifier_options,
+                                      need_closing_paren);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         }  /* if */
@@ -9159,7 +9170,7 @@ declaration following this one is such a continuation.
                                                  FTO_NO_OPTIONS,
                            &octl);
       /* Write the (qualified) name. */
-      gen_class_qualifier(class_type, GN_NO_OPTIONS, (a_boolean *)NULL);
+      (void)gen_class_qualifier(class_type, GN_NO_OPTIONS, (a_boolean *)NULL);
       gen_unqualified_name(&type->source_corresp, iek_type);
       /* Write the second part of the declarator. */
       form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
@@ -10230,8 +10241,8 @@ the expression reflects an implicit member access ("this->y"), so the
                                    /*include_base_classes=*/TRUE,
                                    /*ignore_field_selection_contexts=*/TRUE) ||
              field->source_corresp.qualification_needed)) {
-          gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
-                              (a_boolean *)NULL);
+          (void)gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
+                                    (a_boolean *)NULL);
         }  /* if */
       }  /* if */
     } else if (msvc_is_generated_code_target &&
@@ -10302,7 +10313,8 @@ the expression reflects an implicit member access ("this->y"), so the
                                   /*ignore_field_selection_contexts=*/FALSE)) {
         /* Only use a qualifier for a base class member if it is hidden by a
            name in an intermediate base class. */
-        gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
+        (void)gen_class_qualifier(naming_class, GN_BOUND_MEMBER,
+                                  (a_boolean *)NULL);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11634,7 +11646,8 @@ function reference.
           curr_name_context->field_selection_context = TRUE;
           new_name_context = curr_name_context;
         }  /* if */
-        gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
+        (void)gen_class_qualifier(naming_class, GN_BOUND_MEMBER,
+                                  (a_boolean *)NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         add_property_or_event_name_as_qualifier(&rout->source_corresp,
                                                 iek_routine);
@@ -14025,8 +14038,8 @@ gen_expr that might end up generating this expr as a temporary.
                 gen_type(type);
                 write_str("::");
               } else {
-                gen_class_qualifier(type, GN_NO_OPTIONS,
-                                    (a_boolean *)NULL);
+                (void)gen_class_qualifier(type, GN_NO_OPTIONS,
+                                          (a_boolean *)NULL);
               }  /* if */
             }  /* if */
             write_str("~");
@@ -15576,6 +15589,7 @@ Generate code for a class member or nonmember using-declaration.
     if (udp->is_class_member) {
       /* A class member using-declaration. */
       a_type_ptr class_type = udp->qualifier.class_type;
+      a_type_ptr qualifier;
       /* Put out an access specifier if necessary to change the current
          access.  Note that this is done based on the current name context
          and not based on the is_class_member flag of the using-declaration
@@ -15612,9 +15626,15 @@ Generate code for a class member or nonmember using-declaration.
          although this is not a "bound member" access, names in
          using-declarations are subject to the same restrictions on the form
          of qualification as those of bound members.)  */
-      gen_class_qualifier(class_type, GN_BOUND_MEMBER, (a_boolean *)NULL);
+      qualifier = gen_class_qualifier(class_type, GN_BOUND_MEMBER,
+                                      (a_boolean *)NULL);
       if (used_generated_typedef) {
         establish_replacement_typedef(class_type, /*set=*/FALSE);
+      } else if (udp->is_inheriting_ctor) {
+        /* Make sure to use the sane name as the qualifier, which might
+           be different from class_type under some circumstances. */
+        check_assertion(qualifier != NULL);
+        scp = &qualifier->source_corresp;
       }  /* if */
     } else {
       /* A nonmember using-declaration. */
