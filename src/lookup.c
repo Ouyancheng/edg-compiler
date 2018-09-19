@@ -4581,8 +4581,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     must_be_class_or_namespace ||				      \
     must_be_class ||						      \
     must_be_tag ||						      \
-    !same_entities(class_type,					      \
-                   f_skip_typerefs((fund_sym)->variant.type.ptr))) && \
+    !f_same_entities(class_type,				      \
+                   skip_typerefs((fund_sym)->variant.type.ptr))) &&   \
    /* Note that same_entities must not be used for this test. */      \
    sym_parent_class(sym) == class_type &&                             \
    (!must_be_class_or_namespace ||				      \

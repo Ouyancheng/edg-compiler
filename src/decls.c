@@ -11418,7 +11418,7 @@ symbol entry, and return a pointer to it in state->sym.
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
           if (type_is(tp, tk_typeref) &&
               tp->variant.typeref.is_injected_class_name &&
-              same_entities(class_type, f_skip_typerefs(tp))) {
+              f_same_entities(class_type, skip_typerefs(tp))) {
             /* The type is the  injected class name for the current class,
                which means that we are attempting to create a typedef
                with the same as the enclosing class. */

@@ -18815,9 +18815,10 @@ a field selection.
                is_injected_class_symbol(class_fund_sym)) {
       /* The normal symbol is a class and the class symbol is an injected
          class name.  They are equivalent if they refer to the same type. */
-      equiv_symbols = identical_types(type_symbol_type(normal_fund_sym),
-                                      f_skip_typerefs(
-                                            class_fund_sym->variant.type.ptr));
+      equiv_symbols = f_identical_types(type_symbol_type(normal_fund_sym),
+                                        skip_typerefs(
+                                            class_fund_sym->variant.type.ptr),
+                                        ITF_NO_FLAGS);
     } else if (is_class_template_symbol(normal_fund_sym) &&
                is_injected_template_symbol(class_fund_sym)) {
       /* The normal symbol is a class template and the class symbol is an
