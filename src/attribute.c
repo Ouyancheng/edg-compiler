@@ -9096,7 +9096,7 @@ Return the value of the strictest alignment attribute in the list beginning
 with *oap.  Alignment values can be constants or types (in which case the
 alignment of the type is used).  For template-dependent alignment arguments,
 return MAX_HOST_LARGE_INTEGER.  *oap is set to the alignment attribute with the
-strictest attribute.
+strictest alignment.
 */
 {
   a_host_large_integer  alignment, max = 0;
