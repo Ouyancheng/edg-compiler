@@ -1,5 +1,11 @@
 Version 5.1
 
+9/20/18  [EDGcpfe/19959]
+Clang compatibility: Clang 7.0.0 builtins
+
+Support for builtins provided by clang 7.0.0 is now included.
+
+
 9/19/18  [EDGcpfe/20098]
 Use of injected class name as a template template argument
 
