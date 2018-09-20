@@ -15631,7 +15631,7 @@ Generate code for a class member or nonmember using-declaration.
       if (used_generated_typedef) {
         establish_replacement_typedef(class_type, /*set=*/FALSE);
       } else if (udp->is_inheriting_ctor) {
-        /* Make sure to use the sane name as the qualifier, which might
+        /* Make sure to use the same name as the qualifier, which might
            be different from class_type under some circumstances. */
         check_assertion(qualifier != NULL);
         scp = &qualifier->source_corresp;
