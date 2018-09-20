@@ -17686,7 +17686,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
                       &arg_start_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (gpp_mode && prototype_allowed &&
+    if (gpp_version_is(< 40300) && prototype_allowed &&
         scope_is(&scope_stack_top(), sck_template_declaration) &&
         (!is_templ_member_class_sym || !is_outermost_tmc) &&
         ((options & (GID_IS_TEMPLATE_PRESCAN |

@@ -1,5 +1,28 @@
 Version 5.1
 
+9/20/18  [EDGcpfe/20190]
+GNU C++ compatibility: old g++ emulation causes rejection of valid code
+
+Earlier versions of g++ incorrectly accepted some incorrect out-of-class
+definitions of members of a class template.  For example:
+
+  template <class T, class V> struct A {
+    struct B { void f(); };
+  };
+  template <class T, class V> void A<T, int>::B::f() { }
+//                                      ^  should be V
+
+This emulation caused us to reject some valid code.  This was fixed in g++
+4.3, so this emulation is now only done when gnu_version < 40300.  As
+a result, the following example no longer results in an error in g++ mode.
+
+  template <typename T> struct A {
+    struct B { template <typename U> A<U> f(); };
+  };
+  template <typename T> template <typename U> A<U> A<T>::B::f() {}
+
+
+
 9/20/18  [EDGcpfe/20183]
 GCC/Clang compatibility: expressions in asm statements
 
