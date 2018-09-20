@@ -1,5 +1,18 @@
 Version 5.1
 
+9/20/18  [EDGcpfe/20183]
+GCC/Clang compatibility: expressions in asm statements
+
+A "::" token that appears as a namespace delimiter in an expression in asm
+statement had been parsed incorrectly, leading to a spurious error (and in some
+cases, an infinite number of errors).  Now fixed.  For example (with --g++):
+
+  int x;
+  void f() {
+     __asm__("" : : "n"(::x));
+  }
+
+
 9/20/18  [EDGcpfe/19959]
 Clang compatibility: Clang 7.0.0 builtins
 

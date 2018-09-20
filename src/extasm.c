@@ -1015,7 +1015,9 @@ particular asm statement.
     (void)get_token_with_colon_separation(seen_tok_colon_colon);
     if (curr_token == tok_lparen) {
       a_boolean  input = !output, is_memory_operand = FALSE;
-      (void)get_token_with_colon_separation(seen_tok_colon_colon);
+      /* Note that in this context (i.e., scanning an expression),
+         treat "::" as tok_colon_colon; it may be a namespace delimiter. */
+      (void)get_token();
       if (constraint_string != NULL) {
         /* Take a peek at the constraint string to determine how to
            scan the operand expression (the constraint string is examined
@@ -1041,6 +1043,9 @@ particular asm statement.
       expr = scan_asm_operand_expression(output, input, is_memory_operand);
       if (curr_token == tok_rparen) {
         (void)get_token_with_colon_separation(seen_tok_colon_colon);
+      } else if (is_error_node(expr)) {
+        flush_to_closing_paren();
+        (void)required_token(tok_rparen, ec_exp_rparen);
       } else {
         syntax_error(ec_exp_rparen);
       }  /* if */
@@ -1080,7 +1085,7 @@ Operand lists and clobbers can be empty, leading to cases where
 two adjacent colons are parsed (in C++) as a single tok_colon_colon.  To
 get around this case (without undue complexity), use
 get_token_with_colon_separation rather than get_token to return two
-tok_colon tokens rather than a single tok_tolon_colon.  See
+tok_colon tokens rather than a single tok_colon_colon.  See
 get_token_with_colon_separation for a description of seen_tok_colon_colon.
 */
 {
