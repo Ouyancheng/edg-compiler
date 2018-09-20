@@ -9602,10 +9602,6 @@ typedef struct a_type {
 		direct_bases:1;
 			/* If is_bases is TRUE, this is FALSE for __bases
 			   and TRUE for __direct_bases. */
-      a_bit_field
-		is_injected_class_name:1;
-			/* TRUE if the type represents the injected class
-			   name of a class. */
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       a_bit_field
 		is_lowered_complex_type:1;

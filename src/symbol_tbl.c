@@ -7848,45 +7848,20 @@ specified by tag_sym, and enter it into the symbol table.
 */
 {
   a_symbol_ptr      sym;
-  a_type_ptr        tp;
   a_type_ptr        class_type = tag_sym->variant.class_struct_union.type;
   a_boolean         suppress_error = FALSE;
 
   if (!is_unnamed_tag_symbol(tag_sym) && !tag_sym->is_error) {
     sym = alloc_symbol((a_symbol_kind)sk_type, tag_sym->header,
                        &tag_sym->decl_position);
-    tp = alloc_type((a_type_kind)tk_typeref);
-    tp->variant.typeref.type = class_type;
-    tp->variant.typeref.is_injected_class_name = TRUE;
-    sym->variant.type.ptr = tp;
+    sym->variant.type.ptr = class_type;
     sym->variant.type.is_injected_class_name = TRUE;
-    set_source_corresp(&tp->source_corresp, sym);
-    set_class_membership(sym, (a_source_correspondence*)NULL, class_type);
+    sym->is_class_member = TRUE;
+    sym->parent.class_type = class_type;
     add_symbol_to_scope_list(sym, depth_scope_stack, &suppress_error);
     link_symbol_into_symbol_table(sym, depth_scope_stack, suppress_error);
-    add_to_types_list(tp, depth_scope_stack);
-    tp->source_corresp.is_class_member = TRUE;
-    tp->source_corresp.is_local_to_function =
-                              class_type->source_corresp.is_local_to_function;
   }  /* if */
 }  /* enter_injected_class_name_symbol */
-
-
-a_symbol_ptr tag_sym_for_injected_class(a_symbol_ptr	sym)
-/*
-Return the tag symbol for the class type associated with the injected class
-symbol sym.
-*/
-{
-  a_type_ptr	tp;
-  a_symbol_ptr	tag_sym;
-  check_assertion(symbol_is(sym, sk_type) &&
-                  sym->variant.type.is_injected_class_name);
-  tp = sym->variant.type.ptr->variant.typeref.type;
-  tag_sym = symbol_for(tp);
-  check_assertion(tag_sym != NULL);
-  return tag_sym;
-}  /* tag_sym_for_injected_class */
 
 
 a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,

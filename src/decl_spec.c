@@ -999,11 +999,6 @@ This is a helper routine for scan_tag_name.
 {
   a_symbol_ptr  tag_sym = *p_tag_sym;
 
-  if (is_injected_class_symbol(tag_sym)) {
-    /* If the symbol refers to the injected class name, get the underlying
-       class/struct/union symbol for the remainder of the tag processing. */
-    *p_tag_sym = tag_sym = tag_sym_for_injected_class(tag_sym);
-  }  /* if */
   if (tag_sym->kind != tag_kind) {
     an_error_severity  severity;
     if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
@@ -1247,10 +1242,8 @@ caution when modifying this routine.
           /* If we found the injected class name, use the symbol of the
              actual class. */
           if (is_injected_class_symbol(tag_sym)) {
-            /* If the symbol refers to the injected class name, get the
-               underlying class/struct/union symbol for the remainder of
-               the tag processing. */
-            tag_sym = tag_sym_for_injected_class(tag_sym);
+            tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)->
+                                                    source_corresp.assoc_info);
           } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
             a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
             a_symbol_ptr	sym_of_type = symbol_for(typedef_tp);
@@ -7047,8 +7040,7 @@ constructor).
         /* The type specified matches the class type symbol. */
       } else if (symbol_is(ctor_type_sym, sk_type) &&
                  ctor_type_sym->variant.type.is_injected_class_name &&
-                 identical_types(ctor_type_sym->variant.type.ptr,
-                                 class_type)) {
+                 same_entities(ctor_type_sym->variant.type.ptr, class_type)) {
         /* The type specified is the injected class symbol.  This is okay. */
       } else if (ms_extensions && fund_ctor_type_sym != NULL &&
                  ctor_type_sym != fund_ctor_type_sym &&
@@ -11299,7 +11291,6 @@ process_enum_specifier:
             /* This identifier appears to specify a constructor. */
             a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
-            tp = skip_typerefs(tp);
             if (sym != NULL) {
               a_type_ptr  curr_id_parent =
                                     qualifier_class_type(locator_for_curr_id);

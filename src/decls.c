@@ -11416,11 +11416,9 @@ symbol entry, and return a pointer to it in state->sym.
                    loc_sym->kind != (a_symbol_kind)sk_projection) {
           /* A duplicate (but compatible) declaration in class scope. */
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-          if (type_is(tp, tk_typeref) &&
-              tp->variant.typeref.is_injected_class_name &&
-              f_same_entities(class_type, skip_typerefs(tp))) {
-            /* The type is the  injected class name for the current class,
-               which means that we are attempting to create a typedef
+          if (same_entities(class_type, tp)) {
+            /* sym corresponds to the injected class name for the current
+               class, which means that we are attempting to create a typedef
                with the same as the enclosing class. */
             pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
                            ec_class_and_member_name_conflict,

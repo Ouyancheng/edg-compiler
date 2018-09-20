@@ -4762,8 +4762,6 @@ extern a_symbol_ptr enter_named_register(a_const_char  *name);
 extern void make_symbol_for_predeclared_type(a_type_ptr    predeclared_type,
                                              a_const_char  *name);
 
-extern a_symbol_ptr tag_sym_for_injected_class(a_symbol_ptr	sym);
-
 extern void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym);
 
 extern a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,
@@ -6133,9 +6131,8 @@ class definition.
 #define is_injected_template_symbol(sym)				\
   ((sym)->kind == (a_symbol_kind)sk_type &&				\
    (sym)->variant.type.is_injected_class_name &&			\
-   (sym)->variant.type.ptr->variant.typeref.				\
-          type->variant.class_struct_union.is_template_class &&		\
-   (sym)->variant.type.ptr->variant.typeref.type->			\
+   (sym)->variant.type.ptr->variant.class_struct_union.is_template_class && \
+   (sym)->variant.type.ptr->						\
 	    variant.class_struct_union.extra_info->template_arg_list != NULL)
 
 /* Return TRUE if the symbol is an sk_type symbol that represents an
