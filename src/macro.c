@@ -10609,9 +10609,21 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
       if (static_assert_enabled) {
-        (void)enter_predef_macro(terse_static_assert_enabled ? "201411L" :
-                                                               "200410L",
-                                 "__cpp_static_assert",
+        a_const_char *value;
+        if (clang_mode) {
+          /* Terse static_assert is enabled in all clang modes, so use
+             cpp17_mode to differentiate.  Also, 200410 does not have an "L"
+             suffix (though the later value does). */
+          value = cpp17_mode ? "201411L" : "200410";
+        } else if (gnu_mode) {
+          /* Terse static_assert is enabled in most g++ modes, so use
+             cpp17_mode to differentiate.  GCC doesn't use an "L" suffix
+             here. */
+          value = cpp17_mode ? "201411" : "200410";
+        } else {
+          value = terse_static_assert_enabled ? "201411L" : "200410L";
+        }  /* if */
+        (void)enter_predef_macro(value, "__cpp_static_assert",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */

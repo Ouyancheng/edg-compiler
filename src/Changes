@@ -1,10 +1,10 @@
 Version 5.1
 
 9/21/18  [EDGcpfe/20199]
-Clang compatibility: value of __cpp_static_assert in C++17 mode
+GCC/Clang compatibility: value of __cpp_static_assert in C++17 mode
 
-A change has been made to set the value of the __cpp_static_assert macro to
-201411L in C++17 mode when using clang emulation.
+A change has been made to better emulate the value of the __cpp_static_assert
+macro in GCC and clang modes.
 
 
 9/21/18  [EDGcpfe/20076]
