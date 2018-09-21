@@ -16200,6 +16200,7 @@ constructor (at the specified insert_location).
          case, the primary routine (which contains the body of the delegating
          constructor) is a cdk_delegation constructor (an EDG addition), and
          the alternate entry points invoke the cdk_delegation routine. */
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
     if (ctor_init->initializer != NULL &&
                     ctor_init->initializer->kind ==
                                         (a_dynamic_init_kind)dik_constructor &&
@@ -16211,11 +16212,18 @@ constructor (at the specified insert_location).
          empty (this check is made before the body is lowered because lowering
          of the cik_delegation constructor initializer will create lowered
          code in the body).  In this case, a cdk_delegation routine is
-         not necessary. */
+         not necessary.  This optimization can only be done if virtual bases
+         are handled in subobject constructors (otherwise a call to a complete
+         constructor invokes the subobject constructor, which delegates to
+         the target subobject constructor and the virtual base construction
+         is skipped -- because it's only done in the target complete
+         constructor). */
       check_assertion(scope->variant.routine.ptr->ctor_dtor_kind ==
                                            (a_ctor_or_dtor_kind)cdk_subobject);
-    } else {
-      scope->variant.routine.ptr->ctor_dtor_kind =
+    } else
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+    /* Do not insert code here. */
+    { scope->variant.routine.ptr->ctor_dtor_kind =
                                            (a_ctor_or_dtor_kind)cdk_delegation;
 #if IA64_ABI
       if (scope->variant.routine.ptr->source_corresp.name_has_been_mangled) {

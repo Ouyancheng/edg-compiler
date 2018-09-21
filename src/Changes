@@ -1,5 +1,28 @@
 Version 5.1
 
+9/21/18  [EDGcpfe/20076]
+Missing virtual base class initialization with delegating constructors
+
+In configurations where HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is FALSE,
+an optimization to avoid calling a cdk_delegation constructor when a delegating
+constructor has no body had inadvertently left any virtual base classes
+uninitialized, resulting in undefined behavior at run time.  Now fixed.
+For example (with --c++14):
+
+  struct A {
+    A(int x) : m(x) {}
+    int m;
+  };
+  struct B : virtual A {
+    B(int x) : A(x) {}
+    B() : B(76) {}
+  };
+  int main() {
+    B b;
+    return !(b.m == 76);
+  };
+
+
 9/21/18  [EDGcpfe/20193]
 Internal error on specialization of member variable template
 
