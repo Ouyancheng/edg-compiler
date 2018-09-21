@@ -429,6 +429,21 @@ returned an error is issued (only if issue_error is TRUE).
   if (restrictions != NULL) {
     while (*restrictions != ']' && *restrictions != '\0') {
       switch (*restrictions) {
+        case 'f':
+          /* Ensure that 128-bit floating-point types are configured and
+             enabled. */
+#if FLOAT128_ENABLING_POSSIBLE
+          if (float128_enabled) {
+            /* Okay. */
+          } else
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+          {
+            if (issue_error) {
+              pos_error(ec_builtin_needs_128_bit_floats, &pos_curr_token);
+            }  /* if */
+            result = FALSE;
+          }  /* if */
+          break;
         case 'i':
           /* Ensure that 128-bit integers are configured and enabled. */
 #if INT128_EXTENSIONS_ALLOWED

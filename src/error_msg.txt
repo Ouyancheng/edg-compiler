@@ -2978,6 +2978,7 @@ ec_bad_deduction_guide_access;;"deduction guide must be declared with the same a
 ec_lambda_not_allowed_here;;"a lambda is not permitted in this context"
 ec_align_not_equivalent;;"specified alignment is not equivalent to previous declaration"
 ec_no_alignment_on_definition;;"no alignment specified on definition; previous declaration had specified an alignment"
+ec_builtin_needs_128_bit_floats;;"builtin function is not available because 128-bit floating-point types are not supported"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

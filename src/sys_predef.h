@@ -61,7 +61,7 @@ typedef struct a_builtin_user_descr {
                              - mode ('c', '+', or 'x')
                              - arch ('4' or '8') [optional]
                              - version (version range in parens) [optional]
-                             - restrictions ['v', 'i'] [optional]
+                             - restrictions ['v', 'i', 'f'] [optional]
 
                            A prefix of 'S' indicates that the name in the
                            entry (which must start with "__builtin_") also
@@ -92,13 +92,15 @@ typedef struct a_builtin_user_descr {
                            is valid in GNU C mode with gnu_version >= 40800.
 
                            If restrictions exist, they are a non-empty
-                           sequence of 'v' and/or 'i', where 'v' indicates that
-                           the signature depends on vector types, and 'i'
-                           indicates that the signature depends on 128-bit
-                           integer types.  If a function with restrictions is
-                           referenced, a check is made to ensure that all
-                           restrictions are satisfied (otherwise an error is
-                           given). */
+                           sequence of the following characters:
+                             'f' - indicates that the signature depends on
+                                   128-bit floating-point types
+                             'i' - indicates that the signature depends on
+                                   128-bit integer types
+                             'v' - the signature depends on vector types
+                           If a function with restrictions is referenced, a
+                           check is made to ensure that all restrictions are
+                           satisfied (otherwise an error is given). */
   a_builtin_type_string
                 type_string;
                         /* The type of the builtin function(s).  This takes
