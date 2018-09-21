@@ -1,5 +1,22 @@
 Version 5.1
 
+9/21/18  [EDGcpfe/20193]
+Internal error on specialization of member variable template
+
+Version 5.0 introduced an internal error (in record_specialization) if
+a nonreal instantiation of the variable template was done before the
+specialization.  Such a nonreal instantiation is an artifact of a
+partial specialization declaration, so the presence of the partial
+specialization in example below is one way in which the problem could
+result.  Now fixed.
+
+  template <typename T> struct B {
+    template <typename U> static const U v = 0;
+    template <typename U> static const U v<U*> = 1;
+  };
+  template <> template <typename U> const U B<int>::v = 2;
+
+
 9/20/18  [EDGcpfe/20190]
 GNU C++ compatibility: old g++ emulation causes rejection of valid code
 

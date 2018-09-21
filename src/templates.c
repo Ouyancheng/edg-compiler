@@ -10377,11 +10377,11 @@ use of the argument list in case it has been freed.
     sym = make_template_variable(template_sym, list_for_instantiation);
     var = variable_for_symbol(sym);
     tip = sym->variant.variable.instance_ptr;
-    add_instantiation(tip->template_sym, tssp, sym,
-                      var->template_info->template_arg_list);
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
       a_boolean	definition_needed = is_use;
+      add_instantiation(tip->template_sym, tssp, sym,
+                        var->template_info->template_arg_list);
       if (in_constexpr_if_discarded_statement()) definition_needed = FALSE;
       instantiate_template_variable(tip, /*is_new=*/TRUE, definition_needed);
       set_instance_required(sym, definition_needed, SIR_NONE);
