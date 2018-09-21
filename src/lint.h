@@ -830,6 +830,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_extra_arguments_ignored)*/
 /*lint -esym(769,ec_first_arg_must_be_integer_constant)*/
 /*lint -esym(769,ec_builtin_needs_128_bit_integers)*/
+/*lint -esym(769,ec_builtin_needs_128_bit_floats)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED) */
 #if GNU_VECTOR_TYPES_ALLOWED || !BUILTIN_FUNCTIONS_ENABLED
 /*lint -esym(769,ec_builtin_needs_vector_types)*/
