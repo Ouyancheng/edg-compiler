@@ -5624,12 +5624,20 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
     a_symbol_ptr  type_sym_1 = symbol_for(type_1),
                   type_sym_2 = symbol_for(type_2);
     if (type_sym_1 != NULL && type_sym_2 != NULL) {
+      an_itf_flag_set  itf_flags = ITF_NO_FLAGS;
+      if (exact_templ_arg_match_required) {
+        itf_flags |= ITF_EXACT_EQUIVALENCE;
+      }  /* if */
+      if (exact_decltype_exprs_required) {
+        itf_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+      }  /* if */
       if (class_type_supp(type_1)->proxy_of_type != NULL &&
           class_type_supp(type_2)->proxy_of_type != NULL) {
         /* Both types are proxy classes for template parameters.  See if the
            underlying parameters are the same. */
-        if (identical_types(class_type_supp(type_1)->proxy_of_type,
-                            class_type_supp(type_2)->proxy_of_type)) {
+        if (f_identical_types(class_type_supp(type_1)->proxy_of_type,
+                              class_type_supp(type_2)->proxy_of_type,
+                              itf_flags)) {
           equiv = TRUE;
         }  /* if */
       } else if (class_symbol_supp(type_sym_1)->class_template != NULL &&
@@ -5646,8 +5654,8 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
                                 class_type_supp(type_2)->template_arg_list,
                                 ETA_NO_OPTIONS,
                                 error_matches_anything,
-                                   exact_templ_arg_match_required,
-                                   exact_decltype_exprs_required)) {
+                                exact_templ_arg_match_required,
+                                exact_decltype_exprs_required)) {
           equiv = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5663,8 +5671,8 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
            classes as members.  They are considered the same if their names
            are the same and their parent classes are the same. */
         equiv = type_sym_1->header == type_sym_2->header &&
-                identical_types(parent_class_of(type_1),
-                                parent_class_of(type_2));
+                f_identical_types(parent_class_of(type_1),
+                                  parent_class_of(type_2), itf_flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */

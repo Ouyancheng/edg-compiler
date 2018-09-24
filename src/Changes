@@ -1,5 +1,36 @@
 Version 5.1
 
+9/24/18  [EDGcpfe/20195]
+Spurious substitution errors in nested templates with decltype
+
+The changes for EDGcpfe/18942 (version 5.0) introduced a regression in certain
+complex cases involving nested templates with decltype constructs.  For example
+(in C++14 mode):
+
+  struct Z { static int const value = 0; };
+  template<bool> struct B {};
+  struct R {
+    template<typename ...Ts> Z operator()(Ts&& ...) const;
+  };
+  struct A {
+    template<typename X> auto operator()(X &&x) const {
+      return R{}(x);
+    }
+  };
+  template <typename P> struct D {
+    template<typename T>
+      auto f(T &&p)-> B<decltype(P{}(p))::value>;
+  };
+   
+  void g() {
+     D<A> d;
+     d.f(Z{});  // Previously triggered an error about an unexpected type
+  }             // being produced by instantiation of D<A>::f(Z&&).
+
+This problem (which manifested itself in some uses of the Boost libraries) is
+now fixed.
+
+
 9/24/18  [EDGcpfe/17962,EDGcpfe/20184]
 Abort on inheriting constructor in dllexport class
 
