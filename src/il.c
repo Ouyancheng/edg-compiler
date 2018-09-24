@@ -5196,7 +5196,9 @@ statements.
 */
 {
   a_boolean	result = TRUE;
-  if (is_template_dependent_context()) {
+
+  if (is_prototype_instantiation_context() ||
+      is_template_declaration_context()) {
     /* Do not instantiate things referenced from contexts such as prototype
        instantiations. */
     result = FALSE;
