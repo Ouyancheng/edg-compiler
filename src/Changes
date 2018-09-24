@@ -4,12 +4,14 @@ Version 5.1
 Remove "access control not specified" remark.
 
 The front end no longer issues a remark when access control is not specified.
-This diagnostic can now be seen with "--diag_warning=missing_access_specifier"
-instead.
+The diagnostic can still be enabled with an option like 
+"--diag_warning=missing_access_specifier".
+
 For example:
   struct B {};
-  struct S: B {
-  };
+  struct S: B { // Previously a remark about B being public by default.
+  };            // Now no diagnostic by default.
+
 
 9/21/18  [EDGcpfe/20199]
 GCC/Clang compatibility: value of __cpp_static_assert in C++17 mode
