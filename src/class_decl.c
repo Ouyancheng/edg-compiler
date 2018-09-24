@@ -22442,6 +22442,10 @@ templates from that base template.
       if (brp->is_constexpr) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      merge_dll_flags_from_parent_class(cdsp->class_type,
+                                        &decl_info.decl_state);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       clear_func_info(&func_info);
       func_info = btssp->variant.function.func_info;
       func_info.is_inline = TRUE;
@@ -22586,6 +22590,10 @@ constructor.
       if (brp->is_constexpr) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      merge_dll_flags_from_parent_class(cdsp->class_type,
+                                        &decl_info.decl_state);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       clear_func_info(&func_info);
       func_info.is_inline = TRUE;
       make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
