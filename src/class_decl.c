@@ -9686,8 +9686,8 @@ can only contain CLI interfaces.
            (as per the recommendation on p. 243 of the ARM). */
         if (!explicit_access_specifier &&
             !is_immediate_managed_class_type(type_ptr)) {
-          pos_st_remark(ec_missing_access_specifier, &error_position,
-                        default_access_str);
+          pos_st_diagnostic(es_none, ec_missing_access_specifier,
+                            &error_position, default_access_str);
         }  /* if */
         check_assertion(ctsp != NULL);
         /* Before creating the base class entry and adding it to the list of
