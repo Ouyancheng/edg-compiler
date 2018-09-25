@@ -10911,9 +10911,26 @@ the value representation of the integer value.
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
-              shift_left_integer_value((an_integer_value *)opnd1_value,
+              a_type_ptr  range_type = opnd1_type;
+              /* Range checking for the "shift left" operator applied to a
+                 signed value is  a little peculiar.  Shifting negative values
+                 has undefined behavior (which must be caught during constexpr
+                 evaluation).  Shifting non-negative values is essentially
+                 checked as if the corresponding unsigned value were
+                 shifted. */
+              if (is_signed) {
+                if (sign_of(*(an_integer_value*)opnd1_value)) {
+                  info_with_pos(ec_constexpr_shift_negative_value,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                  break;
+                }  /* if */
+                int_kind = unsigned_int_kind_of[int_kind];
+                range_type = integer_type(int_kind);
+              }  /* if */
+              shift_left_integer_value((an_integer_value*)opnd1_value,
                                        (int)host_int_val, &ovfl);
-              CHECK_int_range(opnd1_value, opnd1_type);
+              CHECK_int_range(opnd1_value, range_type);
               if (result) {
                 *(an_integer_value *)result_storage =
                                              *(an_integer_value *)opnd1_value;

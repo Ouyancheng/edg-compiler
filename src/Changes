@@ -1,5 +1,25 @@
 Version 5.1
 
+9/25/18  [EDGcpfe/19908]
+Interpretation of "shift left" operator for signed values
+
+The front end previously did not correctly check the operand and result of a
+"shift left" operator.  Spurious errors could result from that flaw.  For
+example:
+
+  constexpr bool f(long long int n) { return n << 1; }
+  constexpr bool x = f(1LL << 62);
+
+Previously, an error was issued because the call to f attempts to shift a bit
+into the sign position ("bit 63") of a signed integer type and that looks like
+a form of overflow.  However, unlike other forms of signed overflow, the
+standard permits this case if the unsigned operation would not overflow (it
+doesn't in this case, since 1ULL << 63 is a valid "long long" value).  The
+problem is now fixed (i.e., the case above is accepted; the value produced by
+the evaluation of "n << 1" is the bit pattern of "1ULL << 63" reinterpreted as
+a signed long long value.
+
+
 9/24/18  [EDGcpfe/20195]
 Spurious substitution errors in nested templates with decltype
 
