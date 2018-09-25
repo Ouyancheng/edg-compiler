@@ -3694,7 +3694,8 @@ constant-expression.
   a_type_ptr     class_type = sym_parent_class(var_sym);
   a_token_cache  *token_cache = NULL;
 
-  check_assertion(symbol_is(var_sym, sk_static_data_member));
+  check_assertion(symbol_is(var_sym, sk_static_data_member) ||
+                  symbol_is(var_sym, sk_variable));
   if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
       var->is_template_variable) {
     /* For GNU static data members, we record a cache in the static data
@@ -3754,6 +3755,7 @@ constant-expression.
     init_decl_parse_state(&dps);
     dps.sym = var_sym;
     var = dps.sym->variant.static_data_member.variable;
+    check_assertion(var == variable_for_symbol(var_sym));
     dps.type = dps.declared_type = var->type;
     if (gpp_mode && var->template_info != NULL &&
         symbol_for(var->template_info->assoc_template)

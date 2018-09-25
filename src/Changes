@@ -1,5 +1,24 @@
 Version 5.1
 
+9/25/18  [EDGcpfe/16865]
+GNU C++ compatibility: internal error on use of variable template
+
+In g++ mode, an internal error could occur during the instantiation of a
+member variable template with an in-class initializer.  The internal error
+occurred in ensure_inclass_static_member_constant_initializer_is_scanned.
+Now fixed.
+
+  template <int> struct A {};
+  struct B {
+    template<typename T> static constexpr int v = 0;
+    template<typename T> A<v<T>> f(T);
+  };
+  int main() {
+    B b;
+    b.f(1);
+  }
+
+
 9/25/18  [EDGcpfe/19908]
 Interpretation of "shift left" operator for signed values
 
