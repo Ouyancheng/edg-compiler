@@ -9682,8 +9682,10 @@ can only contain CLI interfaces.
           }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Issue a diagnostic if an explicit access specifier was not provided
-           (as per the recommendation on p. 243 of the ARM). */
+        /* Issue an optional diagnostic if an explicit access specifier was not
+           provided (es_none diagnostics are not emitted by default, but they
+           can be enabled by raising their severity with certain #pragma and
+           command-line options). */
         if (!explicit_access_specifier &&
             !is_immediate_managed_class_type(type_ptr)) {
           pos_st_diagnostic(es_none, ec_missing_access_specifier,
