@@ -1738,13 +1738,17 @@ Output a string for a type specifier.  Do the output in the way described
 by octl.
 */
 {
+#if BACK_END_IS_CP_GEN_BE
   if (type->replace_by_generated_typedef) {
     /* Just put out a temporary name. */
     a_const_char *saved_name = type->source_corresp.name;
     type->source_corresp.name = NULL;
     form_name(&type->source_corresp, iek_type, octl);
     type->source_corresp.name = saved_name;
-  } else  switch (type->kind) {
+  } else
+#endif /* BACK_END_IS_CP_GEN_BE */
+  /* Do not insert code here. */
+  switch (type->kind) {
     case tk_error:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<error-type>", octl);
@@ -2362,12 +2366,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     need_trailing_space = TRUE;
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+  kind = type->kind;
+#if BACK_END_IS_CP_GEN_BE
   if (type->replace_by_generated_typedef) {
     /* Ignore the actual type, just put out a name. */
     kind = (a_type_kind)tk_typeref;
-  } else {
-    kind = type->kind;
   }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (kind == (a_type_kind)tk_pointer
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* C++/CLI interior_ptr and pin_ptr are handled as specifier types. */
@@ -2908,7 +2913,11 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
   a_type_ptr  orig_type = type;
   a_type_ptr  attrib_stop_type = type;
 
-  if (type == NULL || type->replace_by_generated_typedef) {
+  if (type == NULL
+#if BACK_END_IS_CP_GEN_BE
+      || type->replace_by_generated_typedef
+#endif /* BACK_END_IS_CP_GEN_BE */
+                                           ) {
     /* NULL type pointer or generated typedef.  Handled in
        form_type_first_part. */
     goto end_of_routine;
