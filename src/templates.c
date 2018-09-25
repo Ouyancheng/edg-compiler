@@ -10377,11 +10377,11 @@ use of the argument list in case it has been freed.
     sym = make_template_variable(template_sym, list_for_instantiation);
     var = variable_for_symbol(sym);
     tip = sym->variant.variable.instance_ptr;
+    add_instantiation(tip->template_sym, tssp, sym,
+                      var->template_info->template_arg_list);
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
       a_boolean	definition_needed = is_use;
-      add_instantiation(tip->template_sym, tssp, sym,
-                        var->template_info->template_arg_list);
       if (in_constexpr_if_discarded_statement()) definition_needed = FALSE;
       instantiate_template_variable(tip, /*is_new=*/TRUE, definition_needed);
       set_instance_required(sym, definition_needed, SIR_NONE);
@@ -19711,12 +19711,16 @@ generated.
            slep = slep->next) {
         a_template_instance_ptr	tip;
         a_master_instance_ptr	mip;
+        a_variable_ptr		vp;
         tip = template_instance_for_symbol(slep->symbol);
-        mip = master_instance_of(tip);
-        if (mip->instance_required_count > 0) {
-          pos_sy2_diagnostic(es_discretionary_error,
-                             ec_specialization_of_referenced_template,
-                             error_pos, template_sym, tip->instance_sym);
+        vp = variable_for_symbol(tip->instance_sym);
+        if (!vp->is_nonreal) {
+          mip = master_instance_of(tip);
+         if (mip->instance_required_count > 0) {
+            pos_sy2_diagnostic(es_discretionary_error,
+                               ec_specialization_of_referenced_template,
+                               error_pos, template_sym, tip->instance_sym);
+          }  /* if */
         }  /* if */
       }  /* for */
     } else {
