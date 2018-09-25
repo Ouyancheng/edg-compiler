@@ -40853,7 +40853,6 @@ wrap_up_coroutine_result_expression.)
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_clear_init_state(&init_state);
   if (curr_token == tok_lbrace && (gpp_mode || list_init_enabled)) {
     /* A C++11 list initializer. */
     if (!list_init_enabled) {
@@ -40898,6 +40897,7 @@ wrap_up_coroutine_result_expression.)
       arg_list_will_not_be_used_because_of_error(icp);
       goto handle_deduced_return_type;
     }  /* if */
+    expr_clear_init_state(&init_state);
     /* init_state.elements_are_full_expressions is not set to TRUE because
        the expression stack has already been pushed for the full expression,
        and we'll handle the full-expression wrapup at this level. */
