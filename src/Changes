@@ -1,5 +1,38 @@
 Version 5.1
 
+9/25/18  [EDGcpfe/20209]
+C++-generating back end, Microsoft compatibility: generated explicit
+specializations returning rvalue reference to function
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+generated code was not compilable by MSVC when a generated explicit
+specialization of a function template has an rvalue reference to function
+as its return type.  This has now been fixed.  When
+msvc_is_generated_code_target is TRUE, the C++-generating back end now
+creates a typedef for the return type in such cases and uses the typedef
+in the explicit specialization.  For example, given
+
+  template<typename T> T&& f();
+  void g() {
+    f<void()>();
+  }
+
+the previous output from the C++-generating back end contained the
+explicit specialization
+
+  template<> void (&&f< void (void)> ())(void);
+
+which resulted in a spurious error ("C2909: 'f': explicit instantiation of
+function template requires return type").  The explicit specialization is
+now generated as:
+
+  typedef void (&&__T12345678)(void);
+  template<> __T25770810320 f< void (void)> ();
+
+which does not trigger the MSVC bug.
+
+
 9/25/18  [EDGcpfe/16865]
 GNU C++ compatibility: internal error on use of variable template
 

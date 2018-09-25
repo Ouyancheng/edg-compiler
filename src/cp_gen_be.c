@@ -9415,9 +9415,11 @@ typedef.
   if (set) {
     if (!type->replace_by_generated_typedef) {
       write_tok_str("typedef ");
-      gen_type_reference(type);
-      write_space();
+      form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/TRUE, &octl);
       gen_temp_name((char *)type);
+      form_type_second_part_simple(type, /*under_lhd_declarator=*/FALSE,
+                                   &octl);
       write_tok_str("; ");
       type->replace_by_generated_typedef = TRUE;
     }  /* if */
@@ -19012,6 +19014,9 @@ TRUE if the declaration following this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED
   a_const_char                  *saved_asm_name = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_type_ptr                    replacement_ret_type = NULL;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENC_LISTS */
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -19248,6 +19253,24 @@ handle_as_definition:
   }  /* if */
   if (!discard_declaration && has_suppressed_parent(&rout->source_corresp)) {
     discard_declaration = TRUE;
+  }  /* if */
+  if (!discard_declaration && msvc_is_generated_code_target) {
+    a_type_ptr ret_type = unqual_rout_type->variant.routine.return_type;
+    if (is_rvalue_reference_type(ret_type) &&
+        is_function_type(type_pointed_to(ret_type))) {
+      /* MSVC has a bug that results in spurious errors when parsing an
+         explicit specialization of a function template when the return
+         type is an rvalue reference to a function type.  Put out a
+         typedef for the return type and use the typedef for the explicit
+         specialization.  That is, turn something like
+           template<> void (&&f<void ()>())();
+         into
+           typedef void __T12345678();
+           template<> __T123456678 &&f<void ()>();
+         which is digestible by MSVC. */
+      establish_replacement_typedef(ret_type, /*set=*/TRUE);
+      replacement_ret_type = ret_type;
+    }  /* if */
   }  /* if */
   if (!discard_declaration && curr_name_context_is_a_class() &&
       !friend_decl && rtsp->this_class == NULL) {
@@ -19775,6 +19798,11 @@ handle_as_definition:
     restore_function_state(&state);
   }  /* if */
 end_of_routine:
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (replacement_ret_type != NULL) {
+    establish_replacement_typedef(replacement_ret_type, /*set=*/FALSE);
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   in_generated_instance = saved_in_generated_instance;
 }  /* gen_routine_decl */
 
