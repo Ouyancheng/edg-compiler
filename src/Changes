@@ -55,6 +55,7 @@ Remove "access control not specified" remark.
 The front end no longer issues a remark when access control is not specified.
 The diagnostic can still be enabled with an option like 
 "--diag_warning=missing_access_specifier". For example, with --remarks:
+
   struct B {};
   struct S: B { // Previously a remark about B being public by default.
   };            // Now no diagnostic by default.
