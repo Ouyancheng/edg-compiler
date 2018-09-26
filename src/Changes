@@ -1,5 +1,18 @@
 Version 5.1
 
+9/26/18  [EDGcpfe/20208]
+Invalid attribute check processing (assertion in apply_nodiscard_attr)
+
+The internal check to see if a particular attribute is enabled in a particular
+configuration/mode was incorrect and had resulted in some attributes being
+allowed in modes where they shouldn't have been.  The case below (with
+--c++11 --microsoft_v 1914 --no_microsoft) had resulted in an assertion
+failure (in apply_nodiscard_attr) rather than an unrecognized attribute
+diagnostic.
+
+  [[nodiscard]] int f();
+
+
 9/26/18  [EDGcpfe/20205]
 maybe_unused attribute ineffective on parameters
 

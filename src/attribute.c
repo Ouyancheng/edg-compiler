@@ -1204,7 +1204,7 @@ Return TRUE if the condition is satisfied (either by the primary version
 comparison or any auxiliary comparisons).
 */
 {
-  a_boolean      result;
+  a_boolean      result, mode;
 
   /* See if the primary range comparison succeeds. */
   result = in_attr_cond_range(version, &str, ap);
@@ -1212,16 +1212,28 @@ comparison or any auxiliary comparisons).
   while (!result && str[0] == '|') {
     str += 1;
     switch (str[0]) {
-      case 'M': version = microsoft_version; break;
-      case 'G': version = gnu_version;       break;
-      case 'C': version = clang_version;     break;
-      case 'S': version = std_version;       break;
+      case 'M':
+        version = microsoft_version;
+        mode = microsoft_mode;
+        break;
+      case 'G':
+        version = gnu_version;
+        mode = gnu_mode;
+        break;
+      case 'C':
+        version = clang_version;
+        mode = clang_mode;
+        break;
+      case 'S':
+        version = std_version;
+        mode = TRUE;
+        break;
       default:
         check_attr_config(FALSE, ap, "invalid auxiliary range specifier");
         break;
     }  /* switch */
     str += 1;
-    result = in_attr_cond_range(version, &str, ap);
+    result = mode && in_attr_cond_range(version, &str, ap);
   }  /* while */
   return result;
 }  /* attribute_condition_satisfied */
