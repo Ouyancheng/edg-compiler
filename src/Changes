@@ -1,5 +1,12 @@
 Version 5.1
 
+9/24/18  [EDGcpfe/16865]
+Use of uninitialised value in scan_return_expression.
+
+Under certain conditions, the function scan_return_expression could
+dereference an uninitialised value.
+
+
 9/25/18  [EDGcpfe/20209]
 C++-generating back end, Microsoft compatibility: generated explicit
 specializations returning rvalue reference to function
