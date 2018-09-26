@@ -40,7 +40,7 @@ now generated as:
 which does not trigger the MSVC bug.
 
 
-9/25/18  [EDGcpfe/16865]
+9/25/18  [EDGcpfe/19968,EDGcpfe/20091,EDGcpfe/20211]
 GNU C++ compatibility: internal error on use of variable template
 
 In g++ mode, an internal error could occur during the instantiation of a
