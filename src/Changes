@@ -85,7 +85,7 @@ standard permits this case if the unsigned operation would not overflow (it
 doesn't in this case, since 1ULL << 63 is a valid "long long" value).  The
 problem is now fixed (i.e., the case above is accepted; the value produced by
 the evaluation of "n << 1" is the bit pattern of "1ULL << 63" reinterpreted as
-a signed long long value.
+a signed long long value).
 
 
 9/24/18  [EDGcpfe/20195]

@@ -9292,13 +9292,12 @@ the value representation of the integer value.
     and_integer_values((an_integer_value*)(val),                              \
                        &max_integer_value_of_kind[int_kind]);                 \
   } else if (ovfl ||                                                          \
-             cmp_integer_values((an_integer_value *)(val), is_signed,         \
+             cmp_integer_values((an_integer_value*)(val), is_signed,          \
                                 &max_integer_value_of_kind[int_kind],         \
                                 is_signed) > 0 ||                             \
-             (is_signed &&                                                    \
-              cmp_integer_values((an_integer_value *)(val), is_signed,        \
-                                 &min_integer_value_of_kind[int_kind],        \
-                                 is_signed) < 0)) {                           \
+             cmp_integer_values((an_integer_value*)(val), is_signed,          \
+                                &min_integer_value_of_kind[int_kind],         \
+                                is_signed) < 0) {                             \
     do_constexpr_fail(result);                                                \
     info_with_pos_type(ec_constexpr_integer_overflow, &expr->position, tp,    \
                        ips);                                                  \
@@ -10911,13 +10910,12 @@ the value representation of the integer value.
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
-              a_type_ptr  range_type = opnd1_type;
               /* Range checking for the "shift left" operator applied to a
-                 signed value is  a little peculiar.  Shifting negative values
+                 signed value is a little peculiar.  Shifting negative values
                  has undefined behavior (which must be caught during constexpr
-                 evaluation).  Shifting non-negative values is essentially
-                 checked as if the corresponding unsigned value were
-                 shifted. */
+                 evaluation).  Shifting non-negative values is valid if the
+                 result of the shift operation fits in the corresponding
+                 unsigned type. */
               if (is_signed) {
                 if (sign_of(*(an_integer_value*)opnd1_value)) {
                   info_with_pos(ec_constexpr_shift_negative_value,
@@ -10925,16 +10923,28 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                   break;
                 }  /* if */
-                int_kind = unsigned_int_kind_of[int_kind];
-                range_type = integer_type(int_kind);
               }  /* if */
               shift_left_integer_value((an_integer_value*)opnd1_value,
                                        (int)host_int_val, &ovfl);
-              CHECK_int_range(opnd1_value, range_type);
-              if (result) {
-                *(an_integer_value *)result_storage =
-                                             *(an_integer_value *)opnd1_value;
+              if (is_signed) {
+                if (ovfl ||
+                    cmp_integer_values((an_integer_value*)opnd1_value,
+                                       /*op1_is_signed=*/FALSE,
+                                       &max_integer_value_of_kind[
+                                              unsigned_int_kind_of[int_kind]],
+                                       /*op2_is_signed=*/FALSE) > 0) {
+                  do_constexpr_fail(result);
+                  info_with_pos_type(ec_constexpr_integer_overflow,
+                                     &expr->position, opnd1_type, ips);
+                  break;
+                }  /* if */
+              } else {
+                /* Unsigned value: Discard overflowing bit. */
+                and_integer_values((an_integer_value*)opnd1_value,
+                                   &max_integer_value_of_kind[int_kind]);
               }  /* if */
+              *(an_integer_value *)result_storage =
+                                             *(an_integer_value *)opnd1_value;
             } else {
               info_with_pos(ec_integer_overflow, &expr->position, ips);
             }  /* if */
