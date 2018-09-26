@@ -286,7 +286,7 @@ a spurious "declaration is incompatible" error in g++ mode.  Now fixed.
   }
 
 
-9/18/18  [EDGcpfe/19600]
+9/18/18  [EDGcpfe/19600,EDGcpfe/20114]
 Structured bindings and "get" accessors
 
 The decomposition of class types through structured bindings can be customized
