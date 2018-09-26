@@ -16679,6 +16679,7 @@ a function expression to which the argument list (including the implicit
        check for that case, too. */
     a_type_ptr object_type = NULL;
 
+    check_assertion(implicit_this_arg != NULL); /* For Coverity. */
     if (is_pointer_type(implicit_this_arg->type)) {
       object_type = pointer_expr_complete_object_type(implicit_this_arg,
                                                       /*call_case=*/TRUE);
