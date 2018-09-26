@@ -1,5 +1,26 @@
 Version 5.1
 
+9/26/18  [EDGcpfe/19599]
+Type of non-captured variable reference in lambda expression
+
+Consider:
+
+  void g() {
+    float x;
+    [=] {
+      float one = 1.0F;
+      decltype((x)) r = one;
+    };
+  }
+
+Previously, the decltype construct (which decides the type of r) produced type
+"float&": "float" because that is the type of x and a reference because "(x)"
+is an lvalue.  Now, type "float const&" is produced instead: Even though x is
+not captured, the expression "x" in the lambda is typed as if it were captured
+(it is "const" because the lambda is not mutable).  This change implements the
+rules of the committee's paper P0588R1.
+
+
 9/26/18  [EDGcpfe/20208]
 Invalid attribute check processing (assertion in apply_nodiscard_attr)
 

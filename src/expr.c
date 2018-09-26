@@ -31719,15 +31719,23 @@ variable:
               ensure_inclass_static_member_constant_initializer_is_scanned(
                                                                      var_ptr);
             }  /* if */
-            /* Make a variable operand that is an lvalue. */
-            make_lvalue_variable_operand(var_ptr,
-                                         &start_position,
-                                         end_position_or_null(&end_position),
-                                         result, rep);
-            if (add_const && !is_const_qualified_type(result->type) &&
-                !is_any_reference_type(result->type)) {
-              result->type = make_qualified_type(result->type, TQ_CONST);
-            }  /* if */
+            {
+              /* Make a variable operand that is an lvalue. */
+              a_type_ptr  saved_var_type = NULL;
+              if (add_const && !is_const_qualified_type(var_ptr->type) &&
+                  !is_any_reference_type(var_ptr->type)) {
+                /* Temporarily treat the variable as a const variable. */
+                saved_var_type = var_ptr->type;
+                var_ptr->type = make_qualified_type(var_ptr->type, TQ_CONST);
+              }  /* if */
+              make_lvalue_variable_operand(var_ptr,
+                                           &start_position,
+                                           end_position_or_null(&end_position),
+                                           result, rep);
+              if (saved_var_type != NULL) {
+                var_ptr->type = saved_var_type;
+              }  /* if */
+            }
             if (rvalue_only) {
               /* We determined that this variable can only be used as an
                  rvalue (e.g., because it's a constant-valued variable that
