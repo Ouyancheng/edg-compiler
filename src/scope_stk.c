@@ -9375,6 +9375,7 @@ being popped.
        on the scope list of the routine, and then get rid of the function
        body.  This must be done after the source sequence list processing
        above has been completed. */
+    check_assertion(il_scope != NULL); /* For Coverity. */
     add_scope_orphaned_il_lists(il_scope);
     clear_function_body(il_scope);
     /* Put the "defined" flag back on. */
