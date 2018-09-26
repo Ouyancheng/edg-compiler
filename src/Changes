@@ -81,7 +81,7 @@ Now fixed.
   }
 
 
-9/25/18  [EDGcpfe/19908]
+9/25/18  [EDGcpfe/18858,EDGcpfe/19908]
 Interpretation of "shift left" operator for signed values
 
 The front end previously did not correctly check the operand and result of a
