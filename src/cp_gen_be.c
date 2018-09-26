@@ -6612,10 +6612,10 @@ static a_boolean expr_has_enk_param_ref(an_expr_node_ptr expr)
 Return TRUE if expr or one of its subexpressions is a non-this
 enk_param_ref.  Used to avoid attempting to generate such an expression
 when there is no function prototype against which to evaluate the
-reference, which can happen in template argument lists (because the
-template arguments are captured from the first reference, which might be in
-a function prototype context, but another reference to the same instance
-might not be).
+reference, which can happen in template argument lists and types derived
+from such arguments (because the template arguments are captured from the
+first reference, which might be in a function prototype context, but
+another reference to the same instance might not be).
 */
 {
   an_expr_or_stmt_traversal_block tblock;
@@ -6719,13 +6719,14 @@ srq_seq_sublist_parent_found:
     /* __typeof__(<expr>) or decltype(<expr>). */
     an_expr_node_ptr expr = decltype_arg(tp);
     check_assertion(expr != NULL);
-    if (in_template_argument_list && octl.func_prototype_stack == NULL &&
-        expr_has_enk_param_ref(expr)) {
-      /* The expression argument refers to function parameters from the
-         context where the template instance was initially instantiated,
-         but the current context has no function prototype against which
-         to process the function parameter references.  Just put out the
-         underlying type. */
+    if (octl.func_prototype_stack == NULL && expr_has_enk_param_ref(expr)) {
+      /* The expression argument refers to function parameters but the
+         current context has no function prototype against which to process
+         the function parameter references.  This situation can arise with
+         template arguments and types derived from them, as the arguments
+         are captured at the point of instantiation but the instance can be
+         referred to later from a context in which the function parameters
+         are not available.  Just put out the underlying type. */
       gen_type(tp->variant.typeref.type);
       operator_suppressed = TRUE;
     } else {

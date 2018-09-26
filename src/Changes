@@ -1,5 +1,41 @@
 Version 5.1
 
+9/26/18  EDGcpfe/20213]
+C++-generating back end: assertion failure with decltype-specifier template
+argument
+
+Under some complex circumstances involving a template instantiated with an
+argument that involves a decltype-specifier whose operand refers to a
+function parameter, C++-generating back end configurations could abort with
+an assertion failure (in get_param_for_param_ref).  This is now fixed.  For
+example:
+
+  template <class T> struct A {
+    typedef T t;
+  };
+  template <class T> struct B { 
+    typedef T t;
+  };
+  template <class T> struct C {
+    typedef typename B<typename A<T>::t>::t t;
+  }; 
+  struct D { };
+  template <class T> struct E {
+    static constexpr bool v = true;	    
+  };
+  struct F {
+    void f();
+  };
+  template <class T> struct G {
+    template <class S> static auto g(S s)->typename C<decltype(s.f())>::t; 
+    typedef decltype(g(T())) t; 
+  };
+  template <class T> struct H {
+    static constexpr bool v = E<typename G<T>::t>::v;		
+  };
+  bool b = H<F>::v;  // Previously caused an abort, now okay
+
+
 9/26/18  [EDGcpfe/19599]
 Type of non-captured variable reference in lambda expression
 
