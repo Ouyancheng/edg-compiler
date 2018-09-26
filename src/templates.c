@@ -7782,6 +7782,7 @@ that is not used in the result type of an alias) is dependent.
         begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
                                           &tpp, &tap);
         for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+          check_assertion(tpp != NULL);
           if (!tpp->used_in_alias) {
             any_dependent_args = template_arg_is_dependent(tap);
             if (any_dependent_args) break;
