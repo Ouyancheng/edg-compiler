@@ -19265,8 +19265,8 @@ handle_as_definition:
          specialization.  That is, turn something like
            template<> void (&&f<void ()>())();
          into
-           typedef void __T12345678();
-           template<> __T123456678 &&f<void ()>();
+           typedef void (&&__T12345678)();
+           template<> __T123456678 f<void ()>();
          which is digestible by MSVC. */
       establish_replacement_typedef(ret_type, /*set=*/TRUE);
       replacement_ret_type = ret_type;
