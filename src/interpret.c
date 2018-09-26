@@ -10938,8 +10938,12 @@ the value representation of the integer value.
                                      &expr->position, opnd1_type, ips);
                   break;
                 }  /* if */
+                /* Sign-extend the result. */
+                sign_extend_integer_value((an_integer_value*)opnd1_value,
+                                          (int)(tp->size * CHAR_BIT));
+                                          
               } else {
-                /* Unsigned value: Discard overflowing bit. */
+                /* Discard overflowing bit. */
                 and_integer_values((an_integer_value*)opnd1_value,
                                    &max_integer_value_of_kind[int_kind]);
               }  /* if */
