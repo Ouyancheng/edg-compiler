@@ -3998,6 +3998,7 @@ their syntactic location recorded as al_implicit.
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case ak_deprecated:
+      case ak_maybe_unused:
         do_copy = TRUE;
         break;
       default:

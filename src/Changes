@@ -1,5 +1,14 @@
 Version 5.1
 
+9/26/18  [EDGcpfe/20205]
+maybe_unused attribute ineffective on parameters
+
+The maybe_unused attribute had been ineffective on suppressing remarks
+about an unused parameter.  Now fixed.  For example (with --c++17 --remarks):
+
+  void f([[maybe_unused]] int a) {}
+
+
 9/24/18  [EDGcpfe/16865]
 Use of uninitialized value in scan_return_expression.
 
