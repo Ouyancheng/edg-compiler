@@ -1,5 +1,14 @@
 Version 5.1
 
+9/27/18  [EDGcpfe/20217]
+Microsoft compatibility: value of std_version with --ms_c++* options
+
+A change has been made to set std_version to the appropriate value when the
+--ms_c++14 (201402), --ms_c++17 (201703) or --ms_c++latest (201703)
+command-line options are specified.  As a result, the internal macros
+cpp14_mode and cpp17_mode will now be TRUE in the appropriate cases.
+
+
 9/27/18  [EDGcpfe/20061]
 Microsoft compatibility: initializations of aggregate members in some modes
 

@@ -187,9 +187,9 @@ typedef struct an_attr_descr {
 			   microsoft_version, and std_version respectively) and
 			   an applicable version range.  The auxiliary version
 			   specifier doesn't affect the attribute family.  For
-			   example, "1c+(201701-|M(1910-))" specifies a
+			   example, "1c+(201703-|M(1910-))" specifies a
 			   standard attribute that is available when
-			   std_version >= 201701 or when microsoft_version >=
+			   std_version >= 201703 or when microsoft_version >=
 			   1910.
 
 			   A prefix "1" means the attribute can appear at most
@@ -221,11 +221,9 @@ static an_attr_descr known_attr_table[] = {
   { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
   { "override", "", "1c+", ak_override },
-  /* Note that the value of 201701 is just a placeholder until the actual
-     value of the standard commonly referred to as "C++17" is known. */
-  { "nodiscard", "", "1c+(201701-|M(1910-))", ak_nodiscard },
-  { "maybe_unused", "", "1c+(201701-|M(1910-))", ak_maybe_unused },
-  { "fallthrough", "", "1c+(201701-|M(1910-))", ak_fallthrough },
+  { "nodiscard", "", "1c+(201703-|M(1910-))", ak_nodiscard },
+  { "maybe_unused", "", "1c+(201703-|M(1910-))", ak_maybe_unused },
+  { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },

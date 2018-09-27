@@ -4997,7 +4997,8 @@ command line switches.
     C++03               std_version >= 199711            --c++03
     C++11               std_version >= 201103            --c++11
     C++14               std_version >= 201402            --c++14
-    C++17               std_version >= 201701 (?)        --c++17
+    C++17               std_version >= 201703            --c++17
+    C++20               std_version >= 202000 (?)        --c++20
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -9669,10 +9670,20 @@ enable_microsoft_mode:
         ms_extensions = opt_value;
         break;
       case optk_microsoft_cpp14_mode:
+        /* Enable emulation of Visual Studio's /std:c++14 mode.  Note that
+           internally most C++14 features are enabled via global variables, but
+           for those that aren't, set std_version to the value for C++14. */
+        std_version = 201402;
+        set_C_dialect(C_dialect_cplusplus);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
       case optk_microsoft_cpp17_mode:
       case optk_microsoft_cpplatest_mode:
-        /* Enable emulation of Visual Studio's /std:c++14, /std:c++17, and
-           /std:c++latest command-line options. */
+        /* Enable emulation of Visual Studio's /std:c++17 and /std:c++latest
+           command-line options.  Note that internally most C++17 features are
+           enabled via global variables, but for those that aren't, set
+           std_version to the value for C++17. */
+        std_version = 201703;
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
