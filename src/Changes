@@ -1,5 +1,20 @@
 Version 5.1
 
+9/27/17  [EDGcpfe/20215]
+Incorrect setting of is_std_alignof in expression nodes
+
+The flag variant.sizeof_info.is_std_alignof in an_expr_node is supposed to
+indicate whether a given alignment query was invoked using the standard
+"alignof" operator or via one of the nonstandard implementation-specific
+variants such as __alignof.  However, the flag was previously not set to
+TRUE when the standard "alignof" keyword was seen.  This oversight
+manifested itself in the output of the C++-generating back end in some
+configurations.  This is now fixed.  For example, with --c++11:
+
+  unsigned v = alignof(int); // Previously generated as __ALIGNOF__ in
+                             // some C++-generating back end configurations
+
+
 9/26/18  [EDGcpfe/20213]
 C++-generating back end: assertion failure with decltype-specifier template
 argument

@@ -12194,6 +12194,7 @@ result in *result (or an error indication in *rcblock).
                                         is_type, alignof_type,
                                         &operand,
                                         (an_operand *)NULL);
+      constant->expr->variant.sizeof_info.is_std_alignof = is_std_syntax;
       operand_was_used = !is_type;
       switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
     }  /* if */
