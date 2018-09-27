@@ -1235,7 +1235,7 @@ given position, unless is->no_diagnostics is TRUE.
 
   if (list_init_enabled &&
       !clang_version_is(< 30500) && !gpp_version_is(< 40700) &&
-      !(microsoft_mode && (!cpp11_mode || implicit_microsoft_cpp11_mode))) {
+      !(microsoft_mode && !(cpp11_mode || implicit_microsoft_cpp11_mode))) {
     /* C++11 changed the rules from requiring a value-initialization (i.e.,
        the C++03 requirement of picking the default constructor) to saying
        that the initialization is "as if" initializing with an empty

@@ -1,5 +1,21 @@
 Version 5.1
 
+9/27/18  [EDGcpfe/20061]
+Microsoft compatibility: initializations of aggregate members in some modes
+
+As a result of the changes for EDGcpfe/16219, some Microsoft modes had issued
+spurious errors on initialization of aggregate members.  That's the case with
+the following example (with --microsoft_version 1914 --ms_c++17):
+
+  struct A {
+    A() = delete;
+  };
+  struct B {
+    A a;
+  };
+  B b{};
+
+
 9/27/18  [EDGcpfe/20216]
 Spurious error on array declarator in generic lambda parameter declaration
 
