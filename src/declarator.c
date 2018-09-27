@@ -2161,10 +2161,12 @@ a trailing return type.
 
   check_assertion(state->has_deduced_type);
   if (is_array_type(state->declared_type)) {
-    if (state->is_param_decl && state->is_lambda) {
+    if (state->is_param_decl && 
+        state->assoc_func_decl_state != NULL &&
+        state->assoc_func_decl_state->is_lambda) {
       /* In the context of generic lambda parameters, "auto" can be used to
          create an array type.  For example: 
-                      [](auto (&p)[2]) { return p[1]; }
+           int x = [](auto [3]) { return 42; }((int*)nullptr); 
       */
     } else {
       if (!ctad_case) {
