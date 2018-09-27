@@ -1,6 +1,6 @@
 Version 5.1
 
-9/26/18  EDGcpfe/20213]
+9/26/18  [EDGcpfe/20213]
 C++-generating back end: assertion failure with decltype-specifier template
 argument
 
