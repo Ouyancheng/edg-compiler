@@ -1204,7 +1204,7 @@ Return TRUE if the condition is satisfied (either by the primary version
 comparison or any auxiliary comparisons).
 */
 {
-  a_boolean      result, mode;
+  a_boolean      result, mode = FALSE;
 
   /* See if the primary range comparison succeeds. */
   result = in_attr_cond_range(version, &str, ap);
