@@ -19257,7 +19257,8 @@ handle_as_definition:
   }  /* if */
   if (!discard_declaration && msvc_is_generated_code_target) {
     a_type_ptr ret_type = unqual_rout_type->variant.routine.return_type;
-    if ((is_reference_type(ret_type) || is_pointer_type(ret_type)) &&
+    if (!type_is_typedef(ret_type) &&
+        (is_reference_type(ret_type) || is_pointer_type(ret_type)) &&
         is_function_type(type_pointed_to(ret_type))) {
       /* MSVC has a bug that results in spurious errors when parsing an
          explicit specialization of a function template when the return
