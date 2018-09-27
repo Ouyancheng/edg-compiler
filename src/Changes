@@ -83,7 +83,7 @@ about an unused parameter.  Now fixed.  For example (with --c++17 --remarks):
 Use of uninitialized value in scan_return_expression.
 
 Under certain conditions, the function scan_return_expression could
-dereference an uninitializied value.
+dereference an uninitialized value.
 
 
 9/25/18  [EDGcpfe/20209]
