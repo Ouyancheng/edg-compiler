@@ -3704,6 +3704,9 @@ scope and an enk_condition node (the node is attached to sp).
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     initializer_scanned = TRUE;
+  } else if (curr_token == tok_semicolon) {
+    /* An "empty initializer" statement. */
+    initializer_scanned = TRUE;
   } else {
     /* Scan the upcoming declaration.  In C++17, this may be an initialization
        statement (terminated by a semicolon).  Otherwise, it is a condition
@@ -3882,7 +3885,7 @@ in C++.
     start_potential_decl_statement(&entity_list);
     potential_decl_stmt = TRUE;
   }  /* if */
-  if (!C_mode() && is_decl_not_expr(flags)) {
+  if (!C_mode() && (is_decl_not_expr(flags) || curr_token == tok_semicolon)) {
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
     is_condition_decl = TRUE;

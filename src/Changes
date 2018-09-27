@@ -1,5 +1,19 @@
 Version 5.1
 
+9/27/18  [EDGcpfe/20204]
+Selection statements with empty initializers
+
+C++17 mode accepts selection statements with initializers (see the entry of
+4/14/17 for EDGcpfe/17414 and EDGcpfe/17706).  However, the front end
+previously failed to accept the case of an empty initializer:
+
+  void f(bool b) {
+    if (; b) {}  // Previously an error in C++17 mode.  Now okay.
+  }
+
+That is now fixed.
+
+
 9/27/18  [EDGcpfe/20207]
 Clang C++ compatibility: __func__, __FUNCTION__, and __PRETTY_FUNCTION__
 
