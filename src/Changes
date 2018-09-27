@@ -1,5 +1,17 @@
 Version 5.1
 
+9/27/18  [EDGcpfe/20207]
+Clang C++ compatibility: __func__, __FUNCTION__, and __PRETTY_FUNCTION__
+
+In Clang mode, the static variables corresponding to __func__, __FUNCTION__,
+and __PRETTY_FUNCTION__ are now declared "constexpr".  That enables use cases
+like the following:
+
+  int main() {
+    constexpr char c = __func__[0];
+  }
+
+
 9/27/18  [EDGcpfe/20217]
 Microsoft compatibility: value of std_version with --ms_c++* options
 

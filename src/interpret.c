@@ -5732,7 +5732,7 @@ be called for the local static variables associated with constructs like
     }  /* if */
   }  /* for */
   return result;
-}  /* initi_static_variables */
+}  /* init_static_variables */
 
 
 static a_boolean do_constexpr_block_statement(an_interpreter_state  *ips,
