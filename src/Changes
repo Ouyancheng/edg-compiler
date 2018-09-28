@@ -1,5 +1,15 @@
 Version 5.1
 
+9/28/18  [EDGcpfe/20219]
+Exception specifications and operator new/delete in system headers
+
+The changes for EDGcpfe/19210 (see entry of 7/18/18) caused the front end to be
+a little stricter when checking the exception specification of an operator new
+or operator delete declaration that redeclares an operator predeclared by the
+front end.  That change is now relaxed not to apply to declarations that appear
+in system headers.
+
+
 9/28/18  [EDGcpfe/20218]
 Comparing function address constants to null pointer values
 

@@ -2165,10 +2165,14 @@ consistent with that of the previous declaration.
           (strict_ansi_mode || clang_mode) &&
           special_kind_is(rp, sfk_operator) &&
           (is_new_operator(rp->variant.opname_kind) ||
-           is_delete_operator(rp->variant.opname_kind) ))) {
+           is_delete_operator(rp->variant.opname_kind)) &&
+          !seq_is_in_system_header(throw_pos->seq))) {
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
-         and the current declaration. */
+         and the current declaration.  C++11 added implicit noexcept specifiers
+         and so we are stricter in some modes that support such implicit
+         specifiers (but not for declarations that appear in system header
+         files). */
       if (new_esp != NULL) {
         /* Reset the never_throws flag (it will be recomputed based on the
            current declaration). */
