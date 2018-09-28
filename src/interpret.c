@@ -9126,6 +9126,7 @@ is within the given complete_object.
             unexpected_condition();
           }  /* if */
           if (is_constant) {
+            mark_subobject_initialized(dst_bytes, complete_object);
             mark_complete_class_object_if_needed(fp->type, dst_bytes);
           }  /* if */
         }  /* if */

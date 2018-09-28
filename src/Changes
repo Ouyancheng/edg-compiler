@@ -1,5 +1,20 @@
 Version 5.1
 
+9/28/18  [EDGcpfe/20196]
+Spurious error on use of lambda in constant-expression context
+
+Consider the following example:
+
+  auto make_lambda = [](auto v) {
+    return [=]{ return v; };
+  };
+  constexpr auto zero = make_lambda(0);
+
+This previously elicited a spurious error because the constexpr interpreter
+failed to correctly initialize inner lambda expression for the capture of v.
+That is now fixed.
+
+
 9/28/18  [EDGcpfe/20219]
 Exception specifications and operator new/delete in system headers
 
