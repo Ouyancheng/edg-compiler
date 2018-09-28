@@ -90,12 +90,13 @@ Return TRUE if the indicated variable has a non-NULL address.  That's
 usually TRUE; the exceptions are variables like weak externals.
 */
 {
-  a_boolean has_non_null_addr =
-                   vp->storage_class != (a_storage_class)sc_extern
+  a_boolean has_non_null_addr = TRUE;
+
 #if GNU_EXTENSIONS_ALLOWED
-                   && !vp->is_weak
+  if (vp->storage_class == (a_storage_class)sc_extern && vp->is_weak) {
+    has_non_null_addr = FALSE;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                  ;
   return has_non_null_addr;
 }  /* variable_has_non_null_address */
 
@@ -106,12 +107,13 @@ Return TRUE if the indicated routine has a non-NULL address.  That's
 usually TRUE; the exceptions are routines like weak externals.
 */
 {
-  a_boolean has_non_null_addr =
-                   rp->storage_class != (a_storage_class)sc_extern
+  a_boolean has_non_null_addr = TRUE;
+
 #if GNU_EXTENSIONS_ALLOWED
-                   && !rp->is_weak
+  if (rp->storage_class == (a_storage_class)sc_extern && rp->is_weak) {
+    has_non_null_addr = FALSE;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                  ;
   return has_non_null_addr;
 }  /* routine_has_non_null_address */
 
@@ -5128,8 +5130,9 @@ set if the operation cannot be folded.
       /* Pre-C++11 or relational comparison (which cannot be folded, even
          in C++11). */
       cannot_fold = TRUE;
-      if (op == (an_expr_operator_kind)eok_eq ||
-          op == (an_expr_operator_kind)eok_ne) {
+      if ((op == (an_expr_operator_kind)eok_eq ||
+           op == (an_expr_operator_kind)eok_ne) &&
+          (constexpr_enabled || !strict_ansi_mode)) {
         /* However, "&var != NULL" or "&var == NULL" can often be folded. */
         a_variable_ptr var = NULL;
         if (is_null_pointer_value(constant_2) &&
@@ -5149,6 +5152,27 @@ set if the operation cannot be folded.
           set_constant_kind(result, (a_constant_repr_kind)ck_integer);
           set_integer_value(&result->variant.integer_value,
                             (a_host_large_integer)result_value);
+        } else {
+          /* Similarly, routine addresses are usually known to be non-null. */
+          a_routine_ptr  rp = NULL;
+          if (is_null_pointer_value(constant_2) &&
+              constant_is(constant_1, ck_address) &&
+              constant_1->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine) {
+            rp = constant_1->variant.address.variant.routine;
+          } else if (is_null_pointer_value(constant_1) &&
+                     constant_is(constant_2, ck_address) &&
+                     constant_2->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine) {
+            rp = constant_2->variant.address.variant.routine;
+          }  /* if */
+          if (rp != NULL && routine_has_non_null_address(rp)) {
+            cannot_fold = FALSE;
+            result_value = (op == (an_expr_operator_kind)eok_ne);
+            set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+            set_integer_value(&result->variant.integer_value,
+                              (a_host_large_integer)result_value);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

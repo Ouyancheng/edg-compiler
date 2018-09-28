@@ -1,5 +1,20 @@
 Version 5.1
 
+9/28/18  [EDGcpfe/20218]
+Comparing function address constants to null pointer values
+
+In nonstrict modes and in modes with constexpr support the front end now more
+consistently folds comparisons using == or != when one operand is the address
+of a function and the other operand is a null pointer value.  For example, in
+GNU C mode:
+
+  void f();
+  int r = f ? 1 : 2;  // Previously an error.  Now okay.
+
+(Functions with weak linkage and no known definition are excluded from this
+treatment.)
+
+
 9/27/18  [EDGcpfe/20204]
 Selection statements with empty initializers
 
