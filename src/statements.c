@@ -3673,7 +3673,7 @@ scope and an enk_condition node (the node is attached to sp).
   a_control_flow_descr_ptr       cfdp;
   a_decl_parse_state             dps;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
-  an_il_entity_list_entry_ptr    entity_list;
+  an_il_entity_list_entry_ptr    entity_list = NULL;
 
   /* Push the new scope, and bind the if, switch, for, or while statement to
      it. */
@@ -3704,7 +3704,7 @@ scope and an enk_condition node (the node is attached to sp).
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     initializer_scanned = TRUE;
-  } else if (curr_token == tok_semicolon) {
+  } else if (curr_token == tok_semicolon && selection_initializers_enabled) {
     /* An "empty initializer" statement. */
     initializer_scanned = TRUE;
   } else {
@@ -3713,7 +3713,6 @@ scope and an enk_condition node (the node is attached to sp).
        declaration which should be a single variable with an initializer. */
     struct_stmt_stack_top().record_declared_entities = TRUE;
     struct_stmt_stack_top().p_declared_entities = &entity_list;
-    entity_list = NULL;
     init_decl_parse_state(&dps);
     dps.keep_terminating_token = TRUE;
     scan_nonmember_declaration(&dps, (a_source_range*)NULL);
