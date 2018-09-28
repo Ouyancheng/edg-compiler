@@ -25,7 +25,7 @@ front end.  That change is now relaxed not to apply to declarations that appear
 in system headers.
 
 
-9/28/18  [EDGcpfe/20218]
+9/28/18  [EDGcpfe/15904,EDGcpfe/16112,EDGcpfe/19693,EDGcpfe/20218]
 Comparing function address constants to null pointer values
 
 In nonstrict modes and in modes with constexpr support the front end now more
