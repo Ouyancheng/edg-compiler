@@ -38,9 +38,10 @@ cpp14_mode and cpp17_mode will now be TRUE in the appropriate cases.
 9/27/18  [EDGcpfe/20061]
 Microsoft compatibility: initializations of aggregate members in some modes
 
-As a result of the changes for EDGcpfe/16219, some Microsoft modes had issued
-spurious errors on initialization of aggregate members.  That's the case with
-the following example (with --microsoft_version 1914 --ms_c++17):
+As a result of the changes for EDGcpfe/16219 (in version 4.10.1), some
+Microsoft modes had issued spurious errors on initialization of aggregate
+members.  That's the case with the following example (with
+--microsoft_version 1914 --ms_c++17):
 
   struct A {
     A() = delete;
