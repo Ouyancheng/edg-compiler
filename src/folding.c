@@ -84,6 +84,9 @@ Retrieve the complex value of the constant into *cx_val.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 a_boolean variable_has_non_null_address(a_variable_ptr vp)
 /*
 Return TRUE if the indicated variable has a non-NULL address.  That's
@@ -101,6 +104,9 @@ usually TRUE; the exceptions are variables like weak externals.
 }  /* variable_has_non_null_address */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 a_boolean routine_has_non_null_address(a_routine_ptr rp)
 /*
 Return TRUE if the indicated routine has a non-NULL address.  That's
