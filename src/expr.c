@@ -8055,25 +8055,29 @@ case).
     /* Check that the left operand is (a pointer to) a complete class,
        struct, or union, for either operator. */
     if (!err && !pcc_mode_integral_pointer_case) {
-      if (is_template_param_type(orig_class_struct_union_type)) {
-        /* For a template parameter type, switch to the corresponding
-           proxy class.  Preserve cv-qualifiers on the type. */
-        a_type_qualifier_set qualifiers =
-                           get_type_qualifiers(orig_class_struct_union_type);
-        orig_class_struct_union_type =
-                                 skip_typerefs(orig_class_struct_union_type);
-        orig_class_struct_union_type =
-                proxy_class_for_template_param(orig_class_struct_union_type);
-        orig_class_struct_union_type =
-                            make_qualified_type(orig_class_struct_union_type,
-                                                qualifiers);
-
-      }  /* if */
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
+make_proxy_type_if_needed:
+      if (class_struct_union_type->kind == (a_type_kind)tk_template_param) {
+        /* For a template parameter type, switch to the corresponding proxy
+           class.  Preserve cv-qualifiers on the type. */
+        a_type_qualifier_set qualifiers =
+                           get_type_qualifiers(orig_class_struct_union_type);
+        class_struct_union_type =
+                     proxy_class_for_template_param(class_struct_union_type);
+        orig_class_struct_union_type =
+                                 make_qualified_type(class_struct_union_type,
+                                                     qualifiers);
+      }  /* if */
       if (is_immediate_class_type(class_struct_union_type)) {
         /* Instantiate the class if it is a template class. */
         complete_class_type_is_needed(class_struct_union_type);
+        if (class_struct_union_type->incomplete &&
+            is_template_dependent_context() &&
+            (gpp_mode || clang_mode || microsoft_mode)) {
+          class_struct_union_type = type_of_unknown_templ_param_nontype;
+          goto make_proxy_type_if_needed;
+        }  /* if */
       }  /* if */
       /* No error is issued yet if the first operand is not (a pointer to)
          a class, because (a) C++ allows p->int::~int(), and (b) prototype
@@ -8083,7 +8087,6 @@ case).
       need_operand_1_type_check = TRUE;
     }  /* if */
   }  /* if */
-
   if (rcblock == NULL) {
     a_type_ptr updated_class_type;
     /* Advance past the operator and scan the second operand. */
@@ -8138,9 +8141,7 @@ case).
   if (need_operand_1_type_check) {
     a_type_ptr  tp = class_struct_union_type;
     a_boolean   is_class_type = is_immediate_class_type(tp);
-    if (!is_class_type || (is_incomplete_type(tp) &&
-                           !(is_template_dependent_context() &&
-                             (gpp_mode || clang_mode || microsoft_mode)))) {
+    if (!is_class_type || tp->incomplete) {
       /* The first operand is not (a pointer to) a complete class, struct,
          or union.  This check was delayed to this point so that we could
          allow things like vacuous destructor references. */
