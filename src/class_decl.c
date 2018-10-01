@@ -3754,8 +3754,6 @@ constant-expression.
        initializer. */
     init_decl_parse_state(&dps);
     dps.sym = var_sym;
-    var = dps.sym->variant.static_data_member.variable;
-    check_assertion(var == variable_for_symbol(var_sym));
     dps.type = dps.declared_type = var->type;
     if (gpp_mode && var->template_info != NULL &&
         symbol_for(var->template_info->assoc_template)
