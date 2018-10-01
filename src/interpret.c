@@ -9309,33 +9309,37 @@ the value representation of the integer value.
         opnd2 = opnd1->next;
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = expr_result_size(ips, opnd1, opnd1_type, &result);
+        if (!result) break;
         alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
-        if (result && !expr->variant.operation.eval_right_to_left &&
+        /* Evaluate the first operand, unless this is an operation that
+           requires the second operand to be evaluated first. */
+        if (!expr->variant.operation.eval_right_to_left &&
             !do_constexpr_expression(ips, opnd1, opnd1_value, opnd1_value)) {
           do_constexpr_fail(result);
-        }  /* if */
-        if (result && opnd2 != NULL &&
-            !node_operator_is(expr, eok_land) &&
-            !node_operator_is(expr, eok_lor) &&
-            !node_operator_is(expr, eok_question) &&
-            !node_operator_is(expr, eok_comma) &&
-            !node_operator_is(expr, eok_dot_static) &&
-            !node_operator_is(expr, eok_points_to_static)) {
+        } else if (opnd2 != NULL &&
+                   !node_operator_is(expr, eok_land) &&
+                   !node_operator_is(expr, eok_lor) &&
+                   !node_operator_is(expr, eok_question) &&
+                   !node_operator_is(expr, eok_comma) &&
+                   !node_operator_is(expr, eok_dot_static) &&
+                   !node_operator_is(expr, eok_points_to_static)) {
           /* Evaluate the second operand.  For short-circuiting operators,
              whether to evaluate the second operand will be decided below in
              the specific code for each such operator.  The comma operator can
              be handled similarly (although the evaluation is unconditional in
              that case); eok_dot_static and eok_points_to_static are equivalent
-             to the comma operator in this respect. */
+             to the comma operator in this respect.  If this is an operation
+             that requires the second operand to be evaluated first, the
+             evaluation of the first operand is performed here also. */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type, &result);
+          if (!result) break;
           alloc_complete_object(ips, opnd_n_bytes, opnd2_type, opnd2_value);
-          if (result &&
-              !do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
+          if (!do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
             do_constexpr_fail(result);
-          }  /* if */
-          if (result && expr->variant.operation.eval_right_to_left &&
-              !do_constexpr_expression(ips, opnd1, opnd1_value, opnd1_value)) {
+          } else if (expr->variant.operation.eval_right_to_left &&
+                     !do_constexpr_expression(ips, opnd1,
+                                              opnd1_value, opnd1_value)) {
             do_constexpr_fail(result);
           }  /* if */
         } else {
