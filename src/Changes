@@ -1,5 +1,18 @@
 Version 5.1
 
+9/30/18  [EDGcpfe/20225]
+Clang compatibility: __has_feature(cxx_exceptions)
+
+The change for EDGcpfe/19478 (in version 5.0) incorrectly categorized
+__has_feature(cxx_exceptions) as applicable only in C++11 and later modes,
+although it is, in fact, supported in all versions of C++.  This is now
+fixed.  For example, with --clang --c++03 --exceptions:
+
+  #if !__has_feature(cxx_exceptions)
+  #error "Incorrect value"  // Previously executed
+  #endif
+
+
 9/28/18  [EDGcpfe/20196]
 Spurious error on use of lambda in constant-expression context
 

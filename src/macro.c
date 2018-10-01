@@ -4434,7 +4434,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_exceptions",
-    201103,
+    199711,
     &exceptions_enabled,
     "__cpp_exceptions",
     "199711L" },
