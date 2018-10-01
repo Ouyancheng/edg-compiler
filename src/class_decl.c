@@ -4059,6 +4059,7 @@ created.
 
   for (; rp != NULL; rp = rp->next) {
     if (rp->compiler_generated && !rp->definition_cannot_be_generated &&
+        !rp->is_prototype_instantiation &&
         (special_kind_is(rp, sfk_constructor) ||
          special_kind_is(rp, sfk_destructor) ||
          (special_kind_is(rp, sfk_operator) &&
