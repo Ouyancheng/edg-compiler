@@ -1,5 +1,22 @@
 Version 5.1
 
+10/1/18  [EDGcpfe/20220]
+Unbounded recursion with dllexport class with inheriting constructor template
+
+In Microsoft C++ mode, the front end previously ran into unbounded recursion
+(eventually aborting when running out of call stack storage) with the following
+case:
+
+  template<typename> struct B {
+    template<typename T> B(B<T>) {}
+  };
+  struct __declspec(dllexport) D: B<int> {
+    using B<int>::B;
+  };
+
+That is now fixed.
+
+
 10/1/18  [EDGcpfe/20206]
 Regression in old-style template template parameter matching
 
