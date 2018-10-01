@@ -18887,7 +18887,7 @@ can match zero or more parameters from new_list.
   }  /* while */
   if ((old_tpp != NULL &&
        is_templ_templ_param_match && old_tpp->is_pack) ||
-      (new_tpp != NULL &&
+      (generalized_template_template_matching && new_tpp != NULL &&
        is_templ_templ_param_match && new_tpp->is_pack)) {
     /* When matching template parameters, an additional pack parameter is
        allowed. */

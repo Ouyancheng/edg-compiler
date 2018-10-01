@@ -1,5 +1,24 @@
 Version 5.1
 
+10/1/18  [EDGcpfe/20206]
+Regression in old-style template template parameter matching
+
+Version 5.0 added support for generalized template template parameter
+matching (see EDGcpfe/18746).  Those changes inadvertently changed the
+behavior of some cases that don't use the new rules.  This caused
+examples like the one below to select an incorrect partial specialization.
+Now fixed.  Note that this example also fails using the new matching rules.
+That will be addressed by a subsequent change.
+
+  template <typename T, typename ... Ts> struct A {};
+  template <typename T> struct B;
+  template <typename T> struct B {};
+  template <template <typename TTP1> class T, typename U> struct B<T<U>> {
+    static const int x = T<int>::value;
+  };
+  B<A<A<int>>>  b;
+
+
 10/1/18  [EDGcpfe/20226]
 Excessive memory use by constexpr interpreter after evaluation failure
 
