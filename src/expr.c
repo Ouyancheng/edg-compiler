@@ -36021,14 +36021,14 @@ Both C99-style and GNU-style designators are handled here.
       }  /* if */
     } else if (curr_token == tok_lbracket &&
                (!lambdas_enabled || designator_not_lambda_next())) {
-      if (cpp20_designators_restriction) {
-        pos_error(ec_no_array_designators_in_cpp_mode, &pos_curr_token);
-      } /* if */
       /* An array element designator. */
       a_source_position  start_pos, pos;
       a_targ_size_t      idx, last_idx;
       a_boolean          okay = TRUE;
       start_pos = pos_curr_token;
+			if (cpp20_designators_restriction) {
+        pos_error(ec_no_array_designators_in_cpp_mode, &pos_curr_token);
+      } /* if */
       /* Skip the left bracket. */
       (void)get_token();
       add_stop_token(tok_rbracket);
