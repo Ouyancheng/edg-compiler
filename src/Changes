@@ -1,5 +1,18 @@
 Version 5.1
 
+10/2/18  [EDGcpfe/20222]
+Abort on flexible array member with default member initializer
+
+The front end accepts flexible array members (a C99 feature) in Microsoft,
+GNU, and Clang C++ modes.  Previously, if such a member also had a default
+member initializer, the front end aborted with an assertion failure in
+aggr_init_array.  For example:
+
+  struct S { int k[] = {}; };  // Previously aborted.  Now an error.
+
+This is now fixed: An ordinary error is issued.
+
+
 10/1/18  [EDGcpfe/19828,EDGcpfe/20117]
 Microsoft compatibility: Standard-conforming preprocessing
 
