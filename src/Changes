@@ -1,5 +1,27 @@
 Version 5.1
 
+10/2/18  [EDGcpfe/19942]
+C++-generating back end, GNU compatibility: non-dependent member function
+calls via dependent bases
+
+Beginning with version 7.3, g++ no longer accepts "this->" as part of a
+member function call to a non-dependent member function of a base class
+inherited via a dependent base class.  The C++-generating back end
+previously generated such calls in configurations in which template
+definitions are generated from the prototype instantiation IL, but it no
+longer does so when gcc_is_generated_code_target is TRUE and
+gnu_target_version_number is 70300 or larger.  For example, with
+--gnu_version=70300 --parse:
+
+  struct A { template<typename T> void f(); };
+  template<class T> struct B : A { };
+  template<class T> struct C : B<T> {
+    void f() {
+      A::template f<bool>();  // Previously generated as "this->A::..."
+    }
+  };
+
+
 10/2/18  [EDGcpfe/20119,EDGcpfe/20003]
 C++20 Designated initialization
 
