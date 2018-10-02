@@ -729,7 +729,8 @@ remove_any_extraneous_braces:
         pos_ty_error(ec_brace_initialization_not_allowed,
                      init_component_pos(icp), dest_type);
       }  /* if */
-    } else if (icp->variant.braced.list == NULL) {
+    } else if (icp->variant.braced.list == NULL || 
+    					 icp->contains_designator == TRUE) {
       /* Empty braces: Pass the braces to convert_initializer below (which
          results in "value initialization"). */
       if (!list_init_enabled) {
@@ -2916,6 +2917,26 @@ position is available).
 }  /* aggr_init_field */
 
 
+static a_boolean fields_are_ordered(a_field_ptr  first, 
+                                    a_field_ptr  second)
+/*
+Return TRUE if field second follows field first in the declaration order.
+*/
+{
+  a_boolean  result = FALSE;
+
+  while (first != NULL) {
+    if (first == second) {
+      result = TRUE;
+      break;
+    } else {
+      first = first->next;
+    } /* if */
+  } /* while */
+  return result;
+} /* fields_are_ordered */
+
+
 static void aggr_init_field_designator(an_init_component_ptr  *p_icp,
                                        a_type_ptr             class_type,
                                        an_init_state          *is,
@@ -3045,6 +3066,14 @@ specific position is available.
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
+  if (cpp20_designators_restriction &&
+      !fields_are_ordered(orig_field,*field) &&
+      class_type->kind != (a_type_kind)tk_union){
+    /* For a union, only one initializer is allowed.  Do not issue a 
+       diagnostic here.  Fall back to too many initializers error handling 
+       instead. */
+    pos_error(ec_no_out_of_order_init_in_cpp_mode, init_component_pos(icp));
+  } /* if */
   if (skip_designator) {
     icp = next_icp;
   }  /* if */

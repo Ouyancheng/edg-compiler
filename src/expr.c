@@ -35986,6 +35986,9 @@ Both C99-style and GNU-style designators are handled here.
          likely be a malformed member selection), but if it immediately
          follows a designator, then we do proceed with the assumption that the
          source was meant to be a designator). */
+      if (first_designator_seen && cpp20_designators_restriction) {
+        pos_error(ec_no_chained_designators_in_cpp_mode, &pos_curr_token);
+      } /* if */
       /* Skip the period. */
       (void)get_token();
       add_stop_token(tok_lbracket);
@@ -36018,6 +36021,9 @@ Both C99-style and GNU-style designators are handled here.
       }  /* if */
     } else if (curr_token == tok_lbracket &&
                (!lambdas_enabled || designator_not_lambda_next())) {
+      if (cpp20_designators_restriction) {
+        pos_error(ec_no_array_designators_in_cpp_mode, &pos_curr_token);
+      } /* if */
       /* An array element designator. */
       a_source_position  start_pos, pos;
       a_targ_size_t      idx, last_idx;
@@ -36118,7 +36124,8 @@ Both C99-style and GNU-style designators are handled here.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (std_designator_seen) {
+  if (std_designator_seen && !(curr_token == tok_lbrace &&
+                               list_init_enabled)) {
     /* A "=" should be next.  If not, issue an ordinary error rather than a
        syntax error since it makes for better error recovery. */
     if (curr_token != tok_assign) {
@@ -36237,6 +36244,8 @@ parse) and get_continued_elem (for resuming a suspended parse).
   a_braced_list_continuation       *continuation = NULL;
   a_pack_expansion_stack_entry_ptr pesep;
   a_boolean                        any_more;
+  a_boolean                        designator_seen = FALSE;
+  a_boolean                        non_designator_seen = FALSE;
 
   if (p_continuation != NULL) {
     continuation = *p_continuation;
@@ -36322,7 +36331,14 @@ parse) and get_continued_elem (for resuming a suspended parse).
     }  /* if */
     if (designators_allowed && scan_designators(icp, &end_icp)) {
       elem_seen = FALSE;
+      designator_seen = TRUE;
+    } else {
+      non_designator_seen = TRUE;
     }  /* if */
+    if (cpp20_designators_restriction && designator_seen &&
+        non_designator_seen) {
+      pos_error(ec_no_mixed_init_in_cpp_mode, &pos_curr_token);
+    } /* if */
     /* An element of the list might be a pack expansion in some modes
        and contexts. */
     any_more = begin_potential_pack_expansion_context(&pesep);

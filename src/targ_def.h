@@ -419,25 +419,13 @@ variable designators_allowed.
 #define DEFAULT_DESIGNATORS_ALLOWED FALSE
 #endif /* DEFAULT_DESIGNATORS_ALLOWED */
 
-/*
-Flag that is TRUE if support for designated initializers and extended
-designated initializers can be enabled.  Having this TRUE means the back
-end is prepared to accept designated initializers, either in the
-unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
-The C-generating and C++-generating back ends can handle designated
-initializers (but that's useful only if the downstream compiler also
-handles them).
-*/
-#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
-#else /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-#if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && DEFAULT_DESIGNATORS_ALLOWED
- #error -- designated initializer enabling not allowed
-#endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
+
+#ifdef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+ #error -- the DESIGNATED_INITIALIZER_ENABLING_POSSIBLE macro has been \
+ 					 eliminated
+#endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#endif /* ifdef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 
 /*
 The DO_C99_IL_LOWERING configuration macro is no longer supported.  If set,
@@ -4862,12 +4850,8 @@ are used to repeat an initializer constant the appropriate number
 of times.
 */
 #ifndef LOWER_DESIGNATED_INITIALIZERS
-#define LOWER_DESIGNATED_INITIALIZERS DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#define LOWER_DESIGNATED_INITIALIZERS TRUE
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
-#if LOWER_DESIGNATED_INITIALIZERS && !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
- #error -- Designated initializers cannot be lowered unless designated \
-           initializers can be enabled
-#endif /* LOWER_DESIGNATED_INITIALIZERS && !DESIGNATED_INITIALIZER... */
 
 /*
 This switch controls whether or not "guard" code is placed around

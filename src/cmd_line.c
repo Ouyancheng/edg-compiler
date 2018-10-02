@@ -959,7 +959,6 @@ Initialize the option information table.
                          "no_nonstd_using_decl",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   add_option_description(optk_designators,
                          "designators",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -976,7 +975,6 @@ Initialize the option information table.
                          "no_extended_designators",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
   add_option_description(optk_variadic_macros,
                          "variadic_macros",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2208,11 +2206,9 @@ option values if they were not already set by a command line option.
     if (microsoft_version >= 1800) {
       /* MSVC 12 (part of Visual Studio 2013) adds a number of C99-based
          features in its C mode. */
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
       if (!(option_kind_used[(int)optk_designators])) {
         designators_allowed = TRUE;
       }  /* if */
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
       if (!(option_kind_used[(int)optk_compound_literals])) {
         compound_literals_allowed = TRUE;
@@ -2911,12 +2907,10 @@ Set the various flags appropriate to C99 mode or later standard modes.
     /* Support for restricted pointers is turned on by default in C99 mode. */
     restrict_keyword_enabled = TRUE;
   }  /* if */
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_designators])) {
     /* Support for designators is turned on by default in C99 mode. */
     designators_allowed = TRUE;
   }  /* if */
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_compound_literals])) {
     /* Support for compound literals is turned on by default in C99 mode. */
@@ -3615,10 +3609,15 @@ setting is used, and to set various unmentioned settings as needed.
   /* VLA deallocations are implicit in C++ and tied to object lifetimes,
      so do not generate the explicit C-mode deallocations. */
   vla_deallocations_in_il = FALSE;
-  if (option_kind_used[(int)optk_designators]) {
-    command_line_error(ec_cl_designators_option_only_in_C);
-  }  /* if */
-  designators_allowed = FALSE;
+  /* If the designators option has not been explicitly specified and we are in 
+     cpp20 mode activate the restrictions on C++ designators.  In GNU mode,
+     the restrictions do not apply. */
+  if (!option_kind_used[(int)optk_designators]) {
+    if (cpp20_mode && !gpp_mode) {
+      designators_allowed = TRUE;
+      cpp20_designators_restriction = TRUE;
+    } /* if */
+  } /* if */
   if (option_kind_used[(int)optk_extended_designators]) {
     command_line_error(ec_cl_extended_designators_option_only_in_C);
   }  /* if */
@@ -4346,14 +4345,12 @@ This function is also called in clang mode.
   gnu_abi_version = gnu_version;
   check_assertion(gnu_abi_version >= 30200);
 #endif /* TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION */
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_extended_designators])) {
     /* If extended designators were not enabled or disabled on the command
        line, enable them now. */
     designators_allowed = TRUE;
     extended_designators_allowed = TRUE;
   }  /* if */
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_compound_literals])) {
     /* If compound literals were not enabled or disabled on the command line,
@@ -6542,11 +6539,6 @@ file.
 #else /* !defined(DEMO_VERSION_ID) */
   comment_undefined_macro_name(DEMO_VERSION_ID);
 #endif /* defined(DEMO_VERSION_ID) */
-#if defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE)
-  define_numeric_valued_macro(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE);
-#else /* !defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE) */
-  comment_undefined_macro_name(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE);
-#endif /* defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE) */
 #if defined(DIRECTORY_SEPARATOR)
   define_string_valued_macro(DIRECTORY_SEPARATOR);
 #else /* !defined(DIRECTORY_SEPARATOR) */
@@ -11435,18 +11427,9 @@ variables declared in cmd_line.h.
   nonstandard_instantiation_lookup_enabled =
                                       DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;
   nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
-  designators_allowed =
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-                        DEFAULT_DESIGNATORS_ALLOWED;
-#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-                        FALSE;
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-  extended_designators_allowed =
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-                                DEFAULT_EXTENDED_DESIGNATORS_ALLOWED;
-#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-                                FALSE;
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+  designators_allowed = DEFAULT_DESIGNATORS_ALLOWED;
+  extended_designators_allowed = DEFAULT_EXTENDED_DESIGNATORS_ALLOWED;
+  cpp20_designators_restriction = FALSE;
   variadic_macros_allowed = DEFAULT_VARIADIC_MACROS_ALLOWED;
   extended_variadic_macros_allowed = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED;
   pragma_operator_allowed = FALSE;

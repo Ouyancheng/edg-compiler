@@ -2980,6 +2980,10 @@ ec_align_not_equivalent;;"specified alignment is not equivalent to previous decl
 ec_no_alignment_on_definition;;"no alignment specified on definition; previous declaration had specified an alignment"
 ec_builtin_needs_128_bit_floats;;"builtin function is not available because 128-bit floating-point types are not supported"
 ec_constexpr_shift_negative_value;;"left-shifting a negative value has undefined behavior"
+ec_no_array_designators_in_cpp_mode;;"array designators are nonstandard in C++"
+ec_no_chained_designators_in_cpp_mode;;"chained designators are nonstandard in C++"
+ec_no_mixed_init_in_cpp_mode;;"mixing designated and non-designated initializers is nonstandard in C++"
+ec_no_out_of_order_init_in_cpp_mode;;"out-of-order initializers are nonstandard in C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
