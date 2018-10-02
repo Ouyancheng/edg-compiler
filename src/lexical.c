@@ -8125,17 +8125,17 @@ static void copy_from_source_to_asm_func_buffer(
 #endif /* ASM_SUPPORT_NEEDED && !ASM_FUNCTION_ALLOWED */
 
 /*
-Test whether curr_char_loc is the start of a comment.  It is already
-known that *curr_char_loc == '/'.  The test can be tricky if
-*curr_char_loc and *(curr_char_loc+1) are "/" and "*" but those
-resulted from pasting of tokens in a macro expansion; that case should
-not be considered to be the start of a comment.  In pcc mode and
-Microsoft mode, the token pasting rules are different, and the start
-of a comment is assumed.  Also tests for "//" in C++ mode.
+Test whether curr_char_loc is the start of a comment.  It is already known
+that *curr_char_loc == '/'.  The test can be tricky if *curr_char_loc and
+*(curr_char_loc+1) are "/" and "*" but those resulted from pasting of
+tokens in a macro expansion; that case should not be considered to be the
+start of a comment.  In pcc mode and with the traditional Microsoft
+preprocessor, the token pasting rules are different, and the start of a
+comment is assumed.  Also tests for "//" in C++ mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_microsoft_mode_slash_slash() \
-  || (ms_extensions && *(curr_char_loc+1) == '/')
+  || (ms_extensions && !ms_conforming_preproc && *(curr_char_loc+1) == '/')
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_microsoft_mode_slash_slash() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8512,7 +8512,7 @@ white_space_loop:
         /* Advance past the first "/". */
         curr_char_loc++;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ms_extensions) {
+        if (ms_extensions && !ms_conforming_preproc) {
           if (!within_curr_source_line(curr_char_loc)) {
             /* In Microsoft mode, a // comment delimiter can appear in a macro:
                  #define startcomment() /##/

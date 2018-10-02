@@ -1540,6 +1540,13 @@ Initialize the option information table.
   add_option_description(optk_aligned_new, "no_aligned_new", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_conforming_preproc,
+                         "ms_conforming_preprocessor", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_ms_conforming_preproc,
+                         "no_ms_conforming_preprocessor", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3733,7 +3740,8 @@ otherwise implicitly enabled Microsoft mode.
         option_kind_used[(int)optk_ms_permissive] ||
         option_kind_used[(int)optk_ms_rvalue_cast] ||
         option_kind_used[(int)optk_ms_strict_ternary] ||
-        option_kind_used[(int)optk_ms_cplusplus_std_value]) {
+        option_kind_used[(int)optk_ms_cplusplus_std_value] ||
+        option_kind_used[(int)optk_ms_conforming_preproc]) {
       /* Microsoft mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
@@ -9692,6 +9700,9 @@ enable_microsoft_mode:
         /* Emulate Microsoft's /permissive[-] switch (which also implies
            Microsoft mode). */
         ms_permissive = opt_value;
+        if (!option_kind_used[(int)optk_ms_conforming_preproc]) {
+          ms_conforming_preproc = !opt_value;
+        }  /* if */
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_ms_rvalue_cast:
@@ -9710,6 +9721,10 @@ enable_microsoft_mode:
         /* Emulate Microsoft's /Zc:__cplusplus[-] switch (which also implies
            Microsoft mode). */
         ms_cplusplus_std_value = opt_value;
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
+      case optk_ms_conforming_preproc:
+        ms_conforming_preproc = opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11858,6 +11873,7 @@ variables declared in cmd_line.h.
   direct_init_fixed_base_enum_enabled = FALSE;
   constexpr_lambdas_enabled = FALSE;
   capture_star_this_enabled = FALSE;
+  ms_conforming_preproc = FALSE;
   fold_expressions_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;

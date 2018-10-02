@@ -3208,15 +3208,16 @@ In such cases, charize is TRUE.
       /* Put out the character itself. */
       len++;
       if (src_loc != NULL) *(*src_loc)++ = ch;
-      if (!within_char_literal && microsoft_mode && ch == ')') {
-        /* In Microsoft mode we suppress the end-of-token indicator
-           following a right parenthesis to allow token concatenation
-           between the last fragment of a macro expansion and the
-           immediately-following text.  As a result we need special
-           handling to recognize that anything following a right
-           parenthesis is the start of a new token; otherwise, we will
-           fail to escape the quotes in a literal that immediately follows
-           a cast, e.g., (T)"x" or (T)L"y". */
+      if (!within_char_literal && microsoft_mode && !ms_conforming_preproc &&
+          ch == ')') {
+        /* For the traditional Microsoft preprocessor mode we suppress the
+           end-of-token indicator following a right parenthesis to allow
+           token concatenation between the last fragment of a macro
+           expansion and the immediately-following text.  As a result we
+           need special handling to recognize that anything following a
+           right parenthesis is the start of a new token; otherwise, we
+           will fail to escape the quotes in a literal that immediately
+           follows a cast, e.g., (T)"x" or (T)L"y". */
         start_of_token = TRUE;
       }  /* if */
     }  /* if */
@@ -3231,19 +3232,20 @@ In such cases, charize is TRUE.
 
 static void expand_top_level_pcc_macro(a_source_line_modif_ptr main_slmp)
 /*
-We are in pcc mode, and a top-level macro has just been expanded.  main_slmp
-points to the source modification that inserts the body of the macro
-into the primary source line.  In order to more closely approximate the
-token-pasting behavior of pcc, macro-expand the text in the body of
-the macro, then make a copy of the macro-expanded version as one long
-string.  If some of the rest of the primary source line looks like
-it could be token-pasted with the last token in the macro expansion, add
-it to the end of the macro expansion (and effectively remove it from the
-primary source line).  Note that after the first call of this routine
-that pastes on the end of the line, any subsequent calls of this routine
-for that line will see the tacked-on text rather than the primary source
-line (e.g., main_slmp will be a modification of that text).  Also used
-in Microsoft mode; in that case, token pasting off the end is not allowed.
+We are in pcc mode, and a top-level macro has just been expanded.
+main_slmp points to the source modification that inserts the body of the
+macro into the primary source line.  In order to more closely approximate
+the token-pasting behavior of pcc, macro-expand the text in the body of the
+macro, then make a copy of the macro-expanded version as one long string.
+If some of the rest of the primary source line looks like it could be
+token-pasted with the last token in the macro expansion, add it to the end
+of the macro expansion (and effectively remove it from the primary source
+line).  Note that after the first call of this routine that pastes on the
+end of the line, any subsequent calls of this routine for that line will
+see the tacked-on text rather than the primary source line (e.g., main_slmp
+will be a modification of that text).  Also used when emulating the
+traditional Microsoft preprocessor; in that case, token pasting off the end
+is not allowed.
 */
 {
   a_boolean     save_fetch_pp_tokens = fetch_pp_tokens;
@@ -3724,13 +3726,13 @@ static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                   sizeof_t        prev_len,
                                                   a_const_char    **post_end)
 /*
-We are in Microsoft mode and we are doing a token paste in a macro
-expansion.  Return TRUE if the paste operation is pasting "L" to one
-of the Microsoft function-name keywords like __FUNCTION__.  
-The raw value of the macro argument map is the text following
-the "##", and prev_text (of length prev_len) is the text preceding
-the ##.  If TRUE is returned, *post_end is set to the character
-position after the end of the function-name keyword.
+We are in traditional Microsoft preprocessor mode and we are doing a token
+paste in a macro expansion.  Return TRUE if the paste operation is pasting
+"L" to one of the Microsoft function-name keywords like __FUNCTION__.  The
+raw value of the macro argument map is the text following the "##", and
+prev_text (of length prev_len) is the text preceding the ##.  If TRUE is
+returned, *post_end is set to the character position after the end of the
+function-name keyword.
 */
 {
   a_boolean result = FALSE;
@@ -3855,16 +3857,17 @@ FALSE in all other cases.
   next_op = (a_repl_text_seq_kind)*(ahead++);
   if (next_op == rt_raw_argument ||
       next_op == rt_microsoft_maybe_raw_argument ||
-      (ms_compat && next_op == rt_argument)) {
-    /* A macro argument follows the concatenation.  (In Microsoft mode,
-       the argument is expanded, whether or not preceded by "##".) */
+      (ms_compat && !ms_conforming_preproc && next_op == rt_argument)) {
+    /* A macro argument follows the concatenation.  (In traditional
+       Microsoft mode, the argument is expanded, whether or not preceded by
+       "##".) */
     a_macro_arg_ptr map;
 
     get_macro_repl_text_number(arg_number, ahead);
     get_arg_value(arg_number, map);
     if (arg_number == n_params &&
         (map->raw_len == 0 ||
-         (ms_compat && map->expanded_len == 0))) {
+         (ms_compat && !ms_conforming_preproc && map->expanded_len == 0))) {
       /* The last macro parameter (presumably variadic) is empty or missing.
          So we adjust the section length to not include the last chunk of
          white space characters preceded by a comma: */
@@ -3880,7 +3883,7 @@ FALSE in all other cases.
         }  /* if */
         if (*back == ',') {
           *length -= (rtp-back);
-          if (microsoft_mode) {
+          if (microsoft_mode && !ms_conforming_preproc) {
             /* Leave space for an LE_MICROSOFT_MAGIC_COMMA escape and a
                comma to be inserted and indicate the need to do so. */
             *length += LE_ESCAPE_LEN + 1;
@@ -3944,7 +3947,8 @@ hence its name should not be changed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           { a_const_char *post_end;
             /* coverity[var_deref_model] */
-            if (ms_extensions && prev_section_is_paste &&
+            if (ms_extensions && !ms_conforming_preproc &&
+                prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
                                                  prev_text,
                                                  prev_len,
@@ -3963,9 +3967,10 @@ hence its name should not be changed.
         case rt_charized_raw_argument:
           /* Determine the length of the stringized version of the argument
              (or the charized version in some Microsoft macros). */
-          if (map->raw_len == 0 && ms_compat && !map->is_empty_arg) {
-            /* The Microsoft preprocessor suppresses all output for
-               omitted (as opposed to empty) arguments.  That is, given
+          if (map->raw_len == 0 && ms_compat && !ms_conforming_preproc &&
+              !map->is_empty_arg) {
+            /* The Microsoft traditional preprocessor suppresses all output
+               for omitted (as opposed to empty) arguments.  That is, given
 
                  #define M(a,b) #b
 
@@ -4011,7 +4016,8 @@ hence its name should not be changed.
     /* When extended variadic macros are enabled, a "##" followed by an
        empty variadic argument has a special deletion effect.  The same is
        true for Microsoft variadic macros, with or without the "##". */
-    if ((extended_variadic_macros_allowed || ms_compat) &&
+    if ((extended_variadic_macros_allowed ||
+         (ms_compat && !ms_conforming_preproc)) &&
         mdp->variadic &&
         ((a_repl_text_seq_kind)*rtp == rt_paste ||
          (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
@@ -5006,7 +5012,8 @@ associated global variables will also have been set).
   a_boolean       is_inert_macro = FALSE;  /* Assume. */
   a_boolean       check_expansion_for_recursion = FALSE;
   a_boolean       pcc_mode_macro_recursion = FALSE;
-  a_boolean       comma_ignored_inside_argument = ms_compat;
+  a_boolean       comma_ignored_inside_argument =
+                                           ms_compat && !ms_conforming_preproc;
   a_source_position
                   start_pos;
   a_const_char    *file_name, *full_name;
@@ -5243,10 +5250,10 @@ end_scan_for_macro_modifs:;
       if (slmp->assoc_macro == macro_symbol) {
         /* The identifier does appear within its own expansion. */
         if (!pcc_preprocessing_mode) {
-          if (ms_compat) {
-            /* In some cases, the Microsoft preprocessor expands a macro
-               invocation appearing in the expansion of an earlier
-               invocation of the same macro.  For example:
+          if (ms_compat && !ms_conforming_preproc) {
+            /* In some cases, the traditional Microsoft preprocessor
+               expands a macro invocation appearing in the expansion of an
+               earlier invocation of the same macro.  For example:
 
                  #define invoke(M, arg) M arg
                  #define X(arg) invoke(Y, (arg))
@@ -5762,17 +5769,19 @@ make_inert_macro:
 do_argument_again:
           if (pp == NULL) {
             /* Too many arguments. */
-            if (microsoft_bugs &&
+            if (microsoft_bugs && !ms_conforming_preproc &&
                 (curr_token == tok_comma || curr_token == tok_rparen)) {
-              /* In Microsoft mode, it's not an extra argument if it's
-                 empty (see test for empty argument below). */
+              /* In traditional Microsoft preprocessing mode, it's not an
+                 extra argument if it's empty (see test for empty argument
+                 below). */
             } else {
               if (!too_many_args_diag_given) {
                 an_error_severity severity;
                 a_source_position *pos;
-                if (pcc_preprocessing_mode || SVR4_C_mode || ms_compat) {
-                  /* In pcc, SVR4 C, and Microsoft mode, this is only a
-                     warning. */
+                if (pcc_preprocessing_mode || SVR4_C_mode ||
+                    (ms_compat && !ms_conforming_preproc)) {
+                  /* In pcc, SVR4 C, and Microsoft traditional preprocessor
+                     mode, this is only a warning. */
                   severity = es_warning;
                 } else {
                   severity = es_discretionary_error;
@@ -5836,8 +5845,9 @@ do_argument_again:
                      (b1) a right parenthesis, or
                      (b2) a comma when we are not in the last argument
                           (pp->next == NULL) of a variadic macro.
-             In addition, in Microsoft mode commas occurring inside a
-             substituted macro argument do not terminate a macro argument.
+             In addition, in Microsoft traditional preprocessor mode commas
+             occurring inside a substituted macro argument do not terminate
+             a macro argument.
           */
           while (!(curr_token == tok_newline ||
                    curr_token == tok_end_of_source ||
@@ -5884,23 +5894,25 @@ do_argument_again:
                                           map->raw_text+map->raw_len);
             map->raw_len += token_text_len;
             if (pcc_preprocessing_mode ||
-                (ms_compat && curr_token == tok_rparen)) {
+                (ms_compat && !ms_conforming_preproc &&
+                 curr_token == tok_rparen)) {
               /* Suppress end-of-token markers in pcc mode.  Also, in
-                 Microsoft mode, suppress the token separator following a
-                 right parenthesis, to allow concatenation of the final
-                 token of a macro expansion with the following token. */
+                 Microsoft traditional preprocessor mode, suppress the
+                 token separator following a right parenthesis, to allow
+                 concatenation of the final token of a macro expansion with
+                 the following token. */
               need_end_of_token_marker = FALSE;
-            } else if (microsoft_bugs &&
+            } else if (microsoft_bugs && !ms_conforming_preproc &&
                        (start_of_curr_token[0] == '+' ||
                         start_of_curr_token[0] == '-') &&
                        isdigit((unsigned char)start_of_curr_token[1])) {
               /* Suppress end-of-token markers between a sign character and
                  a digit in Microsoft bugs mode.  This emulates the
-                 behavior of the Microsoft preprocessor that enables
-                 something like "1e" and "-1" to be concatenated into the
-                 single token "1e-1", as opposed to the Standard-conforming
-                 behavior that produces the erroneous token "1e-" and the
-                 separate token "1". */
+                 behavior of the traditional Microsoft preprocessor that
+                 enables something like "1e" and "-1" to be concatenated
+                 into the single token "1e-1", as opposed to the
+                 Standard-conforming behavior that produces the erroneous
+                 token "1e-" and the separate token "1". */
               need_end_of_token_marker = FALSE;
             } else {
               need_end_of_token_marker = TRUE;
@@ -5912,17 +5924,17 @@ do_argument_again:
             (void)arg_get_token(&any_white_space_skipped);
             if (comma_is_from_argument) {
               if (paren_count > 0) {
-                /* The Microsoft preprocessor ignores whether a comma
-                   originated in a macro argument in invocations appearing
-                   within the argument of another macro.  (We take the fact
-                   that this comma is nested within parentheses as an
-                   indication that it is in a macro argument.  If it's just
-                   parenthesized text and not a macro invocation, it doesn't
-                   matter because commas nested within parentheses don't
-                   delimit macro arguments in any case.)  Overwrite the
-                   LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
-                   innocuous substitution, since all commas start new
-                   tokens). */
+                /* The traditional Microsoft preprocessor ignores whether a
+                   comma originated in a macro argument in invocations
+                   appearing within the argument of another macro.  (We
+                   take the fact that this comma is nested within
+                   parentheses as an indication that it is in a macro
+                   argument.  If it's just parenthesized text and not a
+                   macro invocation, it doesn't matter because commas
+                   nested within parentheses don't delimit macro arguments
+                   in any case.)  Overwrite the LE_COMMA_FROM_ARGUMENT
+                   escape with LE_END_OF_TOKEN (an innocuous substitution,
+                   since all commas start new tokens). */
                 char *cp = (char *)start_of_curr_token;
                 /* The LE_COMMA_FROM_ARGUMENT escape might be followed by an
                    LE_END_OF_TOKEN escape and/or a single space character,
@@ -5940,11 +5952,11 @@ do_argument_again:
                 cp[-LE_ESCAPE_LEN+1] = LE_END_OF_TOKEN;
               } else if (top_microsoft_slmp != NULL &&
                          macro_name_depth > 2) {
-                /* The Microsoft preprocessor does not give special meaning
-                   to a comma from an argument if it's used as an argument
-                   in a macro invocation in which the macro name is the
-                   result of a deeply-nested macro expansion.  For example,
-                   given something like
+                /* The traditional Microsoft preprocessor does not give
+                   special meaning to a comma from an argument if it's used
+                   as an argument in a macro invocation in which the macro
+                   name is the result of a deeply-nested macro expansion.
+                   For example, given something like
 
                      #define M(...) X(__VA_ARGS__)(__VA_ARGS__)
                      M(x,y)
@@ -6013,11 +6025,12 @@ do_argument_again:
             if (strict_ansi_mode && !c99_mode && !cpp11_mode) {
               pos_warning(ec_empty_macro_argument, &error_position);
             }  /* if */
-            /* Strangely, the Microsoft compiler ignores empty macro arguments.
-               This has been verified with MSVC++ 4.2, 5.0. and 7.0.
-               Fixed in 7.1 */
-            if (microsoft_bugs && microsoft_version < 1310 &&
-                curr_token == tok_comma && !comma_is_from_argument) {
+            /* Strangely, the traditional Microsoft preprocessor ignores
+               empty macro arguments.  This has been verified with MSVC++
+               4.2, 5.0. and 7.0.  Fixed in 7.1 */
+            if (microsoft_bugs && !ms_conforming_preproc &&
+                microsoft_version < 1310 && curr_token == tok_comma &&
+                !comma_is_from_argument) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
@@ -6127,11 +6140,12 @@ scan_expanded_tokens:
                                end_of_curr_token[1] == LE_ESCAPE &&
                                end_of_curr_token[2] == LE_END_OF_INSERTION);
             if (comma_ignored_inside_argument) {
-              /* In Microsoft mode, top-level (i.e., not nested inside
-                 parentheses) commas that originate in the expanded text of
-                 a macro in a macro argument are marked so that they do not
-                 delimit macro arguments when the expanded text is rescanned.
-                 For example, given
+              /* In Microsoft traditional preprocessor mode, top-level
+                 (i.e., not nested inside parentheses) commas that
+                 originate in the expanded text of a macro in a macro
+                 argument are marked so that they do not delimit macro
+                 arguments when the expanded text is rescanned.  For
+                 example, given
 
                        #define Q(x) M(x)
                        #define A 1,2
@@ -6170,17 +6184,17 @@ scan_expanded_tokens:
                                           any_white_space_skipped,
                                          map->expanded_text+map->expanded_len);
             map->expanded_len += token_text_len;
-            if (microsoft_bugs &&
+            if (microsoft_bugs && !ms_conforming_preproc &&
                 (start_of_curr_token[0] == '+' ||
                  start_of_curr_token[0] == '-') &&
                 isdigit((unsigned char)start_of_curr_token[1])) {
               /* Suppress end-of-token markers between a sign character and
                  a digit in Microsoft bugs mode.  This emulates the
-                 behavior of the Microsoft preprocessor that enables
-                 something like "1e" and "-1" to be concatenated into the
-                 single token "1e-1", as opposed to the Standard-conforming
-                 behavior that produces the erroneous token "1e-" and the
-                 separate token "1". */
+                 behavior of the traditional Microsoft preprocessor that
+                 enables something like "1e" and "-1" to be concatenated
+                 into the single token "1e-1", as opposed to the
+                 Standard-conforming behavior that produces the erroneous
+                 token "1e-" and the separate token "1". */
               need_end_of_token_marker = FALSE;
             } else {
               need_end_of_token_marker = TRUE;
@@ -6188,8 +6202,8 @@ scan_expanded_tokens:
             (void)arg_get_token(&any_white_space_skipped);
             if (empty_variadic_macro_seen &&
                 map->expanded_text[map->expanded_len - 1] == ',') {
-              /* The Microsoft preprocessor suppresses a comma preceding
-                 an empty variadic macro expansion. */
+              /* The traditional Microsoft preprocessor suppresses a comma
+                 preceding an empty variadic macro expansion. */
               --map->expanded_len;
               if (map->expanded_len >= LE_ESCAPE_LEN &&
                   map->expanded_text[map->expanded_len - 2] == LE_ESCAPE &&
@@ -6199,8 +6213,8 @@ scan_expanded_tokens:
                 map->expanded_len -= LE_ESCAPE_LEN;
               }  /* if */
             }  /* if */
-            if (ms_compat && token_ends_macro_expansion &&
-                !any_white_space_skipped) {
+            if (ms_compat && !ms_conforming_preproc &&
+                token_ends_macro_expansion && !any_white_space_skipped) {
               /* Suppress the token separator to allow concatenation of the
                  final token of a macro expansion with the following
                  token. */
@@ -6325,14 +6339,16 @@ end_arg_expansion:;
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
         /* An argument is missing.  This is an error, except in pcc
-           preprocessing mode, SVR4 C mode, Sun mode, and Microsoft mode,
-           where we issue a warning. It is also fine (no warning) to omit
-           an extended or Microsoft variadic macro argument. */
-        if (!((extended_variadic_macros_allowed || ms_compat) &&
+           preprocessing mode, SVR4 C mode, Sun mode, and Microsoft
+           traditional preprocessor mode, where we issue a warning. It is
+           also fine (no warning) to omit an extended or traditional
+           Microsoft variadic macro argument. */
+        if (!((extended_variadic_macros_allowed ||
+               (ms_compat && !ms_conforming_preproc)) &&
               pp->next == NULL && mdp->variadic)) {
           an_error_severity sev;
-          if (pcc_preprocessing_mode || SVR4_C_mode || ms_compat ||
-              sun_mode) {
+          if (pcc_preprocessing_mode || SVR4_C_mode ||
+              (ms_compat && !ms_conforming_preproc) || sun_mode) {
             sev = es_warning;
           } else {
             sev = es_discretionary_error;
@@ -6381,16 +6397,16 @@ end_arg_expansion:;
          below. */
       if (curr_token != tok_rparen) {
         if (curr_token == tok_end_of_source && macro_depth > 1 &&
-            microsoft_bugs) {
-          /* This invocation occurs within a macro argument.  The Microsoft
-             preprocessor allows the closing parenthesis to occur in the
-             text following the outermost macro invocation.  We support
-             this by canceling the current macro invocation and copying the
-             macro name and raw arguments into a source line modification,
-             marking the macro name as temporarily inert.  This suppresses
-             the invocation until after the top-level invocation is
-             completed and the following text is available to be scanned
-             for the closing parenthesis. */
+            microsoft_bugs && !ms_conforming_preproc) {
+          /* This invocation occurs within a macro argument.  The
+             traditional Microsoft preprocessor allows the closing
+             parenthesis to occur in the text following the outermost macro
+             invocation.  We support this by canceling the current macro
+             invocation and copying the macro name and raw arguments into a
+             source line modification, marking the macro name as
+             temporarily inert.  This suppresses the invocation until after
+             the top-level invocation is completed and the following text
+             is available to be scanned for the closing parenthesis. */
           remove_stop_token(tok_rparen);
           is_macro_call = FALSE;
 #if RECORD_MACRO_INVOCATIONS
@@ -6743,12 +6759,13 @@ end_arg_expansion:;
   /* Make enough room in macro_buffer for the expansion, an
      LE_END_OF_TOP_LEVEL_EXPANSION or LE_EMPTY_VARIADIC_MACRO escape, if
      needed, and the following LE_END_OF_INSERTION lexical escape. */
-  if (ms_compat && mdp->variadic && repl_text_len == 0 &&
-      space_for_end_of_top_level_expansion_escape == 0) {
-    /* The Microsoft preprocessor suppresses a comma in a macro argument
-       list when it appears prior to an empty variadic expansion.  The
-       inserted text will consist of an LE_EMPTY_VARIADIC_MACRO followed
-       by an LE_END_OF_INSERTION to allow detection of that case. */
+  if (ms_compat && !ms_conforming_preproc && mdp->variadic &&
+      repl_text_len == 0 && space_for_end_of_top_level_expansion_escape == 0) {
+    /* The Microsoft traditional preprocessor suppresses a comma in a macro
+       argument list when it appears prior to an empty variadic expansion.
+       The inserted text will consist of an LE_EMPTY_VARIADIC_MACRO
+       followed by an LE_END_OF_INSERTION to allow detection of that
+       case. */
     ensure_macro_buffer_space(2 * LE_ESCAPE_LEN);
   } else {
     ensure_macro_buffer_space(repl_text_len +
@@ -6761,7 +6778,8 @@ end_arg_expansion:;
   if (space_for_end_of_top_level_expansion_escape != 0) {
     *next_avail_in_macro_buffer++ = LE_ESCAPE;
     *next_avail_in_macro_buffer++ = LE_END_OF_TOP_LEVEL_EXPANSION;
-  } else if (ms_compat && mdp->variadic && repl_text_len == 0) {
+  } else if (ms_compat && !ms_conforming_preproc && mdp->variadic &&
+             repl_text_len == 0) {
     *next_avail_in_macro_buffer++ = LE_ESCAPE;
     *next_avail_in_macro_buffer++ = LE_EMPTY_VARIADIC_MACRO;
     repl_text_len = LE_ESCAPE_LEN;
@@ -6858,7 +6876,8 @@ end_arg_expansion:;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             { a_const_char *post_end;
-              if (ms_extensions && prev_section_is_paste &&
+              if (ms_extensions && !ms_conforming_preproc &&
+                  prev_section_is_paste &&
                   is_microsoft_function_name_paste(map,
                                                    rescan_loc,
                                                    (sizeof_t)(src_loc-
@@ -6947,9 +6966,11 @@ end_arg_expansion:;
           case rt_stringized_raw_argument:
           case rt_charized_raw_argument:
             /* The stringized or charized value of the argument. */
-            if (map->raw_len == 0 && ms_compat && !map->is_empty_arg) {
-              /* The Microsoft preprocessor suppresses all output for
-                 omitted (as opposed to empty) arguments.  That is, given
+            if (map->raw_len == 0 && ms_compat && !ms_conforming_preproc &&
+                !map->is_empty_arg) {
+              /* The Microsoft traditional preprocessor suppresses all
+                 output for omitted (as opposed to empty) arguments.  That
+                 is, given
 
                    #define M(a,b) #b
 
@@ -7032,7 +7053,8 @@ end_arg_expansion:;
               *src_loc++ = LE_RAW_OR_EXPANDED_ARGUMENT;
               /* Calculate the effective length of the raw version. */
               sect_len = map->raw_len;
-              if ((extended_variadic_macros_allowed || ms_compat) &&
+              if ((extended_variadic_macros_allowed ||
+                   (ms_compat && !ms_conforming_preproc)) &&
                   mdp->variadic &&
                   ((a_repl_text_seq_kind)*rtp == rt_paste ||
                    (a_repl_text_seq_kind)*rtp ==
@@ -7092,8 +7114,10 @@ end_arg_expansion:;
       }  /* if */
       /* When extended variadic macros are enabled, a "##" followed by an
          empty variadic argument has a special deletion effect.  The same
-         is true for Microsoft variadic macros, with or without the "##". */
-      if ((extended_variadic_macros_allowed || ms_compat) &&
+         is true for Microsoft traditional variadic macros, with or without
+         the "##". */
+      if ((extended_variadic_macros_allowed ||
+           (ms_compat && !ms_conforming_preproc)) &&
           mdp->variadic &&
           ((a_repl_text_seq_kind)*rtp == rt_paste ||
            (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
@@ -7141,10 +7165,11 @@ copy_done:
   if (check_expansion_for_recursion) {
     /* This macro invocation appears in the expansion of an earlier
        invocation of the same macro.  Normally that would mark the macro as
-       inert.  In the Microsoft preprocessor, however, the macro is only
-       treated as inert if the expansions begin with an invocation of the
-       same macro.  Find all previous invocations of this macro that are
-       still active and check their text against the just-expanded text. */
+       inert.  In the Microsoft traditional preprocessor, however, the
+       macro is only treated as inert if the expansions begin with an
+       invocation of the same macro.  Find all previous invocations of this
+       macro that are still active and check their text against the
+       just-expanded text. */
     for (slmp = invocation_slmp; slmp != NULL;
          slmp = parent_source_line_modif(slmp)) {
       if (slmp->assoc_macro == macro_symbol &&
@@ -7229,18 +7254,18 @@ copy_done:
   if ((pcc_preprocessing_mode ||
        /* Avoid a problem with a missing parenthesis on a "defined"
           operator. */
-       (ms_compat && curr_token != tok_newline)) &&
+       (ms_compat && !ms_conforming_preproc && curr_token != tok_newline)) &&
       is_macro_call && macro_depth == 1) {
     /* In pcc mode, in order to more closely approximate the token-pasting
        behavior of pcc, we immediately macro-expand the text resulting from a
        top-level macro invocation, then make a copy of the macro-expanded
        version as one long string. */
-    /* This also applies in Microsoft mode (old-style concatenation can
-       still be done). */
+    /* This also applies in Microsoft traditional preprocessor mode
+       (old-style concatenation can still be done). */
     /* Free any allocated macro buffers now, to make their space available
        in the macro expansions about to be done. */
     free_macro_arg_entries(prev_end_of_macro_arg_list);
-    if (ms_compat) {
+    if (ms_compat && !ms_conforming_preproc) {
       top_microsoft_slmp = slmp;
     }  /* if */
     expand_top_level_pcc_macro(slmp);
@@ -8273,14 +8298,14 @@ Scan and process a #define directive.
             put_start_of_non_text_section(rt_paste, 0);
             if (param_num != 0) {
               /* The token following "##" is a parameter. */
-              if (ms_compat && 
+              if (ms_compat && !ms_conforming_preproc &&
                   (prev_token != tok_identifier ||
                    (microsoft_version >= 1400 && variadic &&
                     param_num == n_params))) {
-                /* The Microsoft preprocessor normally expands variadic
-                   arguments before substitution, even after "##".  It also
-                   expands a normal argument if the token before "##" is
-                   not an identifier. */
+                /* The Microsoft traditional preprocessor normally expands
+                   variadic arguments before substitution, even after "##".
+                   It also expands a normal argument if the token before
+                   "##" is not an identifier. */
                 if (prev_token == tok_lparen || prev_token == tok_comma) {
                   /* An exception to this behavior is when the token is
                      used as an argument to a nested macro and that macro
@@ -8389,13 +8414,15 @@ Scan and process a #define directive.
           /* In pcc mode, always use the raw form of the argument.  Expansion
              is done on rescan of the macro body. */
           a_boolean is_microsoft_va_args =
-                                (ms_compat && microsoft_version >= 1400 &&
-                                 variadic && param_num == n_params);
+                                        (ms_compat && !ms_conforming_preproc &&
+                                         microsoft_version >= 1400 &&
+                                         variadic && param_num == n_params);
           if (is_microsoft_va_args &&
               next_avail_in_macro_buffer != buffer_start) {
-            /* The Microsoft version of variadic macros performs the
-               "magic deletion" of a preceding comma even without a "##"
-               operator, so we need to mark the __VA_ARGS__ parameter. */
+            /* The Microsoft traditional preprocessor version of variadic
+               macros performs the "magic deletion" of a preceding comma
+               even without a "##" operator, so we need to mark the
+               __VA_ARGS__ parameter. */
             put_start_of_non_text_section(rt_microsoft_magic_arg_marker, 0);
           }  /* if */
           /* Save information on current token because mdefn_get_token will
@@ -8406,8 +8433,8 @@ Scan and process a #define directive.
                               &any_white_space_skipped) == tok_paste ||
               pcc_preprocessing_mode) {
             if (is_microsoft_va_args) {
-              /* The Microsoft compiler expands variadic arguments before
-                 substitution.  Note that we do not set
+              /* The Microsoft traditional preprocessor expands variadic
+                 arguments before substitution.  Note that we do not set
                  need_end_of_token_marker to TRUE here so that the end of
                  the expanded text can form a single token with what
                  follows it. */
@@ -8461,11 +8488,11 @@ Scan and process a #define directive.
              put out later unless the next thing is "##" or the end of the
              replacement text. */
           need_end_of_token_marker = TRUE;
-          if (ms_compat &&
+          if (ms_compat && !ms_conforming_preproc &&
               len_of_curr_token == 1 && *start_of_curr_token == 'L' &&
               start_of_curr_token[1] == '#') {
-            /* In Microsoft mode, L#param can be used to create a wide
-               string literal. */
+            /* In Microsoft traditional preprocessor mode, L#param can be
+               used to create a wide string literal. */
             need_end_of_token_marker = FALSE;
           }  /* if */
           /* Generate a remark on an invalid token.  Suppress this remark if
@@ -8568,7 +8595,7 @@ Scan and process a #define directive.
                           assoc_symbol->header->identifier);
         } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
           /* A redefinition of a predefined symbol. */
-          if (ms_compat) {
+          if (ms_compat && !ms_conforming_preproc) {
             discard_new_definition = TRUE;
             severity = es_warning;
             code = ec_cannot_redef_predef_macro;
@@ -9671,8 +9698,9 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       if (!is_valid_identifier(du_str, (sizeof_t)strlen(du_str), &assoc_symbol,
                                &locator)) {
         err = TRUE;
-        /* The Microsoft compiler ignores invalid definitions. */
-        if (ms_extensions) suppress_error = TRUE;
+        /* The Microsoft traditional preprocessor ignores invalid
+           definitions. */
+        if (ms_extensions && !ms_conforming_preproc) suppress_error = TRUE;
       } else {
         if (assoc_symbol != NULL) {
           if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
@@ -10756,6 +10784,10 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    (void)enter_predef_macro(ms_conforming_preproc ? "0" : "1",
+                             "_MSVC_TRADITIONAL",
+                             /*cannot_be_redeclared=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -11055,7 +11087,8 @@ Do one-time initialization of variables related to macro processing.
   init_macro_text_map(MACRO_TEXT_MAP_INITIAL_COUNT, &macro_text_map,
                       /*resizable=*/TRUE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  if (pcc_preprocessing_mode || ms_compat) {
+  if (pcc_preprocessing_mode ||
+      (ms_compat && !ms_conforming_preproc)) {
     /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
        the full text of a first-level macro expansion so that the token
        pasting can match pcc's. */
