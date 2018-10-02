@@ -36026,7 +36026,7 @@ Both C99-style and GNU-style designators are handled here.
       a_targ_size_t      idx, last_idx;
       a_boolean          okay = TRUE;
       start_pos = pos_curr_token;
-			if (cpp20_designators_restriction) {
+      if (cpp20_designators_restriction) {
         pos_error(ec_no_array_designators_in_cpp_mode, &pos_curr_token);
       } /* if */
       /* Skip the left bracket. */
