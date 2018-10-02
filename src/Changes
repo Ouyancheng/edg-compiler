@@ -167,7 +167,7 @@ members.  That's the case with the following example (with
 9/27/18  [EDGcpfe/20216]
 Spurious error on array declarator in generic lambda parameter declaration
 
-The front end previous issued a spurious error on the following example:
+The front end previously issued a spurious error on the following example:
 
   int x = [](auto [3]) { return 42; }((int*)nullptr); 
 
