@@ -8073,6 +8073,7 @@ make_proxy_type_if_needed:
         /* Instantiate the class if it is a template class. */
         complete_class_type_is_needed(class_struct_union_type);
         if (class_struct_union_type->incomplete &&
+            class_type_supp(class_struct_union_type)->assoc_scope == NULL &&
             is_template_dependent_context() &&
             (gpp_mode || clang_mode || microsoft_mode)) {
           class_struct_union_type = type_of_unknown_templ_param_nontype;
@@ -8137,7 +8138,7 @@ make_proxy_type_if_needed:
     {
       is_vacuous_destructor_reference = TRUE;
     }  /* if */
-  }  /* if */ 
+  }  /* if */
   if (need_operand_1_type_check) {
     a_type_ptr  tp = class_struct_union_type;
     a_boolean   is_class_type = is_immediate_class_type(tp);
