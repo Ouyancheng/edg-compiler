@@ -1,5 +1,13 @@
 Version 5.1
 
+10/3/18  [EDGcpfe/20238]
+Value of __cplusplus in GNU emulation mode with --ms_extensions
+
+The value of the __cplusplus macro had been set to 199711L in GNU emulation
+mode with --ms_extensions (as it is in Microsoft emulation mode), but now
+is set to the value that it would have without --ms_extensions.
+
+
 10/2/18  [EDGcpfe/19942]
 C++-generating back end, GNU compatibility: non-dependent member function
 calls via dependent bases

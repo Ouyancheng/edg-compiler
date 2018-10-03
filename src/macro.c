@@ -10402,7 +10402,7 @@ command line -D options.
     a_const_char *cpp17_date = "201703L";
     if (cpp20_mode) {
       val = "202000L";
-    } else if (ms_extensions && !clang_mode) {
+    } else if (ms_extensions && !gnu_mode) {
       if (microsoft_version < 1310) {
         val = "1";
 #if MICROSOFT_EXTENSIONS_ALLOWED
