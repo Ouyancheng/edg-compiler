@@ -2220,6 +2220,7 @@ option values if they were not already set by a command line option.
         hex_floating_point_constants_allowed = TRUE;
       }  /* if */
     }  /* if */
+    universal_character_names_allowed = TRUE;
   } else {
     /* Microsoft C++ mode. */
     a_boolean ms_cpp14_mode = microsoft_version >= 1903;

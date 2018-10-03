@@ -1,5 +1,12 @@
 Version 5.1
 
+10/3/18  [EDGcpfe/20239]
+Microsoft compatibility: use of universal characters in identifiers in C mode
+
+A change has been made to accept universal characters in Microsoft C mode
+(previously these were accepted only in C99 and C++ modes).
+
+
 10/3/18  [EDGcpfe/20238]
 Value of __cplusplus in GNU emulation mode with --ms_extensions
 
