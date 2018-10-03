@@ -58,7 +58,7 @@ mode.  Previously, if such a member also had a default member initializer, the
 front end aborted with an assertion failure in aggr_init_array.  For example:
 
   struct S { int k[] = {}; };  // Previously aborted in Microsoft C++ mode.
-                               //  Now an error.
+                               // Now an error.
 
 This is now fixed: An ordinary error is issued.
 
