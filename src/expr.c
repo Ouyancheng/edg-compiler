@@ -33699,6 +33699,7 @@ issue an error; otherwise, return TRUE.
     a_constant_ptr          char_con, next_char_con;
     a_memory_region_number  region_to_switch_back_to;
     a_constant_ptr          spelling_con;
+    a_boolean               is_string_literal_operator_template;
     /* The template argument list corresponds to a pack expansion. */
     if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
       /* The initial lookup was ambiguous, so the token spelling was left in
@@ -33706,15 +33707,34 @@ issue an error; otherwise, return TRUE.
          in case the lookup needs to be repeated in order to add the ambiguous
          symbols to the diagnostic. */
       spelling_con = &const_with_curr_tok_spelling;
+      is_string_literal_operator_template =
+                    (const_for_curr_token.type->kind == (a_type_kind)tk_array);
     } else {
       /* The original lookup found a single literal operator template, so
          const_for_curr_token now contains the spelling of the token. */
+      a_template_symbol_supplement_ptr tssp;
+      check_assertion(symbol_is(ud_lit_op_sym_for_curr_token,
+                                sk_function_template));
+      tssp = ud_lit_op_sym_for_curr_token->variant.template_info;
       spelling_con = &const_for_curr_token;
+      is_string_literal_operator_template =
+                        symbol_is(tssp->variant.function.decl_cache.decl_info->
+                                                      parameters->param_symbol,
+                                  sk_type);
     }  /* if */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    templ_arg_list =
+    if (is_string_literal_operator_template) {
+      /* The template parameter list is <typename T, T ...>. */
+      templ_arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
+      templ_arg_list->variant.type = array_element_type(spelling_con->type);
+      tap = alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+      templ_arg_list->next = tap;
+    } else {
+      /* The template parameter list is <char ...>. */
+      templ_arg_list =
             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-    tap = templ_arg_list;
+      tap = templ_arg_list;
+    }  /* if */
     /* Turn spelling_con into a ck_aggregate constant with a constant for
        every character. */
     check_assertion(constant_is(spelling_con, ck_string));

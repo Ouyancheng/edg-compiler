@@ -4645,6 +4645,9 @@ before this routine is called.
   if (!option_kind_used[(int)optk_user_defined_literals]) {
     user_defined_literals_enabled = (cpp11_mode && gnu_version >= 40700);
   }  /* if */
+  string_literal_operator_template_allowed = (user_defined_literals_enabled &&
+                                              cpp14_mode &&
+                                              gnu_version >= 40900);
   macro_preempts_udl_suffix = (gnu_version >= 40800 && !clang_mode);
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     /* g++ supports type traits in versions 4.3 and later.  Earlier versions
@@ -11862,6 +11865,7 @@ variables declared in cmd_line.h.
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;
   auto_template_params_enabled = FALSE;
+  string_literal_operator_template_allowed = FALSE;
 }  /* cmd_line_static_var_init */
 
 

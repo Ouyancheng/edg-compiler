@@ -11881,9 +11881,28 @@ return FALSE and let the caller generate the code normally.
            The spelling of the literal portion is given as the elements of
            a parameter pack expansion. */
         a_template_arg_ptr tap;
+        a_boolean          close_quote_needed = FALSE;
         for (tap = rp->template_arg_list; tap != NULL; tap = tap->next) {
           if (tap->kind == (a_templ_arg_kind)tak_start_of_pack_expansion) {
             /* Ignore. */
+          } else if (tap->kind == (a_templ_arg_kind)tak_type) {
+            a_type_ptr con_type;
+            check_assertion(tap->next != NULL &&
+                            tap->next->kind ==
+                               (a_templ_arg_kind)tak_start_of_pack_expansion &&
+                            tap->next->next != NULL &&
+                            tap->next->next->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_integer);
+            con_type = tap->next->next->variant.constant->type;
+            if (con_type->variant.integer.wchar_t_type) {
+              write_ch('L');
+            } else if (con_type->variant.integer.char16_t_type) {
+              write_ch('u');
+            } else if (con_type->variant.integer.char32_t_type) {
+              write_ch('U');
+            };  /* if */
+            write_ch('"');
+            close_quote_needed = TRUE;
           } else {
             a_host_large_integer val;
             a_boolean            overflow;
@@ -11896,6 +11915,9 @@ return FALSE and let the caller generate the code normally.
             write_ch((char)val);
           }  /* if */
         }  /* for */
+        if (close_quote_needed) {
+          write_ch('"');
+        }  /* if */
       } else if (rp->is_raw_literal_operator) {
         /* The argument is a character string giving the spelling of the
            literal portion.  Depending on the context, the string can be

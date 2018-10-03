@@ -2650,6 +2650,13 @@ EXTERN a_boolean
 			   appropriate feature test macros described in
 			   document WG21 SG10 SD-6. */
 
+EXTERN a_boolean
+		string_literal_operator_template_allowed;
+			/* When TRUE, string literal operator templates
+			   (i.e., having the signature
+			     "<typename T, T ...>"
+			   a g++/clang extension) are accepted. */
+
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes
 other than C++11 (where it is by default TRUE).  Does not affect the value

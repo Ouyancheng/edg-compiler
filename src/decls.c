@@ -8054,10 +8054,24 @@ given position is non-NULL, issue one or more errors as appropriate.
   }  /* if */
   tpp = tssp->variant.function.decl_cache.decl_info->parameters;
   check_assertion(tpp != NULL);
-  if (tpp->next != NULL ||
-      !tpp->is_pack  ||
-      !symbol_is(tpp->param_symbol, sk_constant) ||
-      !is_plain_char_type(tpp->variant.constant.ptr->type)) {
+  if (symbol_is(tpp->param_symbol, sk_type) &&
+      string_literal_operator_template_allowed) {
+    /* Check for a string literal operator template, which has the
+       signature "<typename charT, charT ...chars>" (a clang and g++
+       extension). */
+    a_type_ptr param_type = tpp->variant.type;
+    tpp = tpp->next;
+    if (tpp == NULL || tpp->next != NULL || !tpp->is_pack ||
+        !symbol_is(tpp->param_symbol, sk_constant) ||
+        tpp->variant.constant.ptr->type != param_type) {
+      if (pos != NULL) {
+        pos_error(ec_invalid_string_literal_operator_template, pos);
+      }  /* if */
+      result = FALSE;
+    }  /* if */
+  } else if (tpp->next != NULL || !tpp->is_pack  ||
+             !symbol_is(tpp->param_symbol, sk_constant) ||
+             !is_plain_char_type(tpp->variant.constant.ptr->type)) {
     if (pos != NULL) {
       pos_error(ec_invalid_template_parameter_for_literal_operator_template,
                 pos);

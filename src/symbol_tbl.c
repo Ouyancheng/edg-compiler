@@ -15859,24 +15859,38 @@ const_for_curr_token.
       /* Check the symbol for a match against the permitted operators. */
       sym = fundamental_symbol_of(list_sym);
       if (symbol_is(sym, sk_function_template)) {
-        if (!allow_raw_and_template) {
+        if (!allow_raw_and_template &&
+            !string_literal_operator_template_allowed) {
           /* Ignore the symbol. */
         } else {
           /* This is a literal operator template, and the current literal
              is of a kind for which a literal operator template is a
              possible match.  Make a note of it and continue the scan. */
-          if (operator_template != NULL) {
-            /* We already saw a literal operator template.  Remember that
-               for possible later handling. */
-            ambiguous_operator_template = TRUE;
-          }  /* if */
-          operator_template = sym;
-          if (dp != NULL) {
-            /* Record the symbol for later display, if needed. */
-            slep = alloc_symbol_list_entry();
-            slep->symbol = sym;
-            slep->next = raw_and_template_operators;
-            raw_and_template_operators = slep;
+          a_template_symbol_supplement_ptr tssp = sym->variant.template_info;
+          a_template_param_ptr             tpp;
+          a_boolean                        is_string_literal_operator_template;
+          tpp = tssp->variant.function.decl_cache.decl_info->parameters;
+          check_assertion(tpp != NULL);
+          is_string_literal_operator_template =
+                                    (symbol_is(tpp->param_symbol, sk_type) &&
+                                     tpp->next != NULL &&
+                                     string_literal_operator_template_allowed);
+          if (is_string != is_string_literal_operator_template) {
+            /* The template does not match the literal; ignore the symbol. */
+          } else {
+            if (operator_template != NULL) {
+              /* We already saw a literal operator template.  Remember that
+                 for possible later handling. */
+              ambiguous_operator_template = TRUE;
+            }  /* if */
+            operator_template = sym;
+            if (dp != NULL) {
+              /* Record the symbol for later display, if needed. */
+              slep = alloc_symbol_list_entry();
+              slep->symbol = sym;
+              slep->next = raw_and_template_operators;
+              raw_and_template_operators = slep;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (symbol_is(sym, sk_routine)) {
@@ -16014,7 +16028,16 @@ const_for_curr_token.
         } else if (!caching_tokens) {
           /* A regular token, neither being added to nor extracted from a
              cache.  Record the spelling of the token. */
-          create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+          if (is_string) {
+            /* const_for_curr_token contains the string value, but the
+               current token pointer is not yet set (because concatenation
+               of adjacent string literals is not yet complete).  Set the
+               spelling from const_for_curr_token. */
+            copy_constant(&const_for_curr_token,
+                          &const_with_curr_tok_spelling);
+          } else {
+            create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+          }  /* if */
           if (!ambiguous) {
             /* We need to put the spelling of the current token into
                const_for_curr_token for a raw literal operator or literal
