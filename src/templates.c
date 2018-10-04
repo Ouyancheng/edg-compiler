@@ -14001,7 +14001,7 @@ copy_type_with_substitution for the meaning of the parameters.
 }  /* copy_class_template_placeholder_with_substitution */
 
 
-a_type_ptr copy_type_with_substitution_special(
+static a_type_ptr copy_type_with_substitution_special(
 			a_type_ptr			type,
 			a_type_ptr			parent_class,
 			a_template_arg_ptr		templ_arg_list,
