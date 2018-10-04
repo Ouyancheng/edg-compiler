@@ -730,7 +730,7 @@ remove_any_extraneous_braces:
                      init_component_pos(icp), dest_type);
       }  /* if */
     } else if (icp->variant.braced.list == NULL || 
-               icp->contains_designator == TRUE) {
+               icp->contains_designator) {
       /* Empty braces: Pass the braces to convert_initializer below (which
          results in "value initialization"). */
       if (!list_init_enabled) {
@@ -3093,11 +3093,14 @@ specific position is available.
     }  /* if */
   }  /* if */
   if (cpp20_designators_restriction) {
-    if (designator_exists(aggr_con, *field) == TRUE) {
+    if (class_type->kind == (a_type_kind)tk_union &&
+        aggr_con->variant.aggregate.first_constant != NULL){
+      pos_error(ec_too_many_initializer_values, init_component_pos(icp));
+    } else if (designator_exists(aggr_con, *field)) {
       pos_error((*field)->is_anonymous_parent_object ?
                 ec_duplicate_designator_anonymous_union :
                 ec_duplicate_designator, init_component_pos(icp));
-    } else if (!fields_are_ordered(orig_field, *field)) {
+    } else if (!fields_are_ordered(orig_field, *field)){
       pos_error(ec_no_out_of_order_init_in_cpp_mode, init_component_pos(icp));
     }  /* if */
   }  /* if */
