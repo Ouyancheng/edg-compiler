@@ -1996,7 +1996,7 @@ is TRUE.  Otherwise it must be zero.
                                      templ_param_list,
                                      templ_arg_list, templ_param_list,
                                      &template_sym->decl_position,
-                                     CTWS_NEW_CONTEXT,
+                                     CTWS_NO_OPTIONS,
                                      /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
         if (copy_error ||
@@ -13277,13 +13277,10 @@ to an alias template, the substituted type is returned in *new_type
        of the template arguments, don't try to find a matching template
        class. */
     new_sym = NULL;
-  } else if (templ_param_is_alias &&
-             (options & CTWS_NEW_CONTEXT) == 0) {
+  } else if (templ_param_is_alias) {
     /* If the result of a template template parameter substitution is
        an alias template, do substitution on the prototype type so that
-       a failure is a substitution failure, not a hard error.  This is
-       not done for substitutions that do not come immediately from the
-       current context as some of the enclosing context won't be correct. */
+       a failure is a substitution failure, not a hard error. */
     a_type_ptr	proto_type;
     a_type_ptr	tp;
     proto_type = tssp->variant.class_template.prototype_instantiation
@@ -14004,6 +14001,72 @@ copy_type_with_substitution for the meaning of the parameters.
 }  /* copy_class_template_placeholder_with_substitution */
 
 
+a_type_ptr copy_type_with_substitution_special(
+			a_type_ptr			type,
+			a_type_ptr			parent_class,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+This is like copy_type_with_substitution, except that if the current context
+is within a member of a class template, substitution is also done of the
+enclosing template parameters.  parent_class is the parent class whose
+parameters should also be substituted, or NULL if their is no parent class
+(or it should not be substituted).
+*/
+{
+  if (parent_class != NULL &&
+      parent_class->variant.class_struct_union.is_template_class &&
+      !parent_class->variant.class_struct_union.is_specialized) {
+    /* If the parent class is itself a template instance (but not an explicit
+       specialization), first recursively substitute any parameters that it is
+       associated with. */
+    a_template_arg_ptr    parent_templ_args = NULL;
+    a_template_param_ptr  parent_templ_params;
+    get_substitution_pairs_for_template_class(parent_class,
+                                              &parent_templ_params,
+                                              &parent_templ_args);
+    if (parent_templ_args != NULL) {
+      type = copy_type_with_substitution_special(
+                        type, parent_class_or_null(parent_class),
+                        parent_templ_args, parent_templ_params, source_pos,
+                        options, copy_error, ctws_state);
+    }  /* if */
+  }  /* if */
+  if (!*copy_error) {
+    type = copy_type_with_substitution(
+                        type, templ_arg_list, templ_param_list,
+                        source_pos, options, copy_error, ctws_state);
+  }  /* if */
+  return type;
+}  /* copy_type_with_substitution_special */
+
+
+static a_boolean type_is_based_on_templ_templ_param(a_type_ptr	type)
+/*
+Return TRUE if type is a template instance based on a template template
+parameter.
+*/
+{
+  a_boolean		result = FALSE;
+
+  if (is_immediate_class_type(type)) {
+    a_class_symbol_supplement_ptr	cssp;
+    a_symbol_ptr			template_sym;
+    cssp = symbol_supplement_for_class(type);
+    template_sym = cssp->class_template;
+    if (template_sym != NULL) {
+      template_sym = primary_template_of(template_sym);
+      result = template_sym->is_template_param;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_is_based_on_templ_templ_param */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -14246,6 +14309,7 @@ a pointer over a reference type or creating an array of references.
           /* Substitution of __bases and __direct_bases is not supported. */
           subst_fail(*copy_error);
         } else {
+          a_type_ptr	parent_class_for_subst = NULL;
           if (type->variant.typeref.is_template_alias) {
             if (type->variant.typeref.is_dependent) {
               /* If the typeref is an alias template instance, substitute the
@@ -14265,6 +14329,7 @@ a pointer over a reference type or creating an array of references.
                               copy_error,
                               ctws_state);
               new_type = type;
+              parent_class_for_subst = template_sym->parent.class_type;
             }  /* if */
           }  /* if */
           if (!*copy_error && type->kind == (a_type_kind)tk_typeref) {
@@ -14286,7 +14351,18 @@ a pointer over a reference type or creating an array of references.
                      !type_without_typerefs->variant.typeref.
                                                            is_template_alias &&
                      !typeref_is_type_operator(type_without_typerefs));
-            tp = copy_type_with_substitution(type_without_typerefs,
+            if (!type_is_based_on_templ_templ_param(type_without_typerefs)) {
+              /* If the type is based on a template template parameter we
+                 need to also substitute enclosing template parameters in
+                 case we have something like X<...> where X is a template
+                 template parameter of an enclosing class template.  If
+                 it is not a template template parameter, clear the parent
+                 class saved above. */
+              parent_class_for_subst = NULL;
+            }  /* if */
+            tp = copy_type_with_substitution_special(
+                                             type_without_typerefs,
+                                             parent_class_for_subst,
                                              templ_arg_list,
                                              templ_param_list, source_pos,
                                              options, copy_error, ctws_state);
@@ -20004,6 +20080,7 @@ initially used when processing the declaration of a partial specialization.
       prototype_type->variant.typeref.is_alias = TRUE;
       prototype_type->variant.typeref.is_template_alias = TRUE;
       prototype_type->variant.typeref.is_nonreal = TRUE;
+      prototype_type->variant.typeref.is_dependent = TRUE;
       prototype_type->variant.typeref.is_prototype_instantiation = TRUE;
       prototype_type->source_corresp.attributes = tssp->attributes;
     } else {
