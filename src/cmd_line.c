@@ -2747,6 +2747,9 @@ option values if they were not already set by a command line option.
   if (microsoft_bugs && ms_permissive) {
     ms_treat_copy_init_as_direct_init = TRUE;
   }  /* if */
+  if (ms_conforming_preproc) {
+    pragma_operator_allowed = TRUE;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
