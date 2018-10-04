@@ -14014,7 +14014,7 @@ static a_type_ptr copy_type_with_substitution_special(
 This is like copy_type_with_substitution, except that if the current context
 is within a member of a class template, substitution is also done of the
 enclosing template parameters.  parent_class is the parent class whose
-parameters should also be substituted, or NULL if their is no parent class
+parameters should also be substituted, or NULL if there is no parent class
 (or it should not be substituted).
 */
 {
