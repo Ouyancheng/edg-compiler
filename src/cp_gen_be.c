@@ -11886,6 +11886,12 @@ return FALSE and let the caller generate the code normally.
           if (tap->kind == (a_templ_arg_kind)tak_start_of_pack_expansion) {
             /* Ignore. */
           } else if (tap->kind == (a_templ_arg_kind)tak_type) {
+            /* This is an instance of a string literal operator template,
+               i.e., one with the signature "<typename T, T ...chars>",
+               where T determines the kind of string literal and chars
+               gives the value of the literal; for example, L"ab"_x would
+               call operator""_x<const wchar_t, L'a', L'b'>()".  Put out
+               the encoding-prefix, if any, and the initial quote. */
             a_type_ptr con_type;
             check_assertion(tap->next != NULL &&
                             tap->next->kind ==
