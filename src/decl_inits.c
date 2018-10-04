@@ -2916,6 +2916,29 @@ position is available).
   }  /* if */
 }  /* aggr_init_field */
 
+static a_boolean designator_exists(a_constant_ptr  aggr_con,
+                                   a_field_ptr     field)
+/*
+Return TRUE if aggr_con contains designator for field.
+*/
+{
+  a_boolean  found = FALSE;
+  a_constant_ptr cur_const;
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+
+  cur_const = aggr_con->variant.aggregate.first_constant;
+  while (cur_const!= NULL) {
+    if (cur_const->kind == (a_constant_repr_kind)ck_designator &&
+        cur_const->variant.designator.is_field_designator == TRUE &&
+        cur_const->variant.designator.variant.field == field) {
+      found = TRUE;
+      break;
+    } else {
+      cur_const = cur_const->next;
+    } /* if */
+  } /* while */
+  return found;
+} /* fields_are_ordered */
 
 static a_boolean fields_are_ordered(a_field_ptr  first, 
                                     a_field_ptr  second)
@@ -3012,7 +3035,8 @@ specific position is available.
                struct S s2 = { .i = 1 };    // Sometimes an error.
              In modes where it is permitted, we must generate anonymous
              designators to navigate the aggregate structure. */
-          if (!C_mode() || gcc_version_is(< 40600)) {
+          if ((!C_mode() || gcc_version_is(< 40600)) &&
+              !cpp20_designators_restriction) {
             okay = FALSE;
             pos_error(ec_indirect_anon_union_designator,
                       init_component_pos(icp));
@@ -3066,13 +3090,14 @@ specific position is available.
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
-  if (cpp20_designators_restriction &&
-      !fields_are_ordered(orig_field,*field) &&
-      class_type->kind != (a_type_kind)tk_union){
-    /* For a union, only one initializer is allowed.  Do not issue a 
-       diagnostic here.  Fall back to too many initializers error handling 
-       instead. */
-    pos_error(ec_no_out_of_order_init_in_cpp_mode, init_component_pos(icp));
+  if (cpp20_designators_restriction) {
+    if (designator_exists(aggr_con, *field) == TRUE) {
+      pos_error((*field)->is_anonymous_parent_object ?
+                ec_duplicate_designator_anonymous_union :
+                ec_duplicate_designator, init_component_pos(icp));
+    } else if (!fields_are_ordered(orig_field, *field)) {
+      pos_error(ec_no_out_of_order_init_in_cpp_mode, init_component_pos(icp));
+    } /* if */
   } /* if */
   if (skip_designator) {
     icp = next_icp;

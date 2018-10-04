@@ -76,7 +76,7 @@ gnu_target_version_number is 70300 or larger.  For example, with
   };
 
 
-10/2/18  [EDGcpfe/20119,EDGcpfe/20003]
+10/2/18  [EDGcpfe/20003,EDGcpfe/20119]
 C++20 Designated initialization
 
 In C++20 mode, the front end now accepts designated initializers.  This

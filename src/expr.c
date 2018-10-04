@@ -36146,7 +36146,7 @@ Both C99-style and GNU-style designators are handled here.
   }  /* for */
   if (std_designator_seen && !(curr_token == tok_lbrace &&
                                list_init_enabled)) {
-    /* A "=" should be next.  If not, issue an ordinary error rather than a
+    /* An "=" should be next.  If not, issue an ordinary error rather than a
        syntax error since it makes for better error recovery. */
     if (curr_token != tok_assign) {
       pos_error(ec_exp_assign, &pos_curr_token);

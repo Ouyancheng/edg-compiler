@@ -3616,9 +3616,9 @@ setting is used, and to set various unmentioned settings as needed.
   /* If the designators option has not been explicitly specified and we are in 
      cpp20 mode activate the restrictions on C++ designators.  In GNU mode,
      the restrictions do not apply. */
-  if (!option_kind_used[(int)optk_designators]) {
-    if (cpp20_mode && !gpp_mode) {
-      designators_allowed = TRUE;
+  if (cpp20_mode && !option_kind_used[(int)optk_designators]) {
+    designators_allowed = TRUE;
+    if (!gpp_mode) {
       cpp20_designators_restriction = TRUE;
     } /* if */
   } /* if */
