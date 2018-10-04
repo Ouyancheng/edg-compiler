@@ -848,7 +848,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		cpp20_designators_restriction;
 			/* TRUE if c++20 designators restrictions
-         should be used. */
+			   should be used. */
 
 EXTERN a_boolean
 		variadic_macros_allowed;

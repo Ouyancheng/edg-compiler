@@ -3614,14 +3614,14 @@ setting is used, and to set various unmentioned settings as needed.
      so do not generate the explicit C-mode deallocations. */
   vla_deallocations_in_il = FALSE;
   /* If the designators option has not been explicitly specified and we are in 
-     cpp20 mode activate the restrictions on C++ designators.  In GNU mode,
-     the restrictions do not apply. */
+     cpp20 mode enable a restricted form of designated initializers.  In GNU
+     mode, the restrictions do not apply. */
   if (cpp20_mode && !option_kind_used[(int)optk_designators]) {
     designators_allowed = TRUE;
     if (!gpp_mode) {
       cpp20_designators_restriction = TRUE;
-    } /* if */
-  } /* if */
+    }  /* if */
+  }  /* if */
   if (option_kind_used[(int)optk_extended_designators]) {
     command_line_error(ec_cl_extended_designators_option_only_in_C);
   }  /* if */

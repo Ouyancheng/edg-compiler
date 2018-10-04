@@ -36008,7 +36008,7 @@ Both C99-style and GNU-style designators are handled here.
          source was meant to be a designator). */
       if (first_designator_seen && cpp20_designators_restriction) {
         pos_error(ec_no_chained_designators_in_cpp_mode, &pos_curr_token);
-      } /* if */
+      }  /* if */
       /* Skip the period. */
       (void)get_token();
       add_stop_token(tok_lbracket);
@@ -36048,7 +36048,7 @@ Both C99-style and GNU-style designators are handled here.
       start_pos = pos_curr_token;
       if (cpp20_designators_restriction) {
         pos_error(ec_no_array_designators_in_cpp_mode, &pos_curr_token);
-      } /* if */
+      }  /* if */
       /* Skip the left bracket. */
       (void)get_token();
       add_stop_token(tok_rbracket);
@@ -36358,7 +36358,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
     if (cpp20_designators_restriction && designator_seen &&
         non_designator_seen) {
       pos_error(ec_no_mixed_init_in_cpp_mode, &pos_curr_token);
-    } /* if */
+    }  /* if */
     /* An element of the list might be a pack expansion in some modes
        and contexts. */
     any_more = begin_potential_pack_expansion_context(&pesep);
