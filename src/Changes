@@ -1,5 +1,30 @@
 Version 5.1
 
+10/3/18  [EDGcpfe/19063,EDGcpfe/19516,EDGcpfe/20210]
+Template template parameter substitution issue
+
+If a template template parameter was used in an alias template declaration,
+and the alias template was used as a template template parameter, a
+substitution error could occur if the template template parameter was
+instantiated as part of the evaluation of a default template argument
+during template argument deduction.  Now fixed.
+
+  template <bool b> struct A {
+    static constexpr bool v = b;
+  };
+  template <bool b, class... T> struct B {
+    using type = int;
+  };
+  template <template <class...> class TT1, class... T> struct C {
+    template <template <class...> class TT2, class = TT2<T...>>
+      static A<true> f(int);
+    template <template <class...> class> static A<false> f(...);
+    using type = decltype(f<TT1>(0));
+  };
+  template <class T, class U> using D = typename B<T::v>::type;
+  C<D, void, int> c;
+
+
 10/3/18  [EDGcpfe/15168,EDGcpfe/20235]
 String literal operator templates
 
