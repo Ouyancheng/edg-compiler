@@ -2925,8 +2925,8 @@ Return TRUE if aggr_con contains a designator for field.
 {
   a_boolean  found = FALSE;
   a_constant_ptr cur_const;
+  
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-
   cur_const = aggr_con->variant.aggregate.first_constant;
   while (cur_const!= NULL) {
     if (cur_const->kind == (a_constant_repr_kind)ck_designator &&
