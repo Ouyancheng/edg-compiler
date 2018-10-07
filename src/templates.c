@@ -14045,26 +14045,25 @@ parameters should also be substituted, or NULL if there is no parent class
 }  /* copy_type_with_substitution_special */
 
 
-static a_boolean type_is_based_on_templ_templ_param(a_type_ptr	type)
+static a_boolean type_is_class_template_instance(a_type_ptr	type)
 /*
-Return TRUE if type is a template instance based on a template template
-parameter.
+Return TRUE if type is a class template instance.
 */
 {
   a_boolean		result = FALSE;
 
-  if (is_immediate_class_type(type)) {
+  if (is_immediate_class_type(type) &&
+      type->variant.class_struct_union.is_template_class) {
     a_class_symbol_supplement_ptr	cssp;
     a_symbol_ptr			template_sym;
     cssp = symbol_supplement_for_class(type);
     template_sym = cssp->class_template;
     if (template_sym != NULL) {
-      template_sym = primary_template_of(template_sym);
-      result = template_sym->is_template_param;
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;
-}  /* type_is_based_on_templ_templ_param */
+}  /* type_is_class_template_instance */
 
 
 a_type_ptr copy_type_with_substitution(
@@ -14351,13 +14350,13 @@ a pointer over a reference type or creating an array of references.
                      !type_without_typerefs->variant.typeref.
                                                            is_template_alias &&
                      !typeref_is_type_operator(type_without_typerefs));
-            if (!type_is_based_on_templ_templ_param(type_without_typerefs)) {
-              /* If the type is based on a template template parameter we
-                 need to also substitute enclosing template parameters in
-                 case we have something like X<...> where X is a template
+            if (!type_is_class_template_instance(type_without_typerefs)) {
+              /* If the type is based on a class template we need to
+                 also substitute enclosing template parameters in case
+                 we have something like X<...> where X is a template
                  template parameter of an enclosing class template.  If
-                 it is not a template template parameter, clear the parent
-                 class saved above. */
+                 it is based on a class template, clear the parent class
+                 saved above. */
               parent_class_for_subst = NULL;
             }  /* if */
             tp = copy_type_with_substitution_special(
