@@ -13682,7 +13682,7 @@ options for the copy.  cblock is a control block for the copy.
     if (options & CE_COPY_NOT_EVALUATED) {
       /* Since the copied expression is not evaluated, no object lifetime
          entry is required. */
-    } else if ((scope_stack_top().in_template_arg_list &&
+    } else if ((scope_stack_top().in_template_arg_list ||
                 options & CE_COPYING_FOR_CONSTEXPR_FOLDING)
 #if DO_IL_LOWERING
                && !il_lowering_underway
