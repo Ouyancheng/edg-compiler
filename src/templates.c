@@ -14355,7 +14355,7 @@ a pointer over a reference type or creating an array of references.
                  also substitute enclosing template parameters in case
                  we have something like X<...> where X is a template
                  template parameter of an enclosing class template.  If
-                 it is an not an instance of a class template, clear the
+                 it is not an instance of a class template, clear the
                  parent class saved above. */
               parent_class_for_subst = NULL;
             }  /* if */
