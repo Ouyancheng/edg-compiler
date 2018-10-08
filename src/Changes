@@ -1,5 +1,28 @@
 Version 5.1
 
+10/8/18  [EDGcpfe/20251]
+Disqualify routines and variables with "auto" type as candidates for module ID
+
+When searching for a candidate for the module ID (used to ensure unique names),
+the front end had previously considered routines and variables with "auto"
+type.  If such an entity had met the other criteria for being a module ID,
+the entity would be mangled, but the mangled name for such an entity would
+not reflect the name after the type has been resolved and such early name
+mangling could also have side-effects, such as missing references to
+abi_tag attributes (as these are computed only the first time a name is
+mangled).  For example (with --gnu_version 80000):
+
+  inline namespace __cxx11 __attribute__ ((__abi_tag__ ("cxx11"))) {
+    class A;
+  }
+  template <typename> struct X {
+    A mf();
+  };
+  auto f() {
+    return &X<int>::mf;   // Previously _Z1fv, now _Z1fB5cxx11v
+  }
+
+
 10/8/18  [EDGcpfe/20247]
 Internal error in i_copy_dynamic_init
 

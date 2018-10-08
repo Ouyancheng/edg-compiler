@@ -27820,6 +27820,9 @@ be used, but there are exceptions.
             /* Variables defined as "selectany" may be defined in multiple
                translation units.  Do not use them for the module id. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else if (variable->declared_with_auto_type_specifier) {
+            /* The type for this variable has not yet been determined (so its
+               mangled name cannot be determined yet). */
           } else {
             module_id_scp = scp;
             module_id_kind = iek_variable;
@@ -27856,6 +27859,9 @@ be used, but there are exceptions.
                can depend on their use, making them poor candidates for basing
                a module id on). */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
+          } else if (is_auto_type(routine->type->variant.routine.return_type)){
+            /* The return type for this routine has not yet been determined
+               (so its mangled name cannot be determined yet). */
           } else {
             /* This routine definition fits the bill. */
             module_id_scp = scp;
