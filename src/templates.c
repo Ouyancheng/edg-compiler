@@ -14351,11 +14351,11 @@ a pointer over a reference type or creating an array of references.
                                                            is_template_alias &&
                      !typeref_is_type_operator(type_without_typerefs));
             if (!type_is_class_template_instance(type_without_typerefs)) {
-              /* If the type is based on a class template we need to
+              /* If the type is an instance of a class template we need to
                  also substitute enclosing template parameters in case
                  we have something like X<...> where X is a template
                  template parameter of an enclosing class template.  If
-                 it is based on a class template, clear the parent class
+                 it is an instance of a class template, clear the parent class
                  saved above. */
               parent_class_for_subst = NULL;
             }  /* if */
