@@ -1350,6 +1350,7 @@ it is the partial specialization template argument list.
   a_template_arg_ptr		arg_list;
   a_class_type_supplement_ptr	ctsp;
 
+  check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* Return the partial specialization template argument list, if one is
      present.  Otherwise return the primary template argument list. */
@@ -14328,7 +14329,9 @@ a pointer over a reference type or creating an array of references.
                               copy_error,
                               ctws_state);
               new_type = type;
-              parent_class_for_subst = template_sym->parent.class_type;
+              if (template_sym->is_class_member) {
+                parent_class_for_subst = template_sym->parent.class_type;
+              }  /* if */
             }  /* if */
           }  /* if */
           if (!*copy_error && type->kind == (a_type_kind)tk_typeref) {
