@@ -2986,7 +2986,6 @@ ec_no_mixed_init_in_cpp_mode;;"mixing designated and non-designated initializers
 ec_no_out_of_order_init_in_cpp_mode;;"out-of-order initializers are nonstandard in C++"
 ec_invalid_string_literal_operator_template;;"a string literal operator template must have a template parameter list equivalent to \"<typename T, T ...>\""
 ec_duplicate_designator;;"duplicate designator is not allowed"
-ec_duplicate_designator_anonymous_union;;"duplicate designator into anonymous union is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
