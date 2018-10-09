@@ -9786,15 +9786,15 @@ attribute.
   aap->position = pos_curr_token;
   aap->variant.constant = bool_val;
   scan_bool_constant_expression(bool_val);
-#if EXTRA_SOURCE_POSITION_IN_IL
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITION_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (rescannable) {
     ssep->in_template_deduction_context = TRUE;
   }  /* if */
-#if EXTRA_SOURCE_POSITION_IN_IL
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   ap->position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITION_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
   dps->conditional_explicit_attr = TRUE;
