@@ -1014,10 +1014,6 @@ typedef struct a_decl_parse_state {
 			/* TRUE if a prefix enable_if attribute was
 			   encountered that cannot be properly applied until
 			   a function declarator is seen. */
-  a_bit_field	conditional_explicit_attr:1;
-			/* TRUE if prefix_attributes includes an internal
-			   attribute (ak_condition_explicit) representing an
-			   C++20 "explicit(<bool-expression>)" construct. */
   a_bit_field	keep_terminating_token:1;
 			/* TRUE if the token terminating the declaration
 			   (usually a semicolon) should not be consumed or

@@ -3052,7 +3052,6 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_boolean                fill_in_dtor,
                          a_boolean                elision_allowed,
                          a_boolean                is_custom_ms_attr_arg_list,
-                         a_conv_context_set       conv_context,
                          a_rescan_control_block   *rcblock,
                          a_boolean                arg_list_supplied,
                          an_arg_list_elem_ptr     supplied_arg_list,
@@ -3085,12 +3084,8 @@ object); if it's NULL, the class of the constructor is assumed.  If
 fill_in_dtor is TRUE, appropriate destruction is placed in the
 returned dynamic initialization (but not attached to an object
 lifetime).  If elision_allowed is TRUE, a call of a copy constructor
-can be elided or turned into a bitwise move.  If is_custom_ms_attr_arg_list
-is TRUE, this function is invoked to parse the arguments for a custom
-"Microsoft COM-style attribute".  conv_context describes the conversion
-implied by the constructor (usually, CCO_DIRECT_INITIALIZATION, but not
-for some list-initializer cases like "X x = { 1, 2 };").  If trivial_ctor
-is non-NULL, and the initialization required turns out to be calling a
+can be elided or turned into a bitwise move.  If trivial_ctor is
+non-NULL, and the initialization required turns out to be calling a
 trivial default constructor (which does nothing), and there's no
 destructor to be called (either because the class doesn't have one or
 because fill_in_dtor is FALSE), return *trivial_ctor set to TRUE,
@@ -3287,9 +3282,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (overloaded_function_case) {
-    if (!(conv_context & CCO_DIRECT_INITIALIZATION)) {
-      conv_context |= CCO_IGNORE_EXPLICIT_MEMBERS;
-    }  /* if */
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
@@ -3301,7 +3293,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                         (an_operand *)NULL,
                                         arg_list,
                                         init_list_ctor_arg_list,
-                                        conv_context,
+                                        CCO_DIRECT_INITIALIZATION,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
@@ -20096,7 +20088,6 @@ expression, and return the result in *result (or an error indication in
                              allocation. */
                           /*elision_allowed=*/(new_routine != NULL),
                           /*is_custom_ms_attr_arg_list=*/FALSE,
-                          CCO_DIRECT_INITIALIZATION,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_list_elem *)NULL,
@@ -20258,7 +20249,6 @@ handle_empty_parens_new_initializer:
                                  being added to Array, disallow elision. */
                               /*elision_allowed=*/FALSE,
                               /*is_custom_ms_attr_arg_list=*/FALSE,
-                              CCO_DIRECT_INITIALIZATION,
                               rcblock,
                               /*arg_list_supplied=*/TRUE,
                               init_raw_args,
@@ -25055,7 +25045,6 @@ freed by this routine.
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
-                        CCO_DIRECT_INITIALIZATION,
                         rcblock,
                         arg_list_supplied, supplied_arg_list,
                         (an_arg_list_elem *)NULL,
@@ -44137,7 +44126,6 @@ source position to be used in overall errors.
                       object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
                       /*is_custom_ms_attr_arg_list=*/FALSE,
-                      CCO_DIRECT_INITIALIZATION,
                       (a_rescan_control_block *)NULL,
                       args_supplied, arg_list,
                       (an_arg_list_elem *)NULL,
@@ -45788,7 +45776,6 @@ attribute.
                             /*fill_in_dtor=*/FALSE,
                             /*elision_allowed=*/FALSE,
                             /*is_custom_ms_attr_arg_list=*/TRUE,
-                            CCO_DIRECT_INITIALIZATION,
                             (a_rescan_control_block *)NULL,
                             /*arg_list_supplied=*/!scan_arg_list,
                             (an_arg_list_elem *)NULL,

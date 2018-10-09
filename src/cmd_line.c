@@ -3487,9 +3487,6 @@ default mode (e.g., exception handling).
       generalized_template_template_matching = TRUE;
       class_template_arg_deduction_enabled = TRUE;
       auto_template_params_enabled = TRUE;
-      if (cpp20_mode) {
-        conditional_explicit_enabled = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
@@ -11399,7 +11396,6 @@ variables declared in cmd_line.h.
                                  FALSE;
 #endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
   explicit_keyword_enabled = DEFAULT_EXPLICIT_KEYWORD_ENABLED;
-  conditional_explicit_enabled = FALSE;
   namespaces_enabled = DEFAULT_NAMESPACES_ENABLED;
   implicit_using_std = DEFAULT_IMPLICIT_USING_STD;
   typename_enabled = DEFAULT_TYPENAME_ENABLED;

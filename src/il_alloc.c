@@ -2056,7 +2056,6 @@ to default values.
       rtsp->explicit_calling_convention = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       rtsp->had_been_implicitly_const = FALSE;
-      rtsp->is_conditionally_explicit = FALSE;
 #if CENTERLINE_CHECKING
       rtsp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
