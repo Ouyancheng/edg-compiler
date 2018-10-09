@@ -1853,6 +1853,100 @@ extern a_boolean is_error_dynamic_init(a_dynamic_init_ptr dip);
 
 extern a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                          a_constant_ptr  con);
+
+/*
+Bit flags used to indicate information about the context of a conversion
+that may allow or suppress certain conversions or diagnostics.
+*/
+typedef int a_conv_context_set;
+#define CCO_DEFAULT ((a_conv_context_set)0x0)
+#define CCO_INITIALIZING_VARIABLE ((a_conv_context_set)0x1)
+			/* The result of the conversion initializes a
+			   variable (or a part of an aggregate variable). */
+#define CCO_INITIALIZING_RETURN_VALUE ((a_conv_context_set)0x2)
+			/* The result of the conversion initializes the
+			   return value of a function. */
+#define CCO_NONTYPE_TEMPLATE_ARG ((a_conv_context_set)0x4)
+			/* The result of the conversion is the value of
+			   a nontype template argument. */
+#define CCO_CAST ((a_conv_context_set)0x8)
+			/* The conversion is being done by a cast (of any
+			   kind). */
+#define CCO_FUNC_NOTATION_CAST ((a_conv_context_set)0x10)
+			/* The conversion is being done by a functional-
+			   notation cast. */
+#define CCO_BITWISE_ASSIGNMENT_PARAM ((a_conv_context_set)0x20)
+			/* The result of the conversion initializes the
+			   notional parameter of a bitwise copy assignment
+			   operator. */
+#define CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER ((a_conv_context_set)0x40)
+			/* The result of the conversion initializes the
+			   parameter of a move constructor or move assignment
+			   operator. */
+#define CCO_MOVE_OPTIMIZATION_ALLOWED ((a_conv_context_set)0x80)
+			/* The result of the conversion is potentially
+			   subject to the move optimization. */
+#define CCO_ANY_CV_QUAL_ON_PTR_ALLOWED ((a_conv_context_set)0x100)
+			/* The result of the conversion is a pointer type,
+			   and we will accept any cv-qualification on the
+			   type underlying the pointer. */
+#define CCO_STATIC_LIFETIME ((a_conv_context_set)0x200)
+			/* When CCO_INITIALIZING_VARIABLE is TRUE, this
+			   is also TRUE if the variable being initialized
+			   has static lifetime. */
+#define CCO_DIRECT_INITIALIZATION ((a_conv_context_set)0x400)
+			/* The conversion is a direct-initialization context,
+			   e.g., a parenthesized initializer, new, or
+			   cast. */
+#define CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS ((a_conv_context_set)0x800)
+			/* Explicit conversion functions should be allowed in
+			   this context.  This is in addition to other normal
+			   reasons why they might be allowed. */
+#define CCO_INITIALIZING_FIELD ((a_conv_context_set)0x1000)
+			/* The result of the conversion initializes a
+			   field of a class (C++11 nonstatic data member
+			   initializer, or NSDMI). */
+#define CCO_SUPPRESS_USER_CONVERSIONS_IN_OVL_RES ((a_conv_context_set)0x2000)
+			/* Suppress user-defined conversions in overload
+			   resolution for some specific reason related to
+			   the context (i.e., not just because this is
+			   copy-initialization). */
+#define CCO_NEW_INITIALIZER ((a_conv_context_set)0x4000)
+			/* The result of the conversion is the initializer
+			   in a "new".  Currently set only for a braced
+			   initializer. */
+#define CCO_LEAVE_AS_OBJECT ((a_conv_context_set)0x8000)
+			/* Used with a reference initialization in
+			   prep_list_initializer to request that the result
+			   be left as an object (see parameter on
+			   prep_reference_initializer_operand).  Implied
+			   by CCO_CAST. */
+#define CCO_ARG_VIA_COPY_CTOR ((a_conv_context_set)0x10000)
+			/* Used when passing an argument operand via copy
+			   constructor. */
+#define CCO_STMT_EXPR_RESULT ((a_conv_context_set)0x20000)
+			/* Used when calling prep_elision_initializer_operand
+			   for the result expression of a GNU statement
+			   expression. */
+#define CCO_TYPE_TRAITS_CHECK ((a_conv_context_set)0x40000)
+			/* Used when a conversion is being checked for a
+			   type traits helper function (e.g.,
+			   __is_convertible_to). */
+#define CCO_CONVERTED_CONSTANT_EXPR ((a_conv_context_set)0x80000)
+			/* Used when the conversion context is a "converted
+			   constant expression" (a C++11 concept). */
+#define CCO_SINGLETON_BRACED_INIT ((a_conv_context_set)0x100000)
+			/* Used when the conversion source is a single
+			   value enclosed in braces. */
+#define CCO_BASE_INIT ((a_conv_context_set)0x200000)
+			/* Used when the conversion is for a constructor
+			   initializer for a base subobject. */
+#define CCO_IGNORE_EXPLICIT_MEMBERS ((a_conv_context_set)0x400000)
+			/* When considering constructors or conversion
+                           operators ignore those that are "explicit" (possibly
+			   after substitution of "explicit( <bool-expr> )"). */
+
+
 /*
 Flags used to specify options to copy_type_with_substitution.
 */

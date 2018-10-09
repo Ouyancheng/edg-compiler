@@ -14531,6 +14531,19 @@ a pointer over a reference type or creating an array of references.
             goto make_new_type;
           }  /* if */
         }  /* if */
+        if (rtsp->is_conditionally_explicit) {
+          an_attribute_ptr  ap = type->source_corresp.attributes;
+          ap = find_attribute(ak_conditional_explicit, ap);
+          check_assertion(ap != NULL && ap->arguments != NULL &&
+                          ap->arguments->kind == 
+                                         (an_attribute_arg_kind)aak_constant);
+          if (constant_is(ap->arguments->variant.constant,
+                          ck_template_param)) {
+            /* A type with a dependent "explicit( <bool-expr> )" attached to
+               it.  The boolean expression must be substituted. */
+            goto make_new_type;
+          }  /* if */
+        }  /* if */
 #if EXPENSIVE_CHECKING
         /* The return type is not substituted when doing partial ordering. */
         if (!is_partial_order_check && !rtsp->trailing_return_type) {
@@ -14773,6 +14786,29 @@ make_new_type:
         }  /* if */
         set_routine_calling_method_flag(new_type, &null_source_position);
         set_clrcall_convention_if_needed(new_type);
+        if (rtsp->is_conditionally_explicit) {
+          /* An internal attribute ak_conditional_explicit is attached to this
+             routine type.  Create a copy of it with its operands appropriately
+             substituted. */
+          an_attribute_ptr  ap = type->source_corresp.attributes,
+                            new_ap;
+          a_constant_ptr    new_arg;
+          ap = find_attribute(ak_conditional_explicit, ap);
+          check_assertion(ap != NULL && ap->arguments != NULL &&
+                          ap->arguments->kind == 
+                                         (an_attribute_arg_kind)aak_constant);
+          copy_attribute(ap, new_ap);
+          new_ap->arguments = alloc_attribute_arg();
+          *new_ap->arguments = *ap->arguments;
+          new_arg = copy_template_param_con_with_substitution(
+                                ap->arguments->variant.constant,
+                                templ_arg_list, templ_param_list, bool_type(),
+                                source_pos, options, copy_error, ctws_state);
+          new_ap->arguments->variant.constant = new_arg;
+          new_rtsp->is_conditionally_explicit = TRUE;
+          new_ap->next = new_type->source_corresp.attributes;
+          new_type->source_corresp.attributes = new_ap;
+        }  /* if */
         /* Decrement the number of routine types whose substitution is in
            progress. */
         ctws_state->routine_type_levels--;

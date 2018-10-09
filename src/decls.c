@@ -221,6 +221,7 @@ be restored).
     dps->is_alias = FALSE;
     dps->param_with_only_enclosing_pack_refs = FALSE;
     dps->pending_prefix_enable_if_attr = FALSE;
+    dps->conditional_explicit_attr = FALSE;
     dps->keep_terminating_token = FALSE;
     dps->is_nontype_template_param = FALSE;
     dps->retrieve_initializer_from_cache = FALSE;

@@ -1,5 +1,23 @@
 Version 5.1
 
+10/9/18  [EDGcpfe/20042]
+C++20: Conditional explicit
+
+In C++20 mode, the front end now implements conditional explicit specifiers
+(aka. "explicit(bool)").  For example:
+
+  template<typename T> struct S {
+    explicit(sizeof(T) > sizeof(int)) S(int x);
+  };
+  
+  S<char> s{3};  // Okay.
+  S<long long> s = 3;  // Error: S(int) constructor is not a candidate
+                       // (assuming sizeof(long long) > sizeof(int)).
+
+That language feature was added by the C++ standardization committee's paper
+number P0892R2.
+
+
 10/9/18  [EDGcpfe/20130]
 Microsoft compatibility: use of injected class name in typename specifier
 
