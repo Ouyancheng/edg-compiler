@@ -325,7 +325,7 @@ typedef enum /*an_option_kind*/ {
   optk_exc_spec_in_func_type,
   optk_aligned_new,
   optk_cpp20_mode,
-  optk_ms_conforming_preproc,
+  optk_ms_std_preproc,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -2396,7 +2396,7 @@ EXTERN a_boolean
 			   (a C++17 feature) are permitted. */
 
 EXTERN a_boolean
-		ms_conforming_preproc;
+		ms_std_preproc;
 			/* TRUE if the preprocessor behavior should conform
 			   to the C++ Standard in Microsoft mode rather
 			   than emulating the traditional Microsoft

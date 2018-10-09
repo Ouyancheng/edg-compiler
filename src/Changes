@@ -152,11 +152,11 @@ Microsoft compatibility: Standard-conforming preprocessing
 New versions of MSVC will offer a choice between the traditional Microsoft
 preprocessor and a preprocessor that conforms to the C and C++ Standards.
 The front end now provides a similar choice, controlled by the global
-variable ms_conforming_preproc; when that variable is TRUE, the traditional
+variable ms_std_preproc; when that variable is TRUE, the traditional
 Microsoft preprocessor behavior is disabled.  That flag is controlled by
-the new command-line option --[no_]ms_conforming_preprocessor, as well as
-by the existing --[no_]ms_permissive (if --[no_]ms_conforming_preprocessor
-is not specified).  The default continues to be to emulate the traditional
+the new command-line option --[no_]ms_std_preprocessor, as well as by the
+existing --[no_]ms_permissive (if --[no_]ms_std_preprocessor is not
+specified).  The default continues to be to emulate the traditional
 Microsoft preprocessor.
 
 

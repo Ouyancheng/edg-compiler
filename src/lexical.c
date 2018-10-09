@@ -8135,7 +8135,7 @@ comment is assumed.  Also tests for "//" in C++ mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_microsoft_mode_slash_slash() \
-  || (ms_extensions && !ms_conforming_preproc && *(curr_char_loc+1) == '/')
+  || (ms_extensions && !ms_std_preproc && *(curr_char_loc+1) == '/')
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_microsoft_mode_slash_slash() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8512,7 +8512,7 @@ white_space_loop:
         /* Advance past the first "/". */
         curr_char_loc++;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ms_extensions && !ms_conforming_preproc) {
+        if (ms_extensions && !ms_std_preproc) {
           if (!within_curr_source_line(curr_char_loc)) {
             /* In Microsoft mode, a // comment delimiter can appear in a macro:
                  #define startcomment() /##/
