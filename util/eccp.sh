@@ -717,7 +717,7 @@ check_abbreviation()
 --ms_c++17
 --ms_c++latest
 --ms_compatibility
---ms_conforming_preprocessor
+--ms_std_preprocessor
 --ms_cplusplus_std_value
 --ms_extensions
 --ms_permissive
@@ -800,7 +800,7 @@ check_abbreviation()
 --no_microsoft
 --no_microsoft_bugs
 --no_ms_compatibility
---no_ms_conforming_preprocessor
+--no_ms_std_preprocessor
 --no_ms_cplusplus_std_value
 --no_ms_extensions
 --no_ms_permissive
@@ -1329,9 +1329,9 @@ process_option()
          --ms_c++17 | \
          --ms_c++latest | \
          --ms_compatibility | \
-         --ms_conforming_preprocessor | \
+         --ms_std_preprocessor | \
          --no_ms_compatibility | \
-         --no_ms_conforming_preprocessor | \
+         --no_ms_std_preprocessor | \
          --ms_cplusplus_std_value | \
          --no_ms_cplusplus_std_value | \
          --ms_extensions | \
