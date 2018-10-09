@@ -1,5 +1,18 @@
 Version 5.1
 
+10/9/18  [EDGcpfe/20130]
+Microsoft compatibility: use of injected class name in typename specifier
+
+The Microsoft compiler finds the injected class name in a typename
+specifier even though the typename specifier is not supposed to influence
+lookup.  We now emulate this behavior in Microsoft mode.
+
+  template <typename T> class A {
+    A& f(const A&);
+  };
+  template <typename T> typename A<T>::A& A<T>::f(const A&){}
+
+
 10/8/18  [EDGcpfe/20251]
 Disqualify routines and variables with "auto" type as candidates for module ID
 

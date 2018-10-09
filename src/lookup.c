@@ -4562,13 +4562,16 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    by returning them only for tentative type lookup, typename lookups,
    and lookups in expression contexts.  In g++ 4.5 emulation mode,
    tentative template lookups are excluded from returning the injected
-   class name. */
+   class name.  In Microsoft mode an injected class name is also allowed
+   in typename lookups.
+*/
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
     (is_using_declaration && inheriting_constructors_enabled) ||      \
-    (gpp_mode && is_typename_lookup) ||                               \
-    (gpp_mode && !is_prototype_instantiation_lookup &&		      \
+    ((gpp_mode || microsoft_mode) && is_typename_lookup) ||           \
+    (gpp_mode &&						      \
+     !is_prototype_instantiation_lookup &&			      \
      !is_using_declaration &&					      \
        (gnu_version < 30400 ||               			      \
         (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 ||	              \
