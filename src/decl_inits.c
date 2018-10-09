@@ -729,8 +729,7 @@ remove_any_extraneous_braces:
         pos_ty_error(ec_brace_initialization_not_allowed,
                      init_component_pos(icp), dest_type);
       }  /* if */
-    } else if (icp->variant.braced.list == NULL || 
-               icp->contains_designator) {
+    } else if (icp->variant.braced.list == NULL) {
       /* Empty braces: Pass the braces to convert_initializer below (which
          results in "value initialization"). */
       if (!list_init_enabled) {
@@ -2917,29 +2916,53 @@ position is available).
 }  /* aggr_init_field */
 
 
-static a_boolean designator_exists(a_constant_ptr  aggr_con,
-                                   a_field_ptr     field)
+static a_boolean designator_exists(an_init_component_ptr  top_icp,
+                                   an_init_component_ptr  icp)
 /*
-Return TRUE if aggr_con contains a designator for field.
+Return TRUE if top_icp contains a designator for field in icp.
 */
 {
   a_boolean  found = FALSE;
-  a_constant_ptr cur_const;
+  an_init_component_ptr  cur_icp = top_icp;
   
-  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  cur_const = aggr_con->variant.aggregate.first_constant;
-  while (cur_const!= NULL) {
-    if (cur_const->kind == (a_constant_repr_kind)ck_designator &&
-        cur_const->variant.designator.is_field_designator &&
-        cur_const->variant.designator.variant.field == field) {
+  check_assertion(is_designator_component(icp));
+  check_assertion(icp->variant.designator.resolved_field !=NULL);
+
+  while (cur_icp != icp) {
+    if (is_designator_component(cur_icp) &&
+        cur_icp->variant.designator.resolved_field ==
+        icp->variant.designator.resolved_field) {
       found = TRUE;
       break;
     } else {
-      cur_const = cur_const->next;
+      cur_icp = cur_icp->next;
     }  /* if */
   }  /* while */
   return found;
 }  /* designator_exists */
+
+
+static a_boolean multiple_designators(an_init_component_ptr  top_icp,
+                                   an_init_component_ptr  icp)
+/*
+Return TRUE if top_icp contains a designator before icp.
+*/
+{
+  a_boolean  found = FALSE;
+  an_init_component_ptr  cur_icp = top_icp;
+
+  check_assertion(is_designator_component(icp));
+
+  while (cur_icp != icp) {
+    if (is_designator_component(cur_icp)) {
+      found = TRUE;
+      break;
+    } else {
+      cur_icp = cur_icp->next;
+    }  /* if */
+  }  /* while */
+  return found;
+}  /* multiple_designators */
 
 
 static a_boolean fields_are_ordered(a_field_ptr  first, 
@@ -2967,7 +2990,8 @@ static void aggr_init_field_designator(an_init_component_ptr  *p_icp,
                                        an_init_state          *is,
                                        a_field_ptr            *field,
                                        a_constant_ptr         aggr_con,
-                                       a_source_position      *diag_pos)
+                                       a_source_position      *diag_pos,
+                                       an_init_component_ptr  top_icp)
 /*
 *p_icp points to a designator component encountered while processing a braced
 initializer for class_type.  Check if the designator is valid, and, if so,
@@ -2975,8 +2999,8 @@ append a matching ck_designator constant to aggr_con.  This routine also
 consumes initializer components up to and including a non-designator (and
 *p_icp is updated to point to the component after that, or NULL if there is
 none).  diag_pos is the position at which to issue diagnostics if no more
-specific position is available.
-*/
+specific position is available.  top_icp points to the start of the icp
+list and is used to check for duplicated designated initializers.  */
 {
   a_boolean              okay, skip_designator = TRUE;
   an_init_component_ptr  icp = *p_icp, next_icp = NULL;
@@ -3013,13 +3037,19 @@ specific position is available.
     if (sym == NULL) {
       /* The name was not found. */
       okay = FALSE;
-      pos_stsy_error(ec_not_a_field, init_component_pos(icp),
-                     loc.symbol_header->identifier, symbol_for(class_type));
+      if (!is->no_diagnostics) {
+        pos_stsy_error(ec_not_a_field, init_component_pos(icp),
+                       loc.symbol_header->identifier, symbol_for(class_type));
+      }  /* if */
+      is->init_error = TRUE;
     } else if (!symbol_is(sym, sk_field)) {
       /* The name was found, but it's not a field. */
       okay = FALSE;
-      pos_st_error(ec_not_a_field_name, init_component_pos(icp),
+      if (!is->no_diagnostics) {
+        pos_st_error(ec_not_a_field_name, init_component_pos(icp),
                    loc.symbol_header->identifier);
+      }  /* if */
+      is->init_error = TRUE;
       check_assertion(!C_mode());
     } else {
       okay = TRUE;
@@ -3092,16 +3122,35 @@ specific position is available.
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
-  if (cpp20_designators_restriction) {
-    if (class_type->kind == (a_type_kind)tk_union &&
-        aggr_con->variant.aggregate.first_constant != NULL){
-      pos_error(ec_too_many_initializer_values, init_component_pos(icp));
-    } else if (designator_exists(aggr_con, *field)) {
-      pos_error((*field)->is_anonymous_parent_object ?
-                ec_duplicate_designator_anonymous_union :
-                ec_duplicate_designator, init_component_pos(icp));
-    } else if (!fields_are_ordered(orig_field, *field)){
-      pos_error(ec_no_out_of_order_init_in_cpp_mode, init_component_pos(icp));
+  if (*field != NULL && cpp20_designators_restriction) {
+    if (class_type->kind != (a_type_kind)tk_union) {
+      /* resolved_field is set so we can check for duplicate designators.
+         For an anonymous union member, we set the field to the invented
+         anonymous union field.  For a union member we skip his step and do
+         the check at the level of the union initialization. */
+      icp->variant.designator.resolved_field = *field;
+      if (designator_exists(top_icp, icp))
+      {
+        if (!is->no_diagnostics) {
+          pos_error(ec_duplicate_designator, init_component_pos(icp));
+        }  /* if */
+        is->init_error = TRUE;
+      } else if ( !fields_are_ordered(orig_field, *field)){
+        /* Check if the declaration order is preserved.  Do not do this check
+           for union and anonymous union members because unions can only ever
+           have one designator. */
+        if (!is->no_diagnostics) {
+          pos_error(ec_no_out_of_order_init_in_cpp_mode,
+                    init_component_pos(icp));
+        }  /* if */
+        is->init_error = TRUE;
+      }  /* if */
+    } else if (multiple_designators(top_icp, icp)){
+      /* For a union, having multiple designators is an error */
+      if (!is->no_diagnostics) {
+        pos_error(ec_duplicate_designator, init_component_pos(icp));
+      }  /* if */
+      is->init_error = TRUE;
     }  /* if */
   }  /* if */
   if (skip_designator) {
@@ -3143,10 +3192,12 @@ specific position is available.
         }  /* if */
         aggr_init_chained_designator(&icp, (*field)->type, is, &next_con);
         *field = (*field)->next;
-        if (next_con == NULL) {
-          check_assertion(is->init_error);
-        } else if (!is->check_validity_only) {
-          add_constant_to_aggregate(next_con, aggr_con);
+        if (!is->check_validity_only) {
+          if (next_con == NULL) {
+            check_assertion(is->init_error);
+          } else if (!is->check_validity_only) {
+            add_constant_to_aggregate(next_con, aggr_con);
+          }  /* if */
         }  /* if */
       } else {
         aggr_init_field(&icp, field, is, aggr_con, diag_pos);
@@ -3218,6 +3269,7 @@ issued if no more specific position is available.
 */
 {
   an_init_component_ptr  icp = *p_icp;
+  an_init_component_ptr  top_icp = *p_icp;
 
   class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
@@ -3267,6 +3319,7 @@ issued if no more specific position is available.
       diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
+      top_icp = icp;
       if (icp == NULL && C_mode() && !gcc_mode) {
         /* Empty initializer lists are not permitted in C mode (except GNU C
            mode). */
@@ -3320,7 +3373,7 @@ issued if no more specific position is available.
         } else {
           is->chained_designator_okay = FALSE;
           aggr_init_field_designator(&icp, class_type, is, &fp, *init_con,
-                                     diag_pos);
+                                     diag_pos, top_icp);
         }  /* if */
       } else if (bcp != NULL) {
         /* A base is available for the next initializer component. */

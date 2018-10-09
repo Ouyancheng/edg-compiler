@@ -229,6 +229,11 @@ typedef struct an_init_component {
       a_source_position
 		position;
 			/* The source position of the designator. */
+      a_field_ptr
+		resolved_field;
+			/* When the designated field has been resolved,
+			   resolved_field will point to the designated field.
+			   NULL otherwise. */
     } designator;
     /* When kind == ick_continued: */
     struct {

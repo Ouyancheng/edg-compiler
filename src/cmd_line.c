@@ -3618,9 +3618,7 @@ setting is used, and to set various unmentioned settings as needed.
      mode, the restrictions do not apply. */
   if (cpp20_mode && !option_kind_used[(int)optk_designators]) {
     designators_allowed = TRUE;
-    if (!gpp_mode) {
-      cpp20_designators_restriction = TRUE;
-    }  /* if */
+    cpp20_designators_restriction = TRUE;
   }  /* if */
   if (option_kind_used[(int)optk_extended_designators]) {
     command_line_error(ec_cl_extended_designators_option_only_in_C);

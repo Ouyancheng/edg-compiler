@@ -954,6 +954,7 @@ variant fields to default values.
       icp->variant.designator.element_index = 0;
       icp->variant.designator.last_element_index = 0;
       icp->variant.designator.position = null_source_position;
+      icp->variant.designator.resolved_field = NULL;
       break;
     case ick_continued:
       icp->variant.continuation.state = NULL;
