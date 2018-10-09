@@ -9748,6 +9748,61 @@ is reset when the member type alias has been scanned.
 }  /* check_for_rescannable_alias */
 
 
+static void conditional_explicit_specifier(a_decl_parse_state  *dps)
+/*
+The caller has determined that the current and next tokens are "explicit (".
+Scan the parenthesized constant-expression and record it as an internal
+attribute.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  a_boolean                rescannable = FALSE;
+  an_attribute_ptr         ap = alloc_attribute();
+  an_attribute_arg_ptr     aap = alloc_attribute_arg();
+  a_constant_ptr           bool_val =
+                                  fs_constant((a_constant_repr_kind)ck_error);
+
+  /* skip over "explicit". */
+  check_assertion(curr_token == tok_explicit);
+  (void)get_token();
+  check_assertion(curr_token == tok_lparen);
+  /* Scan a parenthesized boolean constant-expression.  The parenthesized value
+     is represented as an internal attribute on the (eventual) routine type. */
+  ap->kind = (a_byte_attribute_kind)ak_conditional_explicit;
+  ap->name = copy_string_to_region(file_scope_region_number, "explicit");
+  ap->position = pos_curr_token;
+  ap->arguments = aap;
+  /* Skip over the left parenthesis. */
+  (void)get_token();
+  add_stop_token(tok_rparen);
+  if (scope_is(ssep, sck_template_declaration) &&
+      !ssep->in_template_deduction_context) {
+    /* We're in a template declaration: The expression may therefore need to
+       be rescanned during deduction. */
+    ssep->in_template_deduction_context = TRUE;
+    rescannable = TRUE;
+  }  /* if */
+  aap->kind = (an_attribute_arg_kind)aak_constant;
+  aap->position = pos_curr_token;
+  aap->variant.constant = bool_val;
+  scan_bool_constant_expression(bool_val);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  aap->end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (rescannable) {
+    ssep->in_template_deduction_context = TRUE;
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ap->position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  dps->conditional_explicit_attr = TRUE;
+  ap->next = dps->prefix_attributes;
+  dps->prefix_attributes = ap;
+}  /* conditional_explicit_specifier */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -10552,13 +10607,18 @@ storage_class_specifier:
               specification. */
           pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
-        } else if (decl_specifiers_seen & DS_EXPLICIT) {
+        } else if ((decl_specifiers_seen & DS_EXPLICIT) != 0 ||
+                   state->conditional_explicit_attr) {
           /* Disallow duplicates. */
           pos_error(ec_dupl_decl_specifier, &error_position);
           err = TRUE;
         } else {
-          decl_specifiers_seen |= DS_EXPLICIT;
-          *output_flags |= DSO_EXPLICIT;
+          if (conditional_explicit_enabled && next_token() == tok_lparen) {
+            conditional_explicit_specifier(state);
+          } else {
+            decl_specifiers_seen |= DS_EXPLICIT;
+            *output_flags |= DSO_EXPLICIT;
+          }  /* if */
           if (!is_member_decl) {
             /* For non-member declarations, "explicit" can only appear on
                deduction guides.  Since we cannot check this now, record an

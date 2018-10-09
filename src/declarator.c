@@ -7896,8 +7896,14 @@ past_postfix_declarator_operators:
         complete_type = bottom_derived_type = error_type();
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     } else if (func_info != NULL) {
+      /* Note the presence of "explicit( <bool-expr> )" (before we potentially
+         copy the type to create a "declared type"). */
+      if (state->conditional_explicit_attr) {
+        complete_type->variant.routine.extra_info
+                      ->is_conditionally_explicit = TRUE;
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Set the declared type in the func_info block.  Note that further
          fixup may be required for member functions, since default argument
          expressions will not have been scanned yet. */

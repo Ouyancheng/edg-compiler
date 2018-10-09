@@ -606,14 +606,22 @@ EXTERN a_boolean
 			   enabled.  Significant only in C++ mode.  They
 			   cannot be enabled if the ABI changes for them
 			   are not enabled. */
+
 EXTERN a_boolean
 		explicit_keyword_enabled;
 			/* TRUE if the "explicit" keyword is recognized.
 			   Significant only in C++ mode. */
+
+EXTERN a_boolean
+		conditional_explicit_enabled;
+			/* TRUE if the C++20 construct "explicit(<bool-expr>)"
+			   is recognized. */
+
 EXTERN a_boolean
 		namespaces_enabled;
 			/* TRUE if support for namespaces is enabled.
 			   Significant only in C++ mode. */
+
 EXTERN a_boolean
 		implicit_using_std;
 			/* TRUE if the runtime should implicitly do a

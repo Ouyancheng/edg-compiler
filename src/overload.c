@@ -5231,6 +5231,33 @@ produces a "false" result.
 }  /* enable_if_attribute_fails */
 
 
+static a_boolean conditionally_explicit_confirmed(a_type_ptr  rtp)
+/*
+The given routine type is associated with a function or function template
+declared conditionally explicit (i.e., with "explicit( <bool-expr> )").
+Return TRUE if the associated expression is a true-valued (non-dependent)
+constant.
+*/
+{
+  a_boolean         result;
+  an_attribute_ptr  ap = rtp->source_corresp.attributes;
+  a_constant_ptr    cp;
+
+  ap = find_attribute(ak_conditional_explicit, ap);
+  check_assertion(ap != NULL && ap->arguments != NULL &&
+                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
+  cp = ap->arguments->variant.constant;
+  if (!constant_is(cp, ck_template_param) && !is_false_constant(cp)) {
+    /* After substitution, this function turned out to be "explicit(true)"
+       and we are in a copy-initialization context: Reject the template. */
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* conditionally_explicit_confirmed */
+
+
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
                  a_symbol_ptr             overloaded_function_symbol,
@@ -5754,6 +5781,14 @@ next_argument:
     }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
+    if ((effects_copy_initialization ||
+         (conv_context & CCO_IGNORE_EXPLICIT_MEMBERS)) &&
+        rtsp->is_conditionally_explicit &&
+        conditionally_explicit_confirmed(routine_type)) {
+      /* After substitution, this function turned out to be "explicit(true)"
+         and we are in a copy-initialization context: Reject the template. */
+      goto reject_function;
+    }  /* if */
   }  /* for */
   if (enum_param_still_needed) {
     /* A use of operator notation with non-class operands and the candidate
@@ -6602,7 +6637,7 @@ hide-by-sig lookup.
                                        /*known_to_be_visible=*/FALSE,
                                        /*is_overloaded_operator=*/FALSE,
                                        /*allow_post_declared_functions=*/FALSE,
-                                       CCO_DEFAULT,
+                                       CCO_IGNORE_EXPLICIT_MEMBERS,
                                        candidate_functions,
                                        &matched_except_for_missing_selector,
                                        &matched_except_for_selector,
@@ -14075,12 +14110,28 @@ not_direct_binding_case:
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE,
                                            /*param_count=*/0);
-      if (conv_routine_type == NULL) goto reject_function;
-      if (!is_implicitly_callable_conversion_function(conv_routine_type)) {
-        /* The deduced conversion function performs a conversion for which
-           a conversion function is never implicitly called, e.g.,
-           T to T&, so discard it. */
+      if (conv_routine_type == NULL) {
         goto reject_function;
+      } else { 
+        a_routine_type_supplement_ptr  rtsp;
+        rtsp = conv_routine_type->variant.routine.extra_info;
+        if ((orig_is_copy_initialization ||
+             (conv_context & CCO_IGNORE_EXPLICIT_MEMBERS)) &&
+            !boolean_converted_case &&
+            !(conv_context & CCO_IGNORE_EXPLICIT_MEMBERS) &&
+            rtsp->is_conditionally_explicit &&
+            conditionally_explicit_confirmed(conv_routine_type)) {
+          /* After substitution, this function turns out to be "explicit(true)"
+             and we are in a context that doesn't permit explicit conversion
+             functions. */
+            goto reject_function;
+        }  /* if */
+        if (!is_implicitly_callable_conversion_function(conv_routine_type)) {
+          /* The deduced conversion function performs a conversion for which
+             a conversion function is never implicitly called, e.g.,
+             T to T&, so discard it. */
+          goto reject_function;
+        }  /* if */
       }  /* if */
     } else {
       /* Not a template case.  Check for cases like "operator auto()". */
@@ -24125,6 +24176,7 @@ will be an lvalue instead of the usual prvalue.
                             fill_in_dtor,
                             /*elision_allowed=*/TRUE,
                             /*is_custom_ms_attr_arg_list=*/FALSE,
+                            conv_context,
                             (a_rescan_control_block *)NULL,
                             /*arg_list_supplied=*/TRUE,
                             list,

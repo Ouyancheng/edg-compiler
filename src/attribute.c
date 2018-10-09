@@ -83,6 +83,7 @@ since attributes usually do not create new entries).
 /* Other required header files. */
 #include "disambig.h"
 #include "expr.h"
+#include "folding.h"
 #include "layout.h"
 #include "statements.h"
 
@@ -497,6 +498,10 @@ static an_attr_application_fn apply_nodiscard_attr;
 static an_attr_application_fn apply_maybe_unused_attr;
 static an_attr_application_fn apply_fallthrough_attr;
 
+/* Internal attributes. */
+static an_attr_application_fn apply_conditional_explicit;
+
+/* Other attributes. */
 static an_attr_application_fn apply_enable_if_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -734,6 +739,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_n1, "", apply_edg_n1_attr },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
+  /* Internal attributes. */
+  { ak_conditional_explicit, "", apply_conditional_explicit },
   { ak_pragma_pack_state, "", NO_APPL_FN },
 
   { ak_last, "!!ERROR", NO_APPL_FN }
@@ -3529,14 +3536,17 @@ attributes, call attach_type_attributes.)
 */
 {
   char              *new_entity = entity;
-  an_attribute_ptr  ap;
+  an_attribute_ptr  ap, next_ap;
 
   if (entity != NULL) {
     an_attribute_ptr  *p_list = get_attribute_link(entity, entity_kind);
     *last_attribute_link(p_list) = attributes;
   }  /* if */
-  for (ap = attributes; ap != NULL; ap = ap->next) {
+  for (ap = attributes; ap != NULL; ap = next_ap) {
     db_log_attribute_action("attach", ap, entity, entity_kind);
+    /* Save the "next" pointer because attribute application might move the
+       attribute. */
+    next_ap = ap->next;
     if (!is_type_transforming_attribute(ap) || is_tag_attribute(ap)) {
       new_entity = apply_one_attribute(ap, new_entity, entity_kind);
     }  /* if */
@@ -3558,9 +3568,12 @@ construct produces *p_type.
 (This routine is used to handle GNU type-transforming attributes on typedefs.)
 */
 {
-  an_attribute_ptr  ap;
+  an_attribute_ptr  ap, next_ap;
 
-  for (ap = attributes; ap != NULL; ap = ap->next) {
+  for (ap = attributes; ap != NULL; ap = next_ap) {
+    /* Save the "next" pointer because attribute application might move the
+       attribute. */
+    next_ap = ap->next;
     if (is_gcc_attribute(ap) &&
         is_type_transforming_attribute(ap)) {
       ap->assoc_info = assoc_info;
@@ -3612,9 +3625,12 @@ produces *p_type.
 */
 {
   if (attributes != NULL) {
-    an_attribute_ptr  ap;
+    an_attribute_ptr  ap, next_ap;
     a_type_ptr        new_type = *p_type;
-    for (ap = attributes; ap != NULL; ap = ap->next) {
+    for (ap = attributes; ap != NULL; ap = next_ap) {
+      /* Save the "next" pointer because attribute application might move the
+         attribute. */
+      next_ap = ap->next;
       ap->assoc_info = assoc_info;
       new_type = (a_type_ptr)
                            apply_one_attribute(ap, (char*)new_type, iek_type);
@@ -4545,6 +4561,54 @@ The given entity must be a parameter or a routine.  Apply the
   }  /* if */
   return entity;
 }  /* apply_carries_dependency_attr */
+
+
+static char* apply_conditional_explicit(an_attribute_ptr  ap,
+                                        char              *entity,
+                                        an_il_entry_kind  entity_kind)
+/*
+The given ak_conditional_explicit attribute (family: af_internal) represents a
+C++20 "explicit(<bool-expression>)" construct.  It should only appear on
+functions and function templates: If so, record it (otherwise, an error should
+be issued by check_explicit_specifier).
+*/
+{
+  if (entity_kind == iek_routine) {
+    a_routine_ptr  rp = (a_routine_ptr)entity;
+    a_type_ptr     func_type;
+    ensure_underlying_function_type_is_modifiable(&rp->type, &func_type);
+    if (func_type->kind == (a_type_kind)tk_routine) {
+      an_attribute_arg_ptr  aap = ap->arguments;
+      a_constant_ptr        arg_con;
+      func_type->variant.routine.extra_info->is_conditionally_explicit = TRUE;
+      check_assertion(aap != NULL && aap->next == NULL &&
+                      aap->kind == (an_attribute_arg_kind)aak_constant);
+      arg_con = aap->variant.constant;
+      if (!constant_is(arg_con, ck_template_param) &&
+          !is_false_constant(arg_con)) {
+        if (special_kind_is(rp, sfk_constructor)) {
+          rp->is_explicit_constructor = TRUE;
+        } else if (special_kind_is(rp, sfk_conversion)) {
+          rp->is_explicit_conversion_function = TRUE;
+        } else {
+          expect_error();
+        }  /* if */
+      }  /* if */
+      { /* Move the attribute from the routine to the type. */
+        an_attribute_ptr  *p_list = get_attribute_link(entity, entity_kind);
+        while (*p_list != ap) {
+          p_list = &(*p_list)->next;
+        }  /* while */
+        *p_list = ap->next;
+        ap->next = func_type->source_corresp.attributes;
+        func_type->source_corresp.attributes = ap;
+      }
+    }  /* if */
+  } else {
+    expect_error();
+  }  /* if */
+  return entity;
+}  /* apply_conditional_explicit */
 
 
 static char* apply_deprecated_attr(an_attribute_ptr  ap,

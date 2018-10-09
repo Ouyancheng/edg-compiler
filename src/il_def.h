@@ -2685,6 +2685,9 @@ typedef enum an_attribute_kind_tag {
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
   /* Other attributes. */
+  ak_conditional_explicit,
+			/* An internal attribute representing a C++20
+			   "explicit(<bool-expression>)" construct. */
   ak_pragma_pack_state,	/* A pseudo-attribute used to record the current
 			   value of "#pragma pack(n)" directives in some
 			   cases. */
@@ -6671,6 +6674,13 @@ typedef struct a_routine_type_supplement {
 			   this flag set will have a different mangled name in
 			   C++11 and C++14 (unless
 			   mangle_had_been_implicitly_const is TRUE). */
+  a_bit_field	is_conditionally_explicit:1;
+			/* TRUE if the type is associated with a routine
+			   declared with the "explicit(<boolean-expression)"
+			   construct (a C++20 feature).  (This is part of the
+			   type because it is substituted as part of template
+			   argument deduction, which works with types rather
+			   than routines.) */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;
@@ -6683,6 +6693,12 @@ typedef struct a_routine_type_supplement {
                         /* Indicates whether or not a #pragma implying
                            special argument-type checking (e.g., for printf)
                            applies to this function type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+  a_calling_convention
+		calling_convention;
+			/* Calling convention for this routine type (e.g.,
+			   __cdecl, __fastcall). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   int		fmt_arg;
 			/* When arg_pragma is pk_printf_args or
@@ -6703,12 +6719,6 @@ typedef struct a_routine_type_supplement {
 			   zero value is only possible when has_ellipsis is
 			   TRUE. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-  a_calling_convention
-		calling_convention;
-			/* Calling convention for this routine type (e.g.,
-			   __cdecl, __fastcall). */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   a_type_ptr	this_class;
 			/* For nonstatic member functions this is a pointer
 			   to the (unqualified, untypedefed) class type of
@@ -11107,11 +11117,14 @@ typedef struct a_routine {
 			/* TRUE if this routine is a constructor or deduction
 			   guide (i.e., its special_kind is sfk_constructor or
 			   sfk_deduction_guide) and the "explicit" keyword
-			   appeared in its declaration.  C++ only. */
+			   appeared in its declaration.  C++ only. See also the
+			   flag is_conditionally_explicit in routine type
+			   supplements. */
   a_bit_field	is_explicit_conversion_function:1;
 			/* TRUE if this routine is a conversion function in
-			   C++/CLI mode and the "explicit" keyword appeared in
-			   its declaration. */
+			   the "explicit" keyword appeared in its declaration.
+			   See also the flag is_conditionally_explicit in
+			   routine type supplements. */
   a_bit_field	is_trivial_default_constructor:1;
 			/* TRUE if this routine is a trivial default
 			   constructor (implicitly generated or defaulted).
