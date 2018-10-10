@@ -855,7 +855,7 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		cpp20_designators_restriction;
-			/* TRUE if C++20 designators restrictions should be 
+			/* TRUE if C++20 restrictions on designators should be
 			   enforced. */
 
 EXTERN a_boolean

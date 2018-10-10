@@ -2924,7 +2924,7 @@ TRUE if an earlier component of top_icp has a field designator for that same
 field.
 */
 {
-  a_boolean  found               = FALSE;
+  a_boolean              found = FALSE;
   an_init_component_ptr  cur_icp = top_icp;
   
   check_assertion(is_designator_component(icp) &&
@@ -2949,10 +2949,10 @@ static a_boolean multiple_designators(an_init_component_ptr  top_icp,
 Return TRUE if top_icp contains a designator before icp.
 */
 {
-  a_boolean  found               = FALSE;
+  a_boolean              found = FALSE;
   an_init_component_ptr  cur_icp = top_icp;
-  check_assertion(is_designator_component(icp));
 
+  check_assertion(is_designator_component(icp));
   while (cur_icp != icp) {
     if (is_designator_component(cur_icp)) {
       found = TRUE;
@@ -3129,7 +3129,7 @@ list and is used to check for duplicated designated initializers.  */
          anonymous union field.  For a union member we skip this step and do
          the check at the level of the union initialization. */
       icp->variant.designator.resolved_field = *field;
-      if (designator_exists(top_icp, icp)){
+      if (designator_exists(top_icp, icp)) {
         if (!is->no_diagnostics) {
           pos_error(ec_duplicate_designator, init_component_pos(icp));
         }  /* if */
