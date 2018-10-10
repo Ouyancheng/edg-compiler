@@ -1662,7 +1662,8 @@ Add a new active using directive entry to the scope specified by depth.
         if (skip_namespace_aliases(audp_nsp) == namespace_added_to) {
           /* The enclosing namespace is on the list.  Add the using directive
              to this scope. */
-          add_active_using_directive_to_scope(udp, ssep, decl_seq_counter);
+          add_active_using_directive_to_scope(udp, ssep,
+                                              *curr_decl_seq_counter());
           break;
         }  /* if */
       }  /* for */
@@ -2846,6 +2847,7 @@ the scope being pushed.
     ssep->in_gnu_abi_tag_namespace = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     ssep->in_discarded_statement = FALSE;
+    ssep->decl_seq_counter = &decl_seq_counter;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
     ssep->implicit_typename = (ssep-1)->implicit_typename;
@@ -2857,6 +2859,7 @@ the scope being pushed.
                                   (assoc_namespace != NULL &&
                                    assoc_namespace->has_gnu_abi_tag_attribute);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    ssep->decl_seq_counter = (ssep-1)->decl_seq_counter;
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {

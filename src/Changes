@@ -1,5 +1,29 @@
 Version 5.1
 
+10/10/18 [EDGcpfe/20243]
+Lookup issue with generic lambdas and deferral of prototype instantiations
+
+When function prototype instantiations are being deferred (e.g., in g++
+mode in many configurations), the lookup of names used in generic lambdas
+could incorrectly exclude certain namespace members.  Now fixed.
+
+  template <typename _Tp> _Tp f();
+  template <class T> class A {
+    typedef bool value_type;
+  };
+  template <typename F> auto g(F&& f) -> decltype(f(3)) { return f(3); }
+  template <typename F> struct B {
+    using type = decltype(g(f<F>()));
+  };
+  template <typename F> struct C {
+    typedef typename B<F>::type value_type;
+  };
+  template <typename F> A<typename C<F>::value_type>* h(F) {return nullptr;}
+  namespace N { int i; }
+  // Lookup of N::i failed
+  auto l = h([](auto&& type) { h([](auto&& type) { return N::i; }); });
+
+
 10/10/18 [EDGcpfe/20245]
 Microsoft compatibility: Friend declarations and template names
 

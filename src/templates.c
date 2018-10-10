@@ -4593,7 +4593,7 @@ be completed here.
       /* We proceed with the instantiation. */
       a_class_symbol_supplement_ptr	prototype_cssp;
       a_class_type_supplement_ptr	ctsp;
-      a_decl_sequence_number		saved_decl_seq_counter = 0;
+      a_decl_sequence_number		local_decl_seq_counter;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr       orig_ssep = NULL;
@@ -4816,8 +4816,8 @@ be completed here.
            was defined.  This is done so that friend functions declared in
            the class will be visible to the function prototype
            instantiations. */
-        saved_decl_seq_counter = decl_seq_counter;
-        decl_seq_counter = body_cache->decl_info->starting_decl_seq;
+        local_decl_seq_counter = body_cache->decl_info->starting_decl_seq;
+        scope_stack_top().decl_seq_counter = &local_decl_seq_counter;
       }  /* if */
       /* Scan the base specifiers list, if any, and the body of the class.
          The pending class definition counter is incremented while processing
@@ -4898,10 +4898,6 @@ be completed here.
       establish_class_instantiation_corresp(class_type);
       if (!tssp->is_generic && !is_nonreal_instantiation) {
         set_instantiation_required_for_template_class_members(class_type);
-      }  /* if */
-      if (defer_function_prototype_instantiations) {
-        /* Restore the declaration sequence number if it was updated above. */
-        decl_seq_counter = saved_decl_seq_counter;
       }  /* if */
       /* Do the class fixups for this instantiation. */
       process_deferred_class_fixups_and_instantiations(
@@ -26432,7 +26428,7 @@ instantiation.
         /* Record the declaration sequence number for the default argument.
            This is done here because the value for the containing declaration
            has not been set yet. */
-        decl_state->decl_info->decl_seq = ++decl_seq_counter;
+        decl_state->decl_info->decl_seq = ++*curr_decl_seq_counter();
         default_arg_prototype_instantiation(
                                           template_sym, curr_default_args,
                                           decl_state->prototype_scope_symbols,
@@ -28389,7 +28385,7 @@ any non-empty template parameter lists that were scanned.
            the declarative information looking for gross syntax errors. */
         prototype_okay = TRUE;
         assoc_template_of(prototype_type) = tssp->il_template_entry;
-        decl_state->decl_info->starting_decl_seq = ++decl_seq_counter;
+        decl_state->decl_info->starting_decl_seq = ++*curr_decl_seq_counter();
         instantiate_class_template(sym, prototype_type,
                                    &class_templ_cache_segments, decl_state);
         prototype_type->source_corresp.decl_position = sym->decl_position;
@@ -28511,7 +28507,7 @@ any non-empty template parameter lists that were scanned.
          templates, it will have been set based on the prototype (but note
          that this is only used for the decl_cache, the body cache is
          actually used directly from the prototype template). */
-      decl_state->decl_info->decl_seq = ++decl_seq_counter;
+      decl_state->decl_info->decl_seq = ++*curr_decl_seq_counter();
     }  /* if */
   }  /* if */
   /* Extract the bodies of any member functions, nested classes, or
@@ -31321,7 +31317,7 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
   }  /* if */
   /* Record the default name linkage at the point of declaration. */
   template_decl_info->name_linkage = scope_stack_top().default_name_linkage;
-  template_decl_info->decl_seq = ++decl_seq_counter;
+  template_decl_info->decl_seq = ++*curr_decl_seq_counter();
   push_template_declaration_scope(template_decl_info,
                                   /*is_template_param_rescan=*/FALSE);
   templ_state->number_of_template_decl_scopes += 1;

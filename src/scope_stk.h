@@ -1038,6 +1038,14 @@ typedef struct a_scope_stack_entry {
 			   and for the template declaration scope for the
 			   template parameters of a generic lambda. */
   bitfield_to_avoid_codecenter_warnings()
+  a_decl_sequence_number
+		*decl_seq_counter;
+			/* Pointer to the decl_seq_counter to be used within
+			   this scope.  This usually points to the global
+			   decl_seq_counter, but when deferral of prototype
+			   instantiations is being done, this can point to
+			   a separate counter to be used within an
+			   instantiation. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be

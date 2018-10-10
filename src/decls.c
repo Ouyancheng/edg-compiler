@@ -14321,7 +14321,7 @@ this using-directive.
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension ||
       ssep->kind == (a_scope_kind)sck_file) {
-    udp->decl_sequence_number = ++decl_seq_counter;
+    udp->decl_sequence_number = ++*curr_decl_seq_counter();
   } else {
     /* For local scope using-directives, assign an effective declaration
        sequence number that makes the using-directive always visible. */

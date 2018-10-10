@@ -91,9 +91,19 @@ EXTERN a_decl_sequence_number
 			   numbers for symbols. */
 
 /*
+Return a pointer to the decl_seq_counter from the current scope stack
+entry.  If the scope stack is empty, use the address of the global variable.
+*/
+#define curr_decl_seq_counter()						\
+  (depth_scope_stack == NO_SCOPE_DEPTH					\
+                       ? &decl_seq_counter				\
+                       : scope_stack[depth_scope_stack].decl_seq_counter)
+
+/*
 Set the declaration sequence number of the symbol pointed to by sym.
 */
-#define set_decl_sequence_number(sym) ((sym)->decl_seq = ++decl_seq_counter)
+#define set_decl_sequence_number(sym)					\
+  ((sym)->decl_seq = ++*curr_decl_seq_counter())
 
 /*
 The special value used to represent an unset declaration sequence number.
