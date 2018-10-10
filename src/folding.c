@@ -89,14 +89,17 @@ Retrieve the complex value of the constant into *cx_val.
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 a_boolean variable_has_non_null_address(a_variable_ptr vp)
 /*
-Return TRUE if the indicated variable has a non-NULL address.  That's
-usually TRUE; the exceptions are variables like weak externals.
+Return TRUE if the indicated variable has a non-NULL address.  That's usually
+TRUE; the exceptions are weak-linkage variables (in principle, even
+weak-linkage variables are known to have a non-NULL address if they are known
+to be defined, but GCC does not implement that optimization).
 */
 {
   a_boolean has_non_null_addr = TRUE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (vp->storage_class == (a_storage_class)sc_extern && vp->is_weak) {
+  if (vp->storage_class == (a_storage_class)sc_extern ||
+      vp->is_weak || vp->is_weakref) {
     has_non_null_addr = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -109,14 +112,17 @@ usually TRUE; the exceptions are variables like weak externals.
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 a_boolean routine_has_non_null_address(a_routine_ptr rp)
 /*
-Return TRUE if the indicated routine has a non-NULL address.  That's
-usually TRUE; the exceptions are routines like weak externals.
+Return TRUE if the indicated routine has a non-NULL address.  That's usually
+TRUE; the exceptions are weak-linkage routines (in principle, even weak-linkage
+routines are known to have a non-NULL address if they are known to be defined,
+but GCC does not implement that optimization).
 */
 {
   a_boolean has_non_null_addr = TRUE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (rp->storage_class == (a_storage_class)sc_extern && rp->is_weak) {
+  if (rp->storage_class == (a_storage_class)sc_extern ||
+      rp->is_weak || rp->is_weakref) {
     has_non_null_addr = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

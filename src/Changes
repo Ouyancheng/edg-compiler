@@ -429,8 +429,7 @@ GNU C mode:
   void f();
   int r = f ? 1 : 2;  // Previously an error.  Now okay.
 
-(Functions with weak linkage and no known definition are excluded from this
-treatment.)
+(Functions with weak linkage are excluded from this treatment.)
 
 
 9/27/18  [EDGcpfe/20204]
