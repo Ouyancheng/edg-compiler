@@ -4878,15 +4878,15 @@ returned set to TRUE.
     pos_error(ec_initializer_in_param, source_pos);
     var_err = TRUE;
     static_lifetime = FALSE;
-  } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+  } else if (symbol_is(symbol_ptr, sk_variable)) {
     vp = symbol_ptr->variant.variable.ptr;
     static_lifetime = var_has_static_or_thread_storage_duration(vp);
-  } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+  } else if (symbol_is(symbol_ptr, sk_static_data_member)) {
     vp = symbol_ptr->variant.static_data_member.variable;
     static_lifetime = TRUE;
   } else if (symbol_is(symbol_ptr, sk_variable_template)) {
-    vp = symbol_ptr->variant.template_info->
-                                           variant.variable.prototype_variable;
+    vp = symbol_ptr->variant.template_info
+                   ->variant.variable.prototype_variable;
     static_lifetime = TRUE;
   } else {
     /* Not a variable (for example, might be a typedef). */
@@ -4911,8 +4911,11 @@ returned set to TRUE.
       vp_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if ((vp->decl_modifiers & DM_DLLIMPORT) != 0 &&
-               !vp->is_template_variable) {
-      /* A variable declared __declspec(dllimport) cannot be initialized. */
+               !vp->is_template_variable &&
+               !dps->in_class_scope) {
+      /* A variable declared __declspec(dllimport) cannot be initialized.
+         That restriction does not apply to static data members with in-class
+         initializers.  It also does not apply to template instantiations. */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
