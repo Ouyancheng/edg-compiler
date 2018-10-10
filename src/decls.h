@@ -1016,7 +1016,7 @@ typedef struct a_decl_parse_state {
 			   a function declarator is seen. */
   a_bit_field	conditional_explicit_attr:1;
 			/* TRUE if prefix_attributes includes an internal
-			   attribute (ak_condition_explicit) representing an
+			   attribute (ak_condition_explicit) representing a
 			   C++20 "explicit(<bool-expression>)" construct. */
   a_bit_field	keep_terminating_token:1;
 			/* TRUE if the token terminating the declaration

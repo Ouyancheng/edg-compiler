@@ -6676,7 +6676,7 @@ typedef struct a_routine_type_supplement {
 			   mangle_had_been_implicitly_const is TRUE). */
   a_bit_field	is_conditionally_explicit:1;
 			/* TRUE if the type is associated with a routine
-			   declared with the "explicit(<boolean-expression)"
+			   declared with the "explicit(<boolean-expression>)"
 			   construct (a C++20 feature).  (This is part of the
 			   type because it is substituted as part of template
 			   argument deduction, which works with types rather
@@ -11117,11 +11117,11 @@ typedef struct a_routine {
 			/* TRUE if this routine is a constructor or deduction
 			   guide (i.e., its special_kind is sfk_constructor or
 			   sfk_deduction_guide) and the "explicit" keyword
-			   appeared in its declaration.  C++ only. See also the
-			   flag is_conditionally_explicit in routine type
+			   appeared in its declaration.  C++ only.  See also
+			   the flag is_conditionally_explicit in routine type
 			   supplements. */
   a_bit_field	is_explicit_conversion_function:1;
-			/* TRUE if this routine is a conversion function in
+			/* TRUE if this routine is a conversion function and
 			   the "explicit" keyword appeared in its declaration.
 			   See also the flag is_conditionally_explicit in
 			   routine type supplements. */

@@ -1943,7 +1943,7 @@ typedef int a_conv_context_set;
 			   initializer for a base subobject. */
 #define CCO_IGNORE_EXPLICIT_MEMBERS ((a_conv_context_set)0x400000)
 			/* When considering constructors or conversion
-                           operators ignore those that are "explicit" (possibly
+			   operators ignore those that are "explicit" (possibly
 			   after substitution of "explicit( <bool-expr> )"). */
 
 

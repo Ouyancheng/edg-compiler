@@ -9762,7 +9762,7 @@ attribute.
   a_constant_ptr           bool_val =
                                   fs_constant((a_constant_repr_kind)ck_error);
 
-  /* skip over "explicit". */
+  /* Skip over "explicit". */
   check_assertion(curr_token == tok_explicit);
   (void)get_token();
   check_assertion(curr_token == tok_lparen);
