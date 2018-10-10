@@ -2339,8 +2339,8 @@ cases), the type is replaced by the corresponding decayed pointer type.
 from_auto is TRUE if the type was originally specified using an auto type.
 */
 {
-  an_error_code  err_code;
-  a_type_ptr      type = skip_typerefs(*p_type);
+  an_error_code  err_code = ec_no_error;
+  a_type_ptr     type = skip_typerefs(*p_type);
 
   switch (type->kind) {
     case tk_void:
@@ -2359,8 +2359,6 @@ from_auto is TRUE if the type was originally specified using an auto type.
         /* A floating-point template parameter type is no longer allowed
            as of 3/94. */
         err_code = ec_float_template_parameter;
-      } else {
-        err_code = ec_no_error;
       }  /* if */
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -2377,22 +2375,23 @@ from_auto is TRUE if the type was originally specified using an auto type.
            from_auto flag will be TRUE if the type originally came from
            an auto template parameter. */
         err_code = ec_rvalue_ref_template_parameter;
-      } else {
-        err_code = ec_no_error;
       }  /* if */
       break;
     case tk_routine:
     case tk_array:
       /* Array and routine types are valid, but are replaced by the
          corresponding decayed result type in this context. */
-      err_code = ec_no_error;
       adjust_parameter_type(p_type);
       break;
     case tk_struct:
     case tk_class:
     case tk_union:
-      /* A template parameter cannot have class type. */
-      err_code = ec_template_parameter_has_class_type;
+      /* A template parameter cannot have class type.  Allow nonreal classes
+         because in a real instantiation the actual type could have a
+         valid type. */
+      if (!type->variant.class_struct_union.is_nonreal_class) {
+        err_code = ec_template_parameter_has_class_type;
+      }  /* if */
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
@@ -2401,7 +2400,7 @@ from_auto is TRUE if the type was originally specified using an auto type.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
       /* All other types are valid. */
-      err_code = ec_no_error;
+      break;
   }  /* switch */
   if (err_code != ec_no_error && pos != NULL) {
     pos_error(err_code, pos);

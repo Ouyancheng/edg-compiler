@@ -1,5 +1,23 @@
 Version 5.1
 
+10/10/18 [EDGcpfe/20249]
+Spurious "nontype template parameter may not have class type" error
+
+A spurious "nontype template parameter may not have class type" error
+could be issued when a nontype template parameter has a type based on
+type template parameter (parameter n of B in the example below), and the
+type used for the type template parameter is the instantiation of a
+nonreal template (the type produced by a nonreal instantiation of E in
+the example below).  Now fixed.
+
+  struct A { static const bool v = true; };
+  template <class T, T n> struct B {};
+  template <typename> struct C { static const bool v = true; };
+  template <bool> struct D { template <typename T> using G = T; };
+  template <bool C, typename T> using E = typename D<C>::template G<T>;
+  template <typename T> using F = B< E< C<decltype(T::v)>::v, bool >, false >;
+
+
 10/10/18 [EDGcpfe/20229]
 Invalid scanning of single digit followed by backslash
 
