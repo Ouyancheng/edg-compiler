@@ -15,7 +15,7 @@ determining whether a class type is a "POD" type).  For example:
     D() = default;
     using B::B; 
   };
-  static_assert(__is_pod(B), "Unexpected");  // Previously failed.  Now okay.
+  static_assert(__is_pod(D), "Unexpected");  // Previously failed.  Now okay.
 
 This is now fixed.
 
