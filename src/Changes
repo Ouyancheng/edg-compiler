@@ -1,5 +1,29 @@
 Version 5.1
 
+10/9/18  [EDGcpfe/20246]
+C++-generating back end, clang compatibility: friend template declarations in
+class 
+
+When a nested class template is named by a friend declaration in the
+definition of a class template, in configurations in which template
+definitions are generated from the prototype instantiation IL the
+C++-generating back end previously put out an unnecessary "template"
+keyword in the qualified-id.  Clang does not accept an unnecessary
+"template" keyword in that context.  The front end has now been changed
+to put out the "template" keyword only when the name will be followed by
+a template argument list.  For example, with --clang:
+
+  struct A {
+    struct B {
+      template<typename> struct C;
+    };
+  };
+  template<typename> class D {
+    template<typename> friend class A::B::C;  // Previously generated as
+                                              // A::B::template C
+  };
+
+
 10/9/18  [EDGcpfe/20042]
 C++20: Conditional explicit
 

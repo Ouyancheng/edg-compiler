@@ -4603,11 +4603,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             !is_partial_spec_prototype_inst &&
             !(options & GN_SUPPRESS_TEMPLATE_KEYWORD) &&
             !((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL)) &&
-            (name_has_template_arguments(scp, entry_kind,
-                                         (a_template_arg_ptr *)NULL,
-                                         /*insert_space=*/(a_boolean *)NULL) ||
+            (((!(options & GN_NO_TEMPLATE_ARGS) &&
+               name_has_template_arguments(
+                                        scp, entry_kind,
+                                        (a_template_arg_ptr *)NULL,
+                                        /*insert_space=*/(a_boolean *)NULL)) ||
              (options & GN_TEMPLATE)) &&
-            !(msvc_is_generated_code_target && is_unknown_function_operator)) {
+            !(msvc_is_generated_code_target &&
+              is_unknown_function_operator))) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
              template template parameter. */
