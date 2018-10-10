@@ -1932,10 +1932,11 @@ Return TRUE if the given type is trivially copyable.
           rp = sym->variant.routine.ptr;
           ptp = function_type_params(rp->type);
           one_param = ptp != NULL && ptp->next == NULL;
-          /* A generated constructor with one parameter is always a copy
-             constructor.  For deleted constructors a more expensive check
-             is needed. */
-          if ((((rp->compiler_generated || rp->is_defaulted) && one_param) ||
+          /* A generated constructor with one parameter that is not an
+             inheriting constructor is always a copy constructor.  For deleted
+             constructors a more expensive check is needed. */
+          if ((((rp->compiler_generated || rp->is_defaulted) &&
+                !rp->is_inheriting_ctor && one_param) ||
                (rp->is_deleted &&
                 is_copy_constructor(rp, tp, (a_type_qualifier_set*)NULL,
                                     /*include_move_ctors=*/TRUE,
