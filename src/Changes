@@ -1,5 +1,19 @@
 Version 5.1
 
+10/10/18 [EDGcpfe/20263]
+Clang C++ compatibility: Internal error when instantiating __make_integer_seq
+
+An internal error could occur (in instantiate_make_integer_seq) if an
+alias template was uses as an argument to __make_integer_seq.  Now fixed.
+
+  template <int... I> struct A { };
+  template <int N> struct B {
+    template <typename, int... J> using C = A<J...>;
+    using iseq = __make_integer_seq<C, int, N>;
+  };
+  B<1> b;
+
+
 10/10/18 [EDGcpfe/18177]
 Microsoft compatibility: dllimport static data member initializers
 

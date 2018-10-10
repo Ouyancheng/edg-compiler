@@ -8125,9 +8125,8 @@ dependent, A1<A2, A3> is returned.
                                            /*instantiate_nonreal=*/FALSE,
                                            /*do_not_create=*/FALSE,
                                            /*in_substitution=*/FALSE);
-    check_assertion(new_sym != NULL &&
-                    new_sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-    type = new_sym->variant.class_struct_union.type;
+    check_assertion(new_sym != NULL && is_type_symbol(new_sym));
+    type = type_symbol_type(new_sym);
   }  /* if */
   return type;
 }  /* instantiate_make_integer_seq */
