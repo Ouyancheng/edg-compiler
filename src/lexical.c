@@ -13513,7 +13513,7 @@ return_end_of_source_token:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ch = curr_char_loc[1];
         if (!isdigit((unsigned char)ch) && !is_id_char[ch-CHAR_MIN] &&
-            ch != '.' && ch != '\'') {
+            ch != '.' && ch != '\'' && ch != '\\') {
           /* A single-digit integer.  Handle that (frequent) case specially. */
           an_integer_kind  int_kind;
           char             digit = *curr_char_loc;

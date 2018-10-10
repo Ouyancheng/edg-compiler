@@ -1,5 +1,19 @@
 Version 5.1
 
+10/10/18 [EDGcpfe/20229]
+Invalid scanning of single digit followed by backslash
+
+The changes for EDGcpfe/18278 (which optimize single-digit number tokens)
+introduced a regression (in version 4.14) in some cases where a single digit
+is followed by a universal character name.  For example:
+
+  #define M(discard, ...) __VA_ARGS__
+  int r = M(0\u1234'0, 42);  // Previously triggered spurious errors in
+                             // C++14 mode.
+
+That is now fixed.
+
+
 10/10/18 [EDGcpfe/20243]
 Lookup issue with generic lambdas and deferral of prototype instantiations
 
