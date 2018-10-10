@@ -2919,19 +2919,20 @@ position is available).
 static a_boolean designator_exists(an_init_component_ptr  top_icp,
                                    an_init_component_ptr  icp)
 /*
-Return TRUE if top_icp contains a designator for field in icp.
+icp is an init component, part of top_icp, with a field designator.  Return
+TRUE if an earlier component of top_icp has a field designator for that same
+field.
 */
 {
-  a_boolean  found = FALSE;
+  a_boolean  found               = FALSE;
   an_init_component_ptr  cur_icp = top_icp;
   
-  check_assertion(is_designator_component(icp));
-  check_assertion(icp->variant.designator.resolved_field !=NULL);
-
+  check_assertion(is_designator_component(icp) &&
+                  icp->variant.designator.resolved_field != NULL);
   while (cur_icp != icp) {
     if (is_designator_component(cur_icp) &&
         cur_icp->variant.designator.resolved_field ==
-        icp->variant.designator.resolved_field) {
+                                     icp->variant.designator.resolved_field) {
       found = TRUE;
       break;
     } else {
@@ -2943,14 +2944,13 @@ Return TRUE if top_icp contains a designator for field in icp.
 
 
 static a_boolean multiple_designators(an_init_component_ptr  top_icp,
-                                   an_init_component_ptr  icp)
+                                      an_init_component_ptr  icp)
 /*
 Return TRUE if top_icp contains a designator before icp.
 */
 {
-  a_boolean  found = FALSE;
+  a_boolean  found               = FALSE;
   an_init_component_ptr  cur_icp = top_icp;
-
   check_assertion(is_designator_component(icp));
 
   while (cur_icp != icp) {
@@ -3126,16 +3126,15 @@ list and is used to check for duplicated designated initializers.  */
     if (class_type->kind != (a_type_kind)tk_union) {
       /* resolved_field is set so we can check for duplicate designators.
          For an anonymous union member, we set the field to the invented
-         anonymous union field.  For a union member we skip his step and do
+         anonymous union field.  For a union member we skip this step and do
          the check at the level of the union initialization. */
       icp->variant.designator.resolved_field = *field;
-      if (designator_exists(top_icp, icp))
-      {
+      if (designator_exists(top_icp, icp)){
         if (!is->no_diagnostics) {
           pos_error(ec_duplicate_designator, init_component_pos(icp));
         }  /* if */
         is->init_error = TRUE;
-      } else if ( !fields_are_ordered(orig_field, *field)){
+      } else if (!fields_are_ordered(orig_field, *field)) {
         /* Check if the declaration order is preserved.  Do not do this check
            for union and anonymous union members because unions can only ever
            have one designator. */
@@ -3145,7 +3144,7 @@ list and is used to check for duplicated designated initializers.  */
         }  /* if */
         is->init_error = TRUE;
       }  /* if */
-    } else if (multiple_designators(top_icp, icp)){
+    } else if (multiple_designators(top_icp, icp)) {
       /* For a union, having multiple designators is an error */
       if (!is->no_diagnostics) {
         pos_error(ec_duplicate_designator, init_component_pos(icp));

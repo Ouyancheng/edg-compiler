@@ -3623,8 +3623,7 @@ setting is used, and to set various unmentioned settings as needed.
      so do not generate the explicit C-mode deallocations. */
   vla_deallocations_in_il = FALSE;
   /* If the designators option has not been explicitly specified and we are in 
-     cpp20 mode enable a restricted form of designated initializers.  In GNU
-     mode, the restrictions do not apply. */
+     C++20 mode enable a restricted form of designated initializers. */
   if (cpp20_mode && !option_kind_used[(int)optk_designators]) {
     designators_allowed = TRUE;
     cpp20_designators_restriction = TRUE;
