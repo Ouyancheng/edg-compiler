@@ -1,5 +1,22 @@
 Version 5.1
 
+10/10/18 [EDGcpfe/20245]
+Microsoft compatibility: Friend declarations and template names
+
+Consider:
+
+  template<typename T> class C {
+    friend class C;  // In Microsoft mode, previously treated as
+                     //   "template<typename> friend class C;".
+  };                 // Now only when microsoft_version < 1800.
+
+Previously, the friend declaration was treated as a friend template declaration
+in all Microsoft C++ modes (see, e.g., the entry of 2/13/08).  Now, that
+nonstandard behavior is only emulated when microsoft_version < 1800.  When
+emulating more recent versions of MSVC++, the friend refers to the injected
+class name (as per the standard specification).
+  
+
 10/10/18 [EDGcpfe/20252]
 Trivial copyability and inheriting constructors
 

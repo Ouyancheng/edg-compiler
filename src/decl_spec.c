@@ -1320,7 +1320,7 @@ caution when modifying this routine.
         lookup_options = IDL_LINKAGE_LOOKUP;
       }  /* if */
       templ_sym = normal_id_lookup(&locator_for_curr_id, lookup_options);
-      if ((microsoft_mode || sun_mode) && *is_friend_decl &&
+      if ((ms_version_is(<1800) || sun_mode) && *is_friend_decl &&
           templ_sym != NULL && next_token() == tok_semicolon) {
         /* In Microsoft and Sun C++ modes, simple friend declarations may
            refer to templates: These are treated as friend template
@@ -1336,7 +1336,8 @@ caution when modifying this routine.
               template<class T> struct S {
                 friend class S; // Same as template<class T> friend struct S;
               };
-        */
+           MSVC 18.00 no longer behaves that way (and instead treats the
+           injected class name as a type, as required by the standard). */
         if (!(microsoft_mode && microsoft_version >= 1400 &&
               is_class_template_symbol(templ_sym))) {
           if (is_injected_template_symbol(templ_sym)) {
