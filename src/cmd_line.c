@@ -2677,6 +2677,12 @@ option values if they were not already set by a command line option.
           auto_template_params_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 2000) {
+        /* Visual Studio 2017 version 16.0 (anticipated). */
+        if (ms_cpplatest_mode) {
+          conditional_explicit_enabled = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -9586,7 +9592,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_microsoft_version:
         /* The version of the Microsoft compiler being emulated. */
         microsoft_version = scan_opt_arg_number(opt_arg);
-        if (microsoft_version < 700 || microsoft_version > 2000) {
+        if (microsoft_version < 700 || microsoft_version > 3000) {
           str_command_line_error(ec_cl_invalid_microsoft_version, opt_arg);
         }  /* if */
         opt_value = TRUE;
