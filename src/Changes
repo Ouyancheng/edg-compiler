@@ -1,5 +1,19 @@
 Version 5.1
 
+10/11/2018 [EDGcpfe/20231]
+Braced initialization of a scalar type
+
+A diagnostic is issued if there are braces around a scalar initializer.  One
+set of braces around a scalar initializer is allowed since C++11.  Now the 
+diagnostic is issued only in GCC or clang mode, or if there is more than one 
+set of braces around a scalar initializer.  For example:
+
+  struct B { int x;};
+  B b1 { .x {1} };  // previously triggered a warning about extra braces
+  B b2 { {2} };  // previously triggered a warning about extra braces
+  B b3 { .x {{1}} };  // still triggers an error because of extra braces
+
+
 10/10/18 [EDGcpfe/20249]
 Spurious "nontype template parameter may not have class type" error
 

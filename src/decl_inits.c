@@ -738,11 +738,13 @@ remove_any_extraneous_braces:
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
       }  /* if */
     } else {
-      /* A redundantly braced initializer: Strip off the "brace components". */
+      /* A braced initializer: Strip off the "brace components". */
       an_error_severity      sev = es_none;
       a_source_position      *brace_pos = init_component_pos(icp);
       a_source_position      *excess_init_pos = NULL;
       an_init_component_ptr  next_icp;
+      a_boolean              diagnose_extra_braces = FALSE;
+
       braced = TRUE;
       icp = icp->variant.braced.list;
       /* Check for excess initializers (designators don't count). */
@@ -755,11 +757,15 @@ remove_any_extraneous_braces:
           excess_init_pos = init_component_pos(next_icp);
         }  /* if */
       }  /* if */
-      if (!C_mode()) {
-        /* A single level of braces is standard in C, but not in C++. */
-        sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning; 
+      if ((!C_mode() && !cpp11_mode) || gnu_mode || clang_mode) {
+        /* A single level of braces is standard in C and C++11 onward, but not
+           in C++03.  GCC issues an error in all modes and Clang warns in all
+           modes. We warn in both GCC and Clang modes. */
+        diagnose_extra_braces = TRUE;
+        sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
       if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
+        diagnose_extra_braces = TRUE;
         /* Multiple levels of extra braces. */
         if (gcc_mode ||
             (microsoft_mode && (!C_mode() || microsoft_version < 1310))) {
@@ -785,10 +791,12 @@ remove_any_extraneous_braces:
         } while (is_braced_init_component(icp) &&
                  icp->variant.braced.list != NULL);
       }  /* if */
-      if (is->no_diagnostics) {
-        is->init_error = is_effective_sfinae_error(ec_nonstd_braces, sev);
-      } else {
-        pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
+      if (diagnose_extra_braces) {
+        if (is->no_diagnostics) {
+          is->init_error = is_effective_sfinae_error(ec_nonstd_braces, sev);
+        } else {
+          pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
+        }  /* if */
       }  /* if */
       if (excess_init_pos != NULL) {
         if (gcc_mode) {
