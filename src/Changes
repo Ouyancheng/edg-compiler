@@ -1,5 +1,26 @@
 Version 5.1
 
+10/11/2018 [EDGcpfe/20234]
+Friend function lookup with deferral of function prototype instantiations
+
+When function prototype instantiations are being deferred (e.g., in g++
+mode in many configurations), the lookup of names in member function
+templates of non-template classes could incorrectly exclude friend
+functions declared later in the class (or a nested class of the class).
+Now fixed.
+
+  template <typename T> class A {};
+  struct B {
+    template <typename T> static void f() {
+      A<int> ptr;
+      ptr.*g(C{});  // Formerly 'no matching instance of "g"'
+    }
+    struct C { friend int A<int>::* g(C); } ;
+  };
+  int main() {
+     B::f<int>();
+  }
+
 
 10/11/18 [EDGcpfe/19996]
 Inlining of routines with right-to-left expression evaluation order

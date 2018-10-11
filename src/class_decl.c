@@ -3084,6 +3084,7 @@ nested class.
   a_boolean                         is_nonreal_template_instantiation = FALSE;
   a_boolean                         is_generic_definition = FALSE;
   a_boolean                         is_friend;
+  a_decl_sequence_number            class_end_decl_seq;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                     scope_depth = NO_SCOPE_DEPTH;
@@ -3092,6 +3093,9 @@ nested class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "inline_function_fixup_for_class");
+  /* Get the declaration sequence number at the pointer where fixup is
+     being done. */
+  class_end_decl_seq = *curr_decl_seq_counter();
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
@@ -3280,6 +3284,15 @@ nested class.
              The friend from the prototype instantiation will be used. */
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
+          if (defer_function_prototype_instantiations) {
+            /* For a function template in (non-template) class scope, update
+               the declaration sequence number to reflect the end of the
+               class. */
+            a_template_symbol_supplement_ptr	tssp;
+            tssp = template_supplement_for_symbol(sym);
+            check_assertion(tssp != NULL);
+            tssp->cache.decl_info->decl_seq = class_end_decl_seq;
+          }  /* if */
           if (prototype_instantiation_should_be_done_for_function(sym) &&
               (!defer_function_prototype_instantiations ||
                (class_type_supp(class_type)->
