@@ -1,6 +1,6 @@
 Version 5.1
 
-10/11/18 [EDGcpfe/20234]
+10/11/2018 [EDGcpfe/20234]
 Friend function lookup with deferral of function prototype instantiations
 
 When function prototype instantiations are being deferred (e.g., in g++
@@ -43,7 +43,7 @@ to an inlined call from right-to-left.  For example (with --c++17):
   }
 
 
-10/11/2018 [EDGcpfe/20231]
+10/11/18 [EDGcpfe/20231]
 Braced initialization of a scalar type
 
 A diagnostic is issued if there are braces around a scalar initializer.  One
