@@ -764,7 +764,7 @@ remove_any_extraneous_braces:
         diagnose_extra_braces = TRUE;
         sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
-      if (is_braced_init_component(icp) && icp->variant.braced.list != NULL) {
+      if (is_braced_init_component(icp)) {
         diagnose_extra_braces = TRUE;
         /* Multiple levels of extra braces. */
         if (gcc_mode ||
@@ -776,7 +776,8 @@ remove_any_extraneous_braces:
           sev = es_error;
         }  /* if */
         /* Skip the levels of extra braces. */
-        do {
+        while (is_braced_init_component(icp) &&
+               icp->variant.braced.list != NULL) {
           icp = icp->variant.braced.list;
           /* Check for excess initializers (designators don't count). */
           next_icp = skip_designators(icp);
@@ -788,8 +789,14 @@ remove_any_extraneous_braces:
               excess_init_pos = init_component_pos(next_icp);
             }  /* if */
           }  /* if */
-        } while (is_braced_init_component(icp) &&
-                 icp->variant.braced.list != NULL);
+        }  /* while */
+      }  /* if */
+      if (icp->variant.braced.list == NULL) {
+        if (!list_init_enabled) {
+        /* Empty braces initializing a scalar are a C++11 list
+           initialization feature. */
+          pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
+        }  /* if */
       }  /* if */
       if (diagnose_extra_braces) {
         if (is->no_diagnostics) {
