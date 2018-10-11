@@ -91,7 +91,7 @@ class name (as per the standard specification).
 Trivial copyability and inheriting constructors
 
 The front end sometimes mistook inheriting constructors for copy constructors
-when determining whether a type is "trivially copyable" (e.g., when as part of
+when determining whether a type is "trivially copyable" (e.g., as part of
 determining whether a class type is a "POD" type).  For example:
 
   struct B {
