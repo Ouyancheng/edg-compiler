@@ -1,6 +1,6 @@
 Version 5.1
 
-10/11/2018 [EDGcpfe/20234]
+10/11/18 [EDGcpfe/20234]
 Friend function lookup with deferral of function prototype instantiations
 
 When function prototype instantiations are being deferred (e.g., in g++
