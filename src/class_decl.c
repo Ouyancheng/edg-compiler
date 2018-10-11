@@ -3288,7 +3288,6 @@ nested class.
             /* For a function template in (non-template) class scope, update
                the declaration sequence number to reflect the end of the
                class. */
-            a_template_symbol_supplement_ptr	tssp;
             tssp = template_supplement_for_symbol(sym);
             check_assertion(tssp != NULL);
             tssp->cache.decl_info->decl_seq = class_end_decl_seq;
