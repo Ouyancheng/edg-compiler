@@ -1,5 +1,18 @@
 Version 5.1
 
+10/11/18 [EDGcpfe/20240]
+Sequencing diagnostics re-enabled
+
+The changes for C++17 evaluation ordering (see EDGcpfe/17701) had disabled
+sequencing diagnostics.  Those diagnostics are now re-enabled and updated to
+reflect the C++17 rules.  For example, with --c++17 --remarks:
+
+  void f(int i, int j) {
+    (i++, j) = i++;     // no longer gets a sequencing remark
+    f(i++, i++);        // still gets a sequencing remark
+  }
+
+
 10/11/18 [EDGcpfe/20234]
 Friend function lookup with deferral of function prototype instantiations
 

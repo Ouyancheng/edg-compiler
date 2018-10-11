@@ -2326,7 +2326,7 @@ are found, mark their dynamic initialization entries as unordered.  If
 tblock->set_unordered_on_dynamic_inits is TRUE, mark all enk_temp_init
 dynamic initializations as unordered (because of something detected
 higher up in the expression tree).  If sequenced is TRUE, the
-expressions on the list are sequenced left-to-right (e.g., because
+expressions on the list are sequenced in some order (e.g., because
 there is a sequence point after the first expression on the list).
 Creates a list (in tblock->seq_pt_var_list) of side-effects and uses
 of variables in the expression (when sequencing diagnostics are enabled).
@@ -2565,8 +2565,8 @@ as part of looking for unordered temp inits or unsequenced side-effects.
         case eok_comma:
         case eok_question:
         case eok_vector_question:
-          /* Operators with a sequence point after the first never have
-             unordered operands.  The two-operand cases like a && b
+          /* Operators with a sequence point after the first operand never
+             have unordered operands.  The two-operand cases like a && b
              obviously have no ordering issues, and in a ? b : c
              b and c are not considered unordered with respect to
              one another because only one of the two expressions will
@@ -2574,6 +2574,28 @@ as part of looking for unordered temp inits or unsequenced side-effects.
           sequenced = TRUE;
           break;
         default:
+          /* The expression is sequenced if an explicit evaluation order
+             has been specified. */
+          sequenced = expr->variant.operation.eval_left_to_right ||
+                      expr->variant.operation.eval_right_to_left;
+          if (sequenced && is_call_node(expr)) {
+            /* Even with the C++17 evaluation order, there is no specified
+               sequencing of arguments to a call, so assume that any call
+               with multiple arguments is unsequenced.  That could result in
+               false positives (e.g., (i++, f)(0, i++) is properly sequenced
+               and will result in a remark) but it catches the more likely
+               f(i++, i++) case. */
+            an_expr_node_ptr arg = expr->variant.operation.operands->next;
+            if (node_operator_is(expr, eok_points_to_member_call) ||
+                node_operator_is(expr, eok_dot_member_call) ||
+                node_operator_is(expr, eok_points_to_pm_call) ||
+                node_operator_is(expr, eok_dot_pm_call)) {
+              arg = arg->next;
+            }  /* if */
+            if (arg != NULL && arg->next != NULL) {
+              sequenced = FALSE;
+            }  /* if */
+          }  /* if */
           break;
       }  /* switch */
       /* The operands of an operation can be unordered, so handle them
@@ -22596,10 +22618,7 @@ Do one-time initialization of variables related to expression processing.
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if SEQUENCING_DIAGNOSTICS_ENABLED
-  /* C++17 introduces strict evaluation ordering, so these remarks are not
-     necessary. */
-  sequencing_diagnostics_enabled = !strict_cpp17_eval_order &&
-                                   is_effective_diagnostic(
+  sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
                                                 es_remark);
 #else /* !SEQUENCING_DIAGNOSTICS_ENABLED */
