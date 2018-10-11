@@ -791,7 +791,7 @@ remove_any_extraneous_braces:
           }  /* if */
         }  /* while */
       }  /* if */
-      if (icp->variant.braced.list == NULL) {
+      if (is_braced_init_component(icp) && icp->variant.braced.list == NULL) {
         if (!list_init_enabled) {
         /* Empty braces initializing a scalar are a C++11 list
            initialization feature. */
