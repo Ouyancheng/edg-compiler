@@ -98,8 +98,7 @@ to be defined, but GCC does not implement that optimization).
   a_boolean has_non_null_addr = TRUE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (vp->storage_class == (a_storage_class)sc_extern ||
-      vp->is_weak || vp->is_weakref) {
+  if (vp->is_weak || vp->is_weakref) {
     has_non_null_addr = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -121,8 +120,7 @@ but GCC does not implement that optimization).
   a_boolean has_non_null_addr = TRUE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (rp->storage_class == (a_storage_class)sc_extern ||
-      rp->is_weak || rp->is_weakref) {
+  if (rp->is_weak || rp->is_weakref) {
     has_non_null_addr = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
