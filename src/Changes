@@ -18,7 +18,7 @@ set of braces around a scalar initializer.  For example:
 Spurious "nontype template parameter may not have class type" error
 
 A spurious "nontype template parameter may not have class type" error
-could be issued when a nontype template parameter has a type based on 
+could be issued when a nontype template parameter has a type based on a
 type template parameter (parameter n of B in the example below), and the
 type used for the type template parameter is the instantiation of a
 nonreal template (the type produced by a nonreal instantiation of E in
