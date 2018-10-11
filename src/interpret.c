@@ -1571,7 +1571,7 @@ If an older mapping exists for iptr, that mapping becomes active again.
 
 
 /*
-Useful constants.
+Useful constants and types.
 */
 static an_integer_value
 		zero_int;
@@ -1581,10 +1581,14 @@ static an_internal_float_value
 		zero_flt[(int)fk_last];
 static an_internal_float_value
 		one_flt[(int)fk_last];
+static a_type_ptr
+		generic_ptr_type;
+			/* Type (void*) used in some cases where a pointer type
+			   is needed, but the specific type is unimportant. */
 static a_boolean
 		useful_constants_initialized;
-			/* Flag indicating whether these constants have
-			   been initialized yet. */
+			/* Flag indicating whether these constants and types
+			   have been initialized yet. */
 
 
 /*
@@ -4380,7 +4384,6 @@ enk_param_ref nodes.  It is associated with &ips->curr_call_frame.  The *this
 object is stored at the address indicated by object and complete_object.
 */
 {
-  a_type_ptr     this_type = make_pointer_type(class_type);
   a_byte         *this_bytes;
   a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
   a_byte_count   with_postfix_bytes;
@@ -4388,7 +4391,7 @@ object is stored at the address indicated by object and complete_object.
 
   do_host_alignment(this_n_bytes);
   with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
-  alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
+  alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type, this_bytes);
   clear_address(this_bytes, object);
   ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
   ((a_constexpr_address *)this_bytes)->alloc_seq_number =
@@ -7565,6 +7568,71 @@ done:
 }  /* eval_selector_arg */
 
 
+static a_boolean adjust_virtual_callee(an_interpreter_state  *ips,
+                                       an_expr_node_ptr      call_node,
+                                       a_routine_ptr         *p_callee,
+                                       a_byte                **p_this_arg,
+                                       a_byte_count          *p_retval_offset)
+/*
+call_node represents a virtual call with the statically-resolved callee
+indicated by *p_callee.  Update *p_callee to be the overriding virtual
+function in the subobject referred to by *p_this_arg and update *p_this_arg
+accordingly (i.e., to refer to the subobject associated with the overriding
+member).  If the overriding function has a covariant return type with respect
+to the statically-resolved callee, add to *p_retval_offset the adjustment that
+will have to be made to the address returned by the call (to translate the
+dynamically returned address back to the statically resolved type).
+*/
+{
+  a_boolean            result = TRUE;
+  a_constexpr_address  **p_this_val = (a_constexpr_address**)p_this_arg,
+                       *this_val = *p_this_val;
+  a_byte               *subobj = this_val->address,
+                       *complete_obj = this_val->complete_object;
+
+  if (subobj == complete_obj) {
+    /* We're already in the most-derived class: No adjustment is needed. */
+  } else if (!subobject_is_initialized(subobj, complete_obj)) {
+    /* The current subobject is not initialized (presumably because the
+       constructor has not completely run yet, or because the object has
+       been partially destroyed. */
+  } else {
+    a_routine_ptr     callee = *p_callee;
+    do {
+      a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
+      a_byte_count      offset;
+      an_overriding_virtual_function_ptr
+                        ovfp = bcp->overriding_virtual_functions;
+      check_assertion(bcp != NULL);
+      for (; ovfp != NULL; ovfp = ovfp->next) {
+        if (ovfp->primary_function == callee) {
+          a_base_class_ptr  ret_base = ovfp->return_adjustment_base_class;
+          a_byte_count      retval_offset_step;
+          if (ret_base != NULL) {
+            /* A covariant return override.  The return value will need
+               adjustment. */
+            get_mapped_byte_count(&persistent_map, bcp, retval_offset_step);
+            *p_retval_offset += retval_offset_step;
+          }  /* if */
+          callee = ovfp->overriding_function;
+          break;
+        }  /* if */
+      }  /* for */
+      get_mapped_byte_count(&persistent_map, bcp, offset);
+      subobj -= offset;
+      if (!subobject_is_initialized(subobj, complete_obj)) {
+        /* The next-enclosing subobject is not constructed.  Do not dispatch
+           from it. */
+        break;
+      }  /* if */
+    } while (subobj != complete_obj);
+    *p_callee = callee;
+    this_val->address = subobj;
+  }  /* if */
+  return result;
+}  /* adjust_virtual_callee */
+
+
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
                                    a_byte                *result_storage,
@@ -7603,10 +7671,9 @@ otherwise, return FALSE and update *ips accordingly.
          pointer value later on. */
       an_expr_node_ptr  selector_arg = callee_node->next;
       a_type_ptr        tp = skip_typerefs(selector_arg->type);
-      a_type_ptr        this_type = make_pointer_type(tp);
       a_byte_count      this_n_bytes = sizeof(a_constexpr_address);
       do_host_alignment(this_n_bytes);
-      alloc_complete_object(ips, this_n_bytes, this_type,
+      alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
                             pre_evaluated_this_bytes);
       if (!eval_selector_arg(ips, selector_arg, tp,
                              pre_evaluated_this_bytes)) {
@@ -7679,21 +7746,7 @@ otherwise, return FALSE and update *ips accordingly.
   } else {
     lambda_entry_case = FALSE;
   }  /* if */
-  if (!callee->is_constexpr) {
-    info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
-                      &callee_node->position, symbol_for(callee), ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  if (!callee->defined) {
-    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
-  }  /* if */
-  if (callee->function_def_number == NULL_function_def_number) {
-    info_with_pos_sym(ec_constexpr_function_undefined, &callee_node->position,
-                      symbol_for(callee), ips);
-    do_constexpr_fail(result);
-  } else if (callee->is_prototype_instantiation &&
-             !callee->is_lambda_body) {
+  if (callee->is_prototype_instantiation && !callee->is_lambda_body) {
     /* It's generally not worth attempting to evaluate a call to a prototype
        instantiation (it's not needed, and in most cases we'll run into a
        dependent construct that cannot be evaluated anyway).  However, we make
@@ -7708,31 +7761,19 @@ otherwise, return FALSE and update *ips accordingly.
                          &ips->diag_list);
     do_constexpr_fail(result);
   } else {
-    a_scope_ptr     callee_scope = scope_for_routine(callee);
-    a_statement_ptr
-                    block_stmt = callee_scope->assoc_block;
-    a_call_frame    frame;
-    a_variable_ptr  params = callee_scope->variant.routine.parameters,
-                    param, this_var;
-    a_byte_count    n_args = 0, n_params;
-    a_byte_count    *arg_size;
-    a_byte          *arg_ptrs, **p_arg_ptr, *arg_sizes;
+    a_scope_ptr      callee_scope;
+    a_statement_ptr  block_stmt;
+    a_call_frame     frame;
+    a_variable_ptr   params, param, this_var;
+    a_byte_count     n_args = 0, n_params, retval_offset = 0;
+    a_byte_count     *arg_size;
+    a_byte           *arg_ptrs, **p_arg_ptr, *arg_sizes;
     an_alloc_seq_number
-                    alloc_seq_number;
-    unsigned long   up_front_cost;
-    a_boolean       eval_right_to_left =
+                     alloc_seq_number;
+    unsigned long    up_front_cost;
+    a_boolean        is_member_call = !node_operator_is(call_node, eok_call);
+    a_boolean        eval_right_to_left =
                               call_node->variant.operation.eval_right_to_left;
-    /* Don't attempt to interpret a non-constexpr function.  The flag
-       scope->is_constexpr_routine is set at the end of a constexpr function
-       definition, so this also prevents the interpretation of a function that
-       is not fully parsed (e.g., requested due to a recursive call in a
-       constexpr function). */
-    if (!callee_scope->is_constexpr_routine) {
-      do_constexpr_fail(result);
-      info_with_pos_sym(ec_constexpr_call_not_interpretable,
-                        &call_node->position, symbol_for(callee), ips);
-      goto done;
-    }  /* if */
     /* Account a relatively high cost for the call up-front, to limit the
        overall call depth.  When the call returns, that cost will be
        reduced. */
@@ -7759,43 +7800,20 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* for */
     alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
     alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
-    /* Count the parameters (including "this") to make sure there are enough
-       arguments for the parameters.  However, if we are calling the lambda
-       call operator through the entry point returned by the closure's
-       conversion function, ignore this "this" parameter. */
-    if (lambda_entry_case) {
-      this_var = NULL;
-    } else {
-      this_var = callee_scope->variant.routine.this_param_variable;
-    }  /* if */
-    if (this_var != NULL) {
-      /* If there is a "this" parameter, count an extra parameter. */
-      n_params = 1;
-    } else {
-      n_params = 0;
-    }  /* if */
-    for (param = params; param != NULL; param = param->next) {
-      n_params += 1;
-    }  /* if */
-    if (n_args < n_params) {
-      info_with_pos(ec_too_few_arguments, &call_node->position, ips);
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg_size = (a_byte_count*)arg_sizes;
     arg = callee_node->next;
-    if (this_var != NULL) {
+    /* Evaluate the "this" pointer if needed. */
+    if (is_member_call) {
       a_byte        *this_bytes;
-      a_type_ptr    this_type = skip_typerefs(this_var->type);
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
       do_host_alignment(this_n_bytes);
       *arg_size = this_n_bytes;
       arg_size += 1;
       this_n_bytes += sizeof(a_var_postfix);
-      alloc_complete_object(ips, this_n_bytes, this_type, this_bytes);
+      alloc_complete_object(ips, this_n_bytes, generic_ptr_type, this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
       if (eval_right_to_left) {
@@ -7809,13 +7827,14 @@ otherwise, return FALSE and update *ips accordingly.
           mark_complete_object_initialized(this_bytes);
         } else if (!eval_selector_arg(ips, arg, tp, this_bytes)) {
           do_constexpr_fail(result);
-        }  /* if */
-        if (!result ||
-            (pm_target != NULL &&
-             !adjust_this_address(ips, (a_constexpr_address*)this_bytes,
-                                  pm_target, this_var->type, call_node))) {
-          do_constexpr_fail(result);
           goto done;
+        }  /* if */
+        if (pm_target != NULL) {
+          if (!adjust_this_address(ips, (a_constexpr_address*)this_bytes,
+                                   pm_target, tp, call_node)) {
+            do_constexpr_fail(result);
+            goto done;
+          }  /* if */
         }  /* if */
       }  /* if */
       arg = arg->next;
@@ -7847,10 +7866,10 @@ otherwise, return FALSE and update *ips accordingly.
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
       /* Evaluate the argument, unless it is the first argument in a call for
-         a right-to-left operator (which can only happen here if there was no
-         selector argument (i.e., this_var == NULL). */
+         a right-to-left operator (which can only happen here if this is not a
+         member call. */
       if (result &&
-          (!eval_right_to_left || this_var != NULL || arg->next == NULL)) {
+          (!eval_right_to_left || is_member_call || arg->next == NULL)) {
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -7872,11 +7891,11 @@ otherwise, return FALSE and update *ips accordingly.
       a_byte            *arg_bytes = *(a_byte**)arg_ptrs;
       an_expr_node_ptr  first_arg = callee_node->next;
       a_type_ptr        tp = skip_typerefs(first_arg->type);
-      if (this_var != NULL) {
+      if (is_member_call) {
         if (!eval_selector_arg(ips, first_arg, tp, arg_bytes) ||
             (pm_target != NULL &&
              !adjust_this_address(ips, (a_constexpr_address*)arg_bytes,
-                                  pm_target, this_var->type, call_node))) {
+                                  pm_target, tp, call_node))) {
           do_constexpr_fail(result);
           goto done;
         }  /* if */
@@ -7910,7 +7929,65 @@ otherwise, return FALSE and update *ips accordingly.
         }  /* if */
       }  /* if */
     }  /* if */
+    /* If the function is virtual, we can now determine the actual callee. */
+    if (callee->is_virtual &&
+        !adjust_virtual_callee(ips, call_node,
+                               &callee, (a_byte**)arg_ptrs, &retval_offset)) {
+      /* Invalid dispatch. */
+      goto done;
+    }  /* if */
+    if (!callee->is_constexpr) {
+      info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
+                        &callee_node->position, symbol_for(callee), ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    if (!callee->defined) {
+      set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+    }  /* if */
+    if (callee->function_def_number == NULL_function_def_number) {
+      info_with_pos_sym(ec_constexpr_function_undefined,
+                        &callee_node->position, symbol_for(callee), ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    /* Don't attempt to interpret a non-constexpr function.  The flag
+       scope->is_constexpr_routine is set at the end of a constexpr function
+       definition, so this also prevents the interpretation of a function that
+       is not fully parsed (e.g., requested due to a recursive call in a
+       constexpr function). */
+    callee_scope = scope_for_routine(callee);
+    if (!callee_scope->is_constexpr_routine) {
+      info_with_pos_sym(ec_constexpr_call_not_interpretable,
+                        &call_node->position, symbol_for(callee), ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
+    /* Count the parameters (including "this") to make sure there are enough
+       arguments for the parameters.  However, if we are calling the lambda
+       call operator through the entry point returned by the closure's
+       conversion function, ignore this "this" parameter. */
+    if (lambda_entry_case) {
+      this_var = NULL;
+    } else {
+      this_var = callee_scope->variant.routine.this_param_variable;
+    }  /* if */
+    params = callee_scope->variant.routine.parameters;
+    if (is_member_call) {
+      /* If there is a "this" parameter, count an extra parameter. */
+      n_params = 1;
+    } else {
+      n_params = 0;
+    }  /* if */
+    for (param = params; param != NULL; param = param->next) {
+      n_params += 1;
+    }  /* if */
+    if (n_args < n_params) {
+      info_with_pos(ec_too_few_arguments, &call_node->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
     /* Associate with the parameter variables the allocation sequence number
        that is about to be created for the top-level block (since the
        parameters technically expire when that block expires, even though in
@@ -7939,12 +8016,19 @@ otherwise, return FALSE and update *ips accordingly.
     push_call_frame(ips, &frame, callee, &call_node->position,
                     result_storage, complete_object);
     /* Run the function's top-level block statement. */
+    block_stmt = callee_scope->assoc_block;
     if (block_stmt->kind != (a_statement_kind)stmk_block) {
       check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
       info_with_pos(ec_constexpr_try_block, &block_stmt->position, ips);
       do_constexpr_fail(result);
     } else {
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
+    }  /* if */
+    if (retval_offset != 0 && result) {
+      /* A virtual call dispatching to an overriding function with a
+         covariant return type.  The return value is an address that must
+         be updated to match the static type of the expression. */
+      ((a_constexpr_address*)result_storage)->address += retval_offset;
     }  /* if */
     /* Release any address structures, if needed. */
     p_arg_ptr = (a_byte**)arg_ptrs;
@@ -13408,6 +13492,7 @@ that are needed for the operation of the interpreter.
       fp_host_large_integer_to_float(fk, (a_host_large_integer)1,
                                      &one_flt[(int)fk], &dummy);
     }  /* for */
+    generic_ptr_type = make_pointer_type(void_type());
     useful_constants_initialized = TRUE;
   }  /* if */
 }  /* initialize_interpreter_data */

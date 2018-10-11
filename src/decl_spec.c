@@ -10529,7 +10529,8 @@ storage_class_specifier:
           decl_specifiers_seen |= DS_VIRTUAL;
           *output_flags |= DSO_VIRTUAL;
           copy_source_position(pos_curr_token, state->virtual_pos);
-          if (decl_specifiers_seen & DS_CONSTEXPR) {
+          if ((decl_specifiers_seen & DS_CONSTEXPR) &&
+              !constexpr_virtual_enabled) {
             pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
             *output_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
           }  /* if */
@@ -10540,7 +10541,8 @@ storage_class_specifier:
           /* "constexpr" may not appear in a function parameter declaration. */
           pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
-        } else if (decl_specifiers_seen & DS_VIRTUAL) {
+        } else if ((decl_specifiers_seen & DS_VIRTUAL) &&
+                   !constexpr_virtual_enabled) {
           pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
         } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {
           pos_error(ec_constexpr_explicit_instantiation, &pos_curr_token);

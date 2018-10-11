@@ -7022,8 +7022,8 @@ done:
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
-    if (rout->is_constexpr ||
-        (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+    if ((rout->is_constexpr || (dps->dso_flags & DSO_CONSTEXPR) != 0) &&
+         !constexpr_virtual_enabled) {
       pos_error(ec_constexpr_virtual_combination, source_pos);
       rout->is_constexpr = FALSE;
       dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;

@@ -17201,7 +17201,9 @@ whether the call was folded or not.
 #if BUILTIN_FUNCTIONS_ENABLED
            is_gnu_builtin_function(rout) ||
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-           rout->is_constexpr) &&
+           (rout->is_constexpr ||
+            (rout->is_virtual && constexpr_virtual_enabled &&
+             !virtual_suppressed))) &&
           !(clang_mode && expr_stack->in_noexcept_operand_expression) &&
           expr_fold_constexpr_call(function_call_node, call_pos, result,
                                    &diag_list)) {

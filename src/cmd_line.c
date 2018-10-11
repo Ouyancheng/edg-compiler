@@ -2681,6 +2681,7 @@ option values if they were not already set by a command line option.
         /* Visual Studio 2017 version 16.0 (anticipated). */
         if (ms_cpplatest_mode) {
           conditional_explicit_enabled = TRUE;
+          constexpr_virtual_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3495,6 +3496,7 @@ default mode (e.g., exception handling).
       auto_template_params_enabled = TRUE;
       if (cpp20_mode) {
         conditional_explicit_enabled = TRUE;
+        constexpr_virtual_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11384,6 +11386,7 @@ variables declared in cmd_line.h.
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
+  constexpr_virtual_enabled = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;

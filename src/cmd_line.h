@@ -552,6 +552,11 @@ EXTERN a_boolean
 			   constructs in constexpr functions). */
 
 EXTERN a_boolean
+		constexpr_virtual_enabled;
+			/* TRUE if constexpr virtual functions (a C++20
+			   feature) are enabled. */
+
+EXTERN a_boolean
 		constexpr_implies_const;
 			/* TRUE if a constexpr non-static member function
 			   should implicitly be considered "const".  This is
