@@ -4375,13 +4375,12 @@ Otherwise, return an error constant.
 
 static a_byte* set_up_param_ref_for_this_ptr(
                                        an_interpreter_state  *ips,
-                                       a_type_ptr            class_type,
                                        a_byte                *object,
                                        a_byte                *complete_object)
 /*
-Set up a "this" pointer (for the given class type) in case we run into
-enk_param_ref nodes.  It is associated with &ips->curr_call_frame.  The *this
-object is stored at the address indicated by object and complete_object.
+Set up a "this" pointer in case we run into enk_param_ref nodes.  It is
+associated with &ips->curr_call_frame.  The *this object is stored at the
+address indicated by object and complete_object.
 */
 {
   a_byte         *this_bytes;
@@ -4968,7 +4967,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                    "this" pointer.  That pointer refers to the current class:
                    Ensure a mapping is set up for that. */
                 this_bytes = set_up_param_ref_for_this_ptr(
-                                             ips, tp, value, complete_object);
+                                                 ips, value, complete_object);
               }  /* if */
               mark_complete_class_object_if_needed(ftp, dst_bytes);
               if (!copy_val_from_constant(
@@ -5058,7 +5057,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                pointer.  That pointer refers to the current class: Ensure a
                mapping is set up for that. */
             this_bytes = set_up_param_ref_for_this_ptr(
-                                         ips, tp, value, complete_object);
+                                                 ips, value, complete_object);
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
           dst_bytes = value+offset;
@@ -7568,20 +7567,19 @@ done:
 }  /* eval_selector_arg */
 
 
-static a_boolean adjust_virtual_callee(an_interpreter_state  *ips,
-                                       an_expr_node_ptr      call_node,
-                                       a_routine_ptr         *p_callee,
+static a_boolean adjust_virtual_callee(a_routine_ptr         *p_callee,
                                        a_byte                **p_this_arg,
                                        a_byte_count          *p_retval_offset)
 /*
-call_node represents a virtual call with the statically-resolved callee
-indicated by *p_callee.  Update *p_callee to be the overriding virtual
-function in the subobject referred to by *p_this_arg and update *p_this_arg
-accordingly (i.e., to refer to the subobject associated with the overriding
-member).  If the overriding function has a covariant return type with respect
-to the statically-resolved callee, add to *p_retval_offset the adjustment that
-will have to be made to the address returned by the call (to translate the
-dynamically returned address back to the statically resolved type).
+The front end has evaluated the arguments to a virtual call with the
+statically-resolved callee indicated by *p_callee.  Update *p_callee to be the
+overriding virtual function in the subobject referred to by *p_this_arg and
+update *p_this_arg accordingly (i.e., to refer to the subobject associated with
+the overriding member).  If the overriding function has a covariant return type
+with respect to the statically-resolved callee, add to *p_retval_offset the
+adjustment that will have to be made to the address returned by the call (to
+translate the dynamically returned address back to the statically resolved
+type).
 */
 {
   a_boolean            result = TRUE;
@@ -7931,8 +7929,7 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
     /* If the function is virtual, we can now determine the actual callee. */
     if (callee->is_virtual &&
-        !adjust_virtual_callee(ips, call_node,
-                               &callee, (a_byte**)arg_ptrs, &retval_offset)) {
+        !adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset)) {
       /* Invalid dispatch. */
       goto done;
     }  /* if */
