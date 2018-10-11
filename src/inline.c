@@ -49,7 +49,8 @@ to handle C++ lowering, and from C99 IL lowering to handle C99 lowering.
 static a_variable_remapping_for_inlining_ptr
 		variable_remappings_for_inlining;
 			/* List of remappings of variables to be done while
-			   copying the body of a function being inlined. */
+			   copying the body of a function being inlined.  The
+			   list is kept in the order of argument evaluation. */
 
 
 static a_scope_ptr
@@ -90,14 +91,17 @@ If statement is NULL, no assignments are performed.
 
 static a_variable_remapping_for_inlining_ptr
                    alloc_variable_remapping_for_inlining(
-                           a_variable_ptr                        var,
-                           a_variable_remapping_for_inlining_ptr *p_last_remap)
+                      a_variable_ptr                        var,
+                      a_boolean                             eval_right_to_left,
+                      a_variable_remapping_for_inlining_ptr *p_last_remap)
 /*
 Allocate and initialize an entry used to record a variable remapping in effect
 during inlining of a function call.  var is the variable that will be remapped.
-The entry is placed at the end of the variable_remappings_for_inlining global
-list.  *p_last_remap points to the last entry on that list, or is NULL if
-the last entry is not known; it is updated on return.
+The list of variable remappings is kept, in the order that they should be
+executed and pointed to by the variable_remappings_for_inlining global
+variable.  When eval_right_to_left is FALSE, *p_last_remap points to the last
+entry on that list, or is NULL if the last entry is not known; it is updated on
+return.
 */
 {
   a_variable_remapping_for_inlining_ptr vrip, last_remap = *p_last_remap;
@@ -114,22 +118,31 @@ the last entry is not known; it is updated on return.
     num_variable_remappings_for_inlining++;
 #endif /* DEBUG */
   }  /* if */
-  if (last_remap == NULL) {
-    /* Find last entry on list. */
-    last_remap = variable_remappings_for_inlining;
-    if (last_remap != NULL) {
-      while (last_remap->next != NULL) last_remap = last_remap->next;
-    }  /* if */
-  } else {
-    check_assertion(last_remap->next == NULL);
-  }  /* if */
-  if (last_remap == NULL) {
+  /* Keep the variable mappings in the order that the arguments are being
+     evaluated.  The standard currently does not specify the order of
+     evaluation for arguments to a generic call, but is specific for overloaded
+     operations.  In the absence of a specific order, assume left-to-right. */
+  if (eval_right_to_left) {
+    vrip->next = variable_remappings_for_inlining;
     variable_remappings_for_inlining = vrip;
   } else {
-    last_remap->next = vrip;
+    if (last_remap == NULL) {
+      /* Find last entry on list. */
+      last_remap = variable_remappings_for_inlining;
+      if (last_remap != NULL) {
+        while (last_remap->next != NULL) last_remap = last_remap->next;
+      }  /* if */
+    } else {
+      check_assertion(last_remap->next == NULL);
+    }  /* if */
+    if (last_remap == NULL) {
+      variable_remappings_for_inlining = vrip;
+    } else {
+      last_remap->next = vrip;
+    }  /* if */
+    vrip->next = NULL;
+    *p_last_remap = vrip;
   }  /* if */
-  vrip->next = NULL;
-  *p_last_remap = vrip;
   vrip->orig_variable = var;
   var->remapping_for_inlining = vrip;
   vrip->kind = vrk_none;
@@ -326,6 +339,7 @@ body has any side effects that can affect the values of argument expressions.
 
 static void set_up_variable_remapping_for_inlining(
                                            a_scope_ptr      scope,
+                                           a_boolean        eval_right_to_left,
                                            an_expr_node_ptr arg_expr_list)
 /*
 We are beginning an attempt to inline a call of the routine whose scope
@@ -333,7 +347,8 @@ is "scope" with the (already lowered) arguments arg_expr_list.  Generate
 temporary variables for parameters and local variables and establish a
 remapping list to be used when expanding the body of the function.
 No code is inserted yet to set the temporary variables; see
-finish_variable_remapping_for_inlining.
+finish_variable_remapping_for_inlining.  The arguments to the call are
+evaluated from left-to-right unless eval_right_to_left is TRUE.
 */
 {
   a_variable_ptr   param_var, var;
@@ -365,7 +380,8 @@ finish_variable_remapping_for_inlining.
     check_assertion_str(arg != NULL,
                         "set_up_variable_remapping_...: too few args");
     /* Allocate a remapping for the parameter. */
-    vrip = alloc_variable_remapping_for_inlining(param_var, &last_remap);
+    vrip = alloc_variable_remapping_for_inlining(param_var, eval_right_to_left,
+                                                 &last_remap);
     vrip->arg_expr = arg;
     if (!param_var->source_corresp.referenced) {
       /* We don't need the parameter if it's not referenced.  However, if
@@ -531,7 +547,8 @@ finish_variable_remapping_for_inlining.
     /* We don't need the variable if it's not referenced. */
     if (var->source_corresp.referenced) {
       /* Remap the local variable to a temporary. */
-      vrip = alloc_variable_remapping_for_inlining(var, &last_remap);
+      vrip = alloc_variable_remapping_for_inlining(var, eval_right_to_left,
+                                                   &last_remap);
       make_remapping_temporary(
                     vrip,
                     (a_boolean)var->is_temp_for_constructor_this_inlined_param,
@@ -1763,7 +1780,9 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
                            "do_inlining_of_call: remappings list is non-NULL");
         /* Create new variables for parameters and local variables. */
         arg = arg->next;  /* Advance to first argument. */
-        set_up_variable_remapping_for_inlining(scope, arg);
+        set_up_variable_remapping_for_inlining(scope,
+                                    expr->variant.operation.eval_right_to_left,
+                                    arg);
         /* Copy the code of the function, replacing references to the
            parameters and variables. */
         expand_statement_inline(scope->assoc_block, &insert_location,

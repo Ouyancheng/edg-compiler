@@ -1,5 +1,27 @@
 Version 5.1
 
+
+10/11/18 [EDGcpfe/19996]
+Inlining of routines with right-to-left expression evaluation order
+
+The changes for C++17 evaluation ordering (see EDGcpfe/17701) are now reflected
+in the inliner.  That is, when inlining a routine where right-to-left
+expression evaluation is specified, the inliner will evaluate the arguments
+to an inlined call from right-to-left.  For example (with --c++17):
+
+  extern "C" int printf(const char *,...);
+  struct A {
+    A operator=(const A& a) { return a; }
+  };
+  int main() {
+    A a;
+    (printf("second\n"),a) = (printf("first\n"),a);
+                                          // evaluation order is right-to-left
+    (printf("first\n"),a).operator=((printf("second\n"),a));
+                                          // evaluation order is left-to-right
+  }
+
+
 10/11/2018 [EDGcpfe/20231]
 Braced initialization of a scalar type
 
