@@ -9,7 +9,7 @@ Consider:
     void f(int i) {
       [=, this]{}();  // Now okay in C++20 mode.
     }
-  }
+  };
 
 Before C++20, this was invalid: "this" is implicitly captured "by copy" and
 making it explicit when a default is specified is invalid in C++17 and earlier
