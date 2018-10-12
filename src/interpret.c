@@ -7567,9 +7567,9 @@ done:
 }  /* eval_selector_arg */
 
 
-static a_boolean adjust_virtual_callee(a_routine_ptr         *p_callee,
-                                       a_byte                **p_this_arg,
-                                       a_byte_count          *p_retval_offset)
+static void adjust_virtual_callee(a_routine_ptr         *p_callee,
+                                  a_byte                **p_this_arg,
+                                  a_byte_count          *p_retval_offset)
 /*
 The front end has evaluated the arguments to a virtual call with the
 statically-resolved callee indicated by *p_callee.  Update *p_callee to be the
@@ -7582,7 +7582,6 @@ translate the dynamically returned address back to the statically resolved
 type).
 */
 {
-  a_boolean            result = TRUE;
   a_constexpr_address  **p_this_val = (a_constexpr_address**)p_this_arg,
                        *this_val = *p_this_val;
   a_byte               *subobj = this_val->address,
@@ -7593,7 +7592,7 @@ type).
   } else if (!subobject_is_initialized(subobj, complete_obj)) {
     /* The current subobject is not initialized (presumably because the
        constructor has not completely run yet, or because the object has
-       been partially destroyed. */
+       been partially destroyed). */
   } else {
     a_routine_ptr     callee = *p_callee;
     do {
@@ -7627,7 +7626,6 @@ type).
     *p_callee = callee;
     this_val->address = subobj;
   }  /* if */
-  return result;
 }  /* adjust_virtual_callee */
 
 
@@ -7865,7 +7863,7 @@ otherwise, return FALSE and update *ips accordingly.
       p_arg_ptr += 1;
       /* Evaluate the argument, unless it is the first argument in a call for
          a right-to-left operator (which can only happen here if this is not a
-         member call. */
+         member call). */
       if (result &&
           (!eval_right_to_left || is_member_call || arg->next == NULL)) {
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
@@ -7928,10 +7926,8 @@ otherwise, return FALSE and update *ips accordingly.
       }  /* if */
     }  /* if */
     /* If the function is virtual, we can now determine the actual callee. */
-    if (callee->is_virtual &&
-        !adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset)) {
-      /* Invalid dispatch. */
-      goto done;
+    if (callee->is_virtual) {
+      adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset);
     }  /* if */
     if (!callee->is_constexpr) {
       info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
