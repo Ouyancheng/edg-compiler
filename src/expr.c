@@ -30192,7 +30192,7 @@ is an lvalue.
   (void)find_symbol("get", sizeof("get")-1, &loc);
   mem_sym = class_qualified_id_lookup(&loc, tp, IDL_NO_OPTIONS);
   if (mem_sym != NULL &&
-      (clang_version_is(<70000) || gnu_version_is(<80000) ||
+      (clang_version_is(<80000) || gnu_version_is(<80000) ||
        ms_version_is(<1915) ||
        symbol_is_valid_get_for_struct_binding(mem_sym))) {
     /* We have to evaluate "e.get<i>()".  This is more complex than it seems
