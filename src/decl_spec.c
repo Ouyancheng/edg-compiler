@@ -1322,8 +1322,8 @@ caution when modifying this routine.
       templ_sym = normal_id_lookup(&locator_for_curr_id, lookup_options);
       if ((ms_version_is(<1800) || sun_mode) && *is_friend_decl &&
           templ_sym != NULL && next_token() == tok_semicolon) {
-        /* In Microsoft and Sun C++ modes, simple friend declarations may
-           refer to templates: These are treated as friend template
+        /* In Sun and older Microsoft C++ modes, simple friend declarations
+           may refer to templates: These are treated as friend template
            declarations.  For example:
               template<class T> struct S;
               class C {
