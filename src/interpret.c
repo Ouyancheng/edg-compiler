@@ -7960,7 +7960,7 @@ otherwise, return FALSE and update *ips accordingly.
     /* Count the parameters (including "this") to make sure there are enough
        arguments for the parameters.  However, if we are calling the lambda
        call operator through the entry point returned by the closure's
-       conversion function, ignore this "this" parameter. */
+       conversion function, ignore the "this" parameter. */
     if (lambda_entry_case) {
       this_var = NULL;
     } else {
