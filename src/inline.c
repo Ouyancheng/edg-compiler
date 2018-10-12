@@ -119,9 +119,10 @@ return.
 #endif /* DEBUG */
   }  /* if */
   /* Keep the variable mappings in the order that the arguments are being
-     evaluated.  The standard currently does not specify the order of
-     evaluation for arguments to a generic call, but is specific for overloaded
-     operations.  In the absence of a specific order, assume left-to-right. */
+     evaluated.  The C++ standard specifies the order of evaluation of the
+     arguments in a call resulting from use of an overloaded operator but
+     currently not for one written with the function call syntax.  In the
+     absence of a specific order, assume left-to-right. */
   if (eval_right_to_left) {
     vrip->next = variable_remappings_for_inlining;
     variable_remappings_for_inlining = vrip;
@@ -1780,7 +1781,8 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
                            "do_inlining_of_call: remappings list is non-NULL");
         /* Create new variables for parameters and local variables. */
         arg = arg->next;  /* Advance to first argument. */
-        set_up_variable_remapping_for_inlining(scope,
+        set_up_variable_remapping_for_inlining(
+                                    scope,
                                     expr->variant.operation.eval_right_to_left,
                                     arg);
         /* Copy the code of the function, replacing references to the
