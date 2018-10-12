@@ -4302,7 +4302,9 @@ information about the parameters.
        declaration information was supplied, use the information associated
        with this class. */
     if (decl_info == NULL) {
-      if (is_template_instance_class_symbol(class_sym) &&
+      /* Note that the "is_any_template.." version is used below so that
+         it will be TRUE for nested classes of prototype instantiations. */
+      if (is_any_template_instance_class_symbol(class_sym) &&
           !is_template_instance_specific_def_symbol(class_sym)) {
         template_sym = template_symbol_for_class_symbol(class_sym);
         /* Get the template declaration information associated with
