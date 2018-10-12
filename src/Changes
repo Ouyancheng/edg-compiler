@@ -1,5 +1,6 @@
 Version 5.1
 
+<<<<<<< Updated upstream
 10/12/18 [EDGcpfe/20025]
 C++20: "likely" and "unlikely" standard attributes
 
@@ -21,6 +22,9 @@ them.  For example, with --c++20:
 
 
 10/12/18 [EDGcpfe/20001,EDGcpfe/20272]
+=======
+10/12/18 [EDGcpfe/20001,EDGcpfe/20031,EDGcpfe/20272,EDGcpfe/20275]
+>>>>>>> Stashed changes
 C++20: Explicit by-copy capture of "this"
 
 Consider:
@@ -31,11 +35,14 @@ Consider:
     }
   };
 
-Before C++20, this was invalid: "this" is implicitly captured "by copy" and
+The default capture mode is "by copy" and applies to the "this" pointer;
 making it explicit when a default is specified is invalid in C++17 and earlier
-standards.  In C++20 this became valid through the adoption to the committee's
-paper number P0409R2.  The front end now implements that relaxation in C++20
-mode (and --ms_c++latest mode with microsoft_version >= 2000).
+standards.  In the current draft for next standard (expected to be C++20) this
+became valid through the adoption to the committee's paper number P0409R2.  The
+front end now implements that relaxation in C++20 mode (and --ms_c++latest mode
+with microsoft_version >= 2000).  Furthermore, in those same modes, the
+implicit by-copy capture of "this" is warned about (because the draft for the
+next standard deprecates that feature).
 
 
 10/11/18 [EDGcpfe/20037,EDGcpfe/20124]
