@@ -1,5 +1,44 @@
 Version 5.1
 
+10/12/18 [EDGcpfe/18994,EDGcpfe/19342,EDGcpfe/20242]
+Issue with prototype instantiations of nested class members and deferral
+of function prototype instantiations
+
+When function prototype instantiations are being deferred (e.g., in g++
+mode in many configurations), if a function of function template was
+defined in a nested class os a class template,  and that nested class
+was defined outside of the enclosing class, lookup of template parameter
+names of the enclosing class and pack expansions in the function template
+could be processed processed incorrectly resulting in spurious errors.
+Now fixed.
+
+Example 1:
+
+  template < typename T > T f(int);
+  template <typename T> struct A { class B; };
+  template <typename T> struct A <T>::B {
+    template <typename ... Args> B(Args && ... args) : t{f<Args>(args)...}{}
+    T t;
+  };
+  int main() {
+    A<int>::B(0);
+  }
+
+Example 2:
+
+  template <class T> struct A {
+    struct Inner;
+    Inner foobar;
+  };
+  template <class U> struct A<U>::Inner {
+    template <int I> using type = U;
+    Inner() {
+      type<0>();
+    }
+  };
+  A<int> a;
+
+
 10/12/18 [EDGcpfe/20025]
 C++20: "likely" and "unlikely" standard attributes
 
