@@ -145,11 +145,11 @@ the example below).  Now fixed.
 
 
 10/10/18 [EDGcpfe/20229]
-Invalid scanning of single digit followed by backslash
+Invalid scanning of single digit followed by backslash or extended character
 
 The changes for EDGcpfe/18278 (which optimize single-digit number tokens)
 introduced a regression (in version 4.14) in some cases where a single digit
-is followed by a universal character name.  For example:
+is followed by a universal character name or extended character.  For example:
 
   #define M(discard, ...) __VA_ARGS__
   int r = M(0\u1234'0, 42);  // Previously triggered spurious errors in

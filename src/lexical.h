@@ -1885,6 +1885,12 @@ EXTERN a_boolean
 			   an identifier (to avoid a relatively expensive
 			   call to f_is_identifier_char). */
 EXTERN a_boolean
+		char_ends_number[CHAR_MAX-CHAR_MIN+1];
+			/* A table to quickly identify characters that end
+			   a numeric literal (used to check for the
+			   single-digit integer performance
+			   optimization). */
+EXTERN a_boolean
 		is_raw_string_delimiter_char[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, whether or not it can appear
 			   in the d-char-sequence of a raw string

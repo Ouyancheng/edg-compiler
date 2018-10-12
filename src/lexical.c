@@ -13512,8 +13512,7 @@ return_end_of_source_token:
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ch = curr_char_loc[1];
-        if (!isdigit((unsigned char)ch) && !is_id_char[ch-CHAR_MIN] &&
-            ch != '.' && ch != '\'' && ch != '\\') {
+        if (char_ends_number[ch-CHAR_MIN]) {
           /* A single-digit integer.  Handle that (frequent) case specially. */
           an_integer_kind  int_kind;
           char             digit = *curr_char_loc;
@@ -23321,12 +23320,18 @@ are handled in lexical_init.)
       case '[': case ']': case '(': case ')': case '{': case '}':
       case ',': case '~': case ':': case ';': case '?': case '-':
       case '+': case '*': case '/': case '&': case '%': case '<':
-      case '>': case '=': case '|': case '^': case '.': case '$':
-      case '"': case '\'': case ' ': case '#':
+      case '>': case '=': case '|': case '^': case '$': case '"':
+      case ' ': case '#':
         char_ends_id[c-CHAR_MIN] = TRUE;
+        char_ends_number[c-CHAR_MIN] = TRUE;
+        break;
+      case '.': case '\'':
+        char_ends_id[c-CHAR_MIN] = TRUE;
+        char_ends_number[c-CHAR_MIN] = FALSE;
         break;
       default:
         char_ends_id[c-CHAR_MIN] = FALSE;
+        char_ends_number[c-CHAR_MIN] = FALSE;
         break;
     }  /* switch */
   }  /* for */
