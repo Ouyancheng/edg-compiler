@@ -1,5 +1,23 @@
 Version 5.1
 
+10/12/18 [EDGcpfe/20001,EDGcpfe/20272]
+C++20: Explicit by-copy capture of "this"
+
+Consider:
+
+  struct S {
+    void f(int i) {
+      [=, this]{}();  // Now okay in C++20 mode.
+    }
+  }
+
+Before C++20, this was invalid: "this" is implicitly captured "by copy" and
+making it explicit when a default is specified is invalid in C++17 and earlier
+standards.  In C++20 this became valid through the adoption to the committee's
+paper number P0409R2.  The front end now implements that relaxation in C++20
+mode (and --ms_c++latest mode with microsoft_version >= 2000).
+
+
 10/11/18 [EDGcpfe/20037,EDGcpfe/20124]
 C++20: Constexpr virtual functions
 

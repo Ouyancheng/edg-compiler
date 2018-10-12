@@ -2405,8 +2405,15 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		capture_star_this_enabled;
-			/* TRUE if lambda captures of the form [=,*this]
+			/* TRUE if lambda captures of the form [=, *this]
 			   (a C++17 feature) are permitted. */
+
+EXTERN a_boolean
+		explicit_copy_this_capture_enabled;
+			/* TRUE if lambda captures like [=, this] (where the
+			   default is "copy capture" and "this" is specified
+			   explicitly) are permitted.  This is standard C++20
+			   behavior. */
 
 EXTERN a_boolean
 		ms_std_preproc;

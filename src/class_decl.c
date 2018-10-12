@@ -31079,8 +31079,11 @@ caller has already moved past the '[', and this routine leaves the trailing
         }  /* if */
         if (lambda->has_capture_default &&
             lambda->default_is_by_reference == by_ref && var != NULL &&
-            !(!by_ref && is_star_this)) {
-          /* An explicit capture cannot match the default capture mode. */
+            !(!by_ref && is_star_this) &&
+            !(!by_ref && is_this && explicit_copy_this_capture_enabled)) {
+          /* An explicit capture cannot match the default capture mode,
+             except for "*this" copy capture and, in C++20 mode, "this" copy
+             capture. */
           pos_diagnostic(es_discretionary_error,
                          ec_capture_mode_matches_default, &pos_capture);
         }  /* if */
