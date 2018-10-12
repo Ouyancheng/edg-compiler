@@ -1,6 +1,5 @@
 Version 5.1
 
-<<<<<<< Updated upstream
 10/12/18 [EDGcpfe/20025]
 C++20: "likely" and "unlikely" standard attributes
 
@@ -21,10 +20,7 @@ them.  For example, with --c++20:
   }
 
 
-10/12/18 [EDGcpfe/20001,EDGcpfe/20272]
-=======
 10/12/18 [EDGcpfe/20001,EDGcpfe/20031,EDGcpfe/20272,EDGcpfe/20275]
->>>>>>> Stashed changes
 C++20: Explicit by-copy capture of "this"
 
 Consider:
