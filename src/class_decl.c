@@ -3093,7 +3093,7 @@ nested class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "inline_function_fixup_for_class");
-  /* Get the declaration sequence number at the pointer where fixup is
+  /* Get the declaration sequence number at the point where fixup is
      being done. */
   class_end_decl_seq = *curr_decl_seq_counter();
   /* First go though the routine fixup entries and scan the default
