@@ -3887,6 +3887,12 @@ Display the indicated label.
     disp_boolean("locally_declared", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->is_likely) {
+    disp_boolean("is_likely", TRUE);
+  }  /* if */
+  if (ptr->is_unlikely) {
+    disp_boolean("is_unlikely", TRUE);
+  }  /* if */
   disp_ptr("exec_stmt", (char *)ptr->exec_stmt, iek_statement);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->num_microsoft_trys_inside_of != 0) {
@@ -5007,6 +5013,12 @@ Display the indicated statement.
   if (ptr->is_fallthrough_statement) {
     disp_boolean("is_fallthrough_statement", TRUE);
   }  /* if */
+  if (ptr->is_likely) {
+    disp_boolean("is_likely", TRUE);
+  }  /* if */
+  if (ptr->is_unlikely) {
+    disp_boolean("is_unlikely", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->source_sequence_entry != NULL) {
     disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
@@ -5601,6 +5613,11 @@ Display the indicated attribute entry.
     case ak_hiding:              kind_name = "hiding";              break;
     case ak_noreturn:            kind_name = "noreturn";            break;
     case ak_override:            kind_name = "override";            break;
+    case ak_nodiscard:           kind_name = "nodiscard";           break;
+    case ak_maybe_unused:        kind_name = "maybe_unused";        break;
+    case ak_fallthrough:         kind_name = "fallthrough";         break;
+    case ak_likely:              kind_name = "likely";              break;
+    case ak_unlikely:            kind_name = "unlikely";            break;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     /* Nonstandard attributes available in both GNU and Microsoft
        configurations. */

@@ -225,6 +225,9 @@ static an_attr_descr known_attr_table[] = {
   { "nodiscard", "", "1c+(201703-|M(1910-))", ak_nodiscard },
   { "maybe_unused", "", "1c+(201703-|M(1910-))", ak_maybe_unused },
   { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
+  /* Note that the value of 202000 is temporary until C++20 is standardized. */
+  { "likely", "", "1c+(202000)", ak_likely },
+  { "unlikely", "", "1c+(202000)", ak_unlikely },
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
@@ -497,6 +500,7 @@ static an_attr_application_fn apply_override_attr;
 static an_attr_application_fn apply_nodiscard_attr;
 static an_attr_application_fn apply_maybe_unused_attr;
 static an_attr_application_fn apply_fallthrough_attr;
+static an_attr_application_fn apply_likely_attr;
 
 /* Internal attributes. */
 static an_attr_application_fn apply_conditional_explicit;
@@ -625,6 +629,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
   { ak_maybe_unused, "c|t|v|p|d|r|e|E", apply_maybe_unused_attr },
   { ak_fallthrough, "s", apply_fallthrough_attr },
+  { ak_likely, "l|s", apply_likely_attr },
+  { ak_unlikely, "l|s", apply_likely_attr },
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
   { ak_overloadable, "r", NO_APPL_FN },
@@ -4983,6 +4989,46 @@ diagnostic to suppress).
   }  /* if */
   return entity;
 }  /* apply_fallthrough_attr */
+
+
+static char* apply_likely_attr(an_attribute_ptr  ap,
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
+/*
+Apply the "likely" or "unlikely" attribute to the specified label or statement
+entity and return that entity.  Note that the syntax is validated, but the
+attribute currently has no effect in the front end.
+*/
+{
+  a_boolean err = FALSE;
+
+  if (entity_kind == iek_statement) {
+    a_statement_ptr sp = (a_statement_ptr)entity;
+    if (sp->is_likely || sp->is_unlikely) {
+      err = TRUE;
+    } else if (ap->kind == ak_likely) {
+      sp->is_likely = TRUE;
+    } else {
+      sp->is_unlikely = TRUE;
+    }  /* if */
+  } else if (entity_kind == iek_label) {
+    a_label_ptr lp = (a_label_ptr)entity;
+    if (lp->is_likely || lp->is_unlikely) {
+      err = TRUE;
+    } else if (ap->kind == ak_likely) {
+      lp->is_likely = TRUE;
+    } else {
+      lp->is_unlikely = TRUE;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (err) {
+    /* A previous likely/unlikely attribute has already been specified. */
+    pos_error(ec_likely_unlikely_conflict, &ap->position);
+  }  /* if */
+  return entity;
+}  /* apply_likely_attr */
 
 
 static void deferred_check_enable_if_attr(a_decl_parse_state_ptr  dps)
@@ -9347,6 +9393,8 @@ attributes from new_list are applied to tssp->attributes.
         case ak_carries_dependency:
         case ak_noreturn:
         case ak_fallthrough:
+        case ak_likely:
+        case ak_unlikely:
         default:
           /* These do not appertain to class types (and have been turned
              into ak_unrecognized if they do appear). */
@@ -9399,6 +9447,8 @@ attributes from new_list are applied to tssp->attributes.
         case ak_carries_dependency:
         case ak_noreturn:
         case ak_fallthrough:
+        case ak_likely:
+        case ak_unlikely:
           /* These do not appertain to class types (and have been turned
              into ak_unrecognized if they do appear). */
           unexpected_condition();

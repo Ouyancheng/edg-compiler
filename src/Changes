@@ -1,5 +1,25 @@
 Version 5.1
 
+10/12/18 [EDGcpfe/20025]
+C++20: "likely" and "unlikely" standard attributes
+
+The "likely" and "unlikely" attributes (meant to provide hints to a back end to
+aid in optimization) are now accepted on labels and statements (see P0479R5).
+The front end accepts and validates these attributes but takes no action on
+them.  For example, with --c++20:
+
+  void f(int i) {
+    switch (i) {
+      case 1: 
+        goto done;
+      default:
+        [[unlikely]]
+        break;
+    }
+  [[likely]] done:;
+  }
+
+
 10/12/18 [EDGcpfe/20001,EDGcpfe/20272]
 C++20: Explicit by-copy capture of "this"
 

@@ -2555,6 +2555,8 @@ typedef enum an_attribute_kind_tag {
   ak_nodiscard,		/* "nodiscard" (std). */
   ak_maybe_unused,	/* "maybe_unused" (std). */
   ak_fallthrough,	/* "fallthrough" (std). */
+  ak_likely,		/* "likely" (std). */
+  ak_unlikely,		/* "unlikely" (std). */
 
   /* Nonstandard attributes that do not require specific configuration
      flags. */
@@ -12081,6 +12083,14 @@ typedef struct a_label {
 			/* TRUE if this label was declared in a GNU C
 			   __label__ declaration. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	is_likely:1;
+			/* TRUE if this label has the [[likely]] attribute
+			   applied to it.  The front end does not take any
+			   action based on this value. */
+  a_bit_field	is_unlikely:1;
+			/* TRUE if this label has the [[unlikely]] attribute
+			   applied to it.  The front end does not take any
+			   action based on this value. */
   bitfield_to_avoid_codecenter_warnings()
   a_statement_ptr
                 exec_stmt;
@@ -14722,6 +14732,14 @@ typedef struct a_statement {
                            that has the [[fallthrough]] attribute applied to
                            it.  Note that this is not currently used by the
                            front end to suppress any diagnostics. */
+  a_bit_field  is_likely:1;
+                        /* TRUE if this statement has the [[likely]] attribute
+                           applied to it.  No action is taken by the front end
+                           based on this attribute. */
+  a_bit_field  is_unlikely:1;
+                        /* TRUE if this statement has the [[unlikely]]
+                           attribute applied to it.  No action is taken by the
+                           front end based on this attribute. */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;

@@ -3283,6 +3283,8 @@ to it.
 #if GNU_EXTENSIONS_ALLOWED
   lp->locally_declared = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  lp->is_likely = FALSE;
+  lp->is_unlikely = FALSE;
 #if CENTERLINE_CHECKING
   lp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -4116,6 +4118,8 @@ to it.  The statement kind is set as indicated.
   sp->is_initialization_guard = FALSE;
   sp->is_lowering_boilerplate = FALSE;
   sp->is_fallthrough_statement= FALSE;
+  sp->is_likely               = FALSE;
+  sp->is_unlikely             = FALSE;
 #if CENTERLINE_CHECKING
   sp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
