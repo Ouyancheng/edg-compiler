@@ -5006,7 +5006,7 @@ attribute currently has no effect in the front end.
     a_statement_ptr sp = (a_statement_ptr)entity;
     if (sp->is_likely || sp->is_unlikely) {
       err = TRUE;
-    } else if (ap->kind == ak_likely) {
+    } else if (ap->kind == (an_attribute_kind)ak_likely) {
       sp->is_likely = TRUE;
     } else {
       sp->is_unlikely = TRUE;
@@ -5015,7 +5015,7 @@ attribute currently has no effect in the front end.
     a_label_ptr lp = (a_label_ptr)entity;
     if (lp->is_likely || lp->is_unlikely) {
       err = TRUE;
-    } else if (ap->kind == ak_likely) {
+    } else if (ap->kind == (an_attribute_kind)ak_likely) {
       lp->is_likely = TRUE;
     } else {
       lp->is_unlikely = TRUE;
