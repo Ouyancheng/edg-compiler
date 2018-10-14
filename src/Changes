@@ -1,5 +1,24 @@
 Version 5.1
 
+10/14/18 [EDGcpfe/19158,EDGcpfe/20254]
+Generic lambda instantiation and local scope using-directives
+
+If a generic lambda was declared in a local scope and the generic lambda
+depended on an enclosing local-scope using-directive, name lookup in the
+instantiation of the lambda could produce an incorrect result.  Now fixed.
+
+  namespace N {
+    namespace O { using O_type = int; }
+    void f() {
+      using namespace O;
+      auto lam = [&] (O_type , auto) {};
+      for (int i = 0; ; i++) {
+        lam(0, 0);
+      }
+    }
+  }
+
+
 10/12/18 [EDGcpfe/18994,EDGcpfe/19342,EDGcpfe/20242]
 Issue with prototype instantiations of nested class members and deferral
 of function prototype instantiations

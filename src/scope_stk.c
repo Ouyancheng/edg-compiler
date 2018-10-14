@@ -4490,6 +4490,12 @@ information about the parameters.
     default:
       break;
   }  /* switch */
+  if (scope != NULL) {
+    /* Apply any using directives from the scope that was reactivated. */
+    add_active_using_directives_for_scope(scope,
+                                          &scope_stack[depth_scope_stack],
+                                          NO_DECL_SEQUENCE_NUMBER);
+  }  /* if */
 }  /* reactivate_parent_context */
 
 
