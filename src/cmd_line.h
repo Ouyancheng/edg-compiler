@@ -1398,6 +1398,13 @@ EXTERN a_boolean
 			/* When TRUE, an aggregate class type can have public,
 			   non-virtual base classes (this is a C++17
 			   feature). */
+
+EXTERN a_boolean
+		aggregate_classes_can_have_user_ctors;
+			/* When TRUE, an aggregate class type can have user 
+			   declared constructors.  This was allowed before 
+			   C++20. */
+
 EXTERN a_boolean
 		selection_from_prvalue_is_xvalue;
 			/* TRUE if the C++14 rule that a field selection on a

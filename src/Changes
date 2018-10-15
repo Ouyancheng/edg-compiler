@@ -1,5 +1,20 @@
 Version 5.1
 
+10/15/18 [EDGcpfe/20038]
+Prohibit aggregates with user-declared constructors
+
+In C++20, a class that has a used-declared constructor is not considered
+an aggregate.  This has now been implemented.  For example:
+
+  struct X {
+    int i, j;
+    X() = delete;
+  };
+  int main() {
+  X x{}; // zero-initializes i and j before C++20, ill-formed in C++20
+  }
+
+
 10/14/18 [EDGcpfe/19158,EDGcpfe/20254]
 Generic lambda instantiation and local scope using-directives
 

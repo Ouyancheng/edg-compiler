@@ -3499,6 +3499,7 @@ default mode (e.g., exception handling).
         conditional_explicit_enabled = TRUE;
         constexpr_virtual_enabled = TRUE;
         explicit_copy_this_capture_enabled = TRUE;
+        aggregate_classes_can_have_user_ctors = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11549,6 +11550,7 @@ variables declared in cmd_line.h.
   field_initializers_enabled = FALSE;
   aggregate_classes_can_have_field_initializers = FALSE;
   aggregate_classes_can_have_bases = FALSE;
+  aggregate_classes_can_have_user_ctors = TRUE;
   generalized_template_template_matching = FALSE;
   selection_from_prvalue_is_xvalue = FALSE;
   alias_declarations_enabled = FALSE;

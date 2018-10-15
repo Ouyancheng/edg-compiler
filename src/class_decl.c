@@ -27592,13 +27592,15 @@ that is provided if this is a member template declaration.
           pos_error(ec_static_not_allowed, &dps->start_pos);
           dps->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if ((decl_info.is_constructor && !func_info.is_defaulted &&
-             !func_info.is_deleted) ||
+        if ((decl_info.is_constructor &&
+            ((!aggregate_classes_can_have_user_ctors ||
+             (!func_info.is_defaulted && !func_info.is_deleted )))) ||
             (dso_flags & DSO_VIRTUAL)) {
-          /* A class with a user-provided constructor or a virtual function
-             cannot be an "aggregate" (8.5.1).  (A constructor that is
-             defaulted or deleted inside its enclosing class is not considered
-             "user-provided".) */
+          /* Before C++20, a class with a user-provided constructor or a
+             virtual function cannot be an "aggregate" (8.5.1).  A constructor
+             that is defaulted or deleted inside its enclosing class is not
+             considered "user-provided".  After C++20, any user declared
+             constructor  makes the class not an aggregate. */
           class_state->class_aggregate_ruled_out = TRUE;
           class_state->cpp03_POD_ruled_out = TRUE;
         } else if (decl_info.is_destructor && !func_info.is_defaulted &&
