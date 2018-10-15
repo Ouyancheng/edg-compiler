@@ -760,7 +760,7 @@ remove_any_extraneous_braces:
       if ((!C_mode() && !cpp11_mode) || gnu_mode || clang_mode) {
         /* A single level of braces is standard in C and C++11 onward, but not
            in C++03.  GCC issues an error in all modes and Clang warns in all
-           modes. We warn in both GCC and Clang modes. */
+           modes.  We warn in both GCC and Clang modes. */
         diagnose_extra_braces = TRUE;
         sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */

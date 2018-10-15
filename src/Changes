@@ -190,15 +190,16 @@ to an inlined call from right-to-left.  For example (with --c++17):
 10/11/18 [EDGcpfe/20231]
 Braced initialization of a scalar type
 
-A diagnostic is issued if there are braces around a scalar initializer.  One
-set of braces around a scalar initializer is allowed since C++11.  Now the 
-diagnostic is issued only in GCC or clang mode, or if there is more than one 
-set of braces around a scalar initializer.  For example:
+The front end previously issued a warning (an error in strict mode) in C++ 
+when the initializer for a scalar member of an aggregate is enclosed in a 
+single set of braces.  However, such initializers are well-formed since C++11.
+A diagnostic is now issued only in C++03 mode and in GNU and clang C++ modes.  
+For example:
 
   struct B { int x;};
-  B b1 { .x {1} };  // previously triggered a warning about extra braces
-  B b2 { {2} };  // previously triggered a warning about extra braces
-  B b3 { .x {{1}} };  // still triggers an error because of extra braces
+  B b1 { .x {1} };    // Previously triggered a warning or error
+  B b2 { {2} };       // Previously triggered a warning or error
+  B b3 { .x {{1}} };  // Still triggers an error
 
 
 10/10/18 [EDGcpfe/20249]
