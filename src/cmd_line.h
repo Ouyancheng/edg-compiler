@@ -1401,8 +1401,8 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		aggregate_classes_can_have_user_ctors;
-			/* When TRUE, an aggregate class type can have user 
-			   declared constructors.  This was allowed before 
+			/* When TRUE, an aggregate class type can have
+			   user-declared constructors.  This was allowed before
 			   C++20. */
 
 EXTERN a_boolean
