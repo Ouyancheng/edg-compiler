@@ -4490,7 +4490,7 @@ information about the parameters.
     default:
       break;
   }  /* switch */
-  if (scope != NULL) {
+  if (scope != NULL && (options & PS_IS_GENERIC_LAMBDA) != 0) {
     /* Apply any using directives from the scope that was reactivated. */
     add_active_using_directives_for_scope(scope,
                                           &scope_stack[depth_scope_stack],
