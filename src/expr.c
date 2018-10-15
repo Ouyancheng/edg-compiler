@@ -11221,6 +11221,7 @@ indication in *rcblock).
   a_memory_region_number     region_to_switch_back_to = NULL_region_number;
 
   db_enter(4, "scan_sizeof_pack_operator");
+  id_position = null_source_position;
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
