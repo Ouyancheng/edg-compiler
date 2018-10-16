@@ -2425,6 +2425,11 @@ EXTERN a_boolean
 			   behavior. */
 
 EXTERN a_boolean
+		lambda_template_param_list_enabled;
+			/* TRUE if a lambda expression can have a C++20-style
+			   template parameter list (e.g., "[]<int N>() {}"). */
+
+EXTERN a_boolean
 		ms_std_preproc;
 			/* TRUE if the preprocessor behavior should conform
 			   to the C++ Standard in Microsoft mode rather

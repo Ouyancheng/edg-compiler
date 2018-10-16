@@ -1,5 +1,18 @@
 Version 5.1
 
+10/16/18 [EDGcpfe/20004,EDGcpfe/20273]
+C++20: Lambdas with template parameter lists
+
+In C++20 mode (and --ms_c++latest mode with microsoft_version >= 2000), the
+front end now implements support for lambda expressions that include a template
+parameter list (as per the standardization committee's paper P0428R2).  For
+example:
+
+  constexpr auto lm = []<typename T>(T t, int i) { return t+i; };
+    // Now accepted in C++20 mode.
+  static_assert(lm(3, 4) == 7);
+
+
 10/16/18 [EDGcpfe/19403]
 Assertion failure in aggr_init_field_designator with nested unnamed structs 
 and malformed designated initializer

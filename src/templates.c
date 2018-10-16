@@ -24225,7 +24225,7 @@ to represent the template parameters.
         /* A template template parameter. */
         template_param = scan_template_template_param(decl_state,
                                                       &param_state,
-  						    /*is_rescan=*/FALSE);
+                                                      /*is_rescan=*/FALSE);
         /* We can't tell yet whether the template template parameter
            is dependent, so keep the cache. */
         param_cache_needed = TRUE;
@@ -31266,26 +31266,14 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 }  /* template_or_specialization_declaration */
 
 
-void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
-                                           a_tmpl_decl_state   *templ_state)
+static void start_generic_lambda_state(a_tmpl_decl_state  *templ_state)
 /*
-*dps describes the declarator of a lambda that has been found (through a
-pre-scan) to be a C++14 generic lambda.  Set up IL and front end structures to
-scan the lambda declarator and declare a corresponding member template for the
-lambda's call operator.  In particular, push a template declaration scope and
-declare template parameters corresponding to the prescanned "auto" parameters
-described by dps->auto_params.  Initialize and update *templ_state accordingly.
+Initialize *templ_state for a generic lambda's call operator template and push
+a corresponding template declaration scope.
 */
 {
-  a_template_decl_info_ptr     template_decl_info = NULL;
-  a_template_param_ptr         template_param, end_template_param_list = NULL;
-  an_auto_param_descr_ptr      apdp = dps->variant.auto_params;
-  a_template_param_list_pos    param_pos = 1;
-#define AUTO_PARAM_NAME_PREFIX "<auto-"
-#define AUTO_PARAM_NAME_SUFFIX ">"
-  char                         param_name[100] = AUTO_PARAM_NAME_PREFIX;
+  a_template_decl_info_ptr  template_decl_info;
 
-  check_assertion(apdp != NULL);
   init_tmpl_decl_state_for_generated_member_template(templ_state);
   templ_state->is_lambda = TRUE;
   templ_state->starting_token_sequence_number = curr_token_sequence_number;
@@ -31326,6 +31314,65 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
   /* Mark the template declaration scope as being associated with a generic
      lambda. */
   scope_stack_top().is_generic_lambda = TRUE;
+}  /* start_generic_lambda_state */
+
+
+void scan_lambda_template_param_list(a_decl_parse_state  *dps,
+                                     a_tmpl_decl_state   *templ_state)
+/*
+*dps describes the declarator of a lambda that has a C++20-style template
+parameter list (e.g., "[]<int N>(){}").  Set up IL and front end structures to
+declare a member template for the lambda's call operator.  In particular, push
+a template declaration scope and initialize and update *templ_state
+accordingly.  Then scan the template parameter list.
+*/
+{
+  /* Bypass the "<". */
+  check_assertion(curr_token == tok_lt);
+  (void)get_token();
+  if (curr_token == tok_gt) {
+    pos_error(ec_empty_lambda_template_param_list, &pos_curr_token);
+    (void)get_token();
+    goto done;
+  }  /* if */
+  start_generic_lambda_state(templ_state);
+  scan_template_param_list(templ_state);
+done:;
+}  /* scan_lambda_template_param_list */
+
+
+void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
+                                           a_tmpl_decl_state   *templ_state)
+/*
+*dps describes the declarator of a lambda that has been found (through a
+pre-scan) to have "auto" parameters (i.e., a C++14-style generic lambda).  If
+needed, set up IL and front end structures to scan the lambda declarator and
+declare a corresponding member template for the lambda's call operator (this
+will already have been done if the lambda has a C++20-style template parameter
+list).  Then declare template parameters corresponding to the prescanned "auto"
+parameters described by dps->auto_params.  Update *templ_state accordingly.
+*/
+{
+  a_template_decl_info_ptr     template_decl_info;
+  a_template_param_ptr         template_param, end_template_param_list = NULL;
+  an_auto_param_descr_ptr      apdp = dps->variant.auto_params;
+  a_template_param_list_pos    param_pos = 1;
+  uint32_t                     param_pos_offset = 0;
+#define AUTO_PARAM_NAME_PREFIX "<auto-"
+#define AUTO_PARAM_NAME_SUFFIX ">"
+  char                         param_name[100] = AUTO_PARAM_NAME_PREFIX;
+
+  if (!scope_stack_top().is_generic_lambda) {
+    start_generic_lambda_state(templ_state);
+  } else {
+    a_template_param_ptr  tpp = templ_state->decl_info->parameters;
+    for (; tpp != NULL; tpp = tpp->next) {
+      param_pos_offset += 1;
+      end_template_param_list = tpp;
+    }  /* for */
+  }  /* if */
+  template_decl_info = templ_state->decl_info;
+  /* Create template type parameters for the "auto" parameters (if any). */
   for (; apdp != NULL; apdp = apdp->next, ++param_pos) {
     a_symbol_locator  param_loc;
     a_decl_pos_block  decl_pos_block;
@@ -31345,14 +31392,14 @@ described by dps->auto_params.  Initialize and update *templ_state accordingly.
     (void)find_symbol(param_name, len, &param_loc);
 #undef AUTO_PARAM_NAME_PREFIX
 #undef AUTO_PARAM_NAME_SUFFIX
-    template_param = decl_type_template_param(param_pos, &param_loc,
-                                              /*is_named=*/FALSE,
+    template_param = decl_type_template_param(param_pos+param_pos_offset,
+                                              &param_loc, /*is_named=*/FALSE,
                                               apdp->is_parameter_pack,
                                               templ_state, &decl_pos_block);
     template_param->param_symbol->is_invisible = TRUE;
     template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
     template_param->variant.type->variant.template_param.is_auto_param = TRUE;
-    template_param->param_num = param_pos;
+    template_param->param_num = param_pos+param_pos_offset;
     apdp->template_type_parameter = template_param;
     /* Append the template parameter entry to the list pointed to by
        templ_state->decl_info. */

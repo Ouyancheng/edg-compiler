@@ -2683,6 +2683,7 @@ option values if they were not already set by a command line option.
           conditional_explicit_enabled = TRUE;
           constexpr_virtual_enabled = TRUE;
           explicit_copy_this_capture_enabled = TRUE;
+          lambda_template_param_list_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3499,6 +3500,7 @@ default mode (e.g., exception handling).
         conditional_explicit_enabled = TRUE;
         constexpr_virtual_enabled = TRUE;
         explicit_copy_this_capture_enabled = TRUE;
+        lambda_template_param_list_enabled = TRUE;
         aggregate_classes_can_have_user_ctors = FALSE;
       }  /* if */
     }  /* if */
@@ -11878,6 +11880,7 @@ variables declared in cmd_line.h.
   constexpr_lambdas_enabled = FALSE;
   capture_star_this_enabled = FALSE;
   explicit_copy_this_capture_enabled = FALSE;
+  lambda_template_param_list_enabled = FALSE;
   ms_std_preproc = FALSE;
   fold_expressions_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;

@@ -914,6 +914,9 @@ extern void template_directive_or_declaration(
 extern a_boolean is_template_friend_decl(void);
 
 #if !STANDALONE_UTILITY_PROGRAM
+extern void scan_lambda_template_param_list(a_decl_parse_state  *dps,
+                                            a_tmpl_decl_state   *templ_state);
+
 extern
 void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
                                            a_tmpl_decl_state   *templ_state);

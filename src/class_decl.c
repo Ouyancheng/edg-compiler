@@ -27345,7 +27345,6 @@ that is provided if this is a member template declaration.
     remove_stop_token(tok_colon);
   } else {
     /* A lambda operator: There are no attributes or explicit specifiers. */
-    check_assertion(curr_token == tok_lparen);
     dps->specifiers_type = make_auto_type(&pos_curr_token,
                                           /*is_decltype_auto=*/FALSE);
     dps->type = dps->specifiers_type;
@@ -27501,6 +27500,24 @@ that is provided if this is a member template declaration.
       }  /* if */
       remove_stop_token(tok_comma);
       goto next_declaration;
+    } else if (dps->is_lambda && curr_token != tok_lparen) {
+      /* A generic lambda instantiation that omits the lambda declarator (e.g.,
+         "[]<int N>{ return N; }").  Synthesize a function type taking no
+         parameters. */
+      a_routine_type_supplement_ptr  rtsp;
+      is_function = TRUE;
+      clear_func_info(&func_info);
+      dps->type = make_routine_type(dps->specifiers_type, /*param1_type=*/NULL,
+                                    /*param2_type=*/NULL, /*param3_type=*/NULL,
+                                    /*param4_type=*/NULL);
+      rtsp = dps->type->variant.routine.extra_info;
+      rtsp->this_class = class_type;
+      rtsp->qualifiers = TQ_CONST;
+      dps->declared_type = dps->type;
+      dps->has_deducible_return_type = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      func_info.declared_type = dps->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (!member_declarator(class_state, &decl_info, &locator,
                                   &func_info,  &is_function, &is_typedef)) {
       /* A syntax error occurred: Proceed with the next declaration. */
@@ -31190,7 +31207,9 @@ implied call operator in *func_info and *decl_info (both are initialized here).
 
 This function also determines if this is a generic lambda.  If it is,
 *templ_state is initialized with the relevant state information and a
-corresponding template declaration scope is pushed.
+corresponding template declaration scope is pushed.  In C++20 mode, this may
+include parsing a template parameter list appearing before the declarator
+proper.
 */
 {
   a_decl_parse_state  *dps = &decl_info->decl_state;
@@ -31208,6 +31227,13 @@ corresponding template declaration scope is pushed.
   dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   dps->is_lambda = TRUE;
   dps->first_decl = TRUE;
+  if (curr_token == tok_lt && generic_lambdas_enabled &&
+      lambda_template_param_list_enabled) {
+    scan_lambda_template_param_list(dps, templ_state);
+    if (scope_stack_top().is_generic_lambda) {
+      lambda->is_generic = TRUE;
+    }  /* if */
+  }  /* if */
   if (curr_token == tok_lparen) {
     /* A parameter list presumably follows. */
     add_stop_token(tok_lbrace);
@@ -31216,21 +31242,24 @@ corresponding template declaration scope is pushed.
          that would make this a generic lambda. */
       prescan_lambda_parameter_clause(dps);
       if (dps->variant.auto_params != NULL) {
-        /* At least one "auto" parameter was seen: Set up a member function
-           template context. */
+        /* At least one "auto" parameter was seen: This is a generic lambda. */
         lambda->is_generic = TRUE;
-        class_type_supp(scope_stack_top().assoc_type)
-                                     ->is_generic_lambda_closure_class = TRUE;
-        if (!generic_lambdas_can_implicitly_capture &&
-            lambda->has_capture_default) {
-          /* In some modes, generic lambdas may not implicitly capture local
-             variables. */
-          pos_error(ec_generic_lambda_cannot_capture, &lambda->start_position);
-        }  /* if */
-        set_up_generic_lambda_declarator_scan(dps, templ_state);
-        function_contains_generic_lambda();
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (lambda->is_generic) {
+    class_type_supp(lambda->closure_class)
+                                 ->is_generic_lambda_closure_class = TRUE;
+    if (!generic_lambdas_can_implicitly_capture &&
+        lambda->has_capture_default) {
+      /* In some modes, generic lambdas may not implicitly capture local
+         variables. */
+      pos_error(ec_generic_lambda_cannot_capture, &lambda->start_position);
+    }  /* if */
+    set_up_generic_lambda_declarator_scan(dps, templ_state);
+    function_contains_generic_lambda();
+  }  /* if */
+  if (curr_token == tok_lparen) {
     scan_lambda_declarator(dps, func_info, decl_pos_block);
     lambda->has_parameter_decl = TRUE;
     lambda->explicit_return_type = dps->has_trailing_return_type;
@@ -31332,10 +31361,13 @@ whether this is a lambda.  Return TRUE if it is.
          next_tok == tok_this)) {
       /* We encountered "=x" or "&x".  Treat this is a lambda. */
     } else if (curr_token == tok_rbracket) {
-      /* "[x]...": If the token after the right bracket is a "{" or "(",
+      /* "[x]...": If the token after the right bracket is a "{", "(", or "<",
          assume this is a lambda. */
       next_tok = next_token();
-      if (next_tok != tok_lbrace && next_tok != tok_lparen) result = FALSE;
+      if (next_tok != tok_lbrace && next_tok != tok_lparen &&
+          next_tok != tok_lt) {
+        result = FALSE;
+      }  /* if */
     } else if (curr_token == tok_colon_colon) {
       /* "[x::...", which cannot be a lambda but could be an attribute. */
       result = FALSE;

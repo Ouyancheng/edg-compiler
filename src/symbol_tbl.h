@@ -2095,6 +2095,13 @@ typedef struct a_template_param {
 			/* TRUE if this is a nontype parameter whose type
 			   involves "auto" or "decltype(auto)". */
   bitfield_to_avoid_codecenter_warnings()
+  uint32_t	param_num;
+			/* The ordinal position of the parameter (1, 2, ...).
+			   In the instantiation of a variadic template, this
+			   is the position of the corresponding parameter from
+			   the original template.  In other words, there can
+			   be missing or repeated values in the parameter list
+			   of the instantiation of a variadic template. */
   union {
     /* When param_symbol->kind = sk_type. */
     a_type_ptr
@@ -2160,13 +2167,6 @@ typedef struct a_template_param {
 			   tokens of the default argument expression.
 			   Only used when def_arg_involves_template_param is
 			   TRUE. */
-  uint32_t	param_num;
-			/* The ordinal position of the parameter (1, 2, ...).
-			   In the instantiation of a variadic template, this
-			   is the position of the corresponding parameter from
-			   the original template.  In other words, there can
-			   be missing or repeated values in the parameter list
-			   of the instantiation of a variadic template. */
 } a_template_param;
 
 
