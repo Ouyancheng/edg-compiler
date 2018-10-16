@@ -1,5 +1,23 @@
 Version 5.1
 
+10/16/18 [EDGcpfe/20135]
+Lookup in namespace scope variable templates
+
+In the instantiation of a namespace scope variable template, a namespace
+member with the same name as a template parameter of the variable template
+could incorrectly be preferred by name lookup resulting in the template
+parameter being hidden.  Now fixed.
+
+  namespace N {
+    template<typename> struct A { static constexpr int value = 1; };
+    template <class T> struct U { using u_type = T; };
+    template <class U> constexpr bool A_v = A<typename U::u_type>::value;
+  }
+  int main() {
+    const bool b = N::A_v<N::U<int>>;
+  }
+
+
 10/16/18 [EDGcpfe/20004,EDGcpfe/20273]
 C++20: Lambdas with template parameter lists
 

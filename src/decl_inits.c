@@ -4887,8 +4887,9 @@ returned set to TRUE.
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
   a_token_kind                      first_token;
   a_source_position                 pos_first_token;
-  a_boolean                         reactivation_pushed = FALSE;
+  a_boolean                         class_reactivation_pushed = FALSE;
   a_decl_parse_state                *saved_decl_parse_state;
+  a_boolean                         namespace_reactivation_pushed = FALSE;
 
   db_enter(3, "initializer");
   dps->has_initializer = TRUE;
@@ -5054,11 +5055,13 @@ returned set to TRUE.
          are visible in the initializer. */
       push_class_reactivation_scope(sym_parent_class(symbol_ptr),
                                     /*extend_namespace=*/TRUE);
-      reactivation_pushed = TRUE;
+      class_reactivation_pushed = TRUE;
     }  /* if */
   } else {
-    if (sym_is_namespace_member(symbol_ptr)) {
+    if (sym_is_namespace_member(symbol_ptr) &&
+        !is_template_variable_symbol(symbol_ptr)) {
       push_namespace_reactivation_scope(sym_parent_namespace(symbol_ptr));
+      namespace_reactivation_pushed = TRUE;
     }  /* if */
     if (exceptions_enabled && static_lifetime &&
         vp != NULL && vp->source_corresp.is_local_to_function) {
@@ -5519,7 +5522,7 @@ returned set to TRUE.
        also end up here with an sk_variable.) */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
-    if (reactivation_pushed) {
+    if (class_reactivation_pushed) {
       check_assertion(!is_incomplete_type(sym_parent_class(symbol_ptr)));
       pop_class_reactivation_scope();
     }  /* if */
@@ -5531,7 +5534,7 @@ returned set to TRUE.
                                                   local_static_var_init,
                                                   init_err || var_err);
     }  /* if */
-    if (sym_is_namespace_member(symbol_ptr)) {
+    if (namespace_reactivation_pushed) {
       pop_namespace_reactivation_scope();
     }  /* if */
   }  /* if */
