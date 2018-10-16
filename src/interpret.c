@@ -7926,7 +7926,8 @@ otherwise, return FALSE and update *ips accordingly.
       }  /* if */
     }  /* if */
     /* If the function is virtual, we can now determine the actual callee. */
-    if (callee->is_virtual && call_node->variant.operation.is_virtual_call) {
+    if (callee->is_virtual &&
+        (call_node->variant.operation.is_virtual_call || pm_target != NULL)) {
       adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset);
     }  /* if */
     if (!callee->is_constexpr) {
