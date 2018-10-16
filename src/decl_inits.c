@@ -3095,12 +3095,22 @@ list and is used to check for duplicated designated initializers.  */
                field. */
             for (;;) {
               sym = sym->variant.field.anonymous_parent_object;
-              check_assertion(sym != NULL);
-              if (same_entities(sym_parent_class(sym), class_type)) {
+              if (sym == NULL) {
+                /* We have reached the top of the class chain without
+                   finding the parent class of the designated element. */
+                okay = FALSE;
+                if (!is->no_diagnostics) {
+                  pos_stsy_error(ec_not_a_field, init_component_pos(icp),
+                                loc.symbol_header->identifier, 
+                                symbol_for(class_type));
+                }  /* if */
+                is->init_error = TRUE;
+                break;
+              } else if (same_entities(sym_parent_class(sym), class_type)) {
+                *field = sym->variant.field.ptr;
                 break;
               }  /* if */
             }  /* for */
-            *field = sym->variant.field.ptr;
             /* Prevent the initializer component representing ".x" from being
                skipped (so that lower levels will find it again). */
             skip_designator = FALSE;

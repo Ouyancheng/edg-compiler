@@ -1,5 +1,32 @@
 Version 5.1
 
+10/16/18 [EDGcpfe/19403]
+Assertion failure in aggr_init_field_designator with nested unnamed structs 
+and malformed designated initializer
+
+In certain cases, an invalid designator within an anonymous union or a
+(nonstandard) anonymous struct would cause an assertion failure.  For 
+example:
+
+  struct S {
+    struct {     // #1
+      struct {   // #2
+        unsigned int a;
+      };
+      unsigned int b;
+    };
+  };
+
+  struct S s = { { {
+    .b = 1 
+  } } };
+
+The above designator is within initializer for #2, but the designated 
+name does not exist within that struct. This would cause an assertion
+previously. The front end now detects the invalid designator and issues 
+an error.
+
+
 10/15/18 [EDGcpfe/20277]
 C++-generating back end: qualified pseudo-destructor calls
 
