@@ -42,11 +42,15 @@ This is now fixed; that line is now generated as:
   p->~A();
 
 
-10/15/18 [EDGcpfe/20038]
+10/15/18 [EDGcpfe/20038,EDGcpfe/20123]
 Prohibit aggregates with user-declared constructors
 
-In C++20, a class that has a used-declared constructor is not considered
-an aggregate.  This has now been implemented.  For example:
+Prior to C++20, the presence of a user-provided constructor in a class 
+disqualified it as an aggregate.  However, explicitly defaulted and
+deleted constructors are not considered to be "user-provided", only 
+"user-declared".  C++20 extends the restriction to apply to user-declared 
+constructors as well, and the front end now implements this rule in 
+C++20 mode.  For example:
 
   struct X {
     int i, j;

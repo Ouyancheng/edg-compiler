@@ -27597,10 +27597,10 @@ that is provided if this is a member template declaration.
              (!func_info.is_defaulted && !func_info.is_deleted )))) ||
             (dso_flags & DSO_VIRTUAL)) {
           /* Before C++20, a class with a user-provided constructor or a
-             virtual function cannot be an "aggregate" (8.5.1).  A constructor
-             that is defaulted or deleted inside its enclosing class is not
-             considered "user-provided".  After C++20, any user-declared
-             constructor makes the class not an aggregate. */
+             virtual function cannot be an "aggregate" [dcl.init.aggr].  A
+             constructor that is defaulted or deleted inside its enclosing
+             class is not considered "user-provided".  After C++20, any
+             user-declared constructor makes the class not an aggregate. */
           class_state->class_aggregate_ruled_out = TRUE;
           class_state->cpp03_POD_ruled_out = TRUE;
         } else if (decl_info.is_destructor && !func_info.is_defaulted &&

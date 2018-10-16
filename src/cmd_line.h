@@ -1402,8 +1402,10 @@ EXTERN a_boolean
 EXTERN a_boolean
 		aggregate_classes_can_have_user_ctors;
 			/* When TRUE, an aggregate class type can have
-			   user-declared constructors.  This was allowed before
-			   C++20. */
+			   user-declared (but not user-provided) constructors.
+			   (An explicitly defaulted or deleted constructor is
+			   not user-provided.)  This was allowed before C++20.
+			   */
 
 EXTERN a_boolean
 		selection_from_prvalue_is_xvalue;
