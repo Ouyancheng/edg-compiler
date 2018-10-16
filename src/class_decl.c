@@ -31229,7 +31229,7 @@ proper.
   dps->first_decl = TRUE;
   if (curr_token == tok_lt && generic_lambdas_enabled &&
       lambda_template_param_list_enabled) {
-    scan_lambda_template_param_list(dps, templ_state);
+    scan_lambda_template_param_list(templ_state);
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
     }  /* if */

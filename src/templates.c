@@ -31317,8 +31317,7 @@ a corresponding template declaration scope.
 }  /* start_generic_lambda_state */
 
 
-void scan_lambda_template_param_list(a_decl_parse_state  *dps,
-                                     a_tmpl_decl_state   *templ_state)
+void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state)
 /*
 *dps describes the declarator of a lambda that has a C++20-style template
 parameter list (e.g., "[]<int N>(){}").  Set up IL and front end structures to
