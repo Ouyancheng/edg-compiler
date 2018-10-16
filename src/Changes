@@ -1,5 +1,47 @@
 Version 5.1
 
+10/15/18 [EDGcpfe/20277]
+C++-generating back end: qualified pseudo-destructor calls
+
+In C++-generating back end configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, a
+pseudo-destructor call was sometimes incorrectly put out in a generated
+explicit specialization as a qualified-id in which the
+nested-name-specifier did not match the type name appearing in the
+pseudo-destructor name.  For example, given:
+
+  struct A { };
+  struct B { };
+  template <int I> struct C {
+    typedef B t;
+  };
+  template <typename T> struct D { enum { v = 0 };};
+  template<typename T> struct E {
+    ~E();
+    void f(T*);
+    T* g();
+  };
+  template<typename T> E<T>::~E() {
+    f(g());
+  }
+  template<typename T> void E<T>::f(T* p) {
+    p->~T();
+  }
+  class F {
+    typedef A Data_t;
+    E<Data_t> m_vector;
+  };
+
+the generated explicit specialization for E<A>::f(A*) previously contained
+the incorrect expression
+
+  p->A::~Data_t();
+
+This is now fixed; that line is now generated as:
+
+  p->~A();
+
+
 10/15/18 [EDGcpfe/20038]
 Prohibit aggregates with user-declared constructors
 
