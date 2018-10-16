@@ -885,13 +885,13 @@ dereference an uninitialized value.
 
 9/25/18  [EDGcpfe/20209]
 C++-generating back end, Microsoft compatibility: generated explicit
-specializations returning reference to function or pointer to function
+specializations returning reference or pointer to function or array
 
 In C++-generating back end configurations in which
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
 generated code was not compilable by MSVC when a generated explicit
-specialization of a function template has a reference to function or
-pointer to function as its return type.  This has now been fixed.  When
+specialization of a function template has a reference or pointer to
+a function or array as its return type.  This has now been fixed.  When
 msvc_is_generated_code_target is TRUE, the C++-generating back end now
 creates a typedef for the return type in such cases and uses the typedef in
 the explicit specialization.  For example, given

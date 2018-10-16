@@ -19292,12 +19292,13 @@ handle_as_definition:
     a_type_ptr ret_type = unqual_rout_type->variant.routine.return_type;
     if (!type_is_typedef(ret_type) &&
         (is_reference_type(ret_type) || is_pointer_type(ret_type)) &&
-        is_function_type(type_pointed_to(ret_type))) {
+        (is_function_type(type_pointed_to(ret_type)) ||
+         is_array_type(type_pointed_to(ret_type)))) {
       /* MSVC has a bug that results in spurious errors when parsing an
          explicit specialization of a function template when the return
-         type is a reference or pointer to a function type.  Put out a
-         typedef for the return type and use the typedef for the explicit
-         specialization.  That is, turn something like
+         type is a reference or pointer to a function or array type.  Put
+         out a typedef for the return type and use the typedef for the
+         explicit specialization.  That is, turn something like
            template<> void (&&f<void ()>())();
          into
            typedef void (&&__T12345678)();
