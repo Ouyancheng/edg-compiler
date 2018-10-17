@@ -5291,14 +5291,18 @@ returned set to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (gnu_mode && static_lifetime &&
                (C_mode() ||
-                !is_class_struct_union_type(skip_array_types(vp_type)) ||
-                is_aggregate_type(skip_array_types(vp_type)))) {
-      /* In GNU modes, a compound literal is treated as a constant-expression
+                (!dps->is_struct_binding_decl &&
+                 (!is_class_struct_union_type(skip_array_types(vp_type)) ||
+                  is_aggregate_type(skip_array_types(vp_type)))))) {
+      /* A static-lifetime array initialization without braces in GNU mode.
+         In GNU modes, a compound literal is treated as a constant-expression
          that can initialize a variable with a static lifetime.  We may also
          arrive here when the initializer is a (possibly parenthesized) string
          literal.  Exclude arrays of nonaggregate class types from this case,
          because GCC has a different special treatment of them (see
-         expr_init_aggr_variable). */
+         expr_init_aggr_variable).  Also exclude structured binding
+         declarations which can include an array initialization but are not
+         subject to this special treatment. */
       a_constant_ptr  constant = local_constant();
       scan_constant_initializer_expression(vp_type, dps, constant);
       init_con = move_local_constant_to_il(&constant);

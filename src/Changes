@@ -1,5 +1,18 @@
 Version 5.1
 
+10/17/18 [EDGcpfe/20095,EDGcpfe/20182]
+Spurious error on array structured binding in GNU/Clang modes
+
+Consider:
+
+  int a[2] { 1, 2 };
+  auto [x, y] = a;  // Previously an error in GNU/Clang mode.  Now okay.
+
+Previously this elicited a spurious error from the front end because the
+emulation of GNU extension for array variable initialization interfered with
+the implementation of structured bindings.  That is now fixed.
+
+
 10/17/18 [EDGcpfe/20281]
 Error in converting --mmap_address argument
 
