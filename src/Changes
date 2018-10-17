@@ -76,8 +76,8 @@ example:
 
 The above designator is within the initializer for #2, but the designated 
 name does not exist within that struct. This would previously cause an 
-assertion failure in aggr_init_field_designator previously. The front end now 
-detects the invalid designator and issues an error.
+assertion failure in aggr_init_field_designator. The front end now detects 
+the invalid designator and issues an error.
 
 
 10/15/18 [EDGcpfe/20277]
