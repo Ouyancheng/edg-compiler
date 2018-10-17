@@ -31319,11 +31319,11 @@ a corresponding template declaration scope.
 
 void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state)
 /*
-*dps describes the declarator of a lambda that has a C++20-style template
-parameter list (e.g., "[]<int N>(){}").  Set up IL and front end structures to
-declare a member template for the lambda's call operator.  In particular, push
-a template declaration scope and initialize and update *templ_state
-accordingly.  Then scan the template parameter list.
+The current token is the left angle bracket introducing a C++20-style template
+parameter list for a lambda (e.g., "<int N>" in "[]<int N>(){}").  Set up IL
+and front end structures to declare a member template for the lambda's call
+operator.  In particular, push a template declaration scope and initialize and
+update *templ_state accordingly.  Then scan the template parameter list.
 */
 {
   /* Bypass the "<". */
