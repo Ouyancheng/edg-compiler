@@ -20299,10 +20299,17 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
           if (qualifier_sym != NULL &&
               (is_class_template_or_injected_template_symbol(qualifier_sym) ||
-               next_tok == tok_lt || is_template)) {
+               (is_template ||
+                (next_tok == tok_lt &&
+                 (!caching_tokens ||
+                  symbol_is_or_contains_template(qualifier_sym)))))) {
             /* Save the original qualifier_sym.  This may be needed later to
                know the name used in the qualifier if the symbol is a template
-               template parameter. */
+               template parameter.  We generally treat a "<" as potentially
+               beginning a template argument list at this point because it
+               improves error recovery.  When we are caching tokens, don't
+               treat it that way unless it follows something known to be
+               a template. */
             qualifier_template_sym = qualifier_sym;
             /* Process a template reference.  This is considered a potential
                template reference if the symbol points to a class template

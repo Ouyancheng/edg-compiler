@@ -1,5 +1,22 @@
 Version 5.1
 
+10/17/18 [EDGcpfe/20224]
+Microsoft compatibility: spurious error in default template argument
+
+In Microsoft mode, a dependent name followed by a "<" could incorrectly
+be treated as a template name during disambiguation processing, resulting
+in a spurious error.  Now fixed.
+
+  template<bool b, class T = void> struct B {
+    using t = T;
+  };
+  template <class T> class C {
+    static const int i = 0;
+  };
+  struct X {
+    template<class T, class U = C<T>, typename W = B<(U::i < 0)>::t> X(T);
+  };
+
 10/17/18 [EDGcpfe/20095,EDGcpfe/20182]
 Spurious error on array structured binding in GNU/Clang modes
 
