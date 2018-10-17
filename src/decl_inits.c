@@ -3130,8 +3130,8 @@ list and is used to check for duplicated designated initializers.  */
        order of initialization and destruction.  For now, at least, we disallow
        such constructs.  (The error is only issued on the first designator if
        there is a sequence of consecutive designators.)  This is not a problem 
-       with C++20 version of designators because the order of designators must
-       match the declaration order in C++20. */
+       with the C++20 version of designators because the order of designators
+       must match the declaration order in C++20. */
     if ((gpp_mode || clang_mode) && orig_field == *field && skip_designator &&
         next_icp != NULL && !is_designator_component(next_icp)) {
       /* GCC does permit a designator that has no effect (i.e., one that
