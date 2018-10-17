@@ -14061,6 +14061,7 @@ gen_expr that might end up generating this expr as a temporary.
             } else {
               write_tok_ch('.');
             }  /* if */
+            /* Find a type that is usable at this point. */
             do {
               type = skip_typerefs_not_typedefs(type);
               prev_type = type;
