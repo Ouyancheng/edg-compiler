@@ -1856,7 +1856,7 @@ and return its value.
   size_t       result = 0;
   int          digit, base;
 
-  if (*arg_ptr != '\0' && *arg_ptr == '0' &&
+  if (*arg_ptr == '0' &&
       (arg_ptr[1] == 'x' || arg_ptr[1] == 'X')) {
     base = 16;
     arg_ptr += 2;
@@ -1869,9 +1869,9 @@ and return its value.
     } else {
       if (base == 10) goto number_error;
       if (*arg_ptr >= 'a' && *arg_ptr <= 'f') {
-        digit = *arg_ptr - 'a';
+        digit = *arg_ptr - 'a' + 0xA;
       } else if (*arg_ptr >= 'A' && *arg_ptr <= 'F') {
-        digit = *arg_ptr - 'A';
+        digit = *arg_ptr - 'A' + 0xA;
       } else {
         goto number_error;
       }  /* if */

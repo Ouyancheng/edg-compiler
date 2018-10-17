@@ -1,5 +1,14 @@
 Version 5.1
 
+10/17/18 [EDGcpfe/20281]
+Error in converting --mmap_address argument
+
+The --mmap_address command-line option (introduced by EDGcpfe/11484), takes
+a numeric argument, but if that numeric argument was specified in base 16
+(i.e., with 0x or 0X), and included the digits a-f or A-F, the resulting
+address was incorrect.  Now fixed.
+
+
 10/16/18 [EDGcpfe/20135]
 Lookup in namespace scope variable templates
 
