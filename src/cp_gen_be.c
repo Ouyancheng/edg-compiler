@@ -14065,19 +14065,33 @@ gen_expr that might end up generating this expr as a temporary.
               type = skip_typerefs_not_typedefs(type);
               prev_type = type;
               if (type_is_typedef(type) &&
-                  is_typedef_invisible_in_cp_gen_be(type)) {
+                  (is_typedef_invisible_in_cp_gen_be(type) ||
+                   !type->typedef_definition_has_been_put_out)) {
                 type = type->variant.typeref.type;
               }  /* if */
             } while (type != prev_type);
             /* Use the type name to create a "destructor" name. */
-            while (type->kind == (a_type_kind)tk_typeref &&
-                   (typeref_is_qualified(type) ||
-                    (typeref_is_typedef(type) &&
-                     !type->typedef_definition_has_been_put_out))) {
-              /* Skip over type qualifiers.  For typedefs that have not yet
-                 been put out, go down to the underlying type. */
-              type = type->variant.typeref.type;
-            }  /* while */
+            if (!(msvc_is_generated_code_target &&
+                  msvc_target_version_number <= 1200 &&
+                  is_class_or_namespace_member(type))) {
+              /* MSVC++ 6.0 has a bug that causes it to reject a qualified
+                 destructor reference if the qualifier is itself a
+                 qualified-id.  The qualifier isn't really necessary
+                 anyway, so we just leave it off when it would cause a
+                 problem. */
+              if (in_generated_instance &&
+                  type->typedef_for_vacuous_dtor_call_put_out) {
+                /* Use the generated temporary typedef to name the type. */
+                gen_temp_name((char *)type);
+                write_str("::");
+              } else if (!is_immediate_class_type(type)) {
+                gen_type(type);
+                write_str("::");
+              } else {
+                (void)gen_class_qualifier(type, GN_NO_OPTIONS,
+                                          (a_boolean *)NULL);
+              }  /* if */
+            }  /* if */
             write_str("~");
             if (in_generated_instance &&
                 type->typedef_for_vacuous_dtor_call_put_out) {
