@@ -97,7 +97,7 @@ the incorrect expression
 
 This is now fixed; that line is now generated as:
 
-  p->~A();
+  p->A::~A();
 
 
 10/15/18 [EDGcpfe/20038,EDGcpfe/20123]
