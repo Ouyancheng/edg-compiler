@@ -12309,12 +12309,14 @@ type, or NULL if the lambda body routine does not exist yet.
       /* A generic lambda: Look among the template entries in the class scope.
          Use the symbols list since scope->templates doesn't always include
          member templates if prototype_instantiations_in_il is FALSE. */
-      a_symbol_ptr  sym = class_symbol_supp(symbol_for(type))->symbols;
-      if (sym == NULL && scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+      a_symbol_ptr  sym;
+      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
         /* If the class is still being defined, the symbols list may not have
            been updated yet, but it is available in the pointers block
            associated with the class. */
         sym = class_symbol_supp(symbol_for(type))->pointers_block.symbols;
+      } else {
+        sym = class_symbol_supp(symbol_for(type))->symbols;
       }  /* if */
       for (; sym != NULL; sym = sym->next) {
         if (symbol_is(sym, sk_function_template)) {
