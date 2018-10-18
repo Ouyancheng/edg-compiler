@@ -5301,7 +5301,7 @@ returned set to TRUE.
          literal.  Exclude arrays of nonaggregate class types from this case,
          because GCC has a different special treatment of them (see
          expr_init_aggr_variable).  Also exclude structured binding
-         declarations which can include an array initialization but are not
+         declarations, which can include an array initialization but are not
          subject to this special treatment. */
       a_constant_ptr  constant = local_constant();
       scan_constant_initializer_expression(vp_type, dps, constant);

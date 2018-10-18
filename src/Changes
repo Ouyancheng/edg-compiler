@@ -26,7 +26,7 @@ Consider:
   auto [x, y] = a;  // Previously an error in GNU/Clang mode.  Now okay.
 
 Previously this elicited a spurious error from the front end because the
-emulation of GNU extension for array variable initialization interfered with
+emulation of a GNU extension for array variable initialization interfered with
 the implementation of structured bindings.  That is now fixed.
 
 
