@@ -715,6 +715,7 @@ check_abbreviation()
 --module_init
 --ms_c++14
 --ms_c++17
+--ms_c++20
 --ms_c++latest
 --ms_compatibility
 --ms_std_preprocessor
@@ -1327,6 +1328,7 @@ process_option()
 	 --microsoft_16 | \
          --ms_c++14 | \
          --ms_c++17 | \
+         --ms_c++20 | \
          --ms_c++latest | \
          --ms_compatibility | \
          --ms_std_preprocessor | \

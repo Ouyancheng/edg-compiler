@@ -518,6 +518,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_cpp17_mode, "ms_c++17",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_cpp20_mode, "ms_c++20",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_microsoft_cpplatest_mode, "ms_c++latest",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -2225,6 +2228,7 @@ option values if they were not already set by a command line option.
     /* Microsoft C++ mode. */
     a_boolean ms_cpp14_mode = microsoft_version >= 1903;
     a_boolean ms_cpp17_mode = FALSE;
+    a_boolean ms_cpp20_mode = FALSE;
     a_boolean ms_cpplatest_mode = FALSE;
     if (option_kind_used[(int)optk_microsoft_cpp14_mode]) {
       ms_cpp14_mode = TRUE;
@@ -2238,6 +2242,12 @@ option values if they were not already set by a command line option.
         command_line_error(ec_microsoft_version_doesnt_support_cpp17_mode);
       }  /* if */
     }  /* if */
+    if (option_kind_used[(int)optk_microsoft_cpp20_mode]) {
+          ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = TRUE;
+          if (microsoft_version < 2000) {
+            command_line_error(ec_microsoft_version_doesnt_support_cpp20_mode);
+          }  /* if */
+        }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
       ms_cpplatest_mode = TRUE;
       if (microsoft_version < 1903) {
@@ -2679,11 +2689,13 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 2000) {
         /* Visual Studio 2017 version 16.0 (anticipated). */
-        if (ms_cpplatest_mode) {
+        if (ms_cpplatest_mode || ms_cpp20_mode) {
           conditional_explicit_enabled = TRUE;
           constexpr_virtual_enabled = TRUE;
           explicit_copy_this_capture_enabled = TRUE;
           lambda_template_param_list_enabled = TRUE;
+          cpp20_designators_restriction = TRUE;
+          aggregate_classes_can_have_user_ctors = FALSE;
         }  /* if */
       }  /* if */
     } else {
@@ -9699,12 +9711,20 @@ enable_microsoft_mode:
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_microsoft_cpp17_mode:
-      case optk_microsoft_cpplatest_mode:
-        /* Enable emulation of Visual Studio's /std:c++17 and /std:c++latest
-           command-line options.  Note that internally most C++17 features are
-           enabled via global variables, but for those that aren't, set
-           std_version to the value for C++17. */
+        /* Enable emulation of Visual Studio's /std:c++17 mode.  Note that
+           internally most C++17 features are enabled via global variables, but
+           for those that aren't, set std_version to the value for C++17. */
         std_version = 201703;
+        set_C_dialect(C_dialect_cplusplus);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
+      case optk_microsoft_cpp20_mode:
+      case optk_microsoft_cpplatest_mode:
+        /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
+           command-line options.  Note that internally most C++20 features are
+           enabled via global variables, but for those that aren't, set
+           std_version to the value for C++20. */
+        std_version = 202000;
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
@@ -11451,7 +11471,7 @@ variables declared in cmd_line.h.
   nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
   designators_allowed = DEFAULT_DESIGNATORS_ALLOWED;
   extended_designators_allowed = DEFAULT_EXTENDED_DESIGNATORS_ALLOWED;
-  cpp20_designators_restriction = FALSE;
+  cpp20_designators_restriction = TRUE;
   variadic_macros_allowed = DEFAULT_VARIADIC_MACROS_ALLOWED;
   extended_variadic_macros_allowed = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED;
   pragma_operator_allowed = FALSE;

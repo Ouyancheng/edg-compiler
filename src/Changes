@@ -1,5 +1,13 @@
 Version 5.1
 
+10/18/18 [EDGcpfe/20244]
+Microsoft compatibility: Enabling C++20 features
+
+A new command-line option, --ms_c++20, has been added to emulate the /std:c++20
+option that Microsoft Visual Studio provides.  This option is only available
+when microsoft_version >= 2000.
+
+
 10/17/18 [EDGcpfe/20224]
 Microsoft compatibility: spurious error in default template argument
 
