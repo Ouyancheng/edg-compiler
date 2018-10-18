@@ -6344,7 +6344,9 @@ end_arg_expansion:;
         /* An argument is missing.  This is an error, except in pcc
            preprocessing mode, SVR4 C mode, Sun mode, and Microsoft mode,
            where we issue a warning. It is also fine (no warning) to omit
-           an extended or Microsoft variadic macro argument. */
+           an extended or Microsoft variadic macro argument.  (This is true
+	   for both the traditional and conforming versions of the Microsoft
+	   preprocessor.) */
         if (!((extended_variadic_macros_allowed || ms_compat) &&
               pp->next == NULL && mdp->variadic)) {
           an_error_severity sev;
