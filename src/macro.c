@@ -6342,12 +6342,10 @@ end_arg_expansion:;
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
         /* An argument is missing.  This is an error, except in pcc
-           preprocessing mode, SVR4 C mode, Sun mode, and Microsoft
-           traditional preprocessor mode, where we issue a warning. It is
-           also fine (no warning) to omit an extended or traditional
-           Microsoft variadic macro argument. */
-        if (!((extended_variadic_macros_allowed ||
-               (ms_compat && !ms_std_preproc)) &&
+           preprocessing mode, SVR4 C mode, Sun mode, and Microsoft mode,
+           where we issue a warning. It is also fine (no warning) to omit
+           an extended or Microsoft variadic macro argument. */
+        if (!((extended_variadic_macros_allowed || ms_compat) &&
               pp->next == NULL && mdp->variadic)) {
           an_error_severity sev;
           if (pcc_preprocessing_mode || SVR4_C_mode ||
