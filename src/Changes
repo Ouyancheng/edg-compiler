@@ -1,5 +1,23 @@
 Version 5.1
 
+10/18/18 [EDGcpfe/20241]
+Spurious ambiguity in matching of partial specialization of variadic template
+
+Version 4.14 introduced a regression in the matching of variadic partial
+specializations that caused an ambiguity in cases such as the one below.
+Now fixed.
+
+  template<class... Ts> class A {};
+  template <class A, class... Us> struct V;
+  template <class... Ts, class... Us> struct V<A<Ts...>, Us...>;
+  template <class... Ts, class U, class... Us> struct V<A<Ts...>, U, Us...> {
+    static bool f(){ return true;}
+  };
+  int main() {
+    V<A<>, int>::f();
+  }
+
+
 10/18/18 [EDGcpfe/20296]
 GNU compatibility: abi_tag mangling with parameter types
 

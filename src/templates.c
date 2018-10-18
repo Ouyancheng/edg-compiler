@@ -2821,15 +2821,12 @@ specialized than templ_arg_list1, and return 0 if they are unordered.
   a_template_arg_ptr	tap;
   int			result = 0;
 
-  /* Count the number of non-variadic arguments for each of the
-     argument lists. */
+  /* Count the number of variadic arguments for each of the argument lists. */
   for (tap = templ_arg_list1; tap != NULL; tap = tap->next) {
-    if (tap->is_pack) break;
-    if (!is_start_of_pack_expansion_templ_arg(tap)) non_variadic_args1++;
+    if (tap->is_pack_element) non_variadic_args1++;
   }  /* for */
   for (tap = templ_arg_list2; tap != NULL; tap = tap->next) {
-    if (tap->is_pack) break;
-    if (!is_start_of_pack_expansion_templ_arg(tap)) non_variadic_args2++;
+    if (tap->is_pack_element) non_variadic_args2++;
   }  /* for */
   /* The list with more non-variadic arguments is more specialized. */
   if (non_variadic_args1 > non_variadic_args2) {
