@@ -10821,9 +10821,16 @@ static a_boolean
 
 /*
 Shorthand for a_type_tree_traversal_flag_set used during abi_tag processing.
+Note that parameter types are now included when looking for abi_tags (and
+weren't in initial implementations).
 */
+#if ABI_COMPATIBILITY_VERSION >= 510
+#define ABI_TAG_TTT_FLAGS                                                     \
+  (TTT_SKIP_TYPEREFS | TTT_RETURN_TYPE | TTT_TEMPLATE_ARGS | TTT_PARAM_TYPES)
+#else /* ABI_COMPATIBILITY_VERSION < 510 */
 #define ABI_TAG_TTT_FLAGS                                                     \
   (TTT_SKIP_TYPEREFS | TTT_RETURN_TYPE | TTT_TEMPLATE_ARGS)
+#endif /* ABI_COMPATIBILITY_VERSION >= 510 */
 
 /*
 Utility that returns TRUE if the given IL entity is "marked".  Note that for

@@ -1,5 +1,24 @@
 Version 5.1
 
+10/18/18 [EDGcpfe/20296]
+GNU compatibility: abi_tag mangling with parameter types
+
+It appears that GCC considers abi_tag attributes that are applied to parameter
+types so a change has been made (when ABI_COMPATIBILITY_VERSION >= 510) to
+emulate this behavior.  For example, with --gnu_version 80000:
+
+  struct __attribute__((__abi_tag__("cxx11"))) string {};
+  template <typename T> struct function{
+    void operator()();
+  };
+  struct C {
+    static function<void(string)> foo;
+  };
+  void f() {
+    C::foo();  // Had been mangled as _ZN1C3fooE, now _ZN1C3fooB5cxx11E
+  }
+
+
 10/18/18 [EDGcpfe/20244]
 Microsoft compatibility: Enabling C++20 features
 
