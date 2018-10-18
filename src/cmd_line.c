@@ -2243,11 +2243,11 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpp20_mode]) {
-          ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = TRUE;
-          if (microsoft_version < 2000) {
-            command_line_error(ec_microsoft_version_doesnt_support_cpp20_mode);
-          }  /* if */
-        }  /* if */
+      ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = TRUE;
+      if (microsoft_version < 2000) {
+        command_line_error(ec_microsoft_version_doesnt_support_cpp20_mode);
+      }  /* if */
+    }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
       ms_cpplatest_mode = TRUE;
       if (microsoft_version < 1903) {
