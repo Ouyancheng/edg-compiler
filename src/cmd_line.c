@@ -11471,7 +11471,7 @@ variables declared in cmd_line.h.
   nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
   designators_allowed = DEFAULT_DESIGNATORS_ALLOWED;
   extended_designators_allowed = DEFAULT_EXTENDED_DESIGNATORS_ALLOWED;
-  cpp20_designators_restriction = TRUE;
+  cpp20_designators_restriction = FALSE;
   variadic_macros_allowed = DEFAULT_VARIADIC_MACROS_ALLOWED;
   extended_variadic_macros_allowed = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED;
   pragma_operator_allowed = FALSE;
