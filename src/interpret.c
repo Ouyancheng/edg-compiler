@@ -6614,6 +6614,7 @@ successfully interpreted, FALSE otherwise.
 }  /* do_constexpr_statement */
 
 #if BUILTIN_FUNCTIONS_ENABLED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static a_boolean do_constexpr_builtin_fptest(
                                       a_routine_ptr            callee,
@@ -6671,6 +6672,7 @@ cannot be evaluated, return FALSE.
   return result;
 }  /* do_constexpr_builtin_fptest */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
                                                a_byte         *arg_bytes,
@@ -7090,7 +7092,10 @@ FALSE.  If TRUE if returned, but folding was not successful, *p_result is set
 to FALSE and the reason for the failure is recorded in *ips.
 */
 {
-  a_boolean         interpreted, err = FALSE, depends_on_fp_mode;
+  a_boolean         interpreted;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  a_boolean         err = FALSE, depends_on_fp_mode;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_boolean         has_count = FALSE, is_memcmp = FALSE;
   an_expr_node_ptr  args = call_node->variant.operation.operands->next;
   an_expr_node_ptr  args2, args3;
@@ -7183,6 +7188,7 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
     case bfk_fabs:
     case bfk_fabsf:
     case bfk_fabsl:
@@ -7243,6 +7249,7 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case bfk_ffs:
     case bfk_ffsl:
     case bfk_clz:

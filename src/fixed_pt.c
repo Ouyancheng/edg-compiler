@@ -844,7 +844,9 @@ to be issued; otherwise set err_code to ec_no_error.
   a_fixed_point_type_descr
 			*fxp_descr;
   a_type_ptr		float_tp = skip_typerefs(new_constant->type);
+#if C99_IL_EXTENSIONS_SUPPORTED
   a_float_kind		float_kind = float_tp->variant.float_kind;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   an_internal_float_value
 			*float_value = NULL;
   a_boolean		skip_conversion = FALSE;

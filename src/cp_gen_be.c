@@ -7964,7 +7964,7 @@ recorded).
                                                         scp_parent_class(scp);
     name_context_for_access_reset = curr_name_context;
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
   if (type->kind == (a_type_kind)tk_complex &&
       (type->variant.float_kind == (a_float_kind)fk_float80 ||
        type->variant.float_kind == (a_float_kind)fk_float128) &&
@@ -7986,7 +7986,7 @@ recorded).
       }  /* if */
     }  /* for */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -13572,7 +13572,7 @@ gen_expr that might end up generating this expr as a temporary.
             gen_expr_with_parens(operand_1);
           }  /* if */
           goto done_with_operation;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
         case eok_real_part:
           write_tok_str("__real(");
           gen_expression(operand_1);
@@ -13583,7 +13583,7 @@ gen_expr that might end up generating this expr as a temporary.
           gen_expression(operand_1);
           write_tok_ch(')');
           goto done_with_operation;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
         case eok_negate:
           opstr = "-";
           break;
@@ -13725,9 +13725,9 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_ref_dynamic_cast:
           gen_full_cast(expr);
           goto done_with_operation;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
         case eok_xconj:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
         case eok_complement:
           opstr = "~";
           break;

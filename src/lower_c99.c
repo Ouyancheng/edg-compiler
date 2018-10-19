@@ -2418,6 +2418,7 @@ destination) to a runtime call).
   } else if (il_identical_types(base_src_type, base_dst_type)) {
     /* A do-nothing cast.  Leave it as it is (it will be a cast between
        integral types). */
+#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (is_imaginary_type(dst_type)) {
     /* A fixed-point value converted to an imaginary type is always zero.
        Use a comma operator to preserve side-effects of the source
@@ -2438,6 +2439,7 @@ destination) to a runtime call).
     lower_c99_fixed_point_constant(zero_constant);
     new_expr = make_comma_node(src, alloc_node_for_constant(zero_constant));
     overwrite_node(expr, new_expr);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else {
     /* Generate a call to the runtime cast routine.  There's a primary
        routine _Fixed_conv that handles all the fixed-point/fixed-point
@@ -2459,10 +2461,15 @@ destination) to a runtime call).
       src = add_cast_to_fxvalue_type(src);
     } else {
       /* Conversion from floating or complex to fixed point. */
+#if C99_IL_EXTENSIONS_SUPPORTED
       check_assertion(is_floating_type(src_type) ||
                       is_complex_type(src_type));
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+      check_assertion(is_floating_type(src_type));
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       check_assertion(is_fixed_point_type(dst_type));
       fkind = base_src_type->variant.float_kind;
+#if C99_IL_EXTENSIONS_SUPPORTED
       if (is_complex_type(src_type)) {
         /* Convert the operand from complex to the same-precision floating
            type. */
@@ -2471,6 +2478,7 @@ destination) to a runtime call).
         lower_c99_complex_cast(src);
 #endif /* LOWER_COMPLEX */
       }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       routine_name = select_name_from_float_kind(fkind,
                                                 float_fixed_conv_routine_name);
       routine = &float_fixed_conv_routine[(int)fkind];
@@ -2482,8 +2490,12 @@ destination) to a runtime call).
       shift_amount += FXTYPE_SIZE;
     } else {
       /* Conversion from fixed point to floating or complex. */
+#if C99_IL_EXTENSIONS_SUPPORTED
       check_assertion(is_floating_type(dst_type) ||
                       is_complex_type(dst_type));
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+      check_assertion(is_floating_type(dst_type));
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       check_assertion(is_fixed_point_type(src_type));
       fkind = base_dst_type->variant.float_kind;
       routine_name = select_name_from_float_kind(fkind,

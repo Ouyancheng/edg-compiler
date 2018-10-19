@@ -9084,6 +9084,7 @@ count_done:
 }  /* fold_bit_count_operation_if_possible */
 
 #if TARG_HAS_IEEE_FLOATING_POINT
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static a_boolean fold_fptest_if_possible(a_routine_ptr     rp,
                                          an_expr_node_ptr  arg,
@@ -9154,6 +9155,7 @@ Otherwise, return FALSE.
   return success;
 }  /* fold_fptest_if_possible */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static a_boolean is_empty_string_literal(a_constant_ptr  cp)
 /*
@@ -9179,6 +9181,7 @@ address thereof.
 }  /* is_empty_string_literal */
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static a_boolean fold_pow_if_possible(a_constant_ptr  base,
                                       a_constant_ptr  exp,
@@ -9265,6 +9268,7 @@ floating-point value of the given type).  Otherwise, return FALSE.
   return folded;
 }  /* fold_pow_if_possible */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static a_boolean fold_lock_free_query_if_possible(
                                          a_builtin_function_kind  bfk,
@@ -9468,6 +9472,7 @@ the folding mechanism is used as a way to validate argument values.
           folded = fold_bit_count_operation_if_possible(rp, args, result);
         }  /* if */
         break;
+#if C99_IL_EXTENSIONS_SUPPORTED
 #if TARG_HAS_IEEE_FLOATING_POINT
       case bfk_isnan:
       case bfk_isnanf:
@@ -9524,6 +9529,7 @@ the folding mechanism is used as a way to validate argument values.
           }  /* if */
         }
         break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case bfk_strlen:
         /* strlen of a constant string can be folded in C mode. */
         { a_constant_ptr scon;
@@ -9574,6 +9580,7 @@ the folding mechanism is used as a way to validate argument values.
           }  /* if */
         }
         break;
+#if C99_IL_EXTENSIONS_SUPPORTED
       case bfk_fabs:
       case bfk_fabsf:
       case bfk_fabsl:
@@ -9630,6 +9637,7 @@ the folding mechanism is used as a way to validate argument values.
           }  /* if */
         }
         break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case bfk_atomic_always_lock_free:
         if (args == NULL || !is_constant_node(args)) {
           /* __atomic_always_lock_free's first argument must be a
@@ -9717,12 +9725,16 @@ the folding mechanism is used as a way to validate argument values.
   if (folded && db_flag_is_set("folded_builtin")) {
     fprintf(f_debug, "folded builtin: ");
     db_constant(result_con);
+#if C99_IL_EXTENSIONS_SUPPORTED
     if (is_real_floating_type(result_con->type)) {
       /* In addition to the representation printed above, also print out a
          hexadecimal representation (for NaNs, infinities, etc.). */
       fprintf(f_debug, " ");
       db_internal_float_value(&result_con->variant.float_value);
-    } else {
+    } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    /* Do not insert code here. */
+    {
       fprintf(f_debug, "\n");
     }  /* if */
   }  /* if */
