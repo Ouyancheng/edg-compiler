@@ -2816,22 +2816,22 @@ specialized than templ_arg_list2, return -1 if templ_arg_list2 is more
 specialized than templ_arg_list1, and return 0 if they are unordered.
 */
 {
-  int			non_variadic_args1 = 0;
-  int			non_variadic_args2 = 0;
+  int			variadic_args1 = 0;
+  int			variadic_args2 = 0;
   a_template_arg_ptr	tap;
   int			result = 0;
 
   /* Count the number of variadic arguments for each of the argument lists. */
   for (tap = templ_arg_list1; tap != NULL; tap = tap->next) {
-    if (tap->is_pack_element) non_variadic_args1++;
+    if (tap->is_pack_element) variadic_args1++;
   }  /* for */
   for (tap = templ_arg_list2; tap != NULL; tap = tap->next) {
-    if (tap->is_pack_element) non_variadic_args2++;
+    if (tap->is_pack_element) variadic_args2++;
   }  /* for */
-  /* The list with more non-variadic arguments is more specialized. */
-  if (non_variadic_args1 > non_variadic_args2) {
+  /* The list with more variadic arguments is more specialized. */
+  if (variadic_args1 > variadic_args2) {
     result = 1;
-  } else if (non_variadic_args2 > non_variadic_args1) {
+  } else if (variadic_args2 > variadic_args1) {
     result = -1;
   }  /* if */
   return result;
