@@ -2696,7 +2696,7 @@ option values if they were not already set by a command line option.
           lambda_template_param_list_enabled = TRUE;
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
-          msvc_lang = 202000L;
+          msvc_lang = "202000L";
         }  /* if */
       }  /* if */
     } else {
