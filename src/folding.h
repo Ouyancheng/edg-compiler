@@ -256,6 +256,7 @@ extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
 
 extern void add_temp_init_backing_expression(a_constant         *con,
                                              a_dynamic_init_ptr dip);
+
 extern
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
@@ -266,6 +267,11 @@ a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
 extern
 a_boolean fold_constexpr_member_selection(an_expr_node_ptr  expr,
                                           a_constant        *result_con);
+
+extern a_boolean is_static_init_constant(a_constant_ptr  con);
+
+extern void fold_dynamic_init_if_possible(a_dynamic_init_ptr  dip,
+                                          a_type_ptr          dest_type);
 
 #if DEBUG
 extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);

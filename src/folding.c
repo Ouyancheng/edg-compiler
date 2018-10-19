@@ -9802,19 +9802,18 @@ allocated and returned.
                                         (an_address_base_kind)abk_temporary)) {
     an_address_base_kind abkind = addr_con->variant.address.kind;
     a_type_ptr           target_type = type_pointed_to(addr_con->type);
-    a_type_ptr           base_type;
+    a_type_ptr           val_type;
     target_type = skip_typerefs(target_type);
     if (abkind == (an_address_base_kind)abk_variable) {
-      base_type =
-               skip_typerefs(addr_con->variant.address.variant.variable->type);
+      val_type = addr_con->variant.address.variant.variable->type;
     } else {
       check_assertion(abkind == (an_address_base_kind)abk_constant ||
                       abkind == (an_address_base_kind)abk_temporary);
-      base_type =
-               skip_typerefs(addr_con->variant.address.variant.constant->type);
+      val_type = addr_con->variant.address.variant.constant->type;
     }  /* if */
     if (addr_con->variant.address.offset < 0 ||
-        (a_targ_size_t)addr_con->variant.address.offset >= base_type->size) {
+        (a_targ_size_t)addr_con->variant.address.offset >=
+                                              skip_typerefs(val_type)->size) {
       /* The address is outside the bounds of the object, so this is not a
          constant expression.  (A warning will have been issued earlier, so
          no diagnostic is needed here.) */
@@ -9824,11 +9823,12 @@ allocated and returned.
          so, use it. */
       result_con =
                var_constant_value(addr_con->variant.address.variant.variable);
+    } else if (abkind == (an_address_base_kind)abk_temporary &&
+               !is_const_qualified_type(val_type)) {
+      /* The temporary is mutable.  The constant is only its initial value. */
     } else {
       /* The constant is the address of a constant, possibly with an offset
          designating a subobject.  Use it. */
-      check_assertion(abkind == (an_address_base_kind)abk_constant ||
-                      abkind == (an_address_base_kind)abk_temporary);
       result_con = addr_con->variant.address.variant.constant;
     }  /* if */
     if (result_con == NULL) {
@@ -10396,6 +10396,85 @@ prvalue result of the field selection.
   }  /* if */
   return folding_result(folded);
 }  /* fold_constexpr_member_selection */
+
+
+a_boolean is_static_init_constant(a_constant_ptr  con)
+/*
+Return TRUE if the given constant can be used for static initialization.  Most
+constants fall into this category, but with constexpr support, an address
+constant can refer to the address of a local variable, which cannot be used for
+static initialization.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (con->kind == (a_constant_repr_kind)ck_address) {
+    if (con->variant.address.kind == (an_address_base_kind)abk_variable &&
+        con->variant.address.variant.variable
+                                      ->source_corresp.is_local_to_function) {
+      result = FALSE;
+    } else if (con->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary &&
+               !in_file_scope(con->variant.address.variant.constant)) {
+      /* An abk_temporary entry for a constant allocated in function scope
+         memory is equivalent to the address of a local static variable. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_static_init_constant */
+
+
+
+void fold_dynamic_init_if_possible(a_dynamic_init_ptr  dip,
+                                   a_type_ptr          dest_type)
+/*
+If the given dynamic initialization entry can be folded to a constant, replace
+it by a corresponding dik_constant entry.  If the resulting constant is the
+address of a local variable or of a temporary, do not perform the folding.
+This function has no effect if dip already is a dik_constant entry.  dest_type 
+is the type being initialized.
+*/
+{
+  if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant) {
+    a_constant_ptr      folded_value = local_constant();
+    a_diag_list         diag_list;
+    a_variable_ptr      var = dip->variable;
+    an_init_kind        init_kind;
+    if (var != NULL) {
+      /* Temporarily set the variable as uninitialized to avoid runaway
+         recursion. */
+      init_kind = var->init_kind;
+      var->init_kind = (an_init_kind)initk_none;
+    }  /* if */
+    clear_diag_list(&diag_list);
+    /* Interpret the dynamic initialization into a constant if possible.
+       If the resulting constant is the address of a temporary, keep the
+       dynamic initialization (otherwise, we may fold uses of references to
+       a mutable temporary later on).  Also, if the constant is the address
+       of a local variable (checked with is_static_init_constant) ignore the
+       resulting constant since it is not really "constant". */
+    if (interpret_dynamic_init(dip, &pos_curr_token, dest_type, folded_value,
+                               &diag_list) &&
+        !(constant_is(folded_value, ck_address) &&
+          folded_value->variant.address.kind == 
+                                       (an_address_base_kind)abk_temporary) &&
+        is_static_init_constant(folded_value)) {
+      dip->kind = (a_dynamic_init_kind)dik_constant;
+      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
+    }  /* if */
+    discard_more_info_list(&diag_list);
+    if (folded_value != NULL) {
+      /* If folded_value was not moved to the IL above, release it now. */
+      release_local_constant(&folded_value);
+    }  /* if */
+    if (var != NULL) {
+      var->init_kind = init_kind;
+    }  /* if */
+  }  /* if */
+}  /* fold_dynamic_init_if_possible */
+
+
 
 #if DEBUG
 

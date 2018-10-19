@@ -1,5 +1,23 @@
 Version 5.1
 
+10/18/18 [EDGcpfe/20103]
+References sometimes not correctly folded
+
+Consider:
+
+  int arr[2];
+  void g() {
+    auto &[ x, y ] = arr;  // (1)
+    static_assert (&x == &arr[0]);  // Previously an error.  Now okay.
+  }
+
+Line (1) initializes an unnamed reference to a global variable arr and since
+that reference is immutable, it should be usable in constant-expressions such
+as the one in the static_assert.  However, the front end previously failed to
+evaluate such constant-expressions in some configurations, which in turn
+resulted in spurious errors.  That is now fixed.
+
+
 10/18/18 [EDGcpfe/20241]
 Spurious ambiguity in matching of partial specialization of variadic template
 

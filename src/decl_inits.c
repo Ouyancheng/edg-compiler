@@ -1367,33 +1367,6 @@ given position, unless is->no_diagnostics is TRUE.
 }  /* default_nontrivial_init_constant_for_aggr_member */
 
 
-static a_boolean is_static_init_constant(a_constant_ptr  con)
-/*
-Return TRUE if the given constant can be used for static initialization.  Most
-constants fall into this category, but with constexpr support, an address
-constant can refer to the address of a local variable, which cannot be used for
-static initialization.
-*/
-{
-  a_boolean  result = TRUE;
-
-  if (con->kind == (a_constant_repr_kind)ck_address) {
-    if (con->variant.address.kind == (an_address_base_kind)abk_variable &&
-        con->variant.address.variant.variable
-                                      ->source_corresp.is_local_to_function) {
-      result = FALSE;
-    } else if (con->variant.address.kind ==
-                                        (an_address_base_kind)abk_temporary &&
-               !in_file_scope(con->variant.address.variant.constant)) {
-      /* An abk_temporary entry for a constant allocated in function scope
-         memory is equivalent to the address of a local static variable. */
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_static_init_constant */
-
-
 a_constant_ptr aggr_init_constant_from_field_initializer(
                                                  a_field_ptr        fp,
                                                  a_dynamic_init     *dip,
