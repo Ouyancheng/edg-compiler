@@ -14040,7 +14040,9 @@ constant; otherwise, return NULL.
     /* The variable has a constant initial value. */
     con_val = init->constant;
   } else if (init_kind == (an_init_kind)initk_dynamic) {
+#if !STANDALONE_UTILITY_PROGRAM
     fold_dynamic_init_if_possible(init->dynamic, var->type);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
     if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
       /* The variable is dynamically initialized to a constant. */
       con_val = init->dynamic->variant.constant;
