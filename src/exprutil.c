@@ -9719,31 +9719,11 @@ lvalue if result_is_lvalue is TRUE.
     /* Make an expression operator node which has the above operand nodes. */
     node = make_operator_node(kind, type, node);
     if (strict_cpp17_eval_order) {
-      switch (kind) {
-        case eok_assign:
-        case eok_add_assign:
-        case eok_subtract_assign:
-        case eok_multiply_assign:
-        case eok_divide_assign:
-        case eok_remainder_assign:
-        case eok_shiftl_assign:
-        case eok_shiftr_assign:
-        case eok_and_assign:
-        case eok_or_assign:
-        case eok_xor_assign:
-        case eok_padd_assign:
-        case eok_psubtract_assign:
-          node->variant.operation.eval_right_to_left = TRUE;
-          break;
-        case eok_subscript:
-        case eok_shiftl:
-        case eok_shiftr:
-          node->variant.operation.eval_left_to_right = TRUE;
-          break;
-        default:
-          /* No mandated evaluation order. */
-          break;
-      }  /* switch */
+      a_boolean eval_left_to_right, eval_right_to_left;
+      eval_order_for_binary_node_kind(kind, &eval_left_to_right,
+                                      &eval_right_to_left);
+      node->variant.operation.eval_right_to_left = eval_right_to_left;
+      node->variant.operation.eval_left_to_right = eval_left_to_right;
     }  /* if */
     /* Make an operand of the expression. */
     make_expression_operand(node, result);
@@ -17029,31 +17009,11 @@ error cases.
   if (strict_cpp17_eval_order) {
     if (uses_operator_syntax && !special_kind_is(rout, sfk_udl_operator)) {
       check_assertion(rout != NULL && special_kind_is(rout, sfk_operator));
-      switch (rout->variant.opname_kind) {
-        case onk_assign:
-        case onk_plus_assign:
-        case onk_minus_assign:
-        case onk_times_assign:
-        case onk_divide_assign:
-        case onk_remainder_assign:
-        case onk_excl_or_assign:
-        case onk_and_assign:
-        case onk_or_assign:
-        case onk_shift_left_assign:
-        case onk_shift_right_assign:
-          call_node->variant.operation.eval_right_to_left = TRUE;
-          break;
-        case onk_shift_left:
-        case onk_shift_right:
-        case onk_arrow_star:
-        case onk_subscript:
-        case onk_function_call:
-          call_node->variant.operation.eval_left_to_right = TRUE;
-          break;
-        default:
-          /* No mandated evaluation order. */
-          break;
-      }  /* switch */
+      a_boolean eval_left_to_right, eval_right_to_left;
+      eval_order_for_op_kind(rout->variant.opname_kind, &eval_left_to_right,
+                             &eval_right_to_left);
+      call_node->variant.operation.eval_right_to_left = eval_right_to_left;
+      call_node->variant.operation.eval_left_to_right = eval_left_to_right;
     } else {
       /* An ordinary call (not operator syntax): The operands have to be
          evaluated in left-to-right order. */

@@ -1,5 +1,21 @@
 Version 5.1
 
+10/18/18 [EDGcpfe/18238,EDGcpfe/19997]
+Lowering and strict expression evaluation ordering
+
+As of the 5.0 release, the front end indicates the order of evaluation of
+operands for certain expressions in C++17 mode (see the Changes entry for
+EDGcpfe/17701).  Expressions introduced by lowering, however, had not set
+the order of evaluation flags.  A change has been made to set those flags
+properly.
+
+Note that when lowering re-writes certain lvalue-returning expressions, it does
+not respect the strict evaluation ordering as dictated by C++17 (e.g.,
+"(f2(), x) = f1()" is lowered to "(f2(), (x = f1())" thereby changing the order
+of f1 and f2).  Back ends that use lowering and require strict ordering should
+set LOWER_LVALUE_RETURNING_OPERATIONS to FALSE.
+
+
 10/18/18 [EDGcpfe/20103]
 References sometimes not correctly folded
 

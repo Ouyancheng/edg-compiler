@@ -13245,6 +13245,11 @@ Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
 it is left alone.  Note that "?" and "," lvalue-returning operations aren't
 handled directly at this level; they're handled in the context of their
 parent operation.  Only called for enk_operation nodes.
+
+Note that this routine does not respect the strict evaluation ordering as
+dictated in C++17 (e.g., "(f2(), x) = f1()" is lowered to "(f2(), (x = f1())"
+thereby changing the order of f1 and f2).  Back ends that require strict
+ordering should set LOWER_LVALUE_RETURNING_OPERATIONS to FALSE.
 */
 {
   an_expr_operator_kind op, child_op;

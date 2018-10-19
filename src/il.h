@@ -3184,6 +3184,15 @@ extern void walk_parents(a_source_correspondence      *scp,
                          a_walk_parent_callback       callback,
                          a_walk_parents_control_block *wpcb,
                          a_walk_parents_flag_set      options);
+
+extern void eval_order_for_op_kind(an_opname_kind kind,
+                                   a_boolean      *eval_left_to_right,
+                                   a_boolean      *eval_right_to_left);
+
+extern void eval_order_for_binary_node_kind(
+                                    an_expr_operator_kind kind,
+                                    a_boolean             *eval_left_to_right,
+                                    a_boolean             *eval_right_to_left);
 #endif /* ifndef IL_H */
 
 /******************************************************************************

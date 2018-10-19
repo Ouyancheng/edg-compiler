@@ -5450,6 +5450,39 @@ second or third operand of a "?" operator; other_opnd is the other operand).
 
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
 
+static void check_expression_evaluation_order(an_expr_node_ptr expr)
+/*
+Check expr (an enk_operation) to ensure the proper setting of the
+eval_right_to_left and eval_left_to_right flags.
+*/
+{
+  if (node_operator_is(expr, eok_call)) {
+    if (is_routine_node(expr->variant.operation.operands) &&
+        special_kind_is(node_routine(expr->variant.operation.operands),
+                                     sfk_operator)) {
+      /* There's not much checking to do here; a call to an operator function
+         can have either evaluation order (e.g., operator= will typically have
+         right-to-left, but may have left-to-right if called explicitly).
+         Also, many operations have no explicit ordering so both flags will be
+         unset in those cases. */
+    } else {
+      /* One or the other needs to be specified. */
+      check_assertion(expr->variant.operation.eval_left_to_right ^
+                      expr->variant.operation.eval_right_to_left);
+    }  /* if */
+  } else {
+    a_boolean eval_left_to_right, eval_right_to_left;
+    eval_order_for_binary_node_kind(expr->variant.operation.kind,
+                                    &eval_left_to_right,
+                                    &eval_right_to_left);
+    check_assertion(expr->variant.operation.eval_left_to_right ==
+                                                          eval_left_to_right &&
+                    expr->variant.operation.eval_right_to_left ==
+                                                          eval_right_to_left);
+  }  /* if */
+}  /* check_expression_evaluation_order */
+
+
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
 /*
@@ -5530,6 +5563,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
       check_operation_node_consistency(expr);
 #endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
+      if (strict_cpp17_eval_order) {
+        /* Verify that the expression order is set correctly. */
+        check_expression_evaluation_order(expr);
+      }  /* if */
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:

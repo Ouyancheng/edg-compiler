@@ -30468,6 +30468,11 @@ bound expression (C[n]) and record it in *binding.
   bound_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
                                   binding->type, c_node);
   bound_expr->is_lvalue = TRUE;
+  if (strict_cpp17_eval_order) {
+    /* Not strictly necessary, but for consistency with other eok_subscript
+       operations. */
+    bound_expr->variant.operation.eval_left_to_right = TRUE;
+  }  /* if */
   binding->init_kind = (an_init_kind)initk_binding;
   binding->initializer.bound_expr = bound_expr;
   mark_variable_value_set(symbol_for(binding));
@@ -45127,6 +45132,9 @@ operator op, and return a pointer to it.
   lvalue_expr->next = rvalue_expr;
   /* Make the assignment node. */
   assign_node = make_operator_node(op, result_type, lvalue_expr);
+  if (strict_cpp17_eval_order) {
+    assign_node->variant.operation.eval_right_to_left = TRUE;
+  }  /* if */
   return assign_node;
 }  /* make_assignment_expr */
 

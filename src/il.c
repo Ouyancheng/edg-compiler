@@ -1807,6 +1807,12 @@ Dump the contents of the indicated expression node for debug purposes.
       if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         fprintf(f_debug, "[C++] ");
       }  /* if */
+      if (node->variant.operation.eval_right_to_left) {
+        fprintf(f_debug, "[r-to-l] ");
+      }  /* if */
+      if (node->variant.operation.eval_left_to_right) {
+        fprintf(f_debug, "[l-to-r] ");
+      }  /* if */
       fprintf(f_debug, "operator: %s",
               db_operator_names[(int)node->variant.operation.kind]);
       fputs(", result type: ", f_debug);
@@ -15648,6 +15654,29 @@ type kind" as a function of the operator kind and the type of the operands.
   node->is_lvalue = is_lvalue;
   node->is_xvalue = FALSE;
 #if DO_IL_LOWERING
+  if (il_lowering_underway && strict_cpp17_eval_order) {
+    /* Lowering is introducing a new operation; make sure it uses the canonical
+       setting for the evaluation order for the specified operation. */
+    a_boolean eval_left_to_right, eval_right_to_left;
+    if (kind == (an_expr_operator_kind)eok_call) {
+      /* Note that lowering should only create eok_call nodes (and not other
+         types of call nodes), so they are not checked here. */
+      if (operands != NULL && is_routine_node(operands) &&
+          special_kind_is(node_routine(operands), sfk_operator)) {
+        eval_order_for_op_kind(node_routine(operands)->variant.opname_kind,
+                               &eval_left_to_right, &eval_right_to_left);
+        node->variant.operation.eval_left_to_right = eval_left_to_right;
+        node->variant.operation.eval_right_to_left = eval_right_to_left;
+      } else {
+        node->variant.operation.eval_left_to_right = TRUE;
+      }  /* if */
+    } else {
+      eval_order_for_binary_node_kind(kind, &eval_left_to_right,
+                                      &eval_right_to_left);
+      node->variant.operation.eval_left_to_right = eval_left_to_right;
+      node->variant.operation.eval_right_to_left = eval_right_to_left;
+    }  /* if */
+  }  /* if */
   if (il_lowering_underway && is_lvalue &&
       (kind == (an_expr_operator_kind)eok_comma ||
        kind == (an_expr_operator_kind)eok_assign ||
@@ -22554,6 +22583,9 @@ the statement.  May not be used for array types.
   dest->next = source;
   node = make_operator_node(which_binary_operator(tok_assign, source->type),
                             source->type, dest);
+  if (strict_cpp17_eval_order) {
+    node->variant.operation.eval_right_to_left = TRUE;
+  }  /* if */
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
   return stmt;
@@ -22580,6 +22612,9 @@ in IL lowering and in generated routines (like assignment operator functions).
   dest->next = source;
   node = make_operator_node((an_expr_operator_kind)eok_bassign,
                             void_type(), dest);
+  if (strict_cpp17_eval_order) {
+    node->variant.operation.eval_right_to_left = TRUE;
+  }  /* if */
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
   return stmt;
@@ -28073,6 +28108,94 @@ local).  See the descriptions of each of the flags for more information.
     }  /* while */
   }  /* if */
 }  /* walk_parents */
+
+
+void eval_order_for_op_kind(an_opname_kind kind,
+                            a_boolean      *eval_left_to_right,
+                            a_boolean      *eval_right_to_left)
+/*
+For the given operation kind, determine, and return (in *eval_left_to_right and
+*eval_right_to_left), the evaluation order for operands of the operation.
+*/
+{
+  *eval_left_to_right = FALSE;
+  *eval_right_to_left = FALSE;
+  switch (kind) {
+    case onk_assign:
+    case onk_plus_assign:
+    case onk_minus_assign:
+    case onk_times_assign:
+    case onk_divide_assign:
+    case onk_remainder_assign:
+    case onk_excl_or_assign:
+    case onk_and_assign:
+    case onk_or_assign:
+    case onk_shift_left_assign:
+    case onk_shift_right_assign:
+      *eval_right_to_left = TRUE;
+      break;
+    case onk_shift_left:
+    case onk_shift_right:
+    case onk_arrow_star:
+    case onk_subscript:
+    case onk_function_call:
+      *eval_left_to_right = TRUE;
+      break;
+    default:
+      /* No mandated evaluation order. */
+      break;
+  }  /* switch */
+}  /* eval_order_for_op_kind */
+
+
+void eval_order_for_binary_node_kind(an_expr_operator_kind kind,
+                                     a_boolean             *eval_left_to_right,
+                                     a_boolean             *eval_right_to_left)
+/*
+For the given expression node kind, determine whether the binary expression
+should have its operands evaluated from left-to-right or right-to-left and
+set the appropriate flag.  Not used for call operations as those may be
+sequenced either way.
+*/
+{
+  *eval_left_to_right = FALSE;
+  *eval_right_to_left = FALSE;
+  switch (kind) {
+    case eok_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+    case eok_remainder_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+    case eok_bassign:
+      *eval_right_to_left = TRUE;
+      break;
+    case eok_subscript:
+    case eok_shiftl:
+    case eok_shiftr:
+      *eval_left_to_right = TRUE;
+      break;
+    case eok_call:
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+    case eok_dot_pm_call:
+    case eok_points_to_pm_call:
+      /* These may be set either way and should be handled outside of this
+         routine. */
+      unexpected_condition();
+      break;
+    default:
+      /* No mandated evaluation order. */
+      break;
+  }  /* switch */
+}  /* eval_order_for_binary_node_kind */
 
 
 #if !STANDALONE_UTILITY_PROGRAM

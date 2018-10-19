@@ -17631,6 +17631,9 @@ no_applicable_operator_function:
                                             lhs_node->type, lhs_node);
               assign_node->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
+              if (strict_cpp17_eval_order) {
+                assign_node->variant.operation.eval_right_to_left = TRUE;
+              }  /* if */
               make_glvalue_expression_operand(assign_node, result);
               /* Note that reference_to_implicitly_invoked_function is not
                  called. */
