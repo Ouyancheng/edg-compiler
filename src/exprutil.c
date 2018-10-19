@@ -17008,8 +17008,8 @@ error cases.
                                                           uses_operator_syntax;
   if (strict_cpp17_eval_order) {
     if (uses_operator_syntax && !special_kind_is(rout, sfk_udl_operator)) {
-      check_assertion(rout != NULL && special_kind_is(rout, sfk_operator));
       a_boolean eval_left_to_right, eval_right_to_left;
+      check_assertion(rout != NULL && special_kind_is(rout, sfk_operator));
       eval_order_for_op_kind(rout->variant.opname_kind, &eval_left_to_right,
                              &eval_right_to_left);
       call_node->variant.operation.eval_right_to_left = eval_right_to_left;
