@@ -8,7 +8,7 @@ Changes have been made to support a configuration where GNU_EXTENSIONS_ALLOWED
 is TRUE but C99_IL_EXTENSIONS_SUPPORTED is FALSE.
 
 
-10/18/18 [EDGcpfe/18238,EDGcpfe/19997]
+10/19/18 [EDGcpfe/18238,EDGcpfe/19997]
 Lowering and strict expression evaluation ordering
 
 As of the 5.0 release, the front end indicates the order of evaluation of
