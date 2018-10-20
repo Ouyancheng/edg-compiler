@@ -2249,7 +2249,7 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
-      ms_cpplatest_mode = TRUE;
+      ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = ms_cpplatest_mode = TRUE;
       if (microsoft_version < 1903) {
         command_line_error(ec_microsoft_version_doesnt_support_cpplatest_mode);
       }  /* if */
@@ -2607,7 +2607,7 @@ option values if they were not already set by a command line option.
           msvc_lang = "201402L";
           relaxed_range_based_for_enabled = TRUE;
         }  /* if */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpp17_mode) {
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
         }  /* if */
@@ -2620,14 +2620,14 @@ option values if they were not already set by a command line option.
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
         }  /* if */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpp17_mode) {
           terse_static_assert_enabled = TRUE;
         }  /* if */
         nodiscard_attribute_enabled = TRUE;
       }  /* if */
       if (microsoft_version >= 1911) {
         /* Visual Studio 2017 version 15.3. */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpp17_mode) {
           /* Microsoft is now (generally) enabling C++17 features only
              when one of /std:c++17 or /std:c++latest is specified. */
           register_is_deprecated = TRUE;
@@ -2651,7 +2651,7 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1912) {
         /* Visual Studio 2017 version 15.5. */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpp17_mode) {
           capture_star_this_enabled = TRUE;
           inline_variables_allowed = TRUE;
           fold_expressions_enabled = TRUE;
@@ -2673,14 +2673,14 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1913) {
         /* Visual Studio 2017 version 15.6. */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpp17_mode) {
           mandatory_copy_elision = TRUE;
           class_template_arg_deduction_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1914) {
         /* Visual Studio 2017 version 15.7. */
-        if (ms_cpplatest_mode || ms_cpp17_mode) {
+        if (ms_cpp17_mode) {
           variadic_using_decls_enabled = TRUE;
           strict_cpp17_eval_order = TRUE;
           aggregate_classes_can_have_bases = TRUE;
@@ -2689,7 +2689,7 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 2000) {
         /* Visual Studio 2017 version 16.0 (anticipated). */
-        if (ms_cpplatest_mode || ms_cpp20_mode) {
+        if (ms_cpp20_mode) {
           conditional_explicit_enabled = TRUE;
           constexpr_virtual_enabled = TRUE;
           explicit_copy_this_capture_enabled = TRUE;
