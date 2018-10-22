@@ -27994,6 +27994,8 @@ instantiation of the containing class.
     pos_error(ec_bad_friend_decl, &pos_curr_token);
     (void)get_token();
     decl_state->decl_scope_err = TRUE;
+    attributes = scan_attributes(al_prefix);
+    disallow_attributes(p_attributes, es_default);
   }  /* if */
   skip_illegal_class_or_enum_template_decl_specifiers(/*diagnose=*/TRUE,
                                                       /*is_enum=*/TRUE);
