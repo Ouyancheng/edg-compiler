@@ -9396,9 +9396,9 @@ attributes from new_list are applied to tssp->attributes.
         case ak_likely:
         case ak_unlikely:
         default:
-          /* These do not appertain to class types (and have been turned
-             into ak_unrecognized if they do appear). */
-          unexpected_condition();
+          /* These do not appertain to class types (and an error will be
+             emitted later).  Ignore them here. */
+          break;
       }  /* switch */
     }  /* if */
   }  /* for */
@@ -9449,9 +9449,9 @@ attributes from new_list are applied to tssp->attributes.
         case ak_fallthrough:
         case ak_likely:
         case ak_unlikely:
-          /* These do not appertain to class types (and have been turned
-             into ak_unrecognized if they do appear). */
-          unexpected_condition();
+          /* These do not appertain to class types (and an error will be
+             emitted later).  Ignore them here. */
+          break;
       }  /* switch */
       if (add) {
         /* Add the new attribute to the list of attributes for this prototype
