@@ -9450,7 +9450,8 @@ attributes from new_list are applied to tssp->attributes.
         case ak_likely:
         case ak_unlikely:
           /* These do not appertain to class types (and an error will be
-             emitted later).  Ignore them here. */
+             emitted later).  Add them (so an error will be issued). */
+          add = TRUE;
           break;
       }  /* switch */
       if (add) {
