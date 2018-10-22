@@ -5459,7 +5459,7 @@ eval_right_to_left and eval_left_to_right flags.
   if (node_operator_is(expr, eok_call)) {
     if (is_routine_node(expr->variant.operation.operands) &&
         special_kind_is(node_routine(expr->variant.operation.operands),
-                                     sfk_operator)) {
+                        sfk_operator)) {
       /* There's not much checking to do here; a call to an operator function
          can have either evaluation order (e.g., operator= will typically have
          right-to-left, but may have left-to-right if called explicitly).

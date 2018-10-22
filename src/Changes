@@ -17,7 +17,7 @@ EDGcpfe/17701).  Expressions introduced by lowering, however, had not set
 the order of evaluation flags.  A change has been made to set those flags
 properly.
 
-Note that when lowering re-writes certain lvalue-returning expressions, it does
+Note that when lowering rewrites certain lvalue-returning expressions, it does
 not respect the strict evaluation ordering as dictated by C++17 (e.g.,
 "(f2(), x) = f1()" is lowered to "(f2(), (x = f1())" thereby changing the order
 of f1 and f2).  Back ends that use lowering and require strict ordering should
