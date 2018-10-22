@@ -5562,11 +5562,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                                                   ((an_integer_kind)ik_int))));
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
       check_operation_node_consistency(expr);
-#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
       if (strict_cpp17_eval_order) {
         /* Verify that the expression order is set correctly. */
         check_expression_evaluation_order(expr);
       }  /* if */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:
