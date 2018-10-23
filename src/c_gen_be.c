@@ -5449,6 +5449,7 @@ second or third operand of a "?" operator; other_opnd is the other operand).
 }  /* adjust_question_operand_if_necessary */
 
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
 
 static void check_expression_evaluation_order(an_expr_node_ptr expr)
 /*
@@ -5482,6 +5483,7 @@ eval_right_to_left and eval_left_to_right flags.
   }  /* if */
 }  /* check_expression_evaluation_order */
 
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
