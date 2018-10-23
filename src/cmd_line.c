@@ -2605,9 +2605,15 @@ option values if they were not already set by a command line option.
            1903. */
         if (ms_cpp14_mode) {
           msvc_lang = "201402L";
+          /* Enable emulation of Visual Studio's /std:c++14 mode.  Note that
+             internally most C++14 features are enabled via global variables,
+             but for those that aren't, set std_version to the value for
+             C++14. */
+          std_version = 201402;
           relaxed_range_based_for_enabled = TRUE;
         }  /* if */
         if (ms_cpp17_mode) {
+          std_version = 201403;
           msvc_lang = "201403L";
           nested_namespace_definitions_enabled = TRUE;
         }  /* if */
@@ -2642,9 +2648,15 @@ option values if they were not already set by a command line option.
           /* Note that msvc_lang has already been set above for the
              ms_cpp14_mode case (to "201402L"). */
           if (ms_cpp17_mode) {
+            /* Enable emulation of Visual Studio's /std:c++17 mode.  Note that
+               internally most C++17 features are enabled via global
+               variables, but for those that aren't, set std_version to the
+               value for C++17. */
+            std_version = 201703;
             msvc_lang = "201703L";
           }  /* if */
           if (ms_cpplatest_mode) {
+            std_version = 201704;
             msvc_lang = "201704L";
           }  /* if */
         }  /* if */
@@ -2697,6 +2709,11 @@ option values if they were not already set by a command line option.
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
           msvc_lang = "202000L";
+          /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
+             command-line options.  Note that internally most C++20 features
+             are enabled via global variables, but for those that aren't, set
+             std_version to the value for C++20. */
+          std_version = 202000;
         }  /* if */
       }  /* if */
     } else {
@@ -9704,28 +9721,9 @@ enable_microsoft_mode:
         ms_extensions = opt_value;
         break;
       case optk_microsoft_cpp14_mode:
-        /* Enable emulation of Visual Studio's /std:c++14 mode.  Note that
-           internally most C++14 features are enabled via global variables, but
-           for those that aren't, set std_version to the value for C++14. */
-        std_version = 201402;
-        set_C_dialect(C_dialect_cplusplus);
-        opt_value = TRUE;
-        goto enable_microsoft_mode;
       case optk_microsoft_cpp17_mode:
-        /* Enable emulation of Visual Studio's /std:c++17 mode.  Note that
-           internally most C++17 features are enabled via global variables, but
-           for those that aren't, set std_version to the value for C++17. */
-        std_version = 201703;
-        set_C_dialect(C_dialect_cplusplus);
-        opt_value = TRUE;
-        goto enable_microsoft_mode;
       case optk_microsoft_cpp20_mode:
       case optk_microsoft_cpplatest_mode:
-        /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
-           command-line options.  Note that internally most C++20 features are
-           enabled via global variables, but for those that aren't, set
-           std_version to the value for C++20. */
-        std_version = 202000;
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
