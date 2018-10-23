@@ -2124,6 +2124,10 @@ from the PCH file) to reflect the information loaded from the file.
       (void)take_next_scope_number();
     }  /* for */
   }
+  /* The scope stack entry for the file scope will have been read from the
+     PCH file.  Reset the address of the decl_seq_counter in case it is
+     different. */
+  scope_stack[DEPTH_OF_FILE_SCOPE].decl_seq_counter = &decl_seq_counter;
   /* Update the translation unit stack entry to refer to the restored
      translation unit entry.  There should only be one entry on the stack. */
   check_assertion(curr_translation_unit_stack_entry->next == NULL);
