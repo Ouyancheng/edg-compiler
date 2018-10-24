@@ -199,9 +199,9 @@ EXTERN a_stdc_pragma_value
 
 EXTERN a_stdc_pragma_value
 		curr_fenv_access_state;
-			/* Used in C99 mode to reflect the current setting
-			   of the fenv_access state, which is set using the
-			   STDC FENV_ACCESS pragma. */
+			/* Used in C99 and C++11 modes to reflect the
+			   current setting of the fenv_access state, which
+			   is set using the STDC FENV_ACCESS pragma. */
 
 EXTERN a_stdc_pragma_value
 		curr_cx_limited_range_state;

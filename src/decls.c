@@ -7494,8 +7494,9 @@ Record any pragma state that may affect the meaning of the IL in the definition
 of the given routine.
 */
 {
-  if (c99_mode) {
-    /* In C99 mode, save the current settings of the predefined pragmas. */
+  if (c99_mode || cpp11_mode) {
+    /* In C99 and C++11 modes, save the current settings of the predefined
+       pragmas. */
     routine_ptr->fp_contract = curr_fp_contract_state;
     routine_ptr->fenv_access = curr_fenv_access_state;
     routine_ptr->cx_limited_range = curr_cx_limited_range_state;
@@ -19620,9 +19621,11 @@ In C++, however, the declaration list is optional (3.4):
     }  /* if */
   } else {
     while (curr_token != tok_end_of_source) {
-      /* A C99 predefined pragma in the file scope must appear between
-         top-level declarations. */
-      if (c99_mode || fixed_point_enabled) check_for_stdc_pragmas();
+      /* A C99 or C++11 predefined pragma in the file scope must appear
+         between top-level declarations. */
+      if (c99_mode || cpp11_mode || fixed_point_enabled) {
+        check_for_stdc_pragmas();
+      }  /* if */
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,
@@ -19639,9 +19642,9 @@ In C++, however, the declaration list is optional (3.4):
   reset_ss_list_instantiation_insert_point();
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* A C99 predefined pragma in the file scope must appear between
+  /* A C99 or C++11 predefined pragma in the file scope must appear between
      top-level declarations. */
-  if (c99_mode) check_for_stdc_pragmas();
+  if (c99_mode || cpp11_mode) check_for_stdc_pragmas();
   process_pragmas_at_end_of_source();
 }  /* translation_unit */
 

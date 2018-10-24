@@ -2967,7 +2967,10 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     str = locator_for_curr_id.symbol_header->identifier;
-    if (c99_mode) {
+    /* Gcc does not recognize any of these three pragmas that are part of
+       C99 and C++11. */
+    if ((!gnu_mode || clang_mode) &&
+        (c99_mode || cpp11_mode)) {
       if (strcmp(str, "FP_CONTRACT") == 0) {
         kind = (a_stdc_pragma_kind)stdc_pk_fp_contract;
         state_var_ptr = &curr_fp_contract_state;
@@ -2976,7 +2979,8 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
         kind = (a_stdc_pragma_kind)stdc_pk_fenv_access;
         state_var_ptr = &curr_fenv_access_state;
         accept_on_off = TRUE;
-      } else if (strcmp(str, "CX_LIMITED_RANGE") == 0) {
+      } else if (!clang_mode && strcmp(str, "CX_LIMITED_RANGE") == 0) {
+        /* Clang does not recognize CX_LIMITED_RANGE. */
         kind = (a_stdc_pragma_kind)stdc_pk_cx_limited_range;
         state_var_ptr = &curr_cx_limited_range_state;
         accept_on_off = TRUE;
@@ -3021,11 +3025,18 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
         value = (a_stdc_pragma_value)stdc_pv_default;
       }  /* if */
     }  /* if */
-    if (value == (a_stdc_pragma_value)(a_stdc_pragma_value)stdc_pv_none) {
+    if (value == (a_stdc_pragma_value)stdc_pv_none) {
       /* coverity[dead_error_line] */ /* coverity[dead_error_condition] */
       diagnostic(strict_ansi_error_severity,
                  accept_sat ? ec_bad_stdc_fx_overflow_pragma_arg
                             : ec_bad_stdc_pragma_arg);
+      err = TRUE;
+    } else if (value == (a_stdc_pragma_value)stdc_pv_on &&
+               kind == (a_stdc_pragma_kind)stdc_pk_fenv_access &&
+               clang_mode) {
+      /* Clang does not support the ON argument to FENV_ACCESS, and it
+         treats DEFAULT as equivalent to OFF. */
+      diagnostic(es_discretionary_error, ec_bad_stdc_pragma_arg_for_mode);
       err = TRUE;
     }  /* if */
     /* Bypass the value. */

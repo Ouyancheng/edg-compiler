@@ -7730,9 +7730,9 @@ through *p_result_type.
      required. */
   add_stop_token(tok_rbrace);
   (void)required_token(tok_lbrace, ec_exp_lbrace);
-  /* This is the only place within a compound statement where C99 predefined
-     pragmas are permitted. */
-  if (c99_mode || fixed_point_enabled) check_for_stdc_pragmas();
+  /* This is the only place within a compound statement where C99 and C++11
+     predefined pragmas are permitted. */
+  if (c99_mode || cpp11_mode || fixed_point_enabled) check_for_stdc_pragmas();
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) check_for_upc_pragmas(block);
 #endif /* UPC_EXTENSIONS_ALLOWED */

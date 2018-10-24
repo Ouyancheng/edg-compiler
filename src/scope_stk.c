@@ -9063,7 +9063,7 @@ being popped.
     ssep->assoc_pointers_block->add_symbols_to_inactive_list = TRUE;
   }  /* if */
   if (ssep->kind != (a_scope_kind)sck_file) {
-    /* Restore the C99 STDC pragma state. */
+    /* Restore the C99 and C++11 STDC pragma state. */
     curr_fp_contract_state      = ssep->fp_contract_state;
     curr_fenv_access_state      = ssep->fenv_access_state;
     curr_cx_limited_range_state = ssep->cx_limited_range_state;

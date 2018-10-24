@@ -5827,7 +5827,7 @@ enum a_pragma_kind_tag {
   pk_define_type_info,  /* The following class definition provides the
 			   definition of the type_info type returned
 			   by typeid. */
-  pk_stdc,		/* Used for the C99 predefined pragmas (i.e.,
+  pk_stdc,		/* Used for the C99 and C++11 predefined pragmas (i.e.,
 			   FP_CONTRACT, FENV_ACCESS, and CX_LIMITED_RANGE).
 			   Also used for the "Embedded C" (TR 18037) fixed-
 			   point pragmas. */

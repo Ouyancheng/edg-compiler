@@ -1,5 +1,28 @@
 Version 5.1
 
+10/23/18 [EDGcpfe/20302]
+Floating-point status flags in C++ mode
+
+The C99 STDC FENV_ACCESS pragma, which allows the program to check the
+status of floating-point operations, was added to C++11.  One effect of
+this change is that floating-point operations, when access is enabled, are
+considered to have side effects, while previously they were considered to
+be side-effect free.  The front end now supports this pragma and the
+associated change to determination of side effects in C++11 and later
+modes.  The other two floating-point STDC pragmas, FP_CONTRACT and
+CX_LIMITED_RANGE, are also now accepted in those modes, although they have
+no effect other than being recorded in the IL.  Gcc does not support these
+pragmas, so they remain unrecognized in GNU emulation modes.  Clang does
+not recognize the CX_LIMITED_RANGE pragma, and it does not support the ON
+argument for FENV_ACCESS; the front end also emulates these behaviors in
+clang mode.  For example, with --c++11, the following pragma is not
+recognized in g++ mode, the ON argument is rejected (with a discretionary
+error) in clang mode, and it causes floating-point operations to be treated
+as having side effects in other emulation modes:
+
+  #pragma STDC FENV_ACCESS ON
+
+
 10/23/18 [EDGcpfe/19740,EDGcpfe/20329]
 Spurious diagnostics on constexpr and auto static data member definitions
 

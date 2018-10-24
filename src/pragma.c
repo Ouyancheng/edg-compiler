@@ -1888,7 +1888,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   }  /* if */
-  if (c99_mode || fixed_point_enabled) {
+  if (c99_mode || cpp11_mode || fixed_point_enabled) {
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_stdc,
                  fn_for_function(stdc_pragma),

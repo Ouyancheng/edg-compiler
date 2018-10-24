@@ -21077,10 +21077,11 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       goto check_cast_destination_type;
     case eok_cast:
 #if C99_IL_EXTENSIONS_SUPPORTED
-      if (c99_mode &&
+      if ((c99_mode || cpp11_mode) &&
           (is_floating_type(node->type) ||
            is_floating_type(op1->type))) {
-        /* Floating-point conversions can cause side effects in C99. */
+        /* Floating-point conversions can cause side effects in C99 and
+           C++11. */
         goto c99_float_operations;
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -21117,9 +21118,9 @@ check_cast_destination_type:
     case eok_vector_le:
     case eok_gnu_min:
     case eok_gnu_max:
-      /* In C99, the floating-point status flags can be tested, so a
+      /* In C99 and C++11, the floating-point status flags can be tested, so a
          floating-point operation is considered to have side effects. */
-      if (!c99_mode) {
+      if (!c99_mode && !cpp11_mode) {
         break;
       } else if (!node_operator_type_kind_is(node, tk_float) &&
                  !node_operator_type_kind_is(node, tk_complex) &&
@@ -21129,9 +21130,10 @@ check_cast_destination_type:
 c99_float_operations:
       { a_boolean fp_operations_can_cause_side_effects = FALSE;
         /* Floating-point operations can cause side effects unless
-           FENV_ACCESS is set to off.  Outside of the front end proper,
-           we don't know the current state of that flag so we assume
-           side effects are possible. */
+           FENV_ACCESS is set to off (or, in clang mode, to default, which
+           it treats as being "off").  Outside of the front end proper, we
+           don't know the current state of that flag so we assume side
+           effects are possible. */
         if (!in_front_end) {
           fp_operations_can_cause_side_effects = TRUE;
 #if DO_IL_LOWERING
@@ -21140,7 +21142,9 @@ c99_float_operations:
 #endif /* DO_IL_LOWERING */
         } else {
           fp_operations_can_cause_side_effects =
-                  (curr_fenv_access_state != (a_stdc_pragma_value)stdc_pv_off);
+           (curr_fenv_access_state != (a_stdc_pragma_value)stdc_pv_off &&
+            !(clang_mode &&
+              curr_fenv_access_state == (a_stdc_pragma_value)stdc_pv_default));
         }  /* if */
         if (fp_operations_can_cause_side_effects) has_side_effects = TRUE;
       }
