@@ -1,5 +1,27 @@
 Version 5.1
 
+10/24/18 [EDGcpfe/20330]
+Attempt to initialize a field in a union that doesn't exist should elicit 
+an error
+
+When combining list-initialization and designated initializers, the front
+end would not always detect an invalid designated initializer.  The code 
+would compile, but the resulting generated code wouldn't.  For example :
+
+  struct A {
+    int x;
+    union {
+      int y;
+    };
+    int z;
+  };
+  A a = { 37 , { . x = 47 } , 59 } ;
+
+In the example above, designator .x is a part of the initializer for the
+anonymous union member.  Previously, front end would accept this.  With 
+this fix, front end will report an error.
+
+
 10/23/18 [EDGcpfe/20302]
 Floating-point status flags in C++ mode
 
