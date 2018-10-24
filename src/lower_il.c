@@ -1131,9 +1131,7 @@ offset for the field.
 {
   sizeof_t    prefix_length, alloc_length;
   char        *temp_name, *name_ptr;
-#if IA64_ABI
   a_field_ptr field_ptr;
-#endif /* IA64_ABI */
 
   /* Build the name for the field.  This is done by combining the
      field_prefix and the (possibly mangled) base class name. */
@@ -1160,7 +1158,7 @@ offset for the field.
     field_ptr->base_class_subobject_with_tail_padding = TRUE;
   }  /* if */
 #else /* !IA64_ABI */
-  (void)add_field(name_ptr, field_type, field_offset, struct_type);
+  field_ptr = add_field(name_ptr, field_type, field_offset, struct_type);
 #endif /* IA64_ABI */
   field_ptr->is_lowered_base_class = TRUE;
 }  /* add_base_class_dummy_field */
