@@ -1,5 +1,19 @@
 Version 5.1
 
+10/23/18 [EDGcpfe/19740,EDGcpfe/20329]
+Spurious diagnostics on constexpr and auto static data member definitions
+
+The front end previously issued spurious errors on certain certain static data
+member definitions involving constexpr and/or auto specifiers.  For example:
+
+  struct S {
+    static const int x;
+    static int y;
+  };
+  constexpr int S::x = 42;  // Previously an error.  Now okay.
+  auto S::y = 42;  // Previously an error.  Now okay.
+
+
 10/19/18 [EDGcpfe/20303]
 Support configurations where GNU_EXTENSIONS_ALLOWED is TRUE and
 C99_IL_EXTENSIONS_SUPPORTED is FALSE

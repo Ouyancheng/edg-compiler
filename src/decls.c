@@ -11006,6 +11006,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     dps->sym = sym;
     var = sym->variant.static_data_member.variable;
+    dps->prev_type = var->type;
     if (inline_variables_allowed && var->is_inline && !has_initializer) {
       /* In C++17, an inline static data member outside of a class definition
          (this includes constexpr members, which are implicitly inline) is
@@ -11025,7 +11026,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
          enclose the scope in which the parent class was defined. */
       sym_error(ec_bad_scope_for_definition, sym);
       err = TRUE;
-    } else {
+    } else if (!is_auto_type(skip_typerefs(dps->type))) {
       /* Verify that the type supplied on this declaration matches the one
          from the class.  Some differences are allowed.  Create a composite
          type if necessary. */
@@ -11040,7 +11041,8 @@ the symbol through dps->sym and its linkage (which is always "none") through
       if (var->storage_class == (a_storage_class)sc_extern) {
         var->storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
-      if (!var->is_constexpr && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
+      if (!var->is_constexpr && (dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+          !dps->is_definition) {
         pos_sy_error(ec_previous_nonconstexpr_decl_conflict,
                      &dps->specifiers_pos, sym);
         dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
@@ -17646,7 +17648,9 @@ non-inline; otherwise, mark it as inline.
 {
   a_symbol_ptr sym = symbol_for(var);
 
-  if (!is_definition && !var->is_inline && sym->defined) {
+  if (var->is_inline) {
+    /* Nothing more to do. */
+  } else if (!is_definition && !var->is_inline && sym->defined) {
     pos2_sy_diagnostic(es_error, ec_first_inline_after_definition,
                        &error_position, &sym->decl_position, sym);
   } else {
@@ -17801,9 +17805,10 @@ if one is present.
     /* Fetch the type of the symbol again, since it might have been
        changed when reconciled with the original declaration. */
     state->type = var_ptr->type;
-    /* All static data member declarations that pass through this
-       code are definitions. */
-    is_variable_def = TRUE;
+    /* Prior to C++17, all static data member declarations that pass through
+       this code are definitions.  In more recent C++ versions, that is not
+       always the case. */
+    is_variable_def = state->is_definition;
     /* Copy the decl-modifiers into the variable entry. */
     update_variable_decl_modifiers(state);
   } else {
@@ -17943,8 +17948,7 @@ if one is present.
     } else if (state->has_deducible_class_templ_args) {
       var_ptr->declared_with_class_template_placeholder = TRUE;
     }  /* if */
-    if (inline_variables_allowed &&
-        (state->dso_flags & DSO_INLINE) != 0) {
+    if (inline_variables_allowed && (state->dso_flags & DSO_INLINE) != 0) {
       /* An inline variable. */
       mark_inline_variable(var_ptr, is_variable_def);
     }  /* if */
@@ -18944,7 +18948,10 @@ the case.
 */
 {
   if (dps->prev_type != NULL) {
-    if (!check_variable_redecl_compatible(dps)) {
+    if (symbol_is(dps->sym, sk_static_data_member) ?
+          reconcile_static_data_member_types(dps->sym, dps->type,
+                                             &dps->declarator_pos) :
+          !check_variable_redecl_compatible(dps)) {
       dps->auto_type_specifier_seen = FALSE;
       dps->decltype_auto_specifier_seen = FALSE; 
       dps->has_deducible_class_templ_args = FALSE;
