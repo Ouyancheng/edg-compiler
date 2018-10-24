@@ -17161,9 +17161,13 @@ when possible.
       init_entity_type = init_entity_typea;
     }  /* if */
   }  /* if */
-  if (dip->is_explicit_cast) {
+  if (dip->is_explicit_cast &&
+      !(dip->kind == (a_dynamic_init_kind)dik_constant &&
+        dip->variant.constant->explicit_cast_applied)) {
     /* An explicit cast.  Decide whether to put it out as a functional-notation
-       cast "T(x)" or an old-style cast "(T)(x)". */
+       cast "T(x)" or an old-style cast "(T)(x)".  (This processing is not
+       needed if the constant has an explicit cast, as the cast will be put
+       out as part of the constant itself.) */
     a_boolean use_func_notation_cast;
     if (braced_init) {
       /* The source was a braced-init cast, so use the functional-notation
