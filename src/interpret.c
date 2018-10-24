@@ -7606,8 +7606,13 @@ type).
       a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
       a_byte_count      offset;
       an_overriding_virtual_function_ptr
-                        ovfp = bcp->overriding_virtual_functions;
-      check_assertion(bcp != NULL);
+                        ovfp;
+      if (bcp == NULL) {
+        /* A most derived subobject (i.e., a field or array element).  We are
+           done. */
+        break;
+      }  /* if */
+      ovfp = bcp->overriding_virtual_functions;
       for (; ovfp != NULL; ovfp = ovfp->next) {
         if (ovfp->primary_function == callee) {
           a_base_class_ptr  ret_base = ovfp->return_adjustment_base_class;
