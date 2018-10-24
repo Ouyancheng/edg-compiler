@@ -3008,10 +3008,11 @@ initialization */
   a_type_ptr             anonymous_parent_object = NULL;
 
   if (!C_mode()) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(class_to_look_in);
+
     anonymous_parent_object = class_to_look_in;
     /* If we're in an anonymous union, look for the field in the enclosing
        class scope. */
-    a_class_type_supplement_ptr  ctsp = class_type_supp(class_to_look_in);
     while (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
       class_to_look_in = parent_class_of(class_to_look_in);
       ctsp = class_type_supp(class_to_look_in);
@@ -3054,6 +3055,7 @@ initialization */
     } else {
       a_type_ptr  anon_parent;
       a_symbol_ptr  saved_sym = sym;
+
       okay = TRUE;
       *field = sym->variant.field.ptr;
       anon_parent = parent_class_of(*field);
