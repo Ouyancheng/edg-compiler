@@ -2085,7 +2085,7 @@ C++20: Constructing closures without capture
 
 In C++20 mode, a closure resulting from a lambda that is introduced with "[]"
 (i.e., doesn't capture anything) now has a defaulted default constructor and
-defaulted copy/mode-assignment operators (in C++17 mode these special members
+defaulted copy/move-assignment operators (in C++17 mode these special members
 are deleted).  For example:
 
   auto cmp = [](auto x, auto y) { return x > y; };
