@@ -3005,8 +3005,10 @@ initialization */
   a_symbol_locator       loc;
   a_symbol_ptr           sym;
   a_field_ptr            orig_field = *field;
+  a_type_ptr             anonymous_parent_object = NULL;
 
   if (!C_mode()) {
+    anonymous_parent_object = class_to_look_in;
     /* If we're in an anonymous union, look for the field in the enclosing
        class scope. */
     a_class_type_supplement_ptr  ctsp = class_type_supp(class_to_look_in);
@@ -3021,6 +3023,7 @@ initialization */
        *is therefore records the last traversed class that is not a nonstandard
        anonymous union type. */
     class_to_look_in = is->class_to_look_in;
+    anonymous_parent_object = class_to_look_in;
   }  /* if */
   if (icp->variant.designator.field_name == NULL) {
     /* This is not a field designator, but we're in a class initializer.
@@ -3049,12 +3052,40 @@ initialization */
       is->init_error = TRUE;
       check_assertion(!C_mode());
     } else {
+      a_type_ptr  anon_parent;
+      a_symbol_ptr  saved_sym = sym;
       okay = TRUE;
       *field = sym->variant.field.ptr;
+      anon_parent = parent_class_of(*field);
+      if (anonymous_parent_object != NULL &&
+          !same_entities(anonymous_parent_object, anon_parent)) {
+        /* we are initializing an anonymous union or (nonstandard) anonymous
+           struct, but the field we found is not within the class we are
+           initializing.  Check if it is within a member of the class
+           we are initializing. */
+        a_boolean parent_found = FALSE;
+
+        while (sym->variant.field.anonymous_parent_object != NULL) {
+          sym = sym->variant.field.anonymous_parent_object;
+          if (same_entities(sym_parent_class(sym),
+              anonymous_parent_object)) {
+            parent_found = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        if (!parent_found) {
+          if (!is->no_diagnostics) {
+            pos_stsy_error(ec_not_a_field, init_component_pos(icp),
+                      loc.symbol_header->identifier,
+                      symbol_for(class_type));
+          }  /* if */
+          is->init_error = TRUE;
+        }  /* if */
+        sym = saved_sym;
+      }  /* if */
       if (sym->variant.field.anonymous_parent_object != NULL) {
         /* This field is a member of an anonymous union or (nonstandard)
            anonymous struct. */
-        a_type_ptr  anon_parent = parent_class_of(*field);
         if (!same_entities(anon_parent, class_type)) {
           /* The anonymous union does not correspond to the current aggregate
              constant.  GNU C++ and earlier versions of GNU C do not permit
