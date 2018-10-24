@@ -10708,6 +10708,9 @@ typedef struct a_field {
 			   end. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
+  a_bit_field	is_lowered_base_class:1;
+			/* TRUE if this field was added by IL lowering to
+			   represent a base class subobject. */
   a_bit_field	base_class_subobject_with_tail_padding:1;
 			/* TRUE if this field was added by IL lowering to
 			   represent a base class subobject and the base

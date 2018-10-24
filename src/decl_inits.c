@@ -2517,7 +2517,8 @@ static void aggr_init_class_remainder_if_needed(a_constant_ptr     aggr_con,
                                                 a_field_ptr        next_field,
                                                 a_base_class_ptr   next_bcp,
                                                 an_init_state      *is,
-                                                a_source_position  *diag_pos)
+                                                a_source_position  *diag_pos,
+                                                a_field_ptr        end_field)
 /*
 We have processed an aggregate initializer for the given type, but it does not
 explicitly initialize all its subobjects.  The first uninitialized subobject
@@ -2525,7 +2526,8 @@ is either the base class next_bcp, or, if that is NULL, the field next_field.
 Append any needed constants to the list embedded in aggr_con if the
 no_diagnostics flag is FALSE (if it is TRUE, aggr_con will be NULL).
 *is describes the initialization as a whole, and diag_pos indicates the
-position for which diagnostics should be issued.
+position for which diagnostics should be issued. If end_field is not NULL, only
+members up to end_field, but not including end_field, should be initialized.
 */
 {
   a_field_ptr           fp, last_dyn_field = NULL;
@@ -2582,7 +2584,7 @@ position for which diagnostics should be issued.
   /* Run a first pass through the remaining fields to see if any requires
      nontrivial default initialization.  Keep track of the last such field. */
   for (fp = next_field;
-       fp != NULL;
+       fp != end_field;
        fp = next_proper_initializable_field(fp->next)) {
     a_type_ptr  ftp = fp->type;
     if (fp->has_initializer) {
@@ -2616,11 +2618,11 @@ position for which diagnostics should be issued.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (last_dyn_field != NULL) {
-    a_field_ptr  end_fp =
+  if (last_dyn_field != NULL || end_field != NULL) {
+    a_field_ptr  end_fp = (end_field != NULL) ? end_field :
                         next_proper_initializable_field(last_dyn_field->next);
     if (union_case) {
-      if (last_dyn_field->has_initializer) {
+      if (last_dyn_field != NULL && last_dyn_field->has_initializer) {
         next_field = last_dyn_field;
         if (!is->check_validity_only &&
             next_field != aggr_type->variant.class_struct_union.field_list) {
@@ -2631,7 +2633,7 @@ position for which diagnostics should be issued.
           des_con->variant.designator.variant.field = next_field;
           add_constant_to_aggregate(des_con, aggr_con);
         }  /* if */
-      } else {
+      } else if (end_field == NULL) {
         a_field_ptr  field2 =
                             next_proper_initializable_field(next_field->next);
         if (field2 != NULL) {
@@ -2714,20 +2716,24 @@ position for which diagnostics should be issued.
       }  /* if */
     }  /* for */
   }  /* if */
-  /* Check if there are any remaining fields not covered by the initializer. */
-  if (last_dyn_field == NULL) {
-    if (next_field != NULL) {
+  if (end_field == NULL) {
+    /* Check if there are any remaining fields not covered by the
+       initializer. */
+    if (last_dyn_field == NULL) {
+      if (next_field != NULL) {
+        is->partial_initializer = TRUE;
+        if (aggr_con != NULL) {
+          aggr_con->partial_aggr_value = TRUE;
+          aggr_con->is_partially_initialized = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (next_proper_initializable_field(last_dyn_field->next) !=
+                                                                       NULL) {
       is->partial_initializer = TRUE;
       if (aggr_con != NULL) {
         aggr_con->partial_aggr_value = TRUE;
         aggr_con->is_partially_initialized = TRUE;
       }  /* if */
-    }  /* if */
-  } else if (next_proper_initializable_field(last_dyn_field->next) != NULL) {
-    is->partial_initializer = TRUE;
-    if (aggr_con != NULL) {
-      aggr_con->partial_aggr_value = TRUE;
-      aggr_con->is_partially_initialized = TRUE;
     }  /* if */
   }  /* if */
   pop_aggr_init_constant(&aggr_init_con);
@@ -2979,7 +2985,8 @@ static void aggr_init_field_designator(an_init_component_ptr  *p_icp,
                                        a_field_ptr            *field,
                                        a_constant_ptr         aggr_con,
                                        a_source_position      *diag_pos,
-                                       an_init_component_ptr  top_icp)
+                                       an_init_component_ptr  top_icp,
+                                       a_base_class_ptr       *p_bcp)
 /*
 *p_icp points to a designator component encountered while processing a braced
 initializer for class_type.  Check if the designator is valid, and, if so,
@@ -2988,7 +2995,9 @@ consumes initializer components up to and including a non-designator (and
 *p_icp is updated to point to the component after that, or NULL if there is
 none).  diag_pos is the position at which to issue diagnostics if no more
 specific position is available.  top_icp points to the start of the icp
-list and is used to check for duplicated designated initializers.  */
+list and is used to check for duplicated designated initializers.  *p_bcp
+points to the list of remaining base classes of the aggregate that need
+initialization */
 {
   a_boolean              okay, skip_designator = TRUE;
   an_init_component_ptr  icp = *p_icp, next_icp = NULL;
@@ -3157,6 +3166,21 @@ list and is used to check for duplicated designated initializers.  */
     icp = next_icp;
   }  /* if */
   if (okay) {
+    if ((orig_field != *field || *p_bcp != NULL ) &&
+        cpp20_designators_restriction && !is->init_error &&
+        orig_field != NULL) {
+    /* c++20 designators can cause base classes and certain members to
+       be skipped. Initialize those members before initializing the
+       designated member. If we found an error, we shouldn't proceed with
+       the initialization of remaining members, as the designators
+       may not be in order.  If orig_field is NULL, we have already
+       initialized all the members and this designator is invalid. It is
+       possible that it has not been diagnosed as invalid yet, so we
+       check orig_field here just in case. */
+       aggr_init_class_remainder_if_needed(aggr_con, class_type, orig_field,
+                                           *p_bcp, is, diag_pos, *field);
+       *p_bcp = NULL;
+    }  /* if */
     /* Designators complicate the determination of whether an aggregate
        initializer completely covers the target entity.  Assume partial
        initialization by default (in non-unions). */
@@ -3373,7 +3397,7 @@ issued if no more specific position is available.
         } else {
           is->chained_designator_okay = FALSE;
           aggr_init_field_designator(&icp, class_type, is, &fp, *init_con,
-                                     diag_pos, top_icp);
+                                     diag_pos, top_icp, &bcp);
         }  /* if */
       } else if (bcp != NULL) {
         /* A base is available for the next initializer component. */
@@ -3390,7 +3414,7 @@ issued if no more specific position is available.
       /* Not all subobjects are explicitly initialized: Append entries to
          initialize the remaining subobjects if appropriate. */
       aggr_init_class_remainder_if_needed(*init_con, class_type, fp, bcp, is,
-                                          diag_pos);
+                                          diag_pos, NULL);
     }  /* if */
     if (braced) {
       /* The caller should move on to the component that follows the braced

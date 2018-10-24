@@ -3103,6 +3103,9 @@ Display the indicated field.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
+  if (ptr->is_lowered_base_class) {
+    disp_boolean("is_lowered_base_class", TRUE);
+  }  /* if */
   if (ptr->base_class_subobject_with_tail_padding) {
     disp_boolean("base_class_subobject_with_tail_padding", TRUE);
   }  /* if */

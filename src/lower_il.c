@@ -1162,6 +1162,7 @@ offset for the field.
 #else /* !IA64_ABI */
   (void)add_field(name_ptr, field_type, field_offset, struct_type);
 #endif /* IA64_ABI */
+  field_ptr->is_lowered_base_class = TRUE;
 }  /* add_base_class_dummy_field */
 
 
