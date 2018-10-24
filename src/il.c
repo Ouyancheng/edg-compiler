@@ -21131,8 +21131,8 @@ c99_float_operations:
       { a_boolean fp_operations_can_cause_side_effects = FALSE;
         /* Floating-point operations can cause side effects unless
            FENV_ACCESS is set to off (or, in clang mode, to default, which
-           it treats as being "off").  Outside of the front end proper, we
-           don't know the current state of that flag so we assume side
+           clang treats as being "off").  Outside of the front end proper,
+           we don't know the current state of that flag so we assume side
            effects are possible. */
         if (!in_front_end) {
           fp_operations_can_cause_side_effects = TRUE;
