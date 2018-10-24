@@ -17311,11 +17311,12 @@ whether the call was folded or not.
       a_type_ptr  this_type, selector_type, this_class_type;
       if (unknown_dependent_function) {
         this_type = NULL;
+        this_class_type = NULL;
       } else {
         this_type = implicit_this_param_type_of(function_type);
+        this_class_type = type_pointed_to(this_type);
+        this_class_type = skip_typerefs(this_class_type);
       }  /* if */
-      this_class_type = type_pointed_to(this_type);
-      this_class_type = skip_typerefs(this_class_type);
       selector_type = bound_function_selector->type,
       selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
