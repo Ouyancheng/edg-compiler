@@ -38547,7 +38547,7 @@ guides.
   a_symbol_ptr	*prev_ptr = &ct_tssp->variant.class_template.deduction_guides;
   a_symbol_ptr	guide_set = *prev_ptr;
   a_symbol_ptr	guide_sym;
-  a_boolean	is_list;
+  a_boolean	is_list = FALSE;
 
   if (symbol_is(guide_set, sk_overloaded_function)) {
     is_list = TRUE;
