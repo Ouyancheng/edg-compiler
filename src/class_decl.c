@@ -13701,8 +13701,9 @@ set; otherwise, it is NULL.
         /* An implicitly-declared trivial default constructor is never
            actually called or declared, so it is not added to the constructor
            set (which should be empty, except in the case of some C++/CLI
-           value classes). */
-        check_assertion(cssp->constructor == NULL
+           value classes or when inheriting a trivial default constructor). */
+        check_assertion(cssp->constructor == NULL ||
+                        class_state->has_inheriting_constructors
                         if_microsoft_extensions(
                           || cli_class_type_kind_is(class_type, cctk_value)));
         cssp->trivial_default_constructor = sym;
@@ -22653,18 +22654,34 @@ Generate those constructors.
        and generate corresponding derived-class inheriting constructors from
        it if applicable. */
     base_ctors = class_symbol_supp(symbol_for(base_class))->constructor;
-    if (base_ctors != NULL && symbol_is(base_ctors, sk_overloaded_function)) {
-      base_ctors = base_ctors->variant.overloaded_function.symbols;
-    }  /* if */
-    for (bctor = base_ctors; bctor != NULL; bctor = bctor->next) {
-      if (symbol_is(bctor, sk_member_function)) {
-        generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
-      } else if (symbol_is(bctor, sk_function_template)) {
-        generate_inheriting_constructors_for_base_template(bctor, udp, cdsp);
-      } else {
-        unexpected_condition();
+    if (base_ctors == NULL) {
+      /* The base class has no recorded constructors.  That actually means it
+         has a trivial default constructor that may have to be inherited. */
+      a_class_symbol_supplement_ptr
+                      cssp = class_symbol_supp(symbol_for(cdsp->class_type));
+      if (!cssp->has_nontrivial_default_constructor &&
+          cssp->trivial_default_constructor == NULL) {
+        /* Note that we do not use "has_any_default_constructor" for this test
+           because the case where cssp->constructor == NULL should still
+           cause us to generate an actual representation of the default
+           constructor, in case other constructs add constructors. */
+        generate_default_constructor(cdsp, /*suppressed=*/FALSE);
       }  /* if */
-    }  /* for */
+    } else {
+      if (base_ctors != NULL &&
+          symbol_is(base_ctors, sk_overloaded_function)) {
+        base_ctors = base_ctors->variant.overloaded_function.symbols;
+      }  /* if */
+      for (bctor = base_ctors; bctor != NULL; bctor = bctor->next) {
+        if (symbol_is(bctor, sk_member_function)) {
+          generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
+        } else if (symbol_is(bctor, sk_function_template)) {
+          generate_inheriting_constructors_for_base_template(bctor, udp, cdsp);
+        } else {
+          unexpected_condition();
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* generate_inheriting_constructors_for_using_decl */
 

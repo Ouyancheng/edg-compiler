@@ -1,5 +1,21 @@
 Version 5.1
 
+10/25/18 [EDGcpfe/20358]
+Failure to inherit trivial default constructor
+
+Consider:
+
+  struct B {};  // Has a trivial default constructor.
+  struct D: B {
+    using B::B;
+    D(int);
+  } d;  // Previously an error because the default constructor of B was
+        // not inherited.  Now okay.
+
+The front end previously issued an error because if failed to inherit the
+trivial default constructor of B for D.  That is now fixed.
+
+
 10/24/18 [EDGcpfe/20330]
 Attempt to initialize a field in a union that doesn't exist should elicit 
 an error
