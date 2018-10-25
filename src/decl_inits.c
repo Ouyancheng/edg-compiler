@@ -2997,7 +2997,7 @@ none).  diag_pos is the position at which to issue diagnostics if no more
 specific position is available.  top_icp points to the start of the icp
 list and is used to check for duplicated designated initializers.  *p_bcp
 points to the list of remaining base classes of the aggregate that need
-initialization */
+initialization. */
 {
   a_boolean              okay, skip_designator = TRUE;
   an_init_component_ptr  icp = *p_icp, next_icp = NULL;
@@ -3009,7 +3009,6 @@ initialization */
 
   if (!C_mode()) {
     a_class_type_supplement_ptr  ctsp = class_type_supp(class_to_look_in);
-
     anonymous_parent_object = class_to_look_in;
     /* If we're in an anonymous union, look for the field in the enclosing
        class scope. */
@@ -3055,7 +3054,6 @@ initialization */
     } else {
       a_type_ptr  anon_parent;
       a_symbol_ptr  saved_sym = sym;
-
       okay = TRUE;
       *field = sym->variant.field.ptr;
       anon_parent = parent_class_of(*field);
@@ -3066,7 +3064,6 @@ initialization */
            initializing.  Check if it is within a member of the class
            we are initializing. */
         a_boolean parent_found = FALSE;
-
         while (sym->variant.field.anonymous_parent_object != NULL) {
           sym = sym->variant.field.anonymous_parent_object;
           if (same_entities(sym_parent_class(sym),
@@ -3202,7 +3199,7 @@ initialization */
     if ((orig_field != *field || *p_bcp != NULL ) &&
         cpp20_designators_restriction && !is->init_error &&
         orig_field != NULL) {
-    /* c++20 designators can cause base classes and certain members to
+    /* C++20 designators can cause base classes and certain members to
        be skipped. Initialize those members before initializing the
        designated member. If we found an error, we shouldn't proceed with
        the initialization of remaining members, as the designators
