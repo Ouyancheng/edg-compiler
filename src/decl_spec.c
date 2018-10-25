@@ -9670,10 +9670,22 @@ an error if appropriate.
   if (sym != NULL && symbol_is(sym, sk_function_template)) {
     sym = symbol_for(sym->variant.template_info->variant.function.routine);
   }  /* if */
-  if (sym != NULL && symbol_is(sym, sk_routine) &&
-      special_kind_is(sym->variant.routine.ptr, sfk_deduction_guide)) {
-    /* "explicit" can appear on deduction guides. */
-  } else if (sym != NULL && sym->is_error) {
+  if (sym != NULL && is_simple_function_symbol(sym) &&
+      !(dps->dso_flags & DSO_FRIEND) &&
+      (special_kind_is(sym->variant.routine.ptr, sfk_deduction_guide) ||
+       (special_kind_is(sym->variant.routine.ptr, sfk_constructor) &&
+        dps->in_class_scope) ||
+       (special_kind_is(sym->variant.routine.ptr, sfk_conversion) &&
+        explicit_conversion_functions_enabled && dps->in_class_scope))) {
+    /* A valid use of "explicit". */
+  } else if (microsoft_mode && dps->in_class_scope &&
+             (dps->declarator_pos.seq == 0 ||
+              scope_stack_top().in_nonreal_instantiation)) {
+    /* Microsoft compilers appear to ignore "explicit" if no declarator
+       appeared in a class scope declaration.  We also ignore it in nonreal
+       instantiations (in-class specializations during nonreal instantiations
+       have no associated symbol). */
+  } else if (sym != NULL && (sym->is_error || dps->sym->is_error)) {
     /* An error occurred.  An additional diagnostic is unlikely to be
        helpful. */
     expect_error();
@@ -10622,13 +10634,11 @@ storage_class_specifier:
             decl_specifiers_seen |= DS_EXPLICIT;
             *output_flags |= DSO_EXPLICIT;
           }  /* if */
-          if (!is_member_decl) {
-            /* For non-member declarations, "explicit" can only appear on
-               deduction guides.  Since we cannot check this now, record an
-               end-of-parse action to check it later. */
-            add_end_of_parse_action(check_explicit_specifier, state,
-                                    /*secondary_decls=*/FALSE);
-          }  /* if */
+          /* An "explicit" specifier is only permitted on some kinds of
+             declarations (constructors, conversion functions, and deduction
+             guides).  Record an end-of-parse action to check this later. */
+          add_end_of_parse_action(check_explicit_specifier, state,
+                                  /*secondary_decls=*/FALSE);
         }  /* if */
         break;
       case tok_void:

@@ -29023,6 +29023,7 @@ that follows.
   }  /* if */
   if (decl_state->is_member_decl) {
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
+    decl_state->decl_parse.in_class_scope = TRUE;
   }  /* if */
   /* Strictly speaking, storage-class-specifiers are not permitted
      in specializations, but in practice, certain storage-class-specifiers
