@@ -2018,8 +2018,6 @@ created for this entity; otherwise, it is NULL.
             }  /* if */
             kind = (an_il_entry_kind)iek_src_seq_secondary_decl;
             add_to_source_sequence_list((char *)sssdp, kind);
-            /* Reset the insertion point for instantiations to NULL. */
-            // FIXME reset_ss_list_instantiation_insert_point();
           }  /* if */
         }  /* if */
       } else if (is_nonspecialized_instantiation_context()) {

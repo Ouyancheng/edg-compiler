@@ -1,5 +1,30 @@
 Version 5.1
 
+10/25/18 [EDGcpfe/20312]
+Out-of-order generated C++ code for class template specialization with
+TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+Consider:
+
+  template<typename> struct S { void f(); };
+  struct B {
+    template<typename> void m() {
+      S<int> s;
+      s.f();
+    }
+  } b;
+  int main() {
+    b.m<float>();
+  }
+
+In configurations using the C++-generating back end with the configuration
+macro TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, C++ source
+code is generated that attempts to model implicit instantiations as explicit
+specializations.  In the example above, however, the explicit specialization
+for S<int> was emitted after a use of S<int> (which is invalid).  That is now
+fixed.
+
+
 10/25/18 [EDGcpfe/20360]
 Internal error when clang mode is using with gnu_version < 40700
 
