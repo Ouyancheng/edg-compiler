@@ -27159,17 +27159,12 @@ updated.
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
                                         GID_IS_TEMPLATE_PRESCAN |
                                         GID_IMPLICIT_TYPE_CONTEXT)) {
-      if (class_modifiers_allowed()) {
-        next_tok = next_token();
-        if (next_tok != tok_colon &&
-            next_tok != tok_lbrace &&
-            next_tok != tok_semicolon) {
-          check_for_class_modifiers(&next_tok, tok_lbrace,
-                                    /*tag_name_first=*/TRUE);
-        }  /* if */
-      } else {
-        (void)get_token();
-        next_tok = curr_token;
+      next_tok = next_token();
+      if (next_tok != tok_colon &&
+          next_tok != tok_lbrace &&
+          next_tok != tok_semicolon && class_modifiers_allowed()) {
+        check_for_class_modifiers(&next_tok, tok_lbrace,
+                                  /*tag_name_first=*/TRUE);
       }  /* if */
     } else {
       /* A class template declaration with a missing identifier.  If the next

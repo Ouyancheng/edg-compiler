@@ -1,5 +1,14 @@
 Version 5.1
 
+10/25/18 [EDGcpfe/20360]
+Internal error when clang mode is using with gnu_version < 40700
+
+An internal error could occur (in class_template_declaration) when clang
+mode is combined with a gnu_version less than 40700.  This occurred during
+the front end initialization process (i.e., an empty source file is
+sufficient to reproduce the issue).  Now fixed.
+
+
 10/25/18 [EDGcpfe/20358]
 Failure to inherit trivial default constructor
 
