@@ -6951,6 +6951,7 @@ GNU also allows the "case range" form:
     sssep = &struct_stmt_stack[switch_depth];
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_switch_case,
                                    &case_position);
+    stmt_update_source_sequence_list(sp);
     sp->variant.switch_case.switch_statement = sssep->statement;
     sp->variant.switch_case.extra_info = scep;
     scep->stmt = sp;

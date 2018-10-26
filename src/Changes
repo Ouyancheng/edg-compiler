@@ -1,5 +1,21 @@
 Version 5.1
 
+10/26/18 [EDGcpfe/20386]
+#pragma moved to before case label
+
+In C++-generating configurations, a #pragma that appears in the source
+code after a case label had mistakenly been moved to before the case label
+in the generated C++.  For example:
+
+  void f(int c) {
+    switch (c) {
+      case 0:
+#pragma omp parallel for
+        for(int i=0; i<10; ++i);
+    }
+  }
+
+
 10/26/18 [EDGcpfe/20327]
 Missing decl_position for string literals
 
