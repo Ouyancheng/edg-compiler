@@ -1,5 +1,19 @@
 Version 5.1
 
+10/26/18 [EDGcpfe/20327]
+Missing decl_position for string literals
+
+Previously, the front end did not record the positions of string literals
+appearing as elements in aggregate initializers.  Now it does.  For example:
+
+  struct S { char const *p; } s = { "msg" };
+
+In this example, the position of "msg" is now recorded in the 
+source_corresp.decl_position member of the ck_string entry. Furthermore, if 
+EXTRA_SOURCE_POSITION_IN_IL is set to TRUE, the end position of the literal 
+is recorded in the end_position member of the ck_string entry.
+
+
 10/25/18 [EDGcpfe/20370]
 Uninitialized variable used in remove_hypothetical_default_guide
 

@@ -1667,6 +1667,12 @@ size.
                                                  p_excess)) {
         if (!is->check_validity_only) {
           *result = alloc_unshared_constant(string_constant);
+          (*result)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          if (!is_designator_component(icp)) {
+            (*result)->end_position = *init_component_end_pos(icp);
+          }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         }  /* if */
         if (!has_unknown_specified_bound(*p_array_type) &&
             num_array_elements(*p_array_type) >
