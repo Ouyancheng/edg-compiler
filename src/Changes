@@ -33,7 +33,7 @@ fixed.
 
 
 10/25/18 [EDGcpfe/20360]
-Internal error when clang mode is using with gnu_version < 40700
+Internal error when clang mode is used with gnu_version < 40700
 
 An internal error could occur (in class_template_declaration) when clang
 mode is combined with a gnu_version less than 40700.  This occurred during
