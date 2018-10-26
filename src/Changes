@@ -8,7 +8,7 @@ cases in remove_hypothetical_default_guide.  Now fixed.
 
 
 10/25/18 [EDGcpfe/20312]
-Out-of-order generated C++ code for class template specialization with
+C++-generating back end: Out-of-order class template specialization with
 TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 Consider:
