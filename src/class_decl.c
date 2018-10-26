@@ -28085,24 +28085,6 @@ that is provided if this is a member template declaration.
     }  /* if */
   } while (loop_token(tok_comma));
 next_declaration:;
-  if (dso_flags & DSO_EXPLICIT) {
-    /* The keyword "explicit" is allowed only on a constructor declaration and
-       on a conversion function declaration (the latter only in some modes).
-       Microsoft compilers also allow it on free-standing class/enum
-       declarations.  This check must occur after any declarator processing
-       because we cannot know for sure whether the declaration was a
-       constructor until then. */
-    if (microsoft_mode && missing_declarator) {
-      /* Microsoft compilers appear to ignore "explicit" in this case. */
-    } else if (!(dso_flags & DSO_FRIEND) &&
-               (decl_info.is_constructor ||
-                (explicit_conversion_functions_enabled &&
-                 locator.is_conversion_name))) {
-      /* Okay. */
-    } else {
-      pos_error(ec_explicit_not_allowed, &dps->start_pos);
-    }  /* if */
-  }  /* if */
   if (!C_mode()) {
     check_use_of_placeholder_type(dps);
   }  /* if */
