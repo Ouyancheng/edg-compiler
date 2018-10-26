@@ -16562,7 +16562,7 @@ template declaration and is NULL otherwise.
     var = make_variable(member_type, (a_storage_class)sc_static,
                         NO_SCOPE_DEPTH);
     if (decl_info->decl_state.dso_flags & DSO_INLINE) {
-      var->is_inline = TRUE;
+      mark_inline_variable(var, /*is_definition=*/TRUE);
     }  /* if */
     add_to_variables_list(var, effective_decl_level);
   }  /* if */
@@ -16640,7 +16640,7 @@ template declaration and is NULL otherwise.
     var->is_constexpr = TRUE;
     if (inline_variables_allowed) {
       /* constexpr static data members are implicitly inline. */
-      var->is_inline = TRUE;
+      mark_inline_variable(var, /*is_definition=*/TRUE);
     }  /* if */
   }  /* if */
   if (decl_state->decltype_auto_specifier_seen) {
@@ -16836,12 +16836,6 @@ template declaration and is NULL otherwise.
     sym_error(ec_missing_initializer_on_reference, sym);
   }  /* if */
   if (inline_variables_allowed) {
-    if ((decl_state->dso_flags & DSO_INLINE) != 0 ||
-        var->is_constexpr) {
-      /* The static data member is either explicitly or implicitly marked
-         as inline. */
-      mark_inline_variable(var, /*is_definition=*/TRUE);
-    }  /* if */
     if (var->is_inline) {
       /* Inline static data members are considered definitions. */
       srk_flags |= SRK_DEFINITION;
