@@ -67,7 +67,7 @@ Consider:
   } d;  // Previously an error because the default constructor of B was
         // not inherited.  Now okay.
 
-The front end previously issued an error because if failed to inherit the
+The front end previously issued an error because it failed to inherit the
 trivial default constructor of B for D.  That is now fixed.
 
 
