@@ -4002,6 +4002,7 @@ statement sequence.  The syntax is:
   a_constexpr_if_cache_info_ptr	cicip_to_create = NULL;
   a_constexpr_if_cache_info_ptr	cicip_to_use = NULL;
   a_token_sequence_number	start_tsn;
+  a_source_position		expr_pos;
 
   db_enter(3, "if_statement");
 
@@ -4045,6 +4046,7 @@ statement sequence.  The syntax is:
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
+  expr_pos = pos_curr_token;
   /* Scan the condition, which in C++ may be a condition declaration, and in
      C++17 may include a leading initialization statement. */
   scan_condition(sp, &is_condition_decl);
@@ -4076,7 +4078,7 @@ statement sequence.  The syntax is:
       value_known = FALSE;
       if (!is_template_dependent_context() && expr_error_should_be_issued()) {
         a_diagnostic_ptr  dp;
-        dp = pos_start_error(ec_expr_not_constant, &condition_expr->position);
+        dp = pos_start_error(ec_expr_not_constant, &expr_pos);
         add_more_info_list(dp, &diag_list);
         end_diagnostic(dp);
       }  /* if */
