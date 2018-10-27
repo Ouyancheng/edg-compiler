@@ -3303,7 +3303,19 @@ nested class.
                 suppress_deferral_on_partial_spec_members))) {
             if (rfp->is_definition) {
               /* Do the prototype instantiation of the function body. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+              scope_stack[scope_depth].ss_list_instantiation_insert_point =
+                           class_type->source_corresp.source_sequence_entry;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               function_prototype_instantiation(sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+              scope_stack[scope_depth].ss_list_instantiation_insert_point =
+                                                            orig_insert_point;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             }  /* if */
             if (is_friend) {
               tssp = template_supplement_for_symbol(sym);
