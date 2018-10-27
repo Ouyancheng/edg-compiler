@@ -753,6 +753,7 @@ extern void f_report_gnu_cpp11_extensions_if_needed(
 
 #define report_gnu_extension_if_needed(pos, error_code)  /* Nothing */
 #define report_gnu_cpp11_extension_if_needed(pos, error_code)  /* Nothing */
+#define report_gnu_cpp17_extension_if_needed(pos, error_code)  /* Nothing */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
