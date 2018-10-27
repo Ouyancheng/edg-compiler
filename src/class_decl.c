@@ -16634,6 +16634,9 @@ template declaration and is NULL otherwise.
     templ_state->decl_token_cache_used = TRUE;
     var_templ_tssp->variant.variable.declarator_name_tsn =
                                                decl_state->declarator_name_tsn;
+    if (decl_info->decl_state.dso_flags & DSO_INLINE) {
+      mark_inline_variable(var, /*is_definition=*/TRUE);
+    }  /* if */
   }  /* if */
   /* For a variable template, get the symbol associated with the prototype
      instantiation. */
