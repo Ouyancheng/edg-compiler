@@ -2991,6 +2991,7 @@ ec_implicit_copy_this_capture_deprecated;;"the implicit by-copy capture of \"thi
 ec_empty_lambda_template_param_list;;"an empty template parameter list is not allowed in a lambda expression"
 ec_microsoft_version_doesnt_support_cpp20_mode;;"the version of Microsoft being emulated must be at least 2000 to use \"--ms_c++20\""
 ec_bad_stdc_pragma_arg_for_mode;;"STDC pragma argument not accepted in this mode"
+ec_if_constexpr_is_cpp17;;"constexpr if statements are a C++17 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

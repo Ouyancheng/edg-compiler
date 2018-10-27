@@ -4774,6 +4774,11 @@ before this routine is called.
     /* g++ 4.5 and later accept constexpr in C++11 mode. */
     constexpr_enabled =  TRUE;
   }  /* if */
+  if (cpp11_mode &&
+      (gpp_version_is(>= 70000) || clangcpp_version_is(>= 400))) {
+    /* g++ 7.1 and clang 4.0 and later accept if constexpr in C++11 mode. */
+    constexpr_if_enabled =  TRUE;
+  }  /* if */
   if (gnu_version >= 40700 && variadic_templates_enabled && !ms_compat &&
       !(option_kind_used[(int)optk_parse_nonclass_templates] &&
         !nonclass_prototype_instantiations)) {

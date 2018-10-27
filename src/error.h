@@ -738,6 +738,14 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
     }  /* if */                                                             \
   }
 
+/* Macro to warn about C++17 features enabled in default non-c++17 GNU C++
+   modes. */
+#define report_gnu_cpp17_extension_if_needed(pos, error_code)               \
+  { if (gpp_mode && !cpp17_mode) {                                          \
+      f_report_gnu_cpp11_extensions_if_needed((pos), (error_code));         \
+    }  /* if */                                                             \
+  }
+
 extern void f_report_gnu_cpp11_extensions_if_needed(
                                                a_source_position  *pos,
                                                an_error_code      error_code);

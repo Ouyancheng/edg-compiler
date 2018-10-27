@@ -4035,6 +4035,8 @@ statement sequence.  The syntax is:
   (void)get_token();
   if (is_constexpr_if) {
     a_struct_stmt_stack_entry_ptr sssep;
+    report_gnu_cpp17_extension_if_needed(&pos_curr_token,
+                                         ec_if_constexpr_is_cpp17);
     (void)get_token();
     /* Save the current scope stack discarded statement state so it can
        be restored later. */
