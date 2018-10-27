@@ -23120,7 +23120,7 @@ the components of the declaration.
        template parameters are not enabled. */
     if (uses_auto != NULL) *uses_auto = TRUE;
   }  /* if */
-  if (template_dependent != NULL) {
+  if (template_dependent != NULL && uses_auto != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
        dependencies could be eliminated. */
