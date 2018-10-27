@@ -3092,7 +3092,8 @@ nested class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                     scope_depth = NO_SCOPE_DEPTH;
-  a_source_sequence_entry_ptr       orig_insert_point, insert_point = NULL;
+  a_source_sequence_entry_ptr       orig_insert_point = NULL,
+                                    insert_point = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -3125,7 +3126,6 @@ nested class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (!source_sequence_entries_disallowed) {
-      insert_point = orig_insert_point = NULL;
       scope_depth = scope_depth_for_class_ss_list(class_type);
       if (scope_depth != NO_SCOPE_DEPTH) {
         orig_insert_point = scope_stack[scope_depth].
@@ -3305,15 +3305,19 @@ nested class.
               /* Do the prototype instantiation of the function body. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-              scope_stack[scope_depth].ss_list_instantiation_insert_point =
+              if (scope_depth != NO_SCOPE_DEPTH) {
+                scope_stack[scope_depth].ss_list_instantiation_insert_point =
                            class_type->source_corresp.source_sequence_entry;
+              }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               function_prototype_instantiation(sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-              scope_stack[scope_depth].ss_list_instantiation_insert_point =
+              if (scope_depth != NO_SCOPE_DEPTH) {
+                scope_stack[scope_depth].ss_list_instantiation_insert_point =
                                                             orig_insert_point;
+              }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             }  /* if */
