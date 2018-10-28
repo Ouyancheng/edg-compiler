@@ -1,5 +1,13 @@
 Version 5.1
 
+10/28/18 [EDGcpfe/20391]
+Precompiled headers and #line directives
+
+Formerly, #line directives suppressed the creation of PCH files.  This
+has been modified so that only #line directives in the primary source file
+prevent the generation of a PCH file.
+
+
 10/27/18 [EDGcpfe/20387]
 GNU/clang C++ compatibility: constexpr if enabled in non-c++17 modes
 

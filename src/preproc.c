@@ -1867,9 +1867,9 @@ and may have extra operands at the end).
   a_line_number max_line_div_10 = MAX_LINE_NUMBER;
   max_line_div_10 /= (a_line_number)10;
 
-  /* Line directives are not allowed in files used to generate
+  /* Line directives are not allowed in primary source files used to generate
      precompiled headers. */
-  suppress_creation_of_pch();
+  if (processing_primary_source_file()) suppress_creation_of_pch();
 
   /* Any number should be scanned as a digit sequence. */
   exp_digit_sequence = TRUE;
