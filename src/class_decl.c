@@ -3126,7 +3126,9 @@ nested class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (!source_sequence_entries_disallowed) {
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_routine_fixup_ptr  prev_rfp = NULL;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       scope_depth = scope_depth_for_class_ss_list(class_type);
       if (scope_depth != NO_SCOPE_DEPTH) {
         orig_insert_point = scope_stack[scope_depth].
@@ -3178,6 +3180,7 @@ nested class.
         }  /* if */
       }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      /*lint --e{850} rfp modified in loop (LINTBUG) */
       for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = rfp->next) {
         if (rfp->is_partial_instantiation) {
           /* Add a secondary-decl source sequence entry to the source sequence
