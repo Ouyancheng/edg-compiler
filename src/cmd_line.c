@@ -2244,7 +2244,7 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpp20_mode]) {
       ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = TRUE;
-      if (microsoft_version < 2000) {
+      if (microsoft_version < 1920) {
         command_line_error(ec_microsoft_version_doesnt_support_cpp20_mode);
       }  /* if */
     }  /* if */
@@ -2699,7 +2699,7 @@ option values if they were not already set by a command line option.
           auto_template_params_enabled = TRUE;
         }  /* if */
       }  /* if */
-      if (microsoft_version >= 2000) {
+      if (microsoft_version >= 1920) {
         /* Visual Studio 2017 version 16.0 (anticipated). */
         if (ms_cpp20_mode) {
           conditional_explicit_enabled = TRUE;
