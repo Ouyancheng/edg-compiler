@@ -769,7 +769,7 @@ In C++20 mode, the front end now implements conditional explicit specifiers
 
 That language feature was added by the C++ standardization committee's paper
 number P0892R2.  It is also enabled with the --ms_c++latest option when
-microsoft_version >= 2000.  (The upper limit for the --microsoft_version
+microsoft_version >= 1920.  (The upper limit for the --microsoft_version
 option has been raised from 2000 to 3000.)
 
 
