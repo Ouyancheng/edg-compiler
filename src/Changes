@@ -525,7 +525,7 @@ next standard deprecates that feature).
 10/11/18 [EDGcpfe/20037,EDGcpfe/20124]
 C++20: Constexpr virtual functions
 
-In C++20 mode (and --ms_c++latest mode with microsoft_version >= 2000), the
+In C++20 mode (and --ms_c++latest mode with microsoft_version >= 1920), the
 front end now implements support for constexpr virtual functions as per the
 standardization committee's paper P1064R0.  For example:
 
