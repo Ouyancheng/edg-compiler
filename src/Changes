@@ -517,7 +517,7 @@ making it explicit when a default is specified is invalid in C++17 and earlier
 standards.  In the current draft for the next standard (expected to be C++20)
 this became valid through the adoption to the committee's paper number P0409R2.
 The front end now implements that relaxation in C++20 mode (and --ms_c++latest
-mode with microsoft_version >= 2000).  Furthermore, in those same modes, the
+mode with microsoft_version >= 1920).  Furthermore, in those same modes, the
 implicit by-copy capture of "this" is warned about (because the draft for the
 next standard deprecates that feature).
 
