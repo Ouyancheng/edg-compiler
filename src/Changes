@@ -326,7 +326,7 @@ parameter being hidden.  Now fixed.
 10/16/18 [EDGcpfe/20004,EDGcpfe/20273]
 C++20: Lambdas with template parameter lists
 
-In C++20 mode (and --ms_c++latest mode with microsoft_version >= 2000), the
+In C++20 mode (and --ms_c++latest mode with microsoft_version >= 1920), the
 front end now implements support for lambda expressions that include a template
 parameter list (as per the standardization committee's paper P0428R2).  For
 example:
