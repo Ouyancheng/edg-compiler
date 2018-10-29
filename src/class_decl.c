@@ -3126,6 +3126,7 @@ nested class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (!source_sequence_entries_disallowed) {
+      a_routine_fixup_ptr  prev_rfp = NULL;
       scope_depth = scope_depth_for_class_ss_list(class_type);
       if (scope_depth != NO_SCOPE_DEPTH) {
         orig_insert_point = scope_stack[scope_depth].
@@ -3210,6 +3211,34 @@ nested class.
                          ->source_corresp.source_sequence_entry = ssep;
             }  /* if */
           }  /* if */
+        }  /* if */
+        if (rfp->is_template && rfp->is_definition && prev_rfp != NULL) {
+          /* Move function template definition fixups to the front of the list.
+             That's because ordinary members may be moved out of the class
+             whereas that doesn't happen with member templates.  Now, consider:
+               struct S {
+                 void f() { X<int> x1; }
+                 template<int> void x() { X<int> x2; }
+               };
+             The body of S::f may be moved out of the class, and if its
+             instantiation happens first, the specialization of X<int> will be
+             put out right before it, which leaves us with the equivalent of:
+               struct S {
+                 void f();
+                 template<int> void x() { X<int> x2; }
+               };
+               template<> struct X<int> { ... };
+               void S::f() { X<int> x1; }
+             Note how the specialization of X<int> now appears after its first
+             use in S::x.  By moving the processing of the template definitions
+             up, the specialization of X<int> will be emitted before the
+             definition of S. */
+          prev_rfp->next = rfp->next;
+          rfp->next = cssp->routine_fixup_list;
+          cssp->routine_fixup_list = rfp;
+          rfp = prev_rfp;
+        } else {
+          prev_rfp = rfp;
         }  /* if */
       }  /* for */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
