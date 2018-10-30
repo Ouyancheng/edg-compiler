@@ -2495,8 +2495,8 @@ option values if they were not already set by a command line option.
       cpp11_sfinae_enabled = (microsoft_version >= 1600);
     } /* if */
     if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
-      if (cpp11_sfinae_enabled && microsoft_mode) {
-        /* Current versions of MSVC appear not to implement access SFINAE yet.
+      if (cpp11_sfinae_enabled && microsoft_mode && microsoft_version < 1920) {
+        /* Older versions of MSVC appear not to implement access SFINAE yet.
            However, Clang with the -fms-extensions flag does; so don't change
            modes that are not actually full Microsoft modes. */
         cpp11_sfinae_ignore_access = TRUE;
@@ -4775,8 +4775,8 @@ before this routine is called.
     constexpr_enabled =  TRUE;
   }  /* if */
   if (cpp11_mode &&
-      (gpp_version_is(>= 70000) || clangcpp_version_is(>= 400))) {
-    /* g++ 7.1 and clang 4.0 and later accept if constexpr in C++11 mode. */
+      (gpp_version_is(>= 70000) || clangcpp_version_is(>= 40000))) {
+    /* g++ 7.0 and clang 4.0 and later accept if constexpr in C++11 mode. */
     constexpr_if_enabled =  TRUE;
   }  /* if */
   if (gnu_version >= 40700 && variadic_templates_enabled && !ms_compat &&
