@@ -5292,6 +5292,7 @@ substitutions to be done.
   } else if (is_braced_init_component(icp)) {
     /* Rescan a brace-enclosed list of init-components. */
     copy_icp = alloc_init_component((an_init_component_kind)ick_braced);
+    copy_icp->contains_designator = icp->contains_designator;
     copy_icp->variant.braced = icp->variant.braced;
     copy_icp->variant.braced.list =
                  rescan_init_component_list(icp->variant.braced.list, rcblock);

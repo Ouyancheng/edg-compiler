@@ -1,5 +1,26 @@
 Version 5.1
 
+10/30/18 [EDGcpfe/20385]
+Assertion failure in prep_list_initializer
+
+Consider (in GNU C++ mode or C++20 mode):
+
+  #include <initializer_list>
+  typedef std::initializer_list<int> T;
+  template < class T > auto f ( T ) -> decltype ( T { . x = "abc" } ) ;
+  template <class T> auto f(T) -> decltype(T{37}) {return T{37};}
+  int main()
+  {
+    if (f(T()).begin()[0] != 37)
+      return 1;
+    return 0;
+  }
+
+Previously this triggered an internal error in prep_list_initializer because
+the front end did not correctly record the presence of a designator in one of 
+its internal structures(an_init_component).  That is now fixed.
+
+
 10/30/18 [EDGcpfe/20395]
 Values for __has_cpp_attribute macro
 
