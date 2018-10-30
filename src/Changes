@@ -33,7 +33,7 @@ Now fixed.
 
 
 10/26/18 [EDGcpfe/20386]
-#pragma moved to before case label
+C++-generating back end: #pragma moved to before case label
 
 In C++-generating configurations, a #pragma that appears in the source
 code after a case label had mistakenly been moved to before the case label
