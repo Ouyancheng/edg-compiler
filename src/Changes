@@ -1,5 +1,15 @@
 Version 5.1
 
+10/30/18 [EDGcpfe/20395]
+Values for __has_cpp_attribute macro
+
+Three changes have been made to the values of the __has_cpp_attribute
+preprocessing operator: all values now have a "L" suffix, the value of
+__has_cpp_attribute(nodiscard) has been updated to 200809L (previously 200709),
+and __has_cpp_attribute(likely) and __has_cpp_attribute(unlikely) now have
+the value 201803L in C++20 mode (previously it had been 1).
+
+
 10/28/18 [EDGcpfe/20391]
 Precompiled headers and #line directives
 

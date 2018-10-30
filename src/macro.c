@@ -4734,17 +4734,21 @@ sorted by the token spelling so it can be used with bsearch.
 
 static a_cpp_attribute_support attribute_support_list[] = {
   { "carries_dependency",
-    "200809" },
+    "200809L" },
   { "deprecated",
-    "201309" },
+    "201309L" },
   { "fallthrough",
-    "201603" },
+    "201603L" },
+  { "likely",
+    "201803L" },
   { "maybe_unused",
-    "201603" },
+    "201603L" },
   { "nodiscard",
-    "201603" },
+    "201603L" },
   { "noreturn",
-    "200709" }
+    "200809L" },
+  { "unlikely",
+    "201803L" }
 };
 
 #define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \
