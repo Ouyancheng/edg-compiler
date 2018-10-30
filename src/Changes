@@ -11,7 +11,7 @@ prevent the generation of a PCH file.
 10/27/18 [EDGcpfe/20387]
 GNU/clang C++ compatibility: constexpr if enabled in non-c++17 modes
 
-Constexpr if statements are now enabled in g++ mode (gnu_version > 70000)
+Constexpr if statements are now enabled in g++ mode (gnu_version >= 70000)
 and clang mode (clang_version >= 40000) for C++11 and C++14 modes.  A
 warning is issued on the first use.
 
