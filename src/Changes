@@ -178,8 +178,8 @@ as having side effects in other emulation modes:
 10/23/18 [EDGcpfe/19740,EDGcpfe/20329]
 Spurious diagnostics on constexpr and auto static data member definitions
 
-The front end previously issued spurious errors on certain certain static data
-member definitions involving constexpr and/or auto specifiers.  For example:
+The front end previously issued spurious errors on certain static data member
+definitions involving constexpr and/or auto specifiers.  For example:
 
   struct S {
     static const int x;
