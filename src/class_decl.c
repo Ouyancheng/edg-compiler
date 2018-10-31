@@ -3379,13 +3379,30 @@ nested class.
              free_routine_fixup is called. */
           tssp->variant.function.func_info = rfp->func_info;
           rfp->func_info.param_id_list = NULL;
-          if (prototype_instantiation_should_be_done_for_function(sym) &&
-              (!defer_function_prototype_instantiations ||
-               (class_type_supp(class_type)->
+          if (!defer_function_prototype_instantiations ||
+              (class_type_supp(class_type)->
                                      partial_spec_template_arg_list != NULL &&
-                suppress_deferral_on_partial_spec_members))) {
-            /* Do the prototype instantiation of the member function body. */
-            function_prototype_instantiation(sym);
+                suppress_deferral_on_partial_spec_members)) {
+            if (prototype_instantiation_should_be_done_for_function(sym)) {
+              /* Do the prototype instantiation of the member function body. */
+              function_prototype_instantiation(sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+            } else if (sym->defined) {
+              /* Even if we are not performing the prototype instantiation, we
+                 know the return type ought to be complete.  In this
+                 configuration, requesting that completeness will ensure that
+                 source sequence entries for the return type definition are
+                 generated early enough. */
+              a_type_ptr rtp = tssp->variant.function.routine->type;
+              rtp = skip_typerefs(rtp)->variant.routine.return_type;
+              rtp = skip_typerefs(rtp);
+              if (is_immediate_class_type(rtp)) {
+                complete_type_is_needed(rtp);
+              }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            }  /* if */
           }  /* if */
         } else {
           /* Normal case. */

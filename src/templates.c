@@ -28486,6 +28486,21 @@ any non-empty template parameter lists that were scanned.
           function_prototype_instantiation(sym);
         }  /* if */
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    } else if (sym->defined) {
+      /* Even if we are not performing the prototype instantiation, we know the
+         return type ought to be complete.  In this configuration, requesting
+         that completeness will ensure that source sequence entries for the
+         return type definition are generated early enough. */
+      a_type_ptr rtp = tssp->variant.function.routine->type;
+      rtp = skip_typerefs(rtp)->variant.routine.return_type;
+              rtp = skip_typerefs(rtp);
+      if (is_immediate_class_type(rtp)) {
+        complete_type_is_needed(rtp);
+      }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   check_use_of_placeholder_type(dps);
