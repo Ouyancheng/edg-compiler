@@ -28495,7 +28495,7 @@ any non-empty template parameter lists that were scanned.
          return type definition are generated early enough. */
       a_type_ptr rtp = tssp->variant.function.routine->type;
       rtp = skip_typerefs(rtp)->variant.routine.return_type;
-              rtp = skip_typerefs(rtp);
+      rtp = skip_typerefs(rtp);
       if (is_immediate_class_type(rtp)) {
         complete_type_is_needed(rtp);
       }  /* if */
