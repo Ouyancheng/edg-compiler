@@ -14524,7 +14524,13 @@ Note that this is called in C mode as well as C++ mode.
   if (designators_allowed &&
       (dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-    lower_designated_initializers(dip->variant.constant, dip, aggr_type);
+    a_constant_ptr cp = dip->variant.constant;
+    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+      /* If the constant is an aggregate, prelower it now. */
+      prelower_aggregate_constant(cp, (an_init_pos_descr_ptr)NULL,
+                                  (an_insert_location*)NULL);
+    }  /* if */
+    lower_designated_initializers(cp, dip, aggr_type);
   }  /* if */
 }  /* lower_dynamic_init_designated_initializers */
 
