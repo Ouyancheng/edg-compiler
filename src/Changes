@@ -18,7 +18,7 @@ Consider (in GNU C++ mode or C++20 mode):
 
 Previously this triggered an internal error in prep_list_initializer because
 the front end did not correctly record the presence of a designator in one of 
-its internal structures(an_init_component).  That is now fixed.
+its internal structures (an_init_component).  That is now fixed.
 
 
 10/30/18 [EDGcpfe/20395]
