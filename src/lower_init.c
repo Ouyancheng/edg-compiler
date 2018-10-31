@@ -6062,6 +6062,9 @@ expression).
                                   insert_location);
   } else {
     /* Normal initialization. */
+#if LOWER_DESIGNATED_INITIALIZERS
+    lower_dynamic_init_designated_initializers(dip, con_ptr->type);
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, ipdp, source_desc, (a_variable_ptr)NULL,
                        options, others_follow_in_aggr,
                        insert_location, 
