@@ -40343,7 +40343,7 @@ a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
                                                   a_boolean      move_case)
 /*
 Determine whether the variable var is eligible for an optimization that
-elides a copy as described in N4582 [class.copy] 12.8/31.  When return_case
+elides a copy as described in N4762 [class.copy.elision].  When return_case
 is TRUE, this routine returns TRUE if "return var;" is allowed to
 optimize away the return copy by constructing var directly in the
 space provided by the caller.  When return_case is FALSE, this routine
@@ -40357,10 +40357,11 @@ done for a move optimization.
 {
   a_boolean eligible = FALSE;
 
-  if ((!var->is_parameter || move_case) &&
-      !var_has_static_or_thread_storage_duration(var) &&
-      is_class_struct_union_type(var->type) &&
-      !is_volatile_qualified_type(var->type)) {
+  if (!var_has_static_or_thread_storage_duration(var) &&
+      (move_case ||
+       (!var->is_parameter &&
+        is_class_struct_union_type(var->type) &&
+        !is_volatile_qualified_type(var->type)))) {
     if (return_case) {
       /* Return case. */
       a_type_ptr func_type;
