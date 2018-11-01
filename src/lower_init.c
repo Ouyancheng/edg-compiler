@@ -14432,7 +14432,8 @@ aggr_con->is_partially_initialized to reflect the new value.
       if (is_aggregate_or_union_type(aggr_pos.member_type)) {
         /* Aggregates that are initialized by a ck_dynamic_init are
            fully initialized. */
-        if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+        if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init &&
+            !is_or_was_ptr_to_member_function_type(aggr_pos.member_type)) {
           if (recompute_partially_initialized_flag(temp_con,
                                                    aggr_pos.member_type)) {
             /* Any partially initialized sub-aggregate results in a partially
