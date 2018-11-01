@@ -26468,6 +26468,11 @@ is instantiated in more than one translation unit.
        translation unit.  This might be true even if extern inline
        routines are instantiated. */
     multiple_copies = TRUE;
+  } else if (rout->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal) {
+    /* A routine with external linkage cannot exist in multiple translation
+       units. */
+    multiple_copies = FALSE;
 #if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
   } else if (rout->is_template_function && !rout->is_specialized) {
     /* A template instance, in a mode where the linker can merge

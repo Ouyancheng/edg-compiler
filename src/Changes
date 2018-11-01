@@ -1,5 +1,21 @@
 Version 5.1
 
+11/1/18  [EDGcpfe/20268]
+Local static variable of static function template incorrectly given weak
+linkage
+
+In configurations that use lowering, a local static variable in a static
+function template had incorrectly been promoted out of the function and
+given weak linkage (in configurations where
+LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS is TRUE).  Now fixed.  For example:
+
+  template <typename> static void *f() {
+    static int x;
+    return &x;
+  }
+  void *(*fp)() = f<int>;
+
+
 10/31/18 [EDGcpfe/20409]
 Return move optimization
 
