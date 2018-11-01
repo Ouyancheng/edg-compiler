@@ -18738,10 +18738,9 @@ parameters are described in conversion_to_class_possible.  Check whether the
 source operand is an lvalue subject to the move optimization (see 
 [class.copy.elision]/3 in N4762), and if so return TRUE, turn the source
 operand into an xvalue (by casting it to an rvalue reference), and record the
-conversion in
-*conversion and *ctor_arg_conversion.  In some error cases, the source operand
-is cast to the rvalue reference, but FALSE is returned.  In all other cases,
-FALSE is returned and the source operand is left unchanged. 
+conversion in *conversion and *ctor_arg_conversion.  In some error cases, the
+source operand is cast to the rvalue reference, but FALSE is returned.  In all
+other cases, FALSE is returned and the source operand is left unchanged. 
 */
 {
   a_variable_ptr  var;

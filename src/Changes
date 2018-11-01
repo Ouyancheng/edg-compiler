@@ -16,7 +16,7 @@ Consider:
   }
   static_assert(g(3).val() == 2, "");  // Previously failed.  Now okay.
 
-The rules for "move optimization" in return statements requires "return x;" to
+The rules for "move optimization" in return statements require "return x;" to
 call the S(float&&) constructor.  However, previously, the front end failed to
 consider move optimization if the returned expression does not have a class
 type (causing the above assertion to fail).  That is now fixed (and the example
