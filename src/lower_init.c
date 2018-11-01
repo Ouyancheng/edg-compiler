@@ -12768,7 +12768,7 @@ Do IL lowering of an enk_temp_init expression node.
     set_expr_insert_location(expr, &insert_location);
     /* Lower the initialization. */
 #if LOWER_DESIGNATED_INITIALIZERS
-    lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
+    lower_dynamic_init_designated_initializers(dip, expr->type);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
                        (an_implied_copy_source *)NULL,
