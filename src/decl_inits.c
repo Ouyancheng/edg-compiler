@@ -3204,7 +3204,7 @@ initialization. */
   if (okay) {
     if ((orig_field != *field || *p_bcp != NULL ) &&
         cpp20_designators_restriction && !is->init_error &&
-        orig_field != NULL) {
+        orig_field != NULL && class_type->kind != (a_type_kind)tk_union) {
     /* C++20 designators can cause base classes and certain members to
        be skipped. Initialize those members before initializing the
        designated member. If we found an error, we shouldn't proceed with
