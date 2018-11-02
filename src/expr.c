@@ -36437,6 +36437,22 @@ check_for_rbrace:
   icp->variant.braced.end_pos = pos_curr_token;
   (void)required_token(tok_rbrace, ec_exp_rbrace);
 done:
+  if (designator_seen && variadic_templates_enabled &&
+      is_braced_init_component(icp)) {
+  /* C++20 allows braced-init-list to contain an initializer-list or a
+    designated-initializer-list (N4762).  There is no production for
+    designated-initializer-list that allows for ellipsis.  The check for
+    is_braced_init_component ensures we do not enter if we have an
+    continuation list inside icp.  */
+    an_init_component_ptr curr_icp = icp->variant.braced.list;
+    for (; curr_icp != NULL; curr_icp = next_elem(curr_icp)) {
+      if (curr_icp->pack_expansion_descr != NULL) {
+         pos_error(ec_no_pack_expansion_in_designator,
+                   init_component_pos(curr_icp));
+         break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   remove_matching_stop_token(tok_rbrace);
   return icp;
 }  /* parse_braced_init_list_full */

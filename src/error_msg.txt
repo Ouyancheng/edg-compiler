@@ -2992,6 +2992,8 @@ ec_empty_lambda_template_param_list;;"an empty template parameter list is not al
 ec_microsoft_version_doesnt_support_cpp20_mode;;"the version of Microsoft being emulated must be at least 1920 to use \"--ms_c++20\""
 ec_bad_stdc_pragma_arg_for_mode;;"STDC pragma argument not accepted in this mode"
 ec_if_constexpr_is_cpp17;;"constexpr if statements are a C++17 feature"
+ec_no_pack_expansion_in_designator;;"pack expansion is not allowed in a designated initializer list"
+ec_no_designator_value;;"field designator has no value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
