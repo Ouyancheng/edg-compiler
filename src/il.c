@@ -26470,7 +26470,7 @@ is instantiated in more than one translation unit.
     multiple_copies = TRUE;
   } else if (rout->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
-    /* A routine with external linkage cannot exist in multiple translation
+    /* A routine with internal linkage cannot exist in multiple translation
        units. */
     multiple_copies = FALSE;
 #if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
