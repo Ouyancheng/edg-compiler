@@ -1,5 +1,14 @@
 Version 5.1
 
+11/9/18  [EDGcpfe/20424]
+IA-64 ABI: non-unique names for alternate entry points in some configs
+
+In IA-64 ABI configurations where DEFAULT_MAX_MANGLED_NAME_LENGTH is not 0,
+the mangled names for alternate entry points (e.g., complete and subobject
+constructors) would be the same in cases where the non-truncated mangled
+name exceeds DEFAULT_MAX_MANGLED_NAME_LENGTH.  Now fixed.
+
+
 11/1/18  [EDGcpfe/20268]
 Local static variable of static function template incorrectly given weak
 linkage

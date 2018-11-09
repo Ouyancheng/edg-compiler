@@ -193,6 +193,12 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+The number of characters used for the CRC suffix when a mangled name is
+truncated.
+*/
+#define SIZE_OF_TRUNCATED_SUFFIX 10
+
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
 #define MANGLING_CODE_FOR_CONST 'C'
@@ -14023,7 +14029,22 @@ a single character of the mangled name (as pointed to by base_name_offset).
     default:            unexpected_condition();
   }  /* switch */
   name = (char *)routine->source_corresp.name;
-  name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
+  if (routine->source_corresp.mangled_name_cannot_be_included_in_other_name) {
+    /* The mangled name has been truncated so the computed base_name_offset
+       likely points past the end of the string.  We still need to make this
+       mangled name different than the primary routine, so overwrite one of
+       the underscores that separates the truncated name from the CRC
+       (a truncated mangled name cannot be demangled anyway). */
+    sizeof_t len = strlen(name);
+    len -= SIZE_OF_TRUNCATED_SUFFIX;
+    check_assertion(name[len] == '_' && name[len + 1] == '_');
+    name[len + 1] = ch;
+  } else {
+#if EXPENSIVE_CHECKING
+    check_assertion(routine->variant.ctor_dtor.base_name_offset< strlen(name));
+#endif /* EXPENSIVE_CHECKING */
+    name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
+  }  /* if */
 }  /* set_ctor_dtor_mangled_name_kind */
 
 
@@ -14071,6 +14092,9 @@ in the routine must be set already.
     routine->source_corresp.name_has_been_mangled = TRUE;
     routine->variant.ctor_dtor.base_name_offset =
                               prim_routine->variant.ctor_dtor.base_name_offset;
+    routine->source_corresp.mangled_name_cannot_be_included_in_other_name =
+      prim_routine->
+                  source_corresp.mangled_name_cannot_be_included_in_other_name;
     set_ctor_dtor_mangled_name_kind(routine);
   }  /* if */
 }  /* mangle_alternate_entry_point_name */
@@ -14348,7 +14372,8 @@ correspondence entry for the entity whose name this is.
     /* The name must be truncated. */
     /* The suffix is of the form "__abcdabcd", i.e., one needs 10 characters
        for it. */
-    sizeof_t max_allowed_length = max_mangled_name_length - 10;
+    sizeof_t max_allowed_length =
+                            max_mangled_name_length - SIZE_OF_TRUNCATED_SUFFIX;
     (void)sprintf(mangled_name+max_allowed_length, "__%08lx",
                   crc_32(mangled_name, (unsigned long)0));
     mctl->length = max_mangled_name_length+1;
