@@ -193,12 +193,6 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-/*
-The number of characters used for the CRC suffix when a mangled name is
-truncated.
-*/
-#define SIZE_OF_TRUNCATED_SUFFIX 10
-
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
 #define MANGLING_CODE_FOR_CONST 'C'
@@ -357,6 +351,13 @@ truncated.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
+
+/*
+The number of characters used for the CRC suffix when a mangled name is
+truncated.
+*/
+#define SIZE_OF_TRUNCATED_SUFFIX 10
+
 
 /*
 Utility that returns TRUE if the variable is a structured binding container
