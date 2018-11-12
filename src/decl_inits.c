@@ -3263,7 +3263,7 @@ initialization. */
         aggr_init_field(&icp, field, is, aggr_con, diag_pos);
       }  /* if */
     } else {
-      /* we're missing the icp containing the value of the designator */
+      /* We're missing the icp containing the value of the designator */
       if (!is->no_diagnostics) {
         pos_error(ec_no_designator_value, init_component_pos(*p_icp));
       }  /* if */

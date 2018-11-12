@@ -36439,11 +36439,11 @@ check_for_rbrace:
 done:
   if (designator_seen && variadic_templates_enabled &&
       is_braced_init_component(icp)) {
-  /* C++20 allows braced-init-list to contain an initializer-list or a
-    designated-initializer-list (N4762).  There is no production for
-    designated-initializer-list that allows for ellipsis.  The check for
-    is_braced_init_component ensures we do not enter if we have an
-    continuation list inside icp.  */
+    /* C++20 allows a braced-init-list to contain an initializer-list or a
+       designated-initializer-list (N4762).  There is no production for
+       designated-initializer-list that allows for ellipsis.  The check for
+       is_braced_init_component ensures we do not enter if we have a
+       continuation list inside icp.  */
     an_init_component_ptr curr_icp = icp->variant.braced.list;
     for (; curr_icp != NULL; curr_icp = next_elem(curr_icp)) {
       if (curr_icp->pack_expansion_descr != NULL) {
