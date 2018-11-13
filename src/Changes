@@ -1,5 +1,24 @@
 Version 5.1
 
+11/13/18 [EDGcpfe/20361]
+Default initialization of inline static data members
+
+The front end previously failed to perform default initialization for an
+inline static data member with no explicit initializer.  This is now fixed.
+For example, with --c++17:
+
+  struct A {
+    A() : i(53) { }
+    int i;
+  };
+  struct B {
+    static inline A a;
+  };
+  int main() {
+    return B::a.i != 53;  // Previously returned 1
+  }
+
+
 11/9/18  [EDGcpfe/20424]
 IA-64 ABI: non-unique names for alternate entry points in some configs
 
