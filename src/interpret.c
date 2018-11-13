@@ -1997,34 +1997,47 @@ addressed by the a_constexpr_address addr.
 
 
 
-static void trim_bit_field(a_byte     *storage,
-                           unsigned   length,
-                           a_boolean  is_signed)
+static void trim_bit_field(a_byte      *storage,
+                           unsigned    length,
+                           a_boolean   is_signed,
+                           a_type_ptr  bftp)
 /*
 The given storage is that for an integer value representing a bit field of the
 given length (the bit field is signed if is_signed is TRUE).  Trim the value
-representation to fit in the bit field length.
+representation to fit in the bit field length.  bftp is the underlying type
+(i.e., after skip_typerefs) of the bit field.
 */
 {
-  if (is_signed) {
-    sign_extend_integer_value((an_integer_value*)storage, length);
+  an_integer_value  *field_value = (an_integer_value*)storage;
+
+  if (bftp->variant.integer.bool_type) {
+    /* Boolean values aren't really "trimmed": They're just normalized to zero
+       or one. */
+    if (cmp_integer_values(field_value, /*op_1_signed=*/FALSE,
+                           &zero_int, /*op_2_signed=*/FALSE) != 0) {
+      *field_value = one_int;
+    } else {
+      *field_value = zero_int;
+    }  /* if */
+  } else if (is_signed) {
+    sign_extend_integer_value(field_value, length);
   } else {
     a_boolean         ovflo;
     an_integer_value  mask = one_int;
     shift_left_integer_value(&mask, (int)length, &ovflo);
     subtract_integer_values(&mask, &one_int, /*is_signed=*/FALSE, &ovflo);
-    and_integer_values((an_integer_value*)storage, &mask);
+    and_integer_values(field_value, &mask);
   }  /* if */
 }  /* trim_bit_field */
 
 
-#define trim_bit_field_if_needed(addr)                                        \
+#define trim_bit_field_if_needed(addr, bit_field_tp)                          \
 {                                                                             \
   if (is_bit_field_lvalue(addr)) {                                            \
     unsigned   length = (addr)->length;                                       \
     a_boolean  is_signed_field = (length & 1);                                \
     length = length/2;                                                        \
-    trim_bit_field((addr)->address, length, is_signed_field);                 \
+    trim_bit_field((addr)->address, length, is_signed_field, bit_field_tp);   \
   }  /* if */                                                                 \
 }
 
@@ -4977,7 +4990,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 if (fp->is_bit_field) {
                   /* Fit the value in the bit field width. */
                   trim_bit_field(dst_bytes, fp->bit_size,
-                                 fp->bit_field_is_signed);
+                                 fp->bit_field_is_signed, ftp);
                 } else if (constant_is(elem_con, ck_string) &&
                            ftp->kind == (a_type_kind)tk_array) {
                   /* The ck_string contents were copied to a separate array.
@@ -5067,7 +5080,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           } else {
             if (fp->is_bit_field) {
               /* Fit the value in the bit field width. */
-              trim_bit_field(dst_bytes, fp->bit_size, fp->bit_field_is_signed);
+              a_type_ptr  bftp = skip_typerefs(fp->type);
+              trim_bit_field(dst_bytes, fp->bit_size, fp->bit_field_is_signed,
+                             bftp);
             } else if (constant_is(elem_con, ck_string) &&
                        skip_typerefs(fp->type)->kind ==
                                                       (a_type_kind)tk_array) {
@@ -10116,7 +10131,7 @@ the value representation of the integer value.
                     is_signed = int_kind_is_signed[int_kind];
                     add_integer_values(ival, &one_int, is_signed, &ovfl);
                     CHECK_int_range(ival, tp);
-                    trim_bit_field_if_needed(cap);
+                    trim_bit_field_if_needed(cap, tp);
                   }  /* if */
                 } else if (type_is_float_like(tp)) {
                   /* A floating-point type. */
@@ -10231,7 +10246,7 @@ the value representation of the integer value.
                   subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                   CHECK_int_range(ival, tp);
-                  trim_bit_field_if_needed(cap);
+                  trim_bit_field_if_needed(cap, tp);
                 } else if (type_is_float_like(tp)) {
                   /* A floating-point type. */
                   fp_subtract(tp->variant.float_kind,
@@ -10350,7 +10365,7 @@ the value representation of the integer value.
                   is_signed = int_kind_is_signed[int_kind];
                   add_integer_values(ival, &one_int, is_signed, &ovfl);
                   CHECK_int_range(ival, tp);
-                  trim_bit_field_if_needed(cap);
+                  trim_bit_field_if_needed(cap, tp);
                 }  /* if */
               } else if (type_is_float_like(tp)) {
                 /* A floating-point type. */
@@ -10470,7 +10485,7 @@ the value representation of the integer value.
                 subtract_mixed_signed_integer_values(
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                 CHECK_int_range(ival, tp);
-                trim_bit_field_if_needed(cap);
+                trim_bit_field_if_needed(cap, tp);
               } else if (type_is_float_like(tp)) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
@@ -11612,7 +11627,7 @@ the value representation of the integer value.
                      if any, are not shared. */
                   copy_address_structures(dst_storage);
                 } else {
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                 }  /* if */
                 if (expr->is_lvalue || expr->is_xvalue ||
                     is_function_address(dst)) {
@@ -11673,7 +11688,7 @@ the value representation of the integer value.
                   add_integer_values(int_value_at(dst),
                                      (an_integer_value*)opnd2_value,
                                      is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                   CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
@@ -11814,7 +11829,7 @@ the value representation of the integer value.
                   subtract_integer_values(int_value_at(dst),
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                   CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
@@ -11955,7 +11970,7 @@ the value representation of the integer value.
                   multiply_integer_values(int_value_at(dst),
                                           (an_integer_value*)opnd2_value,
                                           is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                   CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
@@ -12096,7 +12111,7 @@ the value representation of the integer value.
                   divide_integer_values(int_value_at(dst),
                                         (an_integer_value*)opnd2_value,
                                         is_signed, &ovfl);
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                   CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
@@ -12236,7 +12251,7 @@ the value representation of the integer value.
                 remainder_integer_values(int_value_at(dst),
                                          (an_integer_value*)opnd2_value,
                                          is_signed, &ovfl);
-                trim_bit_field_if_needed(dst);
+                trim_bit_field_if_needed(dst, tp);
                 CHECK_int_range(int_value_at(dst), tp);
                 if (expr->is_lvalue || expr->is_xvalue) {
                   /* The assignment produces an lvalue-like result. */
@@ -12313,7 +12328,7 @@ the value representation of the integer value.
                 if (result) {
                   shift_left_integer_value(int_value_at(dst),
                                            (int)host_int_val, &ovfl);
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                   CHECK_int_range(int_value_at(dst), tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
@@ -12389,7 +12404,7 @@ the value representation of the integer value.
                                             (int)host_int_val, is_signed,
                                             targ_right_shift_is_arithmetic);
                   CHECK_int_range(int_value_at(dst), tp);
-                  trim_bit_field_if_needed(dst);
+                  trim_bit_field_if_needed(dst, tp);
                   if (expr->is_lvalue || expr->is_xvalue) {
                     /* The assignment produces an lvalue-like result. */
                     *(a_constexpr_address*)result_storage = *dst;

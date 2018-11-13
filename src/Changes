@@ -1,5 +1,23 @@
 Version 5.1
 
+11/13/18 [EDGcpfe/20463]
+Boolean bit field conversions during constexpr evaluation
+
+Consider:
+
+  struct S { bool b: 1; };
+  constexpr bool g() {
+    S s{};
+    s.b += 2;
+    return s.b;
+  }
+  static_assert(g());
+
+Previously this failed, because during the evaluation of "s.b += 2", the
+constexpr interpreter discarded all but the least significant bits of s.b
+before normalizing the boolean value.  That is now fixed.
+
+
 11/13/18 [EDGcpfe/20361]
 Default initialization of inline static data members
 
