@@ -3742,6 +3742,10 @@ array-to-pointer decay can be considered in matching the type.
     for (field = union_type->variant.class_struct_union.field_list;
          field != NULL;
          field = field->next) {
+      if (field->is_bit_field) {
+        /* Ignore bit fields. */
+        continue;
+      }  /* if */
       if (type_matches_desired_type(field->type, desired_type,
                                     will_use_as_addr, &type_decay_used)) {
         /* If there are several fields with the same type, favor the one with
