@@ -2706,6 +2706,7 @@ option values if they were not already set by a command line option.
           constexpr_virtual_enabled = TRUE;
           explicit_copy_this_capture_enabled = TRUE;
           lambda_template_param_list_enabled = TRUE;
+          lambda_allowed_in_uneval_context = TRUE;
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
           msvc_lang = "202000L";
@@ -3531,6 +3532,7 @@ default mode (e.g., exception handling).
         constexpr_virtual_enabled = TRUE;
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
+        lambda_allowed_in_uneval_context = TRUE;
         aggregate_classes_can_have_user_ctors = FALSE;
       }  /* if */
     }  /* if */
@@ -11905,6 +11907,7 @@ variables declared in cmd_line.h.
   capture_star_this_enabled = FALSE;
   explicit_copy_this_capture_enabled = FALSE;
   lambda_template_param_list_enabled = FALSE;
+  lambda_allowed_in_uneval_context = FALSE;
   ms_std_preproc = FALSE;
   fold_expressions_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;

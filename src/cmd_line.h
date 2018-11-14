@@ -2437,6 +2437,12 @@ EXTERN a_boolean
 			   than emulating the traditional Microsoft
 			   preprocessor. */
 
+EXTERN a_boolean
+		lambda_allowed_in_uneval_context;
+			/* When TRUE, a lambda expression is allowed in
+			   certain unevaluated contexts that do not require
+			   mangling the lambda. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

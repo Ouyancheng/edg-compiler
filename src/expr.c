@@ -16296,7 +16296,8 @@ indication in *rcblock).
     if (constexpr_enabled) {
       expr_stack->constant_expr_ruled_out= saved_cpp11_constant_expr_ruled_out;
     }  /* if */
-    if (potentially_unevaluated_lambda_seen) {
+    if (!lambda_allowed_in_uneval_context &&
+        potentially_unevaluated_lambda_seen) {
       /* A lambda appeared in the operand, and it's now known to be
          unevaluated. */
       expr_pos_error(ec_bad_unevaluated_lambda,
@@ -33525,37 +33526,17 @@ Scan a C++ lambda expression, e.g., something like
   a_source_position   start_pos;
   a_boolean           err = FALSE;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           invoked_lambda = FALSE;
 
   start_pos = pos_curr_token;
   if (curr_expr_kind_is_traditional_const()) {
     /* A lambda is not allowed in a traditional_constant expression. */
     expr_pos_error(ec_bad_constant_lambda, &start_pos);
     err = TRUE;
-  } else if (!curr_expr_is_potentially_evaluated()) {
+  } else if (!lambda_allowed_in_uneval_context &&
+             !curr_expr_is_potentially_evaluated()) {
     /* A lambda is not allowed in an unevaluated expression. */
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
-    err = TRUE;
-  } else if (scope_stack_top().exception_specification) {
-    /* A lambda is not allowed in a noexcept specifier. */
-    expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
-    err = TRUE;
-  } else if (scope_stack_top().in_template_arg_list ||
-             (expr_stack->possible_rescan_context &&
-              (scope_is(&scope_stack_top(), sck_func_prototype) ||
-               (scope_is(&scope_stack_top(), sck_template_declaration) &&
-                !scope_stack_top().tmpl_decl_state
-                                  ->decl_parse.is_template_declaration)) &&
-              !(expr_stack->is_template_arg_expression &&
-                scope_is(&scope_stack_top(), sck_template_declaration)))) {
-    /* Lambdas are not permitted in various contexts that might result in them
-       becoming part of a signature.  This includes:
-          - template argument lists.
-          - function and function template parameters and return types
-            (default arguments are okay),
-          - template parameter lists (we permit default template argument
-            contexts, but an error will be issued if such an argument is
-            instantiated). */
-    expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
     err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
     /* A lambda in a context where we won't know until later if the
@@ -33579,8 +33560,44 @@ Scan a C++ lambda expression, e.g., something like
   expr_stack_entry.current_lambda_in_header = NULL;
   /* Scan the lambda. */
   lambda = scan_lambda();
+  if (lambda != NULL && !err && lambda_allowed_in_uneval_context &&
+      lambda->lambda_routine->is_constexpr &&
+      curr_token == tok_lparen) {
+    /* FIXME: Lambdas in C++20 are allowed in various contexts if they are
+       constexpr and immediately invoked.  This check handles the case
+       where the argument list immediately follows the lambda-expression;
+       it does not handle the case where the lambda-expression is enclosed
+       in redundant parentheses. */
+    invoked_lambda = TRUE;
+  }  /* if */
   if (lambda == NULL || err) {
     /* Some serious error was previously detected. */
+    make_error_operand(result);
+  } else if (!invoked_lambda &&
+             scope_stack_top().exception_specification) {
+    /* A lambda is not allowed in a noexcept specifier. */
+    expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
+    err = TRUE;
+    make_error_operand(result);
+  } else if (!invoked_lambda &&
+             (scope_stack_top().in_template_arg_list ||
+              (expr_stack->possible_rescan_context &&
+               (scope_is(&scope_stack_top(), sck_func_prototype) ||
+                (scope_is(&scope_stack_top(), sck_template_declaration) &&
+                 !scope_stack_top().tmpl_decl_state
+                                   ->decl_parse.is_template_declaration)) &&
+               !(expr_stack->is_template_arg_expression &&
+                 scope_is(&scope_stack_top(), sck_template_declaration))))) {
+    /* Lambdas are not permitted in various contexts that might result in them
+       becoming part of a signature.  This includes:
+          - template argument lists.
+          - function and function template parameters and return types
+            (default arguments are okay),
+          - template parameter lists (we permit default template argument
+            contexts, but an error will be issued if such an argument is
+            instantiated). */
+    expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
+    err = TRUE;
     make_error_operand(result);
   } else {
     an_expr_node_ptr expr;
