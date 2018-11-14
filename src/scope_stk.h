@@ -984,6 +984,9 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_disambiguation:1;
 			/* TRUE if we are currently doing disambiguation
 			   processing. */
+  a_bit_field	in_auto_prescan:1;
+			/* TRUE if we are currently doing the prescan of
+			   a potential generic lambda declarator. */
   a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
@@ -2321,6 +2324,7 @@ extern void begin_prescan_context(
 	a_pack_expansion_stack_entry_ptr
 				*pack_expansion_stack_entry,
 	a_boolean		*saved_in_disambiguation,
+	a_boolean		*saved_in_auto_prescan,
 	a_boolean
 				*saved_source_sequence_entries_disallowed);
 
@@ -2329,6 +2333,7 @@ extern void end_prescan_context(
 	a_pack_expansion_stack_entry_ptr
 				pack_expansion_stack_entry,
 	a_boolean		saved_in_disambiguation,
+	a_boolean		saved_in_auto_prescan,
 	a_boolean
 				saved_source_sequence_entries_disallowed);
 

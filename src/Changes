@@ -1,5 +1,21 @@
 Version 5.1
 
+11/14/18 [EDGcpfe/19073,EDGcpfe/17331]
+Spurious error on decltype in lambda parameter list
+
+In modes where generic lambdas are supported (e.g., --c++14), a spurious
+error could occur if a decltype operator referred to a previous parameter
+of the lambda declarator.   This could also occur in some contexts if
+the decltype referred to "this".  Now fixed.
+
+  int main() {
+    auto l = [](int a, decltype(a) b) {};
+  }
+  class A {
+    void B() { [](decltype(this) param) {}; }
+  };
+
+
 11/14/18 [EDGcpfe/20433]
 Assertion in diagnose_duplicate_union_field_init
 

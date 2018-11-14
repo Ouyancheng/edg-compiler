@@ -14183,6 +14183,7 @@ name.  We do not advance to the token after the decltype in this case.
   a_memory_region_number  region_to_switch_back_to;
   an_object_lifetime_ptr  saved_object_lifetime;
   a_boolean               saved_in_decltype_context;
+  a_boolean               saved_suppress_diagnostics;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
                           ssep = NULL;
@@ -14228,7 +14229,14 @@ name.  We do not advance to the token after the decltype in this case.
   expr_stack->is_type_operator_arg_expression = TRUE;
   /* Indicate that we are in the context of a decltype expression. */
   saved_in_decltype_context = scope_stack_top().in_decltype_context;
+  saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
   scope_stack_top().in_decltype_context = TRUE;
+  if (scope_stack_top().in_auto_prescan) {
+    /* During the prescan of what could be a generic lambda declarator,
+       suppress diagnostics because some constructs (such as references
+       to earlier parameters) cannot be properly processed yet. */
+    expr_stack->suppress_diagnostics = TRUE;
+  }  /* if */
   if (rcblock != NULL) {
     /* This call is done late because we need the expression stack to be pushed
        already. */
@@ -14257,6 +14265,7 @@ name.  We do not advance to the token after the decltype in this case.
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
   scope_stack_top().in_decltype_context = saved_in_decltype_context;
+  expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
   /* Give an error on an indefinite function. */
   eliminate_unusual_operand_kinds(&operand);
   result = operand.type;

@@ -60,6 +60,9 @@ typedef struct a_disambig_state {
   a_boolean	saved_in_disambiguation;
 			/* The value of the scope stack in_disambiguation
 			   flag at the start of disambiguation. */
+  a_boolean	saved_in_auto_prescan;
+			/* The value of the scope stack in_auto_prescan
+			   flag at the start of disambiguation. */
   a_boolean	saved_source_sequence_entries_disallowed;
 			/* The value of the scope stack
 			   source_sequence_entries_disallowed flag at the
@@ -119,6 +122,7 @@ cache of the tokens fetched for disambiguation should be created.
   /* dsp->variadic_prototype_instantiation set below. */
   dsp->cache_tokens = cache_tokens;
   /* dsp->saved_in_disambiguation set below. */
+  /* dsp->saved_in_auto_prescan set below. */
   /* dsp->saved_source_sequence_entries_disallowed set below. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   dsp->find_static_specifier_only = FALSE;
@@ -135,6 +139,7 @@ cache of the tokens fetched for disambiguation should be created.
   begin_prescan_context(suppress_packs, &dsp->variadic_prototype_instantiation,
                         &dsp->pack_expansion_stack_entry,
                         &dsp->saved_in_disambiguation,
+                        &dsp->saved_in_auto_prescan,
                         &dsp->saved_source_sequence_entries_disallowed);
 }  /* init_disambig_state */
 
@@ -168,6 +173,7 @@ Perform any operations that must be done to clean up after disambiguation.
   end_prescan_context(dsp->variadic_prototype_instantiation,
                       dsp->pack_expansion_stack_entry,
                       dsp->saved_in_disambiguation,
+                      dsp->saved_in_auto_prescan,
                       dsp->saved_source_sequence_entries_disallowed);
 }  /* wrapup_disambig_state */
 
@@ -2052,6 +2058,7 @@ indicate that the lambda is a C++14 generic lambda.
   init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
                       /*suppress_packs=*/FALSE,
                       /*cache_tokens=*/TRUE);
+  scope_stack_top().in_auto_prescan = TRUE;
   state.decl_parse_state = dps;
   state.record_auto_parameters = TRUE;
   check_assertion(curr_token == tok_lparen);
