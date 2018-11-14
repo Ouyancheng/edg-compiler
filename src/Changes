@@ -1,5 +1,22 @@
 Version 5.1
 
+11/14/18 [EDGcpfe/20433]
+Assertion in diagnose_duplicate_union_field_init
+
+In certain cases, an invalid declaration of an anonymous union member
+would cause an assertion failure.  For example:
+
+  union A {
+    int x;
+    union { int A{} ; };  
+    union { int z = 37; };
+  };
+
+Invalid declaration of int A within an anonymous union member of union A 
+would lead to an assertion failure when int z is declared.  This has now 
+been fixed.
+
+
 11/13/18 [EDGcpfe/20463]
 Boolean bit field conversions during constexpr evaluation
 

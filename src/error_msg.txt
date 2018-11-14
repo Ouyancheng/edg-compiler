@@ -2994,6 +2994,7 @@ ec_bad_stdc_pragma_arg_for_mode;;"STDC pragma argument not accepted in this mode
 ec_if_constexpr_is_cpp17;;"constexpr if statements are a C++17 feature"
 ec_no_pack_expansion_in_designator;;"pack expansion is not allowed in a designated initializer list"
 ec_no_designator_value;;"field designator has no value"
+ec_multiple_union_field_initializers_empty;;"a union can have at most one field initializer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -17285,16 +17285,19 @@ initializer.
       break;
     }  /* if */
   }  /* for */
-  if (sym == NULL) {
-    /* This can happen in severe error cases (where the prior initializer has
-       no associated field symbol). */
+  if (sym == NULL || sym == new_sym ) {
+    /* sym can be null in severe error cases where the prior initializer has
+       no associated field symbol.  If the previous member with an initializer
+       has an invalid declaration, it is possible we will not find it in the
+       list of union members.  */
     expect_error();
+    pos_error(ec_multiple_union_field_initializers_empty, diag_pos);
   } else {
-    check_assertion(sym != new_sym);
     pos_sy_error(ec_multiple_union_field_initializers, diag_pos, sym);
   }  /* if */
   new_sym->variant.field.ptr->has_initializer = FALSE;
 }  /* diagnose_duplicate_union_field_init */
+
 
 static a_symbol_ptr find_anonymous_parent_object_symbol_clone(
                                                a_symbol_ptr  apo_sym,
