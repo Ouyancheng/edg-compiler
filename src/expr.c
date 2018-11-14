@@ -33530,12 +33530,13 @@ Scan a C++ lambda expression, e.g., something like
 
 */
 {
-  a_lambda_ptr        lambda;
-  a_lambda_capture    *lcp;
-  a_source_position   start_pos;
-  a_boolean           err = FALSE;
-  an_expr_stack_entry expr_stack_entry;
-  a_boolean           invoked_lambda = FALSE;
+  a_lambda_ptr            lambda;
+  a_lambda_capture        *lcp;
+  a_source_position       start_pos;
+  a_boolean               err = FALSE;
+  an_expr_stack_entry     expr_stack_entry;
+  a_boolean               invoked_lambda = FALSE;
+  an_expr_stack_entry_ptr orig_expr_stack = expr_stack;
 
   start_pos = pos_curr_token;
   if (curr_expr_kind_is_traditional_const()) {
@@ -33546,6 +33547,30 @@ Scan a C++ lambda expression, e.g., something like
              !curr_expr_is_potentially_evaluated()) {
     /* A lambda is not allowed in an unevaluated expression. */
     expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
+    err = TRUE;
+  } else if (!lambda_allowed_in_uneval_context &&
+             scope_stack_top().exception_specification) {
+    /* A lambda is not allowed in a noexcept specifier. */
+    expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
+    err = TRUE;
+  } else if (!lambda_allowed_in_uneval_context &&
+             (scope_stack_top().in_template_arg_list ||
+              (expr_stack->possible_rescan_context &&
+               (scope_is(&scope_stack_top(), sck_func_prototype) ||
+                (scope_is(&scope_stack_top(), sck_template_declaration) &&
+                 !scope_stack_top().tmpl_decl_state
+                                   ->decl_parse.is_template_declaration)) &&
+               !(expr_stack->is_template_arg_expression &&
+                 scope_is(&scope_stack_top(), sck_template_declaration))))) {
+    /* Lambdas are not permitted in various contexts that might result in them
+       becoming part of a signature.  This includes:
+          - template argument lists.
+          - function and function template parameters and return types
+            (default arguments are okay),
+          - template parameter lists (we permit default template argument
+            contexts, but an error will be issued if such an argument is
+            instantiated). */
+    expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
     err = TRUE;
   } else if (curr_expr_is_potentially_unevaluated()) {
     /* A lambda in a context where we won't know until later if the
@@ -33569,8 +33594,7 @@ Scan a C++ lambda expression, e.g., something like
   expr_stack_entry.current_lambda_in_header = NULL;
   /* Scan the lambda. */
   lambda = scan_lambda();
-  if (lambda != NULL && !err && lambda_allowed_in_uneval_context &&
-      lambda->lambda_routine->is_constexpr &&
+  if (lambda != NULL && !err && lambda->lambda_routine->is_constexpr &&
       curr_token == tok_lparen) {
     /* FIXME: Lambdas in C++20 are allowed in various contexts if they are
        constexpr and immediately invoked.  This check handles the case
@@ -33588,14 +33612,14 @@ Scan a C++ lambda expression, e.g., something like
     expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
     err = TRUE;
     make_error_operand(result);
-  } else if (!invoked_lambda &&
+  } else if (lambda_allowed_in_uneval_context && !invoked_lambda &&
              (scope_stack_top().in_template_arg_list ||
-              (expr_stack->possible_rescan_context &&
+              (orig_expr_stack->possible_rescan_context &&
                (scope_is(&scope_stack_top(), sck_func_prototype) ||
                 (scope_is(&scope_stack_top(), sck_template_declaration) &&
                  !scope_stack_top().tmpl_decl_state
                                    ->decl_parse.is_template_declaration)) &&
-               !(expr_stack->is_template_arg_expression &&
+               !(orig_expr_stack->is_template_arg_expression &&
                  scope_is(&scope_stack_top(), sck_template_declaration))))) {
     /* Lambdas are not permitted in various contexts that might result in them
        becoming part of a signature.  This includes:
