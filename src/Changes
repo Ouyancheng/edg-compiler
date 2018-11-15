@@ -47,7 +47,7 @@ Consider:
   static_assert(g());
 
 Previously this failed, because during the evaluation of "s.b += 2", the
-constexpr interpreter discarded all but the least significant bits of the
+constexpr interpreter discarded all but the least significant bit of the
 result of the addition before normalizing the boolean value.  That is now
 fixed.
 
