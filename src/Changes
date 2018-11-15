@@ -1,5 +1,21 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20470]
+Default constructor not correctly inherited
+
+The front end previously did not correctly handle user-declared default
+constructors.  For example:
+
+  struct B { B(); };
+  struct D: B {
+     using B::B;  // Did not correctly inherit B's default constructor.
+     D(D&&);
+  };
+  D d{};  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 11/15/18 [EDGcpfe/20450]
 GNU/Clang compatibility: Standard attributes on namespaces
 

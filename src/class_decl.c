@@ -22623,10 +22623,12 @@ constructor.
   check_assertion(symbol_is(bctor, sk_member_function));
   brp = bctor->variant.routine.ptr;
   count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
-  /* Attempt to declare an inheriting constructor for each valid number of
-     arguments that could be passed to the base constructor, but exclude the
-     zero-argument case. */
-  if (n_params == 0) ++n_params;
+  if (n_base_params > 0 && n_params == 0) {
+    /* For constructors with parameters.  Attempt to declare an inheriting
+       constructor for each valid number of arguments that could be passed to
+       the base constructor, but exclude the zero-argument case. */
+    ++n_params;
+  }  /* if */
   for (; n_params <= n_base_params; ++n_params) {
     a_type_ptr        new_tp;
     a_symbol_ptr      dctor;
