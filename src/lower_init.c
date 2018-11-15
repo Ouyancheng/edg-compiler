@@ -7473,6 +7473,9 @@ the next thing to be destroyed after that.
 */
 #endif /* GENERATE_EH_TABLES */
 {
+#if GENERATE_EH_TABLES
+  a_dynamic_init_ptr              orig_temp_dip = temp_dip;
+#endif /* GENERATE_EH_TABLES */
   a_dynamic_init_ptr              first_real_temp = NULL;
   a_destructible_entity_descr_ptr dedp;
   a_dynamic_init_ptr              next_dip;
