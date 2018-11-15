@@ -26,6 +26,14 @@ For example (with --c++11):
   }
 
 
+11/15/18 [EDGcpfe/20457]
+GNU compatibility: Capturing *this
+
+In GNU C++ mode with gnu_version >= 70000 the front end now enables capturing
+"*this" in C++11 mode.  When C++17 mode is not enabled, a warning is issued for
+the first lambda capturing "*this" that appears outside a system header.
+
+
 11/15/18 [EDGcpfe/20460]
 GNU compatibility: Selection statements with initializers
 

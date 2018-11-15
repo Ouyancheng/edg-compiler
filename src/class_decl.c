@@ -31121,6 +31121,14 @@ caller has already moved past the '[', and this routine leaves the trailing
             is_this = TRUE;
             if (curr_token == tok_star) {
               is_star_this = TRUE;
+              if (!cpp17_mode && gpp_mode) {
+                static a_boolean  already_diagnosed = FALSE;
+                if (!already_diagnosed && !in_system_header()) {
+                  pos_warning(ec_star_this_capture_nonstandard,
+                              &pos_curr_token);
+                  already_diagnosed = TRUE;
+                }  /* if */
+              }  /* if */
               (void)get_token();
             }  /* this */
           }  /* if */

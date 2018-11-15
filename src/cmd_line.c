@@ -4929,6 +4929,9 @@ before this routine is called.
       fold_expressions_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 70000) {
+      /* GCC 7.x and later enable selection initializers in all C++ modes
+         that accept lambdas. */
+      capture_star_this_enabled = TRUE;
       /* GCC 7.x and later enable selection initializers in all C++ modes. */
       selection_initializers_enabled = TRUE;
     }  /* if */
