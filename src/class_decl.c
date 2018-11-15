@@ -16904,6 +16904,8 @@ template declaration and is NULL otherwise.
          must be initialized. */
       sym_error(ec_missing_initializer_on_reference, sym);
     } else if (def_initializer(decl_state->sym, &pos_curr_token)) {
+      /* An inline static data member with no initializer is
+	 default-initialized. */
       check_constant_valued_variable(decl_state);
       decl_state->sym->value_has_been_set = TRUE;
     }  /* if */
