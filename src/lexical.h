@@ -330,6 +330,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_ge,
    (an_opname_kind)onk_eq,
    (an_opname_kind)onk_ne,
+   (an_opname_kind)onk_spaceship,
    (an_opname_kind)onk_excl_or,
    (an_opname_kind)onk_or,
    (an_opname_kind)onk_and_and,

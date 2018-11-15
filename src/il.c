@@ -14943,6 +14943,7 @@ tk_unknown is returned.
     case eok_lt:
     case eok_ge:
     case eok_le:
+    case eok_spaceship:
       if (expr_kind == (a_type_kind)tk_template_param) {
         /* If either operand has a tk_template_param type, the call to
            binary_operation_type_kind below will produce a tk_template_param
@@ -21110,6 +21111,7 @@ check_cast_destination_type:
     case eok_lt:
     case eok_ge:
     case eok_le:
+    case eok_spaceship:
     case eok_vector_eq:
     case eok_vector_ne:
     case eok_vector_gt:
@@ -26801,6 +26803,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_ge: */				LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_le: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_spaceship: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_vector_eq: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,

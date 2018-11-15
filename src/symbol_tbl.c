@@ -8736,6 +8736,25 @@ namespace abi was encountered in the source.
 
 #endif /* IA64_ABI */
 
+a_symbol_ptr look_up_name_string_in_std(a_const_char  *name)
+/*
+Look up name in namespace std and return the symbol found if any.
+*/
+{
+  a_namespace_ptr  std_nsp;
+  a_symbol_ptr     result_sym = NULL;
+
+  if (symbol_for_namespace_std != NULL) {
+    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
+    if (std_nsp != NULL) {
+      result_sym = look_up_name_string_in_namespace(
+                                               name, std_nsp, IDL_NO_OPTIONS);
+    }  /* if */
+  }  /* if */
+  return result_sym;
+}  /* look_up_name_string_in_std */
+
+
 a_symbol_ptr look_up_name_string_in_class(
                                         a_const_char             *symbol_name,
                                         a_type_ptr               class_type,
@@ -8762,18 +8781,10 @@ Look up a class template of the given name in namespace std and return its
 associated symbol, or NULL if it is not found.
 */
 {
-  a_namespace_ptr  std_nsp;
-  a_symbol_ptr     result_sym = NULL;
+  a_symbol_ptr     result_sym = look_up_name_string_in_std(ctname);
 
-  if (symbol_for_namespace_std != NULL) {
-    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
-    if (std_nsp != NULL) {
-      result_sym = look_up_name_string_in_namespace(
-                                             ctname, std_nsp, IDL_NO_OPTIONS);
-      if (result_sym != NULL && !symbol_is(result_sym, sk_class_template)) {
-        result_sym = NULL;
-      }  /* if */
-    }  /* if */
+  if (result_sym != NULL && !symbol_is(result_sym, sk_class_template)) {
+    result_sym = NULL;
   }  /* if */
   return result_sym;
 }  /* look_up_class_template_in_std */

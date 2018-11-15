@@ -2715,6 +2715,7 @@ option values if they were not already set by a command line option.
              are enabled via global variables, but for those that aren't, set
              std_version to the value for C++20. */
           std_version = 202000;
+          spaceship_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3534,6 +3535,7 @@ default mode (e.g., exception handling).
         lambda_template_param_list_enabled = TRUE;
         lambda_allowed_in_uneval_context = TRUE;
         aggregate_classes_can_have_user_ctors = FALSE;
+        spaceship_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11914,6 +11916,7 @@ variables declared in cmd_line.h.
   class_template_arg_deduction_enabled = FALSE;
   auto_template_params_enabled = FALSE;
   string_literal_operator_template_allowed = FALSE;
+  spaceship_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

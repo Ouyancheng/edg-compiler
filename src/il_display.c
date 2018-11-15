@@ -3204,6 +3204,7 @@ Print the name of the C++ operator kind.
     case onk_ne:                  s = "onk_ne";                    break;
     case onk_le:                  s = "onk_le";                    break;
     case onk_ge:                  s = "onk_ge";                    break;
+    case onk_spaceship:           s = "onk_spaceship";             break;
     case onk_and_and:             s = "onk_and_and";               break;
     case onk_or_or:               s = "onk_or_or";                 break;
     case onk_plus_plus:           s = "onk_plus_plus";             break;
@@ -3993,6 +3994,7 @@ Display the name of an expression operator.
     case eok_lt:                s = "eok_lt";                     break;
     case eok_ge:                s = "eok_ge";                     break;
     case eok_le:                s = "eok_le";                     break;
+    case eok_spaceship:         s = "eok_spaceship";              break;
     case eok_vector_eq:         s = "eok_vector_eq";              break;
     case eok_vector_ne:         s = "eok_vector_ne";              break;
     case eok_vector_gt:         s = "eok_vector_gt";              break;

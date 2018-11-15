@@ -14889,8 +14889,9 @@ as its first operand.
       case onk_le:
       case onk_gt:
       case onk_ge:
+      case onk_spaceship:
         /* Relational operators take arithmetic, enum, pointer, or nullptr
-           operands. */
+           operands.   The same applies to the C++20 spaceship operator. */
         if (cfront_2_1_mode) {
           /* cfront 2.1 is confused and allows pointers to members on this
              case (they get rejected if chosen). */

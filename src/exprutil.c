@@ -6390,6 +6390,37 @@ should be suppressed, e.g., a template deduction context.
 }  /* expr_pos_diagnostic */
 
 
+void expr_pos_st_error(an_error_code     error_code,
+                       a_source_position *error_pos,
+                       a_const_char      *str)
+/*
+Report the indicated error at the indicated position with the given string
+substitution.  Suppress the error if we're in a context where diagnostics
+should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    pos_st_error(error_code, error_pos, str);
+  }  /* if */
+}  /* expr_pos_st_error */
+
+
+void expr_pos_ty2_error(an_error_code     error_code,
+                        a_source_position *error_pos,
+                        a_type_ptr        tp1,
+                        a_type_ptr        tp2)
+/*
+Report the indicated error at the indicated position with the given string
+substitution.  Suppress the error if we're in a context where diagnostics
+should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    pos_ty2_error(error_code, error_pos, tp1, tp2);
+  }  /* if */
+}  /* expr_pos_ty2_error */
+
+
 void expr_syntax_error(an_error_code error_code)
 /*
 Report the indicated error at the position indicated by error_position,
@@ -6697,9 +6728,7 @@ Announce an error at the position in the operand and convert the operand to an
 error operand.  The two types are cited in the error message.
 */
 {
-  if (expr_error_should_be_issued()) {
-    pos_ty2_error(error_code, &operand->position, type1, type2);
-  }  /* if */
+  expr_pos_ty2_error(error_code, &operand->position, type1, type2);
   conv_to_error_operand(operand);
 }  /* type2_error_in_operand */
 
@@ -7337,9 +7366,9 @@ NULL.
     /* The cast is ambiguous. */
     if (error_detected != NULL) {
       *error_detected = TRUE;
-    } else if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_ambiguous_derived_class, err_pos,
-                    new_type_pointed_to, bcp->type);
+    } else {
+      expr_pos_ty2_error(ec_ambiguous_derived_class, err_pos,
+                         new_type_pointed_to, bcp->type);
     }  /* if */
     *p_node = error_node();
   } else if (any_virtual_steps_in_derivation(bcp)
@@ -7351,9 +7380,9 @@ NULL.
        virtual step on the derivation path. */
     if (error_detected != NULL) {
       *error_detected = TRUE;
-    } else if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
-                    new_type_pointed_to, bcp->type);
+    } else {
+      expr_pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+                         new_type_pointed_to, bcp->type);
     }  /* if */
     *p_node = error_node();
   } else {
@@ -7392,10 +7421,8 @@ casts, so checking for accessibility of base classes is not necessary.
   } else if (any_virtual_steps_in_derivation(bcp) && !any_cfront_mode()) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
-                    pm_class_type((*p_node)->type), bcp->type);
-    }  /* if */
+    expr_pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
+                       pm_class_type((*p_node)->type), bcp->type);
     *p_node = error_node();
   } else {
     /* Loop through the classes between the derived class and the
@@ -7487,20 +7514,16 @@ source position to be used for errors.  This routine is only used in C++ mode.
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_ambiguous_derived_class, err_pos,
-                    new_class_pointed_to, bcp->type);
-    }  /* if */
+    expr_pos_ty2_error(ec_ambiguous_derived_class, err_pos,
+                       new_class_pointed_to, bcp->type);
     *p_node = error_node();
   } else if (!(microsoft_mode &&
           PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE) && /*lint !e506*/
              any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
-                    new_class_pointed_to, bcp->type);
-    }  /* if */
+    expr_pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
+                       new_class_pointed_to, bcp->type);
     *p_node = error_node();
   } else {
     if (check_cast_access) {
@@ -10839,11 +10862,12 @@ strict ANSI mode.  Return FALSE if there is an error.
        opkind == (an_opname_kind)onk_le ||
        opkind == (an_opname_kind)onk_gt ||
        opkind == (an_opname_kind)onk_ge ||
+       opkind == (an_opname_kind)onk_spaceship ||
        opkind == (an_opname_kind)onk_question)) {
     /* For equality operators, relational operators, and the ?: operator, the
        compatibility rules were revised through the resolution of Core issue
        1512 (the C++ committee's paper N3624).  The new rules apply to all C++
-       modes. */
+       modes.  They also apply to the C++20 spaceship operator. */
     if (op_is_null_ptr_constant_for_comparison(operand_1)) {
       if (op_is_null_pointer_constant(operand_2)) {
         /* Two null pointer constants.  We usually do not get here since null
@@ -10909,10 +10933,8 @@ strict ANSI mode.  Return FALSE if there is an error.
          method below. */
     } else {
       if (!okay) {
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_incompatible_operands, operator_position,
-                        operand_1_type, operand_2_type);
-        }  /* if */
+        expr_pos_ty2_error(ec_incompatible_operands, operator_position,
+                           operand_1_type, operand_2_type);
         operation_type = error_type();
       }  /* if */
       goto done;
@@ -11116,10 +11138,8 @@ strict ANSI mode.  Return FALSE if there is an error.
     }  /* if */
   } else {
     /* The operands are not compatible. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_incompatible_operands, operator_position,
-                    operand_1_type, operand_2_type);
-    }  /* if */
+    expr_pos_ty2_error(ec_incompatible_operands, operator_position,
+                       operand_1_type, operand_2_type);
     operation_type = error_type();
   }  /* if */
 done:
@@ -11224,10 +11244,8 @@ FALSE if there is an error.
   }  /* if */
   if (!okay) {
     /* The operands are not compatible. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_incompatible_operands, operator_position,
-                    operand_1_type, operand_2_type);
-    }  /* if */
+    expr_pos_ty2_error(ec_incompatible_operands, operator_position,
+                       operand_1_type, operand_2_type);
     local_operation_type = error_type();
   }  /* if */
   *operation_type = local_operation_type;
@@ -11302,10 +11320,8 @@ error_type().  Return FALSE if there is an error.
       }  /* if */
     } else {
       /* The operands are not compatible. */
-      if (expr_error_should_be_issued()) {
-        pos_ty2_error(ec_incompatible_operands, operator_position,
-                      operand_1->type, operand_2->type);
-      }  /* if */
+      expr_pos_ty2_error(ec_incompatible_operands, operator_position,
+                         operand_1->type, operand_2->type);
       *operation_type = error_type();
     }  /* if */
   }  /* if */
@@ -11420,10 +11436,8 @@ gives the operator position (for errors).  Return FALSE if there is an error.
 decided:
   if (!okay) {
     /* The operands are not compatible. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_incompatible_operands, operator_position,
-                    operand_1_type, operand_2_type);
-    }  /* if */
+    expr_pos_ty2_error(ec_incompatible_operands, operator_position,
+                       operand_1_type, operand_2_type);
     *operation_type = error_type();
   } else if (any_cfront_mode()) {
     /* Cfront doesn't allow casts of pointers to members from virtual base
@@ -13034,6 +13048,9 @@ type is an error type, return eok_error.
         op = (an_expr_operator_kind)eok_ne;
       }  /* if */
       break;
+    case tok_spaceship:
+      op = (an_expr_operator_kind)eok_spaceship;
+      break;
     case tok_ampersand:
       op = (an_expr_operator_kind)eok_and;
       break;
@@ -13256,6 +13273,9 @@ The operation is a unary operation if unary_operator is TRUE.
         break;
       case onk_ge:
         op = (an_expr_operator_kind)eok_ge;
+        break;
+      case onk_spaceship:
+        op = (an_expr_operator_kind)eok_spaceship;
         break;
       case onk_and_and:
         op = (an_expr_operator_kind)eok_land;
@@ -21008,11 +21028,10 @@ error.  The source position of the reference is given by pos.
       getput_sym = class_qualified_id_lookup(&locator, class_type,
                                              IDL_NO_OPTIONS);
       if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
-        if (must_be_present &&
-            expr_error_should_be_issued()) {
-          pos_st_error(put ? ec_put_property_function_missing :
-                             ec_get_property_function_missing,
-                       pos, getput_property_name);
+        if (must_be_present) {
+          expr_pos_st_error(put ? ec_put_property_function_missing :
+                                  ec_get_property_function_missing,
+                            pos, getput_property_name);
         }  /* if */
         getput_sym = NULL;
       } else {

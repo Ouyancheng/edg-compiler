@@ -13383,8 +13383,13 @@ return_end_of_source_token:
           goto two_char_token;
         }  /* if */
       } else if (ch == '=') {
-        ctoken = tok_le;
-        goto two_char_token;
+        if (*(curr_char_loc+2) == '>' && spaceship_enabled) {
+          ctoken = tok_spaceship;
+          goto three_char_token;
+        } else {
+          ctoken = tok_le;
+          goto two_char_token;
+        }  /* if */
       } else if (ch == '%' && digraphs_allowed()) {
         ctoken = tok_lbrace;
 	goto two_char_token;

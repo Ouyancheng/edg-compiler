@@ -708,11 +708,9 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         /* This is a declaration with multiple declarators and the type deduced
            for a previous declarator is not consistent with the current
            deduction: Issue an error. */
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_inconsistent_deduction_of_auto,
-                        &dps->declarator_pos, deduced_auto_type,
-                        dps->deduced_auto_type);
-        }  /* if */
+        expr_pos_ty2_error(ec_inconsistent_deduction_of_auto,
+                           &dps->declarator_pos, deduced_auto_type,
+                           dps->deduced_auto_type);
       }  /* if */
       /* Record the type deduced for the "auto" specifier. */
       dps->deduced_auto_type = deduced_auto_type;
@@ -1073,6 +1071,9 @@ current expression (used to decide how a comma should be treated).
     case tok_eq:
     case tok_ne:
       new_prec = PREC_EQ_NE;
+      break;
+    case tok_spaceship:
+      new_prec = PREC_SPACESHIP;
       break;
     case tok_gnu_min:
     case tok_gnu_max:
@@ -8908,11 +8909,9 @@ the selection, not an operator token for the call.
           /* Related classes. */
         } else {
           /* Bad combination. */
-          if (expr_error_should_be_issued()) {
-            pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
-                          &operator_position,
-                          operand_1_type, operand_2_class);
-          }  /* if */
+          expr_pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
+                             &operator_position,
+                             operand_1_type, operand_2_class);
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -13664,10 +13663,8 @@ __builtin_convertvector construct.
     /* Check that the source operand has the same length as the destination
        type. */
     if (num_vector_elements(src_op.type) != num_vector_elements(dst_type)) {
-      if (expr_error_should_be_issued()) {
-        pos_ty2_error(ec_vector_types_differ_in_length, &start_pos,
-                      src_op.type, dst_type);
-      }  /* if */
+      expr_pos_ty2_error(ec_vector_types_differ_in_length, &start_pos,
+                         src_op.type, dst_type);
     }  /* if */
   }  /* if */
   dst_type_node->variant.type_operand.type = dst_type;
@@ -26194,11 +26191,12 @@ of an error), return FALSE.
 static void diagnose_comparison_if_different_enum_types(
                                                     a_type_ptr         type_1,
                                                     a_type_ptr         type_2,
-                                                    a_source_position  *pos)
+                                                    a_source_position  *pos,
+                                                    an_error_severity  sev)
 /*
 The two given types are the types of operands involved in a comparison (e.g.,
-"==" or "<").  Issue a remark if the two types are different enum types (or,
-in C, have different affiliated enum types).
+"==" or "<").  Issue a diagnostic of the given severity if the two types are
+different enum types (or, in C, have different affiliated enum types).
 */
 {
   if (type_1->kind == (a_type_kind)tk_integer &&
@@ -26215,8 +26213,8 @@ in C, have different affiliated enum types).
       /* Issue a remark if comparing two different enum types (which is
          rarely intentional). */
       if (expr_diagnostic_should_be_issued(
-                            es_remark, ec_different_enum_comparison)) {
-        pos_ty2_diagnostic(es_remark, ec_different_enum_comparison, pos,
+                                         sev, ec_different_enum_comparison)) {
+        pos_ty2_diagnostic(sev, ec_different_enum_comparison, pos,
                            type_1, type_2);
       }  /* if */
     }  /* if */
@@ -26414,8 +26412,8 @@ that case.
                                   &operator_position);
             }  /* if */
           }  /* if */
-          diagnose_comparison_if_different_enum_types(type_1, type_2,
-                                                      &operator_position);
+          diagnose_comparison_if_different_enum_types(
+                              type_1, type_2, &operator_position, es_remark);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -26601,8 +26599,8 @@ operator_position describe the location of the operator in the token stream.
         funny_unsigned_cmp = is_comparison_of_unsigned_with_constant(
                                                     operand_1, operand_2,
                                                     &second_opnd_is_constant);
-        diagnose_comparison_if_different_enum_types(type_1, type_2,
-                                                    operator_position);
+        diagnose_comparison_if_different_enum_types(
+                                type_1, type_2, operator_position, es_remark);
       }  /* if */
       operation_type = determine_arithmetic_conversions(operand_1, operand_2);
     }  /* if */
@@ -26755,6 +26753,171 @@ that case.
   expr_stack->allow_array_decay_in_constant_expr = saved_allow_array_decay;
   db_exit();
 }  /* scan_eq_operator */
+
+
+static a_type_ptr get_ordering_type(a_const_char       *name,
+                                    a_source_position  *diag_pos)
+/*
+Look up the given name in namespace std.  If it is an (unqualified) enumeration
+type, return it.  Otherwise issue an error (suggesting <compare> was not
+included) and return an error type.  name should normally be "strong_equality",
+"strong_ordering", or "partial_ordering".
+*/
+{
+  a_symbol_ptr  sym = look_up_name_string_in_std(name);
+  a_type_ptr    result;
+
+  if (sym == NULL || is_enum_symbol(sym)) {
+    expr_pos_st_error(ec_bad_ordering_type, diag_pos, name);
+    result = error_type();
+  } else {
+    result = type_symbol_type(sym);
+    if (is_qualified_type(result)) {
+      result = error_type();
+      expr_pos_st_error(ec_bad_ordering_type, diag_pos, name);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_ordering_type */
+
+
+static void scan_spaceship_operator(an_operand             *opnd1,
+                                    a_rescan_control_block *rcblock,
+                                    an_operand             *result)
+/*
+Scan the C++20 three-way comparison operator ("<=>"), also known as the
+"spaceship operator".  If rcblock == NULL, opnd1 is the already-scanned left
+operand and the current token is tok_spaceship ("<=>").  If rcblock != NULL,
+redo semantic analysis on a previously-scanned expression (opnd1 should be
+NULL in that case).  Either way, return in *result an operand representing
+the resulting expression.
+*/
+{
+  an_operand         local_opnd1, opnd2;
+  a_source_position  operator_pos;
+  a_token_sequence_number
+                     operator_tok_seq_number;
+  a_boolean          processed = FALSE;
+
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(opnd1 == NULL);
+    opnd1 = &local_opnd1;
+    make_rescan_operands(rcblock, opnd1, &opnd2, (an_operand *)NULL,
+                         &operator_pos, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_pos = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    (void)get_token();
+    scan_expr(&opnd2, PREC_EQ_NE, EOPT_NO_OPTIONS);
+  }  /* if */
+  if (is_overloadable_type_operand(opnd1) ||
+      is_overloadable_type_operand(&opnd2)) {
+    /* Look for C++ operator overloading cases. */
+    check_for_operator_overloading((an_opname_kind)onk_spaceship,
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   opnd1, &opnd2, &operator_pos,
+                                   operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
+                                   (a_source_position*)NULL,
+                                   result, &processed);
+  }  /* if */
+  if (!processed) {
+    /* Non-operator-function cases. */
+    a_boolean   normal_case = FALSE;
+    a_type_ptr  op_type, result_type;
+    if (is_error_operand(opnd1) || is_error_operand(&opnd2)) {
+      make_error_operand(result);
+      operand_will_not_be_used_because_of_error(opnd1);
+      operand_will_not_be_used_because_of_error(&opnd2);
+    } else if ((is_arithmetic_or_unscoped_enum_type(opnd1->type) &&
+                is_arithmetic_or_unscoped_enum_type(opnd2.type)) ||
+               (is_scoped_enum_type(opnd1->type) &&
+                is_integral_type(opnd2.type)) ||
+               (is_scoped_enum_type(opnd2.type) &&
+                is_integral_type(opnd1->type))) {
+      do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
+      do_operand_transformations(&opnd2, TOPT_NO_OPTIONS);
+      diagnose_comparison_if_different_enum_types(opnd1->type, opnd2.type,
+                                                  &operator_pos, es_error);
+      op_type = determine_arithmetic_conversions(opnd1, &opnd2);
+      change_binary_operand_types(op_type, opnd1, &opnd2,
+                                  (an_expr_node_kind)eok_spaceship);
+      if (is_integral_or_enum_type(op_type)) {
+        result_type = get_ordering_type("strong_ordering", &operator_pos);
+      } else if (is_real_floating_type(op_type)) {
+        result_type = get_ordering_type("partial_ordering", &operator_pos);
+      } else {
+        expr_pos_ty2_error(ec_invalid_spaceship_types, &operator_pos,
+                           opnd1->type, opnd2.type);
+      }  /* if */
+      normal_case = TRUE;
+    } else if (is_scoped_enum_type(opnd1->type) &&
+               identical_types(opnd1->type, opnd2.type)) {
+      result_type = get_ordering_type("strong_ordering", &operator_pos);
+      normal_case = TRUE;
+    } else if (is_pointer_type(opnd1->type) || is_pointer_type(opnd2.type)) {
+      /* At least one of the operands is a pointer.  See if the operands are
+         compatible. */
+      if (check_compatibility_of_pointer_operands(
+                         opnd1, &opnd2, &operator_pos,
+                         (an_opname_kind)onk_spaceship,
+                         /*pointer_normalization_standard_in_C=*/FALSE,
+                         /*pointers_to_functions_standard_in_C=*/FALSE,
+                         /*pointers_to_incomplete_standard_in_C=*/FALSE,
+                         /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
+                         &op_type)) {
+        change_binary_operand_types(op_type, opnd1, &opnd2,
+                                    (an_expr_operator_kind)eok_spaceship);
+      }  /* if */
+      if (is_pointer_to_function_type(op_type)) {
+        result_type = get_ordering_type("strong_equality", &operator_pos);
+      } else {
+        result_type = get_ordering_type("strong_ordering", &operator_pos);
+      }  /* if */
+      normal_case = TRUE;
+    } else if (is_ptr_to_member_type(opnd1->type) ||
+               is_ptr_to_member_type(opnd2.type)) {
+      /* At least one operand is a pointer to member.  See if the operands
+         are compatible. */
+      if (check_ptr_to_member_operands_for_compatibility(
+                              opnd1, &opnd2, &operator_pos, &op_type)) {
+        change_binary_operand_types(op_type, opnd1, &opnd2,
+                                    (an_expr_operator_kind)eok_spaceship);
+      }  /* if */
+      result_type = get_ordering_type("strong_equality", &operator_pos);
+      normal_case = TRUE;
+    } else if (is_nullptr_type(opnd1->type) ||
+               is_nullptr_type(opnd2.type)) {
+      /* At least one of the operands has a nullptr type. */
+      if (check_compatibility_of_nullptr_operands(opnd1, &opnd2, &operator_pos,
+                                                  &op_type)) {
+        change_binary_operand_types(op_type, opnd1, &opnd2,
+                                    (an_expr_operator_kind)eok_spaceship);
+      }  /* if */
+      result_type = get_ordering_type("strong_equality", &operator_pos);
+      normal_case = TRUE;
+    } else {
+      error_in_operand(expr_not_arithmetic_code(), result);
+    }  /* if */
+    if (normal_case) {
+      an_expr_node_ptr  result_node, op1_node, op2_node;
+      op1_node = make_node_from_operand(opnd1);
+      op2_node = make_node_from_operand(&opnd2);
+      op1_node->next = op2_node;
+      result_node = make_operator_node((an_expr_operator_kind)eok_spaceship,
+                                       result_type, op1_node);
+      make_expression_operand(result_node, result);
+    }  /* if */
+  }  /* if */
+  set_operand_position(result, &opnd1->position, &opnd2.end_position,
+                       &operator_pos);
+}  /* scan_spaceship_operator */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -28024,10 +28187,8 @@ that case.
       if (conv_2_to_3_possible && conv_3_to_2_possible) {
         /* Each operand can be converted to the other, so the operation
            is ambiguous. */
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_ambiguous_question_operator, &colon_position,
-                        operand_2.type, operand_3.type);
-        }  /* if */
+        expr_pos_ty2_error(ec_ambiguous_question_operator, &colon_position,
+                           operand_2.type, operand_3.type);
         err = TRUE;
       } else if (conv_2_to_3_possible || conv_3_to_2_possible) {
         if (conv_2_to_3_possible) {
@@ -28280,10 +28441,8 @@ that case.
                    skip_typerefs(operand_2.type)->
                                           variant.vector.element_type->size)) {
         /* All operands are vectors, but their types are not compatible. */
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_incompatible_operands, &question_position,
-                        operand_1->type, operand_2.type);
-        }  /* if */
+        expr_pos_ty2_error(ec_incompatible_operands, &question_position,
+                           operand_1->type, operand_2.type);
         err = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
@@ -28587,10 +28746,8 @@ that case.
            are recognized here.  C++ class cases are handled above; this
            code deals only with error cases in C++. */
         if (!types_are_compatible(operand_2.type, operand_3.type)) {
-          if (expr_error_should_be_issued()) {
-            pos_ty2_error(ec_incompatible_operands, &colon_position,
-                          operand_2.type, operand_3.type);
-          }  /* if */
+          expr_pos_ty2_error(ec_incompatible_operands, &colon_position,
+                             operand_2.type, operand_3.type);
           err = TRUE;
         } else if (!C_mode()) {
           check_assertion(is_or_contains_error_type(operand_2.type) ||
@@ -28604,10 +28761,8 @@ that case.
         err = TRUE;
       } else {
         /* Incompatible operands. */
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_incompatible_operands, &colon_position,
-                        operand_2.type, operand_3.type);
-        }  /* if */
+        expr_pos_ty2_error(ec_incompatible_operands, &colon_position,
+                           operand_2.type, operand_3.type);
         err = TRUE;
       }  /* if */
       /* Cast operands 2 and 3 to the result type if necessary. */
@@ -35196,6 +35351,10 @@ bad_start_of_primary:
         scan_eq_operator(&operand, (a_rescan_control_block *)NULL,
                          &local_result);
         break;
+      case tok_spaceship:
+        scan_spaceship_operator(&operand, (a_rescan_control_block *)NULL,
+                                &local_result);
+        break;
 #if GNU_EXTENSIONS_ALLOWED
       case tok_gnu_min:
       case tok_gnu_max:
@@ -40620,10 +40779,8 @@ type.
       }  /* if */
     } else {
       /* Two returns have different types. */
-      if (expr_error_should_be_issued()) {
-        pos_ty2_error(ec_deduced_return_type_conflict, err_pos, return_type,
-                      curr_return_type);
-      }  /* if */
+      expr_pos_ty2_error(ec_deduced_return_type_conflict, err_pos, return_type,
+                         curr_return_type);
       return_type = error_type();
     }  /* if */
   }  /* if */
@@ -42718,6 +42875,9 @@ set accordingly.
       case eok_vector_ne:
         operator_token = tok_ne;
         break;
+      case eok_spaceship:
+        operator_token = tok_spaceship;
+        break;
      case eok_gnu_max:
         operator_token = tok_gnu_max;
         break;
@@ -43321,6 +43481,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_ne:
         scan_eq_operator((an_operand *)NULL, rcblock, result);
         break;
+      case tok_spaceship:
+        scan_spaceship_operator((an_operand *)NULL, rcblock, result);
+        break;
 #if GNU_EXTENSIONS_ALLOWED
      case tok_gnu_max:
      case tok_gnu_min:
@@ -43734,10 +43897,8 @@ constants; assumes copy-initialization ("="-form).
       check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       if (!is_string_type(required_type) ||
           !check_string_constant_initializer(&required_type, string_con)) {
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_bad_initializer_type, &result.position,
-                        result.type, required_type);
-        }  /* if */
+        expr_pos_ty2_error(ec_bad_initializer_type, &result.position,
+                           result.type, required_type);
         set_error_constant(constant);
       } else {
         copy_constant(string_con, constant);
@@ -43745,10 +43906,8 @@ constants; assumes copy-initialization ("="-form).
     } else {
       /* Not string literal case (compound literal). */
       if (!types_are_compatible(result.type, required_type)) {
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_bad_initializer_type, &result.position,
-                        result.type, required_type);
-        }  /* if */
+        expr_pos_ty2_error(ec_bad_initializer_type, &result.position,
+                           result.type, required_type);
         conv_to_error_operand(&result);
       }  /* if */
       extract_constant_from_operand(&result, constant);

@@ -15102,6 +15102,70 @@ expression).  This routine is used in lowering both C and C++.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void lower_cpp20_spaceship(an_expr_node_ptr  expr)
+/*
+Rewrite the given eok_spaceship in terms of eok_question and either eok_lt or
+eok_eq.  I.e., turn:
+	x <=> y (result type: RT)
+into
+	(temp1 = x) < (temp2 = y) ? RT(-1)
+                                  : temp2 < temp1 ? RT(1)
+                                                  : RT(0)
+or, for pointer to function, pointer to member, and nullptr_t types:
+	x == y ? RT(0) ? RT(1)
+*/
+{
+  an_expr_node_ptr  op1 = expr->variant.operation.operands;
+  an_expr_node_ptr  op2 = op1->next;
+  an_expr_node_ptr  temp1, temp2, one, zero, minus_one, cmp;
+  a_boolean         op1_has_side_effects, op2_has_side_effects;
+  
+  one = node_for_promoted_integer_constant(1L, (an_integer_kind)ik_int);
+  one = add_cast(one, expr->type);
+  zero = node_for_promoted_integer_constant(0L, (an_integer_kind)ik_int);
+  zero = add_cast(zero, expr->type);
+  if (is_pointer_to_function_type(op1->type) ||
+      is_ptr_to_member_type(op1->type) ||
+      is_nullptr_type(op1->type)) {
+    /* <=> just tests equality.  Replace x <=> y by:
+	     x == y ? RT(0) ? RT(1)
+    */
+    cmp = make_operator_node((an_expr_operator_kind)eok_eq,
+                             integer_type((an_integer_kind)ik_int), op1);
+    cmp->next = zero;
+    zero->next = one;
+    set_node_operator(expr, (an_expr_operator_kind)eok_question,
+                      expr->type, expr->is_lvalue, cmp);
+  } else {
+    /* <=> tests ordering.  Replace x <=> y by:
+	(temp1 = x) < (temp2 = y) ? RT(-1)
+                                  : temp2 < temp1 ? RT(1)
+                                                  : RT(0)
+    */
+    minus_one = node_for_promoted_integer_constant(-1L,
+                                                   (an_integer_kind)ik_int);
+    minus_one = add_cast(minus_one, expr->type);
+    op1_has_side_effects = node_has_side_effects(op1, (a_boolean *)NULL);
+    op2_has_side_effects = node_has_side_effects(op2, (a_boolean *)NULL);
+    temp1 = make_reusable_copy(op1, op2_has_side_effects);
+    temp2 = make_reusable_copy(op2, op1_has_side_effects);
+    temp2->next = temp1;
+    cmp = make_operator_node((an_expr_operator_kind)eok_lt,
+                             integer_type((an_integer_kind)ik_int), temp2);
+    cmp->next = one;
+    one->next = zero;
+    cmp = make_operator_node((an_expr_operator_kind)eok_question,
+                             expr->type, cmp);
+    minus_one->next = cmp;
+    cmp = make_operator_node((an_expr_operator_kind)eok_lt,
+                             integer_type((an_integer_kind)ik_int), op1);
+    cmp->next = minus_one;
+    set_node_operator(expr, (an_expr_operator_kind)eok_question,
+                      expr->type, expr->is_lvalue, cmp);
+  }  /* if */ 
+}  /* lower_cpp20_spaceship */
+
+
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
 /*
@@ -15535,6 +15599,9 @@ cast.  See lower_expr for typical invocation.
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xne(expr);
             }  /*if */
+            break;
+          case eok_spaceship:
+            lower_cpp20_spaceship(expr);
             break;
 #if C99_IL_EXTENSIONS_SUPPORTED
           case eok_xconj:

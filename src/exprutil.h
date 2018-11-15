@@ -58,14 +58,15 @@ Precedence level 0 is used to bracket a complete expression.
 */
 #define LEFT_ASSOC  TRUE
 #define RIGHT_ASSOC FALSE
-#define PREC_PRIMARY    19
-#define PREC_POSTFIX    18
-#define PREC_PREFIX     17
-#define PREC_CAST       16
-#define PREC_PTR_TO_MEMBER 15
-#define PREC_MULT_DIV   14
-#define PREC_PLUS_MINUS 13
-#define PREC_SHIFT      12
+#define PREC_PRIMARY    20
+#define PREC_POSTFIX    19
+#define PREC_PREFIX     18
+#define PREC_CAST       17
+#define PREC_PTR_TO_MEMBER 16
+#define PREC_MULT_DIV   15
+#define PREC_PLUS_MINUS 14
+#define PREC_SHIFT      13
+#define PREC_SPACESHIP  12
 #define PREC_RELATIONAL 11
 #define PREC_EQ_NE      10
 #define PREC_GNU_MIN_MAX 9
@@ -2548,6 +2549,15 @@ extern void expr_pos_warning(an_error_code     error_code,
 extern void expr_pos_diagnostic(an_error_severity sev,
                                 an_error_code     error_code,
                                 a_source_position *error_pos);
+
+extern void expr_pos_st_error(an_error_code     error_code,
+                              a_source_position *error_pos,
+                              a_const_char      *str);
+
+extern void expr_pos_ty2_error(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               a_type_ptr        tp1,
+                               a_type_ptr        tp2);
 
 extern void expr_syntax_error(an_error_code error_code);
 

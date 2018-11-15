@@ -4802,6 +4802,8 @@ extern void make_symbol_for_namespace_abi(void);
 extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 #endif /* IA64_ABI */
 
+extern a_symbol_ptr look_up_name_string_in_std(a_const_char  *name);
+
 #if COROUTINES_ALLOWED
 extern void init_coroutine_descr(a_routine_ptr          rp,
                                  a_coroutine_descr_ptr  cdp);

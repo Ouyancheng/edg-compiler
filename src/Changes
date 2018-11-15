@@ -1,5 +1,26 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20014,EDGcpfe/20120]
+C++20: Initial support for three-way comparison (aka. the spaceship operator)
+
+In C++20 mode, the front end now recognizes and partially handles the three-way
+comparison operator ("<=>", aka., the spaceship operator).  For example:
+
+  #include <compare>  // Required.
+  int main() {
+    return (1 <=> 2) != 0;
+  }
+
+This initial support does not include defaulting the operator, nor the special
+handling of user-defined operator<=> candidates added by the C++
+standardization committee's paper P0905R1.  Lowering for built-in types and
+rendering by the C++-generating back end are implemented.  A partial <compare>
+header is provided as a sample implementation, but the front end should be able
+to work with third-party implementations of that header as well.  This feature
+was added to the draft for the next C++ standard through paper P0595R3.
+However, some aspects of the specification are still in flux.
+
+
 11/14/18 [EDGcpfe/19073,EDGcpfe/17331]
 Spurious error on decltype in lambda parameter list
 

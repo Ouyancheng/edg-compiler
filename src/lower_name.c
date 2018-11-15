@@ -127,6 +127,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_NE "ne"
 #define MANGLING_STRING_FOR_OPERATOR_LE "le"
 #define MANGLING_STRING_FOR_OPERATOR_GE "ge"
+#define MANGLING_STRING_FOR_OPERATOR_SPACESHIP "ss"
 #define MANGLING_STRING_FOR_OPERATOR_AND_AND "aa"
 #define MANGLING_STRING_FOR_OPERATOR_OR_OR "oo"
 #define MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS "pp"
@@ -280,6 +281,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_NE "ne"
 #define MANGLING_STRING_FOR_OPERATOR_LE "le"
 #define MANGLING_STRING_FOR_OPERATOR_GE "ge"
+#define MANGLING_STRING_FOR_OPERATOR_SPACESHIP "ss"
 #define MANGLING_STRING_FOR_OPERATOR_AND_AND "aa"
 #define MANGLING_STRING_FOR_OPERATOR_OR_OR "oo"
 #define MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS "pp"
@@ -10296,6 +10298,9 @@ binary versions of operators are mangled differently.
     case onk_ge:                /* ">=" */
       name = MANGLING_STRING_FOR_OPERATOR_GE;
       break;
+    case onk_spaceship:         /* "<=>" */
+      name = MANGLING_STRING_FOR_OPERATOR_SPACESHIP;
+      break;
     case onk_and_and:           /* "&&" */
       name = MANGLING_STRING_FOR_OPERATOR_AND_AND;
       break;
@@ -10551,6 +10556,9 @@ returned string to an appropriate buffer before this routine is invoked again.
     case eok_le:
     case eok_vector_le:
       opkind = (an_opname_kind)onk_le;
+      break;
+    case eok_spaceship:
+      opkind = (an_opname_kind)onk_spaceship;
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case eok_gnu_min:

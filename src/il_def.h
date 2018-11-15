@@ -941,6 +941,7 @@ typedef enum /*a_token_kind*/ {
   tok_ge                    /* >= */,
   tok_eq                    /* == */,
   tok_ne                    /* != */,
+  tok_spaceship             /* <=> */,
   tok_excl_or               /* ^ */,
   tok_or                    /* | */,
   tok_and_and               /* && */,
@@ -1323,8 +1324,8 @@ EXTERN a_const_char
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "decltype construct", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
-   "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
-   "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
+   "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
+   "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
    "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "<?", ">?",
    "{", "}", ";", "...", "auto", "break", "case", "char", "const",
    "continue", "default", "do", "double", "else", "enum", "extern",
@@ -10823,11 +10824,12 @@ enum an_opname_kind_tag {
   onk_shift_right,       /* ">>" */     onk_shift_right_assign,/* ">>=" */
   onk_shift_left_assign, /* "<<=" */    onk_eq,                /* "==" */
   onk_ne,                /* "!=" */     onk_le,                /* "<=" */
-  onk_ge,                /* ">=" */     onk_and_and,           /* "&&" */
-  onk_or_or,             /* "||" */     onk_plus_plus,         /* "++" */
-  onk_minus_minus,       /* "--" */     onk_comma,             /* "," */
-  onk_arrow_star,        /* "->*" */    onk_arrow,             /* "->" */
-  onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
+  onk_ge,                /* ">=" */     onk_spaceship,         /* <=> */
+  onk_and_and,           /* "&&" */     onk_or_or,             /* "||" */
+  onk_plus_plus,         /* "++" */     onk_minus_minus,       /* "--" */
+  onk_comma,             /* "," */      onk_arrow_star,        /* "->*" */
+  onk_arrow,             /* "->" */     onk_function_call,     /* "()" */
+  onk_subscript,         /* "[]" */
   onk_question,          /* "?" -- only used in front end. */
   onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
   onk_await,             /* co_await */ onk_last
@@ -12556,6 +12558,7 @@ enum an_expr_operator_kind_tag {
   eok_lt,               /* Less than ("<"). */
   eok_ge,               /* Greater than or equal (">="). */
   eok_le,               /* Less than or equal ("<="). */
+  eok_spaceship,        /* Three-way comparison ("<=>"). */
   eok_vector_eq,        /* GNU vector equality ("==").  Result is a vector of
                            signed integral element type. */
   eok_vector_ne,        /* GNU vector inequality ("!=").  Result is a vector of
@@ -17103,7 +17106,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
    "p+", "p-", "pd",
    "<<", ">>", "&", "|", "^",
-   "==", "!=", ">", "<", ">=", "<=",
+   "==", "!=", ">", "<", ">=", "<=", "<=>",
    "vec==", "vec!=", "vec>", "vec<", "vec>=", "vec<=",
    "<?", ">?",
    "=",

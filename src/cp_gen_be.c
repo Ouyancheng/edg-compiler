@@ -653,6 +653,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_RELATIONAL,	/* eok_lt */
   PREC_RELATIONAL,	/* eok_ge */
   PREC_RELATIONAL,	/* eok_le */
+  PREC_SPACESHIP,	/* eok_spaceship */
   PREC_EQ_NE,		/* eok_vector_eq */
   PREC_EQ_NE,		/* eok_vector_ne */
   PREC_RELATIONAL,	/* eok_vector_gt */
@@ -11803,6 +11804,7 @@ static a_byte overloadable_operator_precedence[] = {
   PREC_EQ_NE,		/* onk_ne */
   PREC_RELATIONAL,	/* onk_le */
   PREC_RELATIONAL,	/* onk_ge */
+  PREC_SPACESHIP,	/* onk_spaceship */
   PREC_AND_AND,		/* onk_and_and */
   PREC_OR_OR,		/* onk_or_or */
   PREC_POSTFIX,		/* onk_plus_plus */
@@ -13847,6 +13849,9 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_le:
         case eok_vector_le:
           opstr = "<=";
+          break;
+        case eok_spaceship:
+          opstr = "<=>";
           break;
 #if GNU_EXTENSIONS_ALLOWED
         case eok_gnu_min:

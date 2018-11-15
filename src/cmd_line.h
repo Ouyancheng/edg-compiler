@@ -2443,6 +2443,12 @@ EXTERN a_boolean
 			   certain unevaluated contexts that do not require
 			   mangling the lambda. */
 
+EXTERN a_boolean
+		spaceship_enabled;
+			/* TRUE if support for the C++20 "spaceship" operator
+			   ("<=>") is enabled. */
+
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
