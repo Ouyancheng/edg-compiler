@@ -2376,6 +2376,13 @@ location in which the group appears.
     } else {
       /* Use a separate attribute to indicate the presence of a "using"
          prefix. */
+      if (!cpp17_mode && gpp_mode) {
+        static a_boolean  already_diagnosed = FALSE;
+        if (!already_diagnosed && !in_system_header()) {
+          pos_warning(ec_using_attribute_nonstandard, &pos_curr_token);
+          already_diagnosed = TRUE;
+        }  /* if */
+      }  /* if */
       using_ns_ap = make_attribute(af_std);
       using_ns_ap->kind = (a_byte_attribute_kind)ak_attr_using_prefix;
       using_ns_ap->syntactic_location = (a_byte_attribute_location)loc;

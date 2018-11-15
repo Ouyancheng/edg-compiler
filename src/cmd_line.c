@@ -4912,6 +4912,10 @@ before this routine is called.
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
     }  /* if */
+    if (clang_version >= 60000) {
+      /* Enabled by default (with a warning if in non-C++17 mode). */
+      using_attribute_namespaces_enabled = TRUE;
+    }  /* if */
   } else {
     /* Not Clang mode. */
     /* Early template test for g++ prior to 4.7 (a TRUE value corresponds to
@@ -4934,6 +4938,7 @@ before this routine is called.
       capture_star_this_enabled = TRUE;
       /* GCC 7.x and later enable selection initializers in all C++ modes. */
       selection_initializers_enabled = TRUE;
+      using_attribute_namespaces_enabled = TRUE;
     }  /* if */
     register_is_deprecated = FALSE;
     register_is_disallowed = FALSE;

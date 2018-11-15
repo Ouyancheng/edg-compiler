@@ -1,5 +1,15 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20449]
+GNU/Clang compatibility: using attribute prefix
+
+In GNU C++ mode with gnu_version >= 70000 or Clang emulation mode when
+clang_version >= 60000 the front end now enables the use of a "using" prefix in
+an attribute specification.  When C++17 mode is not enabled, a warning is
+issued for the first "using" attribute prefix that appears outside a system
+header.
+
+
 11/15/18 [EDGcpfe/20306]
 Incorrect cleanup list with overlapping temporaries in some configurations
 
