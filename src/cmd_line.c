@@ -4926,6 +4926,7 @@ before this routine is called.
     if (cpp11_mode && gnu_version >= 60000) {
       /* Later versions of GNU appear to enable this by default. */
       terse_static_assert_enabled = TRUE;
+      fold_expressions_enabled = TRUE;
     }  /* if */
     register_is_deprecated = FALSE;
     register_is_disallowed = FALSE;

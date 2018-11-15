@@ -2472,6 +2472,9 @@ extern void fix_memory_region_problems_in_copied_constant(a_constant_ptr cp);
 
 extern a_boolean seq_is_in_system_header(a_seq_number  seq_number);
 
+#define in_system_header()                                                    \
+  seq_is_in_system_header(pos_curr_token.seq)
+
 extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
                                                  an_il_entry_kind  kind);

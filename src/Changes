@@ -1,5 +1,13 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20456]
+GNU compatibility: Fold-expressions
+
+In GNU C++ mode with gnu_version >= 60000 the front end now enables fold
+expressions in C++11 mode.  A warning is issued for the first fold expression
+appearing outside a system header if C++17 mode is not enabled.
+
+
 11/15/18 [EDGcpfe/20014,EDGcpfe/20120]
 C++20: Initial support for three-way comparison (aka. the spaceship operator)
 

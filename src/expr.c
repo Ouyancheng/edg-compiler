@@ -46413,6 +46413,13 @@ left_associative is TRUE if the expansion should be evaluated as
     /* Create an enk_fold node. */
     an_arg_list_elem_ptr  alep = opnd_list;
     an_expr_node_ptr      fold_node, opnd_nodes;
+    if (!cpp17_mode && gpp_mode) {
+      static a_boolean  already_diagnosed = FALSE;
+      if (!already_diagnosed && !in_system_header()) {
+        pos_warning(ec_fold_expressions_nonstandard, op_pos);
+        already_diagnosed = TRUE;
+      }  /* if */
+    }  /* if */
     fold_node = alloc_expr_node((an_expr_node_kind)enk_fold);
     fold_node->type = type_of_unknown_templ_param_nontype;
     fold_node->position = *op_pos;
