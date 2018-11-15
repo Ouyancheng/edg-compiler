@@ -1,5 +1,14 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20460]
+GNU compatibility: Selection statements with initializers
+
+In GNU C++ mode with gnu_version >= 70000 the front end now enables selection
+statements with initializers (see entry for EDGcpfe/17414) even when C++17 mode
+is not enabled.  A warning is issued for the first such case appearing outside
+a system header.
+
+
 11/15/18 [EDGcpfe/20456]
 GNU compatibility: Fold-expressions
 

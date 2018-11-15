@@ -3767,6 +3767,13 @@ scope and an enk_condition node (the node is attached to sp).
     a_disambig_flag_set  flags = DFS_REAL_DECLARATOR_ALLOWED |
                                  DFS_IS_CONDITION;
     check_assertion(curr_token == tok_semicolon);
+    if (!cpp17_mode && gpp_mode) {
+      static a_boolean  already_diagnosed = FALSE;
+      if (!already_diagnosed && !in_system_header()) {
+        pos_warning(ec_selection_initializer_nonstandard, &pos_curr_token);
+        already_diagnosed = TRUE;
+      }  /* if */
+    }  /* if */
     (void)get_token();
     start_potential_decl_statement(&entity_list);
     if (is_decl_not_expr(flags)) {

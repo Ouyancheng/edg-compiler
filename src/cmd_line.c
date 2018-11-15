@@ -4928,6 +4928,10 @@ before this routine is called.
       terse_static_assert_enabled = TRUE;
       fold_expressions_enabled = TRUE;
     }  /* if */
+    if (gnu_version >= 70000) {
+      /* GCC 7.x and later enable selection initializers in all C++ modes. */
+      selection_initializers_enabled = TRUE;
+    }  /* if */
     register_is_deprecated = FALSE;
     register_is_disallowed = FALSE;
     operator_bool_increment_allowed = TRUE;

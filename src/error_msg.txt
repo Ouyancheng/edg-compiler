@@ -2998,6 +2998,7 @@ ec_multiple_union_field_initializers_empty;;"a union can have at most one field 
 ec_bad_ordering_type;;"no valid std::%s type found (<compare> must be included)"
 ec_invalid_spaceship_types;;"invalid types (%t1 and %t2) for built-in operator<=>"
 ec_fold_expressions_nonstandard;;"fold expressions are nonstandard in this mode"
+ec_selection_initializer_nonstandard;;"C++17-style initializer is nonstandard in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
