@@ -1,5 +1,31 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20306]
+Incorrect cleanup list with overlapping temporaries in some configurations
+
+In lowering configurations where GENERATE_EH_TABLES is FALSE, in cases
+involving destruction of temporaries in overlapping lifetimes, the cleanup
+state could be incorrect.  A change has been made to address this.
+For example (with --c++11):
+
+  #include <initializer_list>
+  struct A {
+    A(int);
+    ~A();
+  };
+  struct S {
+    ~S();
+  };
+  struct C {
+    C(std::initializer_list<A>);
+    ~C();
+  };
+  void f() {
+    C c { 0 };
+    S s;
+  }
+
+
 11/15/18 [EDGcpfe/20460]
 GNU compatibility: Selection statements with initializers
 

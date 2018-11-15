@@ -7449,13 +7449,11 @@ variable to a zero value.
 
 
 static a_dynamic_init_ptr adjust_cleanup_state_for_inner_lifetime_temporaries(
-                                                   a_dynamic_init_ptr temp_dip,
-                                                   a_dynamic_init_ptr dip)
+                                                   a_dynamic_init_ptr temp_dip)
 /*
-dip points to a destruction for an entity that is created while
+temp_dip points to the destruction for a temporary that is created while
 destructible temporaries in an inner object lifetime are still in
-existence.  temp_dip points to the destruction for one of those
-temporaries, or NULL if we've reached the end of the list.  Update the
+existence, or NULL if we've reached the end of the list.  Update the
 region table information for the temporary and those following it in
 its object lifetime so that the cleanup list includes the temporaries
 and then the outer-lifetime entity.  Note that some entries on the
@@ -7471,69 +7469,53 @@ entries were seen.
 This may involve cloning some of the region table entries for the
 temporaries (but not any for partially constructed aggregates), since
 currently the last temporary points past the outer-lifetime entity to
-the next thing to be destroyed after that.  The region table entry for
-dip has already been created.
+the next thing to be destroyed after that.
 */
 #endif /* GENERATE_EH_TABLES */
 {
-  a_dynamic_init_ptr first_real_temp = NULL;
-
+  a_dynamic_init_ptr              first_real_temp = NULL;
+  a_destructible_entity_descr_ptr dedp;
+  a_dynamic_init_ptr              next_dip;
+  /* Skip over any partial-aggregate destructions on the list. */
+  while (temp_dip != NULL &&
+         temp_dip->destruction_is_for_partially_constructed_aggregate) {
 #if GENERATE_EH_TABLES
-  { a_dynamic_init_ptr              orig_temp_dip = temp_dip;
-    a_destructible_entity_descr_ptr dedp;
-    a_dynamic_init_ptr              next_dip;
-    /* Skip over any partial-aggregate destructions on the list. */
-    while (temp_dip != NULL &&
-           temp_dip->destruction_is_for_partially_constructed_aggregate) {
-      temp_dip = temp_dip->destructible_entity_descr->next_in_region_table;
-    }  /* while */
-    /* If we ran off the list, do nothing and return NULL. */
-    if (temp_dip == NULL) goto end_of_routine;
-    first_real_temp = temp_dip;
-    dedp = temp_dip->destructible_entity_descr;
-    /* Find and process the next real temporary following this one. */
-    next_dip = dedp->next_in_region_table;
-    next_dip = adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip,
-                                                                   dip);
-    /* Link this temp destruction to the next real temp destruction, if any. */
-    dedp->next_in_region_table = next_dip;
-    /* Adjust the pointer to the previous entity, to one after this one on
-       the cleanup list. */
-    dedp->cleanup_state_to_set_when_starting_destruction =
-                                              curr_context->curr_cleanup_state;
-    /* Clone the region table entry for this destruction and add it to
-       the beginning of a region table cleanup sequence that runs through
-       the temporaries and then destroys the outer-lifetime entity.
-       Don't clone the region table entry for the first destruction
-       in the temporary lifetime, because a cleanup state including
-       that destruction will not be needed -- we start with destroying
-       that one, and the cleanup state established right away points to
-       the second destruction on the list, or the outer-lifetime entity's
-       destruction if there is only one temporary destruction on the
-       list. */
-    if (orig_temp_dip != temp_dip->lifetime->destructions) {
-      clone_region_table_entry_list(temp_dip, next_dip);
-    }  /* if */
-  }
+    temp_dip = temp_dip->destructible_entity_descr->next_in_region_table;
 #else /* !GENERATE_EH_TABLES */
-  /* Find the last destruction entry for a temporary and reset its
-     cleanup_state_to_set_when_starting_destruction to dip.
-     Partial-aggregate cleanups stay on the list, so they are treated like
-     any other entries. */
+    temp_dip = temp_dip->next_in_destruction_list;
+#endif /* GENERATE_EH_TABLES */
+  }  /* while */
+  /* If we ran off the list, do nothing and return NULL. */
   if (temp_dip == NULL) goto end_of_routine;
-  { a_dynamic_init_ptr last_dip;
-    a_destructible_entity_descr_ptr last_dedp;
-    for (last_dip = temp_dip;
-         last_dip->next_in_destruction_list != NULL;
-         last_dip = last_dip->next_in_destruction_list) {
-      if (!last_dip->destruction_is_for_partially_constructed_aggregate &&
-          first_real_temp == NULL) {
-        first_real_temp = last_dip;
-      }  /* if */
-    }  /* for */
-    last_dedp = last_dip->destructible_entity_descr;
-    last_dedp->cleanup_state_to_set_when_starting_destruction = dip;
-  }
+  first_real_temp = temp_dip;
+  dedp = temp_dip->destructible_entity_descr;
+  /* Find and process the next real temporary following this one. */
+#if GENERATE_EH_TABLES
+  next_dip = dedp->next_in_region_table;
+#else /* !GENERATE_EH_TABLES */
+  next_dip = temp_dip->next_in_destruction_list;
+#endif /* GENERATE_EH_TABLES */
+  next_dip = adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip);
+  /* Adjust the pointer to the previous entity, to one after this one on
+     the cleanup list. */
+  dedp->cleanup_state_to_set_when_starting_destruction =
+                                              curr_context->curr_cleanup_state;
+#if GENERATE_EH_TABLES
+  /* Link this temp destruction to the next real temp destruction, if any. */
+  dedp->next_in_region_table = next_dip;
+  /* Clone the region table entry for this destruction and add it to
+     the beginning of a region table cleanup sequence that runs through
+     the temporaries and then destroys the outer-lifetime entity.
+     Don't clone the region table entry for the first destruction
+     in the temporary lifetime, because a cleanup state including
+     that destruction will not be needed -- we start with destroying
+     that one, and the cleanup state established right away points to
+     the second destruction on the list, or the outer-lifetime entity's
+     destruction if there is only one temporary destruction on the
+     list. */
+  if (orig_temp_dip != temp_dip->lifetime->destructions) {
+    clone_region_table_entry_list(temp_dip, next_dip);
+  }  /* if */
 #endif /* GENERATE_EH_TABLES */
 end_of_routine:
   curr_context->latest_initialization = temp_dip;
@@ -7598,8 +7580,7 @@ Any code needed is inserted at *insert_location.
       check_assertion_str(curr_context != context,
                           "add_dyn_init_cleanup: curr_context == context");
       temp_dip = adjust_cleanup_state_for_inner_lifetime_temporaries(
-                                           curr_context->latest_initialization,
-                                           dip);
+                                          curr_context->latest_initialization);
       if (temp_dip != NULL) {
         if (temp_dip->lifetime->destructions == temp_dip) {
           /* There's no need to emit code to set the cleanup state here: it's
