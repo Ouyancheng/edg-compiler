@@ -33690,7 +33690,6 @@ Scan a C++ lambda expression, e.g., something like
   a_source_position       start_pos;
   a_boolean               err = FALSE;
   an_expr_stack_entry     expr_stack_entry;
-  a_boolean               invoked_lambda = FALSE;
   an_expr_stack_entry_ptr orig_expr_stack = expr_stack;
 
   start_pos = pos_curr_token;
@@ -33749,25 +33748,19 @@ Scan a C++ lambda expression, e.g., something like
   expr_stack_entry.current_lambda_in_header = NULL;
   /* Scan the lambda. */
   lambda = scan_lambda();
-  if (lambda != NULL && !err && lambda->lambda_routine->is_constexpr &&
-      curr_token == tok_lparen) {
-    /* FIXME: Lambdas in C++20 are allowed in various contexts if they are
-       constexpr and immediately invoked.  This check handles the case
-       where the argument list immediately follows the lambda-expression;
-       it does not handle the case where the lambda-expression is enclosed
-       in redundant parentheses. */
-    invoked_lambda = TRUE;
-  }  /* if */
   if (lambda == NULL || err) {
     /* Some serious error was previously detected. */
     make_error_operand(result);
-  } else if (!invoked_lambda &&
+  } else if (lambda_allowed_in_uneval_context &&
+             !lambda->lambda_routine->is_constexpr &&
              scope_stack_top().exception_specification) {
-    /* A lambda is not allowed in a noexcept specifier. */
+    /* A lambda is not allowed in a noexcept specifier unless it is
+       immediately invoked to produce a constant value. */
     expr_pos_error(ec_lambda_in_noexcept_specifier, &start_pos);
     err = TRUE;
     make_error_operand(result);
-  } else if (lambda_allowed_in_uneval_context && !invoked_lambda &&
+  } else if (lambda_allowed_in_uneval_context &&
+             !lambda->lambda_routine->is_constexpr &&
              (scope_stack_top().in_template_arg_list ||
               (orig_expr_stack->possible_rescan_context &&
                (scope_is(&scope_stack_top(), sck_func_prototype) ||
@@ -33783,7 +33776,11 @@ Scan a C++ lambda expression, e.g., something like
             (default arguments are okay),
           - template parameter lists (we permit default template argument
             contexts, but an error will be issued if such an argument is
-            instantiated). */
+            instantiated).
+       If the lambda is constexpr and immediately invoked, however, it's
+       just a constant expression.  We can't tell that here, so we have to
+       defer that test until the ultimate expression is tested for
+       constness. */
     expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
     err = TRUE;
     make_error_operand(result);
@@ -41705,7 +41702,12 @@ The value of the constant is returned in *constant.
     transfer_expr_context_if_applicable(saved_expr_stack);
     /* Scan the constant expression. */
     scan_expr(&result, prec_level, EOPT_DISALLOW_COMMA_OPERATOR);
-    if (constexpr_enabled) {
+    if (is_immediate_class_type(result.type) &&
+        result.type->variant.class_struct_union.extra_info->
+                                                     is_lambda_closure_class) {
+      expr_pos_error(ec_lambda_not_allowed_here, &result.position);
+      set_error_constant(constant);
+    } else if (constexpr_enabled) {
       /* C++11 allows user-defined conversions and limits certain
          implicit conversions. */
       a_builtin_type_kind_set  btks;
