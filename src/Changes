@@ -1,5 +1,13 @@
 Version 5.1
 
+11/15/18 [EDGcpfe/20450]
+GNU/Clang compatibility: Standard attributes on namespaces
+
+In GNU C++ mode with gnu_version >= 60000 or Clang emulation mode when
+clang_version >= 60000 the front end now allows standard attributes to appear
+on namespaces.  See the Changes entry for EDGcpfe/16270.
+
+
 11/15/18 [EDGcpfe/20449]
 GNU/Clang compatibility: using attribute prefix
 

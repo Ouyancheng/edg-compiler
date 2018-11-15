@@ -4915,6 +4915,7 @@ before this routine is called.
     if (clang_version >= 60000) {
       /* Enabled by default (with a warning if in non-C++17 mode). */
       using_attribute_namespaces_enabled = TRUE;
+      namespace_attributes_enabled = TRUE;
     }  /* if */
   } else {
     /* Not Clang mode. */
@@ -4931,6 +4932,7 @@ before this routine is called.
       /* Later versions of GNU appear to enable this by default. */
       terse_static_assert_enabled = TRUE;
       fold_expressions_enabled = TRUE;
+      namespace_attributes_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 70000) {
       /* GCC 7.x and later enable selection initializers in all C++ modes
