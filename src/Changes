@@ -28,7 +28,7 @@ would cause an assertion failure.  For example:
     union { int z = 37; };
   };
 
-Invalid declaration of int A within an anonymous union member of union A 
+The invalid declaration of int A within an anonymous union member of union A 
 would lead to an assertion failure when int z is declared.  This has now 
 been fixed.
 
