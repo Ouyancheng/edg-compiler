@@ -9064,13 +9064,16 @@ presence of a pack expansion in the list also makes it "type dependent".
         is_dependent = TRUE;
         break;
       }  /* if */
-    } else {
-      check_assertion(is_braced_init_component(alep));
+    } else if (is_braced_init_component(alep)) {
       if (arg_list_is_type_dependent(alep->variant.braced.list)) {
         is_dependent = TRUE;
         break;
       }  /* if */
-    }  /* if */
+    } else if (is_designator_component(alep)) {
+      continue;
+    } else {
+      unexpected_condition();
+    } /* if */
   }  /* for */
   return is_dependent;
 }  /* arg_list_is_type_dependent */

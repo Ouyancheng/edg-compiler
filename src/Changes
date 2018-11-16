@@ -1,5 +1,21 @@
 Version 5.1
 
+11/16/18 [EDGcpfe/20377] 
+Assertion failure in arg_list_is_type_dependent with designated initializer
+
+Template declaration containing a designator would sometimes cause an assertion
+failure in arg_list_is_type_dependent.  For example:
+
+  struct A {
+    int x;
+  };
+
+  template < class T >
+  auto f ( T x ) -> decltype ( new auto ( A ( { .x = 0 } ) ) );
+
+This is now fixed.
+
+
 11/15/18 [EDGcpfe/20470]
 Default constructor not correctly inherited
 
