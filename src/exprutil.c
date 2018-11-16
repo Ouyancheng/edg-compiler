@@ -14008,6 +14008,19 @@ list.
     prep_generic_operand(operand_of_arg_list_elem(arg));
   } else if (is_braced_init_component(arg)) {
     prep_generic_argument_list(arg->variant.braced.list);
+  } else if (is_designator_component(arg)) {
+    /* Change arg to an expression component representing a ck_designator
+       constant. */
+    a_constant_ptr  des_con = local_constant();
+    clear_constant(des_con, (a_constant_repr_kind)ck_designator);
+    des_con->variant.designator.is_field_designator = TRUE;
+    des_con->variant.designator.is_generic = TRUE;
+    des_con->variant.designator.variant.field_name =
+                arg->variant.designator.field_name->identifier;
+    des_con->type = type_of_unknown_templ_param_nontype;
+    set_init_component_kind(arg, ick_expression);
+    make_constant_operand(des_con, operand_of_arg_list_elem(arg));
+    release_local_constant(&des_con);
   } else {
     unexpected_condition();
   }  /* if */
