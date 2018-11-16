@@ -4917,6 +4917,9 @@ before this routine is called.
       if (clang_version >= 30300) {
         std_thread_local_storage_specifier_enabled = TRUE;
       }  /* if */
+      if (clang_version >= 30600) {
+        nested_namespace_definitions_enabled = TRUE;
+      }  /* if */
     }  /* if */
     if (clang_version >= 60000) {
       /* Enabled by default (with a warning if in non-C++17 mode). */
@@ -4939,6 +4942,7 @@ before this routine is called.
       terse_static_assert_enabled = TRUE;
       fold_expressions_enabled = TRUE;
       namespace_attributes_enabled = TRUE;
+      nested_namespace_definitions_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 70000) {
       /* GCC 7.x and later enable selection initializers in all C++ modes

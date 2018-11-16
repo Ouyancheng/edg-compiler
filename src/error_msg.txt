@@ -3001,6 +3001,7 @@ ec_fold_expressions_nonstandard;;"fold expressions are nonstandard in this mode"
 ec_selection_initializer_nonstandard;;"C++17-style initializer is nonstandard in this mode"
 ec_star_this_capture_nonstandard;;"capturing *this is nonstandard in this mode"
 ec_using_attribute_nonstandard;;"C++17-style \"using\" attribute prefix is nonstandard in this mode"
+ec_nested_namespace_nonstandard;;"C++17-style nested namespaces are nonstandard in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

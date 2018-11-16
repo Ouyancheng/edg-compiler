@@ -14499,6 +14499,13 @@ NULL otherwise).
       if (nested_namespace_definitions_enabled) {
         /* An enclosing namespace specifier in a nested namespace
            definition. */
+        if (!cpp17_mode && clang_mode) {
+          static a_boolean  already_diagnosed = FALSE;
+          if (!already_diagnosed && !in_system_header()) {
+            pos_warning(ec_nested_namespace_nonstandard, &pos_curr_token);
+            already_diagnosed = TRUE;
+          }  /* if */
+        }  /* if */
         is_enclosing_namespace_specifier = TRUE;
         if (curr_token != tok_identifier) {
           /* This isn't processed now, but make sure an identifier follows

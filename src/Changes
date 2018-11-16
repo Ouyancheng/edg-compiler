@@ -1,5 +1,12 @@
 Version 5.1
 
+11/16/18 [EDGcpfe/18414,EDGcpfe/20308,EDGcpfe/20458]
+GNU/Clang compatibility: Enable nested namespaces
+
+Nested namespaces (a C++17 feature) are now enabled when gnu_version >= 60000
+or clang_version >= 30600.  A warning is issued in clang emulation mode.
+
+
 11/16/18 [EDGcpfe/20477]
 GNU/Clang compatibility: Feature test macros for features enabled in earl
 
