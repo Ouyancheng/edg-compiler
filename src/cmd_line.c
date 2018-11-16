@@ -3663,6 +3663,7 @@ setting is used, and to set various unmentioned settings as needed.
   /* VLA deallocations are implicit in C++ and tied to object lifetimes,
      so do not generate the explicit C-mode deallocations. */
   vla_deallocations_in_il = FALSE;
+  designators_allowed = FALSE;
   /* If the designators option has not been explicitly specified and we are in 
      C++20 mode enable a restricted form of designated initializers. */
   if (cpp20_mode && !option_kind_used[(int)optk_designators]) {
