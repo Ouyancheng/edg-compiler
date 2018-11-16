@@ -22611,14 +22611,16 @@ constructor.
   a_routine_ptr        brp;
   uint32_t             n_params, n_base_params;
   an_access_specifier  saved_access = cdsp->access;
+  a_type_ptr           brtp;
 
   check_assertion(symbol_is(bctor, sk_member_function));
   brp = bctor->variant.routine.ptr;
-  if (skip_typerefs(brp->type)->variant.routine.extra_info->has_ellipsis) {
-    /* Do not attempt to inherit an ellipsis constructor. */
+  count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
+  brtp = skip_typerefs(brp->type);
+  if (brtp->variant.routine.extra_info->has_ellipsis && n_base_params == 0) {
+    /* Do not attempt to inherit an ellipsis-only constructor. */
     goto done;
   }  /* if */
-  count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
   if (n_base_params > 0 && n_params == 0) {
     /* For constructors with parameters, attempt to declare an inheriting
        constructor for each valid number of arguments that could be passed to
@@ -22629,7 +22631,7 @@ constructor.
     a_type_ptr        new_tp;
     a_symbol_ptr      dctor;
     if (n_params == 1) {
-      a_type_ptr  param_type = function_type_params(brp->type)->type,
+      a_type_ptr  param_type = function_type_params(brtp)->type,
                   class_type = udp->qualifier.class_type;
       if (is_reference_type(param_type)) {
         /* Exclude copy/move constructors. */
