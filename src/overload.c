@@ -5401,14 +5401,16 @@ the point of call.  conv_context describes the context of the conversion.
     }  /* if */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = symbol_is(function_symbol, sk_function_template);
-    if (is_ambiguous_by_inheritance(proj_function_symbol)) {
-      /* The symbol is ambiguous, and as such is an arbitrary
-         representative of a set of functions that collided due
-         to inheritance.  There's no point in seeing whether the function
-         indicated matches up, since there might be another function
-         that isn't represented that would match better.  Just put the
-         symbol in the candidate functions set.  It will stay in there
-         and cause the overload resolution to be ambiguous. */
+    if (is_ambiguous_by_inheritance(proj_function_symbol) &&
+        !func_sym_routine(proj_function_symbol)->is_inheriting_ctor) {
+      /* The symbol is ambiguous, and as such is an arbitrary representative
+         of a set of functions that collided due to inheritance (except for
+         ambiguous inheriting constructors, which will all be in the set).
+         There's no point in seeing whether the function indicated matches up,
+         since there might be another function that isn't represented that
+         would match better.  Just put the symbol in the candidate functions
+         set.  It will stay in there and cause the overload resolution to be
+         ambiguous. */
       goto accept_function;
     }  /* if */
     if (!function_template_case) {

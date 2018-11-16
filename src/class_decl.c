@@ -14506,25 +14506,17 @@ implicitly declared member functions.
       {
         a_boolean  ambiguous = FALSE;
         /* symbol_for_member_function has returned a symbol that has already 
-           been declared.  Issue an error on trying to redeclare a
-           member function. */
+           been declared.  Issue an error on trying to redeclare a member
+           function. */
         if (decl_state->is_inheriting_ctor &&
             sym->variant.routine.ptr->is_inheriting_ctor) {
-          if (cpp17_mode || ms_version_is(>=1914)) {
-            /* Inheriting constructors were reformulated in C++17 such that
-               they are completely handled at the point of use (instead of
-               synthesized at the point where the using-declaration appears).
-               We approximate some of that behavior by marking the synthesized
-               constructors as ambiguous if a duplicate synthesis is
-               detected. */
-            sym->ambiguous = TRUE;
-            ambiguous = TRUE;
-          } else {
-            pos_syty_error(ec_inheriting_ctor_conflict,
-                           &locator->source_position, sym,
-                           sym->variant.routine.ptr->generating_using_decl
-                                                   ->qualifier.class_type);
-          }  /* if */
+          /* Inheriting constructors were reformulated in C++17 such that they
+             are completely handled at the point of use (instead of synthesized
+             at the point where the using-declaration appears).  We approximate
+             some of that behavior by marking the synthesized constructors as
+             ambiguous if a duplicate synthesis is detected. */
+          sym->ambiguous = TRUE;
+          ambiguous = TRUE;
         } else {
           pos_sy_error(ec_member_function_redeclaration,
                        &locator->source_position, sym);
@@ -22622,9 +22614,13 @@ constructor.
 
   check_assertion(symbol_is(bctor, sk_member_function));
   brp = bctor->variant.routine.ptr;
+  if (skip_typerefs(brp->type)->variant.routine.extra_info->has_ellipsis) {
+    /* Do not attempt to inherit an ellipsis constructor. */
+    goto done;
+  }  /* if */
   count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
   if (n_base_params > 0 && n_params == 0) {
-    /* For constructors with parameters.  Attempt to declare an inheriting
+    /* For constructors with parameters, attempt to declare an inheriting
        constructor for each valid number of arguments that could be passed to
        the base constructor, but exclude the zero-argument case. */
     ++n_params;
@@ -22645,8 +22641,8 @@ constructor.
     }  /* if */
     new_tp = create_inheriting_ctor_type(brp, n_base_params, n_params,
                                          cdsp->class_type);
-    /* Check if the derived class already contains a user-declared constructor
-       with this signature: */
+    /* Check if the derived class already contains a constructor with this
+       signature: */
     dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
     if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
       dctor = dctor->variant.overloaded_function.symbols;
@@ -22659,19 +22655,18 @@ constructor.
         continue;
       }  /* if */
       drp  = dctor->variant.routine.ptr;
-      if (!drp->compiler_generated &&
+      if (!drp->is_inheriting_ctor &&
           f_types_are_compatible(drp->type, new_tp,
                                  TCF_REDECLARATION |
                                  TCF_IGNORE_THIS_CLASS_TYPE)) {
-        /* Don't inherit constructors that match a constructor explicitly
+        /* Don't inherit constructors that match a non-inheriting constructor
            declared in the derived class. */
         break;
       }  /* if */
     }  /* for */
     if (dctor == NULL) {
-      /* There is no user-declared constructor with this signature yet:
-         Generate one now (the declaration only; the definition is generated
-         only if used). */
+      /* There is no constructor with this signature yet: Generate one now
+         (the declaration only; the definition is generated only if used). */
       a_member_decl_info  decl_info;
       a_func_info_block   func_info;
       a_symbol_locator    loc;
@@ -22705,6 +22700,7 @@ constructor.
     }  /* if */
   }  /* for */
   cdsp->access = saved_access;
+done:;
 }  /* generate_inheriting_constructors_for_base_ctor */
 
 
