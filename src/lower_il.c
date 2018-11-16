@@ -15600,9 +15600,6 @@ cast.  See lower_expr for typical invocation.
               lower_c99_xne(expr);
             }  /*if */
             break;
-          case eok_spaceship:
-            lower_cpp20_spaceship(expr);
-            break;
 #if C99_IL_EXTENSIONS_SUPPORTED
           case eok_xconj:
             lower_xconj(expr);
@@ -15613,6 +15610,9 @@ cast.  See lower_expr for typical invocation.
             break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* LOWER_COMPLEX */
+          case eok_spaceship:
+            lower_cpp20_spaceship(expr);
+            break;
           case eok_assign:
             lower_assignment_operator(expr);
             break;
