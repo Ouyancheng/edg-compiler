@@ -22660,7 +22660,8 @@ constructor.
       if (!drp->is_inheriting_ctor &&
           f_types_are_compatible(drp->type, new_tp,
                                  TCF_REDECLARATION |
-                                 TCF_IGNORE_THIS_CLASS_TYPE)) {
+                                 TCF_IGNORE_THIS_CLASS_TYPE |
+                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
         /* Don't inherit constructors that match a non-inheriting constructor
            declared in the derived class. */
         break;
