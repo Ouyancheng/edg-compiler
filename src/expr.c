@@ -34318,7 +34318,7 @@ see expr.h).
     /* A decltype could be decltype(x) or decltype(x)::something.  This
        will coalesce the decltype into a tok_decltype_construct in the
        first case or a tok_identifier in the latter case. */
-    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    (void)is_generalized_identifier_start(GID_IS_EXPR_CONTEXT);
   }  /* if */
 repeat_switch:
   switch ((int)curr_token) {
@@ -35210,6 +35210,10 @@ bad_start_of_primary:
       if (curr_token == tok_lparen) {
         /* The undefined symbol is about to be called, so it's an implicitly
            declared function and therefore okay. */
+      } else if (adl_for_non_visible_templates && curr_token == tok_lt) {
+        /* In C++20 (adl_for_non_visible_templates is TRUE), something like
+           "undefined<something..." is treated as a template-name so that
+           ADL will be performed to look for "undefined" in a namespace. */
       } else {
         /* The undefined symbol is about to be the operand of some
            operation other than a call, so it's truly undefined. */

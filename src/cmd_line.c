@@ -2429,6 +2429,9 @@ option values if they were not already set by a command line option.
     enum_qualifiers_enabled = TRUE;
     explicit_enum_base_enabled = (microsoft_version >= 1400) ||
                                  cppcli_enabled || cpp11_mode;
+    /* Don't enable this in C++/CLI mode.  It causes issues with special
+       identifiers such as safe_cast. */
+    if (cppcli_enabled) adl_for_non_visible_templates = FALSE;
     if (microsoft_version >= 1700) {
       opaque_enum_decls_enabled = TRUE;
     }  /* if */
@@ -2709,6 +2712,7 @@ option values if they were not already set by a command line option.
           lambda_allowed_in_uneval_context = TRUE;
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
+          adl_for_non_visible_templates = TRUE;
           msvc_lang = "202000L";
           /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
              command-line options.  Note that internally most C++20 features
@@ -3536,6 +3540,7 @@ default mode (e.g., exception handling).
         lambda_allowed_in_uneval_context = TRUE;
         aggregate_classes_can_have_user_ctors = FALSE;
         spaceship_enabled = TRUE;
+        adl_for_non_visible_templates = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11436,6 +11441,7 @@ variables declared in cmd_line.h.
   constexpr_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
   constexpr_virtual_enabled = FALSE;
+  adl_for_non_visible_templates = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;

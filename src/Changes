@@ -1,5 +1,26 @@
 Version 5.1
 
+11/16/18 [EDGcpfe/20121]
+C++20: ADL and function templates that are not visible
+
+In C++20 mode, argument-dependent lookup can now be used when calling
+function templates that are may not be visible when using an explicit
+template argument list (see P0846R0).  This example from that paper
+is now accepted.
+
+  void g();
+  namespace N {
+    struct A {};
+    template <class T> int f(T);
+    template <class T> int g(T);
+    template <class T> int h(T);
+  }
+  int x = f<N::A>(N::A());  // OK: lookup of f finds nothing,
+                            // f treated as template name
+  int y = g<N::A>(N::A());  // OK: lookup of g finds a function,
+                            // g treated as template name
+
+
 11/16/18 [EDGcpfe/20377] 
 Assertion failure in arg_list_is_type_dependent with designated initializer
 

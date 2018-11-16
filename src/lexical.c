@@ -18134,6 +18134,7 @@ static a_symbol_ptr coalesce_template_id(
 			a_token_kind			next_tok,
 			a_token_sequence_number		start_tsn,
 			an_identifier_options_set	options,
+			a_boolean			is_name_start,
 			a_boolean			*err)
 /*
 This routine is called when an identifier is followed by "<" sign that
@@ -18145,7 +18146,10 @@ coalesce_template_function_reference is called to scan the argument list.
 Otherwise, coalesce_template_class_reference is called to either scan
 the class template argument list or diagnose an invalid template reference.
 start_tsn is the token sequence number of the first token of the whole
-qualified name.
+qualified name.  is_name_start is TRUE if this is the start of a possibly
+qualified name.  It is FALSE if this is not the start of the name, or if
+it is a name that is part of a class member access (i.e., it follows a
+"." or "->").
 */
 {
   a_symbol_ptr	result_sym;
@@ -18156,11 +18160,16 @@ qualified name.
                                                       start_tsn,
                                                       options,
                                                       next_tok, err);
-  } else if (template_sym != NULL &&
-             !is_class_template_or_injected_template_symbol(template_sym) && 
-             symbol_is_or_contains_template(template_sym)) {
+  } else if ((adl_for_non_visible_templates && is_name_start &&
+              (options & GID_IS_EXPR_CONTEXT) != 0 &&
+              (template_sym == NULL || is_function_symbol(template_sym))) ||
+             (template_sym != NULL &&
+              !is_class_template_or_injected_template_symbol(template_sym) && 
+              symbol_is_or_contains_template(template_sym))) {
     /* A function template symbol or overload set containing a function
-       template symbol. */
+       template symbol.  In C++20 (adl_for_non_visible_templates is TRUE)
+       an undefined name or function name followed by "<" is treated
+       as a template name to cause ADL to be performed. */
     result_sym = coalesce_template_function_reference(template_sym,
                                                       next_tok, err);
   } else {
@@ -19775,12 +19784,17 @@ selection operator, in which case it points to the type of the left operand.
          is_class_template_or_injected_template_symbol(qualifier_sym)) ||
         (next_tok == tok_lt &&
          (qualifier_sym == NULL ||
+          ((options & GID_IS_EXPR_CONTEXT) != 0 &&
+           adl_for_non_visible_templates &&
+           is_function_symbol(qualifier_sym)) ||
           !symbol_cannot_be_template(fund_qualifier_sym))) ||
         follows_template) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
          or if the next token is a "<" (which could be a function template
-         reference or an error case). */
+         reference or an error case).  In C++20 (adl_for_non_visible_templates
+         is TRUE) an undefined name or function name followed by "<" is
+         treated as a template name to cause ADL to be performed. */
       an_identifier_options_set	template_options = options;
       /* Save the original qualifier_sym.  This may be needed later to
          know the name used in the qualifier if the symbol is a template
@@ -19796,7 +19810,7 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
       qualifier_sym = coalesce_template_id(qualifier_sym, next_tok,
                                            start_seq_number, template_options,
-                                           &err);
+                                           field_sel_type == NULL, &err);
       specific_sym = locator_for_curr_id.specific_symbol;
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
@@ -20322,6 +20336,7 @@ selection operator, in which case it points to the type of the left operand.
                template reference or an error case). */
             qualifier_sym = coalesce_template_id(qualifier_sym, next_tok,
                                                  start_seq_number, options,
+                                                 /*is_name_start=*/FALSE,
                                                  &err);
             /* We can only now determine whether this template reference is
                followed by a "::".  If it is not, break out of the qualifier
