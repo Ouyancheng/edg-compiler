@@ -72,9 +72,11 @@ Declarations for EDG template prelink utility.
 #endif /* ifndef PL_DEFAULT_VERBOSE_MODE */
 
 /* Indicates whether the prelinker should check for a specialization with
-   the same name as a generated instance by default. */
+   the same name as a generated instance by default.  The mechanism
+   used to check this has proven to be unreliable, so use of this
+   feature is no longer recommended. */
 #ifndef PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS
-#define PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS TRUE
+#define PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS FALSE
 #endif /* ifndef PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS */
 
 /* Indicates whether the prelinker should, by default, create a definition
