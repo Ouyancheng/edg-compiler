@@ -10610,10 +10610,19 @@ command line -D options.
             *feature_support_list[i].enabled) {
           /* The feature is supported in the current execution of the front
              end.  Define the macro with the appropriate value. */
-          (void)enter_predef_macro(feature_support_list[i].macro_value,
-                                   feature_support_list[i].macro_name,
-                                   /*cannot_be_redefined=*/TRUE,
-                                   /*ref_suppresses_pch_file=*/FALSE);
+          a_const_char *macro_value = feature_support_list[i].macro_value;
+          if (macro_value != NULL && gpp_mode &&
+              std_version < strtol(macro_value, NULL, 10)) {
+            /* GCC and clang enable some C++ features in earlier modes (e.g.,
+               enable a C++17 feature in all modes), but apparently do not
+               enable the corresponding feature test macros, so suppress such
+               macros here. */
+          } else {
+            (void)enter_predef_macro(macro_value,
+                                     feature_support_list[i].macro_name,
+                                     /*cannot_be_redefined=*/TRUE,
+                                     /*ref_suppresses_pch_file=*/FALSE);
+          }  /* if */
         }  /* if */
       }  /* for */
       /* __cpp_constexpr must be handled specially, as it will have
