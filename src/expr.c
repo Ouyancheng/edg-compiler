@@ -26830,7 +26830,7 @@ the resulting expression.
   if (!processed) {
     /* Non-operator-function cases. */
     a_boolean   normal_case = FALSE;
-    a_type_ptr  op_type, result_type;
+    a_type_ptr  op_type, result_type = NULL;
     if (is_error_operand(opnd1) || is_error_operand(&opnd2)) {
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(opnd1);
