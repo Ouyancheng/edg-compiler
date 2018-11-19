@@ -10615,7 +10615,7 @@ command line -D options.
               std_version < strtol(macro_value, NULL, 10)) {
             /* GCC and clang enable some C++ features in earlier modes (e.g.,
                enable a C++17 feature in all modes), but apparently do not
-               enable the corresponding feature test macros, so suppress such
+               enable the corresponding feature-test macros, so suppress such
                macros here. */
           } else {
             (void)enter_predef_macro(macro_value,
