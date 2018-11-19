@@ -1,16 +1,16 @@
 Version 5.1
 
 11/16/18 [EDGcpfe/20476]
-Prelinker: Disable check for both instantiation and explicit instantiation
+Prelinker: Disable check for both instantiation and explicit specialization
 
 The prelinker has the ability to check for the presence of both an
-instantiation and an explicit instantiation of an external entity.
+instantiation and an explicit specialization of an external entity.
 This check can result in spurious errors in some cases.  Because it
 can't be fixed without a mangling change, and only works in the cfront
 ABI, it is now disabled by default.
 
-Because of this issue, use of this feature is no longer recommended.
-But it can be enabled by setting PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS
+Because of this issue, use of this feature is no longer recommended,
+but it can be enabled by setting PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS
 to TRUE in edg_prelink.h, or by passing the "-s1" option to the prelinker.
 
 
