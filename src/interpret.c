@@ -4163,6 +4163,7 @@ of subscript operations or pointer arithmetic).
   a_type_ptr            obj_type, subobj_type;
   a_variable_ptr        var;
   a_targ_ptrdiff_t      t_offset, t_pos;
+  a_targ_size_t         n_elems;
   a_subobject_path_ptr  *p_subobj;
 
   check_assertion(constant_is(con, ck_address) &&
@@ -4191,11 +4192,19 @@ of subscript operations or pointer arithmetic).
           (*p_subobj)->next = tail;
           (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
         }  /* if */
+        n_elems = obj_type->variant.array.variant.number_of_elements;
         obj_type = skip_typerefs(obj_type->variant.array.element_type);
         if (obj_type->size == 0) {
           t_pos = 0;
         } else {
           t_pos = t_offset/(a_targ_ptrdiff_t)obj_type->size;
+          if ((a_targ_size_t)t_pos == n_elems &&
+              !identical_types(subobj_type, obj_type)) {
+            /* We're "one position past the end", but not past the end of the
+               current type.  Step back one position: A deeper level will find
+               the actual array we went past. */
+            t_pos -= 1;
+          }  /* if */
         }  /* if */
         (*p_subobj)->variant.ptr_offset = t_pos;
         t_offset -= t_pos*obj_type->size;

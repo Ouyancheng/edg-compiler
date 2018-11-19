@@ -1,5 +1,24 @@
 Version 5.1
 
+11/19/18 [EDGcpfe/20086]
+Abort in finalize_subobject_path nested arrays
+
+Consider:
+
+  struct P { char x, y; };
+  struct S {
+    char z;
+    P p[2];
+  };
+  S s[3];
+  constexpr P *pp = &(&s[2])->c[2];
+
+Previously, the aborted in finalize_subobject_path because the address constant
+produced by the initializer of pp represented an address that is both one
+position past the end of array s and one position past the end of the array
+(&s[2])->c.  That problem is now fixed.
+
+
 11/16/18 [EDGcpfe/18414,EDGcpfe/20308,EDGcpfe/20458]
 GNU/Clang compatibility: Enable nested namespaces
 
