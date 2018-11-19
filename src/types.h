@@ -106,6 +106,7 @@ extern a_boolean is_complex_type(a_type_ptr tp);
 #define type_kind_is_float_like(tkind)                                       \
   ((tkind) == (a_type_kind)tk_float || (tkind) == (a_type_kind)tk_imaginary)
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define is_real_floating_type(tp) is_floating_type(tp)
 #define type_kind_is_float_like(tkind) ((tkind) == (a_type_kind)tk_float)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define type_is_float_like(tp)  type_kind_is_float_like((tp)->kind)
