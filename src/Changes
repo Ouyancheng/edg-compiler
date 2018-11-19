@@ -19,7 +19,7 @@ made to emulate that behavior.
 C++20: ADL and function templates that are not visible
 
 In C++20 mode, argument-dependent lookup can now be used when calling
-function templates that are may not be visible when using an explicit
+function templates that may not be visible when using an explicit
 template argument list (see P0846R0).  This example from that paper
 is now accepted.
 

@@ -565,11 +565,12 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		adl_for_non_visible_templates;
-			/* TRUE if, a name for which normal lookup produces
-			   no result that is followed by a "<" should be
-			   considered a template name so that argument-
-			   dependent lookup will be done to potentially
-			   find a function template in a namespace. */
+			/* TRUE if a name for which normal lookup produces
+			   either function name or no result and that is
+			   followed by a "<" should be considered a template
+			   name so that argument-dependent lookup will be
+			   done to potentially find a function template in
+			   a namespace. */
 
 EXTERN a_boolean
 		struct_bindings_enabled;
