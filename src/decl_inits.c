@@ -3251,7 +3251,12 @@ initialization. */
           (void)check_flexible_array_init(icp, *field, is);
         }  /* if */
         aggr_init_chained_designator(&icp, (*field)->type, is, &next_con);
-        *field = (*field)->next;
+        if (class_type->kind == (a_type_kind)tk_union) {
+          /* In the case of a union, only one field can be initialized. */
+          *field = NULL;
+        } else if (!is->pack_expansion_handled) {
+          *field = next_proper_initializable_field((*field)->next);
+        }  /* if */
         if (!is->check_validity_only) {
           if (next_con == NULL) {
             check_assertion(is->init_error);
