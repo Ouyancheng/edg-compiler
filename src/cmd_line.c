@@ -2792,6 +2792,13 @@ option values if they were not already set by a command line option.
   if (microsoft_bugs && ms_permissive) {
     ms_treat_copy_init_as_direct_init = TRUE;
   }  /* if */
+  if (!ms_permissive && !option_kind_used[(int)optk_ms_std_preproc] &&
+      microsoft_version >= 1920) {
+    /* In non-permissive mode, beginning with version 1920, the
+       Standard-conforming preprocessor is used unless otherwise
+       specified.. */
+    ms_std_preproc = TRUE;
+  }  /* if */
   if (ms_std_preproc) {
     pragma_operator_allowed = TRUE;
   }  /* if */
@@ -9765,9 +9772,6 @@ enable_microsoft_mode:
         /* Emulate Microsoft's /permissive[-] switch (which also implies
            Microsoft mode). */
         ms_permissive = opt_value;
-        if (!option_kind_used[(int)optk_ms_std_preproc]) {
-          ms_std_preproc = !opt_value;
-        }  /* if */
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_ms_rvalue_cast:
