@@ -73,7 +73,7 @@ assertion failure in arg_list_is_type_dependent.  For example:
 This is now fixed.
 
 
-11/15/18 [EDGcpfe/20470]
+11/15/18 [EDGcpfe/17926,EDGcpfe/20176,EDGcpfe/20373,EDGcpfe/20470]
 Default constructor not correctly inherited
 
 The front end previously did not correctly handle user-declared default
