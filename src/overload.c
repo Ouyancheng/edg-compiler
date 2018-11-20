@@ -8437,8 +8437,17 @@ template argument list), or to the original type if no update is required.
       }  /* if */
     }  /* if */
   }  /* for */
-  check_assertion_str(total_errors != 0,
-     "instantiate_default_arguments_of_template_matching: template not found");
+  /* We didn't find a matching template.  That can happen in cases with
+     explicit template arguments. For example:
+          template <class T> T f();
+          template <class T> decltype(f<T>())* g(T) { return 0; }
+          template <class T> void h(int = 0) { }
+          void d() { g(&h<int>); }
+     Here, the template arguments of h<int> are not deduced because of the
+     explicit template argument.  Just discard the default arguments. */
+  *updated_type =
+        copy_routine_type_with_param_types(type, /*copy_default_args=*/FALSE);
+  
 done:;
 }  /* instantiate_default_arguments_of_template_matching */
 
