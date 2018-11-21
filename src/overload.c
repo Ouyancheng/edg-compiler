@@ -23529,6 +23529,32 @@ allocated constant.
 }  /* unshared_constant_from_operand */
 
 
+static a_boolean component_represents_designator(an_init_component_ptr icp)
+/*
+Return TRUE if the given component represents a designator.  Usually, that
+means that is_designator_component is TRUE.  However, prep_generic_argument
+turns such components into expression components referring to a constant node
+with a ck_designator constant.
+*/
+{
+  a_boolean result = FALSE;
+  if ( is_designator_component(icp)) {
+    result = TRUE;
+  } else if (is_expression_component(icp)) {
+    an_operand             *opnd;
+    opnd = operand_of_arg_list_elem(icp);
+    if (is_constant_operand(opnd))
+    {
+      a_constant_ptr con = &(opnd->variant.constant);
+      if (constant_is(con, ck_designator)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}
+
+
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
                            a_boolean             is_direct_init,
@@ -23737,7 +23763,7 @@ will be an lvalue instead of the usual prvalue.
     } else {
       an_init_component_ptr eicp = icp->variant.braced.list;
       if (generate_il) arg_list_will_not_be_used_because_of_error(eicp);
-      while (!is_designator_component(eicp)) {
+      while (!component_represents_designator(eicp)) {
         eicp = next_elem(eicp);
         check_assertion(eicp != NULL);
       }  /* if */
