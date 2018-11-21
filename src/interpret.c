@@ -3082,6 +3082,61 @@ indicated subobject and all its subobject as initialized.
 }  /* mark_whole_subobject_initialized */
 
 
+/*
+Mark the complete object at the given address as not fully initialized.
+*/
+#define unmark_complete_object_initialized(obj)                              \
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 0)
+
+#define mark_subobject_uninitialized(subobj, complete_obj)                   \
+{                                                                            \
+  a_byte        *start_byte = (complete_obj);                                \
+  a_byte_count  off = (a_byte_count)((subobj)-start_byte);                   \
+  a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;                \
+  a_byte_count  bit_pos = off%CHAR_BIT;                                      \
+  start_byte[-(int)byte_pos] &= ~(a_byte)(1<<bit_pos);                       \
+}
+
+
+static void mark_whole_subobject_uninitialized(
+                                          an_interpreter_state  *ips,
+                                          a_byte                *subobj,
+                                          a_type_ptr            tp,
+                                          a_byte                *complete_obj)
+/*
+If tp is a scalar type, this routine does the same work as
+mark_subobject_uninitialized.  If tp is a class or array type, it marks the
+indicated subobject and all its subobject as uninitialized.
+*/
+{
+  if (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array) {
+    a_boolean     result = TRUE;
+    a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
+    a_byte_count  off = (a_byte_count)(subobj - complete_obj);
+    a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
+    a_byte_count  bit_pos = off%CHAR_BIT;
+    while (n_bytes != 0) {
+      if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
+        /* Mark a whole byte at a time. */
+        complete_obj[-(int)byte_pos] = (a_byte)0;
+        byte_pos += 1;
+        n_bytes -= CHAR_BIT;
+      } else {
+        complete_obj[-(int)byte_pos] &= ~(a_byte)(1<<bit_pos);
+        bit_pos += 1;
+        if (bit_pos == CHAR_BIT) {
+          bit_pos = 0;
+          byte_pos += 1;
+        }  /* if */
+        n_bytes -= 1;
+      }  /* if */
+    }  /* while */
+  } else {
+    mark_subobject_uninitialized(subobj, complete_obj);
+  }  /* if */
+}  /* mark_whole_subobject_uninitialized */
+
+
 static void init_subobject_to_zero(an_interpreter_state  *ips,
                                    a_byte                *subobj,
                                    a_type_ptr            tp,
@@ -3436,10 +3491,18 @@ static void db_object(a_byte      *addr,
 Output the contents of the interpreted object of type tp stored at addr.
 */
 {
+  a_boolean  not_initialized = FALSE;
   static int indent = 0;
 
   db_indent(indent);
   tp = skip_typerefs(tp);
+  if (complete_object != NULL) {
+    if (complete_object == addr ?
+          !complete_object_is_initialized(addr) :
+          !subobject_is_initialized(addr, complete_object)) {
+      not_initialized = TRUE;
+    }  /* if */
+  }  /* if */
   switch (tp->kind) {
     case tk_integer:
       { a_host_large_integer  val;
@@ -3547,9 +3610,14 @@ Output the contents of the interpreted object of type tp stored at addr.
         indent += 2;
         /* Output the active field and its value. */
         fp = *(a_field_ptr*)addr;
-        if (fp == NULL) {
+        if (!subobject_is_initialized(addr, complete_object)) {
+          db_indent(indent);
+          (void)fprintf(f_debug, "active field not initialized\n");
+        } else if (fp == NULL) {
+          db_indent(indent);
           (void)fprintf(f_debug, "no active field\n");
         } else {
+          db_indent(indent);
           (void)fprintf(f_debug, "active field = %s\n",
                         db_name_str(&fp->source_corresp, iek_none));
           get_mapped_byte_count(&persistent_map, fp, offset);
@@ -3567,13 +3635,9 @@ Output the contents of the interpreted object of type tp stored at addr.
       (void)fprintf(f_debug, "\n");
       break;
   }  /* switch */
-  if (complete_object != NULL) {
-    if (complete_object == addr ?
-          !complete_object_is_initialized(addr) :
-          !subobject_is_initialized(addr, complete_object)) {
-      db_indent(indent);
-      (void)fprintf(f_debug, "[NOINIT]\n");
-    }  /* if */
+  if (not_initialized) {
+    db_indent(indent);
+    (void)fprintf(f_debug, "[NOINIT]\n");
   }  /* if */
 }  /* db_object */
 
@@ -3805,7 +3869,6 @@ is responsible for ensuring that there are such entries.
 
 static a_boolean check_variant_path(an_interpreter_state  *ips,
                                     a_constexpr_address   *addr,
-                                    a_boolean             release,
                                     a_source_position     *pos)
 /*
 The given address entry has its CA_VARIANT_PATH flag set.  Check that it points
@@ -3813,8 +3876,7 @@ to an object whose active variant subobjects match the recorded variant path
 and return TRUE if that's the case.  Otherwise, return FALSE and record an
 appropriate diagnostic.
 
-If release is TRUE, release the variant path structures when the check is
-completed.
+Release the variant path structures when the check is completed.
 */
 {
   a_boolean  result = TRUE;
@@ -3838,11 +3900,90 @@ completed.
     }  /* if */
     vpep = vpep->next;
   } while (vpep != NULL);
-  if (release) {
-    release_variant_path(addr);
-  }  /* if */
+  release_variant_path(addr);
   return result;
 }  /* check_variant_path */
+
+
+static a_boolean check_variant_assign(an_interpreter_state  *ips,
+                                      a_constexpr_address   *addr,
+                                      a_source_position     *pos)
+/*
+The given address entry has its CA_VARIANT_PATH flag set and an assignment is
+being made through it.  In pre-C++20 modes, check that the variant path matches
+the active variant subobjects and return TRUE if that's the case, or FALSE
+otherwise (and record an appropriate diagnostic).  In C++20 modes, if the
+variant path does not match the variant subobjects, mark those subobjects as
+uninitialized and activate the subobject along the variant path instead; return
+TRUE in that case.
+
+Release the variant path structures when the check is completed.
+*/
+{
+  a_boolean  result = TRUE, activation_mode = FALSE, strict = !cpp20_mode;
+  a_variant_path_entry_ptr
+             vpep = addr->variant.variant_path->next;
+
+  if (!is_initialized(addr)) {
+    if (strict) {
+      /* Before C++20, this was always an error. */
+      result = FALSE;
+      goto done;
+    } else {
+      /* Enter "activation mode": Automatically set the active member to the
+         one assigned to (possibly at multiple levels). */
+      activation_mode = TRUE;
+    }  /* if */
+  }  /* if */
+  do {
+    a_field_ptr  *p_active_field = (a_field_ptr*)vpep->base_address;
+    a_field_ptr  active_field = *p_active_field;
+    a_field_ptr  selected_field = vpep->field;
+    if (!activation_mode) {
+      if (selected_field != active_field) {
+        if (strict) {
+          /* Before C++20, this was always an error. */
+          do_constexpr_fail(result);
+          if (active_field != NULL) {
+            info_with_pos_sym2(ec_constexpr_union_field_inactive, pos,
+                               symbol_for(selected_field),
+                               symbol_for(active_field), ips);
+          } else {
+            info_with_pos_sym(ec_constexpr_no_active_union_field, pos,
+                              symbol_for(selected_field), ips);
+          }  /* if */
+          break;
+        } else {
+          /* Enter "activation mode": Automatically set the active member to
+             the one assigned to (possibly at multiple levels).  Mark the
+             currently active subobject as uninitialized. */
+          activation_mode = TRUE;
+          if (active_field != NULL) {
+            a_type_ptr  tp = parent_class_of(active_field);
+            mark_whole_subobject_uninitialized(ips, vpep->base_address, tp,
+                                               addr->complete_object);
+            unmark_complete_object_initialized(addr->complete_object);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (activation_mode) {
+      /* Activation mode: Set the active field to the selected field. */
+      mark_subobject_initialized((a_byte*)p_active_field,
+                                 addr->complete_object);
+      *p_active_field = selected_field;
+    }  /* if */
+    vpep = vpep->next;
+  } while (vpep != NULL);
+  if (activation_mode) {
+    /* The assignment that is about to take place "initializes" the
+       corresponding subobject. */
+    mark_subobject_initialized(addr->address, addr->complete_object);
+  }  /* if */
+done:
+  release_variant_path(addr);
+  return result;
+}  /* check_variant_assign */
 
 
 /*
@@ -8781,8 +8922,7 @@ conversion to an rvalue is forced externally.
     do_constexpr_fail(result);
     info_with_pos(ec_object_not_initialized, &expr->position, ips);
   } else if (is_variant_path(cap) &&
-             !check_variant_path(ips, cap, /*release=*/TRUE,
-                                 &expr->position)) {
+             !check_variant_path(ips, cap, &expr->position)) {
     /* An attempt to dereference an inactive variant path. */
     do_constexpr_fail(result);
   } else {
@@ -10354,8 +10494,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (is_variant_path(cap) &&
-                         !check_variant_path(ips, cap, /*release=*/TRUE,
-                                             &expr->position)) {
+                         !check_variant_path(ips, cap, &expr->position)) {
                 /* An attempt to dereference an inactive variant path. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(cap)) {
@@ -10478,8 +10617,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_object_not_initialized, &expr->position, ips);
               } else if (is_variant_path(cap) &&
-                         !check_variant_path(ips, cap, /*release=*/TRUE,
-                                             &expr->position)) {
+                         !check_variant_path(ips, cap, &expr->position)) {
                 /* An attempt to dereference an inactive variant path. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(cap)) {
@@ -11617,10 +11755,8 @@ the value representation of the integer value.
                 info_with_pos(ec_object_not_initialized, &opnd1->position,
                               ips);
               } else if (is_variant_path(dst) &&
-                         (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
-                /* Attempting to store into a non-active variant field. */
+                         !check_variant_assign(ips, dst, &expr->position)) {
+                /* Invalid attempt to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
@@ -11679,8 +11815,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -11820,8 +11955,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -11961,8 +12095,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -12098,8 +12231,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(dst)) {
@@ -12242,8 +12374,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -12300,8 +12431,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (is_const_storage(dst)) {
@@ -12378,8 +12508,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -12453,8 +12582,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -12504,8 +12632,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
@@ -12555,8 +12682,7 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
               } else if (is_variant_path(dst) &&
                          (!is_initialized(dst) ||
-                          !check_variant_path(ips, dst, /*release=*/TRUE,
-                                              &expr->position))) {
+                          !check_variant_path(ips, dst, &expr->position))) {
                 /* Attempting to store into a non-active variant field. */
                 do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
