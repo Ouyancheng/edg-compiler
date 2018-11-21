@@ -8438,7 +8438,7 @@ template argument list), or to the original type if no update is required.
     }  /* if */
   }  /* for */
   /* We didn't find a matching template.  That can happen in cases with
-     explicit template arguments. For example:
+     explicit template arguments.  For example:
           template <class T> T f();
           template <class T> decltype(f<T>())* g(T) { return 0; }
           template <class T> void h(int = 0) { }

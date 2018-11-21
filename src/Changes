@@ -11,8 +11,8 @@ Consider:
   void d() { g(&h<int>); }
 
 Previously, this aborted in some modes that consider default arguments of
-function templates in the deduction process(e.g., with the command-line options
-"--c++11 --nonstd_default_arg_deduction").  That is now fixed.
+function templates in the deduction process (e.g., with the command-line
+options "--c++11 --nonstd_default_arg_deduction").  That is now fixed.
 
 
 11/19/18 [EDGcpfe/20086]
