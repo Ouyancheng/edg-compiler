@@ -165,7 +165,9 @@ when either is_function_template or is_template_param are FALSE.
   start_pos = pos_curr_token;
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   cts_options = CTS_COALESCE_IDS;
-  if (is_template_param) cts_options |= CTS_STOP_ON_STATEMENT_END;
+  if (is_template_param && !lambda_allowed_in_uneval_context) {
+    cts_options |= CTS_STOP_ON_STATEMENT_END;
+  }  /* if */
   cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens, cts_options);
   end_caching_fetched_tokens();
   if (is_template_param &&
