@@ -1,5 +1,31 @@
 Version 5.1
 
+11/21/18 [EDGcpfe/20492]
+Incorrect string form of alias template member of class template instance
+
+In configurations with RECORD_TEMPLATE_STRINGS set to TRUE, the string
+produced for a member alias template of a class template instance did not
+contain the type-id portion of the alias template definition.  The effect
+of this bug could be seen in the output of the C++-generating back end when
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE.  In
+such configurations, the front end attempts to produce explicit
+specializations in the generated code reflecting the implicit
+instantiations done by the front end.  For example, given the input
+
+  template<typename T> struct A;
+  template<typename T> struct B {
+    template<typename U> using x = A<U>;
+  };
+  B<int> bi;
+
+the C++-generating back end produced output containing an explicit
+specialization for B<int> with B<int>::x<U> represented as:
+
+  template < typename U > using x =;
+
+i.e., missing "A<U>". This is now fixed.
+
+
 11/20/18 [EDGcpfe/14810,EDGcpfe/20483]
 Internal error with unevaluated template default argument
 

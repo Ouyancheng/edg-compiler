@@ -28129,7 +28129,7 @@ any non-empty template parameter lists that were scanned.
     sym = alias_template_declaration(decl_state);
     tssp = template_supplement_for_symbol(sym);
     /* Save a pointer to the token cache for the alias definition. */
-    p_template_body_cache = &tssp->cache.tokens;
+    p_template_body_cache = &cache_for_template(tssp)->tokens;
   } else if (decl_state->is_enum) {
     /* An enum template declaration. */
     sym = enum_template_declaration(decl_state);
