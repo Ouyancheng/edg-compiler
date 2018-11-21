@@ -23543,8 +23543,7 @@ with a ck_designator constant.
   } else if (is_expression_component(icp)) {
     an_operand             *opnd;
     opnd = operand_of_arg_list_elem(icp);
-    if (is_constant_operand(opnd))
-    {
+    if (is_constant_operand(opnd)) {
       a_constant_ptr con = &(opnd->variant.constant);
       if (constant_is(con, ck_designator)) {
         result = TRUE;
@@ -23552,7 +23551,7 @@ with a ck_designator constant.
     }  /* if */
   }  /* if */
   return result;
-}
+}  /* component_represents_designator */
 
 
 void prep_list_initializer(an_init_component_ptr icp,
