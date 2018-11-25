@@ -18162,7 +18162,9 @@ it is a name that is part of a class member access (i.e., it follows a
                                                       next_tok, err);
   } else if ((adl_for_non_visible_templates && is_name_start &&
               (options & GID_IS_EXPR_CONTEXT) != 0 &&
-              (template_sym == NULL || is_function_symbol(template_sym))) ||
+              (template_sym == NULL ||
+               (is_function_symbol(template_sym) &&
+                !template_sym->is_class_member))) ||
              (template_sym != NULL &&
               !is_class_template_or_injected_template_symbol(template_sym) && 
               symbol_is_or_contains_template(template_sym))) {
@@ -19016,6 +19018,8 @@ we are scanning a C++/CLI typeid of the form X::typeid.
   a_symbol_ptr	normal_fund_sym;
   a_symbol_ptr	class_fund_sym;
   a_symbol_ptr	sym = NULL;
+  an_id_lookup_options_set
+		normal_lookup_kind = lookup_kind;
   a_boolean	do_class_lookup;
 
   /* Do the lookup if a type was provided that is a class type that is
@@ -19028,8 +19032,16 @@ we are scanning a C++/CLI typeid of the form X::typeid.
        !class_type->variant.class_struct_union.is_prototype_instantiation));
   /* Only get normal_sym from the locator if a fundamental symbol was
      returned by the lookup.  The specific symbol in the locator could
-     be non-NULL in error cases. */ 
-  normal_fund_sym = normal_id_lookup(&locator_for_curr_id, lookup_kind);
+     be non-NULL in error cases.  If a tentative template lookup was
+     specified, convert this to a regular lookup (but one that does not
+     create projection symbols) when we are in C++20 mode and treat certain
+     names as potential templates. */
+  if (adl_for_non_visible_templates &&
+      (normal_lookup_kind & IDL_TENTATIVE_TEMPLATE_LOOKUP)) {
+    normal_lookup_kind &= ~IDL_TENTATIVE_TEMPLATE_LOOKUP;
+    normal_lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
+  }  /* if */
+  normal_fund_sym = normal_id_lookup(&locator_for_curr_id, normal_lookup_kind);
   normal_sym = normal_fund_sym == NULL ? NULL
                                        : locator_for_curr_id.specific_symbol;
   if (do_class_lookup) {
