@@ -111,11 +111,11 @@ instead of K&R C.
 See if the target is the SunPro C compiler.
 */
 #ifndef SUNPRO_C_IS_C_GEN_BE_TARGET
-#ifdef __SUNPRO_C
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #define SUNPRO_C_IS_C_GEN_BE_TARGET TRUE
 #else /* ifndef __SUNPRO_C */
 #define SUNPRO_C_IS_C_GEN_BE_TARGET FALSE
-#endif /* ifdef __SUNPRO_C */
+#endif /* !(defined(__SUNPRO_C) || defined(__SUNPRO_CC)) */
 #endif /* ifndef SUNPRO_C_IS_C_GEN_BE_TARGET */
 
 /*

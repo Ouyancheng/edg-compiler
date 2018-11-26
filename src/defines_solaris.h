@@ -149,10 +149,16 @@ in the C-generating back end.
 #ifdef SUNOS
 #define USE_PATCH_INIT_STARTUP 1
 #else /* ifndef SUNOS */
-#if !defined(__GNUC__) && !defined(__CENTERLINE__) && !defined(__SUNPRO_C)
+#if !defined(__GNUC__) && !defined(__CENTERLINE__) && \
+    !defined(__SUNPRO_C) && !defined(__SUNPRO_CC)
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #endif /* !defined(__GNUC__) && !defined(__CENTERLINE__) && ... */
 #endif /* ifdef SUNOS */
+
+#ifdef __SUNPRO_CC
+/* At least as of 12.1, Sun C++ does not define __func__. */
+#define FUNC_AVAILABLE 0
+#endif /* ifdef __SUNPRO_CC */
 
 #endif /* ifndef DEFINES_SOLARIS_H */
 
