@@ -22900,8 +22900,9 @@ indication in *rcblock).
     cast_type_okay = FALSE;
     if (is_ptr_or_ref_type(cast_type)) {
       underlying_cast_type = type_pointed_to(cast_type);
-      if (!is_function_type(underlying_cast_type)) {
-        /* Casting to a pointer or reference to an object type. */
+      if (!is_function_type(underlying_cast_type) || microsoft_mode) {
+        /* Casting to a pointer or reference to an object type.  MSVC
+        supports applying const_cast to a function type.  */
         cast_type_okay = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
