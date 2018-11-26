@@ -1,5 +1,24 @@
 Version 5.1
 
+11/26/18 [EDGcpfe/20151]
+Microsoft compatibility: internal error on variadic nonreal instantiation
+
+A change made in version 4.14 (see EDGcpfe/18144) enabled the use of
+variadic templates as Microsoft-mode instantiated nonreal base classes.
+In some cases that change could result in an invalid template argument
+list for a bases class that was not itself variadic.  This could then
+result in a variety of incorrect behaviors, including (for the example
+below) an internal error (in form_template_arg_info).  Now, a variadic
+template can only have an instantiated base class if that class is itself
+variadic.
+
+  template <class T, class U, class V, class W> struct C {
+    // Formerly an internal error issuing spurious error on the use of W
+    typedef C<T, U, V, W> my_C;
+  };
+  template <class T, class U, typename... Ts> struct D : C<T, U, Ts...> { };
+
+
 11/21/18 [EDGcpfe/20493]
 C++20: Assignment to non-active union members during constexpr evaluation
 
