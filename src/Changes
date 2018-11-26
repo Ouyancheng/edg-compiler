@@ -1,5 +1,22 @@
 Version 5.1
 
+11/26/18 [EDGcpfe/20099]
+Structured bindings for references and decltype
+
+The front end previously did not correctly handle decltype constructs applied
+to the names of structured bindings bound to reference entities.  For example:
+
+  struct S { int &r; };
+  int x = 42;
+  auto [bnd] = S{ x };
+  decltype(bnd) q;  // Previously accepted.  Now an error.
+
+In this example, the front end previously did not produce a reference type for
+variable q (when it should do so) and as a result is accepted this example.
+Now, a reference is produced and an error is issued because the reference q has
+no initializer.  A similar problem with tuple-based bindings is also fixed.
+
+
 11/26/18 [EDGcpfe/20472]
 MSVC allows const_cast to a function type
 

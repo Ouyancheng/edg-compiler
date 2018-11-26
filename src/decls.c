@@ -17219,18 +17219,21 @@ done:
 }  /* is_tuple_like_type */
 
 
-static a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
-                                          a_type_ptr         tp,
-                                          a_targ_size_t      elem_idx,
-                                          a_source_position  *diag_pos,
-                                          an_init_component  **p_icp)
+a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
+                                   a_type_ptr         tp,
+                                   a_targ_size_t      elem_idx,
+                                   a_boolean          for_decltype,
+                                   a_source_position  *diag_pos,
+                                   an_init_component  **p_icp)
 /*
 Return the type of a binding variable for a tuple-like container.  tp
 represents the container type E (from the container e represented by container)
-and elem_idx is the element number n (starting at zero) being bound to.  The
-returned type entry is an lvalue or rvalue reference to
-std::tuple_element<n, E>::type.  It is an lvalue reference if the initializer
-for the binding is an lvalue; otherwise, it is an rvalue reference.
+and elem_idx is the element number n (starting at zero) being bound to.  If
+for_decltype is TRUE, the returned type entry is the type obtained from
+instantiating std::tuple_element<n, E>::type.  Otherwise (when for_decltype is
+FALSE), an lvalue or rvalue reference layer is applied to that type: an lvalue
+reference if the initializer for the binding is an lvalue and an rvalue
+reference otherwise.
 
 The initializer for the binding is returned in *p_icp.  If E is a class type
 with a member "get", that initializer is "e.get<n>()"; otherwise, it is
@@ -17245,7 +17248,9 @@ with a member "get", that initializer is "e.get<n>()"; otherwise, it is
 
   te_sym = look_up_class_template_in_std("tuple_element");
   if (te_sym == NULL) {
-    pos_error(ec_missing_std_tuple_element, diag_pos);
+    if (!for_decltype) {
+      pos_error(ec_missing_std_tuple_element, diag_pos);
+    }  /* if */
     e_type = error_type();
     goto done;
   }  /* if */
@@ -17261,27 +17266,33 @@ with a member "get", that initializer is "e.get<n>()"; otherwise, it is
   te_inst_sym = find_class_template_instance(te_sym, &tap);
   if (te_inst_sym == NULL ||
       !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
-    char  num_str[100];
-    (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
-    pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
-                   tp);
+    if (!for_decltype) {
+      char  num_str[100];
+      (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
+      pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
+                     tp);
+    }  /* if */
     e_type = error_type();
     goto done;
   }  /* if */
   te_inst = type_symbol_type(te_inst_sym);
   complete_type_is_needed(te_inst);
   if (te_inst->incomplete) {
-    char  num_str[100];
-    (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
-    pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
-                   tp);
+    if (!for_decltype) {
+      char  num_str[100];
+      (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
+      pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
+                     tp);
+    }  /* if */
     e_type = error_type();
     goto done;
   }  /* if */
   /* Look up "tuple_element<n, T>::type" and make sure it produces a type. */
   e_type_sym = look_up_name_string_in_class("type", te_inst, IDL_NO_OPTIONS);
   if (e_type_sym == NULL || !is_type_symbol(e_type_sym)) {
-    pos_stsy_error(ec_not_a_member, diag_pos, "type", te_inst_sym);
+    if (!for_decltype) {
+      pos_stsy_error(ec_not_a_member, diag_pos, "type", te_inst_sym);
+    }  /* if */
     e_type = error_type();
     goto done;
   }  /* if */
@@ -17292,7 +17303,9 @@ with a member "get", that initializer is "e.get<n>()"; otherwise, it is
   /* Add a reference on top of e_type, applying the reference-collapsing
      rules if needed.  An lvalue reference is added if lvalue_binding is
      TRUE, an rvalue reference otherwise. */
-  if (is_reference_type(e_type)) {
+  if (for_decltype) {
+    /* Do not do that when determining the type as seen by "decltype". */
+  } else if (is_reference_type(e_type)) {
     e_type = make_reference_to_reference(e_type,
                                          /*rvalue_ref=*/!lvalue_binding,
                                          /*tracking_ref=*/FALSE,
@@ -17577,6 +17590,7 @@ can be fully determined.
       btype = array_element_type(container_type);
     } else if (tuple_case) {
       btype = tuple_like_binding_type(container, container_type, n-1,
+                                      /*for_decltype=*/FALSE,
                                       &dps->declarator_pos, &icp);
       if (is_error_type(btype)) {
         err = TRUE;
@@ -17585,9 +17599,6 @@ can be fully determined.
       a_type_qualifier_set  tqs = container_tqs;
       fp = next_bindable_field(fp);
       btype = fp->type;
-      if (is_reference_type(btype)) {
-        btype = type_pointed_to(btype);
-      }  /* if */
       if (fp->is_mutable) {
         /* Mutable fields ignore a "const" qualified container type. */
         tqs &= ~TQ_CONST;
