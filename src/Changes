@@ -101,7 +101,7 @@ Consider:
     P p[2];
   };
   S s[3];
-  constexpr P *pp = &(&s[2])->c[2];
+  constexpr P *pp = &(&s[2])->p[2];
 
 Previously, the front end aborted in finalize_subobject_path because the
 address constant produced by the initializer of pp represented an address that
