@@ -17373,6 +17373,7 @@ given position.
   a_field_ptr  fields = NULL;
 
   tp = skip_typerefs(tp);
+  complete_type_is_needed(tp);
   if (tp->kind != (a_type_kind)tk_struct &&
       tp->kind != (a_type_kind)tk_class) {
     pos_ty_error(ec_invalid_struct_binding_type, pos, tp);

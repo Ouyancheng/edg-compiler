@@ -1,5 +1,20 @@
 Version 5.1
 
+11/26/18 [EDGcpfe/20113]
+Spurious error on structured binding of a template class
+
+Consider:
+
+  template<typename T> struct S { T a; };
+  void g(S<int> *b) {
+    auto &[c] = *b;  // Previously a spurious error.  Now okay.
+  }
+
+Previously, this example triggered a spurious error because the front end
+failed to instantiate S<int> prior to resolve the structured bindings.  That
+is now fixed.
+
+
 11/26/18 [EDGcpfe/20099]
 Structured bindings for references and decltype
 
