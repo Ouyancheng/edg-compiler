@@ -88,7 +88,8 @@ or clang_version >= 30600.  A warning is issued in clang emulation mode.
 
 
 11/16/18 [EDGcpfe/20477]
-GNU/Clang compatibility: Feature test macros for features enabled in earl
+GNU/Clang compatibility: Feature test macros for standard features enabled
+in earlier modes
 
 Gcc and clang often enable language features in modes earlier than the
 standards in which the features were introduced.  In such cases, they do not
