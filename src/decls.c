@@ -17736,7 +17736,7 @@ reference was applied on top of the type we're looking for.
     container_type = type_pointed_to(container_type);
   }  /* if */
   if (vp->init_kind != (an_init_kind)initk_binding) {
-    /* A tuple-based binding (non-tuple based binding use an initk_binding
+    /* A tuple-based binding (non-tuple based bindings use an initk_binding
        initializer).  Recover the type through the appropriate
        template substitutions. */
     result = decltype_for_tuple_like_binding(vp);
