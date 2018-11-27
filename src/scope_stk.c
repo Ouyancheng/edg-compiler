@@ -6030,6 +6030,34 @@ outermost class.
 }  /* end_of_scope_symbol_check_for_class */
 
 
+static a_boolean diagnose_unreferenced_binding(a_variable_ptr  binding)
+/*
+Return TRUE if a diagnostic should be issued about the given binding being
+unreferenced.  Currently, a diagnostic is only issued if none of the bindings
+in the associated container is referenced, and this is the first of those
+bindings.
+*/
+{
+  a_boolean       result = FALSE;
+  a_variable_ptr  container = binding->variant.container;
+  an_il_entity_list_entry_ptr
+                  ielep = container->variant.bindings;
+
+  if ((a_variable_ptr)ielep->entity.ptr == binding) {
+    /* This is the first binding on the list.  Return TRUE if all the other
+       bindings are also unreferenced. */
+    result = TRUE;
+    for (ielep = ielep->next; ielep != NULL; ielep = ielep->next) {
+      if (symbol_for((a_variable_ptr)ielep->entity.ptr)->referenced) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* diagnose_unreferenced_binding */
+
+
 static void end_of_scope_symbol_check(a_symbol_ptr  sym,
 				      a_scope_kind  scope_kind,
                                       a_routine_ptr curr_routine)
@@ -6155,6 +6183,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       } else if ((!sym->referenced ||
                   (sym->value_has_been_set && !var_ptr->used))
                  && !var_ptr->source_corresp.maybe_unused
+                 && (!var_ptr->is_struct_binding ||
+                     diagnose_unreferenced_binding(var_ptr))
 #if GNU_EXTENSIONS_ALLOWED
                  && !var_ptr->has_gnu_used_attribute
                  && !var_ptr->is_weakref

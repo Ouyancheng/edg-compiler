@@ -1,5 +1,23 @@
 Version 5.1
 
+11/27/18 [EDGcpfe/20115]
+Unreferenced structured bindings
+
+Consider:
+
+  float arr[2] = { 1.0 ,2.0 };
+  int g() {
+    auto [x, y] = arr;
+    return x;
+  }
+
+Previously, this elicited a warning about variable y not being referenced.
+However, it is not uncommon for structured bindings to be unused since names
+must be provided for every potentially bindable component.  The front end has
+therefore been updated to only emit a diagnostic if all the bindings in a
+structured binding declaration are unused.
+
+
 11/27/18 [EDGcpfe/20484,EDGcpfe/20487]
 Assertion failure in lower_param_ref
 
