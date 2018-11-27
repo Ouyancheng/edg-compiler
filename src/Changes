@@ -11,7 +11,7 @@ Consider:
   }
 
 Previously, this example triggered a spurious error because the front end
-failed to instantiate S<int> prior to resolve the structured bindings.  That
+failed to instantiate S<int> prior to resolving the structured bindings.  That
 is now fixed.
 
 
