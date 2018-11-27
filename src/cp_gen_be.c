@@ -17849,38 +17849,80 @@ Output the initializer, if any, for the indicated variable.
         }  /* if */
         break;
       case initk_dynamic:
-        if (parenthesized_init || braced_init) {
-          /* Use a parenthesized or brace-enclosed initializer. */
-          gen_paren_or_brace_dynamic_init(initializer->dynamic,
-                                          var->type,
-                                          parenthesized_init,
-                                          /*is_var_init=*/TRUE);
-        } else {
-          /* Use an "="-form initializer. */
-          a_boolean need_parens = FALSE;
-          write_tok_str(" = ");
-          if (var->declared_with_decltype_auto &&
-              initializer->dynamic->kind ==
+        { a_dynamic_init_ptr  dip = initializer->dynamic;
+          a_dynamic_init      saved_init;
+          a_boolean           restore_init = FALSE;
+          if (var->is_struct_binding_container) {
+            /* A special case can occur when initializing a structured binding
+               container variable for an array: If the elements of the array
+               must be initialized via constructor invocations, the initializer
+               will look like this:
+                  dik_nonaggregate_constant:
+                    ck_init_repeat
+                      ck_dynamic_init
+                        dik_constructor (is_array_copy == TRUE)
+               and the first "argument" of the dik_constructor entry is the
+               array expression to copy.  A back end is responsible for
+               generating a loop that traverses the array and invokes the
+               constructor with for each element in turn).  For the C++-
+               generating back end, however, we can just generate the
+               expression.  We therefore temporary replace *dip by a
+               dik_expression entry pointing to the array expression. */
+            if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+              a_constant_ptr  con = dip->variant.constant
+                                       ->variant.aggregate.first_constant;
+              if (con != NULL && constant_is(con, ck_init_repeat) &&
+                  constant_is(con->variant.init_repeat.constant,
+                              ck_dynamic_init)) {
+                a_dynamic_init_ptr  subdip = con->variant.init_repeat.constant
+                                                ->variant.dynamic_init;
+                if (subdip->kind == (a_dynamic_init_kind)dik_constructor &&
+                    subdip->variant.constructor.is_array_copy) {
+                  an_expr_node_ptr  expr = subdip->variant.constructor.args;
+                  saved_init = *dip;
+                  dip->kind = (a_dynamic_init_kind)dik_expression;
+                  dip->variant.expression = expr;
+                  restore_init = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (parenthesized_init || braced_init) {
+            /* Use a parenthesized or brace-enclosed initializer. */
+            gen_paren_or_brace_dynamic_init(initializer->dynamic,
+                                            var->type,
+                                            parenthesized_init,
+                                            /*is_var_init=*/TRUE);
+          } else {
+            /* Use an "="-form initializer. */
+            a_boolean need_parens = FALSE;
+            write_tok_str(" = ");
+            if (var->declared_with_decltype_auto &&
+                initializer->dynamic->kind ==
                                          (a_dynamic_init_kind)dik_expression &&
-              initializer->dynamic->variant.expression->kind !=
+                initializer->dynamic->variant.expression->kind !=
                                              (an_expr_node_kind)enk_variable) {
-            /* Add parens for a case like
-                 decltype(auto) x = (y);
-               where omitting the parens would give the wrong type. */
-            need_parens = TRUE;
+              /* Add parens for a case like
+                   decltype(auto) x = (y);
+                 where omitting the parens would give the wrong type. */
+              need_parens = TRUE;
+            }  /* if */
+            if (need_parens) {
+              write_tok_ch('(');
+            }  /* if */
+            gen_dynamic_init(initializer->dynamic,
+                             var->type,
+                             (an_expr_node_ptr)NULL,
+                             /*avoid_top_level_comma=*/TRUE,
+                             /*obj_expr_of_mfunc_operator=*/FALSE);
+            if (need_parens) {
+              write_tok_ch(')');
+            }  /* if */
           }  /* if */
-          if (need_parens) {
-            write_tok_ch('(');
+          if (restore_init) {
+            *dip = saved_init;
           }  /* if */
-          gen_dynamic_init(initializer->dynamic,
-                           var->type,
-                           (an_expr_node_ptr)NULL,
-                           /*avoid_top_level_comma=*/TRUE,
-                           /*obj_expr_of_mfunc_operator=*/FALSE);
-          if (need_parens) {
-            write_tok_ch(')');
-          }  /* if */
-        }  /* if */
+        }
         break;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       case initk_none:

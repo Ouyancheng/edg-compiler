@@ -1,5 +1,26 @@
 Version 5.1
 
+11/27/18 [EDGcpfe/20116]
+C++-generating back end: Structured bindings involving an array copy
+
+Structured bindings sometimes require an element-by-element copy of an array
+expression .  This copy is represented as an aggregate initialization involving
+a special dik_constructor entry (see also the entry for EDGcpfe/17413).
+Previously, however, the C++-generating back end failed to recognize that
+special case and therefore incorrectly rendered structured binding declarations
+that result in such array copies.  For example:
+
+  struct S {
+    S();
+    S(S const&);
+  } arr[2]{};
+  int main() {
+    auto [x, y] = arr;  // Previously rendered incorrectly.
+  }
+
+That problem is now fixed.
+
+
 11/27/18 [EDGcpfe/20115]
 Unreferenced structured bindings
 
