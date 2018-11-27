@@ -30500,7 +30500,7 @@ icp.
     a_type_qualifier_set
                   tqs = get_type_qualifiers(operand.type);
     cctor_sym = select_overloaded_copy_constructor(
-                                 tp, tqs, /*source_is_rvalue=*/FALSE,
+                                 tp, tqs, is_an_rvalue(&operand),
                                  !dps->init_state.direct_init, pos,
                                  &ambiguous, &uncallable, &inaccessible_match,
                                  &bitwise_copy);

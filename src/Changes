@@ -1,5 +1,24 @@
 Version 5.1
 
+11/27/18 [EDGcpfe/20181]
+Incorrect copy constructor selected for structured binding to xvalue
+
+Consider:
+
+  struct S {
+    S(const S&) = delete;
+    S(S&&) = default;
+  };
+  S a[1] { {} };
+  void f() {
+    auto [x] = static_cast<S(&&)[1]>(a);  // Previously an error.  Now okay.
+  }
+
+Previously this elicited an error because the initialization of the structured
+binding container incorrectly selected the copy constructor instead of the move
+constructor to copy the container elements.  That is now fixed.
+
+
 11/27/18 [EDGcpfe/20116]
 C++-generating back end: Structured bindings involving an array copy
 
