@@ -14501,8 +14501,11 @@ as C++ mode.
          being initialized, but in the sub-aggregate case, it's passed in
          explicitly. */
       if (aggr_type == NULL) {
-        check_assertion(dip->variable != NULL);
-        aggr_type = dip->variable->type;
+        if (dip->variable != NULL) {
+          aggr_type = dip->variable->type;
+        } else {
+          aggr_type = init_con->type;
+        }  /* if */
       }  /* if */
       dip->is_partially_initialized =
                      recompute_partially_initialized_flag(init_con, aggr_type);
