@@ -10849,7 +10849,7 @@ enable_microsoft_mode:
   check_rvalue_ref_options();
   if (relaxed_constexpr_enabled) {
     if (!bool_is_keyword) {
-      if (option_kind_used[(int)optk_implicit_typename]) {
+      if (option_kind_used[(int)optk_bool_is_keyword]) {
         command_line_error(ec_cl_relaxed_constexpr_requires_bool);
       }  /* if */
       bool_is_keyword = TRUE;
