@@ -27,7 +27,7 @@ to the names of structured bindings bound to reference entities.  For example:
   decltype(bnd) q;  // Previously accepted.  Now an error.
 
 In this example, the front end previously did not produce a reference type for
-variable q (when it should do so) and as a result is accepted this example.
+variable q (when it should do so) and as a result it accepted this example.
 Now, a reference is produced and an error is issued because the reference q has
 no initializer.  A similar problem with tuple-based bindings is also fixed.
 

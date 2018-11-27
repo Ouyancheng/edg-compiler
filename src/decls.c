@@ -17219,12 +17219,12 @@ done:
 }  /* is_tuple_like_type */
 
 
-a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
-                                   a_type_ptr         tp,
-                                   a_targ_size_t      elem_idx,
-                                   a_boolean          for_decltype,
-                                   a_source_position  *diag_pos,
-                                   an_init_component  **p_icp)
+static a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
+                                          a_type_ptr         tp,
+                                          a_targ_size_t      elem_idx,
+                                          a_boolean          for_decltype,
+                                          a_source_position  *diag_pos,
+                                          an_init_component  **p_icp)
 /*
 Return the type of a binding variable for a tuple-like container.  tp
 represents the container type E (from the container e represented by container)
@@ -17359,6 +17359,7 @@ static a_boolean check_simple_struct_for_binding(
                                                a_type_ptr         tp,
                                                a_targ_size_t      *n_elements,
                                                a_field_ptr        *p_fields,
+                                               a_boolean          for_decltype,
                                                a_source_position  *pos)
 /*
 Return TRUE if the given type is a simple class type whose nonstatic data
@@ -17366,7 +17367,7 @@ members are all direct members or all members of the same unambiguous base
 class.  If so, set *n_elements to the number of such data members and
 *p_fields to the list of fields to bind to (this list may include unnamed bit
 fields that should not be bound to).  Otherwise, issue a diagnostic at the
-given position.
+given position unless for_decltype is TRUE.
 */
 {
   a_boolean    result = TRUE;
@@ -17376,10 +17377,14 @@ given position.
   complete_type_is_needed(tp);
   if (tp->kind != (a_type_kind)tk_struct &&
       tp->kind != (a_type_kind)tk_class) {
-    pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+    if (!for_decltype) {
+      pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+    }  /* if */
     result = FALSE;
   } else if (class_type_supp(tp)->is_lambda_closure_class) {
-    pos_error(ec_struct_binding_lambda, pos);
+    if (!for_decltype) {
+      pos_error(ec_struct_binding_lambda, pos);
+    }  /* if */
     result = FALSE;
   } else {
     a_base_class_ptr  bcp = base_classes_of(tp);
@@ -17392,7 +17397,9 @@ given position.
       a_field_ptr  base_fields = get_direct_fields_if_nonempty(bcp->type);
       if (base_fields != NULL) {
         if (fields != NULL) {
-          pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+          if (!for_decltype) {
+            pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+          }  /* if */
           result = FALSE;
           break;
         } else {
@@ -17408,7 +17415,9 @@ given position.
         n += 1;
         if (fp->is_anonymous_parent_object ||
             field_is_property_or_event(fp)) {
-          pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+          if (!for_decltype) {
+            pos_ty_error(ec_invalid_struct_binding_type, pos, tp);
+          }  /* if */
           result = FALSE;
           break;
         }  /* if */
@@ -17553,7 +17562,8 @@ can be fully determined.
     } else if (is_tuple_like_type(container_type, &n_elements, &err)) {
       tuple_case = TRUE;
     } else if (!check_simple_struct_for_binding(container_type, &n_elements,
-                                                &fp, &dps->declarator_pos)) {
+                                                &fp, /*for_decltype=*/FALSE,
+                                                &dps->declarator_pos)) {
       err = TRUE;
     }  /* if */
     binding_entry = container->variant.bindings;
@@ -17600,6 +17610,9 @@ can be fully determined.
       a_type_qualifier_set  tqs = container_tqs;
       fp = next_bindable_field(fp);
       btype = fp->type;
+      if (is_reference_type(btype)) {
+        btype = type_pointed_to(btype);
+      }  /* if */
       if (fp->is_mutable) {
         /* Mutable fields ignore a "const" qualified container type. */
         tqs &= ~TQ_CONST;
@@ -17656,6 +17669,98 @@ can be fully determined.
     dps->has_deducible_return_type = FALSE;
   }  /* if */
 }  /* define_struct_bindings */
+
+
+static a_targ_size_t get_binding_index(a_variable_ptr  vp)
+/*
+Return the position of the given binding in its associated list of bindings.
+(The first binding has position 1.)
+*/
+{
+  a_targ_size_t   idx = 1;
+  a_variable_ptr  container = vp->variant.container;
+  an_il_entity_list_entry_ptr
+                  ielep = container->variant.bindings;
+
+  for (;; ielep = ielep->next, ++idx) {
+    check_assertion(ielep != NULL);
+    if ((a_variable_ptr)ielep->entity.ptr == vp) {
+      break;
+    }  /* if */
+  }  /* for */
+  return idx;
+}  /* get_binding_index */
+
+
+static a_type_ptr decltype_for_tuple_like_binding(a_variable_ptr  vp)
+/*
+Determine the type of the given tuple-based structured binding as seen by
+"decltype(binding_name)".  This is often different from vp->type because a
+reference was applied on top of the type we're looking for: The original type
+is recovered by calling tuple_like_binding_type with the "for_decltype" flag
+set to TRUE.
+*/
+{
+  a_type_ptr             result;
+
+  if (is_error_type(vp->type)) {
+    result = vp->type;
+  } else {
+    a_targ_size_t   idx = get_binding_index(vp);
+    a_variable_ptr  container = vp->variant.container;
+    a_type_ptr      container_type = container->type;
+    an_init_component_ptr
+                    icp = NULL;
+    if (is_reference_type(container_type)) {
+      container_type = type_pointed_to(container_type);
+    }  /* if */
+    result = tuple_like_binding_type(container, container_type,
+                                     idx-1,  /*for_decltype=*/TRUE,
+                                     &error_position, &icp);
+    free_init_component_list(icp);
+  }  /* if */
+  return result;
+}  /* decltype_for_tuple_like_binding */
+
+
+a_type_ptr decltype_for_struct_binding(a_variable_ptr  vp)
+/*
+Determine the type of the given structured binding as seen by
+"decltype(binding_name)".  This is often different from vp->type because a
+reference was applied on top of the type we're looking for.
+*/
+{
+  a_type_ptr  result, container_type = vp->variant.container->type;
+  
+  if (is_reference_type(container_type)) {
+    container_type = type_pointed_to(container_type);
+  }  /* if */
+  if (vp->init_kind != (an_init_kind)initk_binding) {
+    /* A tuple-based binding (non-tuple based binding use an initk_binding
+       initializer).  Recover the type through the appropriate
+       template substitutions. */
+    result = decltype_for_tuple_like_binding(vp);
+  } else if (is_array_type(container_type)) {
+    result = vp->type;
+  } else {
+    a_targ_size_t  idx = get_binding_index(vp), n_elements;
+    a_field_ptr    fp;
+    if (!check_simple_struct_for_binding(container_type, &n_elements,
+                                         &fp, /*for_decltype=*/TRUE,
+                                         &error_position)) {
+      result = error_type();
+    } else {
+      a_type_qualifier_set 
+                     container_tqs = get_type_qualifiers(container_type);
+      while (--idx != 0) fp = next_bindable_field(fp);
+      if (fp->is_mutable) {
+        container_tqs &= ~TQ_CONST;
+      }  /* if */
+      result = make_qualified_type(fp->type, container_tqs);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* decltype_for_struct_binding */
 
 
 void mark_inline_variable(a_variable_ptr var,

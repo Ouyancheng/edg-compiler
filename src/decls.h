@@ -1334,13 +1334,7 @@ extern void check_prefix_attributes_without_a_declarator(
 extern void disallow_attributes(an_attribute_ptr  *p_attributes,
                                 an_error_severity sev);
 
-extern a_type_ptr tuple_like_binding_type(
-                                        a_variable_ptr            container,
-                                        a_type_ptr                tp,
-                                        a_targ_size_t             elem_idx,
-                                        a_boolean                 for_decltype,
-                                        a_source_position         *diag_pos,
-                                        struct an_init_component  **p_icp);
+extern a_type_ptr decltype_for_struct_binding(a_variable_ptr  vp);
 
 extern void define_struct_bindings(a_decl_parse_state  *dps);
 

@@ -13920,44 +13920,6 @@ func_call_expr.)  Issue diagnostics if needed.
 }  /* catch_up_on_checks_for_calls_in_decltype */
 
 
-static a_type_ptr decltype_for_tuple_like_binding(a_variable_ptr  vp)
-/*
-Determine the type of the given structured binding as seen by
-"decltype(binding_name)".  This is often different from vp->type because a
-reference was applied on top of the type we're looking for.
-*/
-{
-  a_type_ptr             result;
-
-  if (is_error_type(vp->type)) {
-    result = vp->type;
-  } else {
-    a_targ_size_t   idx = 1;
-    a_variable_ptr  container = vp->variant.container;
-    a_type_ptr      container_type = container->type;
-    an_il_entity_list_entry_ptr
-                    ielep = container->variant.bindings;
-    an_init_component_ptr
-                    icp = NULL;
-    /* Determine the position of the given binding in the list of bindings. */
-    for (;; ielep = ielep->next, ++idx) {
-      check_assertion(ielep != NULL);
-      if ((a_variable_ptr)ielep->entity.ptr == vp) {
-        break;
-      }  /* if */
-    }  /* for */
-    if (is_reference_type(container_type)) {
-      container_type = type_pointed_to(container_type);
-    }  /* if */
-    result = tuple_like_binding_type(container, container_type,
-                                     idx-1,  /*for_decltype=*/TRUE,
-                                     &error_position, &icp);
-    free_init_component_list(icp);
-  }  /* if */
-  return result;
-}  /* decltype_for_tuple_like_binding */
-
-
 static a_type_ptr decltype_from_operand(an_operand *operand,
                                         a_boolean  *no_parens_matters)
 /*
@@ -14039,19 +14001,15 @@ expression (i.e., id-expression or member access).
 id_case:
     if (expr != NULL) {
       /* An expression consisting of a simple identifier or one equivalent to
-         such an expressions (lvalue or rvalue). */
+         such an expression (lvalue or rvalue). */
       /* Note that parentheses are significant and are not skipped if
          present. */
       if (is_variable_node(expr)) {
         a_variable_ptr  vp = node_variable(expr);
-        result = vp->type;
-        if (vp->is_struct_binding &&
-            vp->init_kind != (an_init_kind)initk_binding &&
-            is_reference_type(result)) {
-          /* For tuple-based structured bindings, the type of the binding is a
-             reference type, but decltype(binding) produces the underlying
-             type. */
-          result = decltype_for_tuple_like_binding(vp);
+        if (vp->is_struct_binding) {
+          result = decltype_for_struct_binding(vp);
+        } else {
+          result = vp->type;
         }  /* if */
       } else if (is_routine_node(expr)) {
         result = node_routine(expr)->type;
