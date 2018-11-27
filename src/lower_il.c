@@ -18270,10 +18270,6 @@ statements don't contain an enk_condition).
       /* A condition declaration.  Generate code for the initialization, and
          insert it at the beginning of the new block. */
       set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
-#if LOWER_DESIGNATED_INITIALIZERS
-      lower_dynamic_init_designated_initializers(csp->dynamic_init,
-                                                 (a_type_ptr)NULL);
-#endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_dynamic_init(csp->dynamic_init, &ipd,
                          (an_implied_copy_source *)NULL,
                          (a_variable_ptr)NULL,

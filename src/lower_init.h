@@ -337,8 +337,10 @@ extern void lower_designated_initializers(a_constant_ptr init_con,
                                           a_type_ptr     aggr_type);
 
 extern void lower_dynamic_init_designated_initializers(
-                                                 a_dynamic_init_ptr dip,
-                                                 a_type_ptr         aggr_type);
+                                       a_dynamic_init_ptr    dip,
+                                       a_type_ptr            aggr_type,
+                                       an_init_pos_descr_ptr ipdp,
+                                       an_insert_location    *insert_location);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
 
 extern void lower_file_scope_dynamic_inits(void);
