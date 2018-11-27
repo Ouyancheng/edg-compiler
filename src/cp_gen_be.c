@@ -17869,8 +17869,7 @@ Output the initializer, if any, for the indicated variable.
                expression.  We therefore temporary replace *dip by a
                dik_expression entry pointing to the array expression. */
             if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-              a_constant_ptr  con = dip->variant.constant
-                                       ->variant.aggregate.first_constant;
+              con = dip->variant.constant->variant.aggregate.first_constant;
               if (con != NULL && constant_is(con, ck_init_repeat) &&
                   constant_is(con->variant.init_repeat.constant,
                               ck_dynamic_init)) {
