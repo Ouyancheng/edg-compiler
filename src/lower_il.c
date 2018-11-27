@@ -14927,6 +14927,23 @@ If we're in a non-constant aggregate initialization, search for that first.
         new_expr = add_cast_if_necessary(new_expr, expr->type);
         overwrite_node(expr, new_expr);
         break;
+      } else if (aggregate_classes_can_have_bases &&
+                 ipdp->base_class_subobject) {
+        /* See if this initialization position has been modified to point
+           to a subobject base class.  If so, temporarily remove the modifier
+           to see if the non-modified type is the "this" type that we're
+           looking for. */
+        an_init_pos_modifier_ptr save_modifiers = ipdp->modifiers;
+        ipdp->modifiers = NULL;
+        new_expr = make_address_of_init_entity_node(ipdp,
+                                                    /*using_as_dest=*/FALSE);
+        new_type = type_pointed_to(new_expr->type);
+        ipdp->modifiers = save_modifiers;
+        if (identical_types_ignoring_qualifiers(new_type, old_type)) {
+          found = TRUE;
+          overwrite_node(expr, new_expr);
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

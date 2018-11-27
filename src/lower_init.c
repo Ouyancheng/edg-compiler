@@ -6262,7 +6262,6 @@ re-ordered base classes.
       local_ipd = *ipdp;
       local_ipd.next = NULL;
       local_ipdp = &local_ipd;
-      add_init_pos_modifier(&ipm, local_ipdp);
       push_aggregate_this(local_ipdp);
     }  /* if */
     ctsp = class_type_supp(class_type);
@@ -6304,6 +6303,7 @@ re-ordered base classes.
         check_assertion(cp->constant_for_base_class &&
                         identical_types(cp->type, bcp->type));
         if (ipdp != NULL) {
+          add_init_pos_modifier(&ipm, local_ipdp);
           ipm.curr_base = bcp;
           ipm.type = cp->type;
           local_ipdp->base_class_subobject = TRUE;
@@ -6391,6 +6391,7 @@ re-ordered base classes.
           }
 #endif /* CHECKING */
           if (ipdp != NULL) {
+            add_init_pos_modifier(&ipm, local_ipdp);
             ipm.curr_field = fp;
             ipm.type = cp->type;
           }  /* if */
@@ -6411,6 +6412,10 @@ re-ordered base classes.
       }  /* if */
       if (update_prev) {
         prev = cp;
+      }  /* if */
+      if (ipdp != NULL && local_ipdp->modifiers != NULL) {
+        /* Remove any modifiers that may have been added in the loop. */
+        local_ipdp->modifiers = NULL;
       }  /* if */
     }  /* for */
     if (ipdp != NULL) {
