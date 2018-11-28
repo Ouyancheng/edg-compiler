@@ -198,7 +198,7 @@ Microsoft compatibility: internal error on variadic nonreal instantiation
 A change made in version 4.14 (see EDGcpfe/18144) enabled the use of
 variadic templates as Microsoft-mode instantiated nonreal base classes.
 In some cases that change could result in an invalid template argument
-list for a bases class that was not itself variadic.  This could then
+list for a base class that was not itself variadic.  This could then
 result in a variety of incorrect behaviors, including (for the example
 below) an internal error (in form_template_arg_info).  Now, a variadic
 template can only have an instantiated base class if that class is itself
