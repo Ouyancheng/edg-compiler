@@ -2117,7 +2117,7 @@ fixed.  For example, with --c++17:
   };
 
 
-9/18/18  [EDGcpfe/19601]
+9/18/18  [EDGcpfe/19601,EDGcpfe/20108]
 Structured binding and member accessibility
 
 When using structured bindings with class members, the original specification
