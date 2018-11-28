@@ -30431,9 +30431,14 @@ is an lvalue.
   } else {
     /* No "get" member: Create a call "get<i>(e)" instead where "get" is
        looked up using argument-dependent lookup. */
-    an_arg_list_elem_ptr  arg;
-    a_template_arg_ptr    tap;
-    an_arg_operand_ptr    tap_opnd = alloc_arg_operand();
+    an_arg_list_elem_ptr     arg;
+    a_template_arg_ptr       tap;
+    an_arg_operand_ptr       tap_opnd = alloc_arg_operand();
+    a_token_sequence_number  tsn;
+    an_il_entity_list_entry  *ep = container->variant.bindings;
+    a_targ_size_t            k;
+    for (k = 0; k<elem_idx; ++k) ep = ep->next;
+    tsn = symbol_for((a_variable_ptr)ep->entity.ptr)->token_sequence_number;
     tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
     tap->arg_operand = tap_opnd;
     make_constant_operand(i_con, &tap_opnd->operand);
@@ -30442,8 +30447,7 @@ is an lvalue.
     make_lvalue_variable_operand(container, diag_pos, diag_pos,
                                  operand_of_arg_list_elem(arg),
                                  (a_ref_entry *)NULL);
-    call_adl_named_function("get", tap, arg, diag_pos,
-                            curr_token_sequence_number,
+    call_adl_named_function("get", tap, arg, diag_pos, tsn,
                             ec_tuple_get_no_matching_overload,
                             ec_ambiguous_overloaded_function,
                             ec_struct_binding_undefined_identifier,

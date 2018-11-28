@@ -17240,9 +17240,10 @@ FALSE), an lvalue or rvalue reference layer is applied to that type: an lvalue
 reference if the initializer for the binding is an lvalue and an rvalue
 reference otherwise.
 
-The initializer for the binding is returned in *p_icp.  If E is a class type
-with a member "get", that initializer is "e.get<n>()"; otherwise, it is
-"get<n>(e)" where get is looked up using argument-dependent lookup only.
+When for_decltype is FALSE, the initializer for the binding is returned in
+*p_icp.  If E is a class type with a member "get", that initializer is
+"e.get<n>()"; otherwise, it is "get<n>(e)" where get is looked up using
+argument-dependent lookup only.
 */
 {
   a_type_ptr             e_type, te_inst;
@@ -17323,22 +17324,24 @@ with a member "get", that initializer is "e.get<n>()"; otherwise, it is
     goto done;
   }  /* if */
   e_type = type_symbol_type(e_type_sym);
-  /* Determine the initializer. */
-  determine_get_call_for_tuple_like_binding(container, tp, elem_idx, diag_pos,
-                                            p_icp, &lvalue_binding);
-  /* Add a reference on top of e_type, applying the reference-collapsing
-     rules if needed.  An lvalue reference is added if lvalue_binding is
-     TRUE, an rvalue reference otherwise. */
-  if (for_decltype) {
-    /* Do not do that when determining the type as seen by "decltype". */
-  } else if (is_reference_type(e_type)) {
-    e_type = make_reference_to_reference(e_type,
+  if (!for_decltype) {
+    /* Determine the initializer. */
+    determine_get_call_for_tuple_like_binding(container, tp, elem_idx,
+                                              diag_pos, p_icp,
+                                              &lvalue_binding);
+    /* Add a reference on top of e_type, applying the reference-collapsing
+       rules if needed.  An lvalue reference is added if lvalue_binding is
+       TRUE, an rvalue reference otherwise. */
+    if (is_reference_type(e_type)) {
+      e_type = make_reference_to_reference(
+                                         e_type,
                                          /*rvalue_ref=*/!lvalue_binding,
                                          /*tracking_ref=*/FALSE,
                                          TQ_NONE, diag_pos, (a_boolean*)NULL);
-  } else {
-    e_type = lvalue_binding ? make_reference_type(e_type)
-                            : make_rvalue_reference_type(e_type);
+    } else {
+      e_type = lvalue_binding ? make_reference_type(e_type)
+                              : make_rvalue_reference_type(e_type);
+    }  /* if */
   }  /* if */
 done:
   return e_type;
@@ -17535,6 +17538,7 @@ early so that cases like "auto [x] = x;" are diagnosed.
       list_entry->entity.ptr = (char*)vp;
       *p_end_bindings = list_entry;
       p_end_bindings = &list_entry->next;
+      binding_dps.sym->token_sequence_number = curr_token_sequence_number;
     }  /* if */
     /* Skip over the binding name. */
     (void)get_token();

@@ -1,5 +1,13 @@
 Version 5.1
 
+11/28/18 [EDGcpfe/20502]
+Nondependent structured bindings in templates
+
+Nondependent structured bindings appearing in templates sometimes generated
+spurious errors because a call to "get<N>" was not correctly set up.  That is
+now fixed.
+
+
 11/27/18 [EDGcpfe/20279]
 Structured bindings and std::tuple_element
 
