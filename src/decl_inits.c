@@ -5629,12 +5629,12 @@ type.
   an_init_state       *is = &dps.init_state;
 
   init_decl_parse_state(&dps);
+  check_assertion(binding != NULL);
   dps.sym = symbol_for(binding);
   dps.start_pos = binding->source_corresp.decl_position;
   dps.declarator_pos = binding->source_corresp.decl_position;
   dps.declared_type = binding->type;
   dps.type = binding->type;
-  check_assertion(binding != NULL);
   is->elements_are_full_expressions = TRUE;
   if (var_has_static_or_thread_storage_duration(binding)) {
     is->static_lifetime_init = TRUE;
