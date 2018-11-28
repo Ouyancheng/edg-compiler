@@ -78,7 +78,7 @@ const qualifier.  For example, with --c++20:
 
 
 11/27/18 [EDGcpfe/20181]
-Incorrect copy constructor selected for structured binding to xvalue
+Incorrect constructor selected for structured binding to xvalue
 
 Consider:
 
