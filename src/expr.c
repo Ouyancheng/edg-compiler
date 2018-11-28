@@ -8931,10 +8931,7 @@ the selection, not an operator token for the call.
               }  /* if */
             }  /* if */
           } else if (ref_qual == (a_ref_qualifier_kind)rqk_lvalue) {
-            if (!is_arrow_operator && is_an_rvalue(operand_1) &&
-                !(rvalue_allowed_with_const_qual_memptr &&
-                  member_type->variant.routine.extra_info->
-                                                     qualifiers == TQ_CONST)) {
+            if (!is_arrow_operator && is_an_rvalue(operand_1)) {
               err = TRUE;
               if (expr_error_should_be_issued()) {
                 pos_ty_error(ec_pm_call_obj_not_lvalue, &operator_position,

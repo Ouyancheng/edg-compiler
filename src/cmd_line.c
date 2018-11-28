@@ -2720,7 +2720,6 @@ option values if they were not already set by a command line option.
              std_version to the value for C++20. */
           std_version = 202000;
           spaceship_enabled = TRUE;
-          rvalue_allowed_with_const_qual_memptr = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3549,7 +3548,6 @@ default mode (e.g., exception handling).
         aggregate_classes_can_have_user_ctors = FALSE;
         spaceship_enabled = TRUE;
         adl_for_non_visible_templates = TRUE;
-        rvalue_allowed_with_const_qual_memptr = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11949,7 +11947,6 @@ variables declared in cmd_line.h.
   auto_template_params_enabled = FALSE;
   string_literal_operator_template_allowed = FALSE;
   spaceship_enabled = FALSE;
-  rvalue_allowed_with_const_qual_memptr = FALSE;
 }  /* cmd_line_static_var_init */
 
 
