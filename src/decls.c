@@ -17250,20 +17250,41 @@ with a member "get", that initializer is "e.get<n>()"; otherwise, it is
   a_template_arg_ptr     tap;
   a_constant_ptr         n_constant;
   a_boolean              lvalue_binding;
+  an_integer_kind        n_int_kind = targ_size_t_int_kind;
 
   te_sym = look_up_class_template_in_std("tuple_element");
-  if (te_sym == NULL) {
+  if (te_sym == NULL || !is_class_template_symbol(te_sym)) {
     if (!for_decltype) {
       pos_error(ec_missing_std_tuple_element, diag_pos);
     }  /* if */
     e_type = error_type();
     goto done;
+  } else {
+    /* Check that the first template parameter of std::tuple_element is a
+       nontype template parameter, and if its type is integral use that as
+       the integer kind for the index. */
+    a_template_symbol_supplement_ptr
+                          tssp = te_sym->variant.template_info;
+    a_template_param_ptr  tpp;
+    a_type_ptr            n_type;
+    tpp = tssp->variant.class_template.initial_decl_cache.decl_info
+              ->parameters;
+    if (tpp == NULL || !symbol_is(tpp->param_symbol, sk_constant)) {
+      if (!for_decltype) {
+        pos_error(ec_missing_std_tuple_element, diag_pos);
+      }  /* if */
+      e_type = error_type();
+      goto done;
+    }  /* if */
+    n_type = skip_typerefs(tpp->variant.constant.ptr->type);
+    if (n_type->kind == (a_type_kind)tk_integer) {
+      n_int_kind = n_type->variant.integer.int_kind;
+    }  /* if */
   }  /* if */
   /* Instantiate tuple_element<n, T> for n = elem_idx and T = tp. */
   tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
   n_constant = local_constant();
-  set_integer_constant(n_constant, (a_host_large_integer)elem_idx,
-                       targ_size_t_int_kind);
+  set_integer_constant(n_constant, (a_host_large_integer)elem_idx, n_int_kind);
   tap->variant.constant = alloc_shareable_constant(n_constant);
   release_local_constant(&n_constant);
   tap->next = alloc_template_arg((a_templ_arg_kind)tak_type);

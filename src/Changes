@@ -1,5 +1,30 @@
 Version 5.1
 
+11/27/18 [EDGcpfe/20279]
+Structured bindings and std::tuple_element
+
+The standard requires that the first (nontype) template parameter of
+std::tuple_element be of type std::size_t and the front end previously
+required that to be the case (otherwise, tuple-like structured bindings would
+complain that std::tuple_element<0, X> could not be instantiated).  Now, that
+requirement has been relaxed to match other implementations.  For example:
+
+  namespace std {
+    template<typename T> struct tuple_size;
+    template<int N, typename T> struct tuple_element;
+      // Nonstandard type "int" for the first parameter.
+  }
+  struct X {};
+  namespace std {
+    template<> struct tuple_size<X> { static constexpr int value = 2; };
+    template<int N> struct tuple_element<N, X> { using type = int; };
+  }
+  template<int> int get(X);
+  void g(X t) {
+    auto [x, y] = t;  // Previously an error.  Now accepted.
+  }
+
+
 11/27/18 [EDGcpfe/20191]
 Microsoft compatibility: Tuple-like structured bindings
 
