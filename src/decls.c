@@ -17203,6 +17203,11 @@ The value of that expression is the number of elements in the tuple.
       (*n_elements = (a_targ_size_t)unsigned_value_of_integer_constant(
                                                                cp, &overflow),
        overflow)) {
+    if (microsoft_mode) {
+      /* Microsoft doesn't consider the type tuple-like if tuple_size<T>
+         doesn't have a "value" member with a usable constant value. */
+      goto done;
+    }  /* if */
     pos_ty_error(ec_invalid_tuple_size, &error_position, tp);
     err = TRUE;
   }  /* if */
