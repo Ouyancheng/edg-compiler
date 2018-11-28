@@ -1,5 +1,21 @@
 Version 5.1
 
+11/27/18 [EDGcpfe/19999]
+Rvalue objects and const-qualified pointers to members
+
+As described in Committee document P0704R1, C++20 relaxes the rule
+prohibiting use of an rvalue object expression in a pointer-to-member
+expression where the member pointer has an lvalue ref-qualifier.  Under the
+new rules, such an expression is permitted if the member pointer has a
+const qualifier.  For example, with --c++20:
+
+  struct X { void foo() const &; };
+  void f() {
+    (X{}.*&X::foo)(); // Previously an error, now accepted in C++20 because
+                      // X::foo has a const qualifier
+  }
+
+
 11/27/18 [EDGcpfe/20181]
 Incorrect copy constructor selected for structured binding to xvalue
 
