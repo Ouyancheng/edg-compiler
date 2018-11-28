@@ -100,7 +100,7 @@ constructor to copy the container elements.  That is now fixed.
 C++-generating back end: Structured bindings involving an array copy
 
 Structured bindings sometimes require an element-by-element copy of an array
-expression .  This copy is represented as an aggregate initialization involving
+expression.  This copy is represented as an aggregate initialization involving
 a special dik_constructor entry (see also the entry for EDGcpfe/17413).
 Previously, however, the C++-generating back end failed to recognize that
 special case and therefore incorrectly rendered structured binding declarations

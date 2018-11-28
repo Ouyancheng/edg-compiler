@@ -17864,9 +17864,9 @@ Output the initializer, if any, for the indicated variable.
                and the first "argument" of the dik_constructor entry is the
                array expression to copy.  A back end is responsible for
                generating a loop that traverses the array and invokes the
-               constructor with for each element in turn).  For the C++-
+               constructor with for each element in turn.  For the C++-
                generating back end, however, we can just generate the
-               expression.  We therefore temporary replace *dip by a
+               expression.  We therefore temporarily replace *dip by a
                dik_expression entry pointing to the array expression. */
             if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
               con = dip->variant.constant->variant.aggregate.first_constant;
