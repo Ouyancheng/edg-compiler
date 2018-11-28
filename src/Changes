@@ -1,5 +1,22 @@
 Version 5.1
 
+11/28/18 [EDGcpfe/19431]
+Address of structured bindings for bit fields
+
+Consider:
+
+  struct S { int x: 3, y: 4; };
+  int g(S p) {
+    auto [x, y] = p;
+    int &r = y;  // Previously could abort.
+    return r;
+  }
+
+In configurations with ADDR_OF_BIT_FIELD_ALLOWED set to TRUE this could
+previously trigger an abort in is_bit_field_operand_whose_address_can_be_taken
+(exprutil.c).  That is now fixed.
+
+
 11/28/18 [EDGcpfe/20502]
 Nondependent structured bindings in templates
 

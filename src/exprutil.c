@@ -17673,6 +17673,14 @@ and if so, return TRUE.
 
   check_assertion(is_expression_operand(operand));
   node = skip_parens(operand->variant.expression);
+  if (is_variable_node(node)) {
+    /* If this is a binding for a bit field, use the bound expression
+       instead. */
+    a_variable_ptr  vp = node_variable(node);
+    if (vp->init_kind == (an_init_kind)initk_binding) {
+      node = vp->initializer.bound_expr;
+    }  /* if */
+  }  /* if */
   /* Only handle the simplest case, not something like "&(i ? x.a : x.b)".
      A case like that could be handled, but it's tricky, since the
      subexpressions could have different types. */
