@@ -173,7 +173,7 @@ failed to instantiate S<int> prior to resolving the structured bindings.  That
 is now fixed.
 
 
-11/26/18 [EDGcpfe/20099]
+11/26/18 [EDGcpfe/20074,EDGcpfe/20099]
 Structured bindings for references and decltype
 
 The front end previously did not correctly handle decltype constructs applied
