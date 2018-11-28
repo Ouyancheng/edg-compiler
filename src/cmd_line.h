@@ -2457,6 +2457,14 @@ EXTERN a_boolean
 			/* TRUE if support for the C++20 "spaceship" operator
 			   ("<=>") is enabled. */
 
+EXTERN a_boolean
+		rvalue_allowed_with_const_qual_memptr;
+			/* TRUE if an rvalue object expression can be used
+			   in a member-pointer expression with a pointer to
+			   a member function that has an lvalue
+			   ref-qualifier but is const-qualified (a C++20
+			   feature). */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
