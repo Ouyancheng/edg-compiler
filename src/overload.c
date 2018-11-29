@@ -1844,6 +1844,26 @@ as part of producing a diagnostic for an overload resolution problem.
 }  /* format_argument_type_for_display */
 
 
+static a_boolean arg_list_contains_top_level_designator(
+                                                an_arg_list_elem_ptr arg_list)
+/*
+Return TRUE if arg_list contains a designator component at top level, otherwise
+return FALSE.  This function is meant to be used in conjunction with
+format_arg_list_elem_type_for_display.
+ */
+{
+  a_boolean result = FALSE;
+  an_arg_list_elem_ptr alep;
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
+    if (is_designator_component(alep)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}
+
+
 static void format_arg_list_elem_type_for_display(an_arg_list_elem_ptr alep)
 /*
 Add the type of the given argument list element to to string being
@@ -1900,13 +1920,19 @@ end_diagnostic.
   /* Display nothing if the argument list is empty. */
   if (arg_list != NULL) {
     set_up_for_argument_type_formatting();
-    for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
-      format_arg_list_elem_type_for_display(alep);
-      if (!is_last_elem(alep)) {
-        /* This is not the last argument, so put a comma after it. */
-        put_str_to_temp_text_buffer(", ");
-      }  /* if */
-    }  /* for */
+    if (arg_list_contains_top_level_designator(arg_list)) {
+      put_str_to_temp_text_buffer("initializer list with designators");
+    } else {
+      for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
+        format_arg_list_elem_type_for_display(alep);
+        if (!is_last_elem(alep) && !is_designator_component(alep)) {
+          /* This is not the last argument, so put a comma after it. If
+             we see a designator, the comma will come after we print out
+             it's type. */
+          put_str_to_temp_text_buffer(", ");
+        }  /* if */
+      }  /* for */
+    }  /* if */
     put_ch_to_temp_text_buffer('\0');
     copy_str_add_diag_info(dp, ec_argument_list_types_add_on,
                            temp_text_buffer);
@@ -4494,6 +4520,10 @@ succeeds, FALSE if it fails.
           deduction_okay = FALSE;
           goto end_of_routine;
         }  /* if */
+      }  /* if */
+      if (is_designator_component(arg)) {
+        deduction_okay = FALSE;
+        goto end_of_routine;
       }  /* if */
       check_assertion(is_expression_component(arg));
       operand = operand_of_arg_list_elem(arg);
@@ -9111,13 +9141,16 @@ Specifically, this means instantiation-dependent, not just type-dependent.
           break;
         }  /* if */
       }  /* if */
-    } else {
-      check_assertion(is_braced_init_component(alep));
+    } else if (is_braced_init_component(alep)) {
       if (arg_list_is_type_dependent(alep->variant.braced.list)) {
         is_dependent = TRUE;
         break;
       }  /* if */
-    }  /* if */
+    } else if (is_designator_component(alep)) {
+      continue;
+    } else {
+      unexpected_condition();
+    } /* if */
   }  /* for */
   return is_dependent;
 }  /* arg_list_is_type_dependent */
