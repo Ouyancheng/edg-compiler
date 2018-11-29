@@ -1,5 +1,22 @@
 Version 5.1
 
+11/29/18 [EDGcpfe/20060]
+Abort in C++-generating back end with GNU-mode recursive template instantiation
+
+Consider:
+
+  template<typename...> struct C;
+  template<> struct C<> { static int const value = 0; };
+  template<typename T, typename... Args> struct C<T, Args...> {
+    static int const value = 1 + C<Args...>::value;
+  };
+  static_assert(C<int, float>::value == 2, "Unexpected!");
+
+This previously aborted in GNU C++11 mode when the configuration macro
+TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE.  That is now
+fixed.
+
+
 11/28/18 [EDGcpfe/20504]
 Abort in finalize_object_path on void* pointer to union
 

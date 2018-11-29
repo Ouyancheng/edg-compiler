@@ -3824,6 +3824,10 @@ constant-expression.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    scope_stack_top().ss_list_instantiation_insert_point =
+                             class_type->source_corresp.source_sequence_entry;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Reactivate the class scope and parse the initializer. */
     push_class_and_template_reactivation_scope(
