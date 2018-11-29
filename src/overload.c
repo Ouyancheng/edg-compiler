@@ -1854,6 +1854,7 @@ format_arg_list_elem_type_for_display.
 {
   a_boolean result = FALSE;
   an_arg_list_elem_ptr alep;
+
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     if (is_designator_component(alep)) {
       result = TRUE;
@@ -1861,7 +1862,7 @@ format_arg_list_elem_type_for_display.
     }  /* if */
   }  /* for */
   return result;
-}
+} /* arg_list_contains_top_level_designator */
 
 
 static void format_arg_list_elem_type_for_display(an_arg_list_elem_ptr alep)
@@ -1925,10 +1926,8 @@ end_diagnostic.
     } else {
       for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
         format_arg_list_elem_type_for_display(alep);
-        if (!is_last_elem(alep) && !is_designator_component(alep)) {
-          /* This is not the last argument, so put a comma after it. If
-             we see a designator, the comma will come after we print out
-             it's type. */
+        if (!is_last_elem(alep)) {
+          /* This is not the last argument, so put a comma after it. */
           put_str_to_temp_text_buffer(", ");
         }  /* if */
       }  /* for */
