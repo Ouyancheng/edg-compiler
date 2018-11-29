@@ -1,5 +1,24 @@
 Version 5.1
 
+11/28/18 [EDGcpfe/20504]
+Abort in finalize_object_path on void* pointer to union
+
+Consider:
+
+  union U { int i; } au[1];
+  struct S {
+    void *p;
+    constexpr S(void* p): p(p) {}
+  };
+  void g() {
+    S s{au};  // Previously triggered an internal error.  Now okay.
+  }
+
+Previously this aborted in the constexpr interpreter (in finalize_object_path)
+while trying to find a "void" member (corresponding to the underlying type of
+S::p) in U.  That is now fixed.
+
+
 11/28/18 [EDGcpfe/19431]
 Address of structured bindings for bit fields
 

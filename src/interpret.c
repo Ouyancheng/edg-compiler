@@ -4318,6 +4318,12 @@ of subscript operations or pointer arithmetic).
   obj_type = skip_typerefs(var->type);
   subobj_type = skip_typerefs(con->type);
   subobj_type = skip_typerefs(subobj_type->variant.pointer.type);
+  if (subobj_type->kind == (a_type_kind)tk_void) {
+    /* If the address was cast to void, we can determine the exact subobject
+       being pointed to.  Such addresses have limited use within constant
+       evaluations. */
+    goto done;
+  }  /* if */
   p_subobj = &con->variant.address.subobject_path;
   t_offset = con->variant.address.offset;
   for (;;) {
