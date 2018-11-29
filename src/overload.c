@@ -1862,7 +1862,7 @@ format_arg_list_elem_type_for_display.
     }  /* if */
   }  /* for */
   return result;
-} /* arg_list_contains_top_level_designator */
+}  /* arg_list_contains_top_level_designator */
 
 
 static void format_arg_list_elem_type_for_display(an_arg_list_elem_ptr alep)
