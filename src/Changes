@@ -22,7 +22,7 @@ reference to
 
 causes one of the "const" qualifications to be dropped; i.e., the expression
 "casts away constness".  The front end previously enforced that in all modes.
-However, other compilers do accept the case and the front end now follows suite
+However, other compilers do accept the case and the front end now follows suit
 in nonstrict C++ modes.
 
 
