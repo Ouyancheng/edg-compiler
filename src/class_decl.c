@@ -3825,8 +3825,15 @@ constant-expression.
     a_source_sequence_entry_ptr  last_ssep =
                                 scope_stack_top().end_of_source_sequence_list;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    scope_stack_top().ss_list_instantiation_insert_point =
+    a_source_sequence_entry_ptr  inst_insert_point =
+                         scope_stack_top().ss_list_instantiation_insert_point;
+    if (!class_symbol_supp(symbol_for(class_type))->being_defined) {
+      /* If we're not in the process of defining the parent class, make sure
+         instantiations kicked of while parsing the initializer are rendered
+         before the class definition. */
+      scope_stack_top().ss_list_instantiation_insert_point =
                              class_type->source_corresp.source_sequence_entry;
+    }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Reactivate the class scope and parse the initializer. */
@@ -3897,6 +3904,9 @@ constant-expression.
     pop_lexical_state_stack();
     pop_class_reactivation_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    scope_stack_top().ss_list_instantiation_insert_point = inst_insert_point;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
       /* The initializer created source sequence entries.  Move them to
          precede the entry for the variable (this ensures that nested
