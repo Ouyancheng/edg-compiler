@@ -1,5 +1,31 @@
 Version 5.1
 
+11/29/18 [EDGcpfe/20529]
+Casting away constness
+
+Consider:
+
+  struct V { char b[10]; };
+  V const v{};
+  auto r = reinterpret_cast<int *const&>(v.b); // Previously an error.
+                                               // Now okay in nonstrict modes.
+
+The standard considers that case invalid because the type of v.buf is treated
+as if it were:
+
+  const array of const char
+
+(i.e., the "const" applies to both sides of the array) and casting that to a
+reference to
+
+  const pointer to (non-const) int
+
+causes one of the "const" qualifications to be dropped; i.e., the expression
+"casts away constness".  The front end previously enforced that in all modes.
+However, other compilers do accept the case and the front end now follows suite
+in nonstrict C++ modes.
+
+
 11/29/18 [EDGcpfe/20060]
 Abort in C++-generating back end with GNU-mode recursive template instantiation
 

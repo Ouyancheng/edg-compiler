@@ -8603,16 +8603,22 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
            is_array(source_type)) &&
           (is_pointer(dest_type) || is_ptr_to_member(dest_type) ||
            is_array(dest_type))) {
-        dest_type = is_pointer(dest_type) ?
+        if (is_array(dest_type)) {
+          dest_type = dest_type->variant.array.element_type;
+          if (!strict_ansi_mode) dest_type = skip_typerefs(dest_type);
+        } else {
+          dest_type = is_pointer(dest_type) ?
                            dest_type->variant.pointer.type :
-                      is_array(dest_type) ?
-                           dest_type->variant.array.element_type :
                            pm_member_type(dest_type);
-        source_type = is_pointer(source_type) ?
-                           source_type->variant.pointer.type :
-                      is_array(source_type) ?
-                           source_type->variant.array.element_type :
-                           pm_member_type(source_type);
+        }  /* if */
+        if (is_array(source_type)) {
+          source_type = source_type->variant.array.element_type;
+          if (!strict_ansi_mode) source_type = skip_typerefs(source_type);
+        } else {
+          source_type = is_pointer(source_type) ?
+                             source_type->variant.pointer.type :
+                             pm_member_type(source_type);
+        }  /* if */
       } else if (types_are_both_pointers_or_both_handles(
                                                     dest_type, source_type)) {
         if (dest_type->size != source_type->size
