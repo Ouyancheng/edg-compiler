@@ -44,7 +44,7 @@ fixed.
 
 
 11/28/18 [EDGcpfe/20504]
-Abort in finalize_object_path on void* pointer to union
+Abort in finalize_subobject_path on void* pointer to union
 
 Consider:
 
@@ -57,9 +57,9 @@ Consider:
     S s{au};  // Previously triggered an internal error.  Now okay.
   }
 
-Previously this aborted in the constexpr interpreter (in finalize_object_path)
-while trying to find a "void" member (corresponding to the underlying type of
-S::p) in U.  That is now fixed.
+Previously this aborted in finalize_subobject_path (interpret.c) while trying
+to find a "void" member (corresponding to the underlying type of S::p) in U.
+This regression (introduced by the changes for EDGcpfe/19216) is now fixed.
 
 
 11/28/18 [EDGcpfe/19431]
