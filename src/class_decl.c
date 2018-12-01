@@ -3829,7 +3829,7 @@ constant-expression.
                          scope_stack_top().ss_list_instantiation_insert_point;
     if (!class_symbol_supp(symbol_for(class_type))->being_defined) {
       /* If we're not in the process of defining the parent class, make sure
-         instantiations kicked of while parsing the initializer are rendered
+         instantiations kicked off while parsing the initializer are rendered
          before the class definition. */
       scope_stack_top().ss_list_instantiation_insert_point =
                              class_type->source_corresp.source_sequence_entry;
