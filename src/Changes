@@ -1,5 +1,22 @@
 Version 5.1
 
+11/30/18 [EDGcpfe/20092,EDGcpfe/20140,EDGcpfe/20346]
+Abort in need_zeroing_for_value_initialization on dependent noexcept-specifier
+
+Consider:
+
+  template<typename> struct S;
+  template<bool B> struct S<int() noexcept(B)> {}; 
+  int main() {
+    S<int()>{};
+  }
+
+Previously, this aborted in C++17 mode (in lower_init.c, in function
+need_zeroing_for_value_initialization).  That is now fixed.  This example now
+is accepted in GNU and Clang C++17 modes, but triggers an error in other C++17
+modes.
+
+
 11/29/18 [EDGcpfe/20529]
 Casting away constness
 

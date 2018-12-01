@@ -11298,7 +11298,18 @@ in the standard is perhaps accidental.
       }  /* if */
       match = matches_template_constant(cp, t_cp, templ_arg_list,
                                         templ_param_list);
-      if (cp_is_local) release_local_constant(&cp);
+      if (cp_is_local) {
+        if (match) {
+          /* The constant is now likely used by the deduced template argument
+             list.  Move it to file-scope IL. */
+          a_memory_region_number region_to_switch_back_to;
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          (void)move_local_constant_to_il(&cp);
+          switch_back_to_original_region(region_to_switch_back_to);
+        } else {
+          release_local_constant(&cp);
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (((flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0 &&
          type_has_less_restrictive_exception_spec(type, templ_type)) ||

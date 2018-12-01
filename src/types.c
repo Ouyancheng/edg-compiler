@@ -6110,6 +6110,77 @@ corresponding placeholder.
 }  /* is_placeholder_deduction_match */
 
 
+static a_boolean different_exception_specifications(
+                                         a_routine_type_supplement_ptr  rtsp1,
+                                         a_routine_type_supplement_ptr  rtsp2)
+/*
+Return TRUE if the exception specifications associated with the given routine
+type supplements are not equivalent.
+*/
+{
+  a_boolean  result = FALSE;
+  an_exception_specification_ptr
+             esp1 = rtsp1->exception_specification,
+             esp2 = rtsp2->exception_specification;
+
+  if (esp1 != NULL || esp2 != NULL) {
+    /* At least one exception specification is nontrivial. */
+    if (esp1 == NULL) {
+      /* The first routine type has no exception specification.  The second
+         is equivalent only if it is throw_any and not template-dependent. */
+      if (!esp2->throw_any ||
+          (esp2->is_noexcept &&
+           (esp2->arg_cached || esp2->copy_from_prototype ||
+            constant_is(esp2->variant.noexcept_arg, ck_template_param)))) {
+        result = TRUE;
+      }  /* if */
+    } else if (esp2 == NULL) {
+      /* The second routine type has no exception specification.  The first
+         is equivalent only if it is throw_any and not template-dependent. */
+      if (!esp1->throw_any ||
+          (esp1->is_noexcept &&
+           (esp1->arg_cached || esp1->copy_from_prototype ||
+            constant_is(esp1->variant.noexcept_arg, ck_template_param)))) {
+        result = TRUE;
+      }  /* if */
+    } else if (esp1->is_noexcept && esp2->is_noexcept) {
+      if (esp1->throw_any != esp2->throw_any) {
+        result = TRUE;
+      } else if (esp1->arg_cached || esp2->arg_cached ||
+                 esp1->copy_from_prototype || esp2->copy_from_prototype) {
+        /* Assume they will be different. */
+        result = TRUE;
+      } else if (esp1->variant.noexcept_arg == NULL ||
+                 esp2->variant.noexcept_arg == NULL) {
+        result = esp1->variant.noexcept_arg != esp2->variant.noexcept_arg;
+      } else {
+        result = !eq_constants(esp1->variant.noexcept_arg,
+	                       esp2->variant.noexcept_arg);
+      }  /* if */
+    } else if (esp1->throw_any && esp2->throw_any &&
+               (esp1->is_noexcept || esp2->is_noexcept)) {
+      /* E.g., throw() and noexcept(T::x).  Return TRUE if the noexcept
+         argument is template dependent. */
+      if (esp1->is_noexcept) {
+        if (esp1->arg_cached || esp1->copy_from_prototype ||
+            constant_is(esp1->variant.noexcept_arg, ck_template_param)) {
+          result = TRUE;
+        }  /* if */
+      } else {
+        if (esp2->arg_cached || esp2->copy_from_prototype ||
+            constant_is(esp2->variant.noexcept_arg, ck_template_param)) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (exception_spec_is_less_restrictive(esp1, esp2) ||
+               exception_spec_is_less_restrictive(esp2, esp1)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* different_exception_specifications */
+
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -6530,8 +6601,7 @@ check_typerefs:
               identical = (list1 == NULL && list2 == NULL);
             }  /* if */
             if (identical && exc_spec_in_func_type && !ignore_noexcept &&
-                (type_has_less_restrictive_exception_spec(type_1, type_2) ||
-                 type_has_less_restrictive_exception_spec(type_2, type_1))) {
+                different_exception_specifications(rtsp1, rtsp2)) {
               /* The exception specifications are different. */
               identical = FALSE;
             }  /* if */
