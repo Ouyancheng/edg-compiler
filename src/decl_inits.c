@@ -5460,7 +5460,7 @@ returned set to TRUE.
       a_boolean  is_consteval_init = FALSE;
       if (init_dip->kind == (a_dynamic_init_kind)dik_constructor) {
         a_routine_ptr  ctor = init_dip->variant.constructor.ptr;
-        if (ctor->is_consteval) {
+        if (ctor != NULL && ctor->is_consteval) {
           is_consteval_init = TRUE;
         }  /* if */
       }  /* if */
