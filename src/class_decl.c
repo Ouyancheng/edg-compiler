@@ -7105,11 +7105,17 @@ done:
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
-    if ((rout->is_constexpr || (dps->dso_flags & DSO_CONSTEXPR) != 0) &&
+    if ((rout->is_constexpr || rout->is_consteval ||
+         (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) &&
          !constexpr_virtual_enabled) {
-      pos_error(ec_constexpr_virtual_combination, source_pos);
+      pos_error((rout->is_consteval || (dps->dso_flags & DSO_CONSTEVAL)) ?
+                                            ec_consteval_virtual_combination :
+                                            ec_constexpr_virtual_combination,
+                source_pos);
       rout->is_constexpr = FALSE;
+      rout->is_consteval = FALSE;
       dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+      dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEVAL;
     }  /* if */
     if (rout->has_deducible_return_type) {
       pos_error(ec_virtual_function_cannot_have_deduced_return_type,
@@ -14667,13 +14673,17 @@ implicitly declared member functions.
   if (rtn->is_defaulted) {
     class_state->any_defaulted_special_members = TRUE;
   }  /* if */
-  if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
-    rtn->is_declared_constexpr = TRUE;
+  if ((decl_state->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
+    if (decl_state->dso_flags & DSO_CONSTEXPR) {
+      rtn->is_declared_constexpr = TRUE;
+    } else {
+      rtn->is_consteval = TRUE;
+    }  /* if */
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {
       cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
-    /* constexpr functions are implicitly inline. */
+    /* constexpr/consteval functions are implicitly inline. */
     set_inline_flag(rtn, TRUE);
   }  /* if */
   if (!rtn->is_inline && func_info->is_inline) {
@@ -15513,13 +15523,17 @@ decl_member_function, which handles in-class member function declarations.)
                                 tssp->variant.function.func_info.param_id_list;
   func_info->keep_param_id_list = TRUE;
   cssp = symbol_supplement_for_class(class_type);
-  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
-    rtn->is_declared_constexpr = TRUE;
+  if ((dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
+    if (dps->dso_flags & DSO_CONSTEXPR) {
+      rtn->is_declared_constexpr = TRUE;
+    } else {
+      rtn->is_consteval = TRUE;
+    }  /* if */
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {
       cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
-    /* constexpr functions are implicitly inline. */
+    /* constexpr/consteval functions are implicitly inline. */
     set_inline_flag(rtn, TRUE);
   }  /* if */
   if (!rtn->is_inline && func_info->is_inline) {
@@ -15771,6 +15785,8 @@ decl_member_function_template.
       rp->is_constexpr = TRUE;
       if (lambda->constexpr_specified) {
         rp->is_declared_constexpr = TRUE;
+      } else if (lambda->consteval_specified) {
+        rp->is_consteval = TRUE;
       }  /* if */
     }  /* if */
 #if NEED_NAME_MANGLING
@@ -22540,6 +22556,9 @@ templates from that base template.
       if (brp->is_constexpr) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
       }  /* if */
+      if (brp->is_consteval) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEVAL;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       merge_dll_flags_from_parent_class(cdsp->class_type,
                                         &decl_info.decl_state);
@@ -22695,6 +22714,9 @@ constructor.
       decl_info.decl_state.type = new_tp;
       if (brp->is_constexpr) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
+      }  /* if */
+      if (brp->is_consteval) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEVAL;
       }  /* if */
       clear_func_info(&func_info);
       func_info.is_inline = TRUE;

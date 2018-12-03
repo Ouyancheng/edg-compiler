@@ -903,6 +903,12 @@ typedef struct an_expr_stack_entry {
 			   constructions.  Used for
 			   __is_trivially_constructible. */
   a_bit_field
+		consteval_call_need_not_fold:1;
+			/* When TRUE, a call to a consteval function is not
+			   required to fold to a constant.  Used for consteval
+			   calls in default arguments of consteval
+			   functions. */
+  a_bit_field
 		allow_call_with_incomplete_return_type:1;
 			/* TRUE if a call with an incomplete return type should
 			   be permitted at the top level of an expression.

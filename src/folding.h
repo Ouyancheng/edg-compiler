@@ -257,6 +257,11 @@ extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
 extern void add_temp_init_backing_expression(a_constant         *con,
                                              a_dynamic_init_ptr dip);
 
+extern a_boolean consteval_failure(a_routine_ptr      rp,
+                                   a_constant_ptr     result_con,
+                                   a_source_position  *pos,
+                                   a_diag_list        *diag_list);
+
 extern
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,

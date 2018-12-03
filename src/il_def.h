@@ -1257,6 +1257,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_final,
   tok_noexcept,
   tok_constexpr,
+  tok_consteval,
   tok_alignof,
   tok_alignas,
 #if GNU_EXTENSIONS_ALLOWED
@@ -1449,6 +1450,7 @@ EXTERN a_const_char
    "override", "final", "__is_final",
    "noexcept",
    "constexpr",
+   "consteval",
    "alignof",
    "alignas",
 #if GNU_EXTENSIONS_ALLOWED
@@ -11098,7 +11100,11 @@ typedef struct a_routine {
 			   turns out not to meet the "constexpr" constraints.
 			   It can also be TRUE for generated default
 			   constructors (for which is_declared_constexpr is
-			   FALSE). */
+			   FALSE).  "consteval" functions also have this flag
+			   set since they are also "constexpr" functions. */
+  a_bit_field	is_consteval:1;
+			/* TRUE for functions that were declared with the
+			   C++20 "consteval" specifier. */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,
@@ -14685,6 +14691,7 @@ typedef struct a_constexpr_if {
 			   result value is TRUE. */
 } a_constexpr_if;
 
+
 typedef struct a_statement {
   /* Definition of an executable statement. */
   a_source_position
@@ -16152,6 +16159,9 @@ typedef struct a_lambda {
 		constexpr_specified:1;
 			/* TRUE if the constexpr keyword was specified. */
   a_bit_field
+		consteval_specified:1;
+			/* TRUE if the consteval keyword was specified. */
+  a_bit_field
 		has_capture_default:1;
 			/* TRUE if an explicit capture default was
 			   specified. */
@@ -16185,8 +16195,9 @@ typedef struct a_lambda {
 			   pointer. */
   a_source_position
 		constexpr_position;
-			/* If the constexpr_specified flag is TRUE, this is
-			   the position of the constexpr keyword; otherwise,
+			/* If the constexpr_specified or consteval_specified
+			   flag is TRUE, this is the position of the
+			   corresponding keyword; otherwise,
 			   null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_lambda;

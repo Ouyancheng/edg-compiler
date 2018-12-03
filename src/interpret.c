@@ -13826,6 +13826,14 @@ diagnostic in *ips.
                    needed). */
                 finalize_subobject_path(rt_con);
               }  /* if */
+            } else if (rt_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine) {
+              a_routine_ptr  rp = rt_con->variant.address.variant.routine;
+              if (rp->is_consteval) {
+                info_with_pos_sym(ec_address_of_consteval_function,
+                                  &ips->position, symbol_for(rp), ips);
+                do_constexpr_fail(result);
+              }  /* if */
             }  /* if */
           } else {
             /* Some "address" constants are integers cast to a pointer type. */
@@ -13851,13 +13859,19 @@ diagnostic in *ips.
         } else if (is_function_address(cap)) {
           a_type_ptr     utp = type->variant.pointer.type;
           a_routine_ptr  rp = cap->variant.routine;
-          set_routine_address_constant(rp, con,
-                                       /*set_address_taken_flag=*/TRUE);
-          con->type = type;
-          if (!identical_types(utp, rp->type)) {
-            /* The pointer to function type was converted to a different
-               pointer type (e.g., void*). */
-            con->implicit_cast = TRUE;
+          if (rp->is_consteval) {
+            info_with_pos_sym(ec_address_of_consteval_function,
+                              &ips->position, symbol_for(rp), ips);
+            do_constexpr_fail(result);
+          } else {
+            set_routine_address_constant(rp, con,
+                                         /*set_address_taken_flag=*/TRUE);
+            con->type = type;
+            if (!identical_types(utp, rp->type)) {
+              /* The pointer to function type was converted to a different
+                 pointer type (e.g., void*). */
+              con->implicit_cast = TRUE;
+            }  /* if */
           }  /* if */
         } else if (cap->address == NULL) {
           /* A NULL pointer (since it has a pointer type, it is not a null
@@ -14035,9 +14049,15 @@ diagnostic in *ips.
         a_constexpr_ptr_to_mem  *pm_value = (a_constexpr_ptr_to_mem*)object;
         set_constant_kind(con, (a_constant_repr_kind)ck_ptr_to_member);
         if (pm_value->is_ptr_to_mem_function) {
-          con->variant.ptr_to_member.is_function_ptr = TRUE;
-          con->variant.ptr_to_member.variant.routine =
-                                                    pm_value->variant.routine;
+          a_routine_ptr  rp = pm_value->variant.routine;
+          if (rp != NULL && rp->is_consteval) {
+            info_with_pos_sym(ec_address_of_consteval_function,
+                              &ips->position, symbol_for(rp), ips);
+            do_constexpr_fail(result);
+          } else {
+            con->variant.ptr_to_member.is_function_ptr = TRUE;
+            con->variant.ptr_to_member.variant.routine = rp;
+          }  /* if */
         } else {
           con->variant.ptr_to_member.variant.field = pm_value->variant.field;
         }  /* if */

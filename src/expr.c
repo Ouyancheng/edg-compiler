@@ -40373,7 +40373,8 @@ Sets *expr_position to the beginning position of the range expression.
 
 
 void scan_default_arg_expr(a_param_type_ptr ptp,
-                           a_boolean        is_member_or_friend)
+                           a_boolean        is_member_or_friend,
+                           a_boolean        for_consteval_function)
 /*
 Scan a default argument expression on a formal parameter declaration, change
 its type as required by the type of the formal parameter, and attach the
@@ -40381,7 +40382,9 @@ expression node to the param type entry.  If an error is detected in the
 expression scan, an error node is assigned.  If ptp is NULL (as the result of
 a prior error, or when passing over a default argument expression, e.g.,
 in a template instantiation) just do the scan.  is_member_or_friend is
-TRUE if the function being declared is a class member or friend.
+TRUE if the function being declared is a class member or friend.  Similarly,
+for_consteval_function is TRUE if the function being declared is a consteval
+function.
 */
 {
   an_operand              result;
@@ -40407,6 +40410,9 @@ TRUE if the function being declared is a class member or friend.
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
+  if (for_consteval_function) {
+    expr_stack_entry.consteval_call_need_not_fold = TRUE;
+  }  /* if */
   if (ptp != NULL) {
     /* Record entities defined in the default argument expression. */
     an_il_entity_list_entry_ptr  *p_lep;

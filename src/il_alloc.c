@@ -2887,6 +2887,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_inline                   = FALSE;
   rp->is_declared_constexpr       = FALSE;
   rp->is_constexpr                = FALSE;
+  rp->is_consteval                = FALSE;
   rp->compiler_generated          = FALSE;
   rp->defined                     = FALSE;
   rp->called                      = FALSE;
@@ -5447,6 +5448,7 @@ entry is allocated in the current memory region.
   entry->is_generic = FALSE;
   entry->is_mutable = FALSE;
   entry->constexpr_specified = FALSE;
+  entry->consteval_specified = FALSE;
   entry->has_capture_default = FALSE;
   entry->default_is_by_reference = FALSE;
   entry->explicit_return_type = FALSE;

@@ -19644,8 +19644,11 @@ handle_as_definition:
          instead. */
       write_tok_str("_Noreturn ");
     }  /* if */
-    if (rout->is_defaulted ? rout->is_declared_constexpr
-                           : rout->is_constexpr) {
+    if (rout->is_consteval) {
+      write_tok_str("consteval ");
+      suppress_inline_kwd = TRUE;
+    } else if (rout->is_defaulted ? rout->is_declared_constexpr
+                                  : rout->is_constexpr) {
       /* Put out the "constexpr" keyword.  Since a constexpr function is
          implicitly inline, we suppress the "inline" keyword in this case.
          (Note that we often test is_constexpr rather than

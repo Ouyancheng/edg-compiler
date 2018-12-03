@@ -8012,6 +8012,7 @@ the scope stack is no longer available.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
+        !routine->is_consteval &&
         !routine->is_prototype_instantiation &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH &&
         (delayed ||

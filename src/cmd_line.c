@@ -3543,6 +3543,7 @@ default mode (e.g., exception handling).
       if (cpp20_mode) {
         conditional_explicit_enabled = TRUE;
         constexpr_virtual_enabled = TRUE;
+        consteval_enabled = TRUE;
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
         lambda_allowed_in_uneval_context = TRUE;
@@ -11449,6 +11450,7 @@ variables declared in cmd_line.h.
   delegating_constructors_enabled = FALSE;
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
+  consteval_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
   constexpr_virtual_enabled = FALSE;
   adl_for_non_visible_templates = FALSE;

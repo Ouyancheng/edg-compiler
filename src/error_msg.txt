@@ -3002,6 +3002,18 @@ ec_selection_initializer_nonstandard;;"C++17-style initializer is nonstandard in
 ec_star_this_capture_nonstandard;;"capturing *this is nonstandard in this mode"
 ec_using_attribute_nonstandard;;"C++17-style \"using\" attribute prefix is nonstandard in this mode"
 ec_nested_namespace_nonstandard;;"C++17-style nested namespaces are nonstandard in this mode"
+ec_constexpr_and_consteval_specifiers;;"\"constexpr\" and \"consteval\" cannot both appear on a declaration"
+ec_consteval_virtual_combination;;"a function cannot be both consteval and virtual"
+ec_consteval_explicit_instantiation;;"\"consteval\" is not allowed on an explicit instantiation directive"
+ec_invalid_consteval;;"\"consteval\" is not valid here"
+ec_consteval_destructor;;"a destructor cannot be consteval"
+ec_consteval_ctor_with_virtual_base;;"a constructor for a class with virtual bases cannot be consteval"
+ec_consteval_variable;;"\"consteval\" is not permitted on the declaration of a variable or static data member"
+ec_previous_consteval_decl_conflict;;"%nd was previously declared consteval"
+ec_previous_nonconsteval_decl_conflict;;"%nd was previously not declared consteval"
+ec_consteval_main;;"function \"main\" may not be declared consteval"
+ec_consteval_call_nonconstant;;"call to consteval %n did not produce a valid constant expression"
+ec_address_of_consteval_function;;"address of consteval %n in constant expression result"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

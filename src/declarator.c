@@ -2414,11 +2414,15 @@ this is a helper function.
         }  /* if */
         (void)get_token();
         done_with_quals = FALSE;
-      } else if (curr_token == tok_constexpr) {
+      } else if (curr_token == tok_constexpr || curr_token == tok_consteval) {
         if (!constexpr_lambdas_enabled) {
           pos_error(ec_constexpr_lambdas_not_enabled, &pos_curr_token);
         } else if (func_info->lambda != NULL) {
-          func_info->lambda->constexpr_specified = TRUE;
+          if (curr_token == tok_constexpr) {
+            func_info->lambda->constexpr_specified = TRUE;
+          } else {
+            func_info->lambda->consteval_specified = TRUE;
+          }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           func_info->lambda->constexpr_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3583,7 +3587,8 @@ an error if a default argument expression is encountered.
                because this is a typedef declaration in a mode that allows
                default arguments in that context) -- or else a syntax error.
                Scan the expression and convert it to the required type. */
-            scan_default_arg_expr(ptp_for_scan, is_member_or_friend_function);
+            scan_default_arg_expr(ptp_for_scan, is_member_or_friend_function,
+                                  (state->dso_flags & DSO_CONSTEVAL) != 0);
           }  /* if */
           if (default_arg_allowed_on_curr_param &&
               !ignore_disallowed_default_arg) {
@@ -6659,13 +6664,14 @@ and record it in *dps.  Also update positions in decl_pos_block.
   /* Check some constraints early. */
   if (dps->dso_flags & DSO_INLINE) {
     pos_error(ec_struct_binding_inline, &dps->inline_pos);
-  } else if (dps->dso_flags & DSO_CONSTEXPR) {
+  } else if (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) {
     pos_error(ec_struct_binding_constexpr, &dps->constexpr_pos);
   } else if (dps->declared_storage_class != (a_storage_class)sc_unspecified ||
              (dps->dso_flags & DSO_THREAD_LOCAL) != 0) {
     pos_error(ec_struct_binding_storage_class, &dps->storage_class_pos);
   }  /* if */
-  dps->dso_flags &= ~(DSO_INLINE | DSO_CONSTEXPR | DSO_THREAD_LOCAL);
+  dps->dso_flags &= ~(DSO_INLINE | DSO_CONSTEXPR | DSO_CONSTEVAL |
+                      DSO_THREAD_LOCAL);
   dps->storage_class = (a_storage_class)sc_unspecified;
   if (dps->type->kind == (a_type_kind)tk_pointer &&
       !dps->type->variant.pointer.is_reference) {

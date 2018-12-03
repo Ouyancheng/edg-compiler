@@ -5457,7 +5457,16 @@ returned set to TRUE.
                   dtor, init_dip, !dps->init_state.not_potentially_evaluated);
       }  /* if */
     } else {
-      if (constexpr_enabled && dps->init_state.initializer_must_be_constant &&
+      a_boolean  is_consteval_init = FALSE;
+      if (init_dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        a_routine_ptr  ctor = init_dip->variant.constructor.ptr;
+        if (ctor->is_consteval) {
+          is_consteval_init = TRUE;
+        }  /* if */
+      }  /* if */
+      if (constexpr_enabled &&
+          (dps->init_state.initializer_must_be_constant ||
+           is_consteval_init) &&
           !scope_stack_top().in_prototype_instantiation && !init_err) {
         /* A constant is expected.  See if the interpreter can fold the
            dynamic initializer. */

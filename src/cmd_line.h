@@ -547,6 +547,11 @@ EXTERN a_boolean
 			   accepted (a C++11 feature). */
 
 EXTERN a_boolean
+		consteval_enabled;
+			/* TRUE if consteval functions are accepted (a C++20
+			   feature). */
+
+EXTERN a_boolean
 		relaxed_constexpr_enabled;
 			/* TRUE if the constexpr constraint relaxation allowed
 			   by C++14 is enabled (this, e.g., allows loop

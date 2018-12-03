@@ -338,7 +338,8 @@ which the default argument is associated.
   }  /* if */
   /* We scan the expression whether an error was detected or not. */
   scan_default_arg_expr(param_type_entry,
-                        /*is_member_or_friend=*/TRUE);
+                        /*is_member_or_friend=*/TRUE,
+                        func_sym_routine(rout_sym)->is_consteval);
 #if NEED_NAME_MANGLING
   set_parent_entity_for_closure_types(
           param_type_entry->entities_defined_in_default_arg,

@@ -497,7 +497,8 @@ extern void scan_range_based_for_expression(a_statement_ptr   statement,
                                             a_source_position *expr_position);
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp,
-                                  a_boolean        is_member_or_friend);
+                                  a_boolean        is_member_or_friend,
+                                  a_boolean        for_consteval_function);
 
 extern an_expr_node_ptr prep_default_arg_expr(an_expr_node_ptr expr,
                                               a_param_type_ptr ptp,

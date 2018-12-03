@@ -1049,7 +1049,8 @@ and associated routines.
        !(is_expr_context && list_init_enabled &&
          is_type_keyword(curr_token) && next_token() == tok_lbrace)) ||
       is_type_qualifier() || is_function_specifier() ||
-      curr_token == tok_friend || curr_token == tok_constexpr) {
+      curr_token == tok_constexpr || curr_token == tok_consteval ||
+      curr_token == tok_friend) {
     is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && is_expr_context && is_type_keyword(curr_token) &&
@@ -8958,15 +8959,24 @@ for use in generating cross-reference output describing this declaration.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (routine_ptr->is_constexpr !=
-                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+      if (routine_ptr->is_declared_constexpr !=
+                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0) ||
+          routine_ptr->is_consteval !=
+                                    ((dps->dso_flags & DSO_CONSTEVAL) != 0)) {
         /* The previous declaration doesn't match the current one wrt. the
-           "constexpr" specifier.  Issue an error. */
-        pos_sy_error(routine_ptr->is_constexpr ?
-                       ec_previous_constexpr_decl_conflict :
-                       ec_previous_nonconstexpr_decl_conflict,
-                     routine_ptr->is_constexpr ? &dps->declarator_pos
-                                               : &dps->constexpr_pos,
+           "constexpr"/"consteval" specifier.  Issue an error. */
+        an_error_code  ec;
+        if (routine_ptr->is_consteval) {
+          ec = ec_previous_consteval_decl_conflict;
+        } else if (routine_ptr->is_constexpr) {
+          ec = ec_previous_constexpr_decl_conflict;
+        } else if ((dps->dso_flags & DSO_CONSTEVAL) != 0) {
+          ec = ec_previous_nonconsteval_decl_conflict;
+        } else {
+          ec = ec_previous_nonconstexpr_decl_conflict;
+        }  /* if */
+        pos_sy_error(ec, routine_ptr->is_constexpr ? &dps->declarator_pos
+                                                   : &dps->constexpr_pos,
                      linked_symbol);
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -9751,8 +9761,13 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
-  if (!redeclaration && (dps->dso_flags & DSO_CONSTEXPR) != 0) {
-    routine_ptr->is_declared_constexpr = TRUE;
+  if (!redeclaration &&
+      (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
+    if (dps->dso_flags & DSO_CONSTEXPR) {
+      routine_ptr->is_declared_constexpr = TRUE;
+    } else {
+      routine_ptr->is_consteval = TRUE;
+    }  /* if */
     routine_ptr->is_constexpr = TRUE;
     /* constexpr implies inline. */
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
@@ -10522,8 +10537,12 @@ definition of a member function of a class template.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     rout_ptr->has_deducible_return_type = dps->has_deducible_return_type;
     if (func_info->is_inline) set_inline_flag(rout_ptr, TRUE);
-    if (dps->dso_flags & DSO_CONSTEXPR) {
-      rout_ptr->is_declared_constexpr = TRUE;
+    if (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) {
+      if (dps->dso_flags & DSO_CONSTEXPR) {
+        rout_ptr->is_declared_constexpr = TRUE;
+      } else {
+        rout_ptr->is_consteval = TRUE;
+      }  /* if */
       rout_ptr->is_constexpr = TRUE;
       /* constexpr implies inline. */
       if (!rout_ptr->is_inline) set_inline_flag(rout_ptr, TRUE);
@@ -10591,14 +10610,24 @@ definition of a member function of a class template.
     redeclaration = TRUE;
     decl_state->other_decl_pos = sym->decl_position;
     if (rout_ptr->is_declared_constexpr !=
-                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0) ||
+        rout_ptr->is_consteval != ((dps->dso_flags & DSO_CONSTEVAL) != 0)) {
       /* The previous declaration doesn't match the current one wrt. the
-         "constexpr" specifier.  Issue an error. */
-      pos_sy_error(rout_ptr->is_declared_constexpr ?
-                     ec_previous_constexpr_decl_conflict :
-                     ec_previous_nonconstexpr_decl_conflict,
-                   &dps->specifiers_pos, sym);
-      rout_ptr->is_declared_constexpr = TRUE;
+         "constexpr"/"consteval" specifier.  Issue an error. */
+      an_error_code  ec;
+      if (rout_ptr->is_consteval) {
+        ec = ec_previous_consteval_decl_conflict;
+      } else if (rout_ptr->is_constexpr) {
+        ec = ec_previous_constexpr_decl_conflict;
+      } else if ((dps->dso_flags & DSO_CONSTEVAL) != 0) {
+        ec = ec_previous_nonconsteval_decl_conflict;
+      } else {
+        ec = ec_previous_nonconstexpr_decl_conflict;
+      }  /* if */
+      pos_sy_error(ec, &dps->specifiers_pos, sym);
+      if (!rout_ptr->is_consteval && !(dps->dso_flags & DSO_CONSTEVAL)) {
+        rout_ptr->is_declared_constexpr = TRUE;
+      }  /* if */
       if (!sym->defined) {
         /* If the function was not previously defined, treat it as constexpr
            from here on at least. */
@@ -15997,11 +16026,12 @@ issued at the given position.
       *is_inline = FALSE;
     }  /* if */
   }  /* if */
-  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
+  if ((dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
     /* main() cannot be declared constexpr (because that would imply that
        it is inline). */
-    pos_error(ec_constexpr_main, pos);
-    dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+    pos_error((dps->dso_flags & DSO_CONSTEVAL) ? ec_consteval_main
+                                               : ec_constexpr_main, pos);
+    dps->dso_flags &= ~(a_decl_flag_set)(DSO_CONSTEXPR | DSO_CONSTEVAL);
   }  /* if */
   rtsp = skip_typerefs(type)->variant.routine.extra_info;
   if (!C_mode()) {
@@ -18750,7 +18780,8 @@ guide) to diagnose the use of invalid specifiers and record the presence of
     guide->is_explicit_constructor = TRUE;
   }  /* if */
   if (dps->dso_flags & (DSO_INLINE | DSO_VIRTUAL | DSO_FRIEND | DSO_MUTABLE |
-                        DSO_TYPENAME | DSO_CONSTEXPR | DSO_THREAD_LOCAL)) {
+                        DSO_TYPENAME | DSO_CONSTEXPR | DSO_CONSTEVAL |
+                        DSO_THREAD_LOCAL)) {
     pos_error(ec_invalid_specifier_for_deduction_guide, &dps->specifiers_pos);
   }  /* if */
   if (dps->qualifiers != TQ_NONE) {

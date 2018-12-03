@@ -8174,7 +8174,7 @@ typedef unsigned long a_decl_specifiers_set;
 #define DS_VOID (a_decl_specifiers_set)(0x800)
 			/* "void" was scanned as the very first specifier. */
 #define DS_CONSTEXPR (a_decl_specifiers_set)(0x1000)
-			/* "constexpr" was scanned. */
+			/* "constexpr" or "consteval" was scanned. */
 #define DS_THREAD_LOCAL (a_decl_specifiers_set)(0x2000)
 			/* "thread_local/_Thread_local" was scanned. */
 #define DS_NORETURN (a_decl_specifiers_set)(0x4000)
@@ -9573,6 +9573,71 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
 }  /* check_use_of_constexpr */
 
 
+static void check_use_of_consteval(a_decl_parse_state  *dps)
+/*
+Callback routine called at the end of processing for a declaration containing
+the consteval specifier.  Issue an error if the specifier is not applicable.
+*/
+{
+  a_symbol_ptr  sym = dps->sym;
+
+  if (sym == NULL) {
+    /* No declaration is associated with "consteval": Issue an error. */
+    pos_error(ec_invalid_consteval, &dps->constexpr_pos);
+  } else if (sym->is_error ||
+             (dps->type != NULL && is_error_type(dps->type))) {
+    /* An error has presumably already been reported for this declaration.
+       An additional error is unlikely to be helpful. */
+    expect_error();
+    if (is_simple_function_symbol(sym)) {
+      /* Ensure the is_constexpr and is_consteval flags are FALSE to avoid
+         confusing later processing. */
+      sym->variant.routine.ptr->is_constexpr = FALSE;
+      sym->variant.routine.ptr->is_consteval = FALSE;
+    }  /* if */
+  } else if (symbol_is(sym, sk_member_function)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    if (special_kind_is(rp, sfk_destructor)) {
+      if (!rout_is_real_template_instance(rp)) {
+        pos_error(ec_consteval_destructor, &dps->constexpr_pos);
+      }  /* if */
+      rp->is_constexpr = FALSE;
+      rp->is_consteval = FALSE;
+    } else if (special_kind_is(rp, sfk_constructor)) {
+      a_type_ptr  class_type = parent_class_of(rp);
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        pos_error(ec_consteval_ctor_with_virtual_base, &dps->constexpr_pos);
+        rp->is_constexpr = FALSE;
+        rp->is_consteval = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (symbol_is(sym, sk_function_template)) {
+    /* The restriction on constructors applies also to constructor
+       templates. */
+    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
+    if (special_kind_is(rp, sfk_constructor)) {
+      a_type_ptr  class_type = parent_class_of(rp);
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        pos_error(ec_consteval_ctor_with_virtual_base, &dps->constexpr_pos);
+        rp->is_constexpr = FALSE;
+        rp->is_consteval = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (symbol_is(sym, sk_variable) ||
+             symbol_is(sym, sk_static_data_member) ||
+             symbol_is(sym, sk_variable_template)) {
+    /* Unlike "constexpr", "consteval" is not permitted on variable-like
+       declarations. */
+    pos_error(ec_consteval_variable, &dps->constexpr_pos);
+  } else if (symbol_is(sym, sk_routine)) {
+    /* constexpr is potentially valid for non-member functions: No diagnostic
+       is needed here. */
+  } else {
+    pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
+  }  /* if */
+}  /* check_use_of_constexpr */
+
+
 static void apply_c11_noreturn(a_decl_parse_state  *dps)
 /*
 Callback routine called at the end of processing for a declaration containing
@@ -10543,7 +10608,10 @@ storage_class_specifier:
           copy_source_position(pos_curr_token, state->virtual_pos);
           if ((decl_specifiers_seen & DS_CONSTEXPR) &&
               !constexpr_virtual_enabled) {
-            pos_error(ec_constexpr_virtual_combination, &pos_curr_token);
+            pos_error((*output_flags & DSO_CONSTEXPR) ?
+                                            ec_constexpr_virtual_combination :
+                                            ec_consteval_virtual_combination,
+                      &pos_curr_token);
             *output_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
           }  /* if */
         }  /* if */
@@ -10559,12 +10627,38 @@ storage_class_specifier:
         } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {
           pos_error(ec_constexpr_explicit_instantiation, &pos_curr_token);
         } else if (decl_specifiers_seen & DS_CONSTEXPR) {
-          pos_error(ec_dupl_decl_specifier, &error_position);
+          pos_error((*output_flags & DSO_CONSTEXPR) ?
+                                        ec_dupl_decl_specifier :
+                                        ec_constexpr_and_consteval_specifiers,
+                    &error_position);
         } else {
           decl_specifiers_seen |= DS_CONSTEXPR;
           *output_flags |= DSO_CONSTEXPR;
           state->constexpr_pos = pos_curr_token;
           add_end_of_parse_action(check_use_of_constexpr, state,
+                                  /*secondary_decls=*/TRUE);
+        }  /* if */
+        break;
+      case tok_consteval:
+        if (is_parameter) {
+          /* "consteval" may not appear in a function parameter declaration. */
+          pos_error(ec_bad_param_specifier, &error_position);
+          err = TRUE;
+        } else if ((decl_specifiers_seen & DS_VIRTUAL) &&
+                   !constexpr_virtual_enabled) {
+          pos_error(ec_consteval_virtual_combination, &pos_curr_token);
+        } else if ((input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0) {
+          pos_error(ec_consteval_explicit_instantiation, &pos_curr_token);
+        } else if (decl_specifiers_seen & DS_CONSTEXPR) {
+          pos_error((*output_flags & DSO_CONSTEVAL) ?
+                                        ec_dupl_decl_specifier :
+                                        ec_constexpr_and_consteval_specifiers,
+                    &error_position);
+        } else {
+          decl_specifiers_seen |= DS_CONSTEXPR;
+          *output_flags |= DSO_CONSTEVAL;
+          state->constexpr_pos = pos_curr_token;
+          add_end_of_parse_action(check_use_of_consteval, state,
                                   /*secondary_decls=*/TRUE);
         }  /* if */
         break;

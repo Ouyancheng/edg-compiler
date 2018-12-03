@@ -2007,17 +2007,31 @@ member declaration (allowed in some Microsoft modes only).
       }  /* if */
     }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
-    if (rp->is_declared_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+    if (rp->is_declared_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0) ||
+        rp->is_consteval != ((dps->dso_flags & DSO_CONSTEVAL) != 0)) {
       /* The previous declaration doesn't match the current one wrt. the
          "constexpr" specifier.  Issue an error. */
-      pos_sy_error(rp->is_declared_constexpr ?
-                                       ec_previous_constexpr_decl_conflict :
-                                       ec_previous_nonconstexpr_decl_conflict,
-                   rp->is_declared_constexpr ? &dps->constexpr_pos
-                                             : &dps->declarator_pos,
+      an_error_code  ec;
+      if (rp->is_consteval) {
+        ec = ec_previous_consteval_decl_conflict;
+      } else if (rp->is_constexpr) {
+        ec = ec_previous_constexpr_decl_conflict;
+      } else if ((dps->dso_flags & DSO_CONSTEVAL) != 0) {
+        ec = ec_previous_nonconsteval_decl_conflict;
+      } else {
+        ec = ec_previous_nonconstexpr_decl_conflict;
+      }  /* if */
+      pos_sy_error(ec, rp->is_declared_constexpr ? &dps->declarator_pos
+                                                 : &dps->constexpr_pos,
                    sym);
-      rp->is_declared_constexpr = TRUE;
-      rp->is_constexpr = TRUE;
+      if (!rp->is_constexpr) {
+        if (dps->dso_flags & DSO_CONSTEXPR) {
+          rp->is_declared_constexpr = TRUE;
+        } else {
+          rp->is_consteval = TRUE;
+        }  /* if */
+        rp->is_constexpr = TRUE;
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions) {

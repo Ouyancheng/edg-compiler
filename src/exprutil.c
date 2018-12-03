@@ -1738,6 +1738,7 @@ is pushed regardless of any of the other factors.
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
+  new_entry->consteval_call_need_not_fold = FALSE;
   new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->allow_array_decay_in_constant_expr = FALSE;
   new_entry->uses_this_operand = FALSE;
@@ -6037,26 +6038,28 @@ folding failed.  Return TRUE if an error was issued.
 
 
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
-                                          a_source_position *pos,
+                                          a_routine_ptr     rout,
                                           an_operand        *result,
                                           a_diag_list_ptr   diag_list)
 /*
 Interface to interpret_constexpr_call for use within the expression-processing
-routines.  Attempts to fold the call call_expr to a constant; if it
-can, sets result to an operand for the result and returns TRUE.  Otherwise,
-leaves result unchanged and returns FALSE (potentially adds diagnostic nodes
-in *diag_list).  pos is the source position of the call.
+routines.  This function attempts to fold the call call_expr to a constant;
+if it can, result is set to an operand for the result and returns TRUE.
+Otherwise, result is left unchanged and FALSE is returned (diagnostic nodes are
+potentially added to *diag_list).  For a direct call, rout indicates the called
+routine; for indirect calls, rout is NULL.
 */
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_call_folding_should_be_done()) {
+  if (constexpr_call_folding_should_be_done() ||
+      (rout != NULL && rout->is_consteval)) {
     a_constant_ptr  result_con = local_constant();
     a_boolean       release_constant = TRUE;
     folded = interpret_constexpr_call(call_expr, result_con, diag_list);
     if (folded) {
       make_constant_operand(result_con, result);
-      result->position = *pos;
+      result->position = call_expr->position;
       if (is_reference_type(result->type)) {
         a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
         add_reference_indirection(result);
@@ -6074,12 +6077,19 @@ in *diag_list).  pos is the source position of the call.
                                           /*is_explicit_cast=*/FALSE,
                                           /*suppress_abstract_test=*/TRUE,
                                           (a_dynamic_init_kind)dik_constant,
-                                          pos, &temp_dip);
+                                          &call_expr->position, &temp_dip);
         set_dynamic_init_constant(temp_dip,
                                   move_local_constant_to_il(&result_con));
         release_constant = FALSE;
         make_expression_operand(temp_node, result);
       }  /* if */
+    } else if (rout != NULL && rout->is_consteval &&
+               consteval_failure(rout, result_con, &call_expr->position,
+                                 diag_list)) {
+      /* The folding of a consteval call failed in a context where it cannot
+         fail: Proceed as if folding succeeded. */
+      make_constant_operand(result_con, result);
+      folded = TRUE;
     }  /* if */
     if (release_constant) release_local_constant(&result_con);
   }  /* if */
@@ -6088,18 +6098,20 @@ in *diag_list).  pos is the source position of the call.
 
 
 static a_boolean expr_fold_constexpr_ctor(
+                                     a_routine_ptr      ctor,
                                      a_dynamic_init_ptr ctor_dip,
                                      a_source_position  *pos,
                                      a_boolean          check_constexpr,
                                      a_constant         *result_con)
 /*
 Interface to fold_constexpr_ctor for use within the expression-processing
-routines.  See fold_constexpr_ctor for the description of the parameters.
+routines.  ctor is the constructor being called.  See fold_constexpr_ctor for
+the description of the remaining parameters.
 */
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_call_folding_should_be_done()) {
+  if (constexpr_call_folding_should_be_done() || ctor->is_consteval) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_ctor(ctor_dip, need_backing_expr, check_constexpr, pos,
@@ -15947,10 +15959,15 @@ successful folding.
     if (curr_expr_is_potentially_evaluated()) {
       ctor_routine->called = TRUE;
     }  /* if */
+    if (ctor_routine->is_consteval) {
+      fold_constexpr = TRUE;
+      check_constexpr = TRUE;
+    }  /* if */
     if (fold_constexpr && ctor_routine->is_constexpr) {
       a_constant_ptr folded_con = local_constant();
       check_assertion(pos != NULL);
-      if (expr_fold_constexpr_ctor(dip, pos, check_constexpr, folded_con)) {
+      if (expr_fold_constexpr_ctor(ctor_routine, dip, pos, check_constexpr,
+                                   folded_con)) {
         /* The constructor is declared constexpr and the construction has
            been folded to a constant. */
         folded = TRUE;
@@ -17199,7 +17216,7 @@ whether the call was folded or not.
             (rout->is_virtual && constexpr_virtual_enabled &&
              !virtual_suppressed))) &&
           !(clang_mode && expr_stack->in_noexcept_operand_expression) &&
-          expr_fold_constexpr_call(function_call_node, call_pos, result,
+          expr_fold_constexpr_call(function_call_node, rout, result,
                                    &diag_list)) {
         /* The call is to a constexpr function (or a function otherwise known
            to the front end) and it has been folded to a constant result.

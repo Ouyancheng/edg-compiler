@@ -17346,6 +17346,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     } else if (templ_rout->is_lambda_body && templ_rout->is_constexpr) {
       rp->is_constexpr = TRUE;
     }  /* if */
+    if (templ_rout->is_consteval) {
+      rp->is_consteval = TRUE;
+      rp->is_constexpr = TRUE;
+    }  /* if */
     rp->compiler_generated = templ_rout->compiler_generated;
     rp->is_initializer_list_ctor = templ_rout->is_initializer_list_ctor;
     rp->is_inheriting_ctor = templ_rout->is_inheriting_ctor;
@@ -29816,8 +29820,12 @@ that follows.
           /* This is the first specialization: Set the is_constexpr flag
              depending on the presence of the "constexpr" keyword (it is
              independent of that of the template). */
-          if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
-            rp->is_declared_constexpr = TRUE;
+          if ((dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
+            if (dps->dso_flags & DSO_CONSTEXPR) {
+              rp->is_declared_constexpr = TRUE;
+            } else {
+              rp->is_consteval = TRUE;
+            }  /* if */
             rp->is_constexpr = TRUE;
             /* constexpr implies inline. */
             if (!rp->is_inline) set_inline_flag(rp, TRUE);
@@ -29826,18 +29834,28 @@ that follows.
             rp->is_constexpr = FALSE;
           }  /* if */
         } else if (rp->is_declared_constexpr !=
-                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
+                                    ((dps->dso_flags & DSO_CONSTEXPR) != 0) ||
+                   rp->is_consteval !=
+                                    ((dps->dso_flags & DSO_CONSTEVAL) != 0)) {
           /* The previous specialization doesn't match the current one wrt.
-             the "constexpr" specifier.  Issue an error (but be careful to
-             ensure the previous declaration's position is mentioned). */
+             the "constexpr"/"consteval" specifier.  Issue an error (but be
+             careful to ensure the previous declaration's position is
+             mentioned). */
+          an_error_code      ec;
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          pos_sy_error(rp->is_declared_constexpr ?
-                         ec_previous_constexpr_decl_conflict :
-                         ec_previous_nonconstexpr_decl_conflict,
-                       rp->is_declared_constexpr ? &dps->declarator_pos
-                                                 : &dps->constexpr_pos,
+          if (rp->is_consteval) {
+            ec = ec_previous_consteval_decl_conflict;
+          } else if (rp->is_constexpr) {
+            ec = ec_previous_constexpr_decl_conflict;
+          } else if ((dps->dso_flags & DSO_CONSTEVAL) != 0) {
+            ec = ec_previous_nonconsteval_decl_conflict;
+          } else {
+            ec = ec_previous_nonconstexpr_decl_conflict;
+          }  /* if */
+          pos_sy_error(ec, rp->is_declared_constexpr ? &dps->declarator_pos
+                                                     : &dps->constexpr_pos,
                        sym);
           sym->decl_position = saved_sym_pos;
         }  /* if */
