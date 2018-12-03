@@ -6152,7 +6152,12 @@ type supplements are not equivalent.
         result = TRUE;
       } else if (esp1->variant.noexcept_arg == NULL ||
                  esp2->variant.noexcept_arg == NULL) {
-        result = esp1->variant.noexcept_arg != esp2->variant.noexcept_arg;
+        result = esp1->variant.noexcept_arg != NULL ?
+                               is_false_constant(esp1->variant.noexcept_arg) :
+                 esp2->variant.noexcept_arg != NULL ?
+                               is_false_constant(esp2->variant.noexcept_arg) :
+                 FALSE;
+
       } else {
         result = !eq_constants(esp1->variant.noexcept_arg,
 	                       esp2->variant.noexcept_arg);
