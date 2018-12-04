@@ -1,5 +1,18 @@
 Version 5.1
 
+12/4/18  [EDGcpfe/20520]
+Spurious C++17-mode folding failure on cast of function pointer
+
+Consider in C++17 mode:
+
+  constexpr bool f() noexcept(true) { return true; }
+  constexpr bool (*fp)() = f;
+  static_assert(fp());  // Previously an error.  Now okay.
+
+Previously, this triggered an unjustified error in some configurations.  That
+is now fixed.
+
+
 12/3/18  [EDGcpfe/20541]
 Clang compatibility: mangling of __underlying_type
 

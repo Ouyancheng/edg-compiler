@@ -4627,10 +4627,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     if (con->is_reinterpret_cast) {
       info_with_pos(ec_constexpr_reinterpret_cast, &ips->position, ips);
       do_constexpr_fail(result);
-    } else if (con->expr != NULL && !constant_is(con, ck_integer)) {
-      /* If the constant includes an implicit cast, evaluate the constant
-         through the backing expression so that the cast is correctly
-         applied. */
+    } else if (con->expr != NULL && !constant_is(con, ck_integer) &&
+               !con->is_reinterpret_like_cast) {
+      /* If the constant includes a conversion, evaluate the constant through
+         the backing expression so that the conversion is correctly applied. */
       if (!do_constexpr_expression(ips, con->expr, value, complete_object)) {
         result = FALSE;
       }  /* if */
@@ -9683,7 +9683,8 @@ the value representation of the integer value.
                 a_type_ptr  utp1 = skip_typerefs(tp->variant.pointer.type);
                 a_type_ptr  utp2;
                 utp2 = skip_typerefs(opnd1_type->variant.pointer.type);
-                if (identical_types(utp1, utp2) ||
+                if (identical_types_full(utp1, utp2,
+                                         ITF_IGNORE_TOP_LEVEL_NOEXCEPT) ||
                     utp1->kind == (a_type_kind)tk_void) {
                   /* E.g., a conversion from X* to X const* or X* to void*. */
                   *(a_constexpr_address *)result_storage =

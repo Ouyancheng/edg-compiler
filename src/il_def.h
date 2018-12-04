@@ -4189,9 +4189,11 @@ typedef struct a_constant {
 			   the source code.  Only TRUE in C++. */
   a_bit_field	is_reinterpret_like_cast:1;
 			/* If this is TRUE, this cast has "reinterpret_cast"
-			   semantics.  Currently set when folding an explicit
-			   cast from a pointer type to an integral type.  Can
-			   be TRUE in C and C++ modes. */
+			   semantics.  Currently set, e.g., when folding an
+			   explicit cast from a pointer type to an integral
+			   type or tightening an exception specification on a
+			   function pointer.  Can be TRUE in C and C++
+			   modes. */
   a_bit_field	non_arithmetic:1;
                         /* This constant should not be considered to be
                            arithmetic; it's probably a bit mask of some kind.
