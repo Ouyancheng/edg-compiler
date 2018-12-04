@@ -3014,6 +3014,8 @@ ec_previous_nonconsteval_decl_conflict;;"%nd was previously not declared constev
 ec_consteval_main;;"function \"main\" may not be declared consteval"
 ec_consteval_call_nonconstant;;"call to consteval %n did not produce a valid constant expression"
 ec_address_of_consteval_function;;"address of consteval %n in constant expression result"
+ec_consteval_overrides_nonconsteval;;"consteval member cannot override non-consteval %n"
+ec_nonconsteval_overrides_consteval;;"non-consteval member cannot override consteval %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

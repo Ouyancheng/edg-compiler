@@ -6266,12 +6266,12 @@ static void check_virtual_function_override(
                                  a_base_class_ptr        bcp,
                                  a_base_class_ptr        return_adjustment_bcp)
 /*
-A member function declaration (overrider_sym) was found to match a virtual
-member function (overridden_sym) in a base class (bcp) of the class currently
-being defined (described by class_state).  Check that the overriding is valid,
-and if not issue diagnostics at the given source position.  If appropriate,
-record that overriding in the IL.  If the override involves covariant return
-types, return_adjustment_bcp is the base class entry that was determined by
+A member function declaration (decl_info) was found to match a virtual member
+function (overridden_sym) in a base class (bcp) of the class currently being
+defined (described by class_state).  Check that the overriding is valid, and
+if not issue diagnostics at the given source position.  If appropriate, record
+that overriding in the IL.  If the override involves covariant return types,
+return_adjustment_bcp is the base class entry that was determined by
 return_types_are_override_compatible.
 */
 {
@@ -6350,6 +6350,15 @@ return_types_are_override_compatible.
          can use the same virtual function number. */
       rout->virtual_function_number = rp->virtual_function_number;
     }  /* if */
+  }  /* if */
+  if (rout->is_consteval) {
+    if (!rp->is_consteval) {
+      pos_sy_error(ec_consteval_overrides_nonconsteval, source_pos,
+                   overridden_sym);
+    }  /* if */
+  } else if (rp->is_consteval) {
+      pos_sy_error(ec_nonconsteval_overrides_consteval, source_pos,
+                   overridden_sym);
   }  /* if */
 }  /* check_virtual_function_override */
 
