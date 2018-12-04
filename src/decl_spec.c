@@ -9630,7 +9630,7 @@ the consteval specifier.  Issue an error if the specifier is not applicable.
        declarations. */
     pos_error(ec_consteval_variable, &dps->constexpr_pos);
   } else if (symbol_is(sym, sk_routine)) {
-    /* constexpr is potentially valid for non-member functions: No diagnostic
+    /* consteval is potentially valid for non-member functions: No diagnostic
        is needed here. */
   } else {
     pos_error(ec_invalid_consteval, &dps->constexpr_pos);
