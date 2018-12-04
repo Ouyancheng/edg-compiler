@@ -516,6 +516,9 @@ typedef int a_gen_decl_options_set;
 			   declarator. */
 #define GDO_PARAMETER_PACK 0x8
 			/* Render a "..." for a parameter pack declaration. */
+#define GDO_SUPPRESS_TYPE_TEMPLATE_ARGUMENTS 0x10
+			/* Omit template arguments from the type specifier
+			   in the declaration. */
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
                              a_source_correspondence      *scp,
@@ -7956,6 +7959,8 @@ recorded).
                                                         : NULL;
   a_boolean          primary_attrs_only = (sec_decl == NULL);
   a_boolean          exclude_primary_attrs = FALSE;
+  a_boolean          saved_suppress_template_args =
+                                                   octl.suppress_template_args;
 
   if (!C_mode() && !force_unqualified_name &&
       scp != NULL && scp->is_class_member) {
@@ -7988,6 +7993,10 @@ recorded).
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
+  if (options & GDO_SUPPRESS_TYPE_TEMPLATE_ARGUMENTS) {
+    /* Do not put out template arguments for the type specifier. */
+    octl.suppress_template_args = TRUE;
+  }  /* if */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -7995,6 +8004,7 @@ recorded).
                        suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                              FTO_NO_OPTIONS,
                        &octl);
+  octl.suppress_template_args = saved_suppress_template_args;
   /* Write the name if there is one. */
   if (options & GDO_PARAMETER_PACK) {
     write_tok_str("...");
@@ -17985,6 +17995,7 @@ this one is such a continuation.
   a_name_reference_ptr         name_ref = NULL;
   an_attribute_ptr             attributes;
   a_variable_template_info_ptr saved_template_info;
+  a_gen_decl_options_set       gd_options = GDO_NO_OPTIONS;
                             
   name_ref = get_current_name_ref();
   /* Deal with the primary/secondary declaration difference. */
@@ -18016,7 +18027,6 @@ this one is such a continuation.
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
-   
     if (!var->source_corresp.is_class_member &&
         is_incomplete_array_type(var_type)) {
       /* Microsoft compilers treat "T x[];" as "extern T x[];".  We make the
@@ -18338,6 +18348,18 @@ this one is such a continuation.
         var->template_info->partial_spec_template_arg_list != NULL)) {
     var->template_info = NULL;
   }  /* if */
+  if (force_unqualified_name) {
+    gd_options |= GDO_FORCE_UNQUALIFIED_NAME;
+  }  /* if */
+  if (is_class_template_placeholder_type(var_type)) {
+    /* The declared type of the variable is a placeholder for class
+       template argument deduction.  Such a placeholder does not indicate
+       class or namespace parents.  Instead of the declared type, use the
+       actual type of the variable, but suppress the deduced template
+       arguments to reproduce the original source form. */
+    var_type = var->type;
+    gd_options |= GDO_SUPPRESS_TYPE_TEMPLATE_ARGUMENTS;
+  }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
@@ -18345,13 +18367,8 @@ this one is such a continuation.
                                       var->is_struct_binding_container) ?
                                                      &var->source_corresp :
                                                      NULL,
-                                     iek_variable,
-                                     sec_decl,
-                                     TQ_NONE,
-                                     suppress_specifiers,
-                                     force_unqualified_name ?
-                                                   GDO_FORCE_UNQUALIFIED_NAME :
-                                                   GDO_NO_OPTIONS,
+                                     iek_variable, sec_decl, TQ_NONE,
+                                     suppress_specifiers, gd_options,
                                      name_ref);
   var->template_info = saved_template_info;
 #if GNU_EXTENSIONS_ALLOWED

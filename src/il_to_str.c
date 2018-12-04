@@ -435,11 +435,11 @@ void form_template_args(a_template_arg_ptr                    tap,
                         an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated template arguments list (e.g., something like
-<int, float>) in the way described by octl.  If tap is NULL, nothing
-is put out.
+<int, float>) in the way described by octl.  If tap is NULL or if octl
+indicates that template arguments should be suppressed, nothing is put out.
 */
 {
-  if (tap != NULL) {
+  if (!octl->suppress_template_args && tap != NULL) {
     a_boolean saved_nontype_tpl_arg =
                                     octl->processing_nontype_template_argument;
 #if BACK_END_IS_CP_GEN_BE
