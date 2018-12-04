@@ -1843,11 +1843,27 @@ capture described by lcp.  Return the field entry.
         is_this = TRUE;
         if (by_reference) {
           /* Capture of "this". */
-          orig_field_type = field_type = vp->type;
+          if (lcp->capture_info.source_closure_field != NULL) {
+            /* "this" or "*this" was captured by an enclosing lambda. */
+            field_type = lcp->capture_info.source_closure_field->type;
+            if (!is_pointer_type(field_type)) {
+              /* *this was capture by the enclosing lambda, but this lambda
+                 only captures the address thereof. */
+              field_type = make_pointer_type(field_type);
+            }  /* if */
+          } else {
+            field_type = vp->type;
+          }  /* if */
         } else {
           /* Capture of "*this". */
-          orig_field_type = field_type = type_pointed_to(vp->type);
+          field_type = type_pointed_to(vp->type);
+          if (lambda->is_mutable) {
+            field_type = skip_typerefs(field_type);
+          } else {
+            field_type = make_qualified_type(field_type, TQ_CONST);
+          }  /* if */
         }  /* if */
+        orig_field_type = field_type;
       } else {
         a_symbol_ptr var_sym = symbol_for(vp);
         if (var_sym != NULL) {

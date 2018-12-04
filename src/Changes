@@ -1,5 +1,21 @@
 Version 5.1
 
+12/4/18  [EDGcpfe/20367,EDGcpfe/20522,EDGcpfe/20523]
+Capturing of *this
+
+When capturing *this, the front end often lost track of the correct types
+involved, resulting in spurious errors.  For example:
+
+  struct S {
+    void f() {
+        [*this]{ [this] {}; };  // Previously a spurious error about not being
+                                // able to convert from S const* to S *const.
+    }
+  };
+
+This is now fixed.
+
+
 12/4/18  [EDGcpfe/20105]
 C++-generating back end: qualified names and class template argument deduction
 
