@@ -1,5 +1,20 @@
 Version 5.1
 
+12/3/18  [EDGcpfe/20541]
+Clang compatibility: mangling of __underlying_type
+
+When ABI_COMPATIBILITY_VERSION >= 510, the mangling used for __underlying_type
+is now the vendor extension "U3eut" in Clang emulation mode.  GCC does not yet
+implement mangling of __underlying_type.  No change is made in Cfront mode.
+For example (with --clang_version 70000):
+
+  enum class E: short { e };
+  template <typename T> void f(__underlying_type(T) p);
+  void g() {
+    f<E>(2);
+  }
+
+
 12/3/18  [EDGcpfe/20550]
 C++20: Immediate functions ("consteval")
 

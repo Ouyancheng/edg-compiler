@@ -4845,20 +4845,6 @@ Return a pointer to the character position following what was demangled.
 }  /* get_ref_qualifier */
 
 
-static a_boolean is_vendor_extended_declarator(a_const_char *ptr)
-/*
-Returns TRUE if the location pointed to by ptr contains an EDG-specific vendor
-extended type qualifier and the extension is being used as a declarator.
-Note that these vendor extended type qualifiers are treated as order-sensitive.
-*/
-{
-  return (start_of_id_is("U8__handle", ptr) ||
-          start_of_id_is("U8__trkref", ptr) ||
-          start_of_id_is("U14__interior_ptr", ptr) ||
-          start_of_id_is("U9__pin_ptr", ptr));
-}  /* is_vendor_extended_declarator */
-
-
 static a_const_char *demangle_vector_size_qualifier(
                                                a_const_char               *ptr,
                                                a_decode_control_block_ptr dctl)
@@ -5365,8 +5351,9 @@ to be on top of the type.  If parse_template_args is TRUE then any
       record_substitution = TRUE;
     }  /* if */
   } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
-             (kind == 'U' && is_vendor_extended_declarator(p))) {
+             kind == 'U') {
     a_const_char *vendor_ext = NULL;
+    char         *vendor_ext_buffer = NULL;
     a_boolean    need_space = TRUE;
     /* Look for type qualifiers:
         <type> ::= <CV-qualifiers> <type>
@@ -5385,6 +5372,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
          subsequent IA-64 ABI revisions.  Note that these extensions are
          treated as "order-sensitive" for the purposes of substitutions. */
       long num;
+      a_const_char *p_next = get_number(p, &num, dctl);
       if (start_of_id_is("8__handle", p)) {
         vendor_ext = "^";
       } else if (start_of_id_is("8__trkref", p)) {
@@ -5398,10 +5386,15 @@ to be on top of the type.  If parse_template_args is TRUE then any
         vendor_ext = ">";
         need_space = FALSE;
       } else {
-        bad_mangled_name(dctl);
+        /* This is a vendor string that we don't recognize; simply emit the
+           string. */
+        vendor_ext_buffer = (char*)malloc((true_size_t)num+1);
+        memcpy(vendor_ext_buffer, p_next, num);
+        vendor_ext_buffer[num] = '\0';
+        vendor_ext = vendor_ext_buffer;
+        p = p_next;
       }  /* if */
-      /* Advance past the vendor string. */
-      p = get_number(p, &num, dctl);
+      /* Advance past the string. */
       p += num;
     }  /* if */
     if (kind == 'C') {
@@ -5417,6 +5410,9 @@ to be on top of the type.  If parse_template_args is TRUE then any
       write_id_str("&&", dctl);
     } else if (vendor_ext != NULL) {
       write_id_str(vendor_ext, dctl);
+      if (vendor_ext_buffer != NULL) {
+        free(vendor_ext_buffer);
+      }  /* if */
     }  /* if */
     /* Output the cv-qualifiers on the pointer, if any. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
@@ -5576,7 +5572,7 @@ to be on top of the type.
     /* No need to scan the <template-args> list if there is one -- 
        that was done by demangle_type_first_part. */
   } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
-             (kind == 'U' && is_vendor_extended_declarator(p))) {
+             kind == 'U') {
     /* Look for type qualifiers:
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to

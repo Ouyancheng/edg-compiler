@@ -9926,10 +9926,28 @@ top_of_loop:
           goto have_whole_mangled_name;
         } else if (type->variant.typeref.is_underlying_type) {
           /* Provide mangling for __underlying_type. */
-          add_str_to_mangled_name(MANGLING_STRING_FOR_UNDERLYING_TYPE, mctl);
+#if IA64_ABI
+          a_boolean need_closing_E = FALSE;
+#endif /* IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION >= 510
+          if (clang_mode) {
+            /* Clang uses a vendor extended type qualifier.  GCC doesn't
+               implement any mangling for __underlying_type yet. */
+            add_str_to_mangled_name("U3eut", mctl);
+          } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 510 */
+          /* Do not insert code here. */
+          {
+            add_str_to_mangled_name(MANGLING_STRING_FOR_UNDERLYING_TYPE, mctl);
+#if IA64_ABI
+            need_closing_E = TRUE;
+#endif /* IA64_ABI */
+          }  /* if */
           mangled_encoding_for_type(type->variant.typeref.type, mctl);
 #if IA64_ABI
-          add_to_mangled_name('E', mctl);
+          if (need_closing_E) {
+            add_to_mangled_name('E', mctl);
+          }  /* if */
 #endif /* IA64_ABI */
           goto have_whole_mangled_name;
 #if ABI_COMPATIBILITY_VERSION >= 411
