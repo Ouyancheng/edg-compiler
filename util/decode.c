@@ -4845,23 +4845,6 @@ Return a pointer to the character position following what was demangled.
 }  /* get_ref_qualifier */
 
 
-static a_const_char *demangle_vector_size_qualifier(
-                                               a_const_char               *ptr,
-                                               a_decode_control_block_ptr dctl)
-/*
-Demangle the GNU vector_size qualifier if it appears at the indicated
-location.  Return a pointer to the character position following what was
-demangled.
-*/
-{
-  if (start_of_id_is("U8__vector", ptr)) {
-    ptr += 10;
-    write_id_str("__attribute__((vector_size(?))) ", dctl);
-  }  /* for */
-  return ptr;
-}  /* demangle_vector_size_qualifier */
-
-
 static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
                                  a_boolean                  trailing_space,
                                  a_decode_control_block_ptr dctl)
@@ -5372,16 +5355,19 @@ to be on top of the type.  If parse_template_args is TRUE then any
          subsequent IA-64 ABI revisions.  Note that these extensions are
          treated as "order-sensitive" for the purposes of substitutions. */
       long num;
-      a_const_char *p_next = get_number(p, &num, dctl);
-      if (start_of_id_is("8__handle", p)) {
+      p = get_number(p, &num, dctl);
+      if (num == 8 && start_of_id_is("__handle", p)) {
         vendor_ext = "^";
-      } else if (start_of_id_is("8__trkref", p)) {
+      } else if (num == 8 && start_of_id_is("__trkref", p)) {
         vendor_ext = "%";
-      } else if (start_of_id_is("14__interior_ptr", p)) {
+      } else if (num == 8 && start_of_id_is("__vector", p)) {
+        write_id_str("__attribute__((vector_size(?))) ", dctl);
+        need_space = FALSE;
+      } else if (num == 14 && start_of_id_is("__interior_ptr", p)) {
         write_id_str("interior_ptr<", dctl);
         vendor_ext = ">";
         need_space = FALSE;
-      } else if (start_of_id_is("9__pin_ptr", p)) {
+      } else if (num == 9 && start_of_id_is("__pin_ptr", p)) {
         write_id_str("pin_ptr<", dctl);
         vendor_ext = ">";
         need_space = FALSE;
@@ -5389,10 +5375,9 @@ to be on top of the type.  If parse_template_args is TRUE then any
         /* This is a vendor string that we don't recognize; simply emit the
            string. */
         vendor_ext_buffer = (char*)malloc((true_size_t)num+1);
-        memcpy(vendor_ext_buffer, p_next, num);
+        memcpy(vendor_ext_buffer, p, num);
         vendor_ext_buffer[num] = '\0';
         vendor_ext = vendor_ext_buffer;
-        p = p_next;
       }  /* if */
       /* Advance past the string. */
       p += num;
@@ -5509,7 +5494,6 @@ to be on top of the type.  If parse_template_args is TRUE then any
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
-    p = demangle_vector_size_qualifier(p, dctl);
     p = demangle_type_specifier(p, parse_template_args, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
     if (!record_substitution_for_type(unqualp)) {
