@@ -1,6 +1,6 @@
 Version 5.1
 
-12/03/18 [EDGcpfe/20550]
+12/3/18  [EDGcpfe/20550]
 C++20: Immediate functions ("consteval")
 
 In C++20 mode, the front end now supports immediate functions, which are
@@ -11,7 +11,7 @@ For example:
 
   consteval int f(int p) { return p+1; }
   int r = f(41);  // Okay.  Equivalent to "int r = 42;".
-  int e = f(r1);  // Error: f(r1) did not produce a constant result.
+  int e = f(r);   // Error: f(r) did not produce a constant result.
 
 This feature was added to the working paper for the (expected) C++20 standard
 through the committee's paper P1073R3.

@@ -9633,9 +9633,9 @@ the consteval specifier.  Issue an error if the specifier is not applicable.
     /* constexpr is potentially valid for non-member functions: No diagnostic
        is needed here. */
   } else {
-    pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
+    pos_error(ec_invalid_consteval, &dps->constexpr_pos);
   }  /* if */
-}  /* check_use_of_constexpr */
+}  /* check_use_of_consteval */
 
 
 static void apply_c11_noreturn(a_decl_parse_state  *dps)
