@@ -510,10 +510,11 @@ lowering, mangling, and back end passes (since they aren't used).
 
 /*
 Return TRUE if rout should be ignored by IL lowering and code generating
-back ends.  This is TRUE for dependent template entities.
+back ends.  This is TRUE for dependent template entities and C++20 consteval
+functions.
 */
 #define ignore_routine_in_back_end(rout)				\
-  ((rout)->is_prototype_instantiation)
+  ((rout)->is_prototype_instantiation || (rout)->is_consteval)
 
 /*
 Return TRUE if var should be ignored by IL lowering and code generating
