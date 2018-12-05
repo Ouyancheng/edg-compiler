@@ -1847,7 +1847,7 @@ capture described by lcp.  Return the field entry.
             /* "this" or "*this" was captured by an enclosing lambda. */
             field_type = lcp->capture_info.source_closure_field->type;
             if (!is_pointer_type(field_type)) {
-              /* *this was capture by the enclosing lambda, but this lambda
+              /* *this was captured by the enclosing lambda, but this lambda
                  only captures the address thereof. */
               field_type = make_pointer_type(field_type);
             }  /* if */
