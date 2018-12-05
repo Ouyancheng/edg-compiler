@@ -4845,6 +4845,23 @@ Return a pointer to the character position following what was demangled.
 }  /* get_ref_qualifier */
 
 
+static a_const_char *demangle_vector_size_qualifier(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
+/*
+Demangle the GNU vector_size qualifier if it appears at the indicated
+location.  Return a pointer to the character position following what was
+demangled.
+*/
+{
+  if (start_of_id_is("U8__vector", ptr)) {
+    ptr += 10;
+    write_id_str("__attribute__((vector_size(?))) ", dctl);
+  }  /* for */
+  return ptr;
+}  /* demangle_vector_size_qualifier */
+
+
 static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
                                  a_boolean                  trailing_space,
                                  a_decode_control_block_ptr dctl)
@@ -5334,7 +5351,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
       record_substitution = TRUE;
     }  /* if */
   } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
-             kind == 'U') {
+             (kind == 'U' && !start_of_id_is("U8__vector", p))) {
     a_const_char *vendor_ext = NULL;
     char         *vendor_ext_buffer = NULL;
     a_boolean    need_space = TRUE;
@@ -5345,7 +5362,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
                ::= O <type> # rvalue reference-to (C++11)
                ::= C <type> # complex pair (C 2000)
                ::= U <source-name> <type> # vendor extended type qualifier
-       */
+       The __vector case is handled below. */
     p++;
     if (kind == 'U') {
       /* This is a vendor extended type qualifier that is being used by the
@@ -5494,6 +5511,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
+    p = demangle_vector_size_qualifier(p, dctl);
     p = demangle_type_specifier(p, parse_template_args, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
     if (!record_substitution_for_type(unqualp)) {
