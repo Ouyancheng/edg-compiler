@@ -16,7 +16,7 @@ without default arguments.  This is now fixed.  For example, with --g++
   }
 
 
-12/4/18  [EDGcpfe/20367,EDGcpfe/20522,EDGcpfe/20523]
+12/4/18  [EDGcpfe/18527,EDGcpfe/20367,EDGcpfe/20522,EDGcpfe/20523]
 Capturing of *this
 
 When capturing *this, the front end often lost track of the correct types
