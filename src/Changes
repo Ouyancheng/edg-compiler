@@ -1,5 +1,35 @@
 Version 5.1
 
+12/5/18  [EDGcpfe/20394]
+C++-generating back end: friend function parameters and name hiding
+
+When generating a friend declaration for a function that is a member of a
+class or namespace, the C++-generating back end assumed that parameter types
+that are members of that class or namespace could be referred to without
+qualification, i.e., that the qualification of the function name implicitly
+extends to the names of its parameters.  An exception to this assumption is
+when clang is the generated code target, as clang does not implement this
+implicit qualification.  G++ does implement the rule, but with a twist: it
+searches the local scope before searching the scope to which the friend
+function belongs.  In cases where the local scope contains a declaration
+with the same name as one of the friend function's parameters, g++ was
+unable to compile the generated code correctly.  The C++-generating back
+end has now been changed to suppress the implicit qualification of friend
+function parameters when gcc_is_generated_code_target is TRUE, so this
+problem will no longer arise.  For example, with --g++:
+
+  namespace N {
+    struct S {};
+    void f(S);
+  }
+
+  class C {
+    void S();
+    friend void N::f(N::S);  // Previously generated as N::F(S), causing
+                             // an error from g++, treating S as C::S
+  };
+
+
 12/5/18  [EDGcpfe/20542]
 Explicit deduction guides
 
