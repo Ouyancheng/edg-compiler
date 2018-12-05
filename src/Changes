@@ -1,5 +1,21 @@
 Version 5.1
 
+12/4/18  [EDGcpfe/20328]
+C++-generating back end: default template arguments and redeclarations
+
+The C++-generating back end could abort with a null pointer dereference
+if a class template is declared with default arguments and then redeclared
+without default arguments.  This is now fixed.  For example, with --g++
+--c++11:
+
+  template <int I, int J = (I + 1)> struct S;
+  template <int, int> struct S;
+  template<typename T> T f() {
+    constexpr int V = T::value;
+    S<V> *s2;  // Previously aborted
+  }
+
+
 12/4/18  [EDGcpfe/20367,EDGcpfe/20522,EDGcpfe/20523]
 Capturing of *this
 

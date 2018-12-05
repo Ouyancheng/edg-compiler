@@ -15530,10 +15530,11 @@ typedef struct a_template {
 			   inserting the definition into the output. */
   int32_t	min_template_arguments;
 			/* The number of parameters in this declaration
-			   that do not have default arguments.  This will
+			   before the first default argument.  This will
 			   be updated in the canonical template to reflect
 			   the most recent declaration put out for the
-			   template. */
+			   template.  -1 indicates that this declaration
+			   had no default arguments. */
 #endif /* BACK_END_IS_CP_GEN_BE */
   uint32_t	cache_checksum;
 			/* A checksum of the definition cache used to compare

@@ -15516,10 +15516,14 @@ is the one associated with the template.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Update the canonical template to reflect the number of parameters
-     without default arguments in this declaration (to prevent suppression
-     of not-yet defaulted template arguments in gen_template_arguments). */
-  tp->canonical_template->min_template_arguments = tp->min_template_arguments;
+  if (tp->min_template_arguments != -1) {
+    /* Update the canonical template to reflect the number of parameters
+       without default arguments in this declaration (to prevent
+       suppression of not-yet defaulted template arguments in
+       gen_template_arguments). */
+    tp->canonical_template->min_template_arguments =
+                                                    tp->min_template_arguments;
+  }  /* if */
 }  /* gen_template */
 
 

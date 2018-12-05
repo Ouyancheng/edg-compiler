@@ -31292,17 +31292,29 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     /* The entity being declared is a template. */
 #if BACK_END_IS_CP_GEN_BE
     a_template_param_ptr tpp;
+    uint32_t             min_template_args = 0;
+    a_template_ptr       tp = decl_state.il_template_entry;
     /* Record the number of template parameters without default arguments,
        i.e., the number that must be supplied when naming an instance of
        this template following this declaration. */
-    decl_state.il_template_entry->min_template_arguments = 0;
     for (tpp = decl_state.decl_info->parameters;
          tpp != NULL && !tpp->has_default_arg;
          tpp = tpp->next) {
-      ++decl_state.il_template_entry->min_template_arguments;
+      ++min_template_args;
     }  /* for */
 #endif /* BACK_END_IS_CP_GEN_BE */
     template_declaration(&decl_state);
+#if BACK_END_IS_CP_GEN_BE
+    if (tp->canonical_template == tp || tpp != NULL) {
+      /* Record the minimum number of required template arguments for a
+         template-id following this declaration.  We only set the first
+         (canonical) template and any declarations that supply default
+         arguments; other declarations are left with a default -1 value,
+         indicating that they don't change the number of required
+         arguments. */
+      tp->min_template_arguments = min_template_args;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   wrapup_templ_decl_state(&decl_state);
   curr_default_args = saved_curr_default_args;
