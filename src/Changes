@@ -1,5 +1,21 @@
 Version 5.1
 
+12/5/18  [EDGcpfe/20542]
+Explicit deduction guides
+
+Consider:
+
+  template<typename ... T> struct S { S(T...); };
+  template<typename ... T> explicit S(T ...) -> S<T...>;
+  S s = { 1, 2 };  // Previously accepted.  Now an error.
+
+Previously, the front end accepted the initializer despite the fact that the
+associated deduction guide is "explicit", because it accidentally preferred
+the deduction guide implicitly generated from the (non-explicit) constructor
+over the explicitly declared guide.  That is now fixed and an error is now
+correctly issued for this case.
+
+
 12/5/18  [EDGcpfe/20126]
 C++-generating back end: missing parentheses in fold expression
 

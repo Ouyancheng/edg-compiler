@@ -6595,7 +6595,8 @@ typedef struct a_routine_type_supplement {
 #endif /* DO_IL_LOWERING */
   a_bit_field	assoc_routine_is_ctor:1;
 			/* TRUE if associated with a constructor, even if the
-			   assoc_routine pointer has not yet been supplied. */
+			   assoc_routine pointer has not yet been supplied.
+			   Also TRUE for deduction guides. */
   a_bit_field	assoc_routine_is_dtor:1;
 			/* TRUE if associated with a destructor, even if the
 			   assoc_routine pointer has not yet been supplied. */

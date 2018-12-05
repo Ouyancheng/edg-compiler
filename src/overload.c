@@ -4863,8 +4863,7 @@ point of call, FALSE otherwise.
     goto end_of_function;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  function_template_case = (function_symbol->kind ==
-                                          (a_symbol_kind)sk_function_template);
+  function_template_case = symbol_is(function_symbol, sk_function_template);
   if (do_dependent_name_processing &&
       (!from_arg_dep_lookup ||
        (defer_function_prototype_instantiations &&
@@ -9683,6 +9682,12 @@ in_instantiation:
         }  /* if */
       }  /* if */
       /* Evaluate all matches in the function set. */
+      /* effects_copy_initialization decides whether explicit constructors,
+         conversions, and deduction guides may be considered viable.  For the
+         case of braced initializer lists, however, explicit constructors and
+         deduction guides may be considered viable but if they are selected by
+         overload resolution, an error should be issued (see [over.match.list]
+         and [over.match.class.deduct]). */
       effects_copy_initialization =
                                (conv_context & CCO_INITIALIZING_VARIABLE) &&
                                !(conv_context & CCO_DIRECT_INITIALIZATION) &&
@@ -24275,11 +24280,10 @@ will be an lvalue instead of the usual prvalue.
       }  /* if */
       if (!is_direct_init && ctor_rout != NULL &&
           ctor_rout->is_explicit_constructor) {
-        /* An explicit constructor cannot be used for
-           copy-list-initialization.  This is tested after overload
-           resolution, rather than as usual causing the constructor not
-           to be viable within overload resolution.  See [over.match.list]
-           in the C++11 standard. */
+        /* An explicit constructor cannot be used for copy-list-initialization.
+           This is tested after overload resolution, rather than (as usual)
+           causing the constructor not to be viable within overload resolution.
+           See [over.match.list] in the C++11 standard. */
         if (arg_match != NULL) {
           arg_match_err = TRUE;
         } else {

@@ -18795,7 +18795,8 @@ void check_deduction_guide_return_type(a_decl_parse_state  *dps,
 /*
 Check that the return type of the deduction guide declaration described by
 dps is a specialization of the class template described by ct_sym.  If not,
-issue an error.
+issue an error.  Otherwise, also record the return type as the "this_class"
+type of the guide.
 */
 {
   if (!type_is(dps->type, tk_routine)) {
@@ -18813,6 +18814,11 @@ issue an error.
     }  /* if */
     if (issue_error) {
       pos_error(ec_bad_deduction_guide_return_type, &dps->return_type_pos);
+    } else {
+      a_routine_type_supplement_ptr
+            rtsp = dps->type->variant.routine.extra_info;
+      rtsp->this_class = rtp;
+      rtsp->assoc_routine_is_ctor = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_deduction_guide_return_type */
