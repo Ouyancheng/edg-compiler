@@ -3,7 +3,7 @@ Version 5.1
 12/6/18  [EDGcpfe/20010]
 C++20: const mismatch with defaulted copy constructor (core issue 1331)
 
-In C++17 and earlier, if the declared type of an explicitly defaulted 
+In C++17 and earlier, if the declared type of an explicitly-defaulted 
 function is not the same as if it had been implicitly declared, then it 
 is ill-formed.  In C++20, such functions are defined as deleted.  
 Exceptions are made for two cases where it's desirable for a defaulted 

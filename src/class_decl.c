@@ -13061,7 +13061,7 @@ return FALSE); otherwise, set *has_default_arg to FALSE.  The last signature
 constructors and in some GNU C++ modes.  From C++20, the standard allows
 defaulting copy and move constructors whose type differs from the ones above,
 and which satisfy [class.copy]/p2 and [class.copy]/p3 (N4140), but they are
-defined as deleted.  Set is_deleted to TRUE if we are in a C++20 mode and if
+defined as deleted.  Set *is_deleted to TRUE if we are in a C++20 mode and if
 the constructor needs to be defined as deleted.
 */
 {
@@ -13149,7 +13149,7 @@ The last signature ("move assignment operator") can be defaulted only in modes
 where such operators can be implicitly generated (and in some GNU C++ modes).
 From C++20, the standard allows defaulting assignment operators whose type
 differs from the ones above, and which satisfy [class.copy]/p17 and
-[class.copy]/p19 (N4140), but they are defined as deleted.  Set is_deleted to
+[class.copy]/p19 (N4140), but they are defined as deleted.  Set *is_deleted to
 TRUE if we are in a C++20 mode and if the assignment operator needs to be
 defined as deleted.
 */
