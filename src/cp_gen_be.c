@@ -13314,7 +13314,7 @@ Generate a C++17 fold expression (only appears in templates).
        ellipsis after it since the fold expression expansion syntax is
        different (the ellipsis is rendered explicitly below). */
     opnd->is_pack_expansion = FALSE;
-    gen_expr_with_parens(opnd);
+    gen_expression(opnd);
     opnd->is_pack_expansion = node_marked_as_pack_expansion;
     write_tok_str(" ");
     write_tok_str(token_names[expr->variant.fold.operator_token]);
@@ -13329,7 +13329,7 @@ Generate a C++17 fold expression (only appears in templates).
     opnd->is_pack_expansion = FALSE;
     write_tok_str(token_names[expr->variant.fold.operator_token]);
     write_tok_str(" ");
-    gen_expr_with_parens(opnd);
+    gen_expression(opnd);
     opnd->is_pack_expansion = node_marked_as_pack_expansion;
   }  /* if */
   write_tok_str(")");
