@@ -13061,7 +13061,7 @@ return FALSE); otherwise, set *has_default_arg to FALSE.  The last signature
 constructors and in some GNU C++ modes.  From C++20, the standard allows
 defaulting copy and move constructors whose type differs from the ones above,
 and which satisfy [class.copy]/p2 and [class.copy]/p3 (N4140), but they are
-defined as deleted. Set is_deleted to TRUE if we are in a cpp20 mode and if
+defined as deleted.  Set is_deleted to TRUE if we are in a C++20 mode and if
 the constructor needs to be defined as deleted.
 */
 {
@@ -13113,7 +13113,7 @@ the constructor needs to be defined as deleted.
       } else if (cpp20_mode) {
         result = TRUE;
         *is_deleted = TRUE;
-      }/* if */
+      }  /* if */
     }  /* if */
     if (result && params->has_default_arg && !cpp20_mode) {
       /* Don't allow a copy constructor with a default argument to be
@@ -13129,7 +13129,7 @@ the constructor needs to be defined as deleted.
         result = FALSE;
         *is_deleted = FALSE;
         break;
-      }
+      }  /* if */
     }  /* for */
   }  /* if */
   return result;
@@ -13149,8 +13149,8 @@ The last signature ("move assignment operator") can be defaulted only in modes
 where such operators can be implicitly generated (and in some GNU C++ modes).
 From C++20, the standard allows defaulting assignment operators whose type
 differs from the ones above, and which satisfy [class.copy]/p17 and
-[class.copy]/p19 (N4140), but they are defined as deleted. Set is_deleted to
-TRUE if we are in a cpp20 mode and if the assignment operator needs to be
+[class.copy]/p19 (N4140), but they are defined as deleted.  Set is_deleted to
+TRUE if we are in a C++20 mode and if the assignment operator needs to be
 defined as deleted.
 */
 {
@@ -13171,9 +13171,9 @@ defined as deleted.
     expect_error();
   } else {
     /* The operator cannot be a const or volatile member, and the return type
-         must be X& (where X is the parent type). */
+       must be X& (where X is the parent type). */
     return_type = make_reference_type(class_type);
-    if  (rout_type->variant.routine.extra_info->qualifiers != TQ_NONE ||
+    if (rout_type->variant.routine.extra_info->qualifiers != TQ_NONE ||
         !identical_types(return_type,
                          rout_type->variant.routine.return_type)) {
       if (cpp20_mode && identical_types(return_type,
@@ -13182,7 +13182,7 @@ defined as deleted.
         *is_deleted = TRUE;
       } else {
         result = FALSE;
-      } /* if */
+      }  /* if */
     } else if (is_lvalue_reference_type(params->type)) {
       /* Presumably an ordinary copy assign operator.  The parameter type must
          be X& or X const& (although the latter requires that bases and members
@@ -13198,7 +13198,7 @@ defined as deleted.
         } else if (cpp20_mode) {
           result = TRUE;
           *is_deleted = TRUE;
-        } /* if */
+        }  /* if */
       }  /* if */
     } else if (is_rvalue_reference_type(params->type)) {
       /* Presumably a move assign operator.  Check that the parameter type is
@@ -13212,9 +13212,9 @@ defined as deleted.
         } else if (cpp20_mode) {
           result = TRUE;
           *is_deleted = TRUE;
-        } /* if */
-      }
-    }
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* assignment_operator_can_be_defaulted */
