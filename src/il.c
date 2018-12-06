@@ -1721,6 +1721,38 @@ when using the il_to_str routines.
 }  /* put_str_to_f_debug */
 
 
+void db_subobject_path(a_subobject_path  *path)
+/*
+Output a subobject path for debug purposes.
+*/
+{
+  for (; path != NULL; path = path->next) {
+    switch (path->kind) {
+      case iek_field:
+        db_name_full(&path->variant.field->source_corresp, iek_field);
+        break;
+      case iek_constant:
+        fprintf(f_debug, "[%ld]", (long)path->variant.ptr_offset);
+        break;
+      case iek_base_class:
+        fprintf(f_debug, "base cast to ");
+        db_type_name(path->variant.base_class->type);
+        break;
+      case iek_type:
+        fprintf(f_debug, "derived cast to ");
+        db_type_name(path->variant.base_class->derived_class);
+        break;
+      default:
+        fprintf(f_debug, "BAD SUBOBJECT PATH ENTRY KIND");
+        break;
+    }  /* switch */
+    if (path->next != NULL) {
+      fprintf(f_debug, "->");
+    }  /* if */
+  }  /* for */
+}  /* db_subobject_path */
+
+
 void db_constant(a_constant *cp)
 /*
 Dump the contents of the indicated constant, for debug purposes.

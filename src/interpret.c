@@ -4294,6 +4294,56 @@ done:
 }  /* translate_il_address_offset */
 
 
+static a_boolean type_has_leading_subobject_of_type(a_type_ptr  obj_type,
+                                                    a_type_ptr  subobj_type)
+/*
+Return TRUE if obj_type has if of type subobj_type or has a subobject of type
+subobj_type at offset zero.
+*/
+{
+  a_boolean  result;
+
+  if (obj_type == subobj_type) {
+    result = TRUE;
+  } else if (is_immediate_class_type(obj_type)) {
+    a_field_ptr       fp;
+    a_base_class_ptr  bcp;
+    fp = obj_type->variant.class_struct_union.field_list;
+    fp = next_alloc_field(fp);
+    for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+      if (fp->offset == 0) {
+        a_type_ptr  ftp = skip_typerefs(fp->type);
+        if (type_has_leading_subobject_of_type(ftp, subobj_type)) {
+          result = TRUE;
+          goto done;
+        }  /* if */
+      } else if (targ_field_alloc_sequence_equals_decl_sequence) {
+        /* Since fields are allocated in increasing offset order, we're
+           done. */
+        break;
+      }  /* if */
+    }  /* if */
+    bcp = base_classes_of(obj_type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && bcp->offset == 0) {
+        a_type_ptr  btp = skip_typerefs(bcp->type);
+        if (type_has_leading_subobject_of_type(btp, subobj_type)) {
+          result = TRUE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else if (obj_type->kind == (a_type_kind)tk_array) {
+    obj_type = skip_typerefs(obj_type->variant.array.element_type);
+    result = type_has_leading_subobject_of_type(obj_type, subobj_type);
+  } else {
+    result = FALSE;
+  }  /* if */
+done:
+  return result;
+}  /* type_has_leading_subobject_of_type */
+
+
 static void finalize_subobject_path(a_constant_ptr  con)
 /*
 con is a ck_address/abk_variable entry.  Make sure its subobject path is
@@ -4304,7 +4354,6 @@ of subscript operations or pointer arithmetic).
   a_type_ptr            obj_type, subobj_type;
   a_variable_ptr        var;
   a_targ_ptrdiff_t      t_offset, t_pos;
-  a_targ_size_t         n_elems;
   a_subobject_path_ptr  *p_subobj;
 
   check_assertion(constant_is(con, ck_address) &&
@@ -4340,22 +4389,23 @@ of subscript operations or pointer arithmetic).
           (*p_subobj)->next = tail;
           (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
         }  /* if */
-        n_elems = obj_type->variant.array.variant.number_of_elements;
         obj_type = skip_typerefs(obj_type->variant.array.element_type);
         if (obj_type->size == 0) {
           t_pos = 0;
         } else {
           t_pos = t_offset/(a_targ_ptrdiff_t)obj_type->size;
-          if ((a_targ_size_t)t_pos == n_elems &&
-              !identical_types(subobj_type, obj_type)) {
-            /* We're "one position past the end", but not past the end of the
-               current type.  Step back one position: A deeper level will find
-               the actual array we went past. */
+        }  /* if */
+        t_offset -= t_pos*obj_type->size;
+        if (t_offset == 0) {
+          /* We've found an element that corresponds exactly to the overall
+             offset, but it is possible that the address is really "one past"
+             a trailing part of the previous element. */
+          if (!type_has_leading_subobject_of_type(obj_type, subobj_type)) {
             t_pos -= 1;
+            t_offset += obj_type->size;
           }  /* if */
         }  /* if */
         (*p_subobj)->variant.ptr_offset = t_pos;
-        t_offset -= t_pos*obj_type->size;
         break;
       case tk_class:
       case tk_struct:
@@ -4391,7 +4441,7 @@ of subscript operations or pointer arithmetic).
             a_base_class_ptr  bcp = base_classes_of(obj_type);
             for (; bcp != NULL; bcp = bcp->next) {
               if (t_offset == (a_targ_ptrdiff_t)bcp->offset &&
-                  bcp->type == subobj_type) {
+                  bcp->direct && bcp->type == subobj_type) {
                 break;
               }  /* if */
             }  /* for */

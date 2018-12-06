@@ -458,6 +458,8 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_substitution_stack)*/
 /*lint -esym(765, db_dip)*/
 /*lint -esym(714, db_dip)*/
+/*lint -esym(765, db_subobject_path)*/
+/*lint -esym(714, db_subobject_path)*/
 #endif /* DEBUG */
 #if !UPC_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/
