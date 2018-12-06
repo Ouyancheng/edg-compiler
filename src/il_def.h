@@ -3733,6 +3733,14 @@ typedef struct a_dynamic_init {
 			   should be suppressed because the context is
 			   already brace-enclosed.  Set/used only within
 			   the C++-generating back end. */
+  a_bit_field	suppress_template_arguments_for_cast:1;
+			/* TRUE for a dynamic init representing a functional-
+			   notation cast where the type was specified using a
+			   template name without template arguments (i.e.,
+			   relying on the C++17 "class template argument
+			   deduction" feature).  In some cases the deduced
+			   arguments cannot be expressed explicitly (e.g.,
+			   closure types). */
 #endif /* BACK_END_IS_CP_GEN_BE */
   bitfield_to_avoid_codecenter_warnings()
   union {

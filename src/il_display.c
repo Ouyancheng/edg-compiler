@@ -6576,6 +6576,17 @@ Display the indicated dynamic_init structure.
   if (ptr->is_creation_of_initializer_list_object) {
     disp_boolean("is_creation_of_initializer_list_object", TRUE);
   }  /* if */
+  if (ptr->is_array_for_initializer_list_object) {
+    disp_boolean("is_array_for_initializer_list_object", TRUE);
+  }  /* if */
+  if (ptr->is_top_temporary_for_constexpr_reference_param) {
+    disp_boolean("is_top_temporary_for_constexpr_reference_param", TRUE);
+  }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (ptr->suppress_template_arguments_for_cast) {
+    disp_boolean("suppress_template_arguments_for_cast", TRUE);
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->master_entry != NULL) {
     disp_ptr("master_entry", (char *)ptr->master_entry, iek_dynamic_init);
   }  /* if */

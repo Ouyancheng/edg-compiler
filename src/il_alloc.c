@@ -2357,6 +2357,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_top_temporary_for_constexpr_reference_param = FALSE;
 #if BACK_END_IS_CP_GEN_BE
   dip->suppress_init_list_arg_braces = FALSE;
+  dip->suppress_template_arguments_for_cast = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;

@@ -1,5 +1,26 @@
 Version 5.1
 
+12/6/18  [EDGcpfe/20138]
+C++-generating back end: explicit temporaries, class template argument
+deduction, and lambda closure classes
+
+Given an explicit temporary in which class template argument deduction is
+used with an initializer that is a lambda expression, the C++-generating
+back end put out the name of the class template instance using a temporary
+name (of the form __T12345678) as a template argument, rather than simply
+the class template name alone.  This is now fixed.  For example, with
+--c++17:
+
+  template <typename ...F> struct S {
+    S(F...) { };
+    void operator()() { };
+  };
+  struct a { };
+  void f() {
+    S{[](a x) { }}();  // Previously generated as S<__T12345678>
+  }
+
+
 12/6/18  [EDGcpfe/20082]
 GNU C++ compatibility: use of inaccessible types as template arguments
 

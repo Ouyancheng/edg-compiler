@@ -17154,6 +17154,7 @@ when possible.
   a_boolean        is_value_init;
   a_type_ptr       bare_init_entity_type;
   a_boolean        suppress_braces = FALSE;
+  a_boolean        saved_suppress_template_args = octl.suppress_template_args;
 
   dip = skip_constexpr_ctor_eval(dip);
   braced_init = dip->is_braced_initializer;
@@ -17333,7 +17334,9 @@ when possible.
     if (use_func_notation_cast) {
       /* Use a functional-notation cast. */
 output_functional_notation_cast:
+      octl.suppress_template_args = dip->suppress_template_arguments_for_cast;
       gen_type_reference(init_entity_type);
+      octl.suppress_template_args = saved_suppress_template_args;
       /* In a case like "auto x = T{};", braced-init will be FALSE,
          reflecting the use of the "=" in the initializer.  However, if T
          is an aggregate, we need to use the brace form and not the paren

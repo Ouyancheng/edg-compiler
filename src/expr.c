@@ -24850,7 +24850,7 @@ freed by this routine.
   an_operand                    local_bound_function_selector;
   a_boolean                     allow_ms_array = microsoft_bugs && !C_mode();
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
-  a_dynamic_init_ptr            dip;
+  a_dynamic_init_ptr            dip = NULL;
   an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
   an_expr_node_ptr              expr;
   a_source_position             local_start_position, type_position;
@@ -24858,6 +24858,9 @@ freed by this routine.
   a_boolean                     scanning_source = (rcblock == NULL &&
                                                    !arg_list_supplied);
   a_boolean                     parenthesized = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  a_boolean                     uses_class_templ_arg_deduction = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   an_init_component_ptr         braced_init_list = NULL;
   a_boolean                     saved_allow_call_with_incomplete_return_type;
   an_initializer_cache
@@ -24918,6 +24921,9 @@ freed by this routine.
        actual type cast to (in the C++17 case involving class template
        argument deduction). */
     a_decl_parse_state  dps;
+#if BACK_END_IS_CP_GEN_BE
+    uses_class_templ_arg_deduction = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
     init_decl_parse_state(&dps);
     type_cast_to = normalized_class_template_placeholder_type(type_cast_to,
                                                               &type_position);
@@ -25385,7 +25391,12 @@ non_ctor_case_after_expr_scan:
   }  /* if */
 have_result:
   expr = expr_node_from_operand(result);
-  if (expr != NULL) expr->is_functional_notation_cast = TRUE;
+  if (expr != NULL) {
+    expr->is_functional_notation_cast = TRUE;
+    if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      dip = expr->variant.init.dynamic_init;
+    }  /* if */
+  }  /* if */
   set_operand_position(result, start_position, &end_position, start_position);
   record_cast_position_in_rescan_info(result,
                                       orig_operand_expression,
@@ -25394,6 +25405,11 @@ have_result:
                                       &type_position,
                                       type_cast_to);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);
+#if BACK_END_IS_CP_GEN_BE
+  if (uses_class_templ_arg_deduction && dip != NULL) {
+    dip->suppress_template_arguments_for_cast = TRUE;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
 end_of_routine:
   expr_stack->allow_call_with_incomplete_return_type = 
                                  saved_allow_call_with_incomplete_return_type;
