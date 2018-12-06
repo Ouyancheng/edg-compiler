@@ -13043,7 +13043,8 @@ done:;
 
 static a_boolean constructor_can_be_defaulted(a_symbol_ptr  sym,
                                               a_boolean     *is_default_ctor,
-                                              a_boolean     *has_default_arg)
+                                              a_boolean     *has_default_arg,
+                                              a_boolean     *is_deleted)
 /*
 sym is a constructor.  Return whether it can be "defaulted".  I.e., if its
 parent class is X, it must have one of the following signatures and not include
@@ -13057,7 +13058,11 @@ otherwise set it to FALSE.  If the signature is one of the latter three and the
 parameter has an associated default argument set *has_default_arg to TRUE (and
 return FALSE); otherwise, set *has_default_arg to FALSE.  The last signature
 ("move constructor") can only be defaulted in modes that can generate move
-constructors and in some GNU C++ modes.
+constructors and in some GNU C++ modes.  From C++20, the standard allows
+defaulting copy and move constructors whose type differs from the ones above,
+and which satisfy [class.copy]/p2 and [class.copy]/p3 (N4140), but they are
+defined as deleted. Set is_deleted to TRUE if we are in a cpp20 mode and if
+the constructor needs to be defined as deleted.
 */
 {
   a_boolean         result = FALSE;
@@ -13066,6 +13071,7 @@ constructors and in some GNU C++ modes.
 
   *is_default_ctor = FALSE;
   *has_default_arg = FALSE;
+  *is_deleted = FALSE;
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
                   (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
@@ -13091,6 +13097,9 @@ constructors and in some GNU C++ modes.
                                   make_qualified_type(class_type, TQ_CONST));
         if (identical_types(param_type, params->type)) {
           result = TRUE;
+        } else if (cpp20_mode) {
+          result = TRUE;
+          *is_deleted = TRUE;
         }  /* if */
       }  /* if */
     } else if (move_operations_can_be_defaulted() &&
@@ -13101,20 +13110,35 @@ constructors and in some GNU C++ modes.
       param_type = make_rvalue_reference_type(class_type);
       if (identical_types(param_type, params->type)) {
         result = TRUE;
-      }  /* if */
+      } else if (cpp20_mode) {
+        result = TRUE;
+        *is_deleted = TRUE;
+      }/* if */
     }  /* if */
-    if (result && params->has_default_arg) {
+    if (result && params->has_default_arg && !cpp20_mode) {
       /* Don't allow a copy constructor with a default argument to be
          defaulted. */
       result = FALSE;
       *has_default_arg = TRUE;
     }  /* if */
+  } else if (cpp20_mode) {
+    result = TRUE;
+    *is_deleted = TRUE;
+    for (params = params->next; params != NULL; params = params->next) {
+      if (!params->has_default_arg) {
+        result = FALSE;
+        *is_deleted = FALSE;
+        break;
+      }
+    }  /* for */
   }  /* if */
   return result;
 }  /* constructor_can_be_defaulted */
 
 
-static a_boolean assignment_operator_can_be_defaulted(a_symbol_ptr  sym)
+static a_boolean assignment_operator_can_be_defaulted(
+                                                    a_symbol_ptr  sym,
+                                                    a_boolean     *is_deleted)
 /*
 sym is an assignment operator.  Check if it can be "defaulted".  I.e., if its
 parent class is X, it must have one of the following signatures:
@@ -13123,6 +13147,11 @@ parent class is X, it must have one of the following signatures:
 	X& operator=(X&&)
 The last signature ("move assignment operator") can be defaulted only in modes
 where such operators can be implicitly generated (and in some GNU C++ modes).
+From C++20, the standard allows defaulting assignment operators whose type
+differs from the ones above, and which satisfy [class.copy]/p17 and
+[class.copy]/p19 (N4140), but they are defined as deleted. Set is_deleted to
+TRUE if we are in a cpp20 mode and if the assignment operator needs to be
+defined as deleted.
 */
 {
   a_boolean         result = FALSE;
@@ -13130,20 +13159,30 @@ where such operators can be implicitly generated (and in some GNU C++ modes).
   a_type_ptr        rout_type, return_type, param_type;
   a_param_type_ptr  params;
 
+  *is_deleted = FALSE;
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
                   (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   params = rout_type->variant.routine.extra_info->param_type_list;
-  /* The operator cannot be a const or volatile member, and the return type
-     must be X& (where X is the parent type). */
-  return_type = make_reference_type(class_type);
-  if (rout_type->variant.routine.extra_info->qualifiers == TQ_NONE &&
-      identical_types(return_type, rout_type->variant.routine.return_type)) {
-    if (params == NULL || params->next != NULL) {
-      /* Assignment operators should have exactly one parameter; anything else
-         should cause an error elsewhere. */
-      expect_error();
+  if (params == NULL || params->next != NULL) {
+    /* Assignment operators should have exactly one parameter; anything else
+       should cause an error elsewhere.  See [over.oper]/p8 (N4140). */
+    expect_error();
+  } else {
+    /* The operator cannot be a const or volatile member, and the return type
+         must be X& (where X is the parent type). */
+    return_type = make_reference_type(class_type);
+    if  (rout_type->variant.routine.extra_info->qualifiers != TQ_NONE ||
+        !identical_types(return_type,
+                         rout_type->variant.routine.return_type)) {
+      if (cpp20_mode && identical_types(return_type,
+                                     rout_type->variant.routine.return_type)) {
+        result = TRUE;
+        *is_deleted = TRUE;
+      } else {
+        result = FALSE;
+      } /* if */
     } else if (is_lvalue_reference_type(params->type)) {
       /* Presumably an ordinary copy assign operator.  The parameter type must
          be X& or X const& (although the latter requires that bases and members
@@ -13156,19 +13195,26 @@ where such operators can be implicitly generated (and in some GNU C++ modes).
                        make_qualified_type(class_type, TQ_CONST));
         if (identical_types(param_type, params->type)) {
           result = TRUE;
-        }  /* if */
+        } else if (cpp20_mode) {
+          result = TRUE;
+          *is_deleted = TRUE;
+        } /* if */
       }  /* if */
-    } else if (move_operations_can_be_defaulted() &&
-               is_rvalue_reference_type(params->type)) {
+    } else if (is_rvalue_reference_type(params->type)) {
       /* Presumably a move assign operator.  Check that the parameter type is
          X&&.  (A move assign operator can be defaulted in modes that can
          implicitly generate move operations, and also when emulating
          GCC 4.5.x.) */
-      param_type = make_rvalue_reference_type(class_type);
-      if (identical_types(param_type, params->type)) {
-        result = TRUE;
-      }  /* if */
-    }  /* if */
+      if (move_operations_can_be_defaulted()) {
+        param_type = make_rvalue_reference_type(class_type);
+        if (identical_types(param_type, params->type)) {
+          result = TRUE;
+        } else if (cpp20_mode) {
+          result = TRUE;
+          *is_deleted = TRUE;
+        } /* if */
+      }
+    }
   }  /* if */
   return result;
 }  /* assignment_operator_can_be_defaulted */
@@ -13240,15 +13286,19 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       /* Templates (and member templates) cannot be defaulted. */
       err_code = ec_function_template_cannot_be_defaulted;
     } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-      a_boolean  is_default_ctor, has_default_arg;
+      a_boolean  is_default_ctor, has_default_arg, is_deleted;
       if (constructor_can_be_defaulted(sym, &is_default_ctor,
-                                       &has_default_arg)) {
+                                       &has_default_arg,
+                                       &is_deleted)) {
         rp->is_defaulted = TRUE;
         if (is_default_ctor && dps->in_class_scope) {
           /* The "= default" declaration appeared on the in-class declaration
              of the canonical default constructor.  Assume the default
              constructor is trivial for now and revisit the flag later. */
           rp->is_trivial_default_constructor = TRUE;
+        }  /* if */
+        if (is_deleted) {
+          func_info->is_deleted = TRUE;
         }  /* if */
       } else {
         err_code = has_default_arg ?
@@ -13260,8 +13310,12 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       rp->is_defaulted = TRUE;
     } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                rp->variant.opname_kind == (an_opname_kind)onk_assign) {
-      if (assignment_operator_can_be_defaulted(sym)) {
+      a_boolean  is_deleted;
+      if (assignment_operator_can_be_defaulted(sym, &is_deleted)) {
         rp->is_defaulted = TRUE;
+        if (is_deleted) {
+          rp->is_deleted = TRUE;
+        }  /* if */
       } else {
         err_code = ec_invalid_assignment_operator_to_be_defaulted;
         diag_pos = &dps->declarator_pos;
@@ -21983,8 +22037,12 @@ members.
             a_type_ptr  utp = param_tp->variant.pointer.type;
             if ((get_type_qualifiers(utp) & TQ_CONST) &&
                 (gsfd->copy_ctor_qualifiers & TQ_CONST) == 0) {
-              pos_error(ec_defaulted_copy_ctor_cannot_have_const_parameter,
+              if (cpp20_mode) {
+                rp->is_deleted = TRUE;
+              } else {
+                pos_error(ec_defaulted_copy_ctor_cannot_have_const_parameter,
                         &rp->source_corresp.decl_position);
+              }  /* if */
             }  /* if */
             if (constexpr_enabled && !gsfd->copy_ctor_not_constexpr &&
                 !class_type
@@ -22007,8 +22065,12 @@ members.
             a_type_ptr  utp = param_tp->variant.pointer.type;
             if ((get_type_qualifiers(utp) & TQ_CONST) &&
                 (gsfd->copy_assign_qualifiers & TQ_CONST) == 0) {
-              pos_error(ec_defaulted_assignment_cannot_have_const_parameter,
-                        &rp->source_corresp.decl_position);
+              if (cpp20_mode) {
+                rp->is_deleted = TRUE;
+              } else {
+                pos_error(ec_defaulted_assignment_cannot_have_const_parameter,
+                          &rp->source_corresp.decl_position);
+              }  /* if */
             }  /* if */
             if (constexpr_enabled && !gsfd->copy_assign_not_constexpr &&
                 !class_type
