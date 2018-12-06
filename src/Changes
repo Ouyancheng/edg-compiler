@@ -299,7 +299,7 @@ spurious errors because a call to "get<N>" was not correctly set up.  That is
 now fixed.
 
 
-11/27/18 [EDGcpfe/20279]
+11/27/18 [EDGcpfe/20104,EDGcpfe/20279]
 Structured bindings and std::tuple_element
 
 The standard requires that the first (nontype) template parameter of
