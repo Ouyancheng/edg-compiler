@@ -38461,7 +38461,6 @@ occurs during the creation of the template, a NULL symbol is returned.
   add_to_routines_list(rout, NO_SCOPE_DEPTH);
   tssp->il_template_entry->prototype_instantiation.routine = rout;
   result_sym = sym;
-  result_sym = sym;
 done:
   pop_instantiation_scope_for_rescan();
   return result_sym;
