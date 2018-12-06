@@ -7029,8 +7029,11 @@ Display the indicated class type supplement entry.
            (char *)ptr->assoc_operator_delete_routine, iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-  /* Do not print out ptr->virtual_function_table_var and
-     ptr->subobject_partner, which are used only during IL lowering. */
+  /* Do not print out ptr->virtual_function_table_var which is used only during
+     IL lowering. */
+  if (ptr->subobject_partner != NULL) {
+    disp_ptr("subobject_partner", (char *)ptr->subobject_partner, iek_type);
+  }  /* if */
 #if IA64_ABI
   /* Likewise ptr->virtual_table_table_var. */
 #endif /* IA64_ABI */

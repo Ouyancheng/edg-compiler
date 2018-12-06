@@ -3228,7 +3228,7 @@ after_entry_from_class:
 #if IA64_ABI
           conditionally_clear_fe_pointer(ctsp->virtual_table_table_var);
 #endif /* IA64_ABI */
-          conditionally_clear_fe_pointer(ctsp->subobject_partner);
+          remap_ptr_not_needed(ctsp->subobject_partner, a_type_ptr, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           conditionally_clear_fe_pointer(ctsp->uuid_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

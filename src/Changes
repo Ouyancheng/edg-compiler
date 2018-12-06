@@ -1,5 +1,14 @@
 Version 5.1
 
+12/6/18  [EDGcpfe/20575]
+subobject_partner now available to back ends
+
+In configurations that do lowering, the subobject_partner field in
+a_class_type_supplement is used to link class types to their corresponding
+subobject class types.  Previously that field was cleared and unavailable to
+a back end, but a change has been made to preserve that in the IL.
+
+
 12/6/18  [EDGcpfe/20138]
 C++-generating back end: explicit temporaries, class template argument
 deduction, and lambda closure classes
