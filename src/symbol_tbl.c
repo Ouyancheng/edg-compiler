@@ -12402,11 +12402,12 @@ diagnostic would actually be an error.
         error_code = ec_no_access_to_type_cfront_mode;
       }  /* if */
     }  /* if */
-    if (gpp_mode && gnu_version >= 30400 && in_template_arg_list) {
-      /* g++ has a bug where some access errors are ignored in template
-         argument list.  The g++ bug only occurs if the argument list is
-         followed by "::".  Our emulation issues a diagnostic in all cases,
-         but reduces the severity to a warning when it appears in a
+    if (gpp_version_is(<40900) && gnu_version >= 30400 &&
+        in_template_arg_list) {
+      /* Some versions of g++ have a bug where some access errors are ignored
+         in template argument list.  The g++ bug only occurs if the argument
+         list is followed by "::".  Our emulation issues a diagnostic in all
+         cases, but reduces the severity to a warning when it appears in a
          template argument list. */
       severity = es_warning;
     }  /* if */

@@ -1,5 +1,14 @@
 Version 5.1
 
+12/6/18  [EDGcpfe/20082]
+GNU C++ compatibility: use of inaccessible types as template arguments
+
+The changes for EDGcpfe/12703 caused the front end to ignore certain access
+errors in GNU and Clang C++ modes when they occur in template argument lists.
+That nonstandard behavior is now disabled in Clang mode and in GNU modes with
+gnu_version >= 40900.
+
+
 12/6/18  [EDGcpfe/20010]
 C++20: const mismatch with defaulted copy constructor (core issue 1331)
 
