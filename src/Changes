@@ -47,6 +47,20 @@ over the explicitly declared guide.  That is now fixed and an error is now
 correctly issued for this case.
 
 
+12/5/18  [EDGcpfe/20128]
+C++-generating back end: missing parentheses in fold expression
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end failed to enclose
+operands of fold operators in parentheses when necessary, resulting in
+generated code that could not be compiled successfully.  This is now fixed.
+For example, with --c++17:
+
+  template<class... Tx> int f(Tx... xs) {
+    return ((xs+1) + ...);  // Previously generated as (xs + 1 + ... )
+  }
+
+
 12/4/18  [EDGcpfe/20328]
 C++-generating back end: default template arguments and redeclarations
 
