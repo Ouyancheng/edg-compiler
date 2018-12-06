@@ -4857,7 +4857,7 @@ demangled.
   if (start_of_id_is("U8__vector", ptr)) {
     ptr += 10;
     write_id_str("__attribute__((vector_size(?))) ", dctl);
-  }  /* for */
+  }  /* if */
   return ptr;
 }  /* demangle_vector_size_qualifier */
 
