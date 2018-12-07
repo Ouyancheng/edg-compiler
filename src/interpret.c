@@ -4527,9 +4527,9 @@ of subscript operations or pointer arithmetic).
                     X *p = &x+1;
                  where a class object is treated as an array of one element.
               */
-              check_assertion(subobj_type == obj_type);
+              check_assertion(subobj_type == obj_type &&
+                              t_offset == (a_targ_ptrdiff_t)obj_type->size);
               (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
-              check_assertion(t_offset == (a_targ_ptrdiff_t)obj_type->size);
               (*p_subobj)->variant.ptr_offset = 1;
               goto outer_loop_done;
             }  /* if */
@@ -4541,14 +4541,27 @@ of subscript operations or pointer arithmetic).
              present). */
           a_field_ptr           selected_field = NULL;
           a_subobject_path_ptr  path = *p_subobj;
-          check_assertion(path != NULL &&
-                          path->kind == (an_il_entry_kind)iek_field);
-          selected_field = path->variant.field;
-          check_assertion(selected_field != NULL);
-          /* Adjust the remaining target offset to account for the selected
-             field offset (normally a no-op for a union field). */
-          t_offset -= selected_field->offset;
-          obj_type = skip_typerefs(selected_field->type);
+          if (subobj_type == obj_type) {
+            /* Normally, pointers into unions should always have a subobject
+               path that disambiguates the selected member.  However, we can
+               also get here when a union object is treated as an array of one
+               element and we're dealing with a pointer "one position past"
+               that array.*/
+            check_assertion(path == NULL &&
+                            t_offset == (a_targ_ptrdiff_t)obj_type->size);
+            *p_subobj = alloc_subobject_path();
+            (*p_subobj)->variant.ptr_offset = 1;
+            goto outer_loop_done;
+          } else {
+            check_assertion(path != NULL &&
+                            path->kind == (an_il_entry_kind)iek_field);
+            selected_field = path->variant.field;
+            check_assertion(selected_field != NULL);
+            /* Adjust the remaining target offset to account for the selected
+               field offset (normally a no-op for a union field). */
+            t_offset -= selected_field->offset;
+            obj_type = skip_typerefs(selected_field->type);
+          }  /* if */
         }
         break;
       default:
