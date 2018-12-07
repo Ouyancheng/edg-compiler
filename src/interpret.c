@@ -4333,6 +4333,7 @@ subobj_type at offset zero.
         }  /* if */
       }  /* if */
     }  /* for */
+    result = FALSE;
   } else if (obj_type->kind == (a_type_kind)tk_array) {
     obj_type = skip_typerefs(obj_type->variant.array.element_type);
     result = type_has_leading_subobject_of_type(obj_type, subobj_type);
