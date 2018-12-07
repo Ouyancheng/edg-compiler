@@ -22986,7 +22986,7 @@ indication in *rcblock).
             similar_types = TRUE;
           }  /* if */
         }  /* if */
-        if (!similar_types && reference_case) {
+        if (reference_case) {
           /* Cast to reference type. */
           if (rvalue_reference_case) {
             /* Cast to an rvalue reference type.  The source expression

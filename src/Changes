@@ -1,5 +1,23 @@
 Version 5.1
 
+12/7/18  [EDGcpfe/20578]
+const_cast conversions to reference types
+
+The changes for EDGcpfe/18553 (in version 5.0) introduced a regression in
+const_cast conversions to reference types.  For example:
+
+  template<typename T> T prvalue();
+  template<typename T> T& lvalue();
+  template<typename T> T&& xvalue();
+  auto r1 = const_cast<int*&>(prvalue<int const*>());
+  auto r2 = const_cast<int*&&>(prvalue<int const*>());
+  auto r3 = const_cast<int*&>(xvalue<int const*>());
+
+In version 5.0, the front end accepted all three of the const_cast expressions,
+but all three are ill-formed according to the standard.  This is now fixed: An
+error is issued for all three initializers.
+
+
 12/7/18  [EDGcpfe/20576]
 Abort on constant address representing "one past" a non-array union object
 
