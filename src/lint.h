@@ -242,6 +242,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,form_char)*/
 /*lint -esym(759,traverse_type_tree)*/
 /*lint -esym(765,traverse_type_tree)*/
+/*lint -esym(755,routine_is_builtin_function_kind)*/
 #endif /* !BACK_END_IS_C_GEN_BE */
 #if DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING
 /*lint -esym(750,RDF_INDIRECT,RDF_THIS_PARAM_OFFSET)*/
