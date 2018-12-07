@@ -5583,6 +5583,7 @@ described by arguments.
   write_tok_ch(')');
 }  /* dump_call */
 
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static a_boolean is_intrinsic_func_replaced_by_argument(
                                                     an_expr_node_ptr func_expr,
@@ -5608,6 +5609,7 @@ should be replaced by just
   return result;
 }  /* is_intrinsic_func_replaced_by_argument */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
@@ -6542,6 +6544,7 @@ process_assignment:
         case eok_call:
           /* N operand operator. */
           /* Put out the function to call. */
+#if BUILTIN_FUNCTIONS_ENABLED
           if (is_intrinsic_func_replaced_by_argument(operand_1, operand_2)) {
             /* A call to a C++ intrinsic function that the target C compiler is
                unlikely to recognize, but which is equivalent in this context
@@ -6549,8 +6552,11 @@ process_assignment:
             */
             dump_expr_with_parens(operand_2);
           } else {
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
             dump_call(operand_1, operand_2);
+#if BUILTIN_FUNCTIONS_ENABLED
           }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
           goto done_with_operation;
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
