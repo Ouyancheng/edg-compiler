@@ -555,6 +555,13 @@ Macro to test a routine entry's special_kind field.
   ((rp)->special_kind == (a_special_function_kind)(sfk))
 
 /*
+Macro to test for builtin function kind.
+ */
+#define routine_is_builtin_function_kind(rp, kind) \
+  (special_kind_is((rp), sfk_none) && \
+   (rp)->variant.builtin_function_kind == (a_builtin_function_kind)(kind))
+
+/*
 Macro that returns TRUE if a routine has been defined.  The value is
 TRUE from the beginning of scanning of the function body (not just
 after the closing brace), and is also TRUE for functions with
