@@ -1334,6 +1334,9 @@ specified by dp.
         entity_kind = ec_parameter;
       } else if (fund_sym->variant.variable.ptr->is_handler_param) {
         entity_kind = ec_handler_parameter;
+      } else if (fund_sym->variant.variable.ptr->is_struct_binding) {
+        entity_kind = ec_struct_binding;
+        type = NULL;
       } else {
         entity_kind = ec_variable;
       }  /* if */

@@ -6881,7 +6881,8 @@ for use in generating cross-reference output describing this declaration.
          projection (i.e., a using-declaration). */
       linked_symbol = fundamental_symbol_of(linked_symbol);
     }  /* if */
-    if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
+    if (linked_symbol->kind == (a_symbol_kind)sk_variable &&
+        !linked_symbol->variant.variable.ptr->is_struct_binding) {
       a_variable_ptr  orig_var = linked_symbol->variant.variable.ptr;
       if (C_mode() || (microsoft_mode && (srk_flags & SRK_TENTATIVE_DEF))) {
         if (linked_symbol->defined &&
@@ -6958,7 +6959,8 @@ for use in generating cross-reference output describing this declaration.
         }  /* if */
       }  /* if */
     } else {
-      /* The linked symbol is a routine, while the new one is a variable. */
+      /* The linked symbol is not a variable, while the new one is a
+         variable. */
       pos_sy_error(ec_not_compatible_with_previous_decl,
                    &locator->source_position, linked_symbol);
       redecl_error_already_issued = TRUE;

@@ -1,5 +1,20 @@
 Version 5.1
 
+12/6/18  [EDGcpfe/20573]
+Diagnosing attempts to redeclare structured bindings
+
+The front end now issues an error on code like the following:
+
+  int x[] = { 1, 2 };
+  auto &[p, q] = x;
+  extern int p;  // Now an error.
+
+Previously, the standalone declaration of p was treated as a redeclaration of
+the structured binding of the same name.  As part of this change, diagnostics
+now refer to structured bindings as "structured bindings" rather than as
+"variables" (as was the case previously).
+
+
 12/6/18  [EDGcpfe/20575]
 subobject_partner now available to back ends
 
