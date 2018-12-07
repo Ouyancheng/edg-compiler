@@ -4297,7 +4297,7 @@ done:
 static a_boolean type_has_leading_subobject_of_type(a_type_ptr  obj_type,
                                                     a_type_ptr  subobj_type)
 /*
-Return TRUE if obj_type has if of type subobj_type or has a subobject of type
+Return TRUE if obj_type is of type subobj_type or has a subobject of type
 subobj_type at offset zero.
 */
 {
