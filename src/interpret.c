@@ -14386,7 +14386,8 @@ FALSE, and record diagnostic info in *diag_list.
   an_interpreter_state  ips;
   a_byte                *result_storage;
   a_byte_count          n_bytes;
-  a_type_ptr            result_type = skip_typerefs(expr->type);
+  a_type_ptr            result_type = expr->type,
+                        val_type = skip_typerefs(result_type);
 
   if (is_constant_node(expr)) {
     a_constant_ptr  expr_con = node_constant(expr);
@@ -14415,7 +14416,7 @@ FALSE, and record diagnostic info in *diag_list.
   }  /* if */
   init_interpreter_state(&ips);
   ips.position = expr->position;
-  n_bytes = expr_result_size(&ips, expr, result_type, &result); 
+  n_bytes = expr_result_size(&ips, expr, val_type, &result); 
   if (!result) {
     if (ips.input_error) {
       /* Interpretation failed due to an error node in the IL.  Continue
@@ -14425,7 +14426,7 @@ FALSE, and record diagnostic info in *diag_list.
     }  /* if */
     /* Nothing more to be done. */
   } else {
-    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    alloc_complete_object(&ips, n_bytes, val_type, result_storage);
     if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
@@ -14435,19 +14436,18 @@ FALSE, and record diagnostic info in *diag_list.
         do_constexpr_fail(result);
       }  /* if */
     } else {
-      result_con->type = result_type;
       if (expr->is_lvalue || expr->is_xvalue) {
         a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
         if (force_prvalue) {
           if (is_runtime_data_address(cap)) {
-            if (is_immediate_class_type(result_type) &&
-                result_type->variant.class_struct_union.is_empty_class &&
-                is_trivially_copy_constructible_type(result_type)) {
+            if (is_immediate_class_type(val_type) &&
+                val_type->variant.class_struct_union.is_empty_class &&
+                is_trivially_copy_constructible_type(val_type)) {
               /* An empty class with no actual data to copy: Just allocate
                  an empty object. */
-              n_bytes = value_bytes_for_type(&ips, result_type, &result);
+              n_bytes = value_bytes_for_type(&ips, val_type, &result);
               check_assertion(result);
-              alloc_complete_object(&ips, n_bytes, result_type,
+              alloc_complete_object(&ips, n_bytes, val_type,
                                     result_storage);
             } else {
               info_with_pos(ec_constexpr_access_to_runtime_storage,
@@ -14462,17 +14462,18 @@ FALSE, and record diagnostic info in *diag_list.
             /* result_storage points to an interpreter address for the glvalue.
                Allocate a new object for the corresponding prvalue and perform
                the glvalue-to-prvalue conversion into it. */
-            n_bytes = value_bytes_for_type(&ips, result_type, &result);
+            n_bytes = value_bytes_for_type(&ips, val_type, &result);
             check_assertion(result);
-            alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-            result = do_glvalue_to_prvalue(&ips, expr, result_type, cap,
+            alloc_complete_object(&ips, n_bytes, val_type, result_storage);
+            result = do_glvalue_to_prvalue(&ips, expr, val_type, cap,
                                            n_bytes, result_storage,
                                            result_storage);
           }  /* if */
         } else {
-          result_type = expr->is_xvalue ?
-                                      make_rvalue_reference_type(expr->type) :
-                                      make_reference_type(expr->type);
+          val_type = expr->is_xvalue ?
+                                     make_rvalue_reference_type(result_type) :
+                                     make_reference_type(result_type);
+          result_type = val_type;
         }  /* if */
       }  /* if */
       if (!result) {

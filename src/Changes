@@ -1,5 +1,20 @@
 Version 5.1
 
+12/7/18  [EDGcpfe/20579]
+Type qualifiers lost during expression folding
+
+Consider:
+
+  struct S {};
+  using CS = S const;
+  S &&r = CS{};  // Previously accepted.  Now an error.
+
+Previously, the front end folded the initializer "CS{}" into a constant entry,
+but the "const" qualifier was lost in the process.  As a result, the reference
+binding was accepted when it should have elicited an error (since a qualifier
+is dropped).  That is now fixed.
+
+
 12/7/18  [EDGcpfe/20578]
 const_cast conversions to reference types
 
