@@ -464,7 +464,7 @@ contexts.
 }  /* subst_fail_intercept */
 
 
-void db_scp(void  *entity)
+void db_scp(char  *entity)
 /*
 Output a brief description of the given entity (which is assumed to start with
 a source correspondence).
