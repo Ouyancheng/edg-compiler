@@ -8866,7 +8866,7 @@ constant null pointer).  If successful, return TRUE and store the result in
         do_constexpr_fail(result);
         break;
       }  /* if */
-      add_integer_values(&offset_val, (an_integer_value*)index_val,
+      add_integer_values(&offset_val, (an_integer_value*)&size_val,
                          /*is_signed=*/TRUE, &ovflo);
       if (ovflo) {
         do_constexpr_fail(result);

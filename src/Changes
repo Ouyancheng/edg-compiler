@@ -1,5 +1,22 @@
 Version 5.1
 
+12/10/18 [EDGcpfe/20554]
+__builtin_offsetof in constexpr evaluations
+
+The evaluation of __builtin_offsetof expressions in the constexpr interpreter
+did not correctly handle array subscripting.  For example, in GNU C++17 mode:
+
+  struct S {
+    int x[2];
+  };
+  constexpr int g(int i) {
+    return (int)__builtin_offsetof(S, x[i]);
+  };
+  static_assert(g(1) == sizeof(int));  // Previously failed.  Now okay.
+
+That is now fixed.
+
+
 12/7/18  [EDGcpfe/20579]
 Type qualifiers lost during expression folding
 
