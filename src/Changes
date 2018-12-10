@@ -290,7 +290,7 @@ through the committee's paper P1073R3.
 
 
 12/3/18 [EDGcpfe/20139]
-G++ mode: enable __builtin_launder
+GNU C++ compatibility: enable __builtin_launder
 
 The built-in pseudo-function "__builtin_launder" is now enabled in C++ GNU mode
 for gnu_version >= 80100.
