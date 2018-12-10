@@ -20037,7 +20037,7 @@ created for template parameters that are packs.
       tap->variant.templ.ptr = tpp->variant.templ->il_template_entry;
     }  /* if */
     tap->is_pack = tpp->is_pack;
-    tap->is_pack_element = tpp->is_pack;
+    tap->is_pack_element = tpp->is_pack || tpp->is_pack_element;
     if (tap->is_pack && add_pack_descr) {
       /* Create a pack expansion entry for this argument. */
       add_pack_expansion_descr_to_prototype_arg(tpp, tap);
@@ -27578,9 +27578,12 @@ can be diagnosed at template definition time.
                  prototype_type->variant.typeref.extra_info->template_arg_list;
   /* Push an instantiation scope for the prototype instantiation.  In some
      cases a new scope is not needed.  scope_pushed will be set to indicate
-     whether or not any scopes were actually pushed. */
+     whether or not any scopes were actually pushed.  "tcp" is not used here
+     because we want to use the decl_info from the (potential) subordinate
+     template where the parameter list could be different in some variadic
+     cases. */
   scope_pushed = push_template_instantiation_scope(
-                                        tcp->decl_info,
+                                        tssp->cache.decl_info,
  				        (a_type_ptr)NULL, (a_routine_ptr)NULL,
   				        prototype_sym, template_sym,
   				        template_arg_list,
@@ -27946,21 +27949,15 @@ alias
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* When orig_decl_tssp is set, sym points to a dummy symbol created above.
-     Don't create a prototype type in such cases as it will never be
-     filled-in later. */
-  if (!decl_state->is_alias_redecl ||
-      orig_decl_tssp->prototype_template == NULL) {
-    /* Create the symbol for the prototype instantiation. */
-    create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
-                          /*is_partial_specialization=*/FALSE);
+  /* Create the symbol for the prototype instantiation. */
+  create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                        /*is_partial_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    update_decl_pos_info(
+  update_decl_pos_info(
            &tssp->variant.class_template.prototype_instantiation->
                                               variant.type.ptr->source_corresp,
                        &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
   /* If this is a redeclaration, the original symbol is returned, not the
      one for the new declaration. */
   return orig_decl_sym;
@@ -28434,35 +28431,22 @@ any non-empty template parameter lists that were scanned.
     /* An alias template. */
     check_assertion(tssp->variant.class_template.is_alias_template);
     if (!decl_state->decl_scope_err) {
-      /* We only do a prototype instantiation for the primary template. */
-      if (tssp->prototype_template == NULL) {
-        /* Do the prototype instantiation evaluation of the alias type. */
-        if (!decl_state->is_alias_redecl) {
-          alias_prototype_instantiation(decl_state, sym);
-        } else {
-          /* For an alias redeclaration, do a prototype instantiation of the
-             new declaration so that the types can be compared. */
-          alias_prototype_instantiation(decl_state,
-                                        decl_state->new_alias_symbol);
-          /* If this is a redeclaration of an alias template, make sure the
-             prototype instantiations match. */
-          check_alias_template_redecl(decl_state, sym);
-        }  /* if */
+      /* Do the prototype instantiation evaluation of the alias type.
+         Unlike most templates, we do a prototype instantiation for
+         subordinate templates because that type may be needed in some
+         cases (in particular, versions with class template instantiations
+         in the source sequence list might require this type in the
+         specialization definition). */
+      if (!decl_state->is_alias_redecl) {
+        alias_prototype_instantiation(decl_state, sym);
       } else {
-        a_template_symbol_supplement_ptr	proto_tssp;
-        a_symbol_ptr				proto_sym;
-        a_type_ptr				tp;
-        a_type_ptr				proto_tp;
-        proto_sym = prototype_template_of(sym);
-        proto_tssp = template_supplement_for_symbol(proto_sym);
-        /* Use the prototype instantiation from the prototype template. */
-        tp = tssp->variant.class_template.prototype_instantiation->
-                                                              variant.type.ptr;
-        proto_tp = proto_tssp->variant.class_template.prototype_instantiation->
-                                                              variant.type.ptr;
-        tp->variant.typeref.type = proto_tp->variant.typeref.type;
-        /* Mark the prototype instantiation type as being complete. */
-        tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+        /* For an alias redeclaration, do a prototype instantiation of the
+           new declaration so that the types can be compared. */
+        alias_prototype_instantiation(decl_state,
+                                      decl_state->new_alias_symbol);
+        /* If this is a redeclaration of an alias template, make sure the
+           prototype instantiations match. */
+        check_alias_template_redecl(decl_state, sym);
       }  /* if */
     }  /* if */
   } else if (sym != NULL && symbol_is(sym, sk_enum_tag)) {

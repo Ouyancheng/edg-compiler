@@ -1,5 +1,21 @@
 Version 5.1
 
+12/10/18 [EDGcpfe/20527]
+C++-generating back end: aliases in classes emitted as explicit specializations
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE,
+alias templates classes emitted as explicit specializations could have
+types that uses the original template parameters instead of the values
+associated with the given explicit specialization.  Now fixed.
+
+  template<typename T, typename U> struct A { };
+  template<typename X> struct B {
+    template<typename Y> using C = A<Y, X>;
+  };
+  B<int> bi;  // B<int>::C had an incorrect definition
+
+
+
 12/10/18 [EDGcpfe/20554]
 __builtin_offsetof in constexpr evaluations
 
