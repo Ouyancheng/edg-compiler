@@ -5492,7 +5492,9 @@ Generate code for the operator call described by func_expr and the arguments
 described by arguments.
 */
 {
+#if CHECKING
   a_param_type_ptr              param;
+#endif /* CHECKING */
 #if BUILTIN_FUNCTIONS_ENABLED
   a_boolean                     remove_compiler_generated_casts = FALSE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
