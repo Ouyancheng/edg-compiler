@@ -551,29 +551,40 @@ name of an instance of a class template in Microsoft mode.
                                       simulated_hiding, sp, hidden_by);
         break;
       case sk_class_template:
-        /* Unlike function templates, only the template itself is added to
-           the hidden name list; when cp_gen_be encounters an instance of a
-           class template, it checks whether the template is hidden and
-           processes the instance accordingly.  This avoids an O(N^2)
-           performance problem when there are many instances of a class
-           template (perhaps resulting from a translation unit that contains
-           explicit instantiations), where each instance's injected class
-           name would hide every other instance of that template. */
-        record_defeatable_name_hiding_for_single_entity(
+        if (symbol_is(hidden_by, sk_type) &&
+            hidden_by->variant.type.is_injected_class_name &&
+            hidden_sym->variant.template_info->variant.class_template.
+                                             prototype_instantiation != NULL &&
+            hidden_sym->variant.template_info->variant.class_template.
+                    prototype_instantiation->variant.class_struct_union.type ==
+                                                 hidden_by->variant.type.ptr) {
+          /* A class template is not hidden by its injected-class-name. */
+        } else {
+          /* Unlike function templates, only the template itself is added
+             to the hidden name list; when cp_gen_be encounters an instance
+             of a class template, it checks whether the template is hidden
+             and processes the instance accordingly.  This avoids an O(N^2)
+             performance problem when there are many instances of a class
+             template (perhaps resulting from a translation unit that
+             contains explicit instantiations), where each instance's
+             injected class name would hide every other instance of that
+             template. */
+          record_defeatable_name_hiding_for_single_entity(
                                               hidden_sym, tag_hidden_by_nontag,
                                               hidden_class_or_namespace_member,
                                               simulated_hiding, sp, hidden_by);
-        /* However, we do need to record that partial specializations are
-           hidden, as they are treated as separate templates whose
-           instances do not refer back to the primary template. */
-        for (sym = hidden_sym->variant.template_info->partial_specializations;
-             sym != NULL;
-             sym = sym->next) {
-          record_defeatable_name_hiding_for_single_entity(
+          /* However, we do need to record that partial specializations are
+             hidden, as they are treated as separate templates whose
+             instances do not refer back to the primary template. */
+          for (sym =
+                    hidden_sym->variant.template_info->partial_specializations;
+               sym != NULL; sym = sym->next) {
+            record_defeatable_name_hiding_for_single_entity(
                                               sym, tag_hidden_by_nontag,
                                               hidden_class_or_namespace_member,
                                               simulated_hiding, sp, hidden_by);
-        }  /* for */
+          }  /* for */
+        }  /* if */
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */

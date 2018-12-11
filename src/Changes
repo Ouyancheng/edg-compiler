@@ -1,5 +1,26 @@
 Version 5.1
 
+12/10/18 [EDGcpfe/19426]
+C++-generating back end, GNU compatibility: unnecessary name qualification
+of nested class template names
+
+In C++-generating back end configurations in which template definitions are
+generated from the prototype instantiation IL, the C++-generating back end
+unnecessarily used a qualified name when referring to a class template from
+within its own definition.  Although the generated code was correct, in
+some cases g++ was unable to compile it.  This has now been fixed and
+unqualified names are used when possible for such references.  For example,
+with --g++:
+
+  template <typename a> class b {
+    template <typename> struct c {
+      using d = c<int>;  // Previously generated as
+                         // typename ::b<a>::template c<int>, which g++
+                         // is unable to compile successfully.
+    };
+  };
+
+
 12/10/18 [EDGcpfe/20548]
 GNU C++ compatibility: Null-pointer offsets in constexpr evaluations
 
