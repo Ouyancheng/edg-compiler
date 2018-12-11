@@ -3726,12 +3726,12 @@ static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                   sizeof_t        prev_len,
                                                   a_const_char    **post_end)
 /*
-We are in traditional Microsoft preprocessor mode and we are doing a token
-paste in a macro expansion.  Return TRUE if the paste operation is pasting
-"L" to one of the Microsoft function-name keywords like __FUNCTION__.  The
-raw value of the macro argument map is the text following the "##", and
-prev_text (of length prev_len) is the text preceding the ##.  If TRUE is
-returned, *post_end is set to the character position after the end of the
+We are in Microsoft preprocessor mode and we are doing a token paste in a
+macro expansion.  Return TRUE if the paste operation is pasting "L" to one
+of the Microsoft function-name keywords like __FUNCTION__.  The raw value
+of the macro argument map is the text following the "##", and prev_text (of
+length prev_len) is the text preceding the ##.  If TRUE is returned,
+*post_end is set to the character position after the end of the
 function-name keyword.
 */
 {
@@ -3947,8 +3947,7 @@ hence its name should not be changed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           { a_const_char *post_end;
             /* coverity[var_deref_model] */
-            if (ms_extensions && !ms_std_preproc &&
-                prev_section_is_paste &&
+            if (ms_extensions && prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
                                                  prev_text,
                                                  prev_len,
@@ -6883,8 +6882,7 @@ end_arg_expansion:;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             { a_const_char *post_end;
-              if (ms_extensions && !ms_std_preproc &&
-                  prev_section_is_paste &&
+              if (ms_extensions && prev_section_is_paste &&
                   is_microsoft_function_name_paste(map,
                                                    rescan_loc,
                                                    (sizeof_t)(src_loc-
