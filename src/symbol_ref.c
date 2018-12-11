@@ -551,7 +551,7 @@ name of an instance of a class template in Microsoft mode.
                                       simulated_hiding, sp, hidden_by);
         break;
       case sk_class_template:
-        if (symbol_is(hidden_by, sk_type) &&
+        if (hidden_by != NULL && symbol_is(hidden_by, sk_type) &&
             hidden_by->variant.type.is_injected_class_name &&
             hidden_sym->variant.template_info->variant.class_template.
                                              prototype_instantiation != NULL &&
