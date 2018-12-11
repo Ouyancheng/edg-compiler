@@ -1,5 +1,30 @@
 Version 5.1
 
+12/11/18 [EDGcpfe/20539]
+Copy elision and base class subobjects
+
+C++17 included changes that amounted to "mandatory copy elision": Copying a
+prvalue generally just causes the prvalue to be constructed directly in its
+final destination.  However, that should not be done for initializing base
+class subobjects.  For example:
+
+  struct N { N(N const &) = delete; };
+  N makeN();
+  struct S1: N {
+    S1(): N{makeN()} {}  // Invalid.
+  };
+  struct S2: N {
+    S2(): N(makeN()) {}  // Invalid.  (But previously not diagnosed.)
+  };
+
+For both S1 and S2 the construction of the base subobject cannot elide a call
+to N's copy constructor, and therefore an error should be issued since that
+copy constructor is deleted.  Previously, however, the front end failed to
+issue the error in the parenthesized initializer case (because the copy was
+incorrectly elided).  That is now fixed.  A similar issue with delegating
+constructors has also been fixed.
+
+
 12/11/18 [EDGcpfe/20582,EDGcpfe/20583,EDGcpfe/20584]
 GNU C++ compatibility: anonymous struct members
 

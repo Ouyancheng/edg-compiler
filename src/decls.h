@@ -526,7 +526,8 @@ typedef struct an_init_state {
 			   a ctor-initializer. */
   a_bit_field	is_base_init:1;
 			/* TRUE for an entry representing the initializer for
-			   a base-class ctor-initializer. */
+			   a base-class ctor-initializer.  Also TRUE for a
+			   ctor-initializer for a delegating constructor. */
 } an_init_state;
 
 

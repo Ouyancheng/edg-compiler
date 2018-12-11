@@ -7467,6 +7467,7 @@ cases, array_type is NULL).
         object_class_type = init_type;
       } else {
         object_class_type = class_type;
+        is.is_base_init = TRUE;
       }  /* if */
       /* This is treated like an initialization of the form S x (arg [, ...]),
          where S is a class type name.  Depending on the arguments present, a

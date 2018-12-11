@@ -44415,7 +44415,7 @@ source position to be used in overall errors.
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL,
-                      fill_in_dtor, /*elision_allowed=*/TRUE,
+                      fill_in_dtor, !is->is_base_init,
                       /*is_custom_ms_attr_arg_list=*/FALSE,
                       CCO_DIRECT_INITIALIZATION,
                       (a_rescan_control_block *)NULL,
