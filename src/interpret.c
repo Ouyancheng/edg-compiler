@@ -1853,8 +1853,11 @@ addressed (with non-array objects treated as arrays of one element).
     if (cmp_integer_values(&con_addr->variant.integer_value,
                            /*op_1_signed=*/FALSE,
                            (an_integer_value *)&zero_int,
-                           /*op_2_signed=*/FALSE) == 0) {
-      /* A null pointer value. */
+                           /*op_2_signed=*/FALSE) == 0 &&
+        !gpp_mode) {
+      /* A null pointer value.  (GCC permits arbitrary offsetting of addresses
+         based on null pointer values.  So in that case we treat null pointers
+         as zero address.) */
       length = 0;
       pos = 0;
     } else {

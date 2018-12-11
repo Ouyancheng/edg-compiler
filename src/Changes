@@ -1,5 +1,23 @@
 Version 5.1
 
+12/10/18 [EDGcpfe/20548]
+GNU C++ compatibility: Null-pointer offsets in constexpr evaluations
+
+Consider:
+
+  struct S {
+    int x[2];
+  } s;
+  using UI = decltype(sizeof(0));
+  static_assert((UI)&((S*)0)->x[1] == sizeof(int));
+    // Normally invalid.  Now accepted in GNU modes.
+
+Normally, this is invalid because offsetting a null pointer is invalid.
+In GNU modes, however, this is now accepted.  (Prior to the changes for
+EDGcpfe/19246 in version 5.0, this was also accepted in all modes, but it is
+not actually valid.)
+
+
 12/10/18 [EDGcpfe/20527]
 C++-generating back end: aliases in classes emitted as explicit specializations
 
