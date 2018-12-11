@@ -1,5 +1,19 @@
 Version 5.1
 
+12/11/18 [EDGcpfe/20582,EDGcpfe/20583,EDGcpfe/20584]
+GNU C++ compatibility: anonymous struct members
+
+Anonymous struct members have been enabled in GNU C++ modes with 
+gnu_version > 801000.  A change has been made to allow for addressing
+the members of anonymous structs with a designated initializer in C++ 
+modes.  For example :
+
+  struct A { 
+    struct { int b; }; // now valid in certain GNU C++ modes  
+  };
+  A a = { .b = 3; };  // now valid in certain GNU C++ modes 
+
+
 12/10/18 [EDGcpfe/19426]
 C++-generating back end, GNU compatibility: unnecessary name qualification
 of nested class template names

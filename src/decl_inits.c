@@ -3013,7 +3013,15 @@ initialization. */
   a_field_ptr            orig_field = *field;
   a_type_ptr             anonymous_parent_object = NULL;
 
-  if (!C_mode()) {
+  if (class_to_look_in
+                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+    /* Nonstandard anonymous-union-like constructs are possible in some modes,
+       but no meaningful "parent" structure is available in that case.  *is
+       therefore records the last traversed class that is not a nonstandard
+       anonymous union type. */
+    class_to_look_in = is->class_to_look_in;
+    anonymous_parent_object = class_to_look_in;
+  } else if (!C_mode()) {
     a_class_type_supplement_ptr  ctsp = class_type_supp(class_to_look_in);
     anonymous_parent_object = class_to_look_in;
     /* If we're in an anonymous union, look for the field in the enclosing
@@ -3022,15 +3030,7 @@ initialization. */
       class_to_look_in = parent_class_of(class_to_look_in);
       ctsp = class_type_supp(class_to_look_in);
     }  /* while */
-  } else if (class_to_look_in
-                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
-    /* Nonstandard anonymous-union-like constructs are possible in some C
-       modes, but no meaningful "parent" structure is available in that case.
-       *is therefore records the last traversed class that is not a nonstandard
-       anonymous union type. */
-    class_to_look_in = is->class_to_look_in;
-    anonymous_parent_object = class_to_look_in;
-  }  /* if */
+  } /* if */
   if (icp->variant.designator.field_name == NULL) {
     /* This is not a field designator, but we're in a class initializer.
        Issue an error. */
@@ -3093,15 +3093,15 @@ initialization. */
            anonymous struct. */
         if (!same_entities(anon_parent, class_type)) {
           /* The anonymous union does not correspond to the current aggregate
-             constant.  GNU C++ and earlier versions of GNU C do not permit
-             this.
+             constant.  GNU C++ before gcc8.1.0 and earlier versions of GNU C
+             do not permit this.
                struct S { struct { int i; float f; }; };
                struct S s1 = {{ .i = 1 }};  // Accepted by GCC
                struct S s2 = { .i = 1 };    // Sometimes an error.
              In modes where it is permitted, we must generate anonymous
              designators to navigate the aggregate structure. */
           if ((!C_mode() || gcc_version_is(< 40600)) &&
-              !cpp20_designators_restriction) {
+              !(cpp20_designators_restriction || gpp_version_is(> 80100))) {
             okay = FALSE;
             pos_error(ec_indirect_anon_union_designator,
                       init_component_pos(icp));
