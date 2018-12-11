@@ -1,5 +1,20 @@
 Version 5.1
 
+12/11/18 [EDGcpfe/19412]
+Microsoft C++ compatibility: Explicit specializations and exception specifiers
+
+Consider:
+
+  template<typename T> void f(T);
+  template<> void f(int) noexcept; // Now accepted in Microsoft mode.
+
+That is normally an error because the exception specifier on the explicit
+specialization does not match that of the template.  Microsoft compilers,
+however, appear to accept it, even in C++17 modes (where exception specifiers
+are part of the function type).  The front end now emulates that nonstandard
+behavior in Microsoft C++ mode.
+
+
 12/11/18 [EDGcpfe/20539]
 Copy elision and base class subobjects
 

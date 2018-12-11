@@ -974,12 +974,15 @@ typedef struct a_decl_parse_state {
 			/* TRUE if
 			   position_of_this_reference_in_trailing_return is
 			   set to a source position. */
+  a_bit_field	is_explicit_specialization:1;
+			/* TRUE if this declaration is an explicit
+			   specialization declaration. */
   a_bit_field	is_explicit_instantiation:1;
 			/* TRUE if this declaration is an explicit
 			   instantiation directive. */
   a_bit_field	vla_field_treated_as_zero_length_array:1;
-			/* TRUE if this declaration is an explicit
-			   instantiation directive. */
+			/* TRUE if this is for a field declared with a VLA type
+			   that is replaced by a zero-length array type. */
   a_bit_field	range_based_for:1;
 			/* TRUE if this is a for-init declaration and the
 			   colon indicating a range-based "for" loop has been

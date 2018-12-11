@@ -28689,12 +28689,14 @@ otherwise, set it to FALSE.
         }  /* if */
       }  /* if */
       any_templates = TRUE;
-      if (has_matching_template_function(fund_sym, type, explicit_arg_list,
-                                         /*is_decl_context=*/TRUE,
-                                         dps->is_explicit_instantiation)) {
-        /* This template can generate an instance of the appropriate
-           type.  Add the matching template to a list of matching
-           candidates. */
+      if (has_matching_template_function(
+                                       fund_sym, type, explicit_arg_list,
+                                       /*is_decl_context=*/TRUE,
+                                       (dps->is_explicit_instantiation ||
+                                        (microsoft_mode &&
+                                         dps->is_explicit_specialization)))) {
+        /* This template can generate an instance of the appropriate type.
+           Add the matching template to a list of matching candidates. */
         add_to_partial_order_candidates_list(&candidates_list, fund_sym,
                                              (a_template_arg_ptr)NULL);
       }  /* if */
@@ -29009,6 +29011,7 @@ that follows.
   a_boolean                     already_specialized = FALSE;
 
   db_enter(3, "full_specialization");
+  dps->is_explicit_specialization = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions && dps->ms_attributes != NULL) {
     /* Dispose of any Microsoft attributes that appeared before the template
