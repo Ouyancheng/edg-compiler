@@ -557,8 +557,10 @@ name of an instance of a class template in Microsoft mode.
                                              prototype_instantiation != NULL &&
             hidden_sym->variant.template_info->variant.class_template.
                     prototype_instantiation->variant.class_struct_union.type ==
-                                                 hidden_by->variant.type.ptr) {
-          /* A class template is not hidden by its injected-class-name. */
+                                                 hidden_by->variant.type.ptr &&
+            (cpp11_mode || gpp_mode || microsoft_mode)) {
+          /* A class template is not hidden by its injected-class-name in
+             C++11 and in the emulated compilers. */
         } else {
           /* Unlike function templates, only the template itself is added
              to the hidden name list; when cp_gen_be encounters an instance
