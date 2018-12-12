@@ -6,10 +6,10 @@ GNU and clang compatibility: __has_unique_object_representations
 The front end previously gave different results in g++ and clang modes than
 those of the emulated compilers for some types involving bit-fields, tail
 padding, arrays, and vectors.  These are now fixed.  For example, with
---g++:
+--g++ --c++17:
 
   union U { int i : sizeof(int) * __CHAR_BIT__ - 1; };
-  __has_unique_object_representations(U);  // Previously true, now false
+  static_assert(!__has_unique_object_representations(U), ""); // Now okay
 
 
 12/11/18 [EDGcpfe/19412]
