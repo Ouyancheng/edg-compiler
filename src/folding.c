@@ -8115,8 +8115,12 @@ architectures for which these assumptions are not valid.
                                                         &base_size)) {
               result = FALSE;
             }  /* if */
+#if IA64_ABI
             end_of_last_subobject += targ_reuse_tail_padding ? base_size
                                                              : bcp->type->size;
+#else /* !IA64_ABI */
+            end_of_last_subobject += bcp->type->size;
+#endif /* IA64_ABI */
           }  /* if */
         }  /* if */
       }  /* for */
