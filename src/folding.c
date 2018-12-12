@@ -8065,9 +8065,10 @@ static a_boolean type_has_unique_object_representations(
 /*
 Return TRUE if type satisfies the std::has_unique_object_representations
 trait as described in the C++17 Standard. If type is a class type, it must
-be complete and be trivially copyable. If after_base_members is non-NULL
-and type is a class type, *after_base_members is set to the offset
-following the last non-static data member of the class.
+be complete and be trivially copyable. If after_base_members is non-NULL,
+type is a base class of a class type and tail padding is permitted; in that
+case, *after_base_members is set to the offset following the last
+non-static data member of the class.
 
 The result of this predicate is largely left implementation-defined in the
 C++ Standard; the code below reflects the values for the Microsoft and g++
@@ -8093,7 +8094,11 @@ architectures for which these assumptions are not valid.
       a_field_ptr      field;
       a_field_ptr      prev_field = NULL;
       a_targ_size_t    prev_field_size = 0;
-      a_targ_size_t    base_size;
+#if IA64_ABI
+      a_targ_size_t    base_size = 0;
+      a_targ_size_t    *base_size_p = targ_reuse_tail_padding ? &base_size
+                                                              : NULL;
+#endif /* IA64_ABI */
       /* First check all direct base subobjects to see if they have unique
          object representations and if there is any padding between
          them. */
@@ -8111,14 +8116,17 @@ architectures for which these assumptions are not valid.
                optimized as an empty base class, the offset checks below
                will catch it and give a FALSE result. */
           } else {
+#if IA64_ABI
             if (!type_has_unique_object_representations(bcp->type,
-                                                        &base_size)) {
+                                                        base_size_p)) {
               result = FALSE;
             }  /* if */
-#if IA64_ABI
             end_of_last_subobject += targ_reuse_tail_padding ? base_size
                                                              : bcp->type->size;
 #else /* !IA64_ABI */
+            if (!type_has_unique_object_representations(bcp->type, NULL)) {
+              result = FALSE;
+            }  /* if */
             end_of_last_subobject += bcp->type->size;
 #endif /* IA64_ABI */
           }  /* if */
@@ -8131,7 +8139,7 @@ architectures for which these assumptions are not valid.
         if (type->kind == (a_type_kind)tk_union &&
             ((prev_field != NULL && field_type->size != prev_field_size) ||
              (field->is_bit_field && !clang_mode &&
-             field->bit_size < type->size * targ_char_bit))) {
+              field->bit_size < type->size * targ_char_bit))) {
           /* There will be padding in a union if not all fields are the
              same size or (for g++, not clang) if a bit-field is shorter
              than the size of the union. */
