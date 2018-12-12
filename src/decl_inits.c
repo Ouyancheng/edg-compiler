@@ -8047,6 +8047,42 @@ constructor it targets.  Otherwise, just return ctor.
 }  /* get_nondelegating_target_ctor */
 
 
+static a_routine_ptr get_ctor_delegate(a_dynamic_init_ptr  dip)
+/*
+dip represents the ctor-initializer of a delegating constructor (and is thus a
+dik_constructor entry).  If it represents a copy/move from another constructor
+invocation of the same class, return that other constructor.  Otherwise, return
+dip->variant.constructor.ptr.  For example:
+
+ struct S { S(...): S(37) {} }; 
+
+Here dip will represent the move-construction from the result of converting 37
+to S (which is a recursive invocation of S(...)).  Therefore the converting
+constructor is returned (i.e., S(...)).
+*/
+{
+  a_routine_ptr         ctor = dip->variant.constructor.ptr;
+  a_type_qualifier_set  tqs;
+
+  if (is_copy_constructor(ctor, parent_class_of(ctor), &tqs,
+                          /*include_move_ctors=*/TRUE,
+                          /*is_declarative_context=*/TRUE)) {
+    an_expr_node_ptr  arg =  skip_parens(dip->variant.constructor.args);
+    if (is_operation_node(arg) && node_operator_is(arg, eok_reference_to)) {
+      arg = skip_parens(arg->variant.operation.operands);
+    }  /* if */
+    if (arg->kind == (an_expr_node_kind)enk_temp_init &&
+        identical_types(arg->type, parent_class_of(ctor))) {
+      dip = arg->variant.init.dynamic_init;
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        ctor = dip->variant.constructor.ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return  ctor;
+}  /* get_ctor_delegate */
+
+
 static a_boolean delegating_ctor_initializer(a_routine_ptr      ctor,
                                              a_ctor_init_block  *cibp)
 /*
@@ -8172,8 +8208,7 @@ constructor, the scanned type is stored for later use.
           if (dip->variant.constructor.ptr != NULL) {
             /* Check that this delegation doesn't create a loop of
                delegations.  If it does, discard the constructor init entry. */
-            target = get_nondelegating_target_ctor(
-                                                 dip->variant.constructor.ptr);
+            target = get_nondelegating_target_ctor(get_ctor_delegate(dip));
             if (target == ctor) {
               pos_error(ec_delegation_loop, &pos);
               /* To avoid closing the loop in the delegation map (which could
