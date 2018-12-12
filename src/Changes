@@ -56,7 +56,7 @@ constructors has also been fixed.
 GNU C++ compatibility: anonymous struct members
 
 Anonymous struct members have been enabled in GNU C++ modes with 
-gnu_version > 801000.  A change has been made to allow for addressing
+gnu_version >= 80100.  A change has been made to allow for addressing
 the members of anonymous structs with a designated initializer in C++ 
 modes.  For example :
 

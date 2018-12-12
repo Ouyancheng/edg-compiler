@@ -3030,7 +3030,7 @@ initialization. */
       class_to_look_in = parent_class_of(class_to_look_in);
       ctsp = class_type_supp(class_to_look_in);
     }  /* while */
-  } /* if */
+  }  /* if */
   if (icp->variant.designator.field_name == NULL) {
     /* This is not a field designator, but we're in a class initializer.
        Issue an error. */
@@ -3093,7 +3093,7 @@ initialization. */
            anonymous struct. */
         if (!same_entities(anon_parent, class_type)) {
           /* The anonymous union does not correspond to the current aggregate
-             constant.  GNU C++ before gcc8.1.0 and earlier versions of GNU C
+             constant.  GNU C++ before gcc 8.1.0 and earlier versions of GNU C
              do not permit this.
                struct S { struct { int i; float f; }; };
                struct S s1 = {{ .i = 1 }};  // Accepted by GCC
@@ -3101,7 +3101,7 @@ initialization. */
              In modes where it is permitted, we must generate anonymous
              designators to navigate the aggregate structure. */
           if ((!C_mode() || gcc_version_is(< 40600)) &&
-              !(cpp20_designators_restriction || gpp_version_is(> 80100))) {
+              !(cpp20_designators_restriction || gpp_version_is(>= 80100))) {
             okay = FALSE;
             pos_error(ec_indirect_anon_union_designator,
                       init_component_pos(icp));
