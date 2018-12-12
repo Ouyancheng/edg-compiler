@@ -8059,11 +8059,15 @@ with cssp are trivial.
 }  /* all_copy_constructors_trivial */
 
 
-static a_boolean type_has_unique_object_representations(a_type_ptr type)
+static a_boolean type_has_unique_object_representations(
+                                             a_type_ptr    type,
+                                             a_targ_size_t *after_base_members)
 /*
 Return TRUE if type satisfies the std::has_unique_object_representations
 trait as described in the C++17 Standard. If type is a class type, it must
-be complete and be trivially copyable.
+be complete and be trivially copyable. If after_base_members is non-NULL
+and type is a class type, *after_base_members is set to the offset
+following the last non-static data member of the class.
 
 The result of this predicate is largely left implementation-defined in the
 C++ Standard; the code below reflects the values for the Microsoft and g++
@@ -8089,6 +8093,7 @@ architectures for which these assumptions are not valid.
       a_field_ptr      field;
       a_field_ptr      prev_field = NULL;
       a_targ_size_t    prev_field_size = 0;
+      a_targ_size_t    base_size;
       /* First check all direct base subobjects to see if they have unique
          object representations and if there is any padding between
          them. */
@@ -8106,10 +8111,12 @@ architectures for which these assumptions are not valid.
                optimized as an empty base class, the offset checks below
                will catch it and give a FALSE result. */
           } else {
-            if (!type_has_unique_object_representations(bcp->type)) {
+            if (!type_has_unique_object_representations(bcp->type,
+                                                        &base_size)) {
               result = FALSE;
             }  /* if */
-            end_of_last_subobject += bcp->type->size;
+            end_of_last_subobject += targ_reuse_tail_padding ? base_size
+                                                             : bcp->type->size;
           }  /* if */
         }  /* if */
       }  /* for */
@@ -8117,24 +8124,30 @@ architectures for which these assumptions are not valid.
       for (field = type->variant.class_struct_union.field_list;
            result && field != NULL; field = field->next) {
         a_type_ptr field_type = skip_typerefs(field->type);
-        if (type->kind == (a_type_kind)tk_union && prev_field != NULL &&
-            field_type->size != prev_field_size) {
+        if (type->kind == (a_type_kind)tk_union &&
+            ((prev_field != NULL && field_type->size != prev_field_size) ||
+             (field->is_bit_field && !clang_mode &&
+             field->bit_size < type->size * targ_char_bit))) {
           /* There will be padding in a union if not all fields are the
-             same size. */
+             same size or (for g++, not clang) if a bit-field is shorter
+             than the size of the union. */
           result = FALSE;
         } else if (field->offset != end_of_last_subobject ||
             field->offset_bit_remainder != bit_offset_of_end) {
           /* There's padding between nonstatic data members. */
           result = FALSE;
         } else {
-          if (!type_has_unique_object_representations(field_type)) {
+          if (!type_has_unique_object_representations(field_type, NULL)) {
             result = FALSE;
           }  /* if */
           if (type->kind == (a_type_kind)tk_union) {
             /* Do not update end_of_last_subobject: each subobject begins
-               at offset 0. */
+               at offset 0.  The previous field size is the same as that
+               of the union; otherwise, it would have failed the bit_size
+               test above. */
             prev_field = field;
-            prev_field_size = field_type->size;
+            prev_field_size = field->is_bit_field ? type->size
+                                                  : field_type->size;
           } else if (field->is_bit_field) {
             bit_offset_of_end += field->bit_size;
             end_of_last_subobject += bit_offset_of_end / targ_char_bit;
@@ -8145,9 +8158,15 @@ architectures for which these assumptions are not valid.
         }  /* if */
       }  /* for */
       /* Finally, check for tail padding. */
-      if (type->kind != (a_type_kind)tk_union &&
-          end_of_last_subobject != type->size) {
-        result = FALSE;
+      if (type->kind != (a_type_kind)tk_union) {
+        if (after_base_members != NULL) {
+          /* Inform the caller about any tail padding. */
+          *after_base_members = end_of_last_subobject;
+        } else if (end_of_last_subobject != type->size) {
+          /* If this is a most-derived class, tail padding means that the
+             type does not have unique object representations. */
+          result = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (gpp_mode && is_volatile_qualified_type(orig_type)) {
@@ -8182,6 +8201,23 @@ architectures for which these assumptions are not valid.
       case tk_pointer:
         /* Reference types are not object types. */
         result = !type->variant.pointer.is_reference;
+        break;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        if (clang_mode) {
+          /* A vector does not have unique object representations. */
+          result = FALSE;
+        } else {
+          /* A vector has the same result as its element type. */
+          result = type_has_unique_object_representations(
+                                      type->variant.vector.element_type, NULL);
+        }  /* if */
+        break;
+#endif /* GNU_EXTENSIONSz_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
+      case tk_array:
+        /* An array has the same result as its element type. */
+        result = type_has_unique_object_representations(
+                                    underlying_array_element_type(type), NULL);
         break;
       default:
         /* Non-object types, such as function types, should return
@@ -8384,7 +8420,7 @@ and, if pos is not NULL, an error will be reported.
           break;
         case bok_has_unique_object_representations:
           result = type_has_unique_object_representations(
-                                                  skip_array_types(orig_type));
+                                            skip_array_types(orig_type), NULL);
           break;
         case bok_is_aggregate:
           if (type->kind == (a_type_kind)tk_array) {
@@ -8656,7 +8692,7 @@ and, if pos is not NULL, an error will be reported.
                  !cssp->has_deleted_copy_or_move_assign_operator;
         break;
       case bok_has_unique_object_representations:
-        result = type_has_unique_object_representations(type);
+        result = type_has_unique_object_representations(type, NULL);
         break;
       case bok_is_aggregate:
         result = class_symbol_supp(symbol_for(type))->is_class_aggregate;
