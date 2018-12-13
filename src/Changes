@@ -1,5 +1,26 @@
 Version 5.1
 
+12/12/18 [EDGcpfe/20526]
+Incorrect handling of qualifiers from a conversion function result in a
+conditional operator
+
+Consider:
+
+  struct X {
+    X(); 
+    X(X&);
+  };
+  struct Y {
+    operator X const&() const;
+  };
+  auto &&r = true ? Y() : X(); // Now an error.  Previously accepted.
+
+Previously, the front end accepted this erroneously because it lost the
+const-qualification of the result of applying the conversion function on
+"Y()" (thus enabling the copy constructor of X to bring both branches of the
+conditional operator to a common type).  That is now fixed.
+
+
 12/11/18 [EDGcpfe/19940,EDGcpfe/20165,EDGcpfe/20317]
 GNU and clang compatibility: __has_unique_object_representations
 

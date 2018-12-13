@@ -19833,7 +19833,8 @@ the temporary.
     }  /* if */
     do_class_object_adjustment(operand, dest_type, conversion);
     if (force_copy_to_temp) {
-      temp_init_from_operand(operand, /*result_is_lvalue=*/FALSE);
+      temp_init_from_operand_full(operand, dest_type,
+                                  /*result_is_lvalue=*/FALSE);
     }  /* if */
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
@@ -19873,7 +19874,13 @@ the temporary.
          conversions, and class prvalues retain their cv-qualifiers.
          The "or" test is needed because one or the other might be an
          error type. */
-      do_class_object_adjustment(operand, dest_type, conversion);
+      a_type_ptr            adjusted_type = dest_type;
+      a_type_qualifier_set  tqs = get_type_qualifiers(operand->type);
+      /* Preserve qualifiers on the original operand (if any). */
+      if (tqs != TQ_NONE && !gpp_version_is(<40700)) {
+        adjusted_type = make_qualified_type(dest_type, tqs);
+      }  /* if */
+      do_class_object_adjustment(operand, adjusted_type, conversion);
     } else {
       /* Nonclass case. */
       if (!conversion->result_is_a_glvalue || 
@@ -20997,7 +21004,9 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
 
   orig_operand = *operand;
   if (temp_type == NULL) {
-    temp_type = operand->type;
+    /* Use the unqualified operand type (no qualifiers since the temporary
+       is a copy). */
+    temp_type = skip_typerefs(operand->type);
   } else {
     check_assertion(identical_types_ignoring_qualifiers(temp_type,
                                                         operand->type) ||

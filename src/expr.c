@@ -28322,6 +28322,7 @@ that case.
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          transformations. */
       a_transformation_options_set options = TOPT_NO_OPTIONS;
+      a_type_qualifier_set         tqs;
       a_boolean                    saved_potentially_unevaluated =
                                        curr_expr_is_potentially_unevaluated();
       if (suppress_class_rvalue_temp) {
@@ -28370,14 +28371,30 @@ that case.
                                            expr_stack->constant_expr_ruled_out;
         expr_stack->constant_expr_ruled_out = FALSE;
       }  /* if */
+      tqs = get_type_qualifiers(operand_2.type);
       do_operand_transformations(&operand_2, options);
+      if (tqs != TQ_NONE && is_immediate_class_type(operand_2.type)) {
+        /* do_operand_transformations created a copy of the original lvalue
+           to produce an rvalue.  The copy is unqualified, but we want to
+           preserve the qualifiers in this case. */
+        adjust_class_prvalue_type(&operand_2,
+                                  make_qualified_type(operand_2.type, tqs));
+      }  /* if */
       if (constexpr_enabled) {
         cpp11_constant_expr_ruled_out_in_operand_2 =
                                            expr_stack->constant_expr_ruled_out;
         expr_stack->constant_expr_ruled_out = FALSE;
       }  /* if */
       expr_stack->evaluated = expr3_evaluated;
+      tqs = get_type_qualifiers(operand_2.type);
       do_operand_transformations(&operand_3, options);
+      if (tqs != TQ_NONE && is_immediate_class_type(operand_3.type)) {
+        /* do_operand_transformations created a copy of the original lvalue
+           to produce an rvalue.  The copy is unqualified, but we want to
+           preserve the qualifiers in this case. */
+        adjust_class_prvalue_type(&operand_3,
+                                  make_qualified_type(operand_3.type, tqs));
+      }  /* if */
       expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
       expr_stack->evaluated = saved_evaluated;
       if (constexpr_enabled) {
