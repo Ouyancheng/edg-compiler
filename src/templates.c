@@ -10787,6 +10787,7 @@ match is found.
          the template template parameter. */
       a_template_arg_ptr	arg_for_template;
       a_template_param_ptr	param_for_template;
+      a_template_nesting_depth	depth_of_template;
       arg_for_template = alloc_template_arg((a_templ_arg_kind)tak_template);
       arg_for_template->variant.templ.ptr = tssp->il_template_entry;
       param_for_template = alloc_template_param(templ_sym);
@@ -10805,7 +10806,6 @@ match is found.
       /* Get the template nesting depth as indicated by the first template
          parameter.  Any template parameters found in templ_type must be at
          the same level to participate in deduction. */
-      a_template_nesting_depth	depth_of_template;
       depth_of_template = nesting_depth_of_template_param(templ_param_list);
       if (depth_of_template ==
                         templ_tssp->il_template_entry->coordinates.depth) {
