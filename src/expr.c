@@ -45442,6 +45442,11 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
   a_boolean             make_lvalue = FALSE;
   an_operand            *arg_operand;
 
+  complete_type_is_needed(tp);
+  if (is_incomplete_type(tp)) {
+    /* Invalid type: Return NULL. */
+    goto done;
+  }  /* if */
   if (is_lvalue_reference_type(tp)) {
     make_lvalue = TRUE;
     tp = type_pointed_to(tp);
@@ -45455,11 +45460,6 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
       tp = type_pointed_to(tp);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-  complete_type_is_needed(tp);
-  if (is_incomplete_type(tp)) {
-    /* Invalid type: Return NULL. */
-    goto done;
   }  /* if */
   result = alloc_init_component((an_init_component_kind)ick_expression);
   arg_operand = operand_of_arg_list_elem(result);

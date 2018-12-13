@@ -1,5 +1,18 @@
 Version 5.1
 
+12/13/18 [EDGcpfe/20546]
+__is_constructible and references to incomplete types
+
+The front end previously spuriously failed the following static_assert:
+
+  struct S;
+  static_assert(__is_constructible(S&, S&), "Unexpected");
+
+because it did not correctly handle references to incomplete types in that
+context.  That is now fixed.  Note that this also changes the outcome of the
+static_assert construct in the example for EDGcpfe/14879.
+
+
 12/13/18 [EDGcpfe/20126]
 C++-generating back end: typedefs appearing in generic lambdas
 
