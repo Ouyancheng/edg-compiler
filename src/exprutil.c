@@ -14505,36 +14505,35 @@ elision optimization can be applied, and return TRUE if so, with
 entries for the operands.
 */
 {
-  a_boolean optimizable = FALSE;
+  a_boolean         optimizable = FALSE, op2_is_temp_init, op3_is_temp_init;
+  an_expr_node_ptr  op_2 = NULL, op_3 = NULL;
 
   *dip_2 = *dip_3 = NULL;
+  op2_is_temp_init = operand_is_temp_init_full(operand_2, &op_2);
+  op3_is_temp_init = operand_is_temp_init_full(operand_3, &op_3);
   /* If only one of the operands is a temp-init, make a copy of the
      other one so both will be temp-inits and the optimization can
      be done.  The is_class_struct_union_type tests guard against
      operands that are throws. */
-  if (operand_is_temp_init(operand_2) &&
-      !operand_is_temp_init(operand_3) &&
+  if (op2_is_temp_init && !op3_is_temp_init &&
       is_class_struct_union_type(operand_3->type)) {
-    temp_init_from_operand(operand_3, /*result_is_lvalue=*/FALSE);
+    temp_init_from_operand_full(operand_3, operand_2->type,
+                                /*result_is_lvalue=*/FALSE);
+    op3_is_temp_init = operand_is_temp_init_full(operand_3, &op_3);
   } else if (operand_is_temp_init(operand_3) &&
              !operand_is_temp_init(operand_2) &&
              is_class_struct_union_type(operand_2->type)) {
-    temp_init_from_operand(operand_2, /*result_is_lvalue=*/FALSE);
+    temp_init_from_operand_full(operand_2, operand_2->type,
+                                /*result_is_lvalue=*/FALSE);
+    op2_is_temp_init = operand_is_temp_init_full(operand_2, &op_2);
   }  /* if */
-  if (is_expression_operand(operand_2) &&
-      is_expression_operand(operand_3)) {
-    an_expr_node_ptr op_2 = skip_parens(operand_2->variant.expression);
-    an_expr_node_ptr op_3 = skip_parens(operand_3->variant.expression);
-    /* See if the second and third operands are both temporaries. */
-    if (op_2->kind == (an_expr_node_kind)enk_temp_init &&
-        op_3->kind == (an_expr_node_kind)enk_temp_init) {
-      check_assertion(op_2->is_lvalue == op_3->is_lvalue &&
-                      op_2->is_xvalue == op_3->is_xvalue);
-      /* Both are temporaries.  The optimization can be done. */
-      optimizable = TRUE;
-      *dip_2 = op_2->variant.init.dynamic_init;
-      *dip_3 = op_3->variant.init.dynamic_init;
-    }  /* if */
+  if (op2_is_temp_init && op3_is_temp_init) {
+    check_assertion(op_2->is_lvalue == op_3->is_lvalue &&
+                    op_2->is_xvalue == op_3->is_xvalue);
+    /* Both are temporaries.  The optimization can be done. */
+    optimizable = TRUE;
+    *dip_2 = op_2->variant.init.dynamic_init;
+    *dip_3 = op_3->variant.init.dynamic_init;
   }  /* if */
   return optimizable;
 }  /* optimizable_class_rvalue_question */

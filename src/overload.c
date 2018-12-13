@@ -20424,15 +20424,19 @@ a_boolean operand_is_temp_init_full(an_operand       *operand,
 Return TRUE if the given operand is an expression operand for an enk_temp_init
 (which represents an expression temporary).  Whether the enk_temp_init
 returns the value or address of the temporary is immaterial.  Note that
-there might be parentheses on top of the enk_temp_init node.  If
-temp_init_node is non-NULL, set *temp_init_node to point to the
-enk_temp_init node if one is found.
+there might be parentheses and class rvalue adjustments on top of the
+enk_temp_init node.  If temp_init_node is non-NULL, set *temp_init_node to
+point to the enk_temp_init node if one is found.
 */
 {
   a_boolean is_temp_init = FALSE;
 
   if (is_expression_operand(operand)) {
     an_expr_node_ptr node = skip_parens(operand->variant.expression);
+    if (is_operation_node(node) &&
+        node_operator_is(node, eok_class_rvalue_adjust)) {
+      node = node->variant.operation.operands;
+    }  /* if */
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       /* The operand is an enk_temp_init for the value of a temporary. */
       is_temp_init = TRUE;
