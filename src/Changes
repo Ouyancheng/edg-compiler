@@ -2988,7 +2988,7 @@ compiled.  This is now fixed.  For example, with --c++11 --clang:
   };
 
 
-9/6/18   [EDGcpfe/19982]
+9/6/18   [EDGcpfe/19742,EDGcpfe/19982]
 Abort in Microsoft mode on nonreal constexpr friend declaration
 
 In Microsoft mode, the front end performs a "nonreal instantiation" of
