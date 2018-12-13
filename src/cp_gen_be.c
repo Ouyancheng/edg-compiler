@@ -4130,13 +4130,13 @@ is called.
   }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
   if (!invisible &&
-      (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function &&
-       curr_name_context->assoc_scope->variant.routine.ptr != NULL &&
-       curr_name_context->assoc_scope->variant.routine.ptr->
+      ((curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function &&
+        curr_name_context->assoc_scope->variant.routine.ptr != NULL &&
+        curr_name_context->assoc_scope->variant.routine.ptr->
                                                  is_prototype_instantiation) ||
       (curr_name_context->class_type != NULL &&
        curr_name_context->class_type->
-                      variant.class_struct_union.is_prototype_instantiation)) {
+                     variant.class_struct_union.is_prototype_instantiation))) {
     /* We want to preserve the original form of prototype instantiations
        when possible, and this typedef appears in a prototype
        instantiation, so leave it as visible. */
