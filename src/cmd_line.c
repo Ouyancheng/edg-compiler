@@ -4946,13 +4946,13 @@ before this routine is called.
       false_literal_is_not_null_pointer_constant = FALSE;
     } else {
       enumerator_attributes_enabled = TRUE;
+      fold_expressions_enabled = TRUE;
+      namespace_attributes_enabled = TRUE;
+      nested_namespace_definitions_enabled = TRUE;
     }  /* if */
     if (cpp11_mode && gnu_version >= 60000) {
       /* Later versions of GNU appear to enable this by default. */
       terse_static_assert_enabled = TRUE;
-      fold_expressions_enabled = TRUE;
-      namespace_attributes_enabled = TRUE;
-      nested_namespace_definitions_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 70000) {
       /* GCC 7.x and later enable selection initializers in all C++ modes
