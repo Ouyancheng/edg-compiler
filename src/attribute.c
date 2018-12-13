@@ -226,8 +226,8 @@ static an_attr_descr known_attr_table[] = {
   { "maybe_unused", "", "1c+(201703-|M(1910-))", ak_maybe_unused },
   { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
   /* Note that the value of 202000 is temporary until C++20 is standardized. */
-  { "likely", "", "1c+(202000)", ak_likely },
-  { "unlikely", "", "1c+(202000)", ak_unlikely },
+  { "likely", "", "1c+(202000-|G(80300-))", ak_likely },
+  { "unlikely", "", "1c+(202000-|G(80300-))", ak_unlikely },
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
