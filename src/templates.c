@@ -1901,6 +1901,11 @@ value specified by tap.
 /* Forward declarations. */
 static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
 
+static a_boolean potentially_equiv_template_param_lists(
+			a_template_param_ptr			old_list,
+			a_template_param_ptr			new_list);
+
+
 static void substitute_template_argument(
 			a_template_arg_ptr	templ_arg,
 			a_template_param_ptr	templ_param,
@@ -2236,6 +2241,7 @@ static a_boolean template_template_arg_matches_param(
 				a_template_param_ptr	tpp,
 				a_template_arg_ptr	templ_arg_list,
 				a_template_param_ptr	templ_param_list,
+				a_boolean		is_deduction,
 				a_source_position	*source_pos)
 /*
 Check whether the template template argument specified by tap is compatible
@@ -2245,7 +2251,8 @@ substitution of the template using templ_param_list and templ_arg_list.
 The template argument has its substituted_param_template field updated if
 substitution is done (even if the substituted template is later found not
 to match).  source_pos is the position passed into copy_type_with_substitution,
-if needed.
+if needed.  is_deduction is TRUE if this routine is called during template
+argument deduction (i.e., indirectly from matches_template_type, etc.).
 
 Return TRUE if there is a match, FALSE otherwise.
 */
@@ -2255,13 +2262,16 @@ Return TRUE if there is a match, FALSE otherwise.
   a_boolean				substitution_okay = TRUE;
   a_boolean				old_style_match = FALSE;
   a_boolean				do_old_style_check;
+  a_boolean				involves_template_param;
 
   /* When EXPENSIVE_CHECKING is TRUE we do the comparison in the old and
      new way and make sure the new results are a superset of the old. */
   do_old_style_check = !generalized_template_template_matching ||
                        EXPENSIVE_CHECKING;
   param_template = tpp->variant.templ->il_template_entry;
-  if (tpp->variant.templ->variant.class_template.involves_template_param) {
+  involves_template_param =
+            tpp->variant.templ->variant.class_template.involves_template_param;
+  if (involves_template_param) {
     /* The template template parameter depends on another template
        parameter (e.g., "template <class T, template <T t> class X>...").
        Substitute the template template parameter declaration to create a
@@ -2295,13 +2305,21 @@ Return TRUE if there is a match, FALSE otherwise.
     param_list_for_param = param_tssp->cache.decl_info->parameters;
     arg_template = template_supplement_for_template(tap->variant.templ.ptr);
     if (!arg_template->is_nonreal_member) {
-      param_list_for_arg = arg_template->cache.decl_info->parameters;
-      if (!equiv_template_param_lists(param_list_for_param,
-                                      param_list_for_arg,
-                                      /*issue_errors=*/FALSE,
-                                      ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-                                      (a_source_position*)NULL,
-                                      es_error)) {
+     param_list_for_arg = arg_template->cache.decl_info->parameters;
+     if (involves_template_param && is_deduction) {
+       /* If we are checking for a matching template template parameter
+          and the template template parameter involves other template
+          parameters, do a tentative check for a match.  Note that this is
+          being done in the "do_old_style_check" of the processing of
+          this routine. */
+       match = potentially_equiv_template_param_lists(param_list_for_param,
+                                                      param_list_for_arg);
+     } else if (!equiv_template_param_lists(param_list_for_param,
+                                            param_list_for_arg,
+                                            /*issue_errors=*/FALSE,
+                                            ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+                                            (a_source_position*)NULL,
+                                            es_error)) {
         match = FALSE;
       }  /* if */
     }  /* if */
@@ -2536,6 +2554,7 @@ is_partial_ord_check is TRUE.  Otherwise it must be zero.
            because of a dependence on another template argument. */
         match = template_template_arg_matches_param(
                                     tap, tpp, templ_arg_list, templ_param_list,
+                                    /*is_deduction=*/FALSE,
                                     &template_sym->decl_position);
 #if GNU_EXTENSIONS_ALLOWED
       } else {
@@ -3362,20 +3381,23 @@ return a pointer to its coordinates.
     case tak_type:
       {
         a_type_ptr	type = tap->variant.type;
-        type = skip_typerefs(type);
-        if (type->kind == (a_type_kind)tk_template_param &&
-            type->variant.template_param.kind ==
+        if (type != NULL) {
+          type = skip_typerefs(type);
+          if (type->kind == (a_type_kind)tk_template_param &&
+              type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
-          a_template_param_type_supplement_ptr	tptsp;
-          tptsp = type->variant.template_param.extra_info;
-          tpcp = &tptsp->coordinates;
+            a_template_param_type_supplement_ptr	tptsp;
+            tptsp = type->variant.template_param.extra_info;
+            tpcp = &tptsp->coordinates;
+          }  /* if */
         }  /* if */
       }
       break;
     case tak_template:
       {
         a_template_ptr	templ = tap->variant.templ.ptr;
-        if (templ->kind == (a_template_kind)templk_template_template_param) {
+        if (templ != NULL &&
+            templ->kind == (a_template_kind)templk_template_template_param) {
           tpcp = &templ->coordinates;
         }  /* if */
       }
@@ -10761,6 +10783,25 @@ match is found.
         }  /* if */
       }  /* if */
     } else if (templ_tssp->variant.class_template.template_template_param) {
+      /* Check whether the given template template argument could match
+         the template template parameter. */
+      a_template_arg_ptr	arg_for_template;
+      a_template_param_ptr	param_for_template;
+      arg_for_template = alloc_template_arg((a_templ_arg_kind)tak_template);
+      arg_for_template->variant.templ.ptr = tssp->il_template_entry;
+      param_for_template = alloc_template_param(templ_sym);
+      param_for_template->variant.templ = templ_tssp;
+      if (!template_template_arg_matches_param(arg_for_template,
+                                              param_for_template,
+                                              *templ_arg_list,
+                                              templ_param_list,
+                                              /*is_deduction=*/TRUE,
+                                              (a_source_position_ptr)NULL)) {
+        /* This template template argument could not match.  Terminate the
+           checking here. */
+        match = FALSE;
+        goto done;
+      }  /* if */
       /* Get the template nesting depth as indicated by the first template
          parameter.  Any template parameters found in templ_type must be at
          the same level to participate in deduction. */
@@ -10805,6 +10846,7 @@ match is found.
                                                ET_NO_OPTIONS, ETP_NO_OPTIONS);
     }  /* if */
   }  /* if */
+done:;
   return match;
 }  /* matches_template_template_param */
 
@@ -12820,6 +12862,7 @@ parameters.
           !template_template_arg_matches_param(
                                     tap, tpp, arg_list_to_copy,
                                     param_list_for_copy,
+                                    /*is_deduction=*/FALSE,
                                     source_pos)) {
         subst_fail(*copy_error);
       }  /* if */
@@ -18896,6 +18939,38 @@ sure that they are at the same nesting depth.  Return TRUE if they are.
   return nesting_depth_of_template_param(param_list) ==
                                   nesting_depth_of_template_param(class_tpp);
 }  /* check_template_param_nesting_depths */
+
+
+static a_boolean potentially_equiv_template_param_lists(
+			a_template_param_ptr			old_list,
+			a_template_param_ptr			new_list)
+/*
+This routine is compares old_list, which is a template parameter
+list from a dependent template template parameter, with new_list, which
+is a template parameter list from a template template argument.
+
+This check is to see if the template template argument is a potential
+match (not necessarily an actual one) and only compares the number and
+kind of parameters.
+*/
+{
+  a_template_param_ptr	tpp1;
+  a_template_param_ptr	tpp2;
+  a_boolean		result = TRUE;
+
+  for (tpp1 = old_list, tpp2 = new_list; tpp2 != NULL && tpp1 != NULL;
+       tpp1 = tpp1->next, tpp2 = tpp2->next) {
+    a_symbol_ptr	sym1 = tpp1->param_symbol;
+    a_symbol_ptr	sym2 = tpp2->param_symbol;
+    if (sym1->kind != sym2->kind) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Make sure we are at the end of both lists. */
+  if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
+  return result;
+}  /* potentially_equiv_template_param_lists */
 
 
 a_boolean equiv_template_param_lists(

@@ -1,5 +1,22 @@
 Version 5.1
 
+12/13/18 [EDGcpfe/20577]
+Regression in template template parameter matching
+
+Version 5.0 introduced a regression involving deduction of template template
+parameters.  When a function template was called in such a way that a template
+template parameter was deduced from a base class template of an argument
+whose type is a derived class template, deduction could fail.  Now fixed.
+
+  template <class T1, class T2> struct B {};
+  template <class T> struct D : B<T, T> {};
+  template <template <class, class> class TT, class T> void f(TT<T, T>*) {}
+  int main() {
+    D<int> d;
+    f(&d);
+  }
+
+
 12/13/18 [EDGcpfe/20546]
 __is_constructible and references to incomplete types
 
