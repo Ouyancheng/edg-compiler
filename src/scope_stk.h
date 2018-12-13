@@ -2337,6 +2337,8 @@ extern void end_prescan_context(
 	a_boolean
 				saved_source_sequence_entries_disallowed);
 
+extern a_boolean in_generic_lambda_in_prototype_instantiation(void);
+
 extern a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
 		a_pack_expansion_descr_ptr		*p_pedp,

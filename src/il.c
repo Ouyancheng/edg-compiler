@@ -1802,6 +1802,10 @@ Dump the contents of the indicated variable for debug purposes.
 {
   fputs("name = ", f_debug);
   db_name_full(&var_ptr->source_corresp, iek_variable);
+  if (var_ptr->template_info != NULL &&
+      var_ptr->template_info->template_arg_list != NULL) {
+    db_template_arg_list(var_ptr->template_info->template_arg_list);
+  }  /* if */
   if (var_ptr->is_this_parameter) fputs(" (this)", f_debug);
 }  /* db_variable_without_type */
 

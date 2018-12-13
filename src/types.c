@@ -15459,6 +15459,7 @@ to the caller.  If no modification is done return the original type.
 {
   a_boolean  type_operator_stripped = FALSE;
   a_boolean  force_strip_nonreal = FALSE;
+  a_boolean  keep_local;
 
   /* If the underlying type is not dependent, make sure we strip off any
      nonreal typerefs. */
@@ -15468,6 +15469,8 @@ to the caller.  If no modification is done return the original type.
       force_strip_nonreal = TRUE;
     }  /* if */
   }  /* if */
+  keep_local = is_prototype_instantiation_context() &&
+               in_generic_lambda_in_prototype_instantiation();
   while (type->kind == (a_type_kind)tk_typeref) {
     a_boolean  is_nonreal = FALSE;
     a_boolean  is_local;
@@ -15480,7 +15483,7 @@ to the caller.  If no modification is done return the original type.
       break;
     }  /* if */
     /* See if the type is local to a function. */
-    is_local = type->source_corresp.is_local_to_function;
+    is_local = !keep_local && type->source_corresp.is_local_to_function;
     if (!slnrt_local_only && !is_local &&
         (!prototype_instantiations_in_il || force_strip_nonreal)) {
       /* Check for a nonreal template alias. */

@@ -4129,7 +4129,18 @@ is called.
     invisible = (ncp != NULL && in_nested_class);
   }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-  if (in_template_argument_list && !invisible &&
+  if (!invisible &&
+      (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function &&
+       curr_name_context->assoc_scope->variant.routine.ptr != NULL &&
+       curr_name_context->assoc_scope->variant.routine.ptr->
+                                                 is_prototype_instantiation) ||
+      (curr_name_context->class_type != NULL &&
+       curr_name_context->class_type->
+                      variant.class_struct_union.is_prototype_instantiation)) {
+    /* We want to preserve the original form of prototype instantiations
+       when possible, and this typedef appears in a prototype
+       instantiation, so leave it as visible. */
+  } else if (in_template_argument_list && !invisible &&
       !type->variant.typeref.is_dependent
 #if GCC_BUILTIN_VARARGS
       && !type->is_builtin_va_list

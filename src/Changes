@@ -1,5 +1,31 @@
 Version 5.1
 
+12/13/18 [EDGcpfe/20126]
+C++-generating back end: typedefs appearing in generic lambdas
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end sometimes used the
+underlying type of a typedef in place of the typedef itself in the
+definition of a generic lambda, even if the underlying type uses variables
+that are not captured by the lambda.  In such cases, the generated code
+was incorrect and could not be compiled.  This is now fixed; the
+C++-generating back end now preserves uses of typedefs appearing in
+prototype instantiations.  For example, with --c++17:
+
+  template <typename> constexpr bool m = true;
+  template <long L> struct C { typedef double q; };
+  void ao() {
+    [](auto i) {
+      using ar = typename C<i>::q;
+      [] () {
+        if constexpr (m<ar>) { };  // Previously generated as
+                                   // m<typename C<i>::q>, which is an
+                                   // error because i is not captured.
+      };
+    };
+  }
+
+
 12/13/18 [EDGcpfe/19532]
 clang compatibility: c overloadable functions with ellipsis and no named 
 parameters

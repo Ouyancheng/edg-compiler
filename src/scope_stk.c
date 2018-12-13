@@ -11597,6 +11597,30 @@ begin_prescan_context call.
 }  /* end_prescan_context */
 
 
+a_boolean in_generic_lambda_in_prototype_instantiation(void)
+/*
+Return TRUE if we are within the prototype instantiation of a generic lambda.
+*/
+{
+  a_boolean			result = FALSE;
+
+  if (!is_prototype_instantiation_context()) {
+    /* We are not in a prototype instantiation context of any kind. */
+  } else {
+    a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+    for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+      /* Look for a generic lambda prototype instantiation. */
+      if (scope_is(ssep, sck_template_instantiation) &&
+          ssep->is_generic_lambda && ssep->in_prototype_instantiation) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* in_generic_lambda_in_instantiation */
+
+
 static a_boolean is_generic_lambda_in_instantiation(void)
 /*
 Return TRUE if we are in the definition of a generic lambda that is nested
