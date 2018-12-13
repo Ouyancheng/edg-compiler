@@ -2734,6 +2734,32 @@ known; otherwise it is NULL.
 }  /* report_incomplete_function_return_type */
 
 
+static void check_c_mode_ellipsis(a_decl_parse_state_ptr  dps)
+/*
+*dps describes a declaration with a function declarator that starts with an
+ellipsis in C mode, which is ordinarily invalid.  However, in Clang C mode,
+this should be accepted if the "overloadable" attribute is specified for a
+corresponding function declaration.  We therefore delayed the check until
+now (that the attributes have been applied): Issue an error unless this is a
+declaration of a function with the "overloadable" attribute.
+*/
+{
+  a_boolean attribute_found = FALSE;
+
+  if (dps->sym != NULL && is_simple_function_symbol(dps->sym)) {
+     a_routine_ptr rp = func_sym_routine(dps->sym);
+     an_attribute_ptr ap = find_attribute(ak_overloadable,
+                                          rp->source_corresp.attributes);
+     if (ap != NULL) {
+       attribute_found = TRUE;
+     }  /* if */
+  }  /* if */
+  if (!attribute_found) {
+    pos_error(ec_nonstd_ellipsis_only_param, &(dps->declarator_pos));
+  }  /* if */
+}  /* check_c_mode_ellipsis */
+
+
 void function_declarator(a_decl_parse_state  *state,
                          a_decl_flag_set     di_flags,
                          a_type_ptr          *new_type_ptr,
@@ -2873,7 +2899,7 @@ an error if a default argument expression is encountered.
     any_params = FALSE;
   } else if (curr_token == tok_ellipsis &&
              (!C_mode() || allow_ellipsis_only_param_in_C_mode ||
-              microsoft_C_leading_ellipsis)) {
+              microsoft_C_leading_ellipsis || clang_mode)) {
     /* The first thing in the parameter list is an ellipsis. */
     ellipsis_pos = pos_curr_token;
     /* Advance past the ellipsis. */
@@ -2907,10 +2933,18 @@ an error if a default argument expression is encountered.
       } else
 #endif /* ASM_FUNCTION_ALLOWED */
       /* Do not insert code here. */
-      if (C_mode() && strict_ansi_mode) {
-        /* Issue a diagnostic on use of a nonstandard feature. */
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_nonstd_ellipsis_only_param, &ellipsis_pos);
+      if (C_mode()) {
+        if (clang_mode && !allow_ellipsis_only_param_in_C_mode) {
+          /* Clang allows ellipsis and no named parameters in an overloadable
+             function.  Register an end of parse action to ensure this is
+             an overloadable function. */
+          add_end_of_parse_action(check_c_mode_ellipsis, state,
+                                      /*secondary_decls=*/TRUE);
+        } else if (strict_ansi_mode) {
+          /* Issue a diagnostic on use of a nonstandard feature. */
+          pos_diagnostic(strict_ansi_error_severity,
+                         ec_nonstd_ellipsis_only_param, &ellipsis_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* An ellipsis only occurs in prototyped param lists. */
