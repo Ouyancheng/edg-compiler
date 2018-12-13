@@ -15257,8 +15257,8 @@ initializer, is done in var_constant_value[_full].
        "const" always). */
     is_const = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (gpp_mode && is_scalar_type(var_type) &&
-             is_const_qualified_type(var_type)) {
+  } else if ((gpp_mode || (gcc_version_is(>=80000))) &&
+             is_scalar_type(var_type) && is_const_qualified_type(var_type)) {
     /* g++ allows const scalar expressions (specifically, floating-point and
        pointer constants). */
     is_const = TRUE;
