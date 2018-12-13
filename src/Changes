@@ -12,7 +12,7 @@ padding, arrays, and vectors.  These are now fixed.  For example, with
   static_assert(!__has_unique_object_representations(U), ""); // Now okay
 
 
-12/11/18 [EDGcpfe/19412]
+12/11/18 [EDGcpfe/19412,EDGcpfe/20545]
 Microsoft C++ compatibility: Explicit specializations and exception specifiers
 
 Consider:
