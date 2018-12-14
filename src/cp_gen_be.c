@@ -11138,7 +11138,8 @@ is_reinterpret_cast indicate it.
     gen_expression(operand_1);
     write_tok_ch(')');
   } else if (operand_1->is_pack_expansion ||
-             expr_is_braced_init_list(operand_1)) {
+             expr_is_braced_init_list(operand_1) ||
+             is_class_template_placeholder_type(dest_type)) {
     /* This is something like "int(x...)", which cannot be generated as an
        old-style cast.  Use a function-style cast instead. */
     if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&

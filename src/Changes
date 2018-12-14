@@ -1,5 +1,20 @@
 Version 5.1
 
+12/13/18 [EDGcpfe/20158]
+C++-generating back end: casts involving class template argument deduction
+
+The C++-generating back end sometimes replaced a function-style cast with a
+C-style cast when the type relies on class template argument deduction.  A
+C-style cast is not one of the contexts in which class template argument
+deduction occurs, so the generated code was incorrect and uncompilable.
+This is now fixed.  For example, with --c++17:
+
+template<class T> struct S { S(T){} };
+template<class T> auto f(T t) {
+  return S(t);  // Previously incorrectly generated as (S)t
+}
+
+
 12/13/18 [EDGcpfe/20265]
 GNU C compatibility: Floating-point const variables
 
