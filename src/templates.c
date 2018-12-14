@@ -18945,7 +18945,7 @@ static a_boolean potentially_equiv_template_param_lists(
 			a_template_param_ptr			old_list,
 			a_template_param_ptr			new_list)
 /*
-This routine is compares old_list, which is a template parameter
+This routine compares old_list, which is a template parameter
 list from a dependent template template parameter, with new_list, which
 is a template parameter list from a template template argument.
 
