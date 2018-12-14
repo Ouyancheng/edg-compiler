@@ -92,7 +92,7 @@ that has an __overloadable__ attribute. For example:
 
   void p(...)  __attribute__((__overloadable__));
 
-Front end now accepts this in clang C mode.
+The front end now accepts this in clang C mode.
 
 
 12/12/18 [EDGcpfe/20526]

@@ -2736,7 +2736,7 @@ known; otherwise it is NULL.
 
 static void check_c_mode_ellipsis(a_decl_parse_state_ptr  dps)
 /*
-*dps describes a declaration with a function declarator that starts with an
+dps describes a declaration with a function declarator that starts with an
 ellipsis in C mode, which is ordinarily invalid.  However, in Clang C mode,
 this should be accepted if the "overloadable" attribute is specified for a
 corresponding function declaration.  We therefore delayed the check until
@@ -2747,7 +2747,7 @@ declaration of a function with the "overloadable" attribute.
   a_boolean attribute_found = FALSE;
 
   if (dps->sym != NULL && is_simple_function_symbol(dps->sym)) {
-     a_routine_ptr rp = func_sym_routine(dps->sym);
+     a_routine_ptr    rp = func_sym_routine(dps->sym);
      an_attribute_ptr ap = find_attribute(ak_overloadable,
                                           rp->source_corresp.attributes);
      if (ap != NULL) {
