@@ -10434,7 +10434,7 @@ For example (with -tused):
   };
 
 
-9/25/17  [EDGcpfe/18790]
+9/25/17  [EDGcpfe/18448,EDGcpfe/18790]
 __edg_wchar_type__ now considered a type
 
 The changes for EDGcpfe/18155 introduced __edg_wchar_type__ as a new type,
