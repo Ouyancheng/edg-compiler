@@ -84,7 +84,7 @@ prototype instantiations.  For example, with --c++17:
 
 
 12/13/18 [EDGcpfe/19532]
-clang compatibility: c overloadable functions with ellipsis and no named 
+clang compatibility: C overloadable functions with ellipsis and no named 
 parameters
 
 In C mode, clang allows ellipsis and no named parameters in a function 
