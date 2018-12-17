@@ -1,5 +1,18 @@
 Version 5.1
 
+12/17/18 [EDGcpfe/19593]
+Assertion failure in check_carries_dependency_for_params
+
+A carries_dependency attribute applied to a parameter in a deduction guide
+would cause an assertion failure in check_carries_dependency_for_params. 
+For example:
+
+  template <class T> struct A {};
+  template <class T> A([[carries_dependency]] T = 1) -> A<int>;
+
+This has now been fixed.
+
+
 12/13/18 [EDGcpfe/20158]
 C++-generating back end: casts involving class template argument deduction
 

@@ -4485,6 +4485,11 @@ a parameter.  So we know that the declaration involved a function declarator.)
        a function declaration: An error. */
     a_type_ptr        f_type = dps->declared_type;
     a_param_type_ptr  ptp;
+
+    if (dps->is_deduction_guide){
+      /* For a deduction guide, the function type is stored in dps->type. */
+      f_type = dps->type;
+    }
     /* Look for the function type that has the parameter with the attribute. */
     while (f_type->kind != (a_type_kind)tk_routine) {
       f_type = underlying_type_of_derived_type(f_type);
