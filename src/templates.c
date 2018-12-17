@@ -33806,14 +33806,27 @@ body.  If possible, instantiate the routine.
       f_entity_can_be_instantiated(tip,
                                    /*implicit_inclusion_okay=*/FALSE,
                                    /*for_return_type_deduction=*/TRUE)) {
+    a_symbol_list_entry_ptr  list, saved_deferred_instantiations_tail =
+                                                 deferred_instantiations_tail;
     /* Defer any instantiations that might be kicked off by this instantiation
        to make sure we don't get back to something that requires this deduction
        to be complete. */
     defer_instantiations++;
     instantiate_entity(tip);
     defer_instantiations--;
-    if (defer_instantiations == 0) {
-      process_deferred_instantiation_requests();
+    if (saved_deferred_instantiations_tail != deferred_instantiations_tail) {
+      /* Any instantiation requests that occurred during this instantiation
+         should be deferred until this instance is really required (which may
+         never happen). */
+      deferred_instantiations_tail = saved_deferred_instantiations_tail;
+      if (deferred_instantiations_tail == NULL) {
+        list = deferred_instantiations;
+        deferred_instantiations = NULL;
+      } else {
+        list = deferred_instantiations_tail->next;
+        deferred_instantiations_tail->next = NULL;
+      }  /* if */
+      sym->variant.routine.pending_deferred_instantiations = list;
     }  /* if */
   }  /* if */
 }  /* force_instantiation_to_deduce_return_type */
@@ -33880,8 +33893,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   defer_inline = (options & SIR_DEFER_INLINE) != 0;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
-  if (is_function_symbol(sym)) {
-    a_routine_ptr	rp = sym->variant.routine.ptr;
+  if (is_simple_function_symbol(sym)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
     if (rp->is_constexpr) {
       rout_is_constexpr = rp->is_constexpr;
     } else {
@@ -33891,6 +33904,31 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
            g++ mode virtual functions are instantiated when the enclosing class
            is defined. */
         defer_inline = TRUE;
+      }  /* if */
+    }  /* if */
+    if (value) {
+      a_symbol_list_entry_ptr
+                   slep = sym->variant.routine.pending_deferred_instantiations;
+      if (slep != NULL) {
+        /* The function was previously instantiated even though its instance 
+          isn't "required" (in the sense that the IL should be retained; e.g.,
+           it might have been instantiated to deduce its return type).  Any
+           transitive instantiations requests were then moved to the
+           "pending_deferred_instantiations" list.  Now that the instantiation
+           turns out to be really required, move the pending list back to the
+           main "deferred instantiations" list and process that list if we are
+           not currently deferring instantiations. */
+        if (deferred_instantiations == NULL) {
+          deferred_instantiations = slep;
+        } else {
+          deferred_instantiations_tail->next = slep;
+        }  /* if */
+        while (slep->next != NULL) slep = slep->next;
+        deferred_instantiations_tail = slep;
+        sym->variant.routine.pending_deferred_instantiations = NULL;
+        if (defer_instantiations == 0) {
+          process_deferred_instantiation_requests();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -35494,11 +35532,20 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
     a_variable_list_entry_ptr	vlep;
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-      if (rlep->routine->storage_class != (a_storage_class)sc_static ||
+      a_routine_ptr  rp = rlep->routine;
+      if (rp->storage_class != (a_storage_class)sc_static ||
           any_exported_templates()) {
-        /* In the presence of exported templates, static inlines will be
-           made external, but are still static at this point. */
-        set_body_needed_flag_for_inline_function(rlep->routine);
+        a_symbol_ptr             sym = symbol_for(rp);
+        a_template_instance_ptr  tip = sym->variant.routine.instance_ptr;
+        if (tip != NULL && !tip->instantiation_required) {
+          /* A routine that was instantiated but whose instantiation is not
+             actually used.  (E.g., it might have been instantiated to
+             determine a deduced return type.) */
+        } else {
+          /* In the presence of exported templates, static inlines will be
+             made external, but are still static at this point. */
+          set_body_needed_flag_for_inline_function(rlep->routine);
+        }  /* if */
       }  /* if */
     }  /* for */
     for (vlep = inline_variable_list; vlep != NULL; vlep = vlep->next) {

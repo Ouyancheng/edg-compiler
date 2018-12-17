@@ -2804,8 +2804,10 @@ do_set_proper_definition_needed_flag:
                   iek_local_static_variable_init);
         walk_list(eptr->vla_dimensions, a_vla_dimension_ptr,
                   iek_vla_dimension);
+#if !NEEDED_FLAG_WALK
         walk_list(eptr->expr_node_refs, a_local_expr_node_ref_ptr,
                   iek_local_expr_node_ref);
+#endif /* NEEDED_FLAG_WALK */
         walk_list(eptr->scope_refs, a_local_scope_ref_ptr,
                   iek_local_scope_ref);
         walk_list(eptr->pragmas, a_pragma_ptr, iek_pragma);

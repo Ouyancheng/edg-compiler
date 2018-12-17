@@ -1,5 +1,29 @@
 Version 5.1
 
+12/17/18 [EDGcpfe/20503]
+Instantiations for deduced return types
+
+Consider:
+
+  template<typename T> T u();
+  template<typename T> struct S {
+    static auto f() { return u<T>(); }
+    static auto g() { return f(); }
+  };
+  int main() {
+    decltype(S<int>::g()) r = 0;
+    return r;
+  }
+
+In this example, S<int>::g() and S<int>:f() are instantiated only to determine
+their deduced return types.  Previously, however, the resulting instantiations
+resulted in IL with references to u<int>; those references could then result in
+linker errors (e.g., when compiling this example in a configuration using the
+C-generating back end).  That problem is now fixed: Instantiations triggered
+indirectly by instantiations performed for return type deduction are now held
+back until those instantiations are needed for other reasons (if at all).
+
+
 12/17/18 [EDGcpfe/19593]
 Assertion failure in check_carries_dependency_for_params
 

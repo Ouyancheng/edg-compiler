@@ -3700,6 +3700,13 @@ typedef struct a_symbol {
                         /* Present for template functions and member functions
                            of template classes.  Points to information about
                            the particular instance of the function. */
+      a_symbol_list_entry_ptr
+		pending_deferred_instantiations;
+			/* A list of instantiations that were deferred and
+			   shouldn't be processed until this routine's
+			   instantiation is "required".  This deferral can
+			   happen, e.g., if the routine was originally only
+			   instantiated to determine its return type. */
     } routine;
     /* When kind == sk_label: */
     struct {
