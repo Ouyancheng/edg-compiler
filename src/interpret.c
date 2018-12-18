@@ -4306,11 +4306,13 @@ subobj_type at offset zero.
 {
   a_boolean  result;
 
-  if (obj_type == subobj_type) {
-    result = TRUE;
-  } else if (is_immediate_class_type(obj_type)) {
+  if (is_immediate_class_type(obj_type)) {
     a_field_ptr       fp;
     a_base_class_ptr  bcp;
+    if (obj_type == subobj_type) {
+      result = TRUE;
+      goto done;
+    }  /* if */
     fp = obj_type->variant.class_struct_union.field_list;
     fp = next_alloc_field(fp);
     for (; fp != NULL; fp = next_alloc_field(fp->next)) {
@@ -4337,6 +4339,8 @@ subobj_type at offset zero.
       }  /* if */
     }  /* for */
     result = FALSE;
+  } else if (identical_types(obj_type, subobj_type)) {
+    result = TRUE;
   } else if (obj_type->kind == (a_type_kind)tk_array) {
     obj_type = skip_typerefs(obj_type->variant.array.element_type);
     result = type_has_leading_subobject_of_type(obj_type, subobj_type);
