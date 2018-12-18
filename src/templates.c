@@ -33911,7 +33911,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
                    slep = sym->variant.routine.pending_deferred_instantiations;
       if (slep != NULL) {
         /* The function was previously instantiated even though its instance 
-          isn't "required" (in the sense that the IL should be retained; e.g.,
+           isn't "required" (in the sense that the IL should be retained; e.g.,
            it might have been instantiated to deduce its return type).  Any
            transitive instantiations requests were then moved to the
            "pending_deferred_instantiations" list.  Now that the instantiation
