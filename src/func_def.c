@@ -2071,12 +2071,17 @@ member declaration (allowed in some Microsoft modes only).
        Also be sure the routine name linkage for the type is right. */
     adjust_member_routine_type(rout_type, *old_type);
     if (noexcept_enabled && rtsp->exception_specification == NULL) {
-      /* For a destructor or an "operator delete" an exception specification
-         may be generated.  Use the specification used in the in-class
-         declaration. */
-      if (special_kind_is(rp, sfk_destructor) ||
-           (special_kind_is(rp, sfk_operator) &&
-            is_delete_operator(rp->variant.opname_kind))) {
+      if (special_kind_is(rp, sfk_destructor)) {
+        /* [except.spec]/p8 (N4762) "The exception specification for [...] a
+           destructor without a noexcept-specifier, is potentially-throwing
+           if and only if any of the destructors for any of its potentially
+           constructed subobjects is potentially throwing." */
+        update_routine_type_exception_specification_if_needed(rp, &rout_type);
+      } else if (special_kind_is(rp, sfk_operator) &&
+            is_delete_operator(rp->variant.opname_kind)) {
+        /* For an "operator delete" an exception specification may be
+           generated.  Use the specification used in the in-class
+           declaration. */
         rtsp->exception_specification =
                           skip_typerefs(*old_type)->variant.routine.extra_info
                                                   ->exception_specification;

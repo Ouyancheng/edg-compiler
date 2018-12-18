@@ -1,5 +1,22 @@
 Version 5.1
 
+12/18/18 [EDGcpfe/19657]
+Missing diagnostic on a destructor without an exception specification
+
+A destructor without an exception specification is potentially-throwing if 
+and only if any of the destructors for any of its potentially constructed 
+subobjects is potentially throwing.  For example:
+
+ struct S {
+  ~S() noexcept(false);
+ };
+ S::~S() {} // The implicit exception specification is different to the 
+            // exception specification on the previous declaration.
+
+Previously, the front end wouldn't diagnose the mismatch in the exception
+specification between the two declarations.  This has now been fixed.
+
+
 12/17/18 [EDGcpfe/20503]
 Instantiations for deduced return types
 
