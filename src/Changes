@@ -1,5 +1,14 @@
 Version 5.1
 
+12/19/18 [EDGcpfe/16266]
+Spurious error on attribute in alias declaration
+
+A spurious error had been given when an alias declaration contains an
+attribute.  For example (with --c++14):
+
+  using x [[deprecated]] = int;
+
+
 12/18/18 [EDGcpfe/19657]
 Missing diagnostic for destructor exception specification mismatch
 

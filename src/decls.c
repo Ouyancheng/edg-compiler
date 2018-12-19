@@ -15632,6 +15632,7 @@ semicolon.
 {
   a_symbol_locator  loc;
   a_decl_pos_block  decl_pos_block;
+  an_attribute_ptr  id_attributes;
 
   report_gnu_cpp11_extension_if_needed(&pos_curr_token,
                                        ec_alias_declaration_is_cpp11);
@@ -15659,10 +15660,12 @@ semicolon.
   check_for_rescannable_alias(dps);
   /* Although the alias name is not technically a "declarator-id", it has
      exactly the same function and relation to any subsequent attributes.
-     We therefore record the attributes with al_declarator_id. */
-  dps->id_attributes = scan_attributes(al_declarator_id);
+     We therefore record the attributes with al_declarator_id.  Note that
+     the attributes are held off to the side until after the type is
+     scanned below (id_attributes are discarded there). */
+  id_attributes = scan_attributes(al_declarator_id);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (dps->id_attributes != NULL) {
+  if (id_attributes != NULL) {
     decl_pos_block.declarator_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -15676,6 +15679,7 @@ semicolon.
       parent_type = scope_stack_top().assoc_type;
     }  /* if */
     type_name_full(dps);
+    dps->id_attributes = id_attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* It is tempting to emit the source sequence entry for the alias
        declaration when the name of the alias is first encountered (above),
