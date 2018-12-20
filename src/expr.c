@@ -19152,7 +19152,7 @@ expression, and return the result in *result (or an error indication in
       } else {
         /* Prescan the initializer to deduce the type to allocate. */
         prescan_initializer_for_auto_type_deduction(
-                                           &dps, /*parenthesized_init=*/TRUE);
+                                               &dps, !has_braced_initializer);
         using_expr_cache = TRUE;
         if (!dps.has_deduced_type) {
           /* There was an error.  Proceed as if "auto" did not appear. */

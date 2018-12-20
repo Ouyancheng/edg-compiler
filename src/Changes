@@ -1,5 +1,22 @@
 Version 5.1
 
+12/20/18 [EDGcpfe/20594]
+New-expression with braced initializer and class template argument deduction
+
+The front end previously issued a spurious error for:
+
+  template<typename T> struct S {
+    S(T p2) {}
+  };
+  int main() {
+    S<int> *ps = new S{ 5 };
+    return ps == NULL;
+  }
+
+claiming no constructor matches the new-initializer (because it erroneously
+treated "new S{ 5 }" as "new S({ 5 })").  That is now fixed.
+
+
 12/20/18 [EDGcpfe/20634]
 Abort in find_innermost_namespace_scope_depth
 
