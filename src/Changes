@@ -10,7 +10,7 @@ The front end previously issued a spurious error for:
   };
   int main() {
     S<int> *ps = new S{ 5 };
-    return ps == NULL;
+    return ps == nullptr;
   }
 
 claiming no constructor matches the new-initializer (because it erroneously
