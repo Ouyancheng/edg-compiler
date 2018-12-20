@@ -1,5 +1,36 @@
 Version 5.1
 
+12/20/18 [EDGcpfe/20551]
+Unwanted warning about unreferenced member function of class template in 
+unnamed namespace
+
+Previously, the front end would issue warnings about unreferenced member 
+functions of a class template.  However, it is possible that the member 
+function has been referenced from a different template class 
+instantiation.  These warning were considered unwanted.  The front end now 
+issues a warning for a member function of a class template only if the 
+parent class isn't referenced.  For example:
+
+  namespace
+  {
+    template <int n>
+    struct A {
+    void f1() {}
+    void f2() {}
+    };
+  }
+  void f() {
+    A<1> a1;
+    a1.f1();
+    A<2> a2;
+    a2.f2();
+  }
+
+Previously, this would result in warnings about A<1>::f2 and A<2>f1 
+declared, but not referenced.  With this change, those warnings are no
+longer issued.
+
+
 12/19/18 [EDGcpfe/16266]
 Spurious error on attribute in alias declaration
 

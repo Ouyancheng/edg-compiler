@@ -5919,8 +5919,15 @@ the outermost class was defined in an unnamed namespace.
                   (special_kind_is(rp, sfk_operator) &&
                    rp->variant.opname_kind == (an_opname_kind)onk_assign)) &&
                  !routine_defined(rp))) {
-      report_unreferenced(rout_sym, ec_declared_but_not_referenced,
+      a_symbol_ptr parent_sym = symbol_for(class_type);
+      a_type_ptr   parent_type = type_symbol_type(parent_sym);
+      /* For member functions of a template class, only warn if the parent
+         class is not referenced. */
+      if (!parent_type->variant.class_struct_union.is_template_class ||
+          !parent_sym->referenced) {
+        report_unreferenced(rout_sym, ec_declared_but_not_referenced,
                           es_warning);
+      }
     }  /* if */
   }  /* if */
   /* Check if this routine was declared using a type with no linkage.  The
