@@ -1,5 +1,27 @@
 Version 5.1
 
+12/20/18 [EDGcpfe/19989]
+Lookup of allocation functions in new-expressions
+
+Consider:
+
+  using size_type = decltype(sizeof(42));
+  struct S {};
+  template<typename T> void f(T *p) {
+    new(p) T;    // (1)
+  }
+  void* operator new(size_type, void*) noexcept;  // (2)
+  void g() {
+    f<S>(0);
+  }
+
+Previously, the front end treated the call to an allocation function implied
+by the new-expression (1) as if it were an ordinary user-written call, except
+that it was considered non-dependent.  That meant that the allocation function
+was looked up in the template definition only, and thus it did not find the
+intended allocation function (2).  That is now fixed.
+
+
 12/20/18 [EDGcpfe/20551]
 Unwanted warning about unreferenced member function of class template in 
 unnamed namespace

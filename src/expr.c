@@ -3308,9 +3308,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
                                         /*force_dependent=*/FALSE,
-                                        ec_no_matching_constructor,
-                                        ec_ambiguous_constructor,
-                                        ec_undefined_identifier,
+                                        oc_constructor,
                                         source_pos,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
@@ -6223,9 +6221,7 @@ are expected to be NULL in that case.
                                           try_surrogate_functions,
                                           /*is_property=*/FALSE,
                                           /*compiler_generated=*/FALSE,
-                                          ec_no_matching_function,
-                                          ec_ambiguous_overloaded_function,
-                                          ec_undefined_identifier,
+                                          oc_default,
                                           &orig_operand,
                                           &call_position,
                                           opening_paren_tok_seq_number,
@@ -19559,6 +19555,7 @@ expression, and return the result in *result (or an error indication in
       if (!unknown_dependent_new &&
           (operator_new_symbol == NULL ||
            !overloaded_function_match_possible(operator_new_symbol,
+                                               oc_new_expression,
                                                /*is_template_id=*/FALSE,
                                                (a_template_arg_ptr)NULL,
                                                arg_list,
@@ -19597,9 +19594,7 @@ expression, and return the result in *result (or an error indication in
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
                                         force_dependent,
-                                        ec_no_matching_new_function,
-                                        ec_ambiguous_overloaded_function,
-                                        ec_undefined_identifier,
+                                        oc_new_expression,
                                         &new_position,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
@@ -19631,9 +19626,7 @@ expression, and return the result in *result (or an error indication in
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
                                         force_dependent,
-                                        ec_no_matching_new_function,
-                                        ec_ambiguous_overloaded_function,
-                                        ec_undefined_identifier,
+                                        oc_new_expression,
                                         &new_position,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
@@ -30482,9 +30475,7 @@ is an lvalue.
                                  operand_of_arg_list_elem(arg),
                                  (a_ref_entry *)NULL);
     call_adl_named_function("get", tap, arg, diag_pos, tsn,
-                            ec_tuple_get_no_matching_overload,
-                            ec_ambiguous_overloaded_function,
-                            ec_struct_binding_undefined_identifier,
+                            oc_tuple_like_binding,
                             operand_of_arg_list_elem(*p_icp),
                             (an_expr_node_ptr*)NULL);
     free_arg_list(arg);
@@ -37437,13 +37428,8 @@ for-each (otherwise it's a range-based-for).
                                       /*try_surrogate_functions=*/FALSE,
                                       /*is_property=*/FALSE,
                                       /*compiler_generated=*/TRUE,
-                                      is_for_each ?
-                                       ec_for_each_no_matching_overload :
-                                       ec_range_based_for_no_matching_overload,
-                                      ec_ambiguous_overloaded_function,
-                                      is_for_each ?
-                                       ec_for_each_undefined_identifier :
-                                       ec_range_based_for_undefined_identifier,
+                                      is_for_each ? oc_for_each_bounds :
+                                                    oc_range_based_for_bounds,
                                       (an_operand *)NULL,
                                       expr_position,
                                       tok_seq_number,
@@ -37874,18 +37860,12 @@ to implement a co_yield expression.
     use_member_calls = FALSE;
     alep = alloc_arg_list_elem_for_operand(&ready_operand);
     call_adl_named_function("await_ready", (a_template_arg_ptr)NULL,
-                            alep, pos, tok_seq_number,
-                            ec_await_no_matching_overload,
-                            ec_ambiguous_overloaded_function,
-                            ec_await_undefined_identifier,
+                            alep, pos, tok_seq_number, oc_await,
                             &ready_call, (an_expr_node_ptr*)NULL);
     free_arg_list(alep);
     alep = alloc_arg_list_elem_for_operand(&resume_operand);
     call_adl_named_function("await_resume", (a_template_arg_ptr)NULL,
-                            alep, pos, tok_seq_number,
-                            ec_await_no_matching_overload,
-                            ec_ambiguous_overloaded_function,
-                            ec_await_undefined_identifier,
+                            alep, pos, tok_seq_number, oc_await,
                             &resume_call, (an_expr_node_ptr*)NULL);
     free_arg_list(alep);
   }  /* if */
@@ -37965,10 +37945,7 @@ operation.  This routine frees *suspend_arg.
   } else {
     append_elem(suspend_arg, handle_arg);
     call_adl_named_function("await_suspend", (a_template_arg_ptr)NULL,
-                            suspend_arg, pos, tok_seq_number,
-                            ec_await_no_matching_overload,
-                            ec_ambiguous_overloaded_function,
-                            ec_await_undefined_identifier,
+                            suspend_arg, pos, tok_seq_number, oc_await,
                             &suspend_call, (an_expr_node_ptr*)NULL);
   }  /* if */
   node->variant.await_info.resume_ready_suspend->next->next =
@@ -39403,9 +39380,7 @@ This function is largely based on check_range_based_for_default_case.
                                   /*try_surrogate_functions=*/FALSE,
                                   /*is_property=*/FALSE,
                                   /*compiler_generated=*/TRUE,
-                                  ec_no_error,
-                                  ec_no_error,
-                                  ec_no_error,
+                                  oc_cppcx_for_each_bounds,
                                   (an_operand *)NULL,
                                   pos,
                                   tok_seq_number,
@@ -40106,9 +40081,7 @@ initializer of *variable.
     arg_list = alloc_arg_list_elem_for_operand(&range_operand);
     call_adl_named_function(function_name, (a_template_arg_ptr)NULL,
                             arg_list, expr_position, tok_seq_number,
-                            ec_range_based_for_no_matching_overload,
-                            ec_ambiguous_overloaded_function,
-                            ec_range_based_for_undefined_identifier,
+                            oc_range_based_for_bounds,
                             &result, &func_call_node);
 #if COROUTINES_ALLOWED
     if (use_await) {

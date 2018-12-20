@@ -21186,9 +21186,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                                        /*try_surrogate_functions=*/FALSE,
                                        /*is_property=*/TRUE,
                                        /*compiler_generated=*/TRUE,
-                                       ec_no_matching_function,
-                                       ec_ambiguous_overloaded_function,
-                                       ec_undefined_identifier,
+                                       oc_property_access,
                                        (an_operand *)NULL,
                                        &operand_position,
                                        (a_token_sequence_number)0,
@@ -21379,9 +21377,7 @@ to TRUE and *result becomes an error operand.
                                           /*try_surrogate_functions=*/FALSE,
                                           /*is_property=*/FALSE,
                                           /*compiler_generated=*/TRUE,
-                                          ec_no_matching_function,
-                                          ec_ambiguous_overloaded_function,
-                                          ec_undefined_identifier,
+                                          oc_event_access,
                                           (an_operand *)NULL,
                                           operator_pos,
                                           (a_token_sequence_number)0,
@@ -21615,9 +21611,7 @@ orig_operand to the function operand created before assembling the final call.
                                     /*try_surrogate_functions=*/FALSE,
                                     /*is_property=*/FALSE,
                                     /*compiler_generated=*/TRUE,
-                                    ec_no_matching_function,
-                                    ec_ambiguous_overloaded_function,
-                                    ec_undefined_identifier,
+                                    oc_synthesized_member_call,
                                     (an_operand *)NULL,
                                     &selector_operand->position,
                                     (a_token_sequence_number)0,
@@ -21677,9 +21671,7 @@ void call_adl_named_function(a_const_char            *func_name,
                              an_arg_list_elem_ptr    alep,
                              a_source_position       *pos,
                              a_token_sequence_number tok_seq_number,
-                             an_error_code           err_none_applies,
-                             an_error_code           err_ambiguous,
-                             an_error_code           err_undefined_identifier,
+                             an_overload_context     ovl_context,
                              an_operand              *result,
                              an_expr_node_ptr        *call_node)
 /*
@@ -21698,10 +21690,8 @@ is none), and a1, a2, ... is represented by alep (possibly NULL).
 tok_seq_number is the token sequence number from where the lookup of func_name
 should be done.  pos is the position to use for this call.
 
-err_none_applies, err_ambiguous, and err_undefined_identifier are error codes
-to be issued when, respectively, functions are found but none are viable,
-functions are found but overload resolution is ambiguous, and no functions are
-found.
+ovl_context describes the kind of construct for which this call is being
+resolved.  This determines the diagnostic messages selected in case of errors.
 
 If call_node is non-NULL, set *call_node to the node representing the actual
 call.
@@ -21734,9 +21724,7 @@ call.
                                      /*try_surrogate_functions=*/FALSE,
                                      /*is_property=*/FALSE,
                                      /*compiler_generated=*/TRUE,
-                                     err_none_applies,
-                                     err_ambiguous,
-                                     err_undefined_identifier,
+                                     ovl_context,
                                      (an_operand *)NULL,
                                      pos,
                                      tok_seq_number,

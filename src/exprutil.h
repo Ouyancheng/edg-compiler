@@ -146,6 +146,40 @@ typedef enum a_cast_source_form {
 } a_cast_source_form;
 
 
+/*
+The context kinds in which overload resolution functions like
+select_overloaded_function and select_and_prepare_to_call_overloaded_function
+are called.  This decides determines what kind of error messages might be
+issued when overload resolution fails.  In some cases it can also decide other
+aspects of the call resolution (such as lookup).
+*/
+typedef enum an_overload_context {
+  oc_default,                 /* Ordinary function or member function calls
+                                 (e.g., scan_function_call). */
+  oc_constructor,             /* Calls to constructors (see
+                                 scan_ctor_arguments). */
+  oc_new_expression,          /* Calls to allocation functions generated for
+                                 new-expressions. */
+  oc_range_based_for_bounds,  /* Calls generated to determine range-based
+                                 "for" loop bounds. */
+  oc_for_each_bounds,         /* Calls generated to determine Microsoft C++
+                                 "for each" loop bounds. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  oc_cppcx_for_each_bounds,   /* Calls generated to determine Microsoft C++/CX
+                                 "for each" loop bounds. */
+  oc_property_access,          /* See rewrite_property_reference. */
+  oc_event_access,             /* See rewrite_even_operator. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  oc_synthesized_member_call,  /* See call_named_member_function. */
+  oc_ctad,                     /* See deduce_class_template_args. */
+  oc_tuple_like_binding,       /* "get<N>" for tuple-like binding. */
+#if COROUTINES_ALLOWED
+  oc_await,                    /* See add_await_operand. */
+#endif /* COROUTINES_ALLOWED */
+  oc_last
+} an_overload_context;
+
+
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /*
@@ -1814,9 +1848,7 @@ void call_adl_named_function(a_const_char            *func_name,
                              an_arg_list_elem_ptr    alep,
                              a_source_position       *pos,
                              a_token_sequence_number tok_seq_number,
-                             an_error_code           err_none_applies,
-                             an_error_code           err_ambiguous,
-                             an_error_code           err_undefined_identifier,
+                             an_overload_context     ovl_context,
                              an_operand              *result,
                              an_expr_node_ptr        *call_node);
 

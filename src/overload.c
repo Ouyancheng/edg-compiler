@@ -6099,60 +6099,57 @@ static void try_overloaded_function_match(
                  a_boolean                arg_dep_lookup_done,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
-                 a_boolean                forced_dependent,
                  a_boolean                ignore_templates,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
                  a_conv_context_set       conv_context,
+                 an_overload_context      ovl_context,
                  a_candidate_function_ptr *candidate_functions,
                  a_symbol_ptr             *inaccessible_match,
                  a_boolean                *matched_except_for_missing_selector,
                  a_boolean                *matched_except_for_selector)
 /*
-Find out how well the functions described by overloaded_function_symbol
-match the argument list given by arg_list and the selector given
-(if have_selector is TRUE) by bound_function_selector.  have_selector
-can be TRUE and bound_function_selector NULL when calling constructors.
-overloaded_function_symbol may be an overloaded function, a simple
-function, or a projection symbol for one of those.  is_template_id
-is TRUE if the symbol has an associated explicit template argument list;
-if so, template_arg_list gives the argument list.
-bound_function_selector is an object pointer if
+Find out how well the functions described by overloaded_function_symbol match
+the argument list given by arg_list and the selector given (if have_selector
+is TRUE) by bound_function_selector.  have_selector can be TRUE and
+bound_function_selector NULL when calling constructors.
+overloaded_function_symbol may be an overloaded function, a simple function,
+or a projection symbol for one of those.  is_template_id is TRUE if the symbol
+has an associated explicit template argument list; if so, template_arg_list
+gives the argument list.  bound_function_selector is an object pointer if
 bound_function_selector->selector_is_object_pointer is TRUE, an object
-otherwise.  Any viable functions are added to the candidate_functions
-list along with information on the level of argument matches.  If a
-match would have been found except for the absence of a selector, set
-*matched_except_for_missing_selector TRUE, and if a match would have
-been found except for a mismatch on the selector, set
-*matched_except_for_selector TRUE; those allow different error
-messages.  If inaccessible_match is non-NULL, in C++/CLI mode it will
-be set to a symbol that would have been chosen except that it was
-inaccessible because of hide-by-sig lookup.  If init_list_ctor_arg_list
-is non-NULL, it points to a braced-init-list that we should try to match
-as a single argument for an initializer-list constructor (see
-[over.match.list] in the C++11 standard) in addition to trying to
-match arg_list in the usual way.  In that case, arg_list will
-be equal to init_list_ctor_arg_list->variant.braced.list and
-overloaded_function_symbol will be a constructor or set of constructors.
-If ctor_conversion_case is TRUE, this analysis is being done as part
-of resolving an implicit or explicit conversion to a class type: the
-functions are constructors, have_selector is FALSE (sic; the "this"
-parameter is not matched up); the "conversion" field is set in any
-candidate function entries created.  effects_copy_initialization is
-TRUE if this call is the user-defined conversion in a
-copy-initialization; constructors that are marked "explicit" are
-ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
-should be allowed on the argument matches.  arg_dep_lookup_done is
-TRUE if argument-dependent lookup is enabled for this call.
-from_arg_dep_lookup is TRUE if the function was found by
+otherwise.  Any viable functions are added to the candidate_functions list
+along with information on the level of argument matches.  If a match would
+have been found except for the absence of a selector, set
+*matched_except_for_missing_selector TRUE, and if a match would have been
+found except for a mismatch on the selector, set *matched_except_for_selector
+TRUE; those allow different error messages.  If inaccessible_match is
+non-NULL, in C++/CLI mode it will be set to a symbol that would have been
+chosen except that it was inaccessible because of hide-by-sig lookup.  If
+init_list_ctor_arg_list is non-NULL, it points to a braced-init-list that we
+should try to match as a single argument for an initializer-list constructor
+(see [over.match.list] in the C++11 standard) in addition to trying to match
+arg_list in the usual way.  In that case, arg_list will be equal to
+init_list_ctor_arg_list->variant.braced.list and overloaded_function_symbol
+will be a constructor or set of constructors.  If ctor_conversion_case is
+TRUE, this analysis is being done as part of resolving an implicit or explicit
+conversion to a class type: the functions are constructors, have_selector is
+FALSE (sic; the "this" parameter is not matched up); the "conversion" field is
+set in any candidate function entries created.  effects_copy_initialization is
+TRUE if this call is the user-defined conversion in a copy-initialization;
+constructors that are marked "explicit" are ignored.  allow_udc_on_arguments
+is TRUE if user-defined conversions should be allowed on the argument matches.
+arg_dep_lookup_done is TRUE if argument-dependent lookup is enabled for this
+call.  from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  forced_dependent is TRUE if dependent_call
-was forced to TRUE for reasons of g++ emulation.  ignore_templates is
-TRUE if template functions should be ignored.  known_to_be_visible is
-TRUE if the function is known to be visible and the visibility check
-should be suppressed.  is_overloaded_operator is TRUE if the call is
-written in operator form, e.g., a+b rather than operator+(a, b).
-conv_context describes the context of the conversion.
+template-dependent call. ovl_context describes the the kind of construct that
+requires overload resolution (e.g., an ordinary user-specified call or an
+implicit allocation function call in a new-expression).  ignore_templates is
+TRUE if template functions should be ignored.  known_to_be_visible is TRUE if
+the function is known to be visible and the visibility check should be
+suppressed.  is_overloaded_operator is TRUE if the call is written in operator
+form, e.g., a+b rather than operator+(a, b).  conv_context describes the
+context of the conversion.
 */
 {
   a_symbol_ptr  function_symbol, proj_function_symbol;
@@ -6218,9 +6215,11 @@ conv_context describes the context of the conversion.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (gpp_mode && gnu_version >= 40100 && forced_dependent) {
-    /* Weird g++ emulation case, which comes up for the "new" operator:
-       Make functions declared after the call visible. */
+  if (ovl_context == oc_new_expression && !gpp_version_is(<40100)) {
+    /* The call to an allocation function generated by a new-expression is not
+       like a user-specified call that is resolved in two phases.  So in
+       template instantiations make allocation functions declared after the
+       template definition visible. */
     allow_post_declared_functions = TRUE;
   }  /* if */
 retry:
@@ -6440,6 +6439,7 @@ retry2:
 
 a_boolean overloaded_function_match_possible(
                                a_symbol_ptr         overloaded_function_symbol,
+                               an_overload_context  ovl_context,
                                a_boolean            is_template_id,
                                a_template_arg_ptr   template_arg_list,
                                an_arg_list_elem_ptr arg_list,
@@ -6468,11 +6468,10 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*arg_dep_lookup_done=*/FALSE,
                                 /*from_arg_dep_lookup=*/FALSE,
                                 /*dependent_call=*/FALSE,
-                                /*forced_dependent=*/FALSE,
                                 /*ignore_templates=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
                                 /*is_overloaded_operator=*/FALSE,
-                                CCO_DEFAULT,
+                                CCO_DEFAULT, ovl_context,
                                 &candidate_functions,
                                 /*inaccessible_match=*/(a_symbol **)NULL,
                                 &matched_except_for_missing_selector,
@@ -9364,6 +9363,79 @@ Return TRUE if the given routine has an associated enable_if attribute.
 }  /* rout_has_enable_if_attr */
 
 
+/*
+A table of error codes to use by default when overload resolution doesn't find
+an applicable candidate (one entry for each overload resolution context).  In
+specific cases, select_overloaded_function (see below) may select a different
+error code from the ones in this table.
+*/
+static an_error_code default_none_applies_code[(int)oc_last] = {
+  ec_no_matching_function,                   /* oc_default */
+  ec_no_matching_constructor,                /* oc_constructor */
+  ec_no_matching_new_function,               /* oc_new_expression */
+  ec_range_based_for_no_matching_overload,   /* oc_range_based_for_bounds */
+  ec_for_each_no_matching_overload,          /* oc_for_each_bounds */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ec_no_error,                               /* oc_cppcx_for_each_bounds */
+  ec_no_matching_function,                   /* oc_property_access */
+  ec_no_matching_function,                   /* oc_event_access */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ec_no_matching_function,                   /* oc_synthesized_member_call */
+  ec_no_matching_constructor,                /* oc_ctad */
+  ec_tuple_get_no_matching_overload,         /* oc_tuple_like_binding */
+#if COROUTINES_ALLOWED
+  ec_await_no_matching_overload              /* oc_await */
+#endif /* COROUTINES_ALLOWED */
+};
+
+/*
+A table of error codes to use by default when overload resolution finds more
+than one applicable candidate (one entry for each overload resolution context).
+Currently, the default is always used.
+*/
+static an_error_code default_ambiguous_code[(int)oc_last] = {
+  ec_ambiguous_overloaded_function,          /* oc_default */
+  ec_ambiguous_constructor,                  /* oc_constructor */
+  ec_ambiguous_overloaded_function,          /* oc_new_expression */
+  ec_ambiguous_overloaded_function,          /* oc_range_based_for_bounds */
+  ec_ambiguous_overloaded_function,          /* oc_for_each_bounds */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ec_no_error,                               /* oc_cppcx_for_each_bounds */
+  ec_ambiguous_overloaded_function,          /* oc_property_access */
+  ec_ambiguous_overloaded_function,          /* oc_event_access */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ec_ambiguous_overloaded_function,          /* oc_synthesized_member_call */
+  ec_ambiguous_constructor,                  /* oc_ctad */
+  ec_ambiguous_overloaded_function,          /* oc_tuple_like_binding */
+#if COROUTINES_ALLOWED
+  ec_ambiguous_overloaded_function           /* oc_await */
+#endif /* COROUTINES_ALLOWED */
+};
+
+/*
+A table of error codes to use by default when the symbol provided to overload
+resolution is undefined (one entry for each overload resolution context).
+Currently, the default is always used.
+*/
+static an_error_code default_undefined_code[(int)oc_last] = {
+  ec_undefined_identifier,                   /* oc_default */
+  ec_undefined_identifier,                   /* oc_constructor */
+  ec_undefined_identifier,                   /* oc_new_expression */
+  ec_range_based_for_undefined_identifier,   /* oc_range_based_for_bounds */
+  ec_for_each_undefined_identifier,          /* oc_for_each_bounds */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ec_no_error,                               /* oc_cppcx_for_each_bounds */
+  ec_undefined_identifier,                   /* oc_property_access */
+  ec_undefined_identifier,                   /* oc_event_access */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ec_undefined_identifier,                   /* oc_synthesized_member_call */
+  ec_undefined_identifier,                   /* oc_ctad */
+  ec_struct_binding_undefined_identifier,    /* oc_tuple_like_binding */
+#if COROUTINES_ALLOWED
+  ec_await_undefined_identifier              /* oc_await */
+#endif /* COROUTINES_ALLOWED */
+};
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -9381,9 +9453,7 @@ a_symbol_ptr select_overloaded_function(
                         a_boolean                use_pure_arg_dep_lookup,
                         a_boolean                use_std_for_arg_dep_lookup,
                         a_boolean                force_dependent,
-                        an_error_code            err_none_applies,
-                        an_error_code            err_ambiguous,
-                        an_error_code            err_undefined_identifier,
+                        an_overload_context      ovl_context,
                         a_source_position        *call_position,
                         a_token_sequence_number  paren_tok_seq_number,
                         a_boolean                *single_function,
@@ -9393,68 +9463,60 @@ a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             *surrogate_function_conv_sym,
                         an_arg_match_summary_ptr *arg_match_list)
 /*
-Determine which of the functions under overloaded_function_symbol
-should be called given an argument list arg_list.  The symbol
-may be an overloaded function, a simple member or nonmember function,
-or a projection symbol for one of those.  is_template_id is TRUE if
-the symbol has an associated explicit template argument list; if so,
-template_arg_list gives the list of arguments.  If have_selector is
-TRUE, *bound_function_selector is a selector object.  Note that, for
-constructor calls, bound_function_selector can be NULL when
-have_selector is TRUE; we have a selector, but it's not available.
-That's okay for constructors, because they cannot be const- or
-volatile-qualified, and the selector expression is only needed for
-that discrimination.  bound_function_selector->selector_is_object_pointer
-is TRUE if the selector is an object pointer, FALSE if it is an
-object.  If the call is in a conversion/initialization context,
-conv_context describes that context.  do_arg_dep_lookup is TRUE if
-argument-dependent lookup should be done; if it is TRUE,
-overloaded_function_symbol may be an sk_undefined symbol, indicating
-that nothing was found on a normal id lookup of the function name.
-When use_pure_arg_dep_lookup is TRUE, only argument-dependent lookup
-is used (and overloaded_function_symbol must be an sk_undefined symbol
-whose symbol header is used to identify the function being looked up).
-When using argument-dependent lookup, use_std_for_arg_dep_lookup can
-be set to TRUE to add the std namespace as an associated namespace
-(e.g., for range-based-for).  force_dependent is TRUE if the call
-should be treated as dependent even when argument-dependent lookup
-is not done (that would usually force the call to be treated as
-nondependent).  If init_list_ctor_arg_list is non-NULL, it points to a
-braced-init-list that we should try to match as a single argument for
-an initializer-list constructor (see [over.match.list] in the C++11
-standard) in addition to trying to match arg_list in the usual way.
-In that case, init_list_ctor_arg_list->variant.braced.list will be
-equal to arg_list and overloaded_function_symbol will be a constructor
-or set of constructors.  If the match is made with an initializer-list
-constructor, *init_list_ctor_case will be returned TRUE.
-call_position is the source position of the call.
-paren_tok_seq_number is the token sequence number of the opening
-parenthesis of the argument list, but it's required only when
-do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
-some sort is detected, issue an error at that position and return
-NULL.  err_none_applies is the error code to use when no function
-applies, and err_ambiguous is the error code to use when more than one
-function applies.  err_undefined_identifier is the error code to use when the
-symbol is undefined and no function applies.  If there is no error, an argument
-match list is returned in *arg_match_list (the caller must free this) and the
-symbol selected is returned.  If single_function is non-NULL and the set of
-functions to be considered (the symbol passed in, if not undefined,
-plus any symbols added by argument-dependent lookup) contains exactly
-one function, set *single_function to TRUE and return the function,
-without checking whether the function matches the argument list
-provided (this allows the caller to revert to the simpler processing
-used for non-overloaded functions, which can produce clearer error
-messages).  If the call is dependent, and the function to be called
-cannot be determined, return *unknown_dependent_function set to TRUE
-(unknown_dependent_function can be NULL if the call cannot be
-dependent).  If found_through_adl is non-NULL and the callee was found
-only through ADL, *found_through_adl is returned TRUE.  If
-surrogate_function_conv_sym is non-NULL, look for surrogate functions
-also.  overloaded_function_symbol may be NULL in that case.  If a
-surrogate function is the best match, return in
-*surrogate_function_conv_sym a pointer to the symbol for the
-conversion function that yields the pointer to the surrogate function,
-and return NULL.  This routine is called only in C++ mode.
+Determine which of the functions under overloaded_function_symbol should be
+called given an argument list arg_list.  The symbol may be an overloaded
+function, a simple member or nonmember function, or a projection symbol for one
+of those.  is_template_id is TRUE if the symbol has an associated explicit
+template argument list; if so, template_arg_list gives the list of arguments.
+If have_selector is TRUE, *bound_function_selector is a selector object.  Note
+that, for constructor calls, bound_function_selector can be NULL when
+have_selector is TRUE; we have a selector, but it's not available.  That's okay
+for constructors, because they cannot be const- or volatile-qualified, and the
+selector expression is only needed for that discrimination.
+bound_function_selector->selector_is_object_pointer is TRUE if the selector is
+an object pointer, FALSE if it is an object.  If the call is in a
+conversion/initialization context, conv_context describes that context.
+do_arg_dep_lookup is TRUE if argument-dependent lookup should be done; if it is
+TRUE, overloaded_function_symbol may be an sk_undefined symbol, indicating that
+nothing was found on a normal id lookup of the function name.  When
+use_pure_arg_dep_lookup is TRUE, only argument-dependent lookup is used (and
+overloaded_function_symbol must be an sk_undefined symbol whose symbol header
+is used to identify the function being looked up).  When using
+argument-dependent lookup, use_std_for_arg_dep_lookup can be set to TRUE to add
+the std namespace as an associated namespace (e.g., for range-based-for).
+force_dependent is TRUE if the call should be treated as dependent even when
+argument-dependent lookup is not done (that would usually force the call to be
+treated as nondependent).  If init_list_ctor_arg_list is non-NULL, it points to
+a braced-init-list that we should try to match as a single argument for an
+initializer-list constructor (see [over.match.list] in the C++11 standard) in
+addition to trying to match arg_list in the usual way.  In that case,
+init_list_ctor_arg_list->variant.braced.list will be equal to arg_list and
+overloaded_function_symbol will be a constructor or set of constructors.  If
+the match is made with an initializer-list constructor, *init_list_ctor_case
+will be returned TRUE.  call_position is the source position of the call.
+paren_tok_seq_number is the token sequence number of the opening parenthesis of
+the argument list, but it's required only when do_arg_dep_lookup is TRUE; it
+can be zero otherwise.  ovl_context describes the the kind of construct that
+requires overload resolution (which, e.g., influences the diagnostic wording in
+error cases.  If an error of some sort is detected, issue an error at that
+position and return NULL.  If there is no error, an argument match list is
+returned in *arg_match_list (the caller must free this) and the symbol selected
+is returned.  If single_function is non-NULL and the set of functions to be
+considered (the symbol passed in, if not undefined, plus any symbols added by
+argument-dependent lookup) contains exactly one function, set *single_function
+to TRUE and return the function, without checking whether the function matches
+the argument list provided (this allows the caller to revert to the simpler
+processing used for non-overloaded functions, which can produce clearer error
+messages).  If the call is dependent, and the function to be called cannot be
+determined, return *unknown_dependent_function set to TRUE
+(unknown_dependent_function can be NULL if the call cannot be dependent).  If
+found_through_adl is non-NULL and the callee was found only through ADL,
+*found_through_adl is returned TRUE.  If surrogate_function_conv_sym is
+non-NULL, look for surrogate functions also.  overloaded_function_symbol may be
+NULL in that case.  If a surrogate function is the best match, return in
+*surrogate_function_conv_sym a pointer to the symbol for the conversion
+function that yields the pointer to the surrogate function, and return NULL.
+This routine is called only in C++ mode.
 */
 {
   a_candidate_function_ptr candidate_functions;
@@ -9554,10 +9616,13 @@ and return NULL.  This routine is called only in C++ mode.
         break;
       }  /* if */
     }  /* for */
-    if (!dependent_call && is_template_id &&
-        template_arg_list_is_dependent(template_arg_list)) {
-      /* A call like f<T>(1), where the explicit template argument
-         list includes dependent arguments. */
+    if (!dependent_call &&
+        ((is_template_id &&
+          template_arg_list_is_dependent(template_arg_list)) ||
+         (ovl_context == oc_new_expression))) {
+      /* A call like f<T>(1), where the explicit template argument list
+         includes dependent arguments or a call to an allocation function
+         generated for a new-expression appearing in a template. */
       dependent_call = TRUE;
     }  /* if */
     if (dependent_call) {
@@ -9612,15 +9677,10 @@ and return NULL.  This routine is called only in C++ mode.
        scope.  Don't treat such specializations as instantiations. */
 in_instantiation:
     if (!do_arg_dep_lookup) {
-      /* Calls where argument-dependent lookup is turned off are
-         not recorded, but they're always considered non-dependent. */
-      dependent_call = FALSE;
-      if (force_dependent) {
-        /* The caller asked that the call be treated as dependent anyway.
-           This is used to emulate a g++ bug that treats certain nondependent
-           operator "new" calls as dependent. */
-        dependent_call = TRUE;
-      }  /* if */
+      /* Calls where argument-dependent lookup is turned off are not recorded,
+         but they're usually considered non-dependent.  An exception is the
+         call to an allocation function for a new-expression. */
+      dependent_call = (ovl_context == oc_new_expression);
     } else if (overloaded_function_symbol != NULL) {
       a_nondependent_call_info_ptr ndcall_info;
       ndcall_info = get_nondependent_call_info(paren_tok_seq_number,
@@ -9636,7 +9696,7 @@ in_instantiation:
         if (template_arg_list != NULL) {
           /* Evaluate the template argument list anyway to get references
              recorded.  E.g., in f<x>(y) we'd like to record the reference to
-             x even though we already have the symbol the right f. */
+             x even though we already have the right symbol for f. */
           evaluate_unused_template_arguments(overloaded_function_symbol,
                                              template_arg_list,
                                              call_position);
@@ -9705,11 +9765,11 @@ in_instantiation:
                                     /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     dependent_call,
-                                    force_dependent,
                                     /*ignore_templates=*/FALSE,
                                     known_to_be_visible,
                                     /*is_overloaded_operator=*/FALSE,
                                     conv_context,
+                                    ovl_context,
                                     &candidate_functions,
                                     &inaccessible_match,
                                     &matched_except_for_missing_selector,
@@ -9807,11 +9867,11 @@ in_instantiation:
                                                 function_symbol !=
                                                 normal_lookup_function_symbol),
                                       dependent_call,
-                                      force_dependent,
                                       /*ignore_templates=*/FALSE,
                                       /*known_to_be_visible=*/FALSE,
                                       /*is_overloaded_operator=*/FALSE,
                                       conv_context,
+                                      ovl_context,
                                       &candidate_functions,
                                       &inaccessible_match,
                                       &matched_except_for_missing_selector,
@@ -9875,14 +9935,14 @@ in_instantiation:
         enter_undefined_symbol(overloaded_function_symbol);
       }  /* if */
       if (expr_error_should_be_issued()) {
-        pos_st_error(err_undefined_identifier, call_position,
+        pos_st_error(default_undefined_code[(int)ovl_context], call_position,
                      overloaded_function_symbol->header->identifier);
       }  /* if */
     } else if (use_pure_arg_dep_lookup) {
       /* No functions were found with "pure" argument-dependent lookup;
          don't enter the function symbol (a dummy) into the symbol table. */
       if (expr_error_should_be_issued()) {
-        pos_st_error(err_undefined_identifier, call_position,
+        pos_st_error(default_undefined_code[(int)ovl_context], call_position,
                      overloaded_function_symbol->header->identifier);
       }  /* if */
     } else if (overloaded_function_symbol == NULL) {
@@ -9902,7 +9962,9 @@ in_instantiation:
     } else {
       /* Normal case. */
       a_type_ptr object_type;
+      an_error_code  err_none_applies;
 normal_no_function_matches:
+      err_none_applies = default_none_applies_code[(int)ovl_context];
       object_type = NULL;
       if (bound_function_selector != NULL) {
         object_type = bound_function_selector->type;
@@ -9985,8 +10047,8 @@ normal_no_function_matches:
         /* Normal case (not a class call). */
         check_assertion(overloaded_function_symbol != NULL);
         if (expr_error_should_be_issued()) {
-          dp = pos_sy_start_error(err_ambiguous, call_position,
-                             overloaded_function_symbol);
+          dp = pos_sy_start_error(default_ambiguous_code[(int)ovl_context],
+                                  call_position, overloaded_function_symbol);
         }  /* if */
       }  /* if */
       if (expr_error_should_be_issued()) {
@@ -13448,9 +13510,7 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            a_boolean               try_surrogate_functions,
                            a_boolean               is_property,
                            a_boolean               compiler_generated,
-                           an_error_code           err_none_applies,
-                           an_error_code           err_ambiguous,
-                           an_error_code           err_undefined_identifier,
+                           an_overload_context     ovl_context,
                            an_operand              *orig_function_operand,
                            a_source_position       *call_position,
                            a_token_sequence_number paren_tok_seq_number,
@@ -13459,64 +13519,56 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            an_operand              *function_operand,
                            an_expr_node_ptr        *arg_expr_list)
 /*
-Determine which of the functions under overloaded_function_symbol
-should be called given an argument list arg_list.  The symbol may be
-an overloaded function, a simple member or nonmember function, or a
-projection symbol for one of those.  is_template_id is TRUE if the
-symbol has an associated explicit template argument list; if so,
-template_arg_list gives the argument list.  If have_selector is TRUE,
-*bound_function_selector is a selector object.  Note that, for
-constructor calls, bound_function_selector can be NULL when
-have_selector is TRUE; we have a selector, but it's not available.
-That's okay for constructors, because they cannot be const- or
-volatile-qualified, and the selector expression is only needed for
-that discrimination.  If have_selector is FALSE,
-bound_function_selector must still point at an operand that can be
+Determine which of the functions under overloaded_function_symbol should be
+called given an argument list arg_list.  The symbol may be an overloaded
+function, a simple member or nonmember function, or a projection symbol for one
+of those.  is_template_id is TRUE if the symbol has an associated explicit
+template argument list; if so, template_arg_list gives the argument list.  If
+have_selector is TRUE, *bound_function_selector is a selector object.  Note
+that, for constructor calls, bound_function_selector can be NULL when
+have_selector is TRUE; we have a selector, but it's not available.  That's okay
+for constructors, because they cannot be const- or volatile-qualified, and the
+selector expression is only needed for that discrimination.  If have_selector
+is FALSE, bound_function_selector must still point at an operand that can be
 filled in if an implicit selector is generated.
-bound_function_selector->selector_is_object_pointer is TRUE if the
-selector is an object pointer, FALSE if it is an object.
-orig_function_operand, if non-NULL, gives the operand that has been
-used to hold the overloaded function name reference so far, which is
-used to provide some additional information (e.g., source positions,
-whether the name is qualified).  orig_function_operand must not be the
-same operand as function_operand.  If orig_function_operand is NULL
-(e.g., for a property reference), call_position provides a position
-for the call.  If both orig_function_operand and call_position are
-supplied, call_position is assumed to be a better position for the
-call.  If an error of some sort is detected, issue an error at
-the indicated position and return FALSE.  err_none_applies is the error
-code to use when no function applies, and err_ambiguous is the error
-code to use when more than one function applies.  err_undefined_identifier
-is the error code to use when the symbol is undefined and no function applies.
-If there is no error, an operand for the function is built in
-*function_operand, an expression-form argument list is built and returned in
-*arg_expr_list (with the arguments cast to the proper types), and TRUE
-is returned.  do_arg_dep_lookup is TRUE if argument-dependent lookup
-should be done; if it is TRUE, overloaded_function_symbol may be an
-sk_undefined symbol, indicating that nothing was found on a normal id
-lookup of the function name.  When use_pure_arg_dep_lookup is TRUE,
-only argument-dependent lookup is used (and overloaded_function_symbol
-must be an sk_undefined symbol whose symbol header is used to identify
-the function being looked up).  When using argument-dependent lookup,
-use_std_for_arg_dep_lookup can be set to TRUE to add the std namespace
-as an associated namespace for the lookup (e.g., for range-based-for).
-try_surrogate_functions is TRUE if surrogate functions should be
-tried; that means looking for conversion functions from the selector
-object to pointers to function type.  overloaded_function_symbol can
-be NULL in that case.  is_property is TRUE if this call results from
-the expansion of a Microsoft property reference.  compiler_generated
-is TRUE if the function reference is compiler-generated.
-paren_tok_seq_number is the token sequence number of the opening
-parenthesis of the argument list, but it's required only when
-do_arg_dep_lookup is TRUE; it can be zero otherwise.
-closing_paren_position is the position of the closing parenthesis in
-the call; it is used only when do_arg_dep_lookup is TRUE.  If the call
-is dependent, and the function to be called cannot be determined, set
-*function_operand to an operand for an unknown function of the right
-name, and return TRUE.  If found_through_adl is non-NULL and the
-callee was found only through ADL, *found_through_adl is returned
-TRUE.  This routine is called only in C++ mode.  arg_list is not freed
-by this routine.
+bound_function_selector->selector_is_object_pointer is TRUE if the selector is
+an object pointer, FALSE if it is an object.  orig_function_operand, if
+non-NULL, gives the operand that has been used to hold the overloaded function
+name reference so far, which is used to provide some additional information
+(e.g., source positions, whether the name is qualified).  orig_function_operand
+must not be the same operand as function_operand.  If orig_function_operand is
+NULL (e.g., for a property reference), call_position provides a position for
+the call.  If both orig_function_operand and call_position are supplied,
+call_position is assumed to be a better position for the call.  If an error of
+some sort is detected, issue an error at the indicated position and return
+FALSE.  ovl_context describes the the kind of construct that requires overload
+resolution (which, e.g., influences the diagnostic wording in error cases.  If
+there is no error, an operand for the function is built in *function_operand,
+an expression-form argument list is built and returned in *arg_expr_list (with
+the arguments cast to the proper types), and TRUE is returned.
+do_arg_dep_lookup is TRUE if argument-dependent lookup should be done; if it is
+TRUE, overloaded_function_symbol may be an sk_undefined symbol, indicating that
+nothing was found on a normal id lookup of the function name.  When
+use_pure_arg_dep_lookup is TRUE, only argument-dependent lookup is used (and
+overloaded_function_symbol must be an sk_undefined symbol whose symbol header
+is used to identify the function being looked up).  When using
+argument-dependent lookup, use_std_for_arg_dep_lookup can be set to TRUE to add
+the std namespace as an associated namespace for the lookup (e.g., for
+range-based-for).  try_surrogate_functions is TRUE if surrogate functions
+should be tried; that means looking for conversion functions from the selector
+object to pointers to function type.  overloaded_function_symbol can be NULL in
+that case.  is_property is TRUE if this call results from the expansion of a
+Microsoft property reference.  compiler_generated is TRUE if the function
+reference is compiler-generated.  paren_tok_seq_number is the token sequence
+number of the opening parenthesis of the argument list, but it's required only
+when do_arg_dep_lookup is TRUE; it can be zero otherwise.
+closing_paren_position is the position of the closing parenthesis in the call;
+it is used only when do_arg_dep_lookup is TRUE.  If the call is dependent, and
+the function to be called cannot be determined, set *function_operand to an
+operand for an unknown function of the right name, and return TRUE.  If
+found_through_adl is non-NULL and the callee was found only through ADL,
+*found_through_adl is returned TRUE.  This routine is called only in C++ mode.
+arg_list is not freed by this routine.
 */
 {
   a_boolean                okay = FALSE;
@@ -13557,9 +13609,7 @@ by this routine.
                                        use_pure_arg_dep_lookup,
                                        use_std_for_arg_dep_lookup,
                                        /*force_dependent=*/FALSE,
-                                       err_none_applies,
-                                       err_ambiguous,
-                                       err_undefined_identifier,
+                                       ovl_context,
                                        call_position,
                                        paren_tok_seq_number,
                                        &single_function,
@@ -17015,11 +17065,10 @@ operand when initializer lists are enabled.
                                          /*arg_dep_lookup_done=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          /*dependent_call=*/FALSE,
-                                         /*forced_dependent=*/FALSE,
                                          /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT,
+                                         CCO_DEFAULT, oc_default,
                                          &candidate_functions,
                                          &inaccessible_match,
                                          &matched_except_for_missing_selector,
@@ -17068,11 +17117,10 @@ operand when initializer lists are enabled.
                                          /*arg_dep_lookup_done=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
-                                         /*forced_dependent=*/FALSE,
                                          /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT,
+                                         CCO_DEFAULT, oc_default,
                                          &candidate_functions,
                                          &inaccessible_match,
                                          &matched_except_for_missing_selector,
@@ -17097,11 +17145,10 @@ operand when initializer lists are enabled.
                                          /*arg_dep_lookup_done=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
-                                         /*forced_dependent=*/FALSE,
                                          /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT,
+                                         CCO_DEFAULT, oc_default,
                                          &candidate_functions,
                                          &inaccessible_match,
                                          &matched_except_for_missing_selector,
@@ -17142,11 +17189,10 @@ operand when initializer lists are enabled.
                                          /*arg_dep_lookup_done=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
-                                         /*forced_dependent=*/FALSE,
                                          /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT,
+                                         CCO_DEFAULT, oc_default,
                                          &candidate_functions,
                                          &inaccessible_match,
                                          &matched_except_for_missing_selector,
@@ -17246,11 +17292,10 @@ operand when initializer lists are enabled.
                                                   nonmember_functions_symbol !=
                                                   normal_sym),
                                          dependent_call,
-                                         /*forced_dependent=*/FALSE,
                                          /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/FALSE,
                                          /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT,
+                                         CCO_DEFAULT, oc_default,
                                          &candidate_functions,
                                          &inaccessible_match,
                                          &matched_except_for_missing_selector,
@@ -18037,11 +18082,10 @@ error.  conv_context describes the context of the conversion.
                                     /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
-                                    /*forced_dependent=*/FALSE,
                                     /*ignore_templates=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
                                     /*is_overloaded_operator=*/FALSE,
-                                    conv_context,
+                                    conv_context, oc_default,
                                     &candidate_functions,
                                     /*inaccessible_match=*/(a_symbol **)NULL,
                                     &matched_except_for_missing_selector,
@@ -25727,11 +25771,10 @@ find_default_constructor.
                                   /*arg_dep_lookup_done=*/FALSE,
                                   /*from_arg_dep_lookup=*/FALSE,
                                   /*dependent_call=*/FALSE,
-                                  /*forced_dependent=*/FALSE,
                                   /*ignore_templates=*/!include_templates,
                                   /*known_to_be_visible=*/FALSE,
                                   /*is_overloaded_operator=*/FALSE,
-                                  CCO_DEFAULT,
+                                  CCO_DEFAULT, oc_default,
                                   &candidate_functions,
                                   inaccessible_match,
                                   &matched_except_for_missing_selector,
@@ -26534,9 +26577,7 @@ TRUE and FALSE is returned.
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
                                         /*force_dependent=*/FALSE,
-                                        ec_no_matching_constructor,
-                                        ec_ambiguous_constructor,
-                                        ec_undefined_identifier,
+                                        oc_ctad,
                                         source_pos,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
