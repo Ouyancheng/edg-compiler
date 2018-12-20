@@ -1,5 +1,14 @@
 Version 5.1
 
+12/20/18 [EDGcpfe/20634]
+Abort in find_innermost_namespace_scope_depth
+
+In configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE, the front end could abort in find_innermost_namespace_scope_depth
+when dealing with an instance of a class template triggered during the
+instantiation of a local polymorphic lambda.  That is now fixed.
+
+
 12/20/18 [EDGcpfe/19989]
 Lookup of allocation functions in new-expressions
 
