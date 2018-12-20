@@ -1911,7 +1911,7 @@ Return TRUE if the given type is trivially copyable.
           !(tp->variant.class_struct_union.any_volatile_member &&
             microsoft_mode)) {
         a_symbol_ptr  sym;
-        a_boolean     is_list;
+        a_boolean     is_list, has_trivial_copy_function = FALSE;
         result = TRUE;
         /* Check for nontrivial copy/move constructors.  We already checked
            that none are user-provided, so we can just check the compiler-
@@ -1930,6 +1930,15 @@ Return TRUE if the given type is trivially copyable.
           if (symbol_is(sym, sk_function_template)) continue;
           check_assertion(symbol_is(sym, sk_member_function));
           rp = sym->variant.routine.ptr;
+          if (rp->is_trivial_copy_function) {
+            /* Having a trivial copy function is necessary (but not sufficient)
+               to make the type trivially copyable. */
+            has_trivial_copy_function = TRUE;
+            continue;
+          } else if (rp->is_deleted) {
+            /* Deleted copy functions don't make affect trivial copyability. */
+            continue;
+          }  /* if */
           ptp = function_type_params(rp->type);
           one_param = ptp != NULL && ptp->next == NULL;
           /* A generated constructor with one parameter that is not an
@@ -1966,6 +1975,13 @@ Return TRUE if the given type is trivially copyable.
             check_assertion(symbol_is(fund_sym, sk_member_function)); 
             rp = fund_sym->variant.routine.ptr;
             if (rp->is_trivial_copy_function) {
+              /* Having a trivial copy function is necessary (but not
+                 sufficient) to make the type trivially copyable. */
+              has_trivial_copy_function = TRUE;
+              continue;
+            } else if (rp->is_deleted) {
+              /* Deleted copy functions don't make affect trivial
+                 copyability. */
               continue;
             } else if (rp->compiler_generated ||
                        routine_is_copy_or_move_assign_operator(
@@ -1974,6 +1990,9 @@ Return TRUE if the given type is trivially copyable.
               break;
             }  /* if */
           }  /* for */
+        }  /* if */
+        if (!has_trivial_copy_function) {
+          result = FALSE;
         }  /* if */
       } else {
         result = FALSE;
