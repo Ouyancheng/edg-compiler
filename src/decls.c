@@ -2047,13 +2047,15 @@ i.e., esp->arg_cached cannot be TRUE).
 }  /* is_template_dependent_noexcept_specification */
 
 
-void check_exception_specification(a_type_ptr         new_rout_type,
+a_boolean check_exception_specification(a_type_ptr         new_rout_type,
                                    a_symbol_ptr       prev_decl,
                                    a_source_position  *throw_pos,
                                    a_boolean          is_redecl)
 /*
 Check that the throw specification on the current declaration, if any, is
-consistent with that of the previous declaration.
+consistent with that of the previous declaration.  Return TRUE if there are
+any differences in the exception specification between the current and the
+previous declaration.
 */
 {
   a_boolean                       any_difference_seen = FALSE;
@@ -2266,6 +2268,7 @@ consistent with that of the previous declaration.
   }  /* if */
 done:
   db_exit();
+  return any_difference_seen;
 }  /* check_exception_specification */
 
 
@@ -4555,7 +4558,7 @@ created; the caller must set it.
             ext_sym->variant.extern_symbol_descr->variant.routine.ptr = NULL;
           } else {
             /* Do compatibility checking on the throw specification. */
-            check_exception_specification(type_ptr, rout_sym,
+            (void)check_exception_specification(type_ptr, rout_sym,
                                           &func_info->throw_position,
                                           /*is_redecl=*/TRUE);
           }  /* if */
@@ -6552,8 +6555,9 @@ emit an error.
                      is_function_type(type_pointed_to(dps->type))) ||
                     (is_ptr_to_member_type(dps->type) &&
                      is_function_type(pm_member_type(dps->type))))) {
-    check_exception_specification(dps->type, dps->sym, &dps->declarator_pos,
-                                  /*is_redecl=*/TRUE);
+    (void)check_exception_specification(dps->type, dps->sym,
+                                        &dps->declarator_pos,
+                                        /*is_redecl=*/TRUE);
   }  /* if */
   /* Check for type incompatibility.  In GNU mode, calling conventions are not
      checked at this time because the corresponding attributes have not been
@@ -8916,7 +8920,7 @@ for use in generating cross-reference output describing this declaration.
               }  /* if */
             }  /* if */
             /* Do compatibility checking on the throw specification. */
-            check_exception_specification(type_ptr, linked_symbol,
+            (void)check_exception_specification(type_ptr, linked_symbol,
                                           &func_info->throw_position,
                                           /*is_redecl=*/TRUE);
           }  /* if */
@@ -9232,7 +9236,7 @@ for use in generating cross-reference output describing this declaration.
         *old_type = routine_ptr->type;
         if (C_dialect == C_dialect_cplusplus) {
           /* Do compatibility checking on the throw specification. */
-          check_exception_specification(type_ptr, linked_symbol,
+          (void)check_exception_specification(type_ptr, linked_symbol,
                                         &func_info->throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
@@ -9292,7 +9296,7 @@ for use in generating cross-reference output describing this declaration.
         check_for_any_default_args(type_ptr);
       }  /* if */
       /* Do compatibility checking on the throw specification. */
-      check_exception_specification(type_ptr, linked_symbol,
+      (void)check_exception_specification(type_ptr, linked_symbol,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
       if (!is_friend_decl && !is_error_locator(*locator)) {
@@ -9424,7 +9428,7 @@ skip_overloading:;
     reconcile_routine_types(routine_ptr, type_ptr, /*preserve_rout_type=*/TRUE,
                             /*preserve_type_ptr=*/FALSE, dps);
     /* Do compatibility checking for the exception specification. */
-    check_exception_specification(type_ptr, linked_symbol,
+    (void)check_exception_specification(type_ptr, linked_symbol,
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
   } else if (routine_ptr == NULL) {
@@ -10216,7 +10220,7 @@ definition of a member function of a class template.
                                    tssp->variant.function.routine, &type_ptr);
         }  /* if */
         proto_instantiate_exception_spec_redecl(decl_state, sym);
-        check_exception_specification(type_ptr, sym,
+        (void)check_exception_specification(type_ptr, sym,
                                       &func_info->throw_position,
                                       /*is_redecl=*/TRUE);
         adjust_member_routine_type(type_ptr, prev_type);
@@ -10486,7 +10490,7 @@ definition of a member function of a class template.
          on the previous declaration.  This must be done prior to adjusting
          the member function's type. */
       proto_instantiate_exception_spec_redecl(decl_state, sym);
-      check_exception_specification(type_ptr, sym,
+      (void)check_exception_specification(type_ptr, sym,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
       /* Merge type information from the two declarations. */
@@ -10923,7 +10927,8 @@ the reconciliation process.
              (is_ptr_to_member_type(type_ptr) &&
               is_function_type(pm_member_type(type_ptr)))) {
     /* Check for mismatches in exception specifications. */
-    check_exception_specification(type_ptr, sym, err_pos, /*is_redecl=*/TRUE);
+    (void)check_exception_specification(type_ptr, sym, err_pos,
+                                        /*is_redecl=*/TRUE);
   }  /* if */
   if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS

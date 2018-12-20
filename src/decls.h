@@ -1565,10 +1565,10 @@ void check_constituent_types_have_linkage(a_symbol_ptr      sym,
                                           a_source_position *error_pos,
                                           a_boolean         is_declaration);
 
-extern void check_exception_specification(a_type_ptr         new_rout_type,
-                                          a_symbol_ptr       prev_decl,
-                                          a_source_position  *throw_pos,
-                                          a_boolean          is_redecl);
+extern a_boolean check_exception_specification(a_type_ptr        new_rout_type,
+                                              a_symbol_ptr       prev_decl,
+                                              a_source_position  *throw_pos,
+                                              a_boolean          is_redecl);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_type_ptr update_routine_declared_type(a_type_ptr  rout_type,
@@ -1615,7 +1615,7 @@ extern void decl_function_template(a_symbol_locator            *locator,
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos,
-				a_boolean	    is_function_try_block);
+                                a_boolean           is_function_try_block);
 
 extern an_asm_entry_ptr asm_declaration(a_boolean         asm_decl_allowed,
                                         a_boolean         is_asm_statement,
@@ -1630,14 +1630,14 @@ extern a_variable_ptr check_condition_declaration(a_decl_parse_state  *dps);
 extern void static_assert_declaration(a_boolean  leave_semicolon);
 
 extern void add_to_inline_namespace_list(a_scope_stack_entry_ptr	ssep,
-					 a_using_decl_ptr		udp);
+                                         a_using_decl_ptr		udp);
 
 extern void make_using_directive(a_namespace_ptr    nsp,
-				 a_scope_depth	    depth,
+                                 a_scope_depth	    depth,
                                  a_source_position  *pos,
-		   	         a_boolean	    compiler_generated,
-				 a_boolean	    inline_namespace,
-				 an_attribute_ptr   attributes); 
+                                 a_boolean	    compiler_generated,
+                                 a_boolean	    inline_namespace,
+                                 an_attribute_ptr   attributes);
 
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED

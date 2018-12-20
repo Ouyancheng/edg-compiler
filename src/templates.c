@@ -25862,7 +25862,7 @@ supplement for this template should be returned to the caller.
           is_function_type(pm_member_type(type)))) {
       /* Check that any exception specifications match with those declared
          in the class. */
-      check_exception_specification(type, sym, &locator->source_position,
+      (void)check_exception_specification(type, sym, &locator->source_position,
                                     /*is_redecl=*/TRUE);
     }  /* if */
     /* A storage class of sc_unspecified means "no storage class explicitly
@@ -29814,8 +29814,9 @@ that follows.
              not match that of the template.  (GNU C++ compilers do not perform
              this check. */
           instantiate_exception_spec_if_needed(sym);
-          check_exception_specification(
-               dps->type, sym, &func_info.throw_position, /*is_redecl=*/FALSE);
+          (void)check_exception_specification(dps->type, sym,
+                                              &func_info.throw_position,
+                                              /*is_redecl=*/FALSE);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
@@ -36951,9 +36952,9 @@ instantiation.
         if (state.type->variant.routine.extra_info->exception_specification !=
                                                                        NULL) {
           instantiate_exception_spec_if_needed(new_sym);
-          check_exception_specification(state.type, new_sym,
-                                        &func_info.throw_position,
-                                        /*is_redecl=*/TRUE);
+          (void)check_exception_specification(state.type, new_sym,
+                                              &func_info.throw_position,
+                                              /*is_redecl=*/TRUE);
         }  /* if */
         /* Apply any attributes if appropriate. */
         attach_decl_attributes(&state, /*primary_decl=*/FALSE);

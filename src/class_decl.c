@@ -1469,7 +1469,7 @@ list and free that list.
           update_routine_type_exception_specification_if_needed(
                                                          rp, &pecp->new_type);
         }  /* if */
-        check_exception_specification(pecp->new_type, pecp->sym,
+        (void)check_exception_specification(pecp->new_type, pecp->sym,
                                       &pecp->diag_pos, /*is_redecl=*/TRUE);
       }  /* if */
       *p_pecp = pecp->next;

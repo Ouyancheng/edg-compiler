@@ -1776,6 +1776,7 @@ member declaration (allowed in some Microsoft modes only).
                                                   locator->is_class_member &&
                                                   curr_token == tok_semicolon;
   a_source_position    orig_pos = null_source_position, saved_pos;
+  a_boolean            any_diff_in_except_spec = FALSE;
 
   db_enter(3, "define_member_function");
   if (!is_member_function_symbol(sym)) {
@@ -2088,8 +2089,9 @@ member declaration (allowed in some Microsoft modes only).
       }  /* if */
     }  /* if */
     /* Do compatibility checking on the throw specification. */
-    check_exception_specification(rout_type, sym, &func_info->throw_position,
-                                  /*is_redecl=*/TRUE);
+    any_diff_in_except_spec = check_exception_specification(rout_type, sym,
+                                                    &func_info->throw_position,
+                                                    /*is_redecl=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Record the default arguments of the current declaration before
        reconcile_routine_types is called. */
@@ -2114,62 +2116,65 @@ member declaration (allowed in some Microsoft modes only).
     }  /* if */
 #endif /* CHECKING */
     rp = sym->variant.routine.ptr;
-    /* Ordinarily, the current declaration is the definition, and
-       reconcile_routine_types should therefore preserve the new type.
-       However, for Microsoft out-of-class redeclarations this isn't an actual
-       definition.  Furthermore, such out-of-class redeclarations may appear
-       in local scopes, including the scope of the function itself:
-            struct S { void f(int i); };
-            void S::f(int i) { void S::f(int i); }
-       Changing the type of the function while it is being defined would lead
-       to subtle errors later on.  So the original type is preserved in that
-       case. */
-    reconcile_routine_types(
-                        rp, type_ptr,
-                        /*preserve_rout_type=*/microsoft_out_of_class_redecl,
-                        /*preserve_type_ptr=*/!microsoft_out_of_class_redecl,
-                        dps);
-    if (special_kind_is(rp, sfk_constructor)) {
-      /* If the routine is a default constructor or a copy constructor, it may
-         be that this has not yet been recorded in the symbol.  (This becomes
-         possible if there are default arguments in the definition.) */
-      a_class_symbol_supplement_ptr  cssp;
-      cssp = class_symbol_supp(symbol_for(class_type));
-      if (!cssp->has_nontrivial_default_constructor &&
-          is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
-        /* This is a default constructor, so set the flag. */
-        cssp->has_nontrivial_default_constructor = TRUE;
-        if (cpp14_mode) {
-          /* The resolution of Core issue 1344 makes it invalid to produce a
-             special member by adding default arguments to an out-of-class
-             definition. */
-          pos_error(ec_member_special_after_class_definition,
-                    &locator->source_position);
-        }  /* if */
-      }  /* if */
-      if (!cssp->has_copy_constructor_for_const_object ||
-          cssp->construction_by_bitwise_copy_allowed) {
-        /* There are three flags associated with copy constructors. */
-        a_type_qualifier_set  qualifiers;
-        if (is_copy_constructor(rp, class_type, &qualifiers,
-                                /*include_move_ctors=*/TRUE,
-                                /*is_declarative_context=*/FALSE)) {
-          /* This is a copy constructor.  Note that the presence of a user-
-             defined copy constructor means that construction by bitwise
-             copying is not done. */
-          cssp->has_copy_constructor = TRUE;
-          cssp->has_copy_constructor_for_const_object =
-                                            ((qualifiers & TQ_CONST) != 0);
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
-          if (cpp14_mode &&
-              !is_copy_constructor_type(*old_type, class_type, &qualifiers,
-                                        /*include_move_ctors=*/TRUE,
-                                        /*is_declarative_context=*/FALSE)) {
+    if (!any_diff_in_except_spec) {
+      /* Ordinarily, the current declaration is the definition, and
+         reconcile_routine_types should therefore preserve the new type.
+         However, for Microsoft out-of-class redeclarations this isn't an
+         actual definition.  Furthermore, such out-of-class redeclarations may
+         appear in local scopes, including the scope of the function itself:
+              struct S { void f(int i); };
+              void S::f(int i) { void S::f(int i); }
+         Changing the type of the function while it is being defined would lead
+         to subtle errors later on.  So the original type is preserved in that
+         case. */
+      reconcile_routine_types(
+                          rp, type_ptr,
+                          /*preserve_rout_type=*/microsoft_out_of_class_redecl,
+                          /*preserve_type_ptr=*/!microsoft_out_of_class_redecl,
+                          dps);
+      if (special_kind_is(rp, sfk_constructor)) {
+        /* If the routine is a default constructor or a copy constructor, it
+           may be that this has not yet been recorded in the symbol.  (This
+           becomes possible if there are default arguments in the
+           definition.) */
+        a_class_symbol_supplement_ptr  cssp;
+        cssp = class_symbol_supp(symbol_for(class_type));
+        if (!cssp->has_nontrivial_default_constructor &&
+            is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+          /* This is a default constructor, so set the flag. */
+          cssp->has_nontrivial_default_constructor = TRUE;
+          if (cpp14_mode) {
             /* The resolution of Core issue 1344 makes it invalid to produce a
                special member by adding default arguments to an out-of-class
                definition. */
             pos_error(ec_member_special_after_class_definition,
                       &locator->source_position);
+          }  /* if */
+        }  /* if */
+        if (!cssp->has_copy_constructor_for_const_object ||
+            cssp->construction_by_bitwise_copy_allowed) {
+          /* There are three flags associated with copy constructors. */
+          a_type_qualifier_set  qualifiers;
+          if (is_copy_constructor(rp, class_type, &qualifiers,
+                                  /*include_move_ctors=*/TRUE,
+                                  /*is_declarative_context=*/FALSE)) {
+            /* This is a copy constructor.  Note that the presence of a user-
+               defined copy constructor means that construction by bitwise
+               copying is not done. */
+            cssp->has_copy_constructor = TRUE;
+            cssp->has_copy_constructor_for_const_object =
+                                              ((qualifiers & TQ_CONST) != 0);
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
+            if (cpp14_mode &&
+                !is_copy_constructor_type(*old_type, class_type, &qualifiers,
+                                          /*include_move_ctors=*/TRUE,
+                                          /*is_declarative_context=*/FALSE)) {
+              /* The resolution of Core issue 1344 makes it invalid to produce
+                 a special member by adding default arguments to an
+                 out-of-class definition. */
+              pos_error(ec_member_special_after_class_definition,
+                        &locator->source_position);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
