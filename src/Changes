@@ -4,12 +4,11 @@ Version 5.1
 Unwanted warning about unreferenced member function of class template in 
 unnamed namespace
 
-Previously, the front end would issue warnings about unreferenced member 
-functions of a class template.  However, it is possible that the member 
-function has been referenced from a different template class 
-instantiation.  These warning were considered unwanted.  The front end now 
-issues a warning for a member function of a class template only if the 
-parent class isn't referenced.  For example:
+If a class template appears in an unnamed namespace, the front end 
+previously issued warnings about unreferenced member functions of 
+instances of that template. These warnings were considered unwanted.  The 
+front end now issues a warning for a member function of a class template 
+only if the parent class isn't referenced.  For example:
 
   namespace
   {

@@ -5927,7 +5927,7 @@ the outermost class was defined in an unnamed namespace.
           !parent_sym->referenced) {
         report_unreferenced(rout_sym, ec_declared_but_not_referenced,
                           es_warning);
-      }
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Check if this routine was declared using a type with no linkage.  The
