@@ -730,7 +730,6 @@ extern a_symbol_ptr select_overloaded_function(
                         a_boolean                do_arg_dep_lookup,
                         a_boolean                use_pure_arg_dep_lookup,
                         a_boolean                use_std_for_arg_dep_lookup,
-                        a_boolean                force_dependent,
                         an_overload_context      ovl_context,
                         a_source_position        *call_position,
                         a_token_sequence_number  paren_tok_seq_number,

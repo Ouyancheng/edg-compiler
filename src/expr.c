@@ -3307,7 +3307,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
-                                        /*force_dependent=*/FALSE,
                                         oc_constructor,
                                         source_pos,
                                         (a_token_sequence_number)0,
@@ -18742,7 +18741,6 @@ expression, and return the result in *result (or an error indication in
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
   a_boolean         template_case = FALSE, dependent_new_type = FALSE;
-  a_boolean         force_dependent = FALSE;
   a_boolean         deducible_new_type = FALSE;
   a_boolean         using_expr_cache = FALSE;
   a_boolean         empty_initializer;
@@ -19486,11 +19484,6 @@ expression, and return the result in *result (or an error indication in
       if (is_prototype_instantiation_context()) {
         /* During a prototype instantiation, suppress the lookup. */
         unknown_dependent_new = TRUE;
-      } else if (is_nonspecialized_instantiation_context()) {
-        /* During a real instantiation force the lookup to be treated as
-           dependent (when argument dependent lookup is not done, lookups
-           are usually treated as nondependent). */
-        force_dependent = TRUE;
       }  /* if */
     } else if (microsoft_mode && is_prototype_instantiation_context()) {
       /* Microsoft compilers do very limited processing of templates in
@@ -19593,7 +19586,6 @@ expression, and return the result in *result (or an error indication in
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
-                                        force_dependent,
                                         oc_new_expression,
                                         &new_position,
                                         (a_token_sequence_number)0,
@@ -19625,7 +19617,6 @@ expression, and return the result in *result (or an error indication in
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
-                                        force_dependent,
                                         oc_new_expression,
                                         &new_position,
                                         (a_token_sequence_number)0,
