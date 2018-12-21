@@ -1935,7 +1935,7 @@ Return TRUE if the given type is trivially copyable.
                to make the type trivially copyable. */
             has_trivial_copy_function = TRUE;
             continue;
-          } else if (rp->is_deleted) {
+          } else if (rp->is_deleted && !(clang_mode || microsoft_mode)) {
             /* Deleted copy functions don't affect trivial copyability. */
             continue;
           }  /* if */
@@ -1979,7 +1979,7 @@ Return TRUE if the given type is trivially copyable.
                  sufficient) to make the type trivially copyable. */
               has_trivial_copy_function = TRUE;
               continue;
-            } else if (rp->is_deleted) {
+            } else if (rp->is_deleted && !(clang_mode || microsoft_mode)) {
               /* Deleted copy functions don't affect trivial copyability. */
               continue;
             } else if (rp->compiler_generated ||
