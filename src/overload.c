@@ -9616,7 +9616,7 @@ This routine is called only in C++ mode.
     if (!dependent_call &&
         ((is_template_id &&
           template_arg_list_is_dependent(template_arg_list)) ||
-         (ovl_context == oc_new_expression))) {
+         (ovl_context == oc_new_expression && !scope_stack_top().is_rescan))) {
       /* A call like f<T>(1), where the explicit template argument list
          includes dependent arguments or a call to an allocation function
          generated for a new-expression appearing in a template. */
