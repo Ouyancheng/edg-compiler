@@ -168,7 +168,7 @@ typedef enum an_overload_context {
   oc_cppcx_for_each_bounds,   /* Calls generated to determine Microsoft C++/CX
                                  "for each" loop bounds. */
   oc_property_access,          /* See rewrite_property_reference. */
-  oc_event_access,             /* See rewrite_even_operator. */
+  oc_event_access,             /* See rewrite_event_operator. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   oc_synthesized_member_call,  /* See call_named_member_function. */
   oc_ctad,                     /* See deduce_class_template_args. */

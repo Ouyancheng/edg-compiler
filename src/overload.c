@@ -9495,7 +9495,7 @@ paren_tok_seq_number is the token sequence number of the opening parenthesis
 of the argument list, but it's required only when do_arg_dep_lookup is TRUE;
 it can be zero otherwise.  ovl_context describes the kind of construct that
 requires overload resolution (which, e.g., influences the diagnostic wording
-in error cases.  If an error of some sort is detected, issue an error at that
+in error cases).  If an error of some sort is detected, issue an error at that
 position and return NULL.  If there is no error, an argument match list is
 returned in *arg_match_list (the caller must free this) and the symbol
 selected is returned.  If single_function is non-NULL and the set of functions
@@ -13539,7 +13539,7 @@ the call.  If both orig_function_operand and call_position are supplied,
 call_position is assumed to be a better position for the call.  If an error of
 some sort is detected, issue an error at the indicated position and return
 FALSE.  ovl_context describes the kind of construct that requires overload
-resolution (which, e.g., influences the diagnostic wording in error cases.  If
+resolution (which, e.g., influences the diagnostic wording in error cases).  If
 there is no error, an operand for the function is built in *function_operand,
 an expression-form argument list is built and returned in *arg_expr_list (with
 the arguments cast to the proper types), and TRUE is returned.
