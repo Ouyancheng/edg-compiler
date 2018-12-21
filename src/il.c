@@ -21801,6 +21801,10 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
           might_throw = TRUE;
           if (is_pointer_type(ptr_type)) {
             func_type = f_skip_typerefs(type_pointed_to(ptr_type));
+          } else if (is_ptr_to_member_type(ptr_type)) {
+            func_type = f_skip_typerefs(pm_member_type(ptr_type));
+          }  /* if */
+          if (func_type != NULL) {
             if (is_function_type(func_type) &&
                 is_nothrow_type(func_type)) {
               might_throw = FALSE;

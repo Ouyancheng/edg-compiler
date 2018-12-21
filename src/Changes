@@ -1,5 +1,21 @@
 Version 5.1
 
+12/21/18 [EDGcpfe/20593]
+noexcept operator and pointer-to-member-function types
+
+Consider:
+
+  template<typename T> T&& val() noexcept;
+  struct S {};
+  using PMF = int (S::*)(int) noexcept;
+  static_assert(noexcept((val<X>().*val<PMF>())(42)));  // Previously failed.
+                                                        // Now okay.
+
+Previously, all calls through pointer-to-member-function types were treated
+as potentially throwing an exception, which caused the example above to trigger
+a spurious error.  That is now fixed.
+
+
 12/20/18 [EDGcpfe/20602]
 Trivial copyability and deleted copy-assignment operator
 
