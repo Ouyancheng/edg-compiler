@@ -8,7 +8,7 @@ Consider:
   template<typename T> T&& val() noexcept;
   struct S {};
   using PMF = int (S::*)(int) noexcept;
-  static_assert(noexcept((val<X>().*val<PMF>())(42)));  // Previously failed.
+  static_assert(noexcept((val<S>().*val<PMF>())(42)));  // Previously failed.
                                                         // Now okay.
 
 Previously, all calls through pointer-to-member-function types were treated
