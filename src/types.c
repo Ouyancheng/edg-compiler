@@ -1936,7 +1936,7 @@ Return TRUE if the given type is trivially copyable.
             has_trivial_copy_function = TRUE;
             continue;
           } else if (rp->is_deleted) {
-            /* Deleted copy functions don't make affect trivial copyability. */
+            /* Deleted copy functions don't affect trivial copyability. */
             continue;
           }  /* if */
           ptp = function_type_params(rp->type);
@@ -1980,8 +1980,7 @@ Return TRUE if the given type is trivially copyable.
               has_trivial_copy_function = TRUE;
               continue;
             } else if (rp->is_deleted) {
-              /* Deleted copy functions don't make affect trivial
-                 copyability. */
+              /* Deleted copy functions don't affect trivial copyability. */
               continue;
             } else if (rp->compiler_generated ||
                        routine_is_copy_or_move_assign_operator(
