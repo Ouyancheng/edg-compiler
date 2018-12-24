@@ -18027,7 +18027,7 @@ this one is such a continuation.
       var = ss_entry_ptr(sec_decl, a_variable_ptr);
     }  /* if */
     storage_class = sec_decl->declared_storage_class;
-    if (storage_class == (a_storage_class)sc_unspecified &&
+    if (!C_mode() && storage_class == (a_storage_class)sc_unspecified &&
         !var->source_corresp.is_class_member &&
         var_has_static_or_thread_storage_duration(var)) {
       /* We have a non-defining declaration of a variable with no explicit
@@ -18038,6 +18038,8 @@ this one is such a continuation.
          declaration into a definition.  The test for class membership
          excludes explicit specialization declarations of static data
          members of class templates, which cannot have a storage class
+         specifier.  The test for C_mode() allows for C's tentative
+         definitions, which require that there be no storage class
          specifier. */
       storage_class = (a_storage_class)sc_extern;
     }  /* if */

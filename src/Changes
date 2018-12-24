@@ -1,5 +1,23 @@
 Version 5.1
 
+12/24/18 [EDGcpfe/20640]
+C++-generating back end: Redeclarations and C-mode tentative definitions
+
+When compiling C code containing a tentative definition of a variable, the
+C++-generating back end put out subsequent tentative definitions with the
+"extern" storage class specifier.  In most translation units this change
+from tentative definition to non-defining declaration caused no problems.
+However, in a declaration containing both a redeclaration and a tentative
+definition of another variable, this transformation had the effect of
+removing the tentative definition of the second variable.  This is now
+fixed; the C++-generating back end no longer gratuitously adds "extern" in
+tentative definitions after the first.  For example, with --c99:
+
+  int a;
+  int a, b;  /* Previously generated as "extern a, b;", which inadvertently
+                eliminated the tentative definition of b. */
+
+
 12/21/18 [EDGcpfe/20593]
 noexcept operator and pointer-to-member-function types
 
