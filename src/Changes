@@ -1,5 +1,12 @@
 Version 5.1
 
+12/27/18  [EDGcpfe/20592]
+Microsoft compatibility: value of std_version with --ms_c++latest option
+
+A change has been made to set std_version to the appropriate value when the
+--ms_c++latest command-line options is specified.  
+
+
 12/24/18 [EDGcpfe/20640]
 C++-generating back end: Redeclarations and C-mode tentative definitions
 
