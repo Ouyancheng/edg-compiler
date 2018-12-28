@@ -1,5 +1,30 @@
 Version 5.1
 
+12/28/18 [EDGcpfe/20230]
+"if constexpr" not processed properly when not parsing non-class templates
+
+In modes where non-class templates are not parsed (e.g., permissive
+Microsoft mode), "if constexpr" statements in template contexts were
+sometimes not parsed properly.  Now fixed.
+
+  template <typename T> struct X {
+    int f() {
+      {
+        int i = 0;
+        if constexpr (true) {
+        } else if (i) {
+        } else {
+        }
+        return i;
+      }
+    }
+  };
+  int main() {
+    X<int> x;
+    x.f();
+  }
+
+
 12/27/18  [EDGcpfe/20592]
 Microsoft compatibility: value of std_version with --ms_c++latest option
 

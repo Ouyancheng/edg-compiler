@@ -14820,34 +14820,35 @@ If is_if is TRUE, this is an "if" statement with an "else", only flush to the
 semicolon or brace that ends the non-else part of the statement.
 */
 {
-  if (curr_token == tok_lbrace) {
-    flush_until_matching_token_full(/*limit_flush=*/FALSE);
+  /* Special handling is needed for nested "if" statements so that
+     substatements that are "else if" statements are handled properly. */
+  if (curr_token == tok_if) {
     (void)get_token();
+    flush_if_or_else_statement(/*is_if=*/TRUE);
+    if (curr_token == tok_else) {
+      (void)get_token();
+      flush_if_or_else_statement(/*is_if=*/FALSE);
+    }  /* if */
   } else {
-      /* Special handling is needed for nested "if" statements so that
-         substatements that are "else if" statements are handled properly. */
-    if (!is_if && curr_token == tok_if) {
-      (void)get_token();
-      flush_if_or_else_statement(/*is_if=*/TRUE);
-      (void)get_token();
-      if (curr_token == tok_else) {
-        flush_if_or_else_statement(/*is_if=*/FALSE);
-      }  /* if */
-    } else {
-      /* Initialize a local stop token set.  Also stop on newline and end
-         of source for error cases. */
-      a_token_set_array  stop_tokens;
-      clear_token_set_array(stop_tokens);
-      incr_token_set_array_element(stop_tokens, tok_end_of_source);
-      incr_token_set_array_element(stop_tokens, tok_rbrace);
-      incr_token_set_array_element(stop_tokens, tok_lbrace);
-      incr_token_set_array_element(stop_tokens, tok_semicolon);
+    /* Initialize a local stop token set.  Also stop on newline and end
+       of source for error cases. */
+    a_token_set_array  stop_tokens;
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_end_of_source);
+    incr_token_set_array_element(stop_tokens, tok_rbrace);
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    /* If we are not already at a left brace skip over tokens (e.g., of the
+       "if" expression) to find the end of the statement or a left brace. */
+    if (curr_token != tok_lbrace) {
       flush_tokens_with_stop_tokens_and_warning_flag(
                                        stop_tokens, /*suppress_warning=*/TRUE);
-      if (curr_token == tok_lbrace) {
-        flush_until_matching_token_full(/*limit_flush=*/FALSE);
-      }  /* if */
     }  /* if */
+    /* If we found a left brace, skip the compound statement. */
+    if (curr_token == tok_lbrace) {
+      flush_until_matching_token_full(/*limit_flush=*/FALSE);
+    }  /* if */
+    (void)get_token();
   }  /* if */
 }  /* flush_if_or_else_statement */
 
