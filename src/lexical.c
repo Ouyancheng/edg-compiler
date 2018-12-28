@@ -14813,21 +14813,20 @@ Flush tokens until we reach an unmatched right parenthesis or brace.
 }  /* flush_to_closing_paren */
 
 
-void flush_if_or_else_statement(a_boolean	is_if)
+void flush_if_or_else_statement(void)
 /*
 Flush tokens of a dependent statement of an "if" or "else" statement.
-If is_if is TRUE, this is an "if" statement with an "else", only flush to the
-semicolon or brace that ends the non-else part of the statement.
+The current token is the token after the "if" or "else" keyword.
 */
 {
   /* Special handling is needed for nested "if" statements so that
      substatements that are "else if" statements are handled properly. */
   if (curr_token == tok_if) {
     (void)get_token();
-    flush_if_or_else_statement(/*is_if=*/TRUE);
+    flush_if_or_else_statement();
     if (curr_token == tok_else) {
       (void)get_token();
-      flush_if_or_else_statement(/*is_if=*/FALSE);
+      flush_if_or_else_statement();
     }  /* if */
   } else {
     /* Initialize a local stop token set.  Also stop on newline and end

@@ -3581,7 +3581,7 @@ statement implicitly defines a local scope.
 }  /* dependent_statement */
 
 
-static void dependent_statement_of_if(a_boolean is_if)
+static void dependent_statement_of_if(void)
 /*
 Scan the dependent statement of an if, which could be a constexpr if.
 For the constexpr case, if the dependent statement is to be considered
@@ -3596,9 +3596,6 @@ saved during the prototype instantiation is used to skip over the discarded
 branch of the if, and this routine is not called for the discarded
 branch.  If nonclass prototype instantiations are not being done, then this
 routine is called to flush the tokens of the discarded branch.
-
-is_if is TRUE if this is the dependent statement of an "if" or FALSE if it
-is for an "else".
 */
 {
   a_struct_stmt_stack_entry_ptr	sssep;
@@ -3607,7 +3604,7 @@ is for an "else".
   /* In a template instantiation, skip the tokens if the statement is
      to be discarded, otherwise process it normally. */
   if (is_real_instantiation_context() && sssep->in_discarded_statement) {
-    flush_if_or_else_statement(is_if);
+    flush_if_or_else_statement();
     empty_statement();
   } else {
     dependent_statement();
@@ -4139,7 +4136,7 @@ statement sequence.  The syntax is:
     empty_statement();
   } else {
     add_stop_token(tok_else);
-    dependent_statement_of_if(/*is_if=*/TRUE);
+    dependent_statement_of_if();
     remove_stop_token(tok_else);
   }  /* if */
   /* Scan "else" and another statement if they appear. */
@@ -4180,7 +4177,7 @@ statement sequence.  The syntax is:
       empty_statement();
     } else {
       start_stmt_clause(sssep);
-      dependent_statement_of_if(/*is_if=*/FALSE);
+      dependent_statement_of_if();
     }  /* if */
     /* There should always be a non-NULL else-statement pointer. */
     check_assertion_str((is_constexpr_if
