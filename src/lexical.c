@@ -14847,7 +14847,7 @@ The current token is the token after the "if" or "else" keyword.
     if (curr_token == tok_lbrace) {
       flush_until_matching_token_full(/*limit_flush=*/FALSE);
     }  /* if */
-    (void)get_token();
+    if (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */
 }  /* flush_if_or_else_statement */
 
