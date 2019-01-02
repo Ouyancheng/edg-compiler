@@ -1,5 +1,22 @@
 Version 5.1
 
+1/2/19   [EDGcpfe/20645]
+C++20: "try"/"catch" in constexpr functions
+
+In C++20 mode, the front end now accepts "try"/"catch" constructs in constexpr
+functions (throwing an exception is still not permitted during the evaluation
+of a constant expression, however).  For example:
+
+  constexpr int f() {
+    try {                    // Now accepted in C++20 mode.
+      return 42;
+    } catch (...) {
+      return 0;
+    }
+  }
+  static_assert(f() == 42);  // Okay in C++20 mode.
+
+
 12/28/18 [EDGcpfe/20230]
 "if constexpr" not processed properly when not parsing non-class templates
 

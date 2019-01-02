@@ -563,6 +563,11 @@ EXTERN a_boolean
 			   feature) are enabled. */
 
 EXTERN a_boolean
+		constexpr_try_enabled;
+			/* TRUE if try block can be evaluated in constant
+			   expressions (a C++20 feature). */
+
+EXTERN a_boolean
 		constexpr_implies_const;
 			/* TRUE if a constexpr non-static member function
 			   should implicitly be considered "const".  This is

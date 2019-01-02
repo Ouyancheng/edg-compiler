@@ -3543,6 +3543,7 @@ default mode (e.g., exception handling).
       if (cpp20_mode) {
         conditional_explicit_enabled = TRUE;
         constexpr_virtual_enabled = TRUE;
+        constexpr_try_enabled = TRUE;
         consteval_enabled = TRUE;
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
@@ -11453,6 +11454,7 @@ variables declared in cmd_line.h.
   consteval_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
   constexpr_virtual_enabled = FALSE;
+  constexpr_try_enabled = FALSE;
   adl_for_non_visible_templates = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;

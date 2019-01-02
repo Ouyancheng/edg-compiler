@@ -6765,6 +6765,13 @@ successfully interpreted, FALSE otherwise.
         result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
       }
       break;
+    case stmk_try_block:
+      { a_block_ptr  block;
+        stmt = stmt->variant.try_block->statement;
+        block = stmt->variant.block.extra_info;
+        result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
+      }
+      break;
     case stmk_end_test_while:
       {
         a_host_large_integer  bool_val;
@@ -8266,13 +8273,10 @@ otherwise, return FALSE and update *ips accordingly.
                     result_storage, complete_object);
     /* Run the function's top-level block statement. */
     block_stmt = callee_scope->assoc_block;
-    if (block_stmt->kind != (a_statement_kind)stmk_block) {
-      check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
-      info_with_pos(ec_constexpr_try_block, &block_stmt->position, ips);
-      do_constexpr_fail(result);
-    } else {
-      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
+    if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
+      block_stmt = block_stmt->variant.try_block->statement;
     }  /* if */
+    result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     if (retval_offset != 0 && result) {
       /* A virtual call dispatching to an overriding function with a
          covariant return type.  The return value is an address that must
@@ -8734,11 +8738,10 @@ the body of the (constructor) function proper.
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
-    } else if (block_stmt->kind != (a_statement_kind)stmk_block) {
-      check_assertion(block_stmt->kind == (a_statement_kind)stmk_try_block);
-      info_with_pos(ec_constexpr_try_block, &block_stmt->position, ips);
-      unexpected_condition();
     } else {
+      if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
+        block_stmt = block_stmt->variant.try_block->statement;
+      }  /* if */
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
     /* Release any address structures, if needed. */

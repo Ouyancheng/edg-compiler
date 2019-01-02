@@ -7343,7 +7343,7 @@ rescan_statement:
       /* C++ try block. */
       try_block_statement((a_statement_ptr)NULL,
                           /*explicit_return_type=*/FALSE);
-      can_appear_in_constexpr_body = FALSE;
+      can_appear_in_constexpr_body = constexpr_try_enabled;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_microsoft_try:
@@ -8006,7 +8006,7 @@ function try block has to have been established first.
   stmt_update_source_sequence_list(sp);
   /* Do additional initialization generic to scanning a try statement. */
   start_of_try_block(sp);
-  if (rp->is_constexpr) {
+  if (rp->is_constexpr && !constexpr_try_enabled) {
     pos_error(special_kind_is(rp, sfk_constructor) ?
                             ec_constexpr_constructor_with_function_try_block :
                             ec_constexpr_function_with_function_try_block,
