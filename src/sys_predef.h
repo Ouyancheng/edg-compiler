@@ -239,7 +239,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 = {
   /* __builtin_launder is "magical" in that it implicitly produces a return
      type matching the argument type. */
-  { "__builtin_launder", "g+(80100-)mx(1914-)", "void* (void*)", bufk_launder },
+  { "__builtin_launder", "g+(70100-)mx(1914-)", "void* (void*)", bufk_launder },
 
   /* __builtin_choose_expr is available in all gcc modes. */
   { "__builtin_choose_expr", "gc", "int (...)", bufk_choose_expr },
