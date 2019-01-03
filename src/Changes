@@ -59,8 +59,8 @@ sometimes not parsed properly.  Now fixed.
 12/27/18  [EDGcpfe/20592]
 Microsoft compatibility: value of std_version with --ms_c++latest option
 
-A change has been made to set std_version to the appropriate value when the
---ms_c++latest command-line options is specified.  
+A change has been made to set _MSVC_LANG and __cplusplus macros to the 
+appropriate value when the --ms_c++latest command-line options is specified.  
 
 
 12/24/18 [EDGcpfe/20640]
