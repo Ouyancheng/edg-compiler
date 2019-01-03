@@ -9692,14 +9692,11 @@ static a_boolean do_constexpr_dynamic_cast(
                                        an_expr_node_ptr      expr,
                                        a_type_ptr            opnd_type,
                                        a_byte                *opnd_value,
-                                       a_byte                *result_storage,
-                                       a_byte                *complete_object)
+                                       a_byte                *result_storage)
 /*
 Evaluate the dynamic_cast operation represented by expr.  Its operand (of type
 opnd_type) has already been evaluated and the result of that evaluation is
-opnd_value.  Store the result at *result_storage (which is storage within the
-given complete object). 
-
+opnd_value.  Store the result at *result_storage.
 */
 {
   a_boolean  result = TRUE;
@@ -9776,9 +9773,11 @@ given complete object).
         }  /* for */
         if (base_casts_to_undo != NULL) {
           /* We successfully identified the subobject being cast to. */
-          a_constant_ptr        cp = local_constant();
-          a_subobject_path_ptr  path, *p_copy;
-          *cp = *addr_con;
+          a_constant_ptr        cp;
+          a_subobject_path_ptr  *p_copy;
+          cp = make_interpreter_copy_of_constant(ips, addr_con);
+          cp->type = pointer_case ? expr->type
+                                  : make_reference_type(expr->type);
           cp->variant.address.offset -= offset_to_undo;
           /* Copy the subobject path up until base_casts_to_undo. */
           path = cp->variant.address.subobject_path;
@@ -9790,9 +9789,6 @@ given complete object).
             p_copy = &(*p_copy)->next;
           }  /* while */
           *p_copy = NULL;
-          cp->type = expr->type;
-          cp->next = ips->constants;
-          ips->constants = cp;
           clear_runtime_constant_address(result_addr, cp);
         } else {
           /* We didn't find a subobject matching the destination type. */
@@ -9820,7 +9816,7 @@ given complete object).
         } else {
           /* Create a null pointer result. */
           clear_address(result_addr, (a_byte*)0);
-       }  /* if */
+        }  /* if */
       } else {
         unexpected_condition();
       }  /* if */
@@ -13683,7 +13679,7 @@ the value representation of the integer value.
           case eok_ref_dynamic_cast:
             result = do_constexpr_dynamic_cast(
                                            ips, expr, opnd1_type, opnd1_value,
-                                           result_storage, complete_object);
+                                           result_storage);
             break;
           case eok_call:
             /* Calls are handled separately.  We should not get here. */
