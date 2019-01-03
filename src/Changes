@@ -54,6 +54,9 @@ of a constant expression, however).  For example:
   }
   static_assert(f() == 42);  // Okay in C++20 mode.
 
+This feature was added to the working paper for the next standard by the
+standardization committee's paper P1002R1.
+
 
 12/28/18 [EDGcpfe/20230]
 "if constexpr" not processed properly when not parsing non-class templates
