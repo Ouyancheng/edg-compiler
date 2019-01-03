@@ -2249,7 +2249,7 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
-      ms_cpp14_mode = ms_cpp17_mode = ms_cpplatest_mode = TRUE;
+      ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = ms_cpplatest_mode = TRUE;
       if (microsoft_version < 1903) {
         command_line_error(ec_microsoft_version_doesnt_support_cpplatest_mode);
       }  /* if */
@@ -2713,14 +2713,18 @@ option values if they were not already set by a command line option.
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
           adl_for_non_visible_templates = TRUE;
-          msvc_lang = "202000L";
+          spaceship_enabled = TRUE;
+          rvalue_allowed_with_const_qual_memptr = TRUE;
           /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
              command-line options.  Note that internally most C++20 features
              are enabled via global variables, but for those that aren't, set
              std_version to the value for C++20. */
           std_version = 202000;
-          spaceship_enabled = TRUE;
-          rvalue_allowed_with_const_qual_memptr = TRUE;
+          if (ms_cpplatest_mode) {
+            msvc_lang = "201704L";
+          } else {
+            msvc_lang = "202000L";
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
