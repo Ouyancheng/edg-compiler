@@ -3446,7 +3446,8 @@ template arguments, since they cannot be named.
       case tak_nontype:
         con = argp->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_template_param &&
-            con->variant.template_param.kind == tpck_param &&
+            con->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_param &&
             con->source_corresp.name == NULL) {
           is_unnamed = TRUE;
         }  /* if */
