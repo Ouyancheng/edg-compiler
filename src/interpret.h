@@ -16,6 +16,8 @@ interpret.h -- Interface to IL interpreter for constexpr functions
 #ifndef INTERPRET_H
 #define INTERPRET_H 1
 
+a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con);
+
 a_boolean is_core_constant_expr(an_expr_node_ptr  expr,
                                 a_diag_list_ptr   diag_list);
 

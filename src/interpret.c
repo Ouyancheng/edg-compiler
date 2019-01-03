@@ -4740,7 +4740,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
-      if (con->variant.address.offset != 0 && con->expr != NULL) {
+      if (con->variant.address.subobject_path != NULL && con->expr != NULL) {
         /* To reconstruct the offset in interpreter storage, interpret the
            backing expression. */
         do_constexpr_full_expression(
@@ -9475,6 +9475,23 @@ is within the given complete_object.
 }  /* do_constexpr_lambda */
 
 
+a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con)
+/*
+Return a pointer to the last "link" pointer of the subobject path of con (which
+must be a ck_address entry).
+*/
+{
+  a_subobject_path_ptr  *p_link;
+
+  check_assertion(constant_is(con, ck_address));
+  p_link = &con->variant.address.subobject_path;
+  while (*p_link != NULL) {
+    p_link = &(*p_link)->next;
+  }  /* while */
+  return p_link;
+}  /* last_subobject_path_link */
+
+
 static a_boolean offset_runtime_address(an_interpreter_state  *ips,
                                         a_source_position     *diag_pos,
                                         a_constexpr_address   *cap,
@@ -9501,6 +9518,7 @@ for the given position and return FALSE.  Otherwise, return TRUE.
   if (ovflo) {
     /* Nothing more to do. */
   } else if (constant_is(addr_con, ck_address)) {
+    a_subobject_path_ptr  spp;
     set_integer_value(&tmp,
                       (a_host_large_integer)addr_con->variant.address.offset);
     if (subtract) {
@@ -9508,6 +9526,10 @@ for the given position and return FALSE.  Otherwise, return TRUE.
     } else {
       add_integer_values(&tmp, &delta, /*is_signed=*/TRUE, &ovflo);
     }  /* if */
+    spp = alloc_subobject_path();
+    spp->kind = (an_il_entry_kind)iek_constant;
+    spp->variant.ptr_offset += subtract ? -count : count;
+    *last_subobject_path_link(addr_con) = spp;
     if (!ovflo) {
       addr_con->variant.address.offset =
                       value_of_integer_value(&tmp, /*is_signed=*/TRUE, &ovflo);
@@ -9533,6 +9555,327 @@ for the given position and return FALSE.  Otherwise, return TRUE.
   }  /* if */
   return !ovflo;
 }  /* offset_runtime_address */
+
+
+static a_type_ptr most_derived_object_type(a_constexpr_address *cap,
+                                           a_type_ptr          type)
+/*
+cap is an address pointing to an object of static class type "type".  Return
+that object's dynamic type.
+*/
+{
+  a_byte  *subobj = cap->address, *complete_obj = cap->complete_object;
+
+  for (;;) {
+    a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
+    if (bcp == NULL) {
+      break;
+    } else {
+      a_byte_count  offset;
+      /* Determine the next-more-derived subobject. */
+      get_mapped_byte_count(&persistent_map, bcp, offset);
+      subobj -= offset;
+      type = bcp->type;
+      if (!subobject_is_initialized(subobj, complete_obj)) {
+        /* The next-more-derived subobject is not constructed: So we're
+           done. */
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return type;
+}  /* most_derived_object_type */
+
+
+static a_type_ptr address_con_complete_object_type(a_constant_ptr  addr_con)
+/*
+Return the type of the complete object on which the given address constant is
+based, or NULL if such an object is not unambiguously defined (e.g., if it's
+the address of a routine).
+*/
+{
+  a_type_ptr  type;
+
+  switch (addr_con->variant.address.kind) {
+    case abk_variable:
+      type = addr_con->variant.address.variant.variable->type;
+      break;
+    case abk_constant:
+    case abk_temporary:
+      type = addr_con->variant.address.variant.constant->type;
+      break;
+    default:
+      type = NULL;
+  }  /* switch */
+  return type;
+}  /* address_con_complete_object_type */
+
+
+static a_boolean do_constexpr_typeid(an_interpreter_state  *ips,
+                                     an_expr_node_ptr      expr,
+                                     a_byte                *result_storage,
+                                     a_byte                *complete_object)
+/*
+Interpret the given typeid(...) expression and place the result (a reference
+to a std::type_info object) at *result_storage (which is storage within the
+given complete object). 
+*/
+{
+  a_boolean         result = TRUE;
+  a_type_ptr        type = NULL;
+  an_expr_node_ptr  opnd = expr->variant.typeid_info.expr;
+
+  if (opnd == NULL && (expr->is_lvalue || expr->is_xvalue)) {
+    /* A non-polymorphic typeid construct. */
+    type = expr->variant.typeid_info.type;
+  } else {
+    /* Polymorphic typeid: not allowed in constant expressions prior to
+       C++20. */
+    if (opnd != NULL && (opnd->is_lvalue || opnd->is_xvalue) &&
+        constexpr_virtual_enabled) {
+      a_constexpr_address  *opnd_addr;
+      /* First evaluate the operand, which should produce an address for the
+         object whose dynamic type we must identify. */
+      result = do_constexpr_expression(ips, opnd, result_storage,
+                                       complete_object);
+      if (!result) goto done;
+      opnd_addr = (a_constexpr_address*)result_storage;
+      /* Now determine the dynamic type of this object. */
+      if (is_runtime_data_address(opnd_addr)) {
+        /* The address is represented as an IL constant.  Determine the type
+           of the base object for the address and then follow the subobject
+           path ignoring base-class casts (since we want the most-derived
+           object address). */
+        a_constant_ptr        addr_con = opnd_addr->variant.addr_con;
+        a_subobject_path_ptr  path;
+        if (constant_is(addr_con, ck_address)) {
+          type = address_con_complete_object_type(addr_con);
+          if (type != NULL) {
+            path = addr_con->variant.address.subobject_path;
+            for (; path != NULL; path = path->next) {
+              if (path->kind == (an_il_entry_kind)iek_field) {
+                type = path->variant.field->type;
+              } else if (path->kind == (an_il_entry_kind)iek_constant) {
+                type = array_element_type(type);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* The interpreter representation includes embedded base class
+           pointers that can be traversed to find the dynamic type of the
+           object being referred to. */
+        type = skip_typerefs(expr->variant.typeid_info.type);
+        type = most_derived_object_type(opnd_addr, type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (type != NULL) {
+    a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+    a_constant_ptr       cp = local_constant();
+    make_typeid_constant(type, /*is_cli_typeid*/FALSE, cp);
+    cp->next = ips->constants;
+    ips->constants = cp;
+    clear_runtime_constant_address(cap, cp);
+  } else {
+    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  &expr->position, ips);
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_typeid */
+
+
+static a_boolean do_constexpr_dynamic_cast(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_type_ptr            opnd_type,
+                                       a_byte                *opnd_value,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+Evaluate the dynamic_cast operation represented by expr.  Its operand (of type
+opnd_type) has already been evaluated and the result of that evaluation is
+opnd_value.  Store the result at *result_storage (which is storage within the
+given complete object). 
+
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (constexpr_virtual_enabled) {
+    a_constexpr_address  *opnd_addr = (a_constexpr_address*)opnd_value;
+    a_constexpr_address  *result_addr = (a_constexpr_address*)result_storage;
+    a_boolean            success = FALSE, pointer_case = FALSE;
+    a_type_ptr           tp = skip_typerefs(expr->type);
+    if (tp->kind == (a_type_kind)tk_pointer) {
+      tp = skip_typerefs(tp->variant.pointer.type);
+    }  /* if */
+    if (opnd_type->kind == (a_type_kind)tk_pointer) {
+      opnd_type = skip_typerefs(opnd_type->variant.pointer.type);
+      pointer_case = TRUE;
+    }  /* if */
+    if (tp == opnd_type) {
+      /* The static type matches the dynamic type. */
+      *result_addr = *opnd_addr;
+      goto done;
+    }  /* if */
+    if (is_runtime_data_address(opnd_addr)) {
+      a_constant_ptr  addr_con = opnd_addr->variant.addr_con;
+      if (constant_is(addr_con, ck_address)) {
+        /* We must compute a "dynamic_cast" applied to a subobject described
+           by a ck_address IL constant.  Such an IL entry represents the
+           address of a "complete object" adjusted for (a) field selections,
+           (b) array element selections, (c) derived-to-base casts, and
+           (d) base-to-derived casts.  In that context, a dynamic_cast
+           operation amounts to "undoing" some (c) and/or (d) cases.
+           Fortunately, the transformations are recorded on the ck_address
+           entry's "subobject path".  So we can traverse that to find which
+           trailing segment should be undone (and compute the corresponding
+           offset adjustment). */
+        a_subobject_path_ptr  path, base_casts_to_undo = NULL;
+        a_targ_ptrdiff_t      offset_to_undo = 0;
+        a_type_ptr            type, derived_type;
+        type = address_con_complete_object_type(addr_con);
+        derived_type = type;
+        path = addr_con->variant.address.subobject_path;
+        for (; path != NULL; path = path->next) {
+          if (path->kind == (an_il_entry_kind)iek_field ||
+              path->kind == (an_il_entry_kind)iek_constant) {
+            /* We're selecting a new field or array element: Previous base or
+               derived class casts were not within the selected most-derived
+               object. */
+            base_casts_to_undo = NULL;
+            offset_to_undo = 0;
+            if (path->kind == (an_il_entry_kind)iek_field) {
+              type = path->variant.field->type;
+            } else {
+              type = array_element_type(type);
+            }  /* if */
+            derived_type = type;
+          } else {
+            /* A base or derived class cast.  Tentatively assume that it's
+               within the selected most-derived object. */
+            if (base_casts_to_undo == NULL && type == tp) {
+              /* This cast is from the type of interest.  Record this point in
+                 the subobject path. */
+              base_casts_to_undo = path;
+            }  /* if */
+            type = path->variant.base_class->type;
+            if (base_casts_to_undo != NULL) {
+              if (path->kind == (an_il_entry_kind)iek_base_class) {
+                /* We're undoing a cast to a base class. */
+                offset_to_undo += path->variant.base_class->offset;
+              } else {
+                /* We're undoing a cast to a derived class. */
+                offset_to_undo -= path->variant.base_class->offset;
+              }
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        if (base_casts_to_undo != NULL) {
+          /* We successfully identified the subobject being cast to. */
+          a_constant_ptr        cp = local_constant();
+          a_subobject_path_ptr  path, *p_copy;
+          *cp = *addr_con;
+          cp->variant.address.offset -= offset_to_undo;
+          /* Copy the subobject path up until base_casts_to_undo. */
+          path = cp->variant.address.subobject_path;
+          p_copy = &cp->variant.address.subobject_path;
+          while (path != base_casts_to_undo) {
+            *p_copy = alloc_subobject_path();
+            **p_copy = *path;
+            path = path->next;
+            p_copy = &(*p_copy)->next;
+          }  /* while */
+          *p_copy = NULL;
+          cp->type = expr->type;
+          cp->next = ips->constants;
+          ips->constants = cp;
+          clear_runtime_constant_address(result_addr, cp);
+        } else {
+          /* We didn't find a subobject matching the destination type. */
+          if (pointer_case) {
+            clear_address(result_addr, (a_byte*)0);
+          } else {
+            info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
+                                &expr->position, tp, derived_type, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        }  /* if */
+      } else if (constant_is(addr_con, ck_integer)) {
+        /* Possibly a null pointer. */
+        if (!pointer_case ||
+            cmp_integer_values(&addr_con->variant.integer_value,
+                               /*op_1_signed=*/FALSE,
+                               (an_integer_value *)&zero_int,
+                               /*op_2_signed=*/FALSE) != 0) {
+          /* Either a reference cast (which cannot handle a null address, or
+             not an actual null pointer (e.g., a non-zero integer cast to a
+             pointer type). */
+          info_with_pos(ec_constexpr_access_to_runtime_storage,
+                        &expr->position, ips);
+          do_constexpr_fail(result);
+        } else {
+          /* Create a null pointer result. */
+          clear_address(result_addr, (a_byte*)0);
+       }  /* if */
+      } else {
+        unexpected_condition();
+      }  /* if */
+    } else {
+      a_byte  *subobj = opnd_addr->address,
+              *complete_obj = opnd_addr->complete_object;
+      for (;;) {
+        a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
+        if (bcp == NULL) {
+          if (tp->kind == (a_type_kind)tk_void) {
+            /* dynamic_cast to void* produces the most-derived object
+               address. */
+            success = TRUE;
+          }  /* if */
+          break;
+        } else {
+          a_byte_count  offset;
+          /* Check the next-more-derived subobject. */
+          get_mapped_byte_count(&persistent_map, bcp, offset);
+          subobj -= offset;
+          if (!subobject_is_initialized(subobj, complete_obj)) {
+            /* The next-more-derived subobject is not constructed: It cannot
+               be the result of a dynamic_cast. */
+            break;
+          }  /* if */
+          if (bcp->derived_class == tp) {
+            success = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (!success) {
+        if (!pointer_case) {
+          /* A failed "reference" dynamic cast throws an exception, which is
+             not permitted in constexpr evaluation. */
+          a_type_ptr  derived = most_derived_object_type(opnd_addr, opnd_type);
+          info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
+                              &expr->position, tp, derived, ips);
+          do_constexpr_fail(result);
+        } else {
+          subobj = NULL;
+        }  /* if */
+      }  /* if */
+      clear_address(result_storage, subobj);
+    }  /* if */
+  } else {
+    /* Prior to C++20, dynamic_cast expressions never produced core constant
+       expressions. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &expr->position, ips);
+  }  /* if */
+done:;
+  return result;
+}  /* do_constexpr_dynamic_cast */
 
 
 static a_boolean do_constexpr_expression(
@@ -13336,6 +13679,12 @@ the value representation of the integer value.
                                  ips, opnd2, result_storage, complete_object);
             }
             break;
+          case eok_dynamic_cast:
+          case eok_ref_dynamic_cast:
+            result = do_constexpr_dynamic_cast(
+                                           ips, expr, opnd1_type, opnd1_value,
+                                           result_storage, complete_object);
+            break;
           case eok_call:
             /* Calls are handled separately.  We should not get here. */
             unexpected_condition();
@@ -13633,21 +13982,7 @@ the value representation of the integer value.
                                        result_storage, complete_object);
       break;
     case enk_typeid:
-      if (expr->variant.typeid_info.expr == NULL &&
-          (expr->is_lvalue || expr->is_xvalue)) {
-        a_constant_ptr       cp = local_constant();
-        a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
-        make_typeid_constant(expr->variant.typeid_info.type,
-                             /*is_cli_typeid*/FALSE, cp);
-        cp->next = ips->constants;
-        ips->constants = cp;
-        clear_runtime_constant_address(cap, cp);
-      } else {
-        /* Polymorphic typeid: not allowed in constant expressions. */
-        info_with_pos(ec_constexpr_access_to_runtime_storage,
-                      &expr->position, ips);
-        do_constexpr_fail(result);
-      }  /* if */
+      result = do_constexpr_typeid(ips, expr, result_storage, complete_object);
       break;
     case enk_param_ref:
       { a_byte  *this_bytes = NULL;
@@ -13914,7 +14249,7 @@ diagnostic in *ips.
             /* Some "address" constants are integers cast to a pointer type. */
             check_assertion(constant_is(rt_con, ck_integer));
           }  /* if */
-          /* Copy the run-time constant to result_con. */
+          /* Copy the run-time constant to con. */
           (void)copy_constant_full(rt_con, con,
                                    CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
           con->type = type;

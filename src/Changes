@@ -1,5 +1,29 @@
 Version 5.1
 
+1/3/19   [EDGcpfe/20646]
+C++20: typeid and dynamic_cast in constexpr functions
+
+In C++20 mode, the front end now accepts typeid and dynamic_cast expression
+evaluations in constant expressions (provided those constructs do not throw
+an exception).
+
+  struct B { virtual int f(); };
+  struct D: B {} d;
+  constexpr int g() {
+    D d;
+    B *pb = (B*)&d;
+    if (dynamic_cast<void*>(pb) == (void*)&d) {
+      return 42;
+    } else {
+      throw 43;
+    }
+  }
+  static_assert(g() == 42);  // Now accepted in C++20 mode.
+
+This feature was added to the working paper for the next standard by the
+standardization committee's paper P1327R1.
+
+
 1/3/19   [EDGcpfe/20426]
 C++-generating back end: unnamed template parameters as template arguments
 

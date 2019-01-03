@@ -967,23 +967,6 @@ otherwise).
 }  /* base_object */
 
 
-static a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con)
-/*
-Return a pointer to the last "link" pointer of the subobject path of con (which
-must be a ck_address entry).
-*/
-{
-  a_subobject_path_ptr  *p_link;
-
-  check_assertion(constant_is(con, ck_address));
-  p_link = &con->variant.address.subobject_path;
-  while (*p_link != NULL) {
-    p_link = &(*p_link)->next;
-  }  /* while */
-  return p_link;
-}  /* last_subobject_path_link */
-
-
 void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
                           a_type_ptr        qualifiers_model,
