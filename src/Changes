@@ -57,10 +57,15 @@ sometimes not parsed properly.  Now fixed.
 
 
 12/27/18  [EDGcpfe/20592]
-Microsoft compatibility: value of std_version with --ms_c++latest option
+Microsoft compatibility: value of _MSVC_LANG and __cplusplus with 
+--ms_c++latest option
 
-A change has been made to set _MSVC_LANG and __cplusplus macros to the 
-appropriate value when the --ms_c++latest command-line options is specified.  
+A change has been made to set _MSVC_LANG and __cplusplus to 201704 for
+microsoft_version >= 1920 when the --ms_c++latest command-line option is 
+specified.  The change has only been made to the values of _MSVC_LANG and
+__cplusplus, C++20 features remain enabled in this configuration.  When 
+using --ms_c++20 command-line option, value of _MSVC_LANG and __cplusplus 
+is still set to 202000.
 
 
 12/24/18 [EDGcpfe/20640]
