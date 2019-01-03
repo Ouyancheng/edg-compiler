@@ -3415,6 +3415,64 @@ a class template.
 }  /* type_is_prototype_instantiation */
 
 
+static long arg_before_unnamed_template_param_arg(a_template_arg_ptr argp)
+/*
+If the specified template argument list contains an argument designating
+an unnamed template parameter, return the number of the preceding argument
+(with 1 designating the first argument, so value 0 indicates that the first
+argument is an unnamed template parameter), or -1 if there are no unnamed
+template parameters in the list.  Such arguments must result from default
+template arguments, since they cannot be named.
+*/
+{
+  long result;
+
+  begin_template_arg_list_traversal_simple(argp, &argp);
+  for (result = 0; argp != NULL;
+       advance_to_next_template_arg_simple(&argp), ++result) {
+    a_boolean      is_unnamed = FALSE;
+    a_type_ptr     tp;
+    a_constant_ptr con;
+    switch (argp->kind) {
+      case tak_type:
+        tp = argp->variant.type;
+        if (tp->kind == (a_type_kind)tk_template_param &&
+            tp->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+            tp->source_corresp.name == NULL) {
+          is_unnamed = TRUE;
+        }  /* if */
+        break;
+      case tak_nontype:
+        con = argp->variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_template_param &&
+            con->variant.template_param.kind == tpck_param &&
+            con->source_corresp.name == NULL) {
+          is_unnamed = TRUE;
+        }  /* if */
+        break;
+      case tak_template:
+        if (argp->variant.templ.ptr->source_corresp.name == NULL) {
+          is_unnamed = TRUE;
+        }  /* if */
+        break;
+      case tak_start_of_pack_expansion:
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (is_unnamed) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (argp == NULL) {
+    /* No unnamed template parameters were found in the argument list. */
+    result = -1;
+  }  /* if */
+  return result;
+}  /* arg_before_unnamed_template_param_arg */
+
+
 static void gen_template_arguments(a_source_correspondence *scp,
                                    an_il_entry_kind        entry_kind,
                                    long                    num_arguments)
@@ -3441,14 +3499,19 @@ that the remaining arguments will be defaulted.
       a_type_ptr                  type = (a_type_ptr)scp;
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      if (!type->variant.class_struct_union.is_prototype_instantiation &&
-          ctsp->min_template_arguments >= 0) {
+      if (type->variant.class_struct_union.is_prototype_instantiation) {
+        /* In most cases, we use all template arguments for prototype
+           instantiations to avoid potentially introducing mismatches
+           between declarations and definitions of template members.  In
+           some cases, however, an argument refers to a template parameter
+           that has no name and thus cannot be referenced explicitly; it
+           must have come from a default template argument and we adjust
+           the template argument list accordingly. */
+        min_arguments = arg_before_unnamed_template_param_arg(tap);
+      } else if (ctsp->min_template_arguments >= 0) {
         /* This template instance has been referred to at some point in the
            source using default arguments; record the point in the argument
-           list beyond which default arguments can be used.  (We use all
-           template arguments for prototype instantiations to avoid potentially
-           introducing mismatches between declarations and definitions of
-           template members.) */
+           list beyond which default arguments can be used. */
         min_arguments = ctsp->min_template_arguments;
         if (ctsp->assoc_template->min_template_arguments >= 0 &&
             ctsp->assoc_template->min_template_arguments > min_arguments) {
