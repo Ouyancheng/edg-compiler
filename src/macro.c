@@ -8064,7 +8064,7 @@ Scan and process a #define directive.
                   end_of_replacement;
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean       discard_new_definition = FALSE;
-  sizeof_t        open_parens;
+  sizeof_t        open_parens = 0;
   a_source_position
                   va_opt_pos;
   char            *num_pos;
