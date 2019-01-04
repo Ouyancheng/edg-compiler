@@ -4554,10 +4554,14 @@ of subscript operations or pointer arithmetic).
                also get here when a union object is treated as an array of one
                element and we're dealing with a pointer "one position past"
                that array.*/
-            check_assertion(path == NULL &&
-                            t_offset == (a_targ_ptrdiff_t)obj_type->size);
-            *p_subobj = alloc_subobject_path();
-            (*p_subobj)->variant.ptr_offset = 1;
+            check_assertion(t_offset == (a_targ_ptrdiff_t)obj_type->size);
+            if (path == NULL) {
+              *p_subobj = alloc_subobject_path();
+              (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
+              (*p_subobj)->variant.ptr_offset = 1;
+            } else {
+              check_assertion(path->kind == (an_il_entry_kind)iek_constant);
+            }  /* if */
             goto outer_loop_done;
           } else {
             check_assertion(path != NULL &&
@@ -9754,8 +9758,10 @@ opnd_value.  Store the result at *result_storage.
           } else {
             /* A base or derived class cast.  Tentatively assume that it's
                within the selected most-derived object. */
-            if (base_casts_to_undo == NULL && type == tp) {
-              /* This cast is from the type of interest.  Record this point in
+            if (base_casts_to_undo == NULL &&
+                (type == tp || tp->kind == (a_type_kind)tk_void)) {
+              /* This cast is from the type of interest (in the case of a cast
+                 to void*, all types are of interest).  Record this point in
                  the subobject path. */
               base_casts_to_undo = path;
             }  /* if */
@@ -9771,7 +9777,7 @@ opnd_value.  Store the result at *result_storage.
             }  /* if */
           }  /* if */
         }  /* for */
-        if (base_casts_to_undo != NULL) {
+        if (base_casts_to_undo != NULL || tp->kind == (a_type_kind)tk_void) {
           /* We successfully identified the subobject being cast to. */
           a_constant_ptr        cp;
           a_subobject_path_ptr  *p_copy;
