@@ -183,13 +183,18 @@ extern void macro_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 /* When variadic macros are enabled, the identifier __VA_ARGS__ can only
-   appear in the replacement lists of variadic macros.  The following check
-   appears in a few places, including lexical analysis of identifiers. */
-#define check_use_of_VA_ARGS(len, buf)                                \
-  if (variadic_macros_allowed &&                                      \
-      len == sizeof("__VA_ARGS__")-1 &&                               \
-      strncmp(buf, "__VA_ARGS__", sizeof("__VA_ARGS__")-1) == 0) {    \
-    pos_error(ec_VA_ARGS_not_allowed, &error_position);               \
+   appear in the replacement lists of variadic macros, and similarly for
+   __VA_OPT__ when va_opt_enabled is TRUE.  The following check appears in
+   a few places, including lexical analysis of identifiers. */
+#define check_for_reserved_VA_id(len, buf)                              \
+  if (variadic_macros_allowed &&                                        \
+      len == sizeof("__VA_ARGS__")-1 &&                                 \
+      strncmp(buf, "__VA_ARGS__", sizeof("__VA_ARGS__")-1) == 0) {      \
+    pos_error(ec_VA_ARGS_not_allowed, &error_position);                 \
+  } else if (va_opt_enabled &&                                          \
+             len == sizeof("__VA_OPT__")-1 &&                           \
+             strncmp(buf, "__VA_OPT__", sizeof("__VA_OPT__")-1) == 0) { \
+    pos_error(ec_VA_OPT_not_allowed, &error_position);                  \
   }  /* if */
 
 #endif /* MACRO_H */

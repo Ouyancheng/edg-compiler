@@ -687,7 +687,7 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			   pasting the following token to the preceding
 			   text.  Used to support the Microsoft variety of
 			   variadic macros. */
-  rt_microsoft_maybe_raw_argument
+  rt_microsoft_maybe_raw_argument,
 			/* An argument string that might be raw or
 			   expanded, depending on its subsequent use.
 			   Normally the Microsoft preprocessor expands
@@ -698,6 +698,15 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			   it as an operand of a paste, the raw argument is
 			   used.  Followed by 3 byes containing the
 			   argument number, as for rt_raw_argument. */
+  rt_optional_text
+			/* Begins the text corresponding to the argument of
+			   a __VA_OPT__ operator, which will be included in
+			   the replacement text only if the replacement for
+			   __VA_ARGS__ is non-empty.  Followed by 3 bytes
+			   containing the number of characters to skip
+			   forward in the repl_text string (from the
+			   beginning of this section to the start of the
+			   next section) if __VA_ARGS__ is empty. */
 } a_repl_text_seq_kind;
 
 

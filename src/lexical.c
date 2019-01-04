@@ -13727,9 +13727,10 @@ id_scan:
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
       } else {
-        /* If variadic macros are allowed, '__VA_ARGS__' should appear only in
-           the replacement list of such macros. */
-        check_use_of_VA_ARGS(
+        /* If variadic macros are allowed, '__VA_ARGS__' should appear only
+           in the replacement list of such macros, and similarly for
+           '__VA_OPT__' when va_opt_enabled is TRUE. */
+        check_for_reserved_VA_id(
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
         /* Look up the identifier in the symbol table. */

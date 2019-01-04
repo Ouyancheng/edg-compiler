@@ -3018,6 +3018,12 @@ ec_consteval_overrides_nonconsteval;;"consteval member cannot override non-const
 ec_nonconsteval_overrides_consteval;;"non-consteval member cannot override consteval %n"
 ec_struct_binding;INTERNAL;"structured binding"
 ec_constexpr_invalid_dynamic_cast;;"dynamic_cast to subobject of type %t1 is invalid (most-derived type is %t2)"
+ec_VA_OPT_not_allowed;;"the identifier __VA_OPT__ can only appear in the replacement lists of variadic macros"
+ec_nested_VA_OPT;;"__VA_OPT__ cannot appear in a __VA_OPT__ operand"
+ec_unclosed_VA_OPT;;"missing closing parenthesis for __VA_OPT__"
+ec_missing_VA_OPT_paren;;"__VA_OPT__ must be followed by \"(\""
+ec_paste_cannot_be_first_in_VA_OPT;;"\"##\" may not be first in a __VA_OPT__ operand"
+ec_paste_cannot_be_last_in_VA_OPT;;"\"##\" may not be last in a __VA_OPT__ operand"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -3556,6 +3556,7 @@ default mode (e.g., exception handling).
         spaceship_enabled = TRUE;
         adl_for_non_visible_templates = TRUE;
         rvalue_allowed_with_const_qual_memptr = TRUE;
+        va_opt_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11958,6 +11959,7 @@ variables declared in cmd_line.h.
   string_literal_operator_template_allowed = FALSE;
   spaceship_enabled = FALSE;
   rvalue_allowed_with_const_qual_memptr = FALSE;
+  va_opt_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

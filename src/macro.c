@@ -2496,8 +2496,9 @@ beyond the operator has not yet been fetched.
         /* First form -- "defined identifier". */
         parenthesized_form = FALSE;
         /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-           accepted. */
-        check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+           accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+           TRUE. */
+        check_for_reserved_VA_id(len_of_curr_token, start_of_curr_token);
         sym_hdr = find_symbol_header(start_of_curr_token, len_of_curr_token,
                                      &locator_for_curr_id);
       } else {
@@ -2524,9 +2525,10 @@ beyond the operator has not yet been fetched.
           unget_token();
           fetch_pp_tokens = TRUE;
         } else {
-          /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-             accepted. */
-          check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+          /* The identifier __VA_ARGS__ is not allowed if variadic macros
+             are accepted, and similarly for __VA_OPT__ when va_opt_enabled
+             is TRUE. */
+          check_for_reserved_VA_id(len_of_curr_token, start_of_curr_token);
           sym_hdr = find_symbol_header(start_of_curr_token, len_of_curr_token,
                                        &locator_for_curr_id);
           if (get_token() != tok_rparen) {
@@ -3899,13 +3901,16 @@ FALSE in all other cases.
 static sizeof_t length_of_replacement_text(char            *rtp,
                                            sizeof_t        n_params,
                                            a_macro_def_ptr mdp,
-                                           a_macro_arg_ptr *arg_values)
+                                           a_macro_arg_ptr *arg_values,
+                                           a_boolean       empty_variadic_arg)
 /*
 Compute the length (in bytes/characters) of the replacement text described by
 the sequence of sections pointed to by rtp.  n_params is the number of macro
 parameters of the macro described by mdp. arg_values is a pointer to an array
 of a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
-hence its name should not be changed.
+hence its name should not be changed.  empty_variadic_args is TRUE if the
+argument corresponding to __VA_ARGS__ has no tokens; it controls the
+treatment of rt_optional_text.
 */
 {
   sizeof_t  result = 0;
@@ -4005,6 +4010,17 @@ hence its name should not be changed.
             if (map->expanded_len == 0) {
               ++sect_len;
             }  /* if */
+          }  /* if */
+          break;
+        case rt_optional_text:
+          /* If there are no tokens in the __VA_ARGS__ argument, skip over
+             the portion of the text corresponding to the operand;
+             otherwise, it will be processed normally.  The
+             rt_optional_text operator itself contributes nothing to the
+             length. */
+          sect_len = 0;
+          if (empty_variadic_arg) {
+            rtp += rts_number;
           }  /* if */
           break;
         default:
@@ -5083,6 +5099,7 @@ associated global variables will also have been set).
   unsigned long   saved_macro_name_modif_seq = macro_name_modif_seq;
   a_boolean       saved_single_param_macro = single_param_macro;
   a_boolean       pragma_operator_seen = FALSE;
+  a_boolean       empty_variadic_arg = FALSE;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5996,6 +6013,11 @@ do_argument_again:
               map->offset_in_raw_text_of_primary_source_line_text=map->raw_len;
             }  /* if */
           }  /* while */
+          if (pp != NULL && pp->next == NULL && mdp->variadic &&
+              map->raw_len == 0) {
+            /* There are no tokens in the replacement for __VA_ARGS__. */
+            empty_variadic_arg = TRUE;
+          }  /* if */
           if (scanning_text_not_in_primary_source_line) {
             /* We never got back to the primary source line.  Store the
                offset of the final end-of-insertion as the restart point. */
@@ -6123,7 +6145,11 @@ do_argument_again:
              later use. */
           save_delete_source_from_loc = delete_source_from_loc;
           delete_source_from_loc = NULL;
-          (void)arg_get_token(&any_white_space_skipped);
+          if (arg_get_token(&any_white_space_skipped) == tok_end_of_source &&
+              pp->next == NULL && mdp->variadic) {
+            /* There are no tokens in the replacement for __VA_ARGS__. */
+            empty_variadic_arg = TRUE;
+          }  /* if */
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
@@ -6347,11 +6373,14 @@ end_arg_expansion:;
         /* An argument is missing.  This is an error, except in pcc
            preprocessing mode, SVR4 C mode, Sun mode, and Microsoft mode,
            where we issue a warning. It is also fine (no warning) to omit
-           an extended or Microsoft variadic macro argument.  (This is true
-	   for both the traditional and conforming versions of the Microsoft
-	   preprocessor.) */
-        if (!((extended_variadic_macros_allowed || ms_compat) &&
-              pp->next == NULL && mdp->variadic)) {
+           an extended or Microsoft variadic macro argument or if
+           __VA_OPT__ is supported (as in C++20).  (This is true for both
+           the traditional and conforming versions of the Microsoft
+           preprocessor.) */
+        if (va_opt_enabled && pp->next == NULL && mdp->variadic) {
+          empty_variadic_arg = TRUE;
+        } else if (!((extended_variadic_macros_allowed || ms_compat) &&
+                     pp->next == NULL && mdp->variadic)) {
           an_error_severity sev;
           if (pcc_preprocessing_mode || SVR4_C_mode ||
               (ms_compat && !ms_std_preproc) || sun_mode) {
@@ -6752,7 +6781,7 @@ end_arg_expansion:;
     /* Normal replacement text, with sections. */
     /* coverity[uninit_use_in_call] - thinks arg_values may be unset. */
     repl_text_len = length_of_replacement_text(repl_text, n_params, mdp,
-                                               arg_values);
+                                               arg_values, empty_variadic_arg);
   }  /* if */
   /* repl_text_len now indicates the size of the expansion.  Note that
      in the case of an expanded argument value, the expansion may be
@@ -7112,6 +7141,14 @@ end_arg_expansion:;
               goto copy_done;
             }  /* if */
             break;
+          case rt_optional_text:
+            /* Skip over the text in the operand of __VA_OPT__ if the
+               argument for __VA_ARGS__ is empty. */
+            if (empty_variadic_arg) {
+              rtp += rts_number;
+            }  /* if */
+            sect_len = 0;
+            break;
           default:
             unexpected_condition_str2("macro_invocation:",
                                       "expansion section unknown");
@@ -7153,7 +7190,7 @@ copy_done:
         /* The result reflects concatenating two non-empty text sections.
            Record the concatenation so that retokenizing can check for
            having created an invalid token.  (The GNU preprocessor allows
-           invalid concatenation when the second operand is __VA_ARG__,
+           invalid concatenation when the second operand is __VA_ARGs__,
            so we don't record such concatenations in gnu_mode.) */
         add_concatenation_record(&concat_record_head, &concat_record_tail,
                                  src_loc_before_copy, macro_symbol);
@@ -7511,9 +7548,14 @@ quote_process:
     if (curr_token == tok_identifier) {
       *param_num = id_matches_macro_param_name(param_list, param_ptr);
       if (*param_num == 0) {
-        /* This is not a macro parameter.  Hence if it is spelled __VA_ARGS__
-           and variadic macros are recognized, this is an error. */
-        check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+        /* This is not a macro parameter.  Hence if it is spelled
+           __VA_ARGS__ and variadic macros are recognized, this is an
+           error.  We disable the check for __VA_OPT__ here because it will
+           be detected and processed or rejected by proc_define itself. */
+        a_boolean saved_va_opt_enabled = va_opt_enabled;
+        va_opt_enabled = FALSE;
+        check_for_reserved_VA_id(len_of_curr_token, start_of_curr_token);
+        va_opt_enabled = saved_va_opt_enabled;
       }  /* if */
     } else if (pcc_preprocessing_mode &&
                end_of_cpp_string == NULL &&
@@ -7626,6 +7668,7 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
   a_repl_text_seq_kind rts_kind;
   sizeof_t             rts_number;
   char                 *ptr;
+  char                 *end_of_optional_text = NULL;
 
   pos_in_temp_text_buffer = 0;
   if (mdp->repl_text == NULL) {
@@ -7662,6 +7705,11 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
     /* Put out the macro body, converting from the internal form to a plain
        string. */
     for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
+      if (ptr == end_of_optional_text) {
+        /* This is the end of a __VA_OPT__ operand. */
+        put_ch_to_temp_text_buffer(')');
+        end_of_optional_text = NULL;
+      }  /* if */
       rts_kind = (a_repl_text_seq_kind)*(ptr++);
       /* Extract the section length or argument number. */
       get_macro_repl_text_number(rts_number, ptr);
@@ -7712,6 +7760,11 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
           break;
         case rt_microsoft_magic_arg_marker:
           /* Implicit in the definition -- no textual representation. */
+          break;
+        case rt_optional_text:
+          /* Start of a __VA_OPT__ expression. */
+          put_str_to_temp_text_buffer("__VA_OPT__(");
+          end_of_optional_text = ptr + rts_number;
           break;
         default:
           unexpected_condition_str(
@@ -7872,6 +7925,10 @@ beginning of the encoding of the replacement list.
           fprintf(f_debug, "  maybe raw argument %lu\n",
                            (unsigned long)rts_number);
           break;
+        case rt_optional_text:
+          fprintf(f_debug, "  optional text %lu\n",
+                           (unsigned long)rts_number);
+          break;
         default:
           unexpected_condition_str2("db_dump_macro_def:",
                                     "bad section kind in macro def");
@@ -8006,23 +8063,32 @@ Scan and process a #define directive.
   a_source_position
                   end_of_replacement;
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean         discard_new_definition = FALSE;
+  a_boolean       discard_new_definition = FALSE;
+  sizeof_t        open_parens;
+  a_source_position
+                  va_opt_pos;
+  char            *num_pos;
+  a_token_kind    pending_op_tok = tok_last;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
-  char		  *curr_text_section;
+  char            *curr_text_section;
   a_pointer_registration
                   curr_text_section_reg;
   char            *buffer_start;
   a_pointer_registration
-		  buffer_start_reg;
+                  buffer_start_reg;
+  char            *start_of_va_opt_text = NULL;
+  a_pointer_registration
+                  start_of_va_opt_text_reg;
   a_pointer_registration_ptr
 		  save_registered_pointers = registered_pointers;
 
   register_pointer_variable(curr_text_section, curr_text_section_reg);
   register_pointer_variable(buffer_start, buffer_start_reg);
+  register_pointer_variable(start_of_va_opt_text, start_of_va_opt_text_reg);
 
   db_enter(3, "proc_define");
   scanning_macro_name = TRUE;
@@ -8042,8 +8108,9 @@ Scan and process a #define directive.
                                          /*force_ucn=*/FALSE);
     }  /* if */
     /* The macro name __VA_ARGS__ is not allowed if variadic macros are
-       accepted. */
-    check_use_of_VA_ARGS(id_len, id_ptr);
+       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+       TRUE.. */
+    check_for_reserved_VA_id(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     /* find_defined_macro cannot be used because if we have "#define defined"
        we want to give an error, not ignore it. */
@@ -8275,6 +8342,39 @@ Scan and process a #define directive.
     end_of_replacement = end_pos_curr_token;
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     while (curr_token != tok_newline) {
+      if (start_of_va_opt_text != NULL) {
+        /* We are currently inside the operand of __VA_OPT__. */
+        if (curr_token == tok_lparen) {
+          ++open_parens;
+        } else if (curr_token == tok_rparen) {
+          if (--open_parens == 0) {
+            /* This is the end of the __VA_OPT__ section. */
+            sizeof_t len;
+            len = next_avail_in_macro_buffer - start_of_va_opt_text - 4;
+            num_pos = start_of_va_opt_text + 1;
+            put_macro_repl_text_number(len, num_pos);
+            start_of_va_opt_text = NULL;
+            (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                  &any_white_space_skipped);
+            curr_text_section = NULL;
+            if (curr_token == tok_newline) {
+              break;
+            }  /* if */
+          }  /* if */
+        } else if (curr_token == tok_identifier &&
+                   strncmp(start_of_curr_token, "__VA_OPT__",
+                           size_t_arg(len_of_curr_token)) == 0) {
+          /* Nested use of __VA_OPT__.  Report an error and set the section
+             length to 0, effectively ignoring the original __VA_OPT__
+             operator, and skip over the nested __VA_OPT__ operator. */
+          pos_error(ec_nested_VA_OPT, &pos_curr_token);
+          num_pos = start_of_va_opt_text + 1;
+          put_macro_repl_text_number(0, num_pos);
+          start_of_va_opt_text = NULL;
+          (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                &any_white_space_skipped);
+        }  /* if */
+      }  /* if */
       if (curr_token == tok_paste) {
         /* "##".  Can be preceded and/or followed by a parameter, but
            need not be.  Cannot be first or last in the replacement text.
@@ -8295,7 +8395,16 @@ Scan and process a #define directive.
              The "##" itself does not appear in the replacement text
              string. */
           if (mdefn_get_token(param_list, &param_num, &param_ptr,
-                              &any_white_space_skipped) == tok_newline) {
+                              &any_white_space_skipped) == tok_rparen &&
+              start_of_va_opt_text != NULL && open_parens == 1) {
+            pos_error(ec_paste_cannot_be_last_in_VA_OPT, &error_position);
+            num_pos = start_of_va_opt_text + 1;
+            put_macro_repl_text_number(0, num_pos);
+            start_of_va_opt_text = NULL;
+            (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                  &any_white_space_skipped);
+          }  /* if */
+          if (curr_token == tok_newline) {
             pos_error(ec_paste_cannot_be_last, &error_position);
           } else {
             /* Insert a "##" placeholder so that the IL accurately reflects
@@ -8399,9 +8508,17 @@ Scan and process a #define directive.
              "#@" -- Recognized in Microsoft mode only: similar to the
              stringizing "#" operator, but it produces a character literal
              instead of a string literal. */
-          a_boolean  charize = curr_token != tok_sharp;
+          a_boolean    charize = curr_token != tok_sharp;
+          a_token_kind op_tok = curr_token;
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
+          if (curr_token == tok_identifier && va_opt_enabled &&
+              strncmp(start_of_curr_token, "__VA_OPT__",
+                      size_t_arg(len_of_curr_token)) == 0) {
+            /* Defer the operation to the __VA_OPT__ processing. */
+            pending_op_tok = op_tok;
+            goto process_va_opt;
+          }  /* if */
           if (param_num == 0) {
             pos_error(ec_exp_macro_param, &error_position);
           } else {
@@ -8454,6 +8571,46 @@ Scan and process a #define directive.
             put_start_of_non_text_section(rt_argument, save_param_num);
             save_param_ptr->need_expanded_form = TRUE;
             need_end_of_token_marker = TRUE;
+          }  /* if */
+        } else if (va_opt_enabled && curr_token == tok_identifier &&
+                   strncmp(start_of_curr_token, "__VA_OPT__",
+                           size_t_arg(len_of_curr_token)) == 0) {
+          /* This is the start of a __VA_OPT__ expression. */
+process_va_opt:
+          if (mdefn_get_token(param_list, &param_num, &param_ptr,
+                              &any_white_space_skipped) != tok_lparen) {
+            pos_error(ec_missing_VA_OPT_paren, &pos_curr_token);
+          } else {
+            /* Start an optional text section and get the next token. */
+            start_of_va_opt_text = next_avail_in_macro_buffer;
+            va_opt_pos = pos_curr_token;
+            open_parens = 1;
+            put_start_of_non_text_section(rt_optional_text, 0);
+            (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                  &any_white_space_skipped);
+            if (curr_token == tok_paste) {
+              /* "##" cannot be the first token of a replacement list, and
+                 the operand of __VA_OPT__ is treated as if it were the
+                 entire replacement list of the macro. */
+              pos_error(ec_paste_cannot_be_first_in_VA_OPT, &error_position);
+              (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                    &any_white_space_skipped);
+            } else if (pending_op_tok != tok_last) {
+              /* There was a stringize or charize operator immediately
+                 preceding the __VA_OPT__.  Process it now. */
+              if (param_num == 0) {
+                pos_error(ec_exp_macro_param, &error_position);
+              } else {
+                put_start_of_non_text_section(
+                      pending_op_tok != tok_sharp ? rt_charized_raw_argument
+                                                  : rt_stringized_raw_argument,
+                      param_num);
+                need_end_of_token_marker = TRUE;
+                (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                      &any_white_space_skipped);
+                pending_op_tok = tok_last;
+              }  /* if */
+            }  /* if */
           }  /* if */
         } else {
           /* Any other tokens -- not special, just put into macro buffer
@@ -8515,6 +8672,15 @@ Scan and process a #define directive.
       }  /* if */
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* while */
+    if (start_of_va_opt_text != NULL) {
+      /* Unclosed __VA_OPT__ operand.  Report the error and set the
+         rt_optional_text region length to 0, effectively ignoring the
+         operator. */
+      pos_error(ec_unclosed_VA_OPT, &va_opt_pos);
+      num_pos = start_of_va_opt_text + 1;
+      put_macro_repl_text_number(0, num_pos);
+      start_of_va_opt_text = NULL;
+    }  /* if */
     /* Store final terminator.  We've ensured that there is room for this. */
     *next_avail_in_macro_buffer = (char)rt_null;
     /* Not inside a cpp string.  Could still be set if there is an 
@@ -8961,8 +9127,9 @@ token-list.
     err = TRUE;
   } else {
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-       accepted. */
-    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+       TRUE. */
+    check_for_reserved_VA_id(len_of_curr_token, start_of_curr_token);
     /* Find or make a predicate entry for the name. */
     predicate_entry = find_or_make_predicate_entry(start_of_curr_token,
                                                    len_of_curr_token);

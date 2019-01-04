@@ -896,8 +896,9 @@ FALSE, respectively).
       /* Do nothing if state is FAIL, INTERMED or ONCE. */
     }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-       accepted. */
-    check_use_of_VA_ARGS(id_len, id_ptr);
+       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+       TRUE.. */
+    check_for_reserved_VA_id(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     sym_hdr = find_symbol_header(id_ptr, id_len, &locator_for_curr_id);
     assoc_symbol = find_defined_macro(sym_hdr);
@@ -969,8 +970,9 @@ Scan and process an #undef directive.
                                          /*force_ucn=*/FALSE);
     }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-       accepted. */
-    check_use_of_VA_ARGS(id_len, id_ptr);
+       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+       TRUE. */
+    check_for_reserved_VA_id(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     /* find_defined_macro cannot be used because if we have "#undef defined"
        we want to give an error, not ignore it. */
@@ -2738,8 +2740,9 @@ The position of the pragma ID is returned in id_position;
   /* Identify the pragma that is being processed. */
   if (curr_token == tok_identifier) {
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-       accepted. */
-    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+       TRUE. */
+    check_for_reserved_VA_id(len_of_curr_token, start_of_curr_token);
     /* Look for a matching pragma identifier in the pragma descriptions
        list.  If any pragma need to be added in where the pragma is
        not specified by an identifier following the #pragma keyword,

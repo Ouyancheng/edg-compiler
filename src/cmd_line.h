@@ -2475,6 +2475,11 @@ EXTERN a_boolean
 			   ref-qualifier but is const-qualified (a C++20
 			   feature). */
 
+EXTERN a_boolean
+		va_opt_enabled;
+			/* TRUE if support for the C++20 __VA_OPT__ macro
+			   operator is enabled. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
