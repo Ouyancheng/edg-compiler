@@ -4230,7 +4230,7 @@ If con represents the address of a subobject, update *cap accordingly.
         break;
       case tk_union:
         { /* Look through the subobject path for this union (it must be
-             present). */
+             present unless this is the address one past the union object). */
           a_field_ptr           selected_field = NULL;
           a_subobject_path_ptr  path = con->variant.address.subobject_path;
           a_variant_path_entry_ptr  last_entry, vpep;
@@ -4243,7 +4243,12 @@ If con represents the address of a subobject, update *cap accordingly.
               }  /* if */
             }  /* if */
           }  /* for */
-          check_assertion(selected_field != NULL);
+          if (selected_field == NULL) {
+            /* This is presumably the address "one past" the union object. */
+            cap->flags |= CA_CANNOT_DEREFERENCE;
+            cap->address += value_bytes_for_type(ips, obj_type, &result);
+            goto done;
+          }  /* if */
           /* Update the variant path.  Do not use add_to_variant_path because
              it implicitly handles anonymous unions, whereas this process
              traverses them explicitly (we'd account for them twice). */
