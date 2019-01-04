@@ -87,12 +87,12 @@ sometimes not parsed properly.  Now fixed.
 Microsoft compatibility: value of _MSVC_LANG and __cplusplus with 
 --ms_c++latest option
 
-A change has been made to set _MSVC_LANG and __cplusplus to 201704 for
+A change has been made to set _MSVC_LANG and __cplusplus to 201704L for
 microsoft_version >= 1920 when the --ms_c++latest command-line option is 
-specified.  The change has only been made to the values of _MSVC_LANG and
-__cplusplus, C++20 features remain enabled in this configuration.  When 
-using --ms_c++20 command-line option, value of _MSVC_LANG and __cplusplus 
-is still set to 202000.
+specified.  This change only affects the values of _MSVC_LANG and
+__cplusplus; the set of features enabled by --ms_c++latest is unchanged.  
+When using the --ms_c++20 command-line option, the value of _MSVC_LANG and 
+__cplusplus is still set to 202000L.
 
 
 12/24/18 [EDGcpfe/20640]
