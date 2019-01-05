@@ -704,9 +704,10 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			   the replacement text only if the replacement for
 			   __VA_ARGS__ is non-empty.  Followed by 3 bytes
 			   containing the number of characters to skip
-			   forward in the repl_text string (from the
-			   beginning of this section to the start of the
-			   next section) if __VA_ARGS__ is empty. */
+			   forward in the repl_text string (beginning with
+			   the byte following this section header to the
+			   start of the next section) if __VA_ARGS__ is
+			   empty. */
 } a_repl_text_seq_kind;
 
 

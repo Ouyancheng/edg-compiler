@@ -3908,7 +3908,7 @@ Compute the length (in bytes/characters) of the replacement text described by
 the sequence of sections pointed to by rtp.  n_params is the number of macro
 parameters of the macro described by mdp. arg_values is a pointer to an array
 of a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
-hence its name should not be changed.  empty_variadic_args is TRUE if the
+hence its name should not be changed.  empty_variadic_arg is TRUE if the
 argument corresponding to __VA_ARGS__ has no tokens; it controls the
 treatment of rt_optional_text.
 */
@@ -7190,7 +7190,7 @@ copy_done:
         /* The result reflects concatenating two non-empty text sections.
            Record the concatenation so that retokenizing can check for
            having created an invalid token.  (The GNU preprocessor allows
-           invalid concatenation when the second operand is __VA_ARGs__,
+           invalid concatenation when the second operand is __VA_ARGS__,
            so we don't record such concatenations in gnu_mode.) */
         add_concatenation_record(&concat_record_head, &concat_record_tail,
                                  src_loc_before_copy, macro_symbol);
@@ -8350,6 +8350,8 @@ Scan and process a #define directive.
           if (--open_parens == 0) {
             /* This is the end of the __VA_OPT__ section. */
             sizeof_t len;
+            /* The length does not include the section header, just the
+               length of the operand. */
             len = next_avail_in_macro_buffer - start_of_va_opt_text - 4;
             num_pos = start_of_va_opt_text + 1;
             put_macro_repl_text_number(len, num_pos);
