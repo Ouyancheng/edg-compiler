@@ -10396,6 +10396,8 @@ use of the argument list in case it has been freed.
     sym = make_template_variable(template_sym, list_for_instantiation);
     var = variable_for_symbol(sym);
     tip = sym->variant.variable.instance_ptr;
+    tip->referencing_namespace = scope_stack[depth_innermost_namespace_scope]
+                                                             .assoc_namespace;
     add_instantiation(tip->template_sym, tssp, sym,
                       var->template_info->template_arg_list);
     if (!is_nonreal) {

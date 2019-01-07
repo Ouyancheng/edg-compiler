@@ -3515,12 +3515,12 @@ a_symbol_ptr instantiation_context_lookup(
 	                        a_symbol_locator	    	*locator,
                                 a_lookup_state_ptr	    	lookup_state)
 /*
-When a normal lookup reaches passes reaches an instantiation scope and,
-after considering the template parameters, still has not found a symbol,
-the context of the instantiation must be considered.  The context
-has two components: the definition context (where the template was
-declared or defined) and the referencing context (the namespace containing
-the reference that caused the instantiation).
+When a normal lookup reaches an instantiation scope and, after considering the
+template parameters, still has not found a symbol, the context of the
+instantiation must be considered.  The context has two components: the
+definition context (where the template was declared or defined) and the
+referencing context (the namespace containing the reference that caused the
+instantiation).
 
 The symbol may be found in one or both of the contexts.  If the symbol is
 found in both contexts, both instances must be functions.

@@ -1,5 +1,36 @@
 Version 5.1
 
+1/7/19   [EDGcpfe/20549]
+Invalid order in generated explicit specializations involving constexpr
+variable template
+
+Consider:
+
+  namespace N {
+    enum E {};
+  }
+  namespace N {
+    template<typename T> struct S {
+      static constexpr int val = 42;
+    };
+    template<typename T> constexpr int Sval = S<T>::val; // (1)
+    template<typename T> struct X {
+      int f(int (*p)[1+Sval<T>]) { return 0; }
+    };
+    inline int g(X<E> *p) {
+      p->f(nullptr);
+    }
+  }
+
+When compiled in a configuration using the C++-generating back end with the
+macro TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, this
+generates explicit specializations for implicit instantiations.  The variable
+template N::Sval is instantiated with N::E, which in turn requires N::S<E> to
+be instantiated.  Previously, however, the explicit specialization generated
+for N::S<E> was rendered before the definition of the N::S itself (and hence
+the generated code was invalid).  That is now fixed.
+
+
 1/4/19   [EDGcpfe/20002]
 C++20: __VA_OPT__ preprocessor operator
 
