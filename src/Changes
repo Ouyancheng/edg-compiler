@@ -1,5 +1,22 @@
 Version 5.1
 
+1/7/19   [EDGcpfe/20672]
+Abort in finalize_subobject_path on address of array member of const-qualified
+object
+
+Consider:
+
+  struct I { int i; };
+  struct S { I ai[2]; };
+  S const sc = {};
+  auto const &r = sc.ai;
+
+Previously this aborted in finalize_subobject_path because the interpreter
+failed to determine a "subobject path" for the folded result of sc.ai.  That
+regression (introduced in version 5.0 through the changes for EDGcpfe/20086)
+is now fixed.
+
+
 1/7/19   [EDGcpfe/20549]
 Invalid order in generated explicit specializations involving constexpr
 variable template

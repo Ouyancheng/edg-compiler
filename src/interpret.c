@@ -4390,7 +4390,8 @@ of subscript operations or pointer arithmetic).
   p_subobj = &con->variant.address.subobject_path;
   t_offset = con->variant.address.offset;
   for (;;) {
-    if (t_offset == 0 && identical_types(subobj_type, obj_type)) {
+    if (t_offset == 0 &&
+        identical_types_ignoring_qualifiers(subobj_type, obj_type)) {
       /* The subobject path is complete. */
       break;
     }  /* if */
