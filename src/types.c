@@ -1587,6 +1587,7 @@ See ECMA-372 14.2.6 ("Boxing Conversions").
 
   if (cli_or_cx_enabled) {
     if (is_cli_value_type(tp) &&
+        (!is_enum(tp) || integer_type_is_scoped_enum(tp)) &&
         !is_pointer_type(tp)) {
       result = TRUE;
     }  /* if */
