@@ -9305,12 +9305,18 @@ specified type.  Substitutions are not allocated for <builtin-type>s
     case tk_struct:
     case tk_union:
     case tk_ptr_to_member:
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tk_vector:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-      /* These are not <builtin-type>s, so a substitution is required. */
       result = TRUE;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      /* The original mangling for vector types used a vendor extension
+         (which required a substitution).  The newer mangling (i.e., "Dv")
+         seems to also record a substitution (even though the "Dv" string
+         technically looks like a <builtin-type> and should not require one).
+         */
+      result = TRUE;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_template_param:
       if (is_auto_type(type)) {
         /* This occurs, for example, when mangling decltype(new auto(p1)). */

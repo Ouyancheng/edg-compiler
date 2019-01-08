@@ -1,5 +1,19 @@
 Version 5.1
 
+1/8/19   [EDGcpfe/20702]
+IA-64 ABI demangling of vector types
+
+GCC 5.0 and later uses the string "Dv" to mangle vector types, and although
+the IA-64 ABI document has not yet been updated to include this (as of this
+writing), the "Dv" mangling is part of the <builtin-type> grammar production
+which typically does not have a substitution recorded, except for vendor
+extensions.  Since vector types were originally vendor extensions, it appears
+that GCC makes an exception for these types as well.  The front end has always
+recorded a substitution for vector types, but the decoding mechanism had
+not previously expected one.  That has been changed and a mangled name like
+_Z14_mm_packs_pi16Dv2_iS_ can now be properly demangled.
+
+
 12/4/18  [EDGcpfe/20541]
 IA-64 ABI demangling of vendor extended type qualifiers
 
