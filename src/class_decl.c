@@ -1812,7 +1812,8 @@ capture described by lcp.  Return the field entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Find the scope stack entry for the lambda closure class. */
   for (ssep = scope_stack_entry_for(depth_scope_stack);
-       !(scope_is(ssep, sck_class_struct_union) &&
+       !((scope_is(ssep, sck_class_struct_union) ||
+          scope_is(ssep, sck_class_reactivation)) &&
          ssep->assoc_type == lambda->closure_class);
        ssep = previous_scope_of(ssep)) {
     check_assertion(ssep != NULL);
@@ -2234,15 +2235,34 @@ TRUE.
     } else {
       /* The variable (or reference to "this") is valid.  Add a new capture
          entry for it. */
-      a_boolean no_impl_capture;
-      lcp = add_lambda_capture(lambda, vp, (a_field_ptr)NULL,
-                               /*is_implicit=*/TRUE, by_ref, pos,
-                               &no_impl_capture);
-      if (no_impl_capture) {
-        err_code = (vp != NULL && vp->is_this_parameter) ?
-                        ec_not_captured_this_in_lambda :
-                        ec_no_implicit_capture_on_enclosing_lambda;
+      a_boolean  no_impl_capture;
+      uint32_t   param_num = 0;
+      if (vp != NULL && vp->is_parameter && vp->is_pack_element) {
+        /* This parameter is part of a pack expansion.  We will add captures
+           for each element of the expansion. */
+        param_num = vp->variant.assoc_param_type->param_num;
       }  /* if */
+      for (;;) {
+        lcp = add_lambda_capture(lambda, vp, (a_field_ptr)NULL,
+                                 /*is_implicit=*/TRUE, by_ref, pos,
+                                 &no_impl_capture);
+        if (no_impl_capture) {
+          err_code = (vp != NULL && vp->is_this_parameter) ?
+                          ec_not_captured_this_in_lambda :
+                          ec_no_implicit_capture_on_enclosing_lambda;
+        }  /* if */
+        /* If this is a parameter pack expansion, check if more parameter
+           variables are in the expansion. */
+        if (param_num != 0) {
+          vp = vp->next;
+          if (vp != NULL &&
+              vp->variant.assoc_param_type->param_num == param_num) {
+            /* The next parameter is part of the same expansion. */
+            continue;
+          }  /* if */
+        }  /* if */
+        break;
+      }  /* for */
     }  /* if */
     if (err_code != ec_no_error) {
       pos_error(err_code, pos);

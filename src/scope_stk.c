@@ -11003,6 +11003,34 @@ have a pack expansion so that it can be expanded in a rescan context.
 }  /* add_pack_expansion_descr_to_prototype_arg */
 
 
+static a_boolean in_generic_lambda_in_real_instantiation(void)
+/*
+Return TRUE if we are in the definition of a generic lambda that is nested
+inside a real instantiation.  In such contexts, a kind of "hybrid expansion"
+is performed (i.e., an expansion based on real template arguments where some
+template parameters may still be present in the result).
+*/
+{
+  a_boolean			result = FALSE;
+  a_boolean			lambda_found = FALSE;
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    /* Look for a generic lambda prototype instantiation and, if found, look
+       for an enclosing instantiation scope. */
+    if (scope_is(ssep, sck_template_instantiation)) {
+      if (lambda_found) {
+        result = !ssep->in_prototype_instantiation;
+        break;
+      } else if (ssep->is_generic_lambda && ssep->in_prototype_instantiation) {
+        lambda_found = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* in_generic_lambda_in_real_instantiation */
+
+
 static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
@@ -11159,7 +11187,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
       if (is_first_pack) {
         elements = elements_for_pack;
         is_first_pack = FALSE;
-      } else if (elements != elements_for_pack) {
+      } else if (elements != elements_for_pack &&
+                 !in_generic_lambda_in_real_instantiation()) {
         if (!is_rescan) {
           pos_st2_error(ec_pack_length_mismatch, &prp->position,
                         prp->symbol->header->identifier,
@@ -11625,33 +11654,7 @@ Return TRUE if we are within the prototype instantiation of a generic lambda.
     }  /* for */
   }  /* if */
   return result;
-}  /* in_generic_lambda_in_instantiation */
-
-
-static a_boolean is_generic_lambda_in_instantiation(void)
-/*
-Return TRUE if we are in the definition of a generic lambda that is nested
-inside a real instantiation.
-*/
-{
-  a_boolean			result = FALSE;
-  a_boolean			lambda_found = FALSE;
-  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-
-  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
-    /* Look for a generic lambda prototype instantiation and, if found, look
-       for an enclosing instantiation scope. */
-    if (scope_is(ssep, sck_template_instantiation)) {
-      if (lambda_found) {
-        result = !ssep->in_prototype_instantiation;
-        break;
-      } else if (ssep->is_generic_lambda && ssep->in_prototype_instantiation) {
-        lambda_found = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* is_generic_lambda_in_instantiation */
+}  /* in_generic_lambda_in_prototype_instantiation */
 
 
 static a_boolean is_pack_instantiation_context(
@@ -11680,7 +11683,7 @@ that *p_pedp is set even when FALSE is returned.
 
   pedp = get_pack_expansion_for_curr_context();
   *p_pedp = pedp;
-  in_generic_lambda_definition = is_generic_lambda_in_instantiation();
+  in_generic_lambda_definition = in_generic_lambda_in_real_instantiation();
   in_prototype_inst = is_prototype_instantiation_context();
   if (pedp != NULL) {
     if (is_real_instantiation_context() ||
@@ -12154,7 +12157,7 @@ Issue diagnostics for each element of the pack reference list pointed to
 by prp.
 */
 {
-  if (is_generic_lambda_in_instantiation()) {
+  if (in_generic_lambda_in_real_instantiation()) {
     /* When a generic lambda appears in an instantiation, a new prototype
        instantiation is done.  The pack processing in such cases is a
        hybrid of a normal prototype instantiation and an actual instantiation.

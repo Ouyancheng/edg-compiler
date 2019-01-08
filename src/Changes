@@ -1,5 +1,31 @@
 Version 5.1
 
+1/8/19   [EDGcpfe/20598]
+Variadic generic lambdas
+
+Consider:
+
+  void g(...) {}
+  template<typename ... Ts> auto f(Ts ... ps) {
+    [=](auto ... gps) {
+      g((ps + gps)...);
+    }(ps...);
+  }
+  int main() {
+    f();      // Previously a spurious error.
+    f(1, 2);  // Previously an abort in make_field_for_lambda_capture.
+  }
+
+Previously this code ran into two problems in the front end.  First, the call
+"f()" resulted in a spurious error about the ps and gps packs having different
+length (the error occurred during the prototype instantiation of the generic
+lambda performed during the real instantiation of f<>()).  Second, when
+determining the captures for the use pf the ps parameter pack, the front end
+failed to capture the whole pack: Instead, it only captured the first element
+of the pack, which resulted in an abort later on.  Both those problems are now
+fixed.
+
+
 1/8/19   [EDGcpfe/20601]
 Use of local variables in template argument lists
 
