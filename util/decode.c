@@ -5049,9 +5049,12 @@ for "restrict" and is not a <builtin-type>.
 /*
 Macro to determine if the type pointed to by "p" needs a substitution
 recorded for it.  <builtin-type>s are not recorded with the exception of
-vendor extended types which are recorded.
+vendor extended types which are recorded.  Vector types are considered
+vendor extensions in this case (i.e., substitutions are recorded for them).
 */
-#define record_substitution_for_type(p) (!(is_builtin_type(p)) || *(p) == 'u')
+#define record_substitution_for_type(p) (!(is_builtin_type(p)) ||        \
+                                           *(p) == 'u' ||                \
+                                           (*(p) == 'D' && (p)[1] == 'v'))
 
 static a_const_char *demangle_type_specifier(
                                 a_const_char               *ptr,
