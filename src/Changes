@@ -1,5 +1,23 @@
 Version 5.1
 
+1/8/19   [EDGcpfe/20601]
+Use of local variables in template argument lists
+
+Consider:
+
+  template<int N> constexpr bool f() { return true; }
+  template<int N> void g() {
+    static constexpr int CI = N;
+    static constexpr const int &RCI = CI;
+    static_assert(f<RCI>(), "Unexpected");
+  }
+
+Previously, this failed because the expression "f<RCI>()" was considered
+non-constant (the front end failed to notice the template-dependence of RCI,
+which in turn disabled the relaxation of constraints for constant expressions
+in templates).  That is now fixed.
+
+
 1/8/19   [EDGcpfe/20632]
 Virtual base class not first in constructor_init list
 

@@ -22191,6 +22191,15 @@ instantiation-dependent.
   if (expr_is_dep_static_member_of_current_instantiation(expr)) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
+  } else if (is_variable_node(expr)) {
+    /* Treat local variables of function templates as "instantiation
+       dependent". */
+    a_variable_ptr  vp = node_variable(expr);
+    if (vp->source_corresp.enclosing_routine != NULL &&
+        vp->source_corresp.enclosing_routine->is_prototype_instantiation) {
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
   }  /* if */
 }  /* examine_expr_for_instantiation_dependence */
 
