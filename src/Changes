@@ -1,5 +1,25 @@
 Version 5.1
 
+1/8/19   [EDGcpfe/20632]
+Virtual base class not first in constructor_init list
+
+In certain configuration, A C++ generating back end would reorder the base 
+classes in a constructor_init list.  For example:
+
+  struct A {};
+  template <class T> struct B : virtual A {};
+  template <class T> struct C : B<T> { C(T) : A(), B<T>() {} };
+
+The above example would, in certain configurations, result in the following
+generated C++ output:
+
+  struct A { };
+  template< class T> struct B : virtual public A {};
+  template< class T> struct C : public B< T>  { C(T) : ::B< T> (), ::A() { } };
+
+This has now been fixed.
+ 
+
 1/7/19   [EDGcpfe/20672]
 Abort in finalize_subobject_path on address of array member of const-qualified
 object

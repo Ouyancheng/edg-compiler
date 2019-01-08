@@ -6844,6 +6844,36 @@ previous initializer and update the state for the new entry.
 }  /* check_out_of_order_init */
 
 
+static a_constructor_init_ptr add_new_unresolved_base_ctor_init(
+                                                 a_ctor_init_block  *cibp,
+                                                 a_type_ptr          init_type)
+/*
+A ctor-initializer list contains an initializer for a type init_type that has
+not been found in the base class list.  Assume the type is a base class, create
+a new a_constructor_init to represent the initializer, and add the newly
+created initializer to the list of constructor init entries cibp as a direct
+base class.  Also call complete_class_type_is_needed for that presumed base
+class so that it will be instantiated if necessary; base classes must be
+complete.  The function returns the newly created a_constructor_init.
+*/
+{
+  a_constructor_init_ptr new_cip = alloc_ctor_init(
+                        (a_constructor_init_kind)cik_direct_base_class);
+  complete_class_type_is_needed(init_type);
+  new_cip->variant.base_class = alloc_base_class();
+  new_cip->variant.base_class->type = init_type;
+  if (cibp->direct_list == NULL) {
+    /* Start a new list. */
+    cibp->direct_list = new_cip;
+  } else {
+    /* Add to end of list. */
+    cibp->end_of_direct_list->next = new_cip;
+  }  /* if */
+  cibp->end_of_direct_list = new_cip;
+  return new_cip;
+} /* add_new_unresolved_base_ctor_init */
+
+
 static a_symbol_ptr look_up_mem_initializer_id(void)
 /*
 The current token is a (generalized) identifier of a mem-initializer-id (which
@@ -7201,31 +7231,16 @@ underlying element type and the array type itself is returned through
     }  /* if */
     if (bcp == NULL) {
       if (template_param_init ||
-          (class_type->variant.class_struct_union.is_nonreal_class &&
+          (class_type->variant.class_struct_union.is_prototype_instantiation &&
            class_symbol_supp(symbol_for(class_type))->
                                                   any_nonreal_base_classes)) {
         /* There are some cases where we cannot match up a base:
              - A dependent reference to a base.
              - A reference to a class type that might be a dependent base or a
                virtual base class thereof in some instantiation.
-           For these cases, we make up a nonvirtual base class node.  We also
-           call complete_class_type_is_needed for that presumed base class so
-           that it will be instantiated if necessary: base classes must be
-           complete, and we will also need to know if it has a constructor. */
-        complete_class_type_is_needed(init_type);
-        new_cip = alloc_ctor_init(
-                              (a_constructor_init_kind)cik_direct_base_class);
-        new_cip->variant.base_class = alloc_base_class();
-        new_cip->variant.base_class->type = init_type;
+           For these cases, we make up a nonvirtual base class node.  */
+        new_cip = add_new_unresolved_base_ctor_init(cibp,init_type);
         new_cip->orig_type = orig_type;
-        if (cibp->direct_list == NULL) {
-          /* Start a new list. */
-          cibp->direct_list = new_cip;
-        } else {
-          /* Add to end of list. */
-          cibp->end_of_direct_list->next = new_cip;
-        }  /* if */
-        cibp->end_of_direct_list = new_cip;
       } else {
         /* No valid match found. */
         if (indirect_nonvirtual_base_class_found) {
@@ -7257,6 +7272,10 @@ underlying element type and the array type itself is returned through
       for (; new_cip != NULL; new_cip = new_cip->next) {
         if (new_cip->variant.base_class == bcp) break;
       }  /* for */
+      if (new_cip != NULL &&
+          class_type->variant.class_struct_union.is_prototype_instantiation) {
+        new_cip = add_new_unresolved_base_ctor_init(cibp,init_type);
+      }
       check_assertion(new_cip != NULL);
       /* new_cip was initially marked as compiler-generated. Reset the
          flag now that it's appeared explicitly in the ctor-initializer
