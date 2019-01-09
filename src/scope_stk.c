@@ -11111,6 +11111,12 @@ lengths) *err is set to TRUE, FALSE otherwise.
             tap = tap->next;
           }  /* while */
         }  /* if */
+        /* If we reached an argument that is not part of the pack, it
+           should be ignored.  Note that prev_tap is still set because we
+           can deduce arguments that follow. */
+        if (tap != NULL && !tap->is_pack_element) {
+          tap = NULL;
+        }  /* if */
         new_prp->prev_template_arg = prev_tap;
         new_prp->curr_argument.template_arg = tap;
       }  /* if */

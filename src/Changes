@@ -1,5 +1,21 @@
 Version 5.1
 
+1/9/19   [EDGcpfe/20600]
+Internal error during deduction of variadic template call
+
+An internal error could occur (in f_strip_local_and_nonreal_typedefs) during
+template argument deduction if a deduced variadic template parameter was
+followed by another template parameter of a different kind (e.g., type vs.
+nontype) when considering a template where deduction should fail.  Now fixed.
+
+  template <class...> struct X;
+  template <typename... T, typename X<T...>::type I = 0> void f(T...); // #1
+  template <class T> void f(T, T){} // #2
+  int main() {
+    f<char>(1, 2); // Should call #2
+  }
+
+
 1/9/19   [EDGcpfe/20019,EDGcpfe/20423]
 C++20: no_unique_address attribute
 
