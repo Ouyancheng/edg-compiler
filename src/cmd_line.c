@@ -2715,6 +2715,7 @@ option values if they were not already set by a command line option.
           adl_for_non_visible_templates = TRUE;
           spaceship_enabled = TRUE;
           rvalue_allowed_with_const_qual_memptr = TRUE;
+          nested_inline_namespace_definitions_enabled = TRUE;
           /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
              command-line options.  Note that internally most C++20 features
              are enabled via global variables, but for those that aren't, set
@@ -3557,6 +3558,7 @@ default mode (e.g., exception handling).
         adl_for_non_visible_templates = TRUE;
         rvalue_allowed_with_const_qual_memptr = TRUE;
         va_opt_enabled = TRUE;
+        nested_inline_namespace_definitions_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4942,6 +4944,10 @@ before this routine is called.
       using_attribute_namespaces_enabled = TRUE;
       namespace_attributes_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 80000) {
+      /* Enabled by default (with a warning if in non-C++20 mode). */
+      nested_inline_namespace_definitions_enabled = TRUE;
+    }  /* if */
   } else {
     /* Not Clang mode. */
     /* Early template test for g++ prior to 4.7 (a TRUE value corresponds to
@@ -4971,6 +4977,9 @@ before this routine is called.
     register_is_deprecated = FALSE;
     register_is_disallowed = FALSE;
     operator_bool_increment_allowed = TRUE;
+    if (gnu_version >= 90000) {
+      nested_inline_namespace_definitions_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -11630,6 +11639,7 @@ variables declared in cmd_line.h.
   std_attributes_enabled = FALSE;
   namespace_attributes_enabled = FALSE;
   nested_namespace_definitions_enabled = FALSE;
+  nested_inline_namespace_definitions_enabled = FALSE;
   enumerator_attributes_enabled = FALSE;
   variable_templates_enabled = FALSE;
   constexpr_if_enabled = FALSE;

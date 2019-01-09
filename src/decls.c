@@ -14423,6 +14423,7 @@ pushed.
 
 static void namespace_declaration(a_token_kind      *final_token,
                                   a_boolean         in_nested_namespace_decl,
+                                  a_boolean         is_inline,
                                   a_source_position *nested_namespace_pos,
                                   a_symbol_ptr      *ns_definition_sym)
 /*
@@ -14448,9 +14449,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 This routine is called recursively (for each segment of a qualified name)
 for a nested namespace definition.  In those cases, in_nested_namespace_decl
 is set to TRUE and *nested_namespace_pos is set to the source position of the
-"namespace" keyword.  On return, *ns_definition_sym is set to the symbol for
-the (most nested level of the) namespace definition (if it's a definition and
-NULL otherwise).
+"namespace" keyword.  Also, in those cases, is_inline reflects whether the
+nested namespace had the "inline" keyword.  On return, *ns_definition_sym is
+set to the symbol for the (most nested level of the) namespace definition (if
+it's a definition and NULL otherwise).
 */
 {
   a_source_position           namespace_pos;
@@ -14474,7 +14476,7 @@ NULL otherwise).
   a_boolean		      namespace_scope_pushed = FALSE;
   a_boolean		      initial_decl_of_namespace_std = FALSE;
   an_attribute_ptr            attributes = NULL;
-  a_boolean	              is_inline = FALSE;
+  a_boolean	              nested_namespace_is_inline = FALSE;
 
   db_enter(3, "namespace_declaration");
   *ns_definition_sym = NULL;
@@ -14544,6 +14546,20 @@ NULL otherwise).
           }  /* if */
         }  /* if */
         is_enclosing_namespace_specifier = TRUE;
+        if (nested_inline_namespace_definitions_enabled &&
+            curr_token == tok_inline) {
+          /* C++20 allows nested namespace specifiers to be "inline". */
+          if (!cpp20_mode && clang_mode) {
+            static a_boolean  already_diagnosed = FALSE;
+            if (!already_diagnosed && !in_system_header()) {
+              pos_warning(ec_nested_inline_namespace_nonstandard,
+                          &pos_curr_token);
+              already_diagnosed = TRUE;
+            }  /* if */
+          }  /* if */
+          nested_namespace_is_inline = TRUE;
+          (void)get_token();
+        }  /* if */
         if (curr_token != tok_identifier) {
           /* This isn't processed now, but make sure an identifier follows
              "::". */
@@ -14617,8 +14633,8 @@ NULL otherwise).
     }  /* if */
   } else if (is_enclosing_namespace_specifier) {
     /* A nested namespace declaration. */
-    if (is_inline) {
-      /* The inline specifier cannot be used on a nested namespace. */
+    if (!in_nested_namespace_decl && is_inline) {
+      /* The inline specifier cannot be used on the outermost namespace. */
       pos_error(ec_inline_on_nested_namespace, &start_pos);
     }  /* if */
   } else {
@@ -14952,6 +14968,7 @@ NULL otherwise).
       /* For a nested namespace definition (e.g., "namespace N1::N2..."),
          recurse to process the remaining namespace names. */
       namespace_declaration(final_token, /*in_nested_namespace_decl=*/TRUE,
+                            nested_namespace_is_inline,
                             &namespace_pos, ns_definition_sym);
     } else if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       discard_curr_construct_pragmas();
@@ -18567,6 +18584,7 @@ processing should proceed after the call.
       disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE,
+                            /*is_inline=*/FALSE,
                             (a_source_position *)NULL, &dummy_sym);
       if (gpp_mode) {
         /* The C++11 standard doesn't allow namespace alias declarations in

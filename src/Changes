@@ -1,5 +1,23 @@
 Version 5.1
 
+1/9/19   [EDGcpfe/20531,EDGcpfe/20648]
+C++20: Nested inline namespaces
+
+Support for nested inline namespaces (P1094R2) has been added.  For example
+(with --c++20):
+
+  namespace A::inline B::inline C {
+    int i;
+  }
+  namespace A {
+    inline namespace B {
+      inline namespace C {
+        int j;
+      }
+    }
+  }
+
+
 1/9/19   [EDGcpfe/20600]
 Internal error during deduction of variadic template call
 
