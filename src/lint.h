@@ -530,6 +530,7 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_ETS_FLAG_TYPE_INT_KIND_win32)*/
 /*lint -esym(755,TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_win32)*/
 /*lint -esym(755,TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_win32)*/
+/*lint -esym(830,no_unique_address_attribute_seen)*/
 #else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/
