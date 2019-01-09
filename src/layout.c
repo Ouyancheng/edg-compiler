@@ -2674,12 +2674,14 @@ there's no overflow TRUE is returned.
             /* Fields that have the C++20 [[no_unique_address]] attribute
                and have empty class type can share an address with other
                non-static data members and/or a base class. */
-            if (!subobject_conflict(lob->class_type, field_type, 0,
+            if (!subobject_conflict(lob->class_type, field_type,
+                                    (a_targ_size_t)0,
                                     /*consider_bases=*/TRUE,
                                     /*consider_virtual_bases=*/TRUE,
                                     /*consider_fields=*/TRUE) ||
                     (emulate_gnu_abi_bugs &&
-                     gnu_first_field_conflict(lob->class_type, field, 0))) {
+                     gnu_first_field_conflict(lob->class_type, field,
+                                              (a_targ_size_t)0))) {
               save_byte_offset = 0;
               offset_determined = TRUE;
             }  /* if */

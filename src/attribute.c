@@ -5046,6 +5046,7 @@ attribute currently has no effect in the front end.
 }  /* apply_likely_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_no_unique_address_attr(an_attribute_ptr  ap,
                                           char              *entity,
                                           an_il_entry_kind  entity_kind)
