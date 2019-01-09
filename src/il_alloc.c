@@ -971,7 +971,7 @@ associated variant fields to default values.
 #if DO_IL_LOWERING
   cp->has_been_prelowered = FALSE;
   cp->vptr_has_been_lowered = FALSE;
-  cp->empty_base_classes_have_been_removed = FALSE;
+  cp->empty_classes_have_been_removed = FALSE;
 #endif /* DO_IL_LOWERING */
   cp->constant_for_base_class = FALSE;
   cp->constant_for_base_class_from_constexpr_folding = FALSE;
@@ -2711,6 +2711,8 @@ to it.
   fp->has_direct_braced_initializer = FALSE;
   fp->has_nonconstant_initializer = FALSE;
   fp->bit_size_constant_expr_in_local_expr_node_ref = FALSE;
+  fp->has_no_unique_address_attribute = FALSE;
+  fp->is_optimized_empty_class = FALSE;
 #if CENTERLINE_CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

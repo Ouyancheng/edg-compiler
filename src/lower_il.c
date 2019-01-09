@@ -1033,13 +1033,16 @@ a type identical to base_class_type.  It must be found.
 static a_field_ptr add_field(char          *field_name,
                              a_type_ptr    field_type,
                              a_targ_size_t field_offset,
-                             a_type_ptr    struct_type)
+                             a_type_ptr    struct_type,
+                             a_boolean     for_base_class)
 /*
 Make a field with the given type, add it at the right spot in the list of
 fields attached to struct_type, and return a pointer to the new field.
 field_name gives the field name (already allocated in the IL memory
 region).  field_offset gives the byte offset for the field.  The field
-allocated is not a bit field.
+allocated is not a bit field.  If for_base_class is TRUE, the field is
+allocated before any empty class field with the same offset (some lowering code
+assumes base classes occur before fields).
 */
 {
   a_field_ptr prev_field, next_field;
@@ -1061,6 +1064,12 @@ allocated is not a bit field.
                next_field = struct_type->variant.class_struct_union.field_list;
        next_field != NULL && next_field->offset <= field_offset;
        prev_field = next_field, next_field = next_field->next) {
+    if (next_field->offset == field_offset &&
+        for_base_class && next_field->is_optimized_empty_class) {
+      /* If we're adding a field for a base class, make sure it comes before
+         any optimized empty classes at the same offset. */
+      break;
+    }  /* if */
 #if CHECKING
     /* Check for fields with the same offset, but watch out for zero-length
        fields. */
@@ -1112,7 +1121,8 @@ field_offset gives the byte offset for the field.
   /* Copy in the name. */
   (void)strcpy(name_ptr, field_name);
   /* Create the field. */
-  (void)add_field(name_ptr, field_type, field_offset, struct_type);
+  (void)add_field(name_ptr, field_type, field_offset, struct_type,
+                  /*for_base_class=*/FALSE);
 }  /* add_dummy_field */
 
 
@@ -1149,7 +1159,8 @@ offset for the field.
   (void)strcpy(name_ptr+prefix_length, temp_name);
   /* Create the field. */
 #if IA64_ABI
-  field_ptr = add_field(name_ptr, field_type, field_offset, struct_type);
+  field_ptr = add_field(name_ptr, field_type, field_offset, struct_type,
+                        /*for_base_class=*/TRUE);
   if (targ_reuse_tail_padding && is_immediate_class_type(field_type) &&
       class_type_supp(field_type)->compiler_generated &&
       (field_type->size % field_type->alignment) != 0) {
@@ -1158,7 +1169,8 @@ offset for the field.
     field_ptr->base_class_subobject_with_tail_padding = TRUE;
   }  /* if */
 #else /* !IA64_ABI */
-  field_ptr = add_field(name_ptr, field_type, field_offset, struct_type);
+  field_ptr = add_field(name_ptr, field_type, field_offset, struct_type,
+                        /*for_base_class=*/TRUE);
 #endif /* IA64_ABI */
   field_ptr->is_lowered_base_class = TRUE;
 }  /* add_base_class_dummy_field */
@@ -2177,6 +2189,55 @@ union, adjust it to make the anonymous union reference(s) explicit.
 }  /* adjust_field_selection_for_anonymous_union_references */
 
 
+static void lower_field_reference_to_empty_class(an_expr_node_ptr node)
+/*
+If the field being referenced is for an empty class that has been optimized,
+re-write the expression to something that uses the same offset.  Note that node
+may overwritten here (to a different type of expression).
+*/
+{
+  a_field_ptr field = node_field(node->variant.operation.operands->next);
+
+  if (field->is_optimized_empty_class) {
+    /* The field being referenced is an empty class and won't appear in the
+       lowered structure, so re-write the operation to something that uses
+       the same offset, but doesn't explicitly refer to that field.  E.g.,
+          p->f becomes *(decltype(f)*)((char *)p+offsetof(f)))
+       */
+    an_expr_node_ptr new_node = node->variant.operation.operands;
+    new_node->next = NULL;
+    if (node_operator_is(node, eok_dot_field)) {
+      new_node = add_address_of_to_node(new_node);
+    } else {
+      check_assertion(node_operator_is(node, eok_points_to_field));
+    }  /* if */
+    new_node = add_cast_to_char_star(new_node);
+    new_node->next = node_for_integer_constant((long)field->offset,
+                                               targ_size_t_int_kind);
+    new_node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                  char_star_type(), new_node);
+    new_node = add_cast(new_node, make_pointer_type(node->type));
+    new_node = add_indirection_to_node(new_node);
+    if (!node->is_lvalue) {
+      new_node = rvalue_expr_for_lvalue(new_node);
+    }  /* if */
+    overwrite_node(node, new_node);
+  }  /* if */
+}  /* lower_field_reference_to_empty_class */
+
+
+static void lower_field_reference(an_expr_node_ptr node)
+/*
+Lower an expression that contains a reference to a field.  Note that node may
+overwritten here (to a different type of expression).
+*/
+{
+  check_assertion(is_field_node(node->variant.operation.operands->next));
+  adjust_field_selection_for_anonymous_union_references(node);
+  lower_field_reference_to_empty_class(node);
+}  /* lower_field_reference */
+
+
 an_expr_node_ptr au_field_lvalue_selection_expr(an_expr_node_ptr node,
                                                 a_field_ptr      field)
 /*
@@ -2210,6 +2271,8 @@ of anonymous unions by adding the necessary intermediate field selections.
       adjust_nonstandard_anonymous_object_field_references(node, field_sym,
                                                           /*std_also=*/TRUE);
     }  /* if */
+    /* If needed, re-write a field reference to an optimized empty class. */
+    lower_field_reference_to_empty_class(node);
   }  /* if */
   return node;
 }  /* au_field_lvalue_selection_expr */
@@ -2471,7 +2534,8 @@ class type or NULL if there is no such field.
        following it is probably what's wanted. */
     if (field_ptr->offset == byte_offset &&
         field_ptr->offset_bit_remainder == 0 &&
-        !field_has_zero_length(field_ptr)) break;
+        !(field_has_zero_length(field_ptr) ||
+          field_ptr->is_optimized_empty_class)) break;
   }  /* for */
   return field_ptr;
 }  /* field_at_offset_if_any */
@@ -4734,8 +4798,8 @@ in the constants that they've previously processed.
     if (is_immediate_class_type(con_type)) {
       prelower_class_type(con_type);
       /* Remove any initializers that the front end may have added for
-         empty base classes.  Do this before vptrs are inserted below. */
-      remove_initializers_for_empty_base_classes(constant,
+         empty classes.  Do this before vptrs are inserted below. */
+      remove_initializers_for_empty_classes(constant,
                                             prelower_aggr_con_ipdp,
                                             prelower_aggr_con_insert_location);
       if (constant->is_result_of_constexpr_call &&
@@ -15820,18 +15884,11 @@ cast.  See lower_expr for typical invocation.
             lower_pm_func_ptr(expr);
             break;
           case eok_dot_field:
-            /* See if an optimization applies. */
-            optimize_node_if_possible(expr);
-            /* If a field selection refers to an anonymous union field,
-               adjust it to make the anonymous union reference(s) explicit. */
-            adjust_field_selection_for_anonymous_union_references(expr);
-            break;
           case eok_points_to_field:
             /* See if an optimization applies. */
             optimize_node_if_possible(expr);
-            /* If a field selection refers to an anonymous union field,
-               adjust it to make the anonymous union reference(s) explicit. */
-            adjust_field_selection_for_anonymous_union_references(expr);
+            /* See if the field reference needs to be adjusted. */
+            lower_field_reference(expr);
             break;
           case eok_dot_static:
           case eok_points_to_static:

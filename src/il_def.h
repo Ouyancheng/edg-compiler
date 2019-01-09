@@ -2560,6 +2560,7 @@ typedef enum an_attribute_kind_tag {
   ak_fallthrough,	/* "fallthrough" (std). */
   ak_likely,		/* "likely" (std). */
   ak_unlikely,		/* "unlikely" (std). */
+  ak_no_unique_address,	/* "no_unique_address" (std). */
 
   /* Nonstandard attributes that do not require specific configuration
      flags. */
@@ -4320,12 +4321,11 @@ typedef struct a_constant {
 			   ck_aggregate constants are only visited one time.
 			   TRUE for ck_aggregate constants that have had
 			   an initializer for the __vptr field inserted. */
-  a_bit_field	empty_base_classes_have_been_removed:1;
+  a_bit_field	empty_classes_have_been_removed:1;
 			/* Flag that is used during lowering to ensure that
-			   ck_aggregate constants only have their empty
-			   base classes removed one time.  TRUE for
-			   ck_aggregate constants that have had empty base
-			   classes removed. */
+			   ck_aggregate constants only have their empty classes
+			   removed one time.  TRUE for ck_aggregate constants
+			   that have had empty classes removed. */
 #endif /* DO_IL_LOWERING */
   a_bit_field	constant_for_base_class:1;
 			/* TRUE if this constant (under a ck_aggregate) is
@@ -10755,6 +10755,19 @@ typedef struct a_field {
 			   as an a_local_expr_node_ref in the function
 			   scope and the associated expr field will be
 			   NULL.  This applies to bit_size_constant->expr. */
+  a_bit_field	has_no_unique_address_attribute:1;
+			/* TRUE if the field has the [[no_unique_address]]
+			   attribute applied to it. */
+  a_bit_field	is_optimized_empty_class:1;
+			/* TRUE if the field is an empty class that has been
+			   "optimized" such that it potentially shares an
+			   address with another field in the class.  Similar to
+			   is_optimized_empty_base, except that it applies to a
+			   field and not a base class.  Such fields do not
+			   exist in the lowered struct, so lowering needs to
+			   rewrite any expressions that may refer to them.
+			   Only TRUE if has_no_unique_address_attribute is also
+			   TRUE. */
   bitfield_to_avoid_codecenter_warnings()
   a_dynamic_init_ptr
 		initializer;

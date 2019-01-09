@@ -228,6 +228,7 @@ static an_attr_descr known_attr_table[] = {
   /* Note that the value of 202000 is temporary until C++20 is standardized. */
   { "likely", "", "1c+(202000-|G(80300-))", ak_likely },
   { "unlikely", "", "1c+(202000-|G(80300-))", ak_unlikely },
+  { "no_unique_address", "", "1c+(202000-|G(80300-))", ak_no_unique_address },
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
@@ -501,6 +502,7 @@ static an_attr_application_fn apply_nodiscard_attr;
 static an_attr_application_fn apply_maybe_unused_attr;
 static an_attr_application_fn apply_fallthrough_attr;
 static an_attr_application_fn apply_likely_attr;
+static an_attr_application_fn apply_no_unique_address_attr;
 
 /* Internal attributes. */
 static an_attr_application_fn apply_conditional_explicit;
@@ -631,6 +633,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_fallthrough, "s", apply_fallthrough_attr },
   { ak_likely, "l|s", apply_likely_attr },
   { ak_unlikely, "l|s", apply_likely_attr },
+  { ak_no_unique_address, "d:-b!", apply_no_unique_address_attr },
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
   { ak_overloadable, "r", NO_APPL_FN },
@@ -5043,6 +5046,22 @@ attribute currently has no effect in the front end.
 }  /* apply_likely_attr */
 
 
+static char* apply_no_unique_address_attr(an_attribute_ptr  ap,
+                                          char              *entity,
+                                          an_il_entry_kind  entity_kind)
+/*
+Apply the "no_unique_address" attribute to the field and return that entity.
+*/
+{
+  a_field_ptr fp = (a_field_ptr)entity;
+
+  check_assertion(entity_kind == iek_field);
+  fp->has_no_unique_address_attribute = TRUE;
+  no_unique_address_attribute_seen = TRUE;
+  return entity;
+}  /* apply_no_unique_address_attr */
+
+
 static void deferred_check_enable_if_attr(a_decl_parse_state_ptr  dps)
 /*
 A check for the "enable_if" attribute has been deferred and can now be
@@ -9407,6 +9426,7 @@ attributes from new_list are applied to tssp->attributes.
         case ak_fallthrough:
         case ak_likely:
         case ak_unlikely:
+        case ak_no_unique_address:
         default:
           /* These do not appertain to class types (and an error will be
              emitted later).  Ignore them here. */
@@ -9461,6 +9481,7 @@ attributes from new_list are applied to tssp->attributes.
         case ak_fallthrough:
         case ak_likely:
         case ak_unlikely:
+        case ak_no_unique_address:
           /* These do not appertain to class types (and an error will be
              emitted later).  Add them (so an error will be issued). */
           add = TRUE;

@@ -3311,6 +3311,25 @@ padding in the generated code.
        field != NULL;
        field = field->next) {
     a_targ_size_t padding;
+    if (field->is_optimized_empty_class) {
+      /* This field has been "optimized" out of the lowered struct (there
+         should be no references to it).  Skip to the next field. */
+      if (annotate) {
+        /* Display field information in an annotation comment. */
+        set_output_position(&field->source_corresp.decl_position);
+        write_space();
+        start_comment();
+        write_space();
+        dump_type(field->type, /*add_pointer_to=*/FALSE);
+        write_space();
+        dump_field_name(field);
+        write_ch(';');
+        write_space();
+        end_comment();
+        dump_field_annotation_comment(field);
+      }  /* if */
+      continue;
+    }  /* if */
     /* Add any required padding before the field. */
     padding = field_padding(prev_field, field, type);
     check_assertion(padding <= type->size);
@@ -7977,7 +7996,8 @@ block with state information for the processing.
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);
-        } else if (!*gen_assignments && is_immediate_class_type(type)) {
+        } else if (!*gen_assignments && is_immediate_class_type(type) &&
+                   !ipdp->curr_field->is_optimized_empty_class) {
           /* Check if we added some padding before this field, and if so
              generate initializers for that padding. */
           a_targ_size_t  padding, p;
@@ -8066,6 +8086,10 @@ block with state information for the processing.
             }  /* if */
           }  /* while */
           ipdp->repetition_count = NULL;
+        } else if (ipdp->curr_field != NULL &&
+                   ipdp->curr_field->is_optimized_empty_class) {
+          /* This field has been optimized out of the class, so skip any
+             initialization. */
         } else {
           /* Normal case (not a repeated constant). */
           dump_initializer_part(variable, elem_type, elem_con, gen_assignments,

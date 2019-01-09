@@ -6217,22 +6217,23 @@ contains a dynamic initialization.
 }  /* has_aggregate_with_dynamic */
 
 
-void remove_initializers_for_empty_base_classes(
+void remove_initializers_for_empty_classes(
                                         a_constant_ptr        constant,
                                         an_init_pos_descr_ptr ipdp,
                                         an_insert_location    *insert_location)
 /*
-Remove any initializers for optimized empty base classes that might appear in
-the ck_aggregate constant or any sub-aggregates.  In some cases, a
-ck_dynamic_init may be present for an otherwise-empty optimized base class; in
-that case the lowering is done here.  The constant has not been lowered yet (in
-fact this processing is performed as part of pre-lowering the aggregate so that
-lowering routines that depend on a one-to-one mapping of initializable fields
-and constants in the aggregate will work properly).  ipdp represents the
-initialization position for the beginning of the aggregate and insert_location
-points to the location where executable code (if any) should be inserted.
-ipdp and insert_location can both be NULL (in cases where the aggregate
-constant is known not to contain any dynamic initialization).
+Remove any initializers for empty classes (either base classes or fields with
+the no_unique_address attribute) that might appear in the ck_aggregate constant
+or any sub-aggregates.  In some cases, a ck_dynamic_init may be present for an
+otherwise-empty optimized empty class; in that case the lowering is done here.
+The constant has not been lowered yet (in fact this processing is performed as
+part of pre-lowering the aggregate so that lowering routines that depend on a
+one-to-one mapping of initializable fields and constants in the aggregate will
+work properly).  ipdp represents the initialization position for the beginning
+of the aggregate and insert_location points to the location where executable
+code (if any) should be inserted.  ipdp and insert_location can both be NULL
+(in cases where the aggregate constant is known not to contain any dynamic
+initialization).
 
 In the IA-64 ABI, this routine also rearranges an aggregate constant (in
 canonical order) to match the layout order when the IA-64 layout has
@@ -6248,11 +6249,12 @@ re-ordered base classes.
   a_field_ptr                 fp;
   a_boolean                   update_prev;
   a_boolean                   advance_fp;
+  a_boolean                   remove_constant;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!constant->empty_base_classes_have_been_removed &&
+  if (!constant->empty_classes_have_been_removed &&
       is_immediate_class_type(class_type)) {
-    constant->empty_base_classes_have_been_removed = TRUE;
+    constant->empty_classes_have_been_removed = TRUE;
     prelower_class_type(class_type);
     if (ipdp != NULL) {
       /* If we may be generating executable code for the initialization,
@@ -6276,7 +6278,7 @@ re-ordered base classes.
       fp = next_initializable_field(fp->next);
     }  /* if */
     /* Loop through every constant in the aggregate.  Match each constant with
-       a direct base class or a field.  For direct base classes that have
+       a direct base class or a field.  For empty classes that have
        been optimized, remove the constant (after possibly lowering any
        dynamic initialization it contains).  In all cases, recurse for any
        aggregate (though the initialization position for fields and base
@@ -6286,6 +6288,7 @@ re-ordered base classes.
          cp != NULL;
          cp = cp_next) {
       cp_next = cp->next;
+      remove_constant = FALSE;
       advance_fp = TRUE;
       update_prev = TRUE;
       if (cp->kind == (a_constant_repr_kind)ck_designator) {
@@ -6308,72 +6311,20 @@ re-ordered base classes.
           ipm.type = cp->type;
           local_ipdp->base_class_subobject = TRUE;
         }  /* if */
-        if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-          /* Recurse to remove initializers for empty base classes. */
-          remove_initializers_for_empty_base_classes(cp, local_ipdp,
-                                                     insert_location);
-        } else {
-          /* A dynamic initialization in the aggregate.  If this is for
-             an optimized base class, lower it now (because the aggregate
-             will be removed); otherwise leave it for the caller to lower. */
-          check_assertion(cp->kind == (a_constant_repr_kind)ck_dynamic_init);
-          if (bcp->is_optimized_empty_base) {
-            a_boolean keep_constant = FALSE;
-            check_assertion(ipdp != NULL && insert_location != NULL);
-            lower_ck_dynamic_init(cp, local_ipdp, /*dtor_case=*/FALSE,
-                              (an_implied_copy_source*)NULL,
-                              /*others_follow_in_aggr=*/(cp->next != NULL),
-                              insert_location, &keep_constant, LDIO_NONE);
-            check_assertion(!keep_constant);
-          }  /* if */
-        }  /* if */
         if (bcp->is_optimized_empty_base) {
-          /* This base class is an empty base class that has been optimized
-             (so it won't exist in the lowered type).  The constant for it
-             must be removed from the aggregate. */
-          if (prev == NULL) {
-            constant->variant.aggregate.first_constant = cp->next;
-          } else {
-            prev->next = cp->next;
-          }  /* if */
-          if (constant->variant.aggregate.last_constant == cp) {
-            constant->variant.aggregate.last_constant = prev;
-          }  /* if */
-          update_prev = FALSE;
+          /* This constant initializes an empty base class; it shall be removed
+             after being processed. */
+          remove_constant = TRUE;
           advance_fp = FALSE;
-        } else {
-#if IA64_ABI
-          if (ctsp->primary_base_class != NULL &&
-              ctsp->primary_base_class != ctsp->base_classes) {
-            /* In this case, lowering has placed the primary base class at
-               offset zero, which means that the ordering of constants in the
-               aggregate does not match the ordering of the fields that is
-               returned by next_initializable_field.  Find the initializer for
-               the primary base class and move it to the beginning of the
-               aggregate so it'll match the layout order. */
-            if (identical_types(cp->type, ctsp->primary_base_class->type)) {
-              check_assertion(cp->constant_for_base_class);
-              if (constant->variant.aggregate.first_constant == cp) {
-                /* The constant may already be first, in which case no
-                   action is necessary. */
-              } else {
-                check_assertion(prev != NULL);
-                prev->next = cp->next;
-                cp->next = constant->variant.aggregate.first_constant;
-                constant->variant.aggregate.first_constant = cp;
-                if (constant->variant.aggregate.last_constant == cp) {
-                  constant->variant.aggregate.last_constant = prev;
-                }  /* if */
-                update_prev = FALSE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-#endif /* IA64_ABI */
         }  /* if */
-        bcp = bcp->next;
       } else {
         /* Remaining constants initialize fields of the class; remove any
-           empty base classes they may contain. */
+           empty classes they may contain. */
+        if (fp->is_optimized_empty_class) {
+          /* This constant initializes an empty class; it shall be removed
+             after being processed. */
+          remove_constant = TRUE;
+        }  /* if */
         if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
 #if CHECKING
           /* Verify that the field and constant have the same type (though
@@ -6395,9 +6346,66 @@ re-ordered base classes.
             ipm.curr_field = fp;
             ipm.type = cp->type;
           }  /* if */
-          remove_initializers_for_empty_base_classes(cp, local_ipdp,
-                                                     insert_location);
         }  /* if */
+      }  /* if */
+      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Recurse to remove initializers for empty classes. */
+        remove_initializers_for_empty_classes(cp, local_ipdp,
+                                                   insert_location);
+      } else if (cp->kind == (a_constant_repr_kind)ck_dynamic_init &&
+                 remove_constant) {
+        /* A dynamic initialization in the aggregate for an optimized empty
+           class, lower it now (because the aggregate will be removed);
+           otherwise leave it for the caller to lower. */
+        a_boolean keep_constant = FALSE;
+        check_assertion(ipdp != NULL && insert_location != NULL);
+        lower_ck_dynamic_init(cp, local_ipdp, /*dtor_case=*/FALSE,
+                              (an_implied_copy_source*)NULL,
+                              /*others_follow_in_aggr=*/(cp->next != NULL),
+                              insert_location, &keep_constant, LDIO_NONE);
+        check_assertion(!keep_constant);
+      }  /* if */
+      if (remove_constant) {
+        /* This class is an empty class that has been optimized (so it won't
+           exist in the lowered type).  The constant for it must be removed
+           from the aggregate. */
+        if (prev == NULL) {
+          constant->variant.aggregate.first_constant = cp->next;
+        } else {
+          prev->next = cp->next;
+        }  /* if */
+        if (constant->variant.aggregate.last_constant == cp) {
+          constant->variant.aggregate.last_constant = prev;
+        }  /* if */
+        update_prev = FALSE;
+      } else if (bcp != NULL) {
+#if IA64_ABI
+        if (ctsp->primary_base_class != NULL &&
+            ctsp->primary_base_class != ctsp->base_classes) {
+          /* In this case, lowering has placed the primary base class at
+             offset zero, which means that the ordering of constants in the
+             aggregate does not match the ordering of the fields that is
+             returned by next_initializable_field.  Find the initializer for
+             the primary base class and move it to the beginning of the
+             aggregate so it'll match the layout order. */
+          if (identical_types(cp->type, ctsp->primary_base_class->type)) {
+            check_assertion(cp->constant_for_base_class);
+            if (constant->variant.aggregate.first_constant == cp) {
+              /* The constant may already be first, in which case no
+                 action is necessary. */
+            } else {
+              check_assertion(prev != NULL);
+              prev->next = cp->next;
+              cp->next = constant->variant.aggregate.first_constant;
+              constant->variant.aggregate.first_constant = cp;
+              if (constant->variant.aggregate.last_constant == cp) {
+                constant->variant.aggregate.last_constant = prev;
+              }  /* if */
+              update_prev = FALSE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
       if (advance_fp) {
         check_assertion(fp != NULL);
@@ -6417,12 +6425,15 @@ re-ordered base classes.
         /* Remove any modifiers that may have been added in the loop. */
         local_ipdp->modifiers = NULL;
       }  /* if */
+      if (bcp != NULL) {
+        bcp = bcp->next;
+      }  /* if */
     }  /* for */
     if (ipdp != NULL) {
       pop_aggregate_this();
     }  /* if */
   }  /* if */
-}  /* remove_initializers_for_empty_base_classes */
+}  /* remove_initializers_for_empty_classes */
 
 
 static a_routine_ptr helper_routine_to_initialize_repeated_constant(

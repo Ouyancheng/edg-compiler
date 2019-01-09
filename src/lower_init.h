@@ -393,6 +393,11 @@ extern void initialize_vptrs_in_class(
                                      a_constant_ptr     aggr_con,
                                      an_insert_location *insert_location);
 
+extern void remove_initializers_for_empty_classes(
+                                       a_constant_ptr        constant,
+                                       an_init_pos_descr_ptr ipdp,
+                                       an_insert_location    *insert_location);
+
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_INIT_H */
 

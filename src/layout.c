@@ -61,8 +61,9 @@ B.  Layout options
        space for their own virtual base classes.  All virtual base classes,
        direct and indirect, appear at the end of layout.)  If the empty base
        class optimization is enabled (targ_optimize_empty_base_class_layout),
-       then empty bases are allocated in a separate pass after the nonempty
-       bases (see set_offsets_for_empty_nonvirtual_base_classes).
+       then empty bases and fields with empty class type and the
+       [[no_unique_address]] attribute are allocated in a separate pass after
+       the nonempty bases (see set_offsets_for_empty_nonvirtual_base_classes).
 
     2. Nonstatic data members, in declaration order.
 
@@ -145,6 +146,15 @@ B.  Layout options
 #include "pch.h"
 #include "pragma.h"
 
+/*
+Macro that returns TRUE if the specified field should be treated as an
+empty class for the purposes of layout.  That's the case when the
+[[no_unique_address]] attribute is applied to an field whose type is an empty
+class.
+*/
+#define is_empty_field_for_layout_purposes(field)                         \
+ ((field)->has_no_unique_address_attribute &&                             \
+  is_empty_class_type((field)->type))
 
 /* Data structure to track some information about the layout of a class
    as it is being constructed. */
@@ -186,6 +196,12 @@ typedef struct a_layout_block {
 			/* The number of leading bytes occupied by base class
 			   subobjects.  This is used to optimize the layout
 			   process of fields (in the IA-64 ABI). */
+  a_targ_size_t
+		min_final_class_size;
+			/* The minimum size for the class.  This is used
+			   in the "finalization" step to ensure the class
+			   encompasses any potentially-overlapping data
+			   members. */
   a_base_class_ptr
 		trailing_nonempty_base;
 			/* The nonempty direct or virtual base class that has
@@ -209,6 +225,7 @@ Clear the block used to contain information while working out class layout.
   lob->curr_container_avail_bits = 0;
 #if IA64_ABI
   lob->curr_base_extent = 0;
+  lob->min_final_class_size = 0;
   lob->trailing_nonempty_base = NULL;
 #endif /* IA64_ABI */
 }  /* clear_layout_block */
@@ -2457,6 +2474,54 @@ otherwise, the last nonvirtual base should be considered.
 done:;
 }  /* emulate_gnu_bit_field_overpadding */
 
+
+static a_targ_size_t compute_dsize(a_type_ptr class_type)
+/*
+The IA-64 ABI layout algorithm uses "dsize" to represent the size of a
+class prior to rounding up for alignment purposes.  That value is computed
+during class layout but is not stored in the IL.  When laying out
+potentially-overlapping data members, the "dsize" value for the member
+is necessary and is computed here (by adding the offset of the last field
+of the class to the size of that field).
+*/
+{
+  a_field_ptr      fp;
+  a_base_class_ptr bcp;
+  a_targ_size_t    result = 0, field_size;
+  a_type_ptr       fp_type;
+
+  check_assertion(is_immediate_class_type(class_type));
+  for (fp = class_type->variant.class_struct_union.field_list;
+       fp != NULL && fp->next != NULL;
+       fp = fp->next) {
+  }  /* for */
+  if (fp == NULL) {
+    /* No fields; see if there are any base classes, and if so find the last
+       one. */
+    for (bcp = class_type_supp(class_type)->base_classes;
+         bcp != NULL && bcp->next != NULL;
+         bcp = bcp->next) {
+    }  /* for */
+    if (bcp == NULL) {
+      /* No fields or base classes.  See if there is a vptr. */
+      if (needs_virtual_function_table(class_type)) {
+        result = targ_sizeof_pointer;
+      }  /* if */
+    } else {
+      result = bcp->offset + skip_typedefs(bcp->type)->size;
+    }  /* if */
+  } else {
+    fp_type = skip_typedefs(fp->type);
+    if (is_immediate_class_type(fp_type)) {
+      field_size = compute_dsize(fp_type);
+    } else {
+      field_size = fp_type->size;
+    }  /* if */
+    result = fp->offset + field_size;
+  }  /* if */
+  return result;
+}  /* compute_dsize */
+
 #endif /* IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -2480,16 +2545,30 @@ there's no overflow TRUE is returned.
   a_targ_size_t               save_byte_offset;
   an_unnormalized_bit_offset  save_bit_offset;
   a_type_ptr                  class_type;
+#if IA64_ABI
+  a_boolean                   is_potentially_overlapping_data_member;
+#endif /* IA64_ABI */
 
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
   class_type = parent_class_of(field);
+#if IA64_ABI
+  is_potentially_overlapping_data_member =
+                                    (field->has_no_unique_address_attribute &&
+                                     is_immediate_class_type(field_type));
+#endif /* IA64_ABI */
   if (is_error_type(field_type)) {
     /* Do nothing if the field has an error type. */
   } else if (microsoft_mode && field_is_nontrivial_property_or_event(field)) {
     /* Nontrivial property or event fields do not take any space. */
     field->offset = field->offset_bit_remainder = 0;
+#if !IA64_ABI
+  } else if (is_empty_field_for_layout_purposes(field)) {
+    /* Empty classes with the [[no_unique_address]] attribute are treated
+       as empty base classes in the Cfront ABI (and are allocated in
+       set_offsets_for_empty_nonvirtual_base_classes and not here). */
+#endif /* !IA64_ABI */
   } else {
     /* Ensure that the size of the field's type has been computed. */
     set_type_size(field_type);
@@ -2588,35 +2667,70 @@ there's no overflow TRUE is returned.
            never conflicts in those cases.  No test for conflict is needed if
            the tentative offset of the field is already beyond the extent of
            any allocated base class. */
-        if (!C_mode() && class_type->kind != (a_type_kind)tk_union &&
-            save_byte_offset <= lob->curr_base_extent) {
-          while (subobject_conflict(lob->class_type, field_type,
-                                    save_byte_offset,
+        if (!C_mode() && class_type->kind != (a_type_kind)tk_union) {
+          a_boolean offset_determined = FALSE;
+          if (is_empty_field_for_layout_purposes(field)) {
+            field->is_optimized_empty_class = TRUE;
+            /* Fields that have the C++20 [[no_unique_address]] attribute
+               and have empty class type can share an address with other
+               non-static data members and/or a base class. */
+            if (!subobject_conflict(lob->class_type, field_type, 0,
                                     /*consider_bases=*/TRUE,
                                     /*consider_virtual_bases=*/TRUE,
                                     /*consider_fields=*/TRUE) ||
-                 (emulate_gnu_abi_bugs &&
-                  gnu_first_field_conflict(lob->class_type, field,
-                                           save_byte_offset))) {
-            /* The field can't go at this offset.  Advance by the field
-               alignment. */
-            if (!increment_field_offsets(&lob->byte_offset,
-                                         &lob->bit_offset,
-                                         (a_targ_size_t)field_alignment,
-                                         (an_unnormalized_bit_offset)0)) {
-              overflow = TRUE;
-              break;
-            } else {
-              save_byte_offset = lob->byte_offset;
+                    (emulate_gnu_abi_bugs &&
+                     gnu_first_field_conflict(lob->class_type, field, 0))) {
+              save_byte_offset = 0;
+              offset_determined = TRUE;
             }  /* if */
-          }  /* while */
+          }  /* if */
+          if (!offset_determined &&
+              save_byte_offset <= lob->curr_base_extent) {
+            while (subobject_conflict(lob->class_type, field_type,
+                                      save_byte_offset,
+                                      /*consider_bases=*/TRUE,
+                                      /*consider_virtual_bases=*/TRUE,
+                                      /*consider_fields=*/TRUE) ||
+                   (emulate_gnu_abi_bugs &&
+                    gnu_first_field_conflict(lob->class_type, field,
+                                             save_byte_offset))) {
+              /* The field can't go at this offset.  Advance by the field
+                 alignment. */
+              if (!increment_field_offsets(&lob->byte_offset,
+                                           &lob->bit_offset,
+                                           (a_targ_size_t)field_alignment,
+                                           (an_unnormalized_bit_offset)0)) {
+                overflow = TRUE;
+                break;
+              } else {
+                save_byte_offset = lob->byte_offset;
+              }  /* if */
+            }  /* while */
+          }  /* if */
         }  /* if */
-        if (!overflow) {
+        if (!overflow && !field->is_optimized_empty_class) {
 #endif /* IA64_ABI */
           /* For a normal field. */
+          a_targ_size_t size_to_allocate = (a_targ_size_t)field_type->size;
+#if IA64_ABI
+          if (is_potentially_overlapping_data_member) {
+            /* A potentially-overlapping data member has special layout
+               requirements in the IA-64 ABI; rather than the typical
+               sizeof(field), use max(nvsize(field),dsize(field)) here and
+               record a minimum class size later (to be used during
+               "finalization") if the class ends up being too small. */
+            a_targ_size_t dsize = compute_dsize(field_type);
+            a_targ_size_t nvsize = class_type_supp(field_type)->
+                                             size_without_virtual_base_classes;
+            size_to_allocate = dsize;
+            if (nvsize <= size_to_allocate) {
+              size_to_allocate = nvsize;
+            }  /* if */
+          }  /* if */
+#endif /* IA64_ABI */
           overflow = !increment_field_offsets(&lob->byte_offset,
                                               &lob->bit_offset,
-                                              (a_targ_size_t)field_type->size,
+                                              size_to_allocate,
                                               (an_unnormalized_bit_offset)0);
 #if IA64_ABI
         }  /* if */
@@ -2629,6 +2743,16 @@ there's no overflow TRUE is returned.
         field->offset = save_byte_offset;
         check_assertion(save_bit_offset < targ_char_bit);
         field->offset_bit_remainder = (an_offset_bit_remainder)save_bit_offset;
+#if IA64_ABI
+        if (is_potentially_overlapping_data_member) {
+          /* Record a minimum size for this class (this is used during the
+             "finalization" step). */
+          a_targ_size_t min_class_size = field->offset + field_type->size;
+          if (lob->min_final_class_size < min_class_size) {
+            lob->min_final_class_size = min_class_size;
+          }  /* if */
+        }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
     }  /* if */
     if (overflow && !lob->any_overflow) {
@@ -3172,17 +3296,38 @@ Also, in Microsoft mode we must skip over property fields.
 }  /* first_allocated_field */
 
 
+static a_field_ptr next_empty_class_field(a_type_ptr class_type)
+/*
+Returns the first field in the specified class that is considered an
+empty class field for the purposes of layout, or NULL if there are none.
+*/
+{
+  a_field_ptr      efp = NULL;
+
+  /* Don't bother to look if [[no_unique_address]] has not been seen. */
+  if (no_unique_address_attribute_seen) {
+    for (efp = first_allocated_field(class_type);
+         efp != NULL;
+         efp = efp->next) {
+      if (is_empty_field_for_layout_purposes(efp)) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return efp;
+}  /* next_empty_class_field */
+
+
 static void set_offsets_for_empty_nonvirtual_base_classes(
                                                       a_layout_block_ptr  lob)
 /*
-This routine is called if the empty base optimization is enabled.  If so, the
-empty base subobjects were not yet allocated in the class layout and this
-runs an extra pass to allocate them at the same location as other bases or
-(when that is not possible) just after the last already allocated base.
-Most of the work consists in avoiding situations where two empty subobjects
-would end up at the same address (this would be two base subobjects or a base
-subobject and the first allocated field).  The layout state lob is updated if
-necessary.
+This routine is called if the empty base optimization is enabled.  If so,
+empty base subobjects and certain empty class fields (i.e., those with the
+[[no_unique_address]] attribute were not yet allocated in the class layout and
+this runs an extra pass to allocate them at the same location as other bases
+or (when that is not possible) just after the last already allocated base.
+Most of the work consists in avoiding situations where two empty classes would
+end up at the same address.  The layout state lob is updated if necessary. 
 */
 {
   a_type_ptr       class_type = lob->class_type;
@@ -3193,20 +3338,31 @@ necessary.
   a_base_class_ptr ebcp = next_empty_nonvirtual_direct_base(
                                                  base_classes_of(class_type));
   a_base_class_ptr first_empty_base = ebcp, last_optimized_base = NULL;
-  a_boolean conflict;
+  a_boolean        conflict;
+  a_field_ptr      efp = next_empty_class_field(class_type);
+  a_field_ptr      first_empty_class_field = efp;
+  a_type_ptr       empty_class_type;
 
-  while (ebcp != NULL) {
-    ebcp->is_optimized_empty_base = TRUE; /* Assume we can overlap it. */
+  /* This loop first covers empty base classes, then empty class fields. */
+  while (ebcp != NULL || efp != NULL) {
     conflict = FALSE;
-    /* First tentatively allocate the empty base ignoring conflicts. */
-    if (nbcp != NULL) {
-      ebcp->offset = nbcp->offset;
+    if (ebcp != NULL) {
+      ebcp->is_optimized_empty_base = TRUE; /* Assume we can overlap it. */
+      /* First, tentatively allocate the empty base ignoring conflicts. */
+      if (nbcp != NULL) {
+        ebcp->offset = nbcp->offset;
+      } else {
+        ebcp->offset = lob->byte_offset;
+      }
+      empty_class_type = ebcp->type;
     } else {
-      ebcp->offset = lob->byte_offset;
-    }
+      efp->is_optimized_empty_class = TRUE;
+      efp->offset = lob->byte_offset;
+      empty_class_type = efp->type;
+    }  /* if */
     /* Next, verify if this offset causes a conflict with another empty
        subobject that has a common empty type at that location. */
-    if (nbcp != NULL && empty_base_conflict(ebcp->type, nbcp->type, 
+    if (nbcp != NULL && empty_base_conflict(empty_class_type, nbcp->type, 
                                             (a_base_class_ptr)NULL,
                                             (a_targ_size_t)0,
                                             /*consider_virtual_bases=*/TRUE,
@@ -3216,9 +3372,10 @@ necessary.
     } else {
       /* Check for conflicts with previously allocated empty bases. */
       a_base_class_ptr prior_ebcp = first_empty_base;
+      a_field_ptr prior_efp = first_empty_class_field;
       while (prior_ebcp && prior_ebcp != ebcp) {
         if (prior_ebcp->offset == ebcp->offset &&
-            empty_base_conflict(ebcp->type, prior_ebcp->type,
+            empty_base_conflict(empty_class_type, prior_ebcp->type,
                                 (a_base_class_ptr)NULL,
                                 (a_targ_size_t)0,
                                 /*consider_virtual_bases=*/TRUE,
@@ -3228,12 +3385,49 @@ necessary.
         }  /* if */
         prior_ebcp = next_empty_nonvirtual_direct_base(prior_ebcp->next);
       }  /* while */
+      /* Also check for conflicts with previously allocated empty class
+         fields. */
+      while (prior_efp != NULL && prior_efp != efp) {
+        if (prior_efp->offset == efp->offset &&
+            empty_base_conflict(empty_class_type, prior_efp->type,
+                                (a_base_class_ptr)NULL,
+                                (a_targ_size_t)0,
+                                /*consider_virtual_bases=*/TRUE,
+                                /*consider_fields=*/TRUE)) {
+          conflict = TRUE;
+          break;
+        }  /* if */
+        for (prior_efp = prior_efp->next;
+             prior_efp != NULL;
+             prior_efp = prior_efp->next) {
+          if (is_empty_field_for_layout_purposes(prior_efp)) {
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* while */
     }  /* if */
-    /* If there was no conflict, move to the next empty base; otherwise,
-       try to find another slot where the empty base could be allocated. */
+    /* If there was no conflict, move to the next empty class; otherwise,
+       try to find another slot where the empty class could be allocated. */
     if (!conflict) {
-      last_optimized_base = ebcp;
-      ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
+      if (ebcp != NULL) {
+        /* Move to the next empty base class. */
+        last_optimized_base = ebcp;
+        ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
+      } else {
+        /* The empty class field has been successfully placed. */
+        if (last_optimized_base != NULL &&
+            efp->offset != last_optimized_base->offset) {
+          /* An empty class field now follows the last optimized base. */
+          last_optimized_base = NULL;
+        }  /* if */
+        /* Skip to next empty field class (with the [[no_unique_address]]
+           attribute), if any. */
+        for (efp = efp->next; efp != NULL; efp = efp->next) {
+          if (is_empty_field_for_layout_purposes(efp)) {
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     } else {
       if (nbcp != NULL) {
         nbcp = next_nonempty_nonvirtual_direct_base(nbcp->next);
@@ -3244,8 +3438,9 @@ necessary.
         lob->byte_offset += targ_minimum_struct_alignment;
         /* The previously allocated empty base takes up its own space after
            all. */
-        /* coverity[var_deref_op] */ /* Coverity bug */
-        last_optimized_base->is_optimized_empty_base = FALSE;
+        if (last_optimized_base != NULL) {
+          last_optimized_base->is_optimized_empty_base = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* while */
@@ -3256,6 +3451,10 @@ necessary.
        the nonempty base). */
   } else {
     a_field_ptr field = first_allocated_field(class_type);
+    /* Skip past any initial empty class fields, if any. */
+    while (field != NULL && is_empty_field_for_layout_purposes(field)) {
+      field = field->next;
+    }  /* for */
     if (field) {
       /* There is a field. */
       a_type_ptr field_type = skip_typerefs(field->type);
@@ -3269,6 +3468,7 @@ necessary.
 #endif /* ABI_COMPATIBILITY_VERSION >= 300 */
       if (is_class_struct_union_type(field_type)) {
         ebcp = next_empty_nonvirtual_direct_base(base_classes_of(class_type));
+        /* First check empty bases. */
         while (ebcp) {
           if (ebcp->offset == lob->byte_offset &&
               empty_base_conflict(ebcp->type, field_type, 
@@ -3281,6 +3481,21 @@ necessary.
           }  /* if */
           ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
         }  /* while */
+        /* Now check empty class fields. */
+        for (efp = next_empty_class_field(class_type);
+             efp != NULL;
+             efp = efp->next) {
+          if (is_empty_field_for_layout_purposes(efp) &&
+              efp->offset == lob->byte_offset &&
+              empty_base_conflict(efp->type, field_type, 
+                                  (a_base_class_ptr)NULL,
+                                  (a_targ_size_t)0,
+                                  /*consider_virtual_bases=*/TRUE,
+                                  /*consider_fields=*/TRUE)) {
+            lob->byte_offset += targ_minimum_struct_alignment;
+            break;
+          }  /* if */
+        }  /* if */
       }  /* if */
     } else {
       /* We cannot end the layout with a zero-sized empty base because
@@ -3291,18 +3506,18 @@ necessary.
           ctsp->virtual_function_info_base_class == NULL) {
         /* This class has its own (as opposed to inherited) virtual function
            info block pointer, whose offset can be shared by the last empty
-           base. */
+           class. */
       } else {
         /* Check if there is a direct virtual base: if so, there will be a
            virtual base pointer whose offset can be shared by the last empty
-           base. */
+           class. */
         a_base_class_ptr  bcp = base_classes_of(class_type);
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct && bcp->is_virtual) { break; }
         }  /* for */
         if (bcp == NULL) {
           /* We did not find anything to share an offset with, so allocate
-             space for the last empty base. */
+             space for the last empty class. */
           lob->byte_offset += targ_minimum_struct_alignment;
         }  /* if */
       }  /* if */
@@ -4905,6 +5120,13 @@ for handling virtual bases and functions.
       ctsp->size_without_virtual_base_classes = lob.byte_offset;
       ctsp->alignment_without_virtual_base_classes = lob.alignment;
     }  /* if */
+  }  /* if */
+  /* "Finalize" the size of the class (if it contained any potentially-
+     overlapping data members). */
+  if (lob.min_final_class_size != 0 &&
+      lob.byte_offset < lob.min_final_class_size) {
+    lob.byte_offset = lob.min_final_class_size;
+    lob.bit_offset = 0;
   }  /* if */
 #endif /* IA64_ABI */
   /* Adjust the total size of the class to be consistent with the

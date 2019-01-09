@@ -3084,6 +3084,12 @@ Display the indicated field.
                        ptr->entities_defined_in_initializer);
     }  /* if */
   }  /* if */
+  if (ptr->has_no_unique_address_attribute) {
+    disp_boolean("has_no_unique_address_attribute", TRUE);
+  }  /* if */
+  if (ptr->is_optimized_empty_class) {
+    disp_boolean("is_optimized_empty_class", TRUE);
+  }  /* if */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
