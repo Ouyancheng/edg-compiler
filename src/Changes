@@ -45,23 +45,25 @@ in templates).  That is now fixed.
 
 
 1/8/19   [EDGcpfe/20632]
-Virtual base class not first in constructor_init list
+C++-generating back end: order of base classes in mem-initializer-list not
+preserved
 
-In certain configuration, A C++ generating back end would reorder the base 
-classes in a constructor_init list.  For example:
+In configurations in which template definitions are generated from the 
+prototype instantiation IL, the C++-generating back would place any virtual 
+base classes at the end of the mem-initializer-list.  For example:
 
   struct A {};
   template <class T> struct B : virtual A {};
   template <class T> struct C : B<T> { C(T) : A(), B<T>() {} };
 
-The above example would, in certain configurations, result in the following
-generated C++ output:
+The above example would result in the following generated C++ output:
 
   struct A { };
   template< class T> struct B : virtual public A {};
   template< class T> struct C : public B< T>  { C(T) : ::B< T> (), ::A() { } };
 
-This has now been fixed.
+Such generated code is correct, but would elicit a warning from some compilers
+when compiled. This has now been fixed.
  
 
 1/7/19   [EDGcpfe/20672]
