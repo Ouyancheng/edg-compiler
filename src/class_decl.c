@@ -2243,9 +2243,12 @@ TRUE.
         param_num = vp->variant.assoc_param_type->param_num;
       }  /* if */
       for (;;) {
-        lcp = add_lambda_capture(lambda, vp, (a_field_ptr)NULL,
-                                 /*is_implicit=*/TRUE, by_ref, pos,
-                                 &no_impl_capture);
+        a_lambda_capture_ptr  new_lcp;
+        new_lcp = add_lambda_capture(lambda, vp, (a_field_ptr)NULL,
+                                     /*is_implicit=*/TRUE, by_ref, pos,
+                                     &no_impl_capture);
+        /* Return the first of any added captures. */
+        if (lcp == NULL) lcp = new_lcp;
         if (no_impl_capture) {
           err_code = (vp != NULL && vp->is_this_parameter) ?
                           ec_not_captured_this_in_lambda :
