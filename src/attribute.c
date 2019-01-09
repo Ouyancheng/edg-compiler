@@ -5058,7 +5058,9 @@ Apply the "no_unique_address" attribute to the field and return that entity.
 
   check_assertion(entity_kind == iek_field);
   fp->has_no_unique_address_attribute = TRUE;
+#if !IA64_ABI
   no_unique_address_attribute_seen = TRUE;
+#endif /* !IA64_ABI */
   return entity;
 }  /* apply_no_unique_address_attr */
 

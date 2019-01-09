@@ -139,10 +139,12 @@ EXTERN a_boolean
                            source (triggers additional mangling work). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if !IA64_ABI
 EXTERN a_boolean
                 no_unique_address_attribute_seen;
                         /* TRUE if a no_unique_address attribute has been seen
                            in the source (triggers additional layout work). */
+#endif /* !IA64_ABI */
 
 extern void skip_over_attributes(void);
 
