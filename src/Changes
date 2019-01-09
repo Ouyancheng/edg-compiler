@@ -1,5 +1,17 @@
 Version 5.1
 
+1/9/19   [EDGcpfe/20248]
+Microsoft compatibility: spurious generic argument error in C++/CX mode
+
+In C++/CX mode when microsoft_version is >= 1900, a spurious "not a valid
+generic argument" error could be issued if an unscoped enumeration value
+was used in a constant context in a mode where constexpr is enabled.
+Now fixed.
+
+  enum xxx { xxx1 };
+  char ccc[xxx1 + 1];
+
+
 1/8/19   [EDGcpfe/20598]
 Variadic generic lambdas
 
