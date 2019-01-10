@@ -8066,7 +8066,7 @@ static void add_first_time_test(a_variable_ptr         guarded_var,
                                 a_variable_ptr         *test_var)
 /*
 Add a first-time test sequence that will surround the initialization of the
-local static variable guarded_var.  In effect (Cfront-like ABI):
+local static or inline variable guarded_var.  In effect (Cfront-like ABI):
 
   static int test_var;  // Global test var, implicitly init to 0
   {
@@ -8122,7 +8122,8 @@ location is the insert_location2 value (after the assignment statement).
   }  /* if */
 #endif /* IA64_ABI */
   int_type = integer_type(int_kind);
-  if (routine_might_exist_in_multiple_copies(
+  if (guarded_var->is_inline ||
+      routine_might_exist_in_multiple_copies(
                                  innermost_function_scope->variant.routine.ptr)
 #if IA64_ABI && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       /* In the IA64 ABI this routine is used for static data members of
@@ -8132,9 +8133,7 @@ location is the insert_location2 value (after the assignment statement).
       || guarded_var->is_template_variable
 #endif /* IA64_ABI && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
                                                                          ) {
-    /* The current routine is extern inline, so the guard variable has to
-       be external (because the local static variable itself will be
-       turned into an external variable). */
+    /* The guard variable has to be external. */
     *test_var = make_global_var_with_prefixed_name(
 #if !IA64_ABI
                                                "__LSG__",
@@ -9910,9 +9909,10 @@ C99 mode for the same reason.
          test). */
       simple_constant_init_opt_ruled_out = TRUE;
     }  /* if */
-    /* See if this is a local static variable promoted out of an extern inline
-       function (or template instantiated wherever used). */
-    if (variable->promoted_local_static &&
+    /* See if this is a local static variable promoted out of an extern
+       inline function, an inline variable, or template instantiated
+       wherever used. */
+    if ((variable->promoted_local_static || variable->is_inline) &&
         variable->storage_class == (a_storage_class)sc_unspecified
 #if IA64_ABI
         && variable->comdat_group == NULL
@@ -9953,11 +9953,13 @@ C99 mode for the same reason.
          scope).  This restriction might be able to be lifted in some cases. */
       do_simple_constant_init_opt = FALSE;
     }  /* if */
-    /* For local static variables, add a first-time flag and a test,
-       but not if the initialization will be turned into a constant
+    /* For local static and inline variables, add a first-time flag and a
+       test, but not if the initialization will be turned into a constant
        initialization. */
     insert_location2 = *insert_location;
-    if (lsvip != NULL && !do_simple_constant_init_opt) {
+    if ((lsvip != NULL ||
+         (variable->is_inline && variable->promoted_local_static_init)) &&
+        !do_simple_constant_init_opt) {
       add_first_time_test(variable, &insert_location2, insert_location,
                           &block_stmt, &local_static_guard_var);
     }  /* if */
@@ -12916,16 +12918,16 @@ Do IL lowering of an enk_temp_init expression node.
   }  /* if */
 }  /* lower_temp_init */
 
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
 
-static a_boolean add_static_data_member_init_guard_test(
+static a_boolean add_variable_init_guard_test(
                                           a_variable_ptr     variable,
                                           an_insert_location *insert_location,
                                           an_insert_location *insert_location2,
                                           a_variable_ptr     *guard_var)
 /*
-variable is a static data member of a template.  If its initialization
-requires guard code, insert the code as follows (Cfront-like ABI):
+variable is an inline variable or a static data member of a template.  If its
+initialization requires guard code, insert the code as follows (Cfront-like
+ABI):
 
   int guard_var;  // Global test var, implicitly init to 0
   {
@@ -13023,9 +13025,8 @@ other initializations.  This routine returns TRUE if guard code was emitted.
     test_var->is_thread_local = variable->is_thread_local;
   }  /* if */
   return guard_code_emitted;
-}  /* add_static_data_member_init_guard_test */
+}  /* add_variable_init_guard_test */
 
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
 void lower_stmk_init(a_statement_ptr    statement,
                      an_insert_location *eff_insert_location)
@@ -18188,10 +18189,8 @@ enough to cause the back end to invoke the routine at initialization.
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
       an_insert_location_ptr eff_insert_location = &insert_location;
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       an_insert_location     insert_location2;
       a_variable_ptr         guard_var = NULL;
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Break the link between dynamic inits.  After lowering, no dynamic
          inits remain on the file scope list.  However, they may remain on
          object lifetime lists, and in those cases it's not good to have the
@@ -18204,19 +18203,20 @@ enough to cause the back end to invoke the routine at initialization.
         /* Don't lower prototype instantiations of static data members. */
         continue;
       }  /* if */
-      if (var->is_template_variable) {
+      if (var->is_inline
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-        /* This is the initialization of a static data member in a template.
-           Add guard code around the initialization if necessary. */
-        if (add_static_data_member_init_guard_test(var,
-                                                   &insert_location,
-                                                   &insert_location2,
-                                                   &guard_var)) {
+          || var->is_template_variable
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+                                      ) {
+        /* This is the initialization of an inline variable or a static data
+           member in a template.  Add guard code around the initialization if
+           necessary. */
+        if (add_variable_init_guard_test(var, &insert_location,
+                                         &insert_location2, &guard_var)) {
           /* Guard code was emitted.  The actual initialization code is
              inserted inside the guard "if". */
           eff_insert_location = &insert_location2;
         }  /* if */
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       }  /* if */
       set_var_init_pos_descr(var, &ipd);
       check_assertion(pending_stmk_init_statements == NULL);
@@ -18232,7 +18232,7 @@ enough to cause the back end to invoke the routine at initialization.
                          (a_constant **)NULL);
       /* Insert any generated stmk_inits at the previously marked location. */
       insert_pending_stmk_init_statements_at_mark(eff_insert_location);
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && IA64_ABI
+#if IA64_ABI
       if (guard_var != NULL) {
 #if MAINTAIN_NEEDED_FLAGS
         if (eff_insert_location->kind == ilk_block_start) {
@@ -18253,7 +18253,7 @@ enough to cause the back end to invoke the routine at initialization.
            after the initialization is completed. */
         set_local_static_guard_var(guard_var, eff_insert_location);
       }  /* if */
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && ... */
+#endif /* IA64_ABI */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
       if (do_single_init) {
         a_routine_list_entry_ptr rlep;

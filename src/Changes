@@ -1,5 +1,29 @@
 Version 5.1
 
+1/10/19  [EDGcpfe/20475]
+Initialization of inline variables
+
+A change has been made to introduce a guard variable during the lowering phase
+to prevent multiple initializations of an inline variable.  For example
+(with --c++17):
+
+  // file1.cpp:
+  int f();
+  inline int i = f();
+
+  // file2.cpp:
+  int f();
+  inline int i = f();
+  int f() {
+    static int j;
+    return ++j;
+  }
+  int main() {
+    if (i != 1) return 1;   // f() had been invoked once per TU
+    return 0;
+  }
+
+
 1/9/19   [EDGcpfe/20531,EDGcpfe/20648]
 C++20: Nested inline namespaces
 
