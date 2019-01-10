@@ -7238,7 +7238,7 @@ underlying element type and the array type itself is returned through
              - A dependent reference to a base.
              - A reference to a class type that might be a dependent base or a
                virtual base class thereof in some instantiation.
-           For these cases, we make up a nonvirtual base class node.  */
+           For these cases, we make up a nonvirtual base class node. */
         new_cip = add_new_unresolved_base_ctor_init(cibp,init_type);
         new_cip->orig_type = orig_type;
       } else {
