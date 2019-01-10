@@ -2192,7 +2192,7 @@ union, adjust it to make the anonymous union reference(s) explicit.
 static void lower_field_reference_to_empty_class(an_expr_node_ptr node)
 /*
 If the field being referenced is for an empty class that has been optimized,
-re-write the expression to something that uses the same offset.  Note that node
+rewrite the expression to something that uses the same offset.  Note that node
 may overwritten here (to a different type of expression).
 */
 {
@@ -2200,9 +2200,9 @@ may overwritten here (to a different type of expression).
 
   if (field->is_optimized_empty_class) {
     /* The field being referenced is an empty class and won't appear in the
-       lowered structure, so re-write the operation to something that uses
+       lowered structure, so rewrite the operation to something that uses
        the same offset, but doesn't explicitly refer to that field.  E.g.,
-          p->f becomes *(decltype(f)*)((char *)p+offsetof(f)))
+       p->f becomes *(decltype(f)*)((char *)p+offsetof(f)))
        */
     an_expr_node_ptr new_node = node->variant.operation.operands;
     new_node->next = NULL;
@@ -2271,7 +2271,7 @@ of anonymous unions by adding the necessary intermediate field selections.
       adjust_nonstandard_anonymous_object_field_references(node, field_sym,
                                                           /*std_also=*/TRUE);
     }  /* if */
-    /* If needed, re-write a field reference to an optimized empty class. */
+    /* If needed, rewrite a field reference to an optimized empty class. */
     lower_field_reference_to_empty_class(node);
   }  /* if */
   return node;

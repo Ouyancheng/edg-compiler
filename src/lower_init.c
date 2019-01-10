@@ -6312,7 +6312,7 @@ re-ordered base classes.
           local_ipdp->base_class_subobject = TRUE;
         }  /* if */
         if (bcp->is_optimized_empty_base) {
-          /* This constant initializes an empty base class; it shall be removed
+          /* This constant initializes an empty base class; it will be removed
              after being processed. */
           remove_constant = TRUE;
           advance_fp = FALSE;
@@ -6321,7 +6321,7 @@ re-ordered base classes.
         /* Remaining constants initialize fields of the class; remove any
            empty classes they may contain. */
         if (fp->is_optimized_empty_class) {
-          /* This constant initializes an empty class; it shall be removed
+          /* This constant initializes an empty class; it will be removed
              after being processed. */
           remove_constant = TRUE;
         }  /* if */

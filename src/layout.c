@@ -3325,7 +3325,7 @@ static void set_offsets_for_empty_nonvirtual_base_classes(
 /*
 This routine is called if the empty base optimization is enabled.  If so,
 empty base subobjects and certain empty class fields (i.e., those with the
-[[no_unique_address]] attribute were not yet allocated in the class layout and
+[[no_unique_address]] attribute) were not yet allocated in the class layout and
 this runs an extra pass to allocate them at the same location as other bases
 or (when that is not possible) just after the last already allocated base.
 Most of the work consists in avoiding situations where two empty classes would
@@ -3422,7 +3422,7 @@ end up at the same address.  The layout state lob is updated if necessary.
           /* An empty class field now follows the last optimized base. */
           last_optimized_base = NULL;
         }  /* if */
-        /* Skip to next empty field class (with the [[no_unique_address]]
+        /* Skip to the next empty field class (with the [[no_unique_address]]
            attribute), if any. */
         for (efp = efp->next; efp != NULL; efp = efp->next) {
           if (is_empty_field_for_layout_purposes(efp)) {
@@ -3453,7 +3453,7 @@ end up at the same address.  The layout state lob is updated if necessary.
        the nonempty base). */
   } else {
     a_field_ptr field = first_allocated_field(class_type);
-    /* Skip past any initial empty class fields, if any. */
+    /* Skip past any initial empty class fields. */
     while (field != NULL && is_empty_field_for_layout_purposes(field)) {
       field = field->next;
     }  /* for */
