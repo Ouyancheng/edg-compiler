@@ -8122,7 +8122,9 @@ location is the insert_location2 value (after the assignment statement).
   }  /* if */
 #endif /* IA64_ABI */
   int_type = integer_type(int_kind);
-  if (guarded_var->is_inline ||
+  if ((guarded_var->is_inline &&
+       guarded_var->source_corresp.name_linkage !=
+                                         (a_name_linkage_kind)nlk_internal) ||
       routine_might_exist_in_multiple_copies(
                                  innermost_function_scope->variant.routine.ptr)
 #if IA64_ABI && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
