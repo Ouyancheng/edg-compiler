@@ -829,6 +829,10 @@ typedef struct an_override_registry_entry {
 			   a declaration in the derived class that has the
 			   same name for not the right type, so it does
 			   not succeed in overriding overridden_sym. */
+  a_symbol_list_entry_ptr
+		last_override_failure;
+			/* A pointer to the last entry in override_failures
+			   list. */
   unsigned int	virtual_function_count;
 			/* The number of virtual functions that may be
 			   overridden -- >1 if overridden_sym is overloaded,
@@ -892,6 +896,7 @@ fields.
   orep->overridden_sym         = NULL;
   orep->base_class             = NULL;
   orep->override_failures      = NULL;
+  orep->last_override_failure  = NULL;
   orep->virtual_function_count = 0;
   orep->override_count         = 0;
 
@@ -5790,6 +5795,7 @@ underlying "generic definition" routine.
 
 static void update_override_registry(
                              an_override_registry_entry_ptr *registry_ptr,
+                             an_override_registry_entry_ptr *last_registry_ptr,
                              a_symbol_ptr                   overridden_sym,
                              a_symbol_ptr                   nonoverriding_sym,
                              a_base_class_ptr               bcp)
@@ -5800,22 +5806,35 @@ a member of an overload set: overridden_sym represents that overload set or
 a single overridden function if it is not part of an overload set.  Keep track
 of the number of overrides by updating the linked list pointed to by
 registry_ptr.  When all the virtual functions in the overload set have been
-overridden, the corresponding entry is removed from the registry.
+overridden, the corresponding entry is removed from the registry.  To speed
+up the search of the existing overrides, last_registry_ptr points to the last
+updated registry entry.
 */
 {
-  an_override_registry_entry_ptr  orep, prev_orep;
+  an_override_registry_entry_ptr  start_orep, orep, prev_orep;
+  a_boolean found = FALSE;
 
   /* Loop through the current entries in the registry to see if this symbol
      is already represented on the list. */
   prev_orep = NULL;
-  for (orep = *registry_ptr; orep != NULL; orep = orep->next) {
+  if (*last_registry_ptr != NULL &&
+      (*last_registry_ptr)->overridden_sym->decl_seq <=
+       overridden_sym->decl_seq) {
+    start_orep = *last_registry_ptr;
+  } else {
+    start_orep = *registry_ptr;
+  }  /* if */
+  for (orep = start_orep; orep != NULL && orep->overridden_sym->decl_seq <=
+                                          overridden_sym->decl_seq;
+       orep = orep->next) {
     if (orep->overridden_sym == overridden_sym && orep->base_class == bcp) {
       /* It's a match. */
+      found = TRUE;
       break;
     }  /* if */
     prev_orep = orep;
   }  /* for */
-  if (orep == NULL) {
+  if (!found) {
     /* No matching entry was found in the registry.  Only if there is more
        than one virtual function in the overload set do we need a partial-
        override entry. */
@@ -5849,9 +5868,13 @@ overridden, the corresponding entry is removed from the registry.
       orep->virtual_function_count = 1;
     }  /* if */
     /* Add the new entry to the end of the registry. */
-    if (prev_orep == NULL) {
+    if (*registry_ptr == NULL) {
+      *registry_ptr = orep;
+    } else if ( prev_orep == NULL ){
+      orep->next = *registry_ptr;
       *registry_ptr = orep;
     } else {
+      orep->next = prev_orep->next;
       prev_orep->next = orep;
     }  /* if */
   }  /* if */
@@ -5879,16 +5902,19 @@ overridden, the corresponding entry is removed from the registry.
       new_slep->symbol = nonoverriding_sym;
       if (orep->override_failures == NULL) {
         orep->override_failures = new_slep;
+        orep->last_override_failure = new_slep;
       } else {
-        slep = orep->override_failures;
-        while (slep->next != NULL) slep = slep->next;
+        slep = orep->last_override_failure;
         slep->next = new_slep;
+        orep->last_override_failure = new_slep;
       }  /* if */
     }  /* if */
   } else {
     /* Increment the override count. */
     orep->override_count += 1;
   }  /* if */
+  *last_registry_ptr = orep;
+
 }  /* update_override_registry */
 
 
@@ -6543,6 +6569,7 @@ information about the function declarator.
   a_boolean                       any_override_candidates = FALSE;
   a_boolean                       real_override = FALSE;
   an_override_registry_entry_ptr  *registry_ptr;
+  an_override_registry_entry_ptr  last_registry_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_list_entry_ptr         named_override = decl_info->named_overrides;
   a_symbol_ptr                    named_override_sym = NULL;
@@ -6583,6 +6610,7 @@ information about the function declarator.
      symbol's "decl_position" for diagnostics. */
   if (rout->compiler_generated) source_pos = &rout_sym->decl_position;
   registry_ptr = &class_state->override_registry;
+  last_registry_ptr = *registry_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled && decl_info->is_destructor &&
       is_immediate_managed_class_type(class_type)) {
@@ -6976,15 +7004,16 @@ next_named_override:
                partial-override-registry.  This allows for a diagnostic later
                if the rest of the members are not also overridden. */
             if (!rout->compiler_generated) {
-              update_override_registry(
-                                    registry_ptr, sym_for_override_registry,
-                                    (a_symbol_ptr)NULL, bcp);
+              update_override_registry(registry_ptr, &last_registry_ptr,
+                                       sym_for_override_registry,
+                                       (a_symbol_ptr)NULL, bcp);
             }  /* if */
             goto next_base_class;                                       
           }  /* for */
           if (any_override_candidates && !rout->compiler_generated) {
             check_assertion(sym_for_override_registry != NULL);
-            update_override_registry(registry_ptr, sym_for_override_registry,
+            update_override_registry(registry_ptr, &last_registry_ptr,
+                                     sym_for_override_registry,
                                      rout_sym, bcp);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
