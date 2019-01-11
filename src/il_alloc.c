@@ -700,7 +700,8 @@ is allocated in the current memory region.
   ++num_subobject_paths_allocated;
 #endif /* DEBUG */
   entry->next = NULL;
-  entry->kind = (an_il_entry_kind)iek_field;
+  entry->is_offset = FALSE;
+  entry->is_base_class = FALSE;
   entry->variant.field = NULL;
   return entry;
 }  /* alloc_subobject_path */

@@ -1727,24 +1727,14 @@ Output a subobject path for debug purposes.
 */
 {
   for (; path != NULL; path = path->next) {
-    switch (path->kind) {
-      case iek_field:
-        db_name_full(&path->variant.field->source_corresp, iek_field);
-        break;
-      case iek_constant:
-        fprintf(f_debug, "[%ld]", (long)path->variant.ptr_offset);
-        break;
-      case iek_base_class:
-        fprintf(f_debug, "base cast to ");
-        db_type_name(path->variant.base_class->type);
-        break;
-      case iek_type:
-        fprintf(f_debug, "derived cast to ");
-        db_type_name(path->variant.base_class->derived_class);
-        break;
-      default:
-        fprintf(f_debug, "BAD SUBOBJECT PATH ENTRY KIND");
-        break;
+    if (path->is_offset) {
+      fprintf(f_debug, "[%ld]", (long)path->variant.ptr_offset);
+    } else if (path->is_base_class) {
+      fprintf(f_debug, "base ");
+      db_type_name(path->variant.base_class->type);
+    } else {
+      fprintf(f_debug, ".");
+      db_name_full(&path->variant.field->source_corresp, iek_field);
     }  /* switch */
     if (path->next != NULL) {
       fprintf(f_debug, "->");

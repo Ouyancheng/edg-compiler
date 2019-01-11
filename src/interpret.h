@@ -18,6 +18,11 @@ interpret.h -- Interface to IL interpreter for constexpr functions
 
 a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con);
 
+a_subobject_path_ptr get_trailing_subobject_path_entry(
+                                               a_constant_ptr  con,
+                                               a_boolean       is_offset,
+                                               a_boolean       is_base_class);
+
 a_boolean is_core_constant_expr(an_expr_node_ptr  expr,
                                 a_diag_list_ptr   diag_list);
 

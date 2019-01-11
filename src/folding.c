@@ -1072,10 +1072,30 @@ is (successfully) folded to another error constant.
            is_object_pointer is TRUE, to allow the usual idiom for the
            offsetof macro to work. */
       } else {
+        a_base_class_ptr  prev_base = NULL;
+        a_targ_size_t     base_offset;
+        a_boolean         subtract = FALSE;
+        a_subobject_path_ptr
+                          spp = NULL;
+        if (constant_is(result, ck_address)) {
+          /* Update the subobject path. */
+          spp = get_trailing_subobject_path_entry(result, /*is_offset=*/FALSE,
+                                                  /*is_base_class=*/TRUE);
+          prev_base = spp->variant.base_class;
+          if (prev_base == NULL) {
+            spp->variant.base_class = base_class;
+          } else {
+            spp->variant.base_class = corresponding_base_class(
+                                         base_class, prev_base->derived_class,
+                                         prev_base);
+          }  /* if */
+        }  /* if */
         get_pointer_offset(constant_1, offset);
-        if (any_virtual_steps_in_derivation(base_class)) {
+        if (!any_virtual_steps_in_derivation(base_class)) {
+          base_offset = base_class->offset;
+        } else {
           /* Casting to a virtual base class.  This can only be folded if we
-             have a complete object of the derived class type. */
+             know the "most derived" object type. */
           if (pointer_con_complete_object_type(constant_1) != NULL) {
             /* The constant is the unmodified address of a variable.  We know
                the variable has the proper class type or we wouldn't have
@@ -1084,27 +1104,42 @@ is (successfully) folded to another error constant.
                type because we don't have the history of casts -- there may
                have been several, and they might not all have been base
                class casts. */
-          } else {
-            /* We cannot fold the cast. */
+            base_offset = base_class->offset;
+          } else if (!constant_is(result, ck_address)) {
+            /* We cannot fold the cast because the most derived type is not
+               known. */
             *did_not_fold = TRUE;
             break;
+          } else {
+            /* A subobject path tracks the base class of the most-derived type.
+               That is sufficient to determine the actual offset needed. */
+            a_base_class_ptr  new_base = spp->variant.base_class;
+            if (prev_base == NULL) {
+              base_offset = new_base->offset;
+            } else if (prev_base->offset <= new_base->offset) {
+              base_offset = new_base->offset - prev_base->offset;
+            } else {
+              subtract = TRUE;
+              base_offset = prev_base->offset - new_base->offset;
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Take the pointer offset, ... */
-        /* ... add the offset to the base class, ... */
-        set_unsigned_integer_value(&base_class_offset, base_class->offset);
-        add_integer_values(&offset->variant.integer_value, &base_class_offset,
-                           int_constant_is_signed(offset), &err);
+        set_unsigned_integer_value(&base_class_offset, base_offset);
+        /* ... add or subtract the offset to the base class, ... */
+        if (subtract) {
+          subtract_integer_values(&offset->variant.integer_value,
+                                  &base_class_offset,
+                                  int_constant_is_signed(offset), &err);
+        } else {
+          add_integer_values(&offset->variant.integer_value,
+                             &base_class_offset,
+                             int_constant_is_signed(offset), &err);
+        }  /* if */
         /* ... and put the offset into the result pointer constant.  Note
            that no overflow/object-size checking is needed, since the base
            class has to be within the underlying object. */
         set_pointer_offset(result, offset, &err);
-        if (constant_is(result, ck_address)) {
-          a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
-          *p_end_path = alloc_subobject_path();
-          (*p_end_path)->kind = (an_il_entry_kind)iek_base_class;
-          (*p_end_path)->variant.base_class = base_class;
-        }  /* if */
       }  /* if */
     }  /* for */
     /* Set the constant type.  It includes all the type qualifiers from the
@@ -1203,11 +1238,6 @@ ec_no_error if there was no error.
       /* Preserve a NULL pointer. */
     } else {
       a_constant_ptr offset = local_constant();
-#if CHECKING
-      if (any_virtual_steps_in_derivation(bcp)) {
-        internal_error("fold_derived_class_cast: virtual base class");
-      }  /* if */
-#endif /* CHECKING */
       /* Determine the pointer offset, ... */
       get_pointer_offset(result, offset);
       /* ... subtract the offset to the base class, ... */
@@ -1219,13 +1249,43 @@ ec_no_error if there was no error.
          that no overflow/object-size checking is needed, since the base
          class has to be within the underlying object. */
       set_pointer_offset(result, offset, &err);
-      if (constant_is(result, ck_address)) {
-        a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
-        *p_end_path = alloc_subobject_path();
-        (*p_end_path)->kind = (an_il_entry_kind)iek_type;
-        (*p_end_path)->variant.base_class = bcp;
-      }  /* if */
       release_local_constant(&offset);
+      if (constant_is(result, ck_address)) {
+        /* Update the subobject path. */
+        a_subobject_path_ptr  spp;
+        a_base_class_ptr      new_base_class = NULL;
+        spp = get_trailing_subobject_path_entry(result, /*is_offset=*/FALSE,
+                                                /*is_base_class=*/TRUE);
+        if (spp->variant.base_class == NULL) {
+          /* No base class recorded yet: A derived-class cast is not possible
+             since it would cast beyond the most-derived class. */
+        } else {
+          a_derivation_step_ptr  dsp;
+          a_base_class_derivation_ptr
+                                 bcdp = spp->variant.base_class->derivation;
+          check_assertion(bcdp != NULL && bcdp->next == NULL);
+          dsp = bcdp->path;
+          for (; dsp != NULL; dsp = dsp->next) {
+            if (identical_types(dsp->base_class->type, new_type)) {
+              new_base_class = dsp->base_class;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        if (new_base_class != NULL) {
+          spp->variant.base_class = new_base_class;
+        } else {
+          /* Invalid cast. */
+          if (error_detected != NULL) {
+            *error_detected = ec_derived_class_too_far;
+          } else {
+            pos_ty2_error(ec_derived_class_too_far, err_pos,
+                          derived_class_type, bcp->type);
+          }  /* if */
+          set_error_constant(result);
+          goto done;
+        }  /* if */
+      }  /* if */
     }  /* if */
     implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
     /* Update the backing expression if one was present. */
@@ -1240,6 +1300,7 @@ ec_no_error if there was no error.
     }  /* if */
     result->expr = expr;
   }  /* if */
+done:;
 }  /* fold_derived_class_cast */
 
 
@@ -1284,12 +1345,10 @@ type.
   a_type_ptr       old_type = old_constant->type;
   a_boolean        conversion_handled = FALSE, baseward_cast;
   a_base_class_ptr bcp;
-  an_error_code    *p_err_code = NULL;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
-  if (suppress_complex_diags) p_err_code = err_code;
 #if CHECKING
   if (old_constant->kind != (a_constant_repr_kind)ck_address &&
       old_constant->kind != (a_constant_repr_kind)ck_integer &&
@@ -1338,24 +1397,28 @@ type.
     if (!fold_constant_addr_exprs) {
       *did_not_fold = TRUE;
     } else if (baseward_cast) {
-      /* Derived --> base.  Valid unless the cast is ambiguous or
-         the base class is inaccessible. */
+      /* Derived --> base.  Valid unless the cast is ambiguous or the base
+         class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, type_pointed_to(new_type),
                            new_constant,
                            check_cast_access, check_ambiguity,
                            is_implicit_cast, is_object_pointer,
                            /*omit_back_expr=*/FALSE,
-                           did_not_fold, err_pos, p_err_code);
-      if (p_err_code != NULL && *err_code != ec_no_error) {
-        *err_severity = es_error;
+                           did_not_fold, err_pos, err_code);
+      if (*err_code != ec_no_error) {
+        /* Treat failing cases as failing to fold, instead of errors. */
+        *err_code = ec_no_error;
+        *did_not_fold = TRUE;
       }  /* if */
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
       fold_derived_class_cast(old_constant, bcp, new_constant, err_pos,
-                              p_err_code);
-      if (p_err_code != NULL && *err_code != ec_no_error) {
-        *err_severity = es_error;
+                              err_code);
+      if (*err_code != ec_no_error) {
+        /* Treat failing cases as failing to fold, instead of errors. */
+        *err_code = ec_no_error;
+        *did_not_fold = TRUE;
       }  /* if */
     }  /* if */
     /* If the qualifiers aren't right, adjust them. */
@@ -4886,14 +4949,16 @@ detected, or *err_code == ec_no_error if everything went fine.
       err = FALSE;
     } else if (constant_is(result, ck_address)) {
       /* Record the change in the associated subobject path. */
-      a_subobject_path_ptr  *p_end_path = last_subobject_path_link(result);
-      *p_end_path = alloc_subobject_path();
-      (*p_end_path)->kind = (an_il_entry_kind)iek_constant;
-      (*p_end_path)->variant.ptr_offset =
-                                  value_of_integer_constant(constant_2, &err);
+      a_targ_ptrdiff_t      offset_change;
+      a_subobject_path_ptr  spp;
+      spp = get_trailing_subobject_path_entry(result, /*is_offset=*/TRUE,
+                                              /*is_base_class=*/FALSE);
+      offset_change = value_of_integer_constant(constant_2, &err);
       if (op == (an_expr_operator_kind)eok_psubtract ||
           op == (an_expr_operator_kind)eok_subtract) {
-        (*p_end_path)->variant.ptr_offset = -(*p_end_path)->variant.ptr_offset;
+        spp->variant.ptr_offset -= offset_change;
+      } else {
+        spp->variant.ptr_offset += offset_change;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6032,7 +6097,6 @@ and set *ovflo to TRUE if an overflow occurred.
     if (p_subobject_path != NULL) {
       a_subobject_path_ptr  path = alloc_subobject_path();
       path->next = *p_subobject_path;
-      path->kind = (an_il_entry_kind)iek_field;
       path->variant.field = field;
       *p_subobject_path = path;
     }  /* if */

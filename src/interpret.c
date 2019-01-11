@@ -4098,33 +4098,6 @@ static a_boolean do_constexpr_dynamic_init(
                                       a_byte                *complete_object);
 
 
-static a_boolean on_subobject_path(char                  *subobj,
-                                   a_subobject_path_ptr  path)
-/*
-Return TRUE if the given a_field or a_base_class entry is on the given
-subobject path.  Only iek_field and iek_base_class entries on the path are
-considered.
-*/
-{
-  a_boolean  result = FALSE;
-
-  for (; path != NULL; path = path->next) {
-    if (path->kind == (an_il_entry_kind)iek_field) {
-      if (subobj == (char*)path->variant.field) {
-        result = TRUE;
-        break;
-      }  /* if */
-    } else if (path->kind == (an_il_entry_kind)iek_base_class) {
-      if (subobj == (char*)path->variant.base_class) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* on_subobject_path */
-
-
 static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
                                              a_constant_ptr        con,
                                              a_constexpr_address   *cap,
@@ -4132,471 +4105,95 @@ static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
 /*
 con is an address constant being translated to *cap, a representation in
 interpreter storage of the address of the complete object of type obj_type.
-If con represents the address of a subobject, update *cap accordingly.
+If con represents the address of a subobject, update *cap accordingly: That
+can result in modifications of the address, but also the flags and the
+variant path.
 */
 {
-  a_boolean         result = TRUE;
-  a_type_ptr        subobj_type = skip_typerefs(con->type);
-  a_targ_ptrdiff_t  t_offset, t_pos;
-  a_byte_count      i_offset, i_size;
+  a_boolean             result = TRUE;
+  a_subobject_path_ptr  spp = con->variant.address.subobject_path;
+  a_byte_count          i_offset;
 
-  subobj_type = skip_typerefs(subobj_type->variant.pointer.type);
-  t_offset = con->variant.address.offset;
-  for (;;) {
-    if (t_offset == 0 && identical_types(subobj_type, obj_type)) {
-      /* *cap is fully updated. */
-      break;
+  if (spp == NULL) {
+    if (obj_type->kind == (a_type_kind)tk_array) {
+      /* con points to an array as a whole or to just its first element.
+         Set the CA_ARRAY_ELEMENT flag in the latter case. */
+      a_type_ptr  con_addr_type = type_pointed_to(con->type);
+      if (!identical_types(obj_type, con_addr_type)) {
+        cap->flags |= CA_ARRAY_ELEMENT;
+      }  /* if */
     }  /* if */
-    switch (obj_type->kind) {
-      case tk_array:
-        { cap->flags |= CA_ARRAY_ELEMENT;
-          cap->length = obj_type->variant.array.variant.number_of_elements;
-          if (is_variant_path(cap)) {
-            cap->variant.variant_path->base_address = cap->address;
-          } else {
-            cap->variant.base_address = cap->address;
-          }  /* if */
+    goto done;
+  }  /* if */
+  for (; spp != NULL; spp = spp->next) {
+    if (spp->is_offset) {
+      a_byte_count  array_size, elem_size;
+      array_size = value_bytes_for_type(ips, obj_type, &result); 
+      if (obj_type->kind == (a_type_kind)tk_array) {
+        do {
           obj_type = skip_typerefs(obj_type->variant.array.element_type);
-          i_size = value_bytes_for_type(ips, obj_type, &result); 
-          check_assertion(result);
-          t_pos = t_offset/(a_targ_ptrdiff_t)obj_type->size;
-          cap->address += i_size*(a_byte_count)t_pos;
-          t_offset -= t_pos*obj_type->size;
-          if ((a_byte_count)t_pos == cap->length) {
-            /* One position past the end of the array.  This has to be the
-               address of the corresponding element; not that of a subobject
-               thereof. */
-            cap->flags |= CA_CANNOT_DEREFERENCE;
-            check_assertion(identical_types(subobj_type, obj_type));
-          }  /* if */
-        }
-        break;
-      case tk_class:
-      case tk_struct:
-        { /* Search fields and direct nonvirtual bases for the right offset. */
-          a_field_ptr  fp = obj_type->variant.class_struct_union.field_list;
-          fp = next_alloc_field(fp);
-          for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-            a_type_ptr        ftp;
-            a_targ_ptrdiff_t  off = (a_targ_ptrdiff_t)fp->offset;
-            if (t_offset < off) continue;
-            ftp = skip_typerefs(fp->type);
-            off += ftp->size;
-            if (t_offset < off ||
-                (t_offset == off &&
-                 on_subobject_path((char*)fp,
-                                   con->variant.address.subobject_path))) {
-              t_offset -= fp->offset;
-              get_mapped_byte_count(&persistent_map, fp, i_offset);
-              cap->address += i_offset;
-              obj_type = ftp;
-              break;
-            }  /* if */
-          }  /* for */
-          if (fp == NULL) {
-            a_base_class_ptr  bcp = base_classes_of(obj_type);
-            for (; bcp != NULL; bcp = bcp->next) {
-              a_targ_ptrdiff_t  off;
-              if (!bcp->direct || bcp->is_virtual) continue;
-              off = (a_targ_ptrdiff_t)bcp->offset;
-              if (t_offset < off) continue;
-              off += bcp->type->size;
-              if (t_offset < off ||
-                  (t_offset == off &&
-                   on_subobject_path((char*)fp,
-                                     con->variant.address.subobject_path))) {
-                if (bcp->is_optimized_empty_base &&
-                    !identical_types(bcp->type, obj_type)) {
-                  /* Empty base classes can overlap with other base classes.
-                     Skip this base if it is not the addressed subobject. */
-                  continue;
-                }  /* if */
-                t_offset -= bcp->offset;
-                get_mapped_byte_count(&persistent_map, bcp, i_offset);
-                cap->address += i_offset;
-                obj_type = bcp->type;
-                break;
-              }  /* if */
-            }  /* for */
-            if (bcp == NULL) {
-              /* The search failed. */
-              do_constexpr_fail(result);
-              info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
-              goto done;
-            }  /* if */
-          }  /* if */
-          cap->flags &= ~CA_ARRAY_ELEMENT;
-        }
-        break;
-      case tk_union:
-        { /* Look through the subobject path for this union (it must be
-             present unless this is the address one past the union object). */
-          a_field_ptr           selected_field = NULL;
-          a_subobject_path_ptr  path = con->variant.address.subobject_path;
-          a_variant_path_entry_ptr  last_entry, vpep;
-          for (; path != NULL; path = path->next) {
-            if (path->kind == (an_il_entry_kind)iek_field) {
-              a_type_ptr  tp = parent_class_of(path->variant.field);
-              if (identical_types(obj_type, tp)) {
-                selected_field = path->variant.field;
-                break;
-              }  /* if */
-            }  /* if */
-          }  /* for */
-          if (selected_field == NULL) {
-            /* This is presumably the address "one past" the union object. */
-            cap->flags |= CA_CANNOT_DEREFERENCE;
-            cap->address += value_bytes_for_type(ips, obj_type, &result);
-            goto done;
-          }  /* if */
-          /* Update the variant path.  Do not use add_to_variant_path because
-             it implicitly handles anonymous unions, whereas this process
-             traverses them explicitly (we'd account for them twice). */
-          if (cap->flags & CA_VARIANT_PATH) {
-            /* This entry already has a variant path: Find its end. */
-            last_entry = cap->variant.variant_path->next;
-            while (last_entry->next != NULL) {
-              last_entry = last_entry->next;
-            }  /* while */
-          } else {
-            /* No entries yet: Create a first entry to record an array base
-               address if needed. */
-            last_entry = alloc_variant_path_entry();
-            last_entry->field = NULL;
-            last_entry->base_address = is_array_element(cap) ?
-                                             cap->variant.base_address : NULL;
-            cap->variant.variant_path = last_entry;
-            cap->flags |= CA_VARIANT_PATH;
-          }  /* if */
-          vpep = alloc_variant_path_entry();
-          vpep->next = NULL;
-          vpep->field = selected_field;
-          vpep->base_address = cap->address;
-          last_entry->next = vpep;
-          /* Adjust the remaining target offset to account for (normally a
-             no-op for a union field) and increase the corresponding
-             interpreter offset (not a no-op; i.e., i_offset is not zero
-             because some space is used to store the active field). */
-          t_offset -= selected_field->offset;
-          get_mapped_byte_count(&persistent_map, selected_field, i_offset);
-          cap->address += i_offset;
-          obj_type = skip_typerefs(selected_field->type);
-        }
-        break;
-      default:
-        /* Scalars are sometimes treated as arrays of one element. */
-        if (t_offset == (a_targ_ptrdiff_t)obj_type->size) {
-          i_size = value_bytes_for_type(ips, obj_type, &result); 
-          check_assertion(result);
-          cap->address += i_size;
-          cap->flags |= CA_CANNOT_DEREFERENCE;
-        } else if (t_offset != 0) {
-          do_constexpr_fail(result);
-          info_with_pos(ec_constexpr_bad_address, &ips->position, ips);
+        } while (obj_type->kind == (a_type_kind)tk_array);
+        elem_size = value_bytes_for_type(ips, obj_type, &result); 
+        cap->flags |= CA_ARRAY_ELEMENT;
+        cap->length = array_size/elem_size;
+        if (is_variant_path(cap)) {
+          cap->variant.variant_path->base_address = cap->address;
+        } else {
+          cap->variant.base_address = cap->address;
         }  /* if */
-        goto done;
-    }  /* switch */
+      } else {
+        elem_size = array_size;
+      }  /* if */
+      check_assertion(result);
+      i_offset = spp->variant.ptr_offset*elem_size;
+      if (array_size == i_offset) {
+        /* This is a "one past the end" pointer. */
+        cap->flags |= CA_CANNOT_DEREFERENCE;
+        check_assertion(spp->next == NULL);
+      }  /* if */
+    } else if (spp->is_base_class) {
+      a_base_class_ptr  bcp = spp->variant.base_class;
+      get_mapped_byte_count(&persistent_map, bcp, i_offset);
+      obj_type = bcp->type;
+      cap->flags &= ~CA_ARRAY_ELEMENT;
+    } else {
+      a_field_ptr  fp = spp->variant.field;
+      if (obj_type->kind == (a_type_kind)tk_union) {
+        /* Update the variant path.  Do not use add_to_variant_path because
+           it implicitly handles anonymous unions, whereas this process
+           traverses them explicitly (we'd account for them twice). */
+        a_variant_path_entry_ptr  last_entry, vpep;
+        if (cap->flags & CA_VARIANT_PATH) {
+          /* This entry already has a variant path: Find its end. */
+          last_entry = cap->variant.variant_path->next;
+          while (last_entry->next != NULL) {
+            last_entry = last_entry->next;
+          }  /* while */
+        } else {
+          /* No entries yet: Create a first entry to record an array base
+             address if needed. */
+          last_entry = alloc_variant_path_entry();
+          last_entry->field = NULL;
+          last_entry->base_address = is_array_element(cap) ?
+                                             cap->variant.base_address : NULL;
+          cap->variant.variant_path = last_entry;
+          cap->flags |= CA_VARIANT_PATH;
+        }  /* if */
+        vpep = alloc_variant_path_entry();
+        vpep->next = NULL;
+        vpep->field = fp;
+        vpep->base_address = cap->address;
+        last_entry->next = vpep;
+      }  /* if */
+      get_mapped_byte_count(&persistent_map, fp, i_offset);
+      obj_type = skip_typerefs(fp->type);
+      cap->flags &= ~CA_ARRAY_ELEMENT;
+    }  /* if */
+    cap->address += i_offset;
   }  /* for */
 done:
   return result;
 }  /* translate_il_address_offset */
-
-
-static a_boolean type_has_leading_subobject_of_type(a_type_ptr  obj_type,
-                                                    a_type_ptr  subobj_type)
-/*
-Return TRUE if obj_type is of type subobj_type or has a subobject of type
-subobj_type at offset zero.
-*/
-{
-  a_boolean  result;
-
-  if (is_immediate_class_type(obj_type)) {
-    a_field_ptr       fp;
-    a_base_class_ptr  bcp;
-    if (obj_type == subobj_type) {
-      result = TRUE;
-      goto done;
-    }  /* if */
-    fp = obj_type->variant.class_struct_union.field_list;
-    fp = next_alloc_field(fp);
-    for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-      if (fp->offset == 0) {
-        a_type_ptr  ftp = skip_typerefs(fp->type);
-        if (type_has_leading_subobject_of_type(ftp, subobj_type)) {
-          result = TRUE;
-          goto done;
-        }  /* if */
-      } else if (targ_field_alloc_sequence_equals_decl_sequence) {
-        /* Since fields are allocated in increasing offset order, we're
-           done. */
-        break;
-      }  /* if */
-    }  /* if */
-    bcp = base_classes_of(obj_type);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->offset == 0) {
-        a_type_ptr  btp = skip_typerefs(bcp->type);
-        if (type_has_leading_subobject_of_type(btp, subobj_type)) {
-          result = TRUE;
-          goto done;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    result = FALSE;
-  } else if (identical_types(obj_type, subobj_type)) {
-    result = TRUE;
-  } else if (obj_type->kind == (a_type_kind)tk_array) {
-    obj_type = skip_typerefs(obj_type->variant.array.element_type);
-    result = type_has_leading_subobject_of_type(obj_type, subobj_type);
-  } else {
-    result = FALSE;
-  }  /* if */
-done:
-  return result;
-}  /* type_has_leading_subobject_of_type */
-
-
-static void finalize_subobject_path(a_constant_ptr  con)
-/*
-con is a ck_address/abk_variable entry.  Make sure its subobject path is
-complete (it may be incomplete if the interpreter adjusted the offset because
-of subscript operations or pointer arithmetic).
-*/
-{
-  a_type_ptr            obj_type, subobj_type;
-  a_variable_ptr        var;
-  a_targ_ptrdiff_t      t_offset, t_pos;
-  a_subobject_path_ptr  *p_subobj;
-
-  check_assertion(constant_is(con, ck_address) &&
-                  con->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable);
-  var = con->variant.address.variant.variable;
-  if (var == NULL) {
-    /* No actual variable. */
-    goto done;
-  }  /* if */
-  obj_type = skip_typerefs(var->type);
-  subobj_type = skip_typerefs(con->type);
-  subobj_type = skip_typerefs(subobj_type->variant.pointer.type);
-  if (subobj_type->kind == (a_type_kind)tk_void) {
-    /* If the address was cast to void, we cannot determine the exact subobject
-       being pointed to.  Such addresses have limited use within constant
-       evaluations because casting away from void* to a different pointer type
-       is invalid in a constant expression. */
-    goto done;
-  }  /* if */
-  p_subobj = &con->variant.address.subobject_path;
-  t_offset = con->variant.address.offset;
-  for (;;) {
-    if (t_offset == 0 &&
-        identical_types_ignoring_qualifiers(subobj_type, obj_type)) {
-      /* The subobject path is complete. */
-      break;
-    }  /* if */
-    switch (obj_type->kind) {
-      case tk_array:
-        if (*p_subobj == NULL || (*p_subobj)->kind != iek_constant) {
-          a_subobject_path_ptr  tail = *p_subobj;
-          *p_subobj = alloc_subobject_path();
-          (*p_subobj)->next = tail;
-          (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
-        }  /* if */
-        obj_type = skip_typerefs(obj_type->variant.array.element_type);
-        if (obj_type->size == 0) {
-          t_pos = 0;
-        } else {
-          t_pos = t_offset/(a_targ_ptrdiff_t)obj_type->size;
-        }  /* if */
-        t_offset -= t_pos*obj_type->size;
-        if (t_offset == 0) {
-          /* We've found an element that corresponds exactly to the overall
-             offset, but it is possible that the address is really "one past"
-             a trailing part of the previous element. */
-          if (!type_has_leading_subobject_of_type(obj_type, subobj_type)) {
-            t_pos -= 1;
-            t_offset += obj_type->size;
-          }  /* if */
-        }  /* if */
-        (*p_subobj)->variant.ptr_offset = t_pos;
-        break;
-      case tk_class:
-      case tk_struct:
-        {
-          a_subobject_path_ptr  path = *p_subobj;
-          a_field_ptr           fp;
-          if (path != NULL) {
-            /* If this is already the correct path entry, move on. */
-            if (path->kind == iek_field &&
-                parent_class_of(path->variant.field) == obj_type) {
-              fp = path->variant.field;
-              obj_type = skip_typerefs(fp->type);
-              t_offset -= fp->offset;
-              break;
-            } else if (path->kind == iek_base_class &&
-                       path->variant.base_class->direct &&
-                       path->variant.base_class->derived_class == obj_type) {
-              obj_type = path->variant.base_class->type;
-              t_offset -= path->variant.base_class->offset;
-              break;
-            }  /* if */
-          }  /* if */
-          /* A new path entry is needed. */
-          *p_subobj = alloc_subobject_path();
-          (*p_subobj)->next = path;
-          if (is_immediate_class_type(subobj_type) &&
-              subobj_type->variant.class_struct_union.is_empty_class) {
-            /* We're looking for an empty class type subobject.  Look first
-               among the empty base classes.  This avoids situations where we
-               see a non-empty base or leading field first and go down that
-               non-empty subobject path when the empty base should have been
-               picked instead. */
-            a_base_class_ptr  bcp = base_classes_of(obj_type);
-            for (; bcp != NULL; bcp = bcp->next) {
-              if (t_offset == (a_targ_ptrdiff_t)bcp->offset &&
-                  bcp->direct && bcp->type == subobj_type) {
-                break;
-              }  /* if */
-            }  /* for */
-            if (bcp != NULL) {
-              /* We found the subobject: Use the root of its derivation path
-                 as the next step in the subobject path. */
-              bcp = bcp->derivation->path->base_class;
-              check_assertion(bcp->direct);
-              (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
-              (*p_subobj)->variant.base_class = bcp;
-              t_offset -= bcp->offset;
-              obj_type = bcp->type;
-              break;
-            }  /* if */
-          }  /* if */
-          /* Search fields and direct nonvirtual bases for the right offset. */
-          fp = obj_type->variant.class_struct_union.field_list;
-          fp = next_alloc_field(fp);
-          for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-            a_type_ptr  ftp;
-            if (t_offset < (a_targ_ptrdiff_t)fp->offset) continue;
-            ftp = skip_typerefs(fp->type);
-            if (t_offset < (a_targ_ptrdiff_t)(fp->offset+ftp->size)) {
-              /* We found the field. */
-              (*p_subobj)->kind = (an_il_entry_kind)iek_field;
-              (*p_subobj)->variant.field = fp;
-              t_offset -= fp->offset;
-              obj_type = ftp;
-              break;
-            }  /* if */
-          }  /* for */
-          if (fp == NULL) {
-            /* No field was found: Look among the base classes. */
-            a_base_class_ptr  bcp = base_classes_of(obj_type),
-                              match_bcp = NULL;
-            for (; bcp != NULL; bcp = bcp->next) {
-              a_targ_size_t  base_size;
-              if (t_offset < (a_targ_ptrdiff_t)bcp->offset) continue;
-              base_size = class_type_supp(bcp->type)
-                                          ->size_without_virtual_base_classes;
-              if (base_size == 0) {
-                /* The size without virtual base classes could be zero, which
-                   would make the following test systematically fail.  Use a
-                   size of one in those cases. */
-                base_size = 1;
-              }  /* if */
-              if (t_offset < (a_targ_ptrdiff_t)(bcp->offset+base_size)) {
-                if (t_offset == (a_targ_ptrdiff_t)bcp->offset) {
-                  /* Because of empty bases, this special case may need
-                     disambiguation. */
-                  a_base_class_ptr  top_bcp = bcp->derivation->path
-                                                             ->base_class;
-                  if (!top_bcp->direct) {
-                    /* Since the derivation doesn't start at a direct base,
-                       there must be an intervening virtual base.  We will
-                       run into its direct ancestor later. */
-                    continue;
-                  }  /* if */
-                  if (!top_bcp->is_optimized_empty_base ||
-                      identical_types(bcp->type, subobj_type)) {
-                    match_bcp = top_bcp;
-                    break;
-                  } else {
-                    continue;
-                  }  /* if */
-                }  /* if */
-                if (bcp->direct) {
-                  /* We found the base. */
-                  match_bcp = bcp;
-                  break;
-                }  /* if */
-              }  /* if */
-            }  /* for */
-            if (match_bcp != NULL) {
-              (*p_subobj)->kind = (an_il_entry_kind)iek_base_class;
-              (*p_subobj)->variant.base_class = match_bcp;
-              t_offset -= match_bcp->offset;
-              obj_type = match_bcp->type;
-            } else {
-              /* This can happen with something like:
-                    X x = {};
-                    X *p = &x+1;
-                 where a class object is treated as an array of one element.
-              */
-              check_assertion(subobj_type == obj_type &&
-                              t_offset == (a_targ_ptrdiff_t)obj_type->size);
-              (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
-              (*p_subobj)->variant.ptr_offset = 1;
-              goto outer_loop_done;
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case tk_union:
-        { /* Look through the subobject path for this union (it must be
-             present). */
-          a_field_ptr           selected_field = NULL;
-          a_subobject_path_ptr  path = *p_subobj;
-          if (subobj_type == obj_type) {
-            /* Normally, pointers into unions should always have a subobject
-               path that disambiguates the selected member.  However, we can
-               also get here when a union object is treated as an array of one
-               element and we're dealing with a pointer "one position past"
-               that array.*/
-            check_assertion(t_offset == (a_targ_ptrdiff_t)obj_type->size);
-            if (path == NULL) {
-              *p_subobj = alloc_subobject_path();
-              (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
-              (*p_subobj)->variant.ptr_offset = 1;
-            } else {
-              check_assertion(path->kind == (an_il_entry_kind)iek_constant);
-            }  /* if */
-            goto outer_loop_done;
-          } else {
-            check_assertion(path != NULL &&
-                            path->kind == (an_il_entry_kind)iek_field);
-            selected_field = path->variant.field;
-            check_assertion(selected_field != NULL);
-            /* Adjust the remaining target offset to account for the selected
-               field offset (normally a no-op for a union field). */
-            t_offset -= selected_field->offset;
-            obj_type = skip_typerefs(selected_field->type);
-          }  /* if */
-        }
-        break;
-      default:
-        if (t_offset != 0 && *p_subobj == NULL) {
-          /* A non-array variable treated as an array of length one. */
-          *p_subobj = alloc_subobject_path();
-          (*p_subobj)->kind = (an_il_entry_kind)iek_constant;
-          check_assertion(t_offset == (a_targ_ptrdiff_t)obj_type->size);
-          (*p_subobj)->variant.ptr_offset = 1;
-        }  /* if */
-        goto outer_loop_done;
-    }  /* switch */
-    p_subobj = &(*p_subobj)->next;
-  }  /* for */
-outer_loop_done:
-  *p_subobj = NULL;
-done:;
-}  /* finalize_subobject_path */
 
 
 static a_constant_ptr instantiate_member_constant(a_variable_ptr  vp)
@@ -9502,6 +9099,43 @@ must be a ck_address entry).
 }  /* last_subobject_path_link */
 
 
+a_subobject_path_ptr get_trailing_subobject_path_entry(
+                                                a_constant_ptr  con,
+                                                a_boolean       is_offset,
+                                                a_boolean       is_base_class)
+/*
+con is a ck_address entry and either is_offset or is_base_class is TRUE.  If
+the last entry on the subobject path for the given constant matches the given
+flags, return that last entry.  Otherwise append an entry matching the given
+flags and return that newly allocated entry.
+*/
+{
+  a_subobject_path_ptr  *end_path;
+
+  check_assertion(constant_is(con, ck_address) &&
+                  (is_offset ? !is_base_class : is_base_class));
+  end_path = &con->variant.address.subobject_path;
+  for (; *end_path != NULL; end_path = &(*end_path)->next) {
+    if ((*end_path)->next == NULL &&
+        (is_offset ? (*end_path)->is_offset : (*end_path)->is_base_class)) {
+      /* The path already ends in the right kind of entry. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (*end_path == NULL) {
+    *end_path = alloc_subobject_path();
+    if (is_offset) {
+      (*end_path)->is_offset = TRUE;
+      (*end_path)->variant.ptr_offset = 0;
+    } else {
+      (*end_path)->is_base_class = TRUE;
+      (*end_path)->variant.base_class = NULL;
+    }  /* if */
+  }  /* if */
+  return *end_path;
+}  /* get_trailing_subobject_path_entry */
+
+
 static a_boolean offset_runtime_address(an_interpreter_state  *ips,
                                         a_source_position     *diag_pos,
                                         a_constexpr_address   *cap,
@@ -9529,6 +9163,9 @@ for the given position and return FALSE.  Otherwise, return TRUE.
     /* Nothing more to do. */
   } else if (constant_is(addr_con, ck_address)) {
     a_subobject_path_ptr  spp;
+    spp = get_trailing_subobject_path_entry(addr_con, /*is_offset=*/TRUE,
+                                            /*is_base_class=*/FALSE);
+    spp->variant.ptr_offset += subtract ? -count : count;
     set_integer_value(&tmp,
                       (a_host_large_integer)addr_con->variant.address.offset);
     if (subtract) {
@@ -9536,10 +9173,6 @@ for the given position and return FALSE.  Otherwise, return TRUE.
     } else {
       add_integer_values(&tmp, &delta, /*is_signed=*/TRUE, &ovflo);
     }  /* if */
-    spp = alloc_subobject_path();
-    spp->kind = (an_il_entry_kind)iek_constant;
-    spp->variant.ptr_offset += subtract ? -count : count;
-    *last_subobject_path_link(addr_con) = spp;
     if (!ovflo) {
       addr_con->variant.address.offset =
                       value_of_integer_value(&tmp, /*is_signed=*/TRUE, &ovflo);
@@ -9652,23 +9285,24 @@ given complete object).
       opnd_addr = (a_constexpr_address*)result_storage;
       /* Now determine the dynamic type of this object. */
       if (is_runtime_data_address(opnd_addr)) {
-        /* The address is represented as an IL constant.  Determine the type
-           of the base object for the address and then follow the subobject
+        /* The address is represented as an IL constant.  Follow the subobject
            path ignoring base-class casts (since we want the most-derived
-           object address). */
-        a_constant_ptr        addr_con = opnd_addr->variant.addr_con;
-        a_subobject_path_ptr  path;
+           object address).  If that doesn't produce a type (because there is
+           no path or the path only consists of base class casts), determine
+           the type of the complete object. */
+        a_constant_ptr  addr_con = opnd_addr->variant.addr_con;
         if (constant_is(addr_con, ck_address)) {
-          type = address_con_complete_object_type(addr_con);
-          if (type != NULL) {
-            path = addr_con->variant.address.subobject_path;
-            for (; path != NULL; path = path->next) {
-              if (path->kind == (an_il_entry_kind)iek_field) {
-                type = path->variant.field->type;
-              } else if (path->kind == (an_il_entry_kind)iek_constant) {
-                type = array_element_type(type);
-              }  /* if */
+          a_subobject_path_ptr  path;
+          path = addr_con->variant.address.subobject_path;
+          for (; path != NULL; path = path->next) {
+            if (path->is_offset) {
+              type = array_element_type(type);
+            } else if (!path->is_base_class) {
+              type = path->variant.field->type;
             }  /* if */
+          }  /* if */
+          if (type == NULL) {
+            type = address_con_complete_object_type(addr_con);
           }  /* if */
         }  /* if */
       } else {
@@ -9748,17 +9382,15 @@ opnd_value.  Store the result at *result_storage.
         derived_type = type;
         path = addr_con->variant.address.subobject_path;
         for (; path != NULL; path = path->next) {
-          if (path->kind == (an_il_entry_kind)iek_field ||
-              path->kind == (an_il_entry_kind)iek_constant) {
-            /* We're selecting a new field or array element: Previous base or
-               derived class casts were not within the selected most-derived
-               object. */
+          if (!path->is_base_class) {
+            /* We're selecting a new field or array element: Previous base
+               class casts were not within the selected most-derived object. */
             base_casts_to_undo = NULL;
             offset_to_undo = 0;
-            if (path->kind == (an_il_entry_kind)iek_field) {
-              type = path->variant.field->type;
+            if (path->is_offset) {
+              type = underlying_array_element_type(type);
             } else {
-              type = array_element_type(type);
+              type = path->variant.field->type;
             }  /* if */
             derived_type = type;
           } else {
@@ -9773,13 +9405,8 @@ opnd_value.  Store the result at *result_storage.
             }  /* if */
             type = path->variant.base_class->type;
             if (base_casts_to_undo != NULL) {
-              if (path->kind == (an_il_entry_kind)iek_base_class) {
-                /* We're undoing a cast to a base class. */
-                offset_to_undo += path->variant.base_class->offset;
-              } else {
-                /* We're undoing a cast to a derived class. */
-                offset_to_undo -= path->variant.base_class->offset;
-              }
+              /* We're undoing a cast to a base class. */
+              offset_to_undo += path->variant.base_class->offset;
             }  /* if */
           }  /* if */
         }  /* for */
@@ -14096,7 +13723,7 @@ subobject path.
     a_byte                *parent_address = cap->complete_object;
     a_field_ptr           fp = NULL;
     a_base_class_ptr      bcp = NULL;
-    a_subobject_path_ptr  path = NULL, *p_end_path = &path, path_entry;
+    a_subobject_path_ptr  path = NULL, end_path = NULL, path_entry;
     a_type_ptr            type = complete_object_type(parent_address);
 
     if (cannot_dereference(cap)) {
@@ -14109,30 +13736,87 @@ subobject path.
           /* The address points one position past the top-level variable and
              therefore not "into" the variable. */
           con->variant.address.offset = type->size;
+          path = alloc_subobject_path();
+          path->is_offset = TRUE;
+          path->variant.ptr_offset = 1;
+          con->variant.address.subobject_path = path;
           goto done;
         }  /* if */
       }  /* if */
     }  /* if */
     do {
       a_byte_count  i_offset;  /* Local interpreter offset. */
-      path_entry = alloc_subobject_path();
       if (is_immediate_class_type(type)) {
         void  *ptr;
         find_subobject_for_interpreter_address(ips, cap, parent_address, type,
                                                &fp, &bcp);
+        /* Add a new subobject path entry if needed. */
+        if (fp != NULL || (end_path == NULL || !end_path->is_base_class)) {
+          /* For a field selection, we always create a new entry on the path.
+             For a base selection, we only create one if the previous entry
+             wasn't itself for a base selection. */
+          path_entry = alloc_subobject_path();
+          if (path == NULL) {
+            path = path_entry;
+          } else {
+            end_path->next = path_entry;
+          }  /* if */
+          end_path = path_entry;
+        } else {
+          path_entry = NULL;
+        }  /* if */
         if (fp != NULL) {
           t_offset += fp->offset;
           type = skip_typerefs(fp->type);
           ptr = (void*)fp;
-          path_entry->kind = (an_il_entry_kind)iek_field;
-          path_entry->variant.field = fp;
+          end_path->variant.field = fp;
         } else {
           check_assertion(bcp != NULL);
           t_offset += bcp->offset;
-          type = skip_typerefs(bcp->type);
+          type = bcp->type;
           ptr = (void*)bcp;
-          path_entry->kind = (an_il_entry_kind)iek_base_class;
-          path_entry->variant.base_class = bcp;
+          end_path->is_base_class = TRUE;
+          if (path_entry != NULL) {
+            /* A new subobject path entry was allocated, which means this is
+               the first derived-to-base step. */
+            end_path->variant.base_class = bcp;
+          } else {
+            /* Not the first derived-to-base step: Find the base corresponding
+               to bcp in the most-derived-class. */
+            a_base_class_ptr  prev_full_bcp = end_path->variant.base_class,
+                              full_bcp = base_classes_of(
+                                                prev_full_bcp->derived_class);
+            if (bcp->is_virtual) {
+              /* For virtual base classes, look for a virtual base with a
+                 matching type. */
+              for (; full_bcp != NULL; full_bcp = full_bcp->next) {
+                if (full_bcp->type == bcp->type && full_bcp->is_virtual) {
+                  break;
+                }  /* if */
+              }  /* for */
+            } else {
+              /* For nonvirtual base classes, a matching type is not
+                 sufficient: Make sure it's parent base class is
+                 prev_full_bcp. */
+              for (; full_bcp != NULL; full_bcp = full_bcp->next) {
+                if (full_bcp->type == bcp->type && !full_bcp->is_virtual) {
+                  a_derivation_step_ptr  dsp = full_bcp->derivation->path;
+                  /* Since this is not the first derivation step nor a virtual
+                     derivation step, the path must be more than one step. */
+                  check_assertion(dsp->next != NULL);
+                  /* Find the second-to-last entry, which should match
+                     prev_full_bcp. */
+                  while (dsp->next->next != NULL) {
+                    dsp = dsp->next;
+                  }  /* if */
+                  if (dsp->base_class == prev_full_bcp) {
+                    break;
+                  }  /* if */
+                }  /* if */
+              }  /* for */
+            }  /* if */
+            end_path->variant.base_class = full_bcp;
+          }  /* if */
         }  /* if */
         get_mapped_byte_count(&persistent_map, ptr, i_offset);
       } else {
@@ -14140,24 +13824,30 @@ subobject path.
         if (i_offset != 0) {
           a_byte_count  pos, elem_size;
           a_boolean     okay = TRUE;
-          if (type->kind == (a_type_kind)tk_array) {
-            type = skip_typerefs(type->variant.array.element_type);
+          /* The last entry on the path shouldn't represent a pointer offset
+             since otherwise either i_offset should be zero, or the remaining
+             offset would be the result of pointing into a class type. */
+          check_assertion(end_path == NULL || !end_path->is_offset);
+          path_entry = alloc_subobject_path();
+          if (path == NULL) {
+            path = path_entry;
           } else {
-            /* Non-array objects are treated as arrays of one element in this
-               context. */
+            end_path->next = path_entry;
           }  /* if */
+          end_path = path_entry;
+          path_entry->is_offset = TRUE;
+          while (type->kind == (a_type_kind)tk_array) {
+            type = skip_typerefs(type->variant.array.element_type);
+          }  /* while */
           elem_size = value_bytes_for_type(ips, type, &okay);
           check_assertion(okay);
           pos = i_offset/elem_size;
+          path_entry->variant.ptr_offset = (a_targ_ptrdiff_t)pos;
           t_offset += pos*type->size;
           i_offset = pos*elem_size;
-          path_entry->kind = (an_il_entry_kind)iek_constant;
-          path_entry->variant.ptr_offset = (a_targ_ptrdiff_t)pos;
         }  /* if */
       }  /* if */
       parent_address += i_offset;
-      *p_end_path = path_entry;
-      p_end_path = &path_entry->next;
     } while (parent_address != address);
     con->variant.address.offset = t_offset;
     con->variant.address.subobject_path = path;
@@ -14239,10 +13929,6 @@ diagnostic in *ips.
                                     &ips->position, var_sym, ips);
                 }  /* if */
                 break;
-              } else {
-                /* Make sure a complete subobject path is recorded (when
-                   needed). */
-                finalize_subobject_path(rt_con);
               }  /* if */
             } else if (rt_con->variant.address.kind ==
                                           (an_address_base_kind)abk_routine) {

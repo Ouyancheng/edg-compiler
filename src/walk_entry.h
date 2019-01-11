@@ -3858,21 +3858,12 @@ after_entry_from_class:
       {
 #define eptr ((a_subobject_path_ptr)entry_ptr)
         remap_next_ptr(eptr->next, a_subobject_path_ptr, iek_subobject_path);
-        switch (eptr->kind) {
-          case iek_field:
-            remap_ptr(eptr->variant.field, a_field_ptr, iek_field);
-            break;
-          case iek_base_class:
-          case iek_type:
-            remap_ptr(eptr->variant.base_class, a_base_class_ptr,
-                      iek_base_class);
-            break;
-          case iek_constant:
-            /* No additional pointers. */
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
+        if (eptr->is_base_class) {
+          remap_ptr(eptr->variant.base_class, a_base_class_ptr,
+                    iek_base_class);
+        } else if (!eptr->is_offset) {
+          remap_ptr(eptr->variant.field, a_field_ptr, iek_field);
+        }  /* if */
 #undef eptr
       }
       break;

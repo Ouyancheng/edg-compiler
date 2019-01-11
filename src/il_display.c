@@ -921,26 +921,19 @@ static void disp_subobject_path(a_subobject_path_ptr ptr)
 Display the indicated subobject path.
 */
 {
-  disp_name("kind");
-  disp_null_term_string(il_entry_kind_names[(int)ptr->kind]);
   (void)printf("\n");
   disp_ptr("next", (char *)ptr->next, iek_subobject_path);
-  switch (ptr->kind) {
-    case iek_field:
-      disp_ptr("variant.field", (char*)ptr->variant.field, iek_field);
-      break;
-    case iek_constant:
-      disp_host_large_integer("ptr_offset",
-                              (a_host_large_integer)ptr->variant.ptr_offset);
-      break;
-    case iek_base_class:
-    case iek_type:
-      disp_ptr("variant.base_class", (char*)ptr->variant.base_class,
-               iek_base_class);
-      break;
-    default:
-      printf("**BAD SUBOBJECT PATH KIND**\n");
-  }  /* switch */
+  if (ptr->is_offset) {
+    disp_boolean("is_offset", TRUE);
+    disp_host_large_integer("ptr_offset",
+                            (a_host_large_integer)ptr->variant.ptr_offset);
+  } else if (ptr->is_base_class) {
+    disp_boolean("is_base_class", TRUE);
+    disp_ptr("variant.base_class", (char*)ptr->variant.base_class,
+             iek_base_class);
+  } else {
+    disp_ptr("variant.field", (char*)ptr->variant.field, iek_field);
+  }  /* if */
 }  /* disp_subobject_path */
 
 

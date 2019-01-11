@@ -4080,31 +4080,39 @@ typedef struct a_subobject_path {
      "&x.f[3]" is the address of a global variable with array-type field f, it
      would point to a list of two subobject path entries: the first pointing
      to the entry representing field f, and the second holding the element
-     offset within that field (+3, in this case). */
+     offset within that field (+3, in this case).  An entry can indicate one
+     of three things: (1) a field selection, (2) a base class selection, or
+     (3) a numeric offset.  Every field selection is explicit, including
+     selections of anonymous union parent fields.  A sequence of base class
+     casts only generates a single base class selection (the entry will point
+     to the resulting base class entry within the most derived object).
+     A sequence of offsets (e.g., to select within a multi-level array) is
+     also represented using a single entry. */
   a_subobject_path_ptr
 		next;
 			/* Pointer the next entry in this path (or NULL if
 			   none). */
-  an_il_entry_kind
-		kind;
-			/* iek_base_class for a base class cast, iek_type for
-			   a derived class cast, iek_field for a field access,
-			   and iek_constant for an array subscript. */
+  a_bit_field	is_offset:1;
+			/* TRUE if this element designates an offset, either
+			   from the start of an array, or from a field treated
+			   as a one-element array. */
+  a_bit_field	is_base_class:1;
+			/* TRUE if this element designates a base class
+			   subobject. */
   union {
-    /* When kind == iek_field. */
+    /* When is_offset == FALSE and is_base_class == FALSE. */
     a_field_ptr
 		field;
 			/* The selected field entry. */
-    /* When kind == iek_constant. */
+    /* When is_offset == TRUE. */
     a_targ_ptrdiff_t
 		ptr_offset;
-			/* The offset applied to the pointer. */
-    /* When kind == iek_base_class or iek_type. */
+			/* The offset applied to the pointer (an element
+			   count, not a byte count). */
+    /* When is_base_class == TRUE. */
     a_base_class_ptr
 		base_class;
-			/* The selected base class when kind == iek_base_class
-			   or the base class whose derived class is cast to
-			   when kind == iek_type. */
+			/* The selected base class subobject. */
   } variant;
 } a_subobject_path;
 		
@@ -7077,7 +7085,8 @@ typedef struct a_base_class {
      indirectly derived. */
   a_base_class_ptr
                 next;
-			/* Next in linked list of base class entries. */
+			/* Next in linked list of base class entries (in
+			   postorder traversal order). */
 #if IA64_ABI
   a_base_class_ptr
 		next_preorder;
