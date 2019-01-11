@@ -4145,16 +4145,34 @@ variant path.
         elem_size = array_size;
       }  /* if */
       check_assertion(result);
-      i_offset = spp->variant.ptr_offset*elem_size;
+      i_offset = (a_byte_count)spp->variant.ptr_offset*elem_size;
       if (array_size == i_offset) {
         /* This is a "one past the end" pointer. */
         cap->flags |= CA_CANNOT_DEREFERENCE;
         check_assertion(spp->next == NULL);
       }  /* if */
     } else if (spp->is_base_class) {
-      a_base_class_ptr  bcp = spp->variant.base_class;
-      get_mapped_byte_count(&persistent_map, bcp, i_offset);
-      obj_type = bcp->type;
+      a_base_class_ptr  base_class = spp->variant.base_class;
+      /* base_class is not necessarily a direct base class, but we only have
+         offset information for direct base classes.  So we use the derivation
+         path for base_class to compute the total offset. */
+      a_derivation_step_ptr  dsp = base_class->derivation->path;
+      i_offset = 0;
+      for (; dsp != NULL; dsp = dsp->next) {
+        a_base_class_ptr  bcp, bcp_step = dsp->base_class;
+        a_byte_count  incr;
+        if (!bcp_step->direct) {
+          for (bcp = base_classes_of(obj_type); bcp != NULL; bcp = bcp->next) {
+            if (bcp->direct && bcp->type == bcp_step->type) {
+              bcp_step = bcp;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        get_mapped_byte_count(&persistent_map, bcp_step, incr);
+        i_offset += incr;
+        obj_type = bcp_step->type;
+      }  /* for */
       cap->flags &= ~CA_ARRAY_ELEMENT;
     } else {
       a_field_ptr  fp = spp->variant.field;

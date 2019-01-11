@@ -1316,8 +1316,7 @@ static void conv_pointer_to_whatever(
                                     a_boolean         *did_not_fold,
                                     a_source_position *err_pos,
                                     an_error_code     *err_code,
-                                    an_error_severity *err_severity,
-                                    a_boolean         suppress_complex_diags)
+                                    an_error_severity *err_severity)
 /*
 Convert a pointer constant to a constant of type as specified by
 "new_constant".  If check_cast_access is TRUE, do access checking.
@@ -1332,10 +1331,7 @@ an object; that's used to implement offsetof, where we want a zero
 pointer not to be treated like a null pointer.
 If there is an error, either issue it immediately at *err_pos (if it
 cannot be reduced to a warning in a nonconstant context), or return
-*err_code and *err_severity set appropriately.  If suppress_complex_diags
-is TRUE, suppress (and return in err_code/err_severity) also those
-complex diagnostics (e.g., those for access errors) that can't be
-issued simply from the error code.  Note that this routine
+*err_code and *err_severity set appropriately.  Note that this routine
 is also called when the old constant is an address constant that has
 previously been cast to an integral type, and so does not have pointer
 type.
@@ -2158,8 +2154,7 @@ for any diagnostics issued.
                              check_ambiguity, is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
                              /*is_object_pointer=*/FALSE,
-                             did_not_fold, err_pos, &err_code, &err_severity,
-                             suppress_diags);
+                             did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
   }  /* if */
 
@@ -2342,8 +2337,7 @@ for any diagnostics issued.
                                fold_constant_addr_exprs, is_reinterpret_cast,
                                /*is_object_pointer=*/FALSE,
                                did_not_fold, err_pos,
-                               &err_code, &err_severity,
-                               suppress_diags);
+                               &err_code, &err_severity);
       break;
 
     case tk_ptr_to_member:
@@ -6960,8 +6954,7 @@ cast_case:
                                        (options & CAO_IS_OBJECT_POINTER) != 0,
                                        &did_not_fold,
                                        &error_position,
-                                       &err_code, &err_severity,
-                                       /*suppress_complex_diags=*/TRUE);
+                                       &err_code, &err_severity);
               /* A cast to a virtual base class might not fold to a
                  constant even if the original pointer is a constant. */
               if (err_code == ec_no_error && !did_not_fold) {
