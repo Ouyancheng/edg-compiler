@@ -831,7 +831,7 @@ typedef struct an_override_registry_entry {
 			   not succeed in overriding overridden_sym. */
   a_symbol_list_entry_ptr
 		last_override_failure;
-			/* A pointer to the last entry in override_failures
+			/* A pointer to the last entry in the override_failures
 			   list. */
   unsigned int	virtual_function_count;
 			/* The number of virtual functions that may be
@@ -5812,20 +5812,21 @@ updated registry entry.
 */
 {
   an_override_registry_entry_ptr  start_orep, orep, prev_orep;
-  a_boolean found = FALSE;
+  a_boolean                       found = FALSE;
 
   /* Loop through the current entries in the registry to see if this symbol
      is already represented on the list. */
   prev_orep = NULL;
   if (*last_registry_ptr != NULL &&
       (*last_registry_ptr)->overridden_sym->decl_seq <=
-       overridden_sym->decl_seq) {
+                                                    overridden_sym->decl_seq) {
     start_orep = *last_registry_ptr;
   } else {
     start_orep = *registry_ptr;
   }  /* if */
-  for (orep = start_orep; orep != NULL && orep->overridden_sym->decl_seq <=
-                                          overridden_sym->decl_seq;
+  for (orep = start_orep;
+       orep != NULL && orep->overridden_sym->decl_seq <=
+                       overridden_sym->decl_seq;
        orep = orep->next) {
     if (orep->overridden_sym == overridden_sym && orep->base_class == bcp) {
       /* It's a match. */
@@ -5914,7 +5915,6 @@ updated registry entry.
     orep->override_count += 1;
   }  /* if */
   *last_registry_ptr = orep;
-
 }  /* update_override_registry */
 
 

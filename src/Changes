@@ -4,10 +4,10 @@ Version 5.1
 Improve the speed of compiling classes with a large number of base classes and
 virtual functions.
 
-A change has been made to optimize update_override_registry function which is
-used when processing an overload of a virtual function. This will improve the 
-speed of compiling classes with a large number of base classes and virtual 
-functions.
+A change has been made to optimize the update_override_registry function, 
+which is used when processing an override of a virtual function. This will 
+improve the speed of compiling classes with a large number of base classes and 
+virtual functions.
 
 
 1/10/19  [EDGcpfe/20475]
