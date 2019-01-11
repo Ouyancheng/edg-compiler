@@ -1,5 +1,23 @@
 Version 5.1
 
+1/11/19  [EDGcpfe/20743]
+Use of a structured binding variable in a try statement
+
+The internal representation of a structured binding "variable" (i.e., with
+an initk_binding initialization type) caused problems (an assertion failure in
+dump_variable_name) in the C-generating back end when used in a try statement
+(with configurations where FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS is
+TRUE).  Now fixed.
+
+  struct A {
+    int x = 29;
+  };
+  void f() {
+    auto [sb] = A();
+    try { &sb; } catch (...) {}
+  }
+
+
 1/11/19  [EDGcpfe/17817]
 Improve the speed of compiling classes with a large number of base classes and
 virtual functions.

@@ -5393,9 +5393,17 @@ must be stored out when modified.
   an_expr_node_ptr arg;
 
   if (var->modified_within_try_block) {
-    arg = var_addr_expr(var);
     check_assertion_str(var->source_corresp.referenced,
     "add_var_addr_to_list_if_modified_in_try_block: referenced flag is FALSE");
+    if (var->init_kind == (an_init_kind)initk_binding) {
+      /* Structured binding "variables" have an expression that represents the
+         variable; copy and lower the expression. */
+      arg = copy_expr_tree(var->initializer.bound_expr, CE_NO_OPTIONS);
+      lower_expr(arg);
+      arg = add_address_of_to_node(arg);
+    } else {
+      arg = var_addr_expr(var);
+    }  /* if */
     arg->next = *arg_list;
     *arg_list = arg;
   }  /* if */
