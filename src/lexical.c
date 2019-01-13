@@ -15187,7 +15187,7 @@ with the matching base class.
        locator refers to a template-id. */
     if (type_to_find != NULL) {
       /* For nonreal classes we must check for equivalent nonreal classes. */
-      if (same_entities(type_to_find, bcp->type) ||
+      if (identical_types(type_to_find, bcp->type) ||
           (is_nonreal && identical_types(type_to_find, bcp->type))) {
         result_sym = sym;
         break;
@@ -15622,8 +15622,9 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         if (base_sym != NULL) tp = type_symbol_type(base_sym);
         if (base_sym != NULL) type_sym = base_sym;
         /* Use the normal symbol if the base name lookup failed. */
-        if (normal_tp != NULL && !same_entities(normal_tp, tp)) {
-          if (type_sym != NULL) {
+        if (normal_tp != NULL &&
+            (tp == NULL || !identical_types(normal_tp, tp))) {
+          if (type_sym != NULL && tp != NULL) {
             ambiguous = TRUE;
             if (ambiguous_sym == NULL) ambiguous_sym = normal_sym;
           }  /* if */
@@ -15635,8 +15636,9 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         }  /* if */
         /* Use the "other" lookup symbol if both the base name lookup and
            normal lookups produced no result. */
-        if (other_sym != NULL && !same_entities(other_tp, tp)) {
-          if (type_sym != NULL) {
+        if (other_sym != NULL &&
+            (other_tp == NULL || !identical_types(other_tp, tp))) {
+          if (type_sym != NULL && other_tp != NULL) {
             ambiguous = TRUE;
             if (ambiguous_sym == NULL) ambiguous_sym = other_sym;
           }  /* if */

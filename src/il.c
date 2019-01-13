@@ -6670,7 +6670,13 @@ Return the hash value for the indicated constant.
                       cp->source_corresp.decl_position.column;
         hash_value += cp->variant.template_param.variant.coordinates.depth +
                       cp->variant.template_param.variant.coordinates.position;
-
+      } else if (cp->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        /* For expressions, use an integer representation of the pointer.
+           In general, this means that those entries won't be found, but
+           this is okay because, in general, there can be multiple versions
+           of nonreal types. */
+        hash_value += possible_lossy_cast_from_pointer(cp);
       }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED

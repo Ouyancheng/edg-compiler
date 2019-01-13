@@ -8726,8 +8726,10 @@ static void check_new_class_instantiation(
 Make sure that the instantiation specified by template_arg_list is not
 already on the instantiation list of the template specified by
 template_sym and tssp.  This is used to make sure the algorithm that
-hashes template argument lists works properly.
-
+hashes template argument lists works properly.  Note that this routine
+should not be called for dependent argument lists because it is possible
+for more than one instantiation to exist for types based on dependent
+argument lists.
 */
 {
   if (!no_very_expensive_checking) {
@@ -8831,9 +8833,11 @@ a type in certain ways (see template_arg_list_is_dependent).
   primary_template_sym = primary_template_of(class_template_sym);
   primary_tssp = primary_template_sym->variant.template_info;
 #if EXPENSIVE_CHECKING
-  /* Check that the class is not already on the instantiation list. */
-  check_new_class_instantiation(primary_template_sym, primary_tssp,
-                                template_arg_list);
+  if (!dependent_arg_list) {
+    /* Check that the class is not already on the instantiation list. */
+    check_new_class_instantiation(primary_template_sym, primary_tssp,
+                                  template_arg_list);
+  }  /* if */
 #endif /* EXPENSIVE_CHECKING */
   /* Now create a new type entry. */
   class_type = alloc_type(tssp->variant.class_template.type_kind);
@@ -9278,8 +9282,10 @@ error type is used.
     instance_sym = create_alias_instance(template_sym);
     type = instance_sym->variant.type.ptr;
 #if EXPENSIVE_CHECKING
-    /* Check that the type is not already on the instantiation list. */
-    check_new_class_instantiation(template_sym, tssp, orig_arg_list);
+    if (!any_dependent_args) {
+      /* Check that the type is not already on the instantiation list. */
+      check_new_class_instantiation(template_sym, tssp, orig_arg_list);
+    }  /* if */
 #endif /* EXPENSIVE_CHECKING */
     /* Add the instantiation to the instantiations list for the template. */
     add_instantiation(template_sym, tssp, instance_sym,
