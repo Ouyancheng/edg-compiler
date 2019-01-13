@@ -9556,15 +9556,54 @@ flags on the classes found on an earlier call.
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
+static void check_for_member_of_undefined_class(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It stops the traversal and sets the result to TRUE when
+it finds a node referring to a member of a class that has not yet been
+defined.  It is used by suppress_invalid_explicit_specialization to
+detect references in exception specifications that would make the class
+containing such an exception specification invalid.
+*/
+{
+  a_source_correspondence_ptr scp = NULL;
+
+  switch (expr->kind) {
+    case enk_variable:
+      scp = &node_variable(expr)->source_corresp;
+      break;
+    case enk_routine:
+      scp = &node_routine(expr)->source_corresp;
+      break;
+    case enk_field:
+      scp = &node_field(expr)->source_corresp;
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (scp != NULL && scp->is_class_member &&
+      !scp_parent_class(scp)->has_been_defined) {
+    /* This node refers to a member of a not-yet-defined class, so an
+       explicit specialization for the class in which this expression
+       appears would be invalid. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_member_of_undefined_class */
+
+
 static a_boolean suppress_invalid_explicit_specialization(
-                                               a_source_correspondence_ptr scp,
-                                               a_template_arg_ptr          tap)
+                                              a_source_correspondence_ptr scp,
+                                              an_il_entry_kind            kind,
+                                              a_template_arg_ptr          tap)
 /*
 Return TRUE if an explicit instantiation for the class, function, or
-variable template instance represented by scp, with the template argument
-list represented by tap, would be invalid (e.g., if the template arguments
-are inaccessible or members of a not-yet-defined class, or if the explicit
-specialization would be inside a class in a mode where explicit
+variable template instance represented by scp and kind, with the template
+argument list represented by tap, would be invalid (e.g., if the template
+arguments are inaccessible or members of a not-yet-defined class, or if the
+explicit specialization would be inside a class in a mode where explicit
 instantiations are only permitted in namespace scope).
 */
 {
@@ -9628,6 +9667,44 @@ instantiations are only permitted in namespace scope).
       }  /* if */
       advance_to_next_template_arg_simple(&tap);
     }  /* while */
+  }  /* if */
+  if (!result && kind == iek_type) {
+    /* Because (prior to C++17) exception specifications are instantiated
+       on demand, it is possible for the exception specification of a base
+       class member function to refer to a member function of a derived
+       class.  This works with implicit instantiation, but it cannot work
+       with explicit specializations: a base class must be complete, so the
+       explicit specialization of the base class must precede that of the
+       derived class, but the explicit specialization of the derived class
+       must precede its use in the exception specification of the base
+       class member function.  We thus check the exception specifications
+       of all the member functions to ensure that any parent classes of
+       members they reference have been defined. */
+    a_routine_ptr rp;
+    a_scope_ptr   sp;
+    sp = ((a_type_ptr)scp)->variant.class_struct_union.extra_info->assoc_scope;
+    for (rp = (sp != NULL) ? sp->routines : NULL; !result && rp != NULL;
+         rp = rp->next) {
+      an_exception_specification_ptr esp =
+                 rp->type->variant.routine.extra_info->exception_specification;
+      if (esp != NULL && esp->is_noexcept && !esp->arg_cached &&
+          !esp->copy_from_prototype) {
+        a_constant_ptr   con = esp->variant.noexcept_arg;
+        an_expr_node_ptr expr = con != NULL ? con->expr : NULL;
+        if (expr != NULL) {
+          /* Walk the expression tree looking for references to members of
+             classes that haven't been defined yet. */
+          an_expr_or_stmt_traversal_block tblock;
+          clear_expr_or_stmt_traversal_block(&tblock);
+          tblock.process_expr = check_for_member_of_undefined_class;
+          tblock.process_non_dynamic_constants = TRUE;
+          tblock.process_expressions_for_constants = TRUE;
+          tblock.process_template_parameter_constants_and_expressions = TRUE;
+          traverse_expr(expr, &tblock);
+          result = tblock.result;
+        }  /* if */
+      }  /* if */
+    }  /* for */
   }  /* if */
   return result;
 }  /* suppress_invalid_explicit_specialization */
@@ -9759,7 +9836,7 @@ this one is such a continuation.
              class_type_supp(type)->template_arg_list != NULL &&
              !type->variant.class_struct_union.is_specialized &&
              suppress_invalid_explicit_specialization(
-                                   &type->source_corresp,
+                                   &type->source_corresp, iek_type,
                                    class_type_supp(type)->template_arg_list)) {
     /* This is an explicit specialization corresponding to an implicit
        instantiation, and the explicit specialization cannot be validly
@@ -18195,7 +18272,7 @@ this one is such a continuation.
       var->template_info->template_arg_list != NULL &&
       !var->is_specialized &&
       suppress_invalid_explicit_specialization(
-                                      &var->source_corresp,
+                                      &var->source_corresp, iek_variable,
                                       var->template_info->template_arg_list)) {
     goto end_of_routine;
   }  /* if */
@@ -19417,6 +19494,7 @@ handle_as_definition:
        whether to put out an explicit specialization for it. */
     if (!special_kind_is(rout, sfk_deduction_guide) &&
         suppress_invalid_explicit_specialization(&rout->source_corresp,
+                                                 iek_routine,
                                                  rout->template_arg_list)) {
       discard_declaration = TRUE;
     } else {

@@ -1,5 +1,40 @@
 Version 5.1
 
+1/12/19  [EDGcpfe/20700]
+C++-generating back end: generated explicit specializations and exception
+specifications
+
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to TRUE, the C++-generating back end attempts to represent implicit
+instantiations via explicit specializations in the generated code.  Because
+of C++ language rules, this is not always possible, and the C++-generating
+back end generally suppresses such explicit specializations.  In one such
+case, however, a problematic explicit specialization was previously
+emitted.  Because, prior to C++17, exception specifications were
+instantiated separately on demand, it was possible for a base class to
+declare a member function whose exception specification used a member of a
+derived class.  However, it is not possible to define an explicit
+specialization for such a base class because the definition of the derived
+class containing the member function must appear after the base class
+definition, making the exception specification ill-formed.  This has now
+been fixed by suppressing the explicit specialization of the base class.
+For example, with --c++11:
+
+  template<typename T> struct D;
+  template<typename T> struct B {
+    void f() noexcept(noexcept(D<T>::g())) { }
+  };
+  template<typename T> struct D: B<T> {
+    static void g() noexcept { }
+  };
+  D<int> di;
+
+The generated code previously contained an explicit specialization for
+B<int> in which the exception specification for B<int>::f() referred to
+D<int>::g while D<int> was still an incomplete class type, which is an
+error.
+
+
 1/11/19  [EDGcpfe/20716]
 Folding casts to virtual base classes (IL CHANGE)
 
