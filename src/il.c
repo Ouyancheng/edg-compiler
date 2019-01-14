@@ -22134,6 +22134,29 @@ Called from traverse_expr to check whether the type is instantiation-dependent.
 }  /* examine_type_for_instantiation_dependence */
 
 
+static void examine_var_init_for_instantiation_dependence(
+                                    a_variable_ptr                      vp,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Helper function to determine whether a given expression or constant is
+instantiation-dependent.  Specifically, if the given variable is local to a
+function template, this function traverses the variable's initializer to see
+if it is instantiation-dependent.
+*/
+{
+  if (vp->source_corresp.enclosing_routine != NULL &&
+      vp->source_corresp.enclosing_routine->is_prototype_instantiation) {
+    if (vp->init_kind == (an_init_kind)initk_static) {
+      traverse_constant(vp->initializer.constant, tblock);
+    } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
+      traverse_dynamic_init(vp->initializer.dynamic, tblock);
+    } else if (vp->init_kind == (an_init_kind)initk_binding) {
+      traverse_expr(vp->initializer.bound_expr, tblock);
+    }  /* if */
+  }  /* if */
+}  /* examine_var_init_for_instantiation_dependence */
+
+
 static void examine_constant_for_instantiation_dependence(
                                     a_constant_ptr                      con,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -22142,12 +22165,20 @@ Called from traverse_expr to check whether the constant is
 instantiation-dependent.
 */
 {
-  if (con->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_is(con, ck_template_param)) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
-  } else if (con->kind == (a_constant_repr_kind)ck_aggregate ||
-             con->kind == (a_constant_repr_kind)ck_dynamic_init ||
-             con->kind == (a_constant_repr_kind)ck_init_repeat) {
+  } else if (constant_is(con, ck_address)) {
+    if (con->variant.address.kind == (an_address_base_kind)abk_variable) {
+      /* Check if the given variable's initializer makes it instantiation-
+         dependent. */
+      examine_var_init_for_instantiation_dependence(
+                               con->variant.address.variant.variable, tblock);
+    }  /* if */
+    tblock->suppress_subtree_walk = TRUE;
+  } else if (constant_is(con, ck_aggregate) ||
+             constant_is(con, ck_dynamic_init) ||
+             constant_is(con, ck_init_repeat)) {
      /* Aggregate constants can contain dynamic members, which might be
         instantiation-dependent, so walk the subtree for those. */
   } else {
@@ -22196,12 +22227,7 @@ instantiation-dependent.
   } else if (is_variable_node(expr)) {
     /* Treat local variables of function templates as "instantiation
        dependent". */
-    a_variable_ptr  vp = node_variable(expr);
-    if (vp->source_corresp.enclosing_routine != NULL &&
-        vp->source_corresp.enclosing_routine->is_prototype_instantiation) {
-      tblock->result = TRUE;
-      tblock->terminate = TRUE;
-    }  /* if */
+    examine_var_init_for_instantiation_dependence(node_variable(expr), tblock);
   }  /* if */
 }  /* examine_expr_for_instantiation_dependence */
 
