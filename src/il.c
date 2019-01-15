@@ -22149,7 +22149,7 @@ if it is instantiation-dependent.
     an_init_kind        init_kind, saved_init_kind = vp->init_kind;
     an_initializer_ptr  initializer;
     get_variable_initializer(vp, (a_scope_ptr)NULL, &init_kind, &initializer);
-    /* Temporary disable the initializer to avoid unbounded recursion. */
+    /* Temporarily disable the initializer to avoid unbounded recursion. */
     vp->init_kind = (an_init_kind)initk_none;
     if (init_kind == (an_init_kind)initk_static) {
       traverse_constant(initializer->constant, tblock);
