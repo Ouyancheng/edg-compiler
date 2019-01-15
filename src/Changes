@@ -1,5 +1,33 @@
 Version 5.1
 
+1/15/19  [EDGcpfe/20357]
+Substitution failure on variadic noexcept specifier in C++17 mode
+
+In modes where the exception specification is part of the type (i.e.,
+most C++17 modes), a substitution failure could occur if the noexcept
+specifier refers to a type that is a member of the current instantiation
+of a class template, and that class template is variadic.  Now fixed.
+In example below, the "C<0>::type" in the noexcept is implicitly
+"B<Ts...>::C<0>::type", which is why it is affected by this issue.
+
+  template <typename T> inline constexpr bool v = true;
+  template <int N, typename U> struct Ba;
+  template <typename... Ts> struct B;
+  template <typename T, typename... Ts> struct Ba<0, B<T, Ts...>> { 
+    using type = T; 
+  };
+  template <typename... Ts> struct B {
+    template <int N> struct C { 
+      using type = typename Ba<0, B>::type; 
+    };
+    template <typename> void f() noexcept(v<typename C<0>::type>) { }
+  };
+  int main() {
+     B<bool> b;
+     b.f<int>();
+  }
+
+
 1/14/19  [EDGcpfe/20747]
 Incorrect reuse of temporaries in lowered aggregate initializations
 

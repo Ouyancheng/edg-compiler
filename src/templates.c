@@ -13316,6 +13316,17 @@ to an alias template, the substituted type is returned in *new_type
   orig_is_prototype = (options & CTWS_DEDUCTION_GUIDE) == 0 &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
+  if (orig_is_prototype && ctws_state->ignore_enclosing_expansions) {
+    /* The ignore_enclosing_expansions flag is set when we are doing
+       special substitution of something like a noexcept argument.  That
+       process involves doing substitution of enclosing classes, which are
+       typically rescanned from tokens.  For such special substitution,
+       when we hit a prototype instantiation, create a special template
+       argument list that includes pack expansion descriptors for the
+       prototype argument list elements that are packs. */
+    tap = create_prototype_arg_list(template_sym, templ_param_list,
+                                    /*add_pack_descr=*/TRUE);
+  }  /* if */
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
