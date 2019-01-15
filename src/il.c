@@ -22146,13 +22146,19 @@ if it is instantiation-dependent.
 {
   if (vp->source_corresp.enclosing_routine != NULL &&
       vp->source_corresp.enclosing_routine->is_prototype_instantiation) {
-    if (vp->init_kind == (an_init_kind)initk_static) {
-      traverse_constant(vp->initializer.constant, tblock);
-    } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
-      traverse_dynamic_init(vp->initializer.dynamic, tblock);
-    } else if (vp->init_kind == (an_init_kind)initk_binding) {
-      traverse_expr(vp->initializer.bound_expr, tblock);
+    an_init_kind        init_kind, saved_init_kind = vp->init_kind;
+    an_initializer_ptr  initializer;
+    get_variable_initializer(vp, (a_scope_ptr)NULL, &init_kind, &initializer);
+    /* Temporary disable the initializer to avoid unbounded recursion. */
+    vp->init_kind = initk_none;
+    if (init_kind == (an_init_kind)initk_static) {
+      traverse_constant(initializer->constant, tblock);
+    } else if (init_kind == (an_init_kind)initk_dynamic) {
+      traverse_dynamic_init(initializer->dynamic, tblock);
+    } else if (init_kind == (an_init_kind)initk_binding) {
+      traverse_expr(initializer->bound_expr, tblock);
     }  /* if */
+    vp->init_kind = saved_init_kind;
   }  /* if */
 }  /* examine_var_init_for_instantiation_dependence */
 
