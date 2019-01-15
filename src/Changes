@@ -1,5 +1,32 @@
 Version 5.1
 
+1/14/19  [EDGcpfe/20747]
+Incorrect reuse of temporaries in lowered aggregate initializations
+
+The C++ standard (since C++11) requires that an entire aggregate initialization
+be treated as a full expression, whereas previously each initializer was
+treated as a full expression.  This could result in the reuse of temporary
+variables before the end of a full expression leading to undefined behavior at
+run time.  Now fixed.  For example (with --c++11):
+
+  struct A {
+    A(const char *) {}
+    ~A();
+  };
+  struct B {
+    int arr[2];
+  };
+  int x(const A &) { return 1; }
+  B f() {
+    return { x("S1"), x("S2") };  // Had constructed two elements at the
+                                  // same temporary location, then destroyed
+                                  // both elements.
+  }
+  int main(void) {
+    f();
+  }
+
+
 1/13/19  [EDGcpfe/20596]
 Performance issue with instantiations based on dependent expressions
 

@@ -6678,6 +6678,12 @@ represents a full expression).
     }  /* if */
 #endif /* EXPENSIVE_CHECKING && CHECKING */
   }  /* if */
+  if (cpp11_mode) {
+    /* In C++11 and later, the entire initialization is treated as a
+       full expression (previously each aggregate initializer was treated
+       as a full expression). */
+    options &= ~LDIO_FULL_EXPR;
+  }  /* if */
   con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Work through the list of constants, pairing each one with a member of
      the aggregate. */
