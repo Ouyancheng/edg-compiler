@@ -1,5 +1,19 @@
 Version 5.1
 
+1/15/19  [EDGcpfe/20681]
+C++-generating back end: new-expressions with type placeholders
+
+Consider:
+
+  enum { x };
+  auto p = new auto(x);
+
+Previously, the C++-generating back end failed to render the "auto" specifier
+in the new-expression; instead, it rendered a meaningless temporary name
+("_T...").  That is now fixed, as are similar cases involving decltype(auto)
+or deduced class template arguments.
+
+
 1/15/19  [EDGcpfe/20748]
 GNU compatibility: noplt attribute
 

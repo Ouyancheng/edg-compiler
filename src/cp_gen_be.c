@@ -11442,6 +11442,9 @@ Generate code for a new or delete operation.
     /* New.  The general form is
          :: new (arg, arg, ...) type(initializer)
        Everything except "new" and the type is optional. */
+    a_boolean  saved_render_auto_deduction_typerefs =
+                                          octl.render_auto_deduction_typerefs;
+    octl.render_auto_deduction_typerefs = TRUE;
     write_tok_str("new ");
     if (ndsp->placement_new) {
       /* A "placement" new.  In the source form the first argument (the
@@ -11477,12 +11480,17 @@ Generate code for a new or delete operation.
           tkind == (a_type_kind)tk_float ||
           is_class_type_kind(tkind) ||
           (tkind == (a_type_kind)tk_typeref &&
-           typeref_is_typedef(temp_type)) ||
+           (typeref_is_typedef(temp_type) ||
+            temp_type->variant.typeref.is_deduced_auto ||
+            temp_type->variant.typeref.is_deduced_decltype_auto ||
+            temp_type->variant.typeref.is_deduced_class)) ||
           (tkind == (a_type_kind)tk_template_param &&
            temp_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param &&
-           temp_type->variant.template_param.extra_info->coordinates.depth ==
-                                                    AUTO_TYPE_NESTING_DEPTH)) {
+           (temp_type->variant.template_param.extra_info->coordinates.depth ==
+                                                   AUTO_TYPE_NESTING_DEPTH ||
+            temp_type->variant.template_param.extra_info->coordinates.depth ==
+                                  CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH))) {
         /* Simple cases that don't need parentheses. */
         need_type_parens = FALSE;
       } else if (is_array_type(type) && ndsp->number_of_elements != NULL) {
@@ -11548,6 +11556,7 @@ Generate code for a new or delete operation.
                                      !ndsp->new_initializer_is_brace_enclosed,
                                       /*is_var_init=*/FALSE);
     }  /* if */
+    octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
   } else {
     /* Delete.  The general form is
          :: delete [] expression

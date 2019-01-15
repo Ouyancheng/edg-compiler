@@ -678,7 +678,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                         parenthesized_init,
                                         undeduced_type,
                                         dps->auto_type,
-                                        /*keep_placeholder=*/FALSE,
+                                        dps->is_new_expr_type,
                                         (an_operand *)NULL,
                                         icp,
                                         &dps->declarator_pos,
@@ -19029,7 +19029,7 @@ expression, and return the result in *result (or an error indication in
           auto_alep = alloc_arg_list_elem_for_operand(&auto_operand);
         }  /* if */
         deduced = deduce_class_template_args(new_type, /*is_direct_init=*/TRUE,
-                                             /*keep_placeholder=*/FALSE,
+                                             /*keep_placeholder=*/TRUE,
                                              !no_operand,
                                              auto_alep, &type_position,
                                              &deduced_new_type,
@@ -19042,7 +19042,7 @@ expression, and return the result in *result (or an error indication in
         check_assertion(!has_braced_initializer &&
                         braced_init_list == NULL);
         deduced = deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
-                                   /*keep_placeholder=*/FALSE, &auto_operand,
+                                   /*keep_placeholder=*/TRUE, &auto_operand,
                                    auto_alep, &type_position,
                                    &deduced_new_type, &deduced_auto_type,
                                    &still_dependent);
@@ -19138,7 +19138,7 @@ expression, and return the result in *result (or an error indication in
         check_assertion(is_class_template_placeholder_type(dps.auto_type));
         if (deduce_class_template_args(dps.type, /*is_direct_init=*/TRUE,
                                        /*parenthesized_init=*/FALSE,
-                                       /*keep_placeholder=*/FALSE,
+                                       /*keep_placeholder=*/TRUE,
                                        (an_arg_list_elem*)NULL,
                                        &pos_curr_token, &new_type,
                                        &still_dependent)) {
@@ -19166,6 +19166,11 @@ expression, and return the result in *result (or an error indication in
           /* In other cases, the deduction succeeded and "auto" is gone
              from the new_type. */
           new_type = dps.type;
+          if (dps.auto_type_specifier_seen ||
+              dps.decltype_auto_specifier_seen) {
+            new_type = add_placeholder_typeref(
+                                  new_type, dps.decltype_auto_specifier_seen);
+          }  /* if */
           deducible_new_type = FALSE;
         }  /* if */
       }  /* if */

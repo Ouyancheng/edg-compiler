@@ -2250,9 +2250,10 @@ available or not portable).
   } else if (!octl->c_generating_back_end &&
              octl->render_auto_deduction_typerefs &&
              (type->variant.typeref.is_deduced_decltype_auto ||
-              type->variant.typeref.is_deduced_auto)) {
-    /* "auto" and "decltype(auto)" should only appear in declarative
-       contexts, and should be rendered there. */
+              type->variant.typeref.is_deduced_auto ||
+              type->variant.typeref.is_deduced_class)) {
+    /* "auto" and "decltype(auto)" should only appear in declarative contexts,
+       and should be rendered there.  Similarly for deduced class templates. */
     render = TRUE;
   }  /* if */
   return render;
