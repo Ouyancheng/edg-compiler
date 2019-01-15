@@ -4166,6 +4166,14 @@ parentheses are not needed.
              references to anonymous union fields can't be omitted, so give
              up. */
           if (octl->c_generating_back_end) break;
+#if DO_IL_LOWERING
+        } else if (field->is_optimized_empty_class &&
+                   octl->c_generating_back_end) {
+          /* If the field has been eliminated from the lowered struct,
+             we can't use that field in the generated output.  Let the caller
+             use an appropriate cast instead. */
+          break;
+#endif /* DO_IL_LOWERING */
         } else {
           /* Normal field (not anonymous union field). */
           /* Put out the field selection. */
