@@ -2617,6 +2617,7 @@ typedef enum an_attribute_kind_tag {
 			/* "no_check_memory_usage" (gnu). */
   ak_nocommon,		/* "nocommon" (gnu). */
   ak_nonnull,		/* "nonnull" (gnu). */
+  ak_noplt,		/* "noplt" (gnu). */
   ak_packed,		/* "packed" (gnu). */
   ak_pure,		/* "pure" (gnu). */
   ak_sentinel,		/* "sentinel" (gnu). */
