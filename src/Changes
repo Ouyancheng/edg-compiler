@@ -31,9 +31,9 @@ run time.  Now fixed.  For example (with --c++11):
 Performance issue with instantiations based on dependent expressions
 
 A problem with the way dependent nontype template argument values were
-hashed could cause performance issue with programs that make use of
-a large number of such constructs.  For example, programs that contain
-a large number of enable_if constructs.  Now fixed.
+hashed could cause a performance issue with programs that make use of a
+large number of such constructs, for example, programs that contain a large
+number of enable_if constructs.  Now fixed.
 
 
 1/12/19  [EDGcpfe/20700]
