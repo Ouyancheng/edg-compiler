@@ -13820,7 +13820,7 @@ subobject path.
               }  /* for */
             } else {
               /* For nonvirtual base classes, a matching type is not
-                 sufficient: Make sure it's parent base class is
+                 sufficient: Make sure its parent base class is
                  prev_full_bcp. */
               for (; full_bcp != NULL; full_bcp = full_bcp->next) {
                 if (full_bcp->type == bcp->type && !full_bcp->is_virtual) {
