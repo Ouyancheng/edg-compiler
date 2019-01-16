@@ -7420,7 +7420,15 @@ routines.
 {
   a_template_arg_ptr new_tap;
 
-  options |= (CTWS_COPY_ARG_OPERAND_INFO | CTWS_PARTIAL_ARG_LIST_OKAY);
+  options |= CTWS_COPY_ARG_OPERAND_INFO;
+  /* A partial argument list is okay for function templates and cases
+     where we don't know the template.  It is not okay for non-function
+     templates (e.g., classes, variables). */
+  if (template_sym == NULL ||
+      is_function_or_template_symbol(template_sym) ||
+      ctws_state->preserve_deduced_packs) {
+    options |= CTWS_PARTIAL_ARG_LIST_OKAY;
+  }  /* if */
   new_tap = copy_template_arg_list_with_substitution(
                                          template_sym, 
                                          arg_list_to_copy, param_list_for_copy,

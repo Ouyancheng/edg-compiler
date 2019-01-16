@@ -1,5 +1,27 @@
 Version 5.1
 
+1/16/19  [EDGcpfe/20599]
+Substitution incorrect succeeds in some cases with two few template arguments
+
+In some cases substitution could incorrectly succeed in cases where there were
+two few template arguments for the template.  This could result in incorrect
+behavior (because the wrong function could be selected) and in the example
+below resulted in an internal error (in equiv_template_arg_lists).  Now
+fixed.
+
+  template <typename T> typename T::x v1;
+  template <template <typename...> class> struct A;
+  template <template <typename> class TT> A<TT> v2;
+  namespace N { template <typename> struct B; }
+  template <template <typename...> class TT> struct A {
+    template <typename... T> auto operator()() -> decltype(v1<TT<N::B<T>...>>);
+  };
+  template <typename T> auto g(T t) -> decltype(t());
+  constexpr auto g(...) { return 0; }
+  template <typename> struct C;
+  static_assert(!g(v2<C>),"");
+
+
 1/15/19  [EDGcpfe/20681]
 C++-generating back end: new-expressions with type placeholders
 
