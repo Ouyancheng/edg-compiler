@@ -4782,6 +4782,12 @@ size (such classes actually have size zero).
     /* In the IA64 ABI, a zero-width bit field does not make a class 
        non-empty. */
     for (; field != NULL; field = field->next) {
+        if (is_empty_field_for_layout_purposes(field)) {
+        /* Fields that are empty for layout purposes do not disqualify a type
+           from being considered "empty".  Note that is_optimized_empty_class
+           is not set yet. */
+        continue;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (gpp_mode) {
         /* Zero-length array fields do not make a GNU C++ class non-empty. */
@@ -4803,7 +4809,7 @@ size (such classes actually have size zero).
       result = FALSE;
     }  /* if */
 #endif /* IA64_ABI */
-    if (!result || C_mode()) {
+    if (!result) {
       /* The result is already fully determined. */
     } else if (type->variant.class_struct_union.any_virtual_base_classes ||
                type->variant.class_struct_union.any_virtual_functions) {
