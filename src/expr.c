@@ -19166,11 +19166,6 @@ expression, and return the result in *result (or an error indication in
           /* In other cases, the deduction succeeded and "auto" is gone
              from the new_type. */
           new_type = dps.type;
-          if (dps.auto_type_specifier_seen ||
-              dps.decltype_auto_specifier_seen) {
-            new_type = add_placeholder_typeref(
-                                  new_type, dps.decltype_auto_specifier_seen);
-          }  /* if */
           deducible_new_type = FALSE;
         }  /* if */
       }  /* if */
