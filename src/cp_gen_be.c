@@ -9758,6 +9758,9 @@ this one is such a continuation.
   a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   an_attribute_ptr             attributes = NULL;
+  a_boolean                    saved_suppress_nontype_expr =
+                                             octl.suppress_expr_in_nontype_arg;
+  a_boolean                    is_generated_explicit_specialization = FALSE;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -9817,6 +9820,12 @@ this one is such a continuation.
   }  /* if */
   check_assertion(!(type->size != 0 && type->incomplete));
   kind = type->kind;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  is_generated_explicit_specialization =
+                         (is_immediate_class_type(type) && is_specialization &&
+                          class_type_supp(type)->template_arg_list != NULL &&
+                          !type->variant.class_struct_union.is_specialized);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (!is_autonomous_decl(type, sec_decl)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (sec_decl != NULL && sec_decl->is_event_interface) {
@@ -9832,9 +9841,7 @@ this one is such a continuation.
       skip_type_and_delay_definition(type, is_definition);
     }  /* if */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  } else if (is_immediate_class_type(type) && is_specialization &&
-             class_type_supp(type)->template_arg_list != NULL &&
-             !type->variant.class_struct_union.is_specialized &&
+  } else if (is_generated_explicit_specialization &&
              suppress_invalid_explicit_specialization(
                                    &type->source_corresp, iek_type,
                                    class_type_supp(type)->template_arg_list)) {
@@ -9864,6 +9871,13 @@ this one is such a continuation.
     type->explicit_specialization_suppressed = TRUE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   } else {
+    if (is_generated_explicit_specialization) {
+      /* Suppress the backing expression on any nontype template arguments,
+         in case they have references to entities that were in scope for
+         the implicit instantiation but are not in the context of the
+         corresponding generated explicit specialization. */
+      octl.suppress_expr_in_nontype_arg = TRUE;
+    }  /* if */
     /* Set the output position. */
     set_decl_position(&type->source_corresp, sec_decl);
     /* If generating a member of a class within the class, set the right access
@@ -10108,6 +10122,7 @@ this one is such a continuation.
       restore_template_param_mappings();
     }  /* if */
   }  /* if */
+  octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
 }  /* gen_type_decl */
 
 
@@ -18165,6 +18180,9 @@ this one is such a continuation.
   an_attribute_ptr             attributes;
   a_variable_template_info_ptr saved_template_info;
   a_gen_decl_options_set       gd_options = GDO_NO_OPTIONS;
+  a_boolean                    saved_suppress_nontype_expr =
+                                             octl.suppress_expr_in_nontype_arg;
+  a_boolean                    is_generated_explicit_specialization = FALSE;
                             
   name_ref = get_current_name_ref();
   /* Deal with the primary/secondary declaration difference. */
@@ -18279,16 +18297,25 @@ this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (var->template_info != NULL &&
       var->template_info->template_arg_list != NULL &&
-      !var->is_specialized &&
-      suppress_invalid_explicit_specialization(
+      !var->is_specialized) {
+    is_generated_explicit_specialization = TRUE;
+    if (suppress_invalid_explicit_specialization(
                                       &var->source_corresp, iek_variable,
                                       var->template_info->template_arg_list)) {
-    goto end_of_routine;
-  }  /* if */
-  if (has_suppressed_parent(&var->source_corresp)) {
-    goto end_of_routine;
+      goto end_of_routine;
+    }  /* if */
+    if (has_suppressed_parent(&var->source_corresp)) {
+      goto end_of_routine;
+    }  /* if */
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  if (is_generated_explicit_specialization) {
+    /* Do not put out the backing expression for nontype template
+       arguments, in case they contain references to entities that were
+       in scope at the point of the implicit instantiation but are not
+       in the context of the generated explicit specialization. */
+    octl.suppress_expr_in_nontype_arg = TRUE;
+  }  /* if */
   if (template_decl != NULL) {
     a_type_ptr	parent_class;
     if (assoc_template->canonical_template->is_exported) gen_export();
@@ -18640,6 +18667,7 @@ this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 end_of_routine:;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
 }  /* gen_variable_decl */
 
 
@@ -19310,6 +19338,9 @@ TRUE if the declaration following this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_type_ptr                    replacement_ret_type = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENC_LISTS */
+  a_boolean                     saved_suppress_nontype_expr =
+                                             octl.suppress_expr_in_nontype_arg;
+  a_boolean                     is_generated_explicit_specialization = FALSE;
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -19501,6 +19532,7 @@ handle_as_definition:
       !rout->is_specialized && !rout->is_prototype_instantiation) {
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
+    is_generated_explicit_specialization = TRUE;
     if (!special_kind_is(rout, sfk_deduction_guide) &&
         suppress_invalid_explicit_specialization(&rout->source_corresp,
                                                  iek_routine,
@@ -19582,6 +19614,13 @@ handle_as_definition:
   if (discard_declaration) {
     /* Discard this declaration. */
     goto end_of_routine;
+  }  /* if */
+  if (is_generated_explicit_specialization) {
+    /* Do not put out the backing expression associated with nontype
+       template arguments, as it may contain references to entities that
+       were in scope at the point of implicit instantiation but not in
+       the context of the generated explicit specialization. */
+    octl.suppress_expr_in_nontype_arg = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   parent_class = (rout->source_corresp.is_class_member) ?
@@ -20117,6 +20156,7 @@ end_of_routine:
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   in_generated_instance = saved_in_generated_instance;
+  octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
 }  /* gen_routine_decl */
 
 

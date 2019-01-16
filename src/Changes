@@ -1,5 +1,42 @@
 Version 5.1
 
+1/16/19  [EDGcpfe/20756]
+C++-generating back end: short-circuiting dependent nontype template arguments
+
+Consider the following example:
+
+  template<bool, typename T> struct A {
+    typedef T type;
+  };
+  template<int N, typename A<(!1 && N < 16), int>::type = 0> int f() {
+    return 0;
+  }
+  int i = f<8>();
+
+The expression "!1 && N < 16" in the non-type template argument for A is a
+dependent expression, involving the template parameter N.  In standard C++,
+that means that A<false,int> is only instantiated by the instantiation of
+f<8>(), when the value of N is known, not by the definition of the function
+template.  MSVC, however, behaves differently: because "&&" is a
+short-circuiting operator and the result is determined by its constant
+first operand, MSVC ignores the dependent part of the expression and
+instantiates A<false,int> in the context of the function template
+definition.
+
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to TRUE, the C++-generating back end attempts to represent implicit
+instantiations via explicit specializations, and this difference resulted
+in generated code for this example that could not be compiled by MSVC.
+Because the front end instantiated A<false,int> as part of the
+instantiation of f<8>(), the corresponding explicit specialization appeared
+in the generated code following the definition of the function template,
+causing MSVC to issue an error indicating that A<false,int> had already
+been instantiated.  The front end has now been changed to emulate this
+processing of short-circuiting operators in dependent expressions in
+Microsoft mode, which causes the explicit specialization of A<false,int> to
+precede the definition of the function template in the generated code.
+
+
 1/16/19  [EDGcpfe/20599]
 Substitution incorrect succeeds in some cases with two few template arguments
 

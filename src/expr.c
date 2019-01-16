@@ -27489,13 +27489,25 @@ that case.
     {
       result_type = boolean_result_type();
     }  /* if */
-    /* See if we should reduce this operation to a constant in the case
-       that the first operand is constant and dictates the result and
-       the second operand is non-constant.  The fully-constant case
-       is always sent to do_binary_operation, which folds it to a
-       constant but also does other useful things. */
+    /* See if we should reduce this operation to a constant in the case that
+       the first operand is constant and dictates the result and the second
+       operand is non-constant.  The fully-constant case is always sent to
+       do_binary_operation, which folds it to a constant but also does other
+       useful things.  An exception to that occurs in Microsoft mode, where
+       cases where the second operand is a template-dependent constant are
+       reduced to eliminate the template dependency (because that is how the
+       Microsoft compiler apparently behaves).  For example:
+         template<bool, typename T> struct enable_if;
+         template<int A, typename enable_if<(!0 || A < 16), int>::type = 0>
+           int f();
+         // Error in Microsoft mode because enable_if<(!0 || A < 16), int> is
+         // treated like enable_if<true, int> (i.e., nondependent).
+    */
     reduce = FALSE;
-    if (known_result && !is_constant_operand(&operand_2)) {
+    if (known_result && 
+        (!is_constant_operand(&operand_2) ||
+         (microsoft_mode &&
+          constant_is(&operand_2.variant.constant, ck_template_param)))) {
       if (curr_expr_kind_is_const()) {
         /* In constant expressions we must always reduce, so that
            1 || 2/0, for example, comes out as a constant. */
@@ -27520,7 +27532,6 @@ that case.
       /* Reduce the expression to a constant.  The first operand is
          constant and dictates the result, and the second operand is
          non-constant. */
-      check_assertion(!is_constant_operand(&operand_2));
       make_integer_constant_operand(result, local_result);
       /* Cast if necessary (e.g., to bool). */
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);

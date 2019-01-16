@@ -116,6 +116,7 @@ Clear an output control block to default values.
   octl->processing_nontype_template_argument = FALSE;
   octl->part_of_ud_literal        = FALSE;
   octl->pending_right_paren       = FALSE;
+  octl->suppress_expr_in_nontype_arg = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -365,7 +366,14 @@ Output the indicated template argument in the way described by octl.
         } else {
           a_boolean        need_parens;
           an_expr_node_ptr expr;
+          an_expr_node_ptr saved_expr;
           check_assertion(con != NULL);
+          saved_expr = con->expr;
+          if (octl->suppress_expr_in_nontype_arg) {
+            /* We should just put out the constant value, not the backing
+               expression. */
+            con->expr = NULL;
+          }  /* if */
           expr = con->expr;
           if (expr == NULL &&
               con->kind == (a_constant_repr_kind)ck_template_param &&
@@ -404,15 +412,17 @@ Output the indicated template argument in the way described by octl.
             form_constant(con, need_parens, octl);
             con->implicit_cast = saved_implicit_cast;
           }  /* if */
+          if (octl->suppress_expr_in_nontype_arg) {
+            con->expr = saved_expr;
 #if BACK_END_IS_CP_GEN_BE
-          if (octl->gen_compilable_code) {
+          } else if (octl->gen_compilable_code) {
             /* We only want to generate an expression, rather than a
                constant value, for the first reference to a given template
                instance, because the expression might use names that will
                not be in scope in later references to the instance. */
             con->expr = NULL;
-          }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+          }  /* if */
         }  /* if */
       }
       octl->processing_nontype_template_argument = FALSE;

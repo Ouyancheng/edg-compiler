@@ -323,6 +323,13 @@ typedef struct an_il_to_str_output_control_block {
 			   responsible for checking this flag, putting out
 			   the right parenthesis at the appropriate point,
 			   and clearing the flag. */
+  a_byte_boolean
+	suppress_expr_in_nontype_arg;
+			/* When TRUE, a nontype template argument will be
+			   put out as its value rather than as the backing
+			   expression whose evaluation yielded that
+			   value. */
+
 } an_il_to_str_output_control_block;
 
 /*
