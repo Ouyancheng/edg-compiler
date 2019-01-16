@@ -4782,7 +4782,7 @@ size (such classes actually have size zero).
     /* In the IA64 ABI, a zero-width bit field does not make a class 
        non-empty. */
     for (; field != NULL; field = field->next) {
-        if (is_empty_field_for_layout_purposes(field)) {
+      if (is_empty_field_for_layout_purposes(field)) {
         /* Fields that are empty for layout purposes do not disqualify a type
            from being considered "empty".  Note that is_optimized_empty_class
            is not set yet. */
