@@ -16527,7 +16527,7 @@ all arguments were explicit.
     a_pack_expansion_stack_entry_ptr	pesep;
     a_boolean				any_args;
     if (is_template_dependent_context() &&
-        (param_ptr == NULL || orig_param_ptr == NULL)) {
+        (param_ptr == NULL && orig_param_ptr == NULL)) {
       /* In a template dependent context, if there are more arguments than
          parameters, don't start another pack expansion. */
       too_many_args = TRUE;
@@ -16561,6 +16561,7 @@ next_integer_pack_element:
       if (curr_token == tok_gt && any_args_in_list) {
         pos_error(ec_expected_template_arg, &error_position);
       }  /* if */
+      abandon_potential_pack_expansion_context(pesep);
       break;
     }  /* if */
     while (any_args) {
@@ -16603,7 +16604,10 @@ next_integer_pack_element:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* If the template parameter list is empty, exit the loop.  This only
          occurs in error cases. */
-      if (param_ptr == NULL) break;
+      if (param_ptr == NULL) {
+        abandon_potential_pack_expansion_context(pesep);
+        break;
+      }  /* if */
       add_stop_token(tok_comma);
       sym = param_ptr->param_symbol;
       /* Determine the template argument kind for this parameter. */

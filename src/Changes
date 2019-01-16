@@ -1,5 +1,21 @@
 Version 5.1
 
+1/16/19  [EDGcpfe/20766]
+Spurious error on empty pack expansion used with to template template parameter
+
+A spurious error could be issued if an empty pack expansion was passed
+as an argument of a template template parameter and the template
+template argument being used for an instantiation did not have a corresponding
+parameter.  In the example below, a "too many arguments" error was issued
+when an empty "Args..." pack expansion was used as the second argument of
+TT and A did not have a second template parameter.  Now fixed.
+
+  template <class T> class A {};
+  template <template <class, class...> class TT,
+            class T, class... Args> using B = TT<T, Args...>;
+  template <class T> class C : public B<A, T> {};
+
+
 1/16/19  [EDGcpfe/20756]
 C++-generating back end: short-circuiting dependent nontype template arguments
 
