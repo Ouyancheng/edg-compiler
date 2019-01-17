@@ -11665,13 +11665,6 @@ previously-scanned sizeof expression, and return the result in *result
      a rescan). */
   if (is_type) {
     /* Type case. */
-    /* If the top type is a reference, drop the reference so that the sizeof
-       applies to the type referenced.  Keep a dependent reference. */
-    if (is_any_reference_type(sizeof_type) &&
-        !(is_template_dependent_context() &&
-          is_template_dependent_type(sizeof_type))) {
-      sizeof_type = type_pointed_to(sizeof_type);
-    }  /* if */
   } else {
     /* Expression case. */
     /* Do not convert a type of "routine returning type" to "pointer to
@@ -11904,7 +11897,15 @@ previously-scanned sizeof expression, and return the result in *result
         constant->type = integer_type(targ_size_t_int_kind);
       } else {
         /* Normal case; known constant sizeof. */
-        a_type_ptr stripped_sizeof_type = skip_typerefs(sizeof_type);
+        a_type_ptr stripped_sizeof_type;
+        if (is_any_reference_type(sizeof_type)) {
+          /* If the top type is a reference, drop the reference so that the
+             sizeof applies to the type referenced. */
+          stripped_sizeof_type = type_pointed_to(sizeof_type);
+        } else {
+          stripped_sizeof_type = sizeof_type;
+        }  /* if */
+        stripped_sizeof_type = skip_typerefs(stripped_sizeof_type);
         set_unsigned_integer_constant(
                              constant,
                              (a_host_large_unsigned)stripped_sizeof_type->size,
