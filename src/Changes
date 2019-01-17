@@ -1,7 +1,7 @@
 Version 5.1
 
 1/16/19  [EDGcpfe/20766]
-Spurious error on empty pack expansion used with to template template parameter
+Spurious error on empty pack expansion used with template template parameter
 
 A spurious error could be issued if an empty pack expansion was passed
 as an argument of a template template parameter and the template
