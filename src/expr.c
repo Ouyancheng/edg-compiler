@@ -27500,8 +27500,8 @@ that case.
          template<bool, typename T> struct enable_if;
          template<int A, typename enable_if<(!0 || A < 16), int>::type = 0>
            int f();
-         // Error in Microsoft mode because enable_if<(!0 || A < 16), int> is
-         // treated like enable_if<true, int> (i.e., nondependent).
+         // Treated like enable_if<true, int> (i.e., nondependent) in
+         // Microsoft mode.
     */
     reduce = FALSE;
     if (known_result && 

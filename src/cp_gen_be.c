@@ -18304,9 +18304,9 @@ this one is such a continuation.
                                       var->template_info->template_arg_list)) {
       goto end_of_routine;
     }  /* if */
-    if (has_suppressed_parent(&var->source_corresp)) {
-      goto end_of_routine;
-    }  /* if */
+  }  /* if */
+  if (has_suppressed_parent(&var->source_corresp)) {
+    goto end_of_routine;
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (is_generated_explicit_specialization) {
