@@ -286,10 +286,6 @@ typedef struct a_name_context {
 			   dependent bases.  (For efficiency, this will only
 			   be set to TRUE if the target compiler searches
 			   dependent bases during unqualified lookup.) */
-  a_byte_boolean
-		terminate_search;
-			/* TRUE if scopes outside this one should be
-			   ignored by scope_is_in_name_context_stack. */
 } a_name_context;
 
 static a_name_context_ptr
@@ -942,7 +938,6 @@ hidden name entries that apply to the base class list should be processed.
   ncp->has_dependent_base = FALSE;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
-  ncp->terminate_search = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -1167,10 +1162,6 @@ Return TRUE if the indicated scope is currently on the name context stack.
                                        parent_namespace->variant.assoc_scope) {
         scope_in_stack = TRUE;
       }  /* if */
-    }  /* if */
-    if (ncp->terminate_search) {
-      /* End the scan here, regardless of the result. */
-      break;
     }  /* if */
   }  /* for */
   return scope_in_stack;
@@ -18900,6 +18891,7 @@ declarator (or NULL if it wasn't recorded).
   a_name_context_ptr           name_context_for_access_reset = NULL;
   a_type_ptr                   parent_class;
   a_boolean                    state_was_saved = FALSE;
+  a_name_context_ptr           orig_top_of_name_context_stack = NULL;
 
   *context_pop_needed = FALSE;
   parent_class = (scp->is_class_member) ? scp_parent_class(scp) : NULL;
@@ -19039,28 +19031,21 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
                    al_declarator_id, /*primary_only=*/(sec_decl == NULL));
-    if (!force_unqualified_name ||
-        (friend_decl && !clang_is_generated_code_target &&
-         !gcc_is_generated_code_target)) {
-      /* Push the name context for a class/namespace member: the qualifier
-         for the function name implicitly applies to names in the parameter
-         list.  We do not do this for friend declarations if clang is the
-         target compiler, because it does not apply the implicit
-         qualification in friend declarations.  We also do not do it when
-         g++ is the target compiler; although g++ does look in the parent
-         class/namespace for parameter types, it searches the local scope
-         before the parent scope, meaning that local names can hide names
-         in the parent scope, and that hiding is not reflected in the
-         hidden name table, so unconditional qualification is required. */
-      a_name_context_ptr orig_ncp = curr_name_context;
-      push_name_context_if_member(scp);
-      *context_pop_needed = TRUE;
-      if (curr_name_context != orig_ncp && friend_decl &&
-          gcc_is_generated_code_target) {
-        /* G++ has a bug that requires qualification of names from the
-           current scope that appear in the parameter list if the name in a
-           friend declaration is qualified with a different scope. */
-        curr_name_context->terminate_search = TRUE;
+    if (!force_unqualified_name || friend_decl) {
+      if (friend_decl &&
+          (gcc_is_generated_code_target || clang_is_generated_code_target)) {
+        /* G++ and clang have unusual lookup rules for names used in friend
+           declarations.  It's safest to require all names to be qualified,
+           which we accomplish by temporarily emptying the name context
+           stack. */
+        orig_top_of_name_context_stack = curr_name_context;
+        while (curr_name_context->next != NULL) {
+          curr_name_context = curr_name_context->next;
+        }  /* while */
+      } else {
+        /* Push the name context for a class/namespace member. */
+        push_name_context_if_member(scp);
+        *context_pop_needed = TRUE;
       }  /* if */
     }  /* if */
     if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
@@ -19115,6 +19100,11 @@ declarator (or NULL if it wasn't recorded).
     /* Restore the routine type in case it was changed above. */
     rout->type = saved_routine_type;
     octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
+  }  /* if */
+  if (orig_top_of_name_context_stack != NULL) {
+    /* Restore the name context stack, which was temporarily emptied to
+       require full qualification of names appearing in the declaration. */
+    curr_name_context = orig_top_of_name_context_stack;
   }  /* if */
   if (name_context_for_access_reset != NULL) {
     name_context_for_access_reset->class_type_for_access_not_naming = NULL;

@@ -1126,11 +1126,15 @@ not implement this implicit qualification.  G++ does implement the rule,
 but with a twist: it searches the local scope before searching the scope to
 which the friend function belongs.  In cases where the local scope contains
 a declaration with the same name as one of the friend function's parameter
-types, g++ was unable to compile the generated code correctly.  The
-C++-generating back end has now been changed to suppress the implicit
-qualification of friend function parameter types when
-gcc_is_generated_code_target is TRUE, so this problem will no longer arise.
-For example, with --g++:
+types, g++ was unable to compile the generated code correctly.  Because of
+these disparate lookup rules, when gcc_is_generated_code_target or
+clang_is_generated_code_target is TRUE, the C++-generating back end will no
+longer assume that the qualifier of the name of the befriended function
+implicitly applies to names in the parameter list, and it will also ignore
+the lexical scope of the friend declaration, effectively requiring full
+qualification of all the names in the friend declaration.  (This also
+changes the mechanism by which the example in EDGcpfe/19743 was handled in
+version 5.0.)  For example, with --g++:
 
   namespace N {
     struct S {};
