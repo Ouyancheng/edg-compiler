@@ -54,10 +54,10 @@ precede the definition of the function template in the generated code.
 
 
 1/16/19  [EDGcpfe/20599]
-Substitution incorrect succeeds in some cases with two few template arguments
+Substitution incorrectly succeeds in some cases with too few template arguments
 
 In some cases substitution could incorrectly succeed in cases where there were
-two few template arguments for the template.  This could result in incorrect
+too few template arguments for the template.  This could result in incorrect
 behavior (because the wrong function could be selected) and in the example
 below resulted in an internal error (in equiv_template_arg_lists).  Now
 fixed.
