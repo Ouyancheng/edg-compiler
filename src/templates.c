@@ -13238,11 +13238,6 @@ end_of_loop:
     /* Exit the loop if the substitution failed. */
     if (*copy_error) break;
   }  /* for */
-  /* If there are too many parameters, the copy should fail. */
-  if (have_params && tpp != NULL && (!tpp->is_pack || tpp->next != NULL) &&
-      !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
-    subst_fail(*copy_error);
-  }  /* if */
   if (!*copy_error && pack_tap != NULL && preserve_packs) {
     /* When we are preserving deduced packs, append a template argument
        representing the pack to the end of the argument list so that
@@ -13255,6 +13250,13 @@ end_of_loop:
     } else {
       prev_new_tap->next = new_tap;
     }  /* if */
+  } else  if (have_params && tpp != NULL &&
+              (!tpp->is_pack || tpp->next != NULL) &&
+              ((options & CTWS_PARTIAL_ARG_LIST_OKAY) == 0 ||
+               (template_sym != NULL &&
+                !symbol_is(template_sym, sk_function_template)))) {
+  /* If there are too many parameters, the copy should fail. */
+    subst_fail(*copy_error);
   }  /* if */
   return new_list;
 }  /* copy_template_arg_list_with_substitution */
