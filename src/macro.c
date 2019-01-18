@@ -1679,23 +1679,12 @@ ensure_macro_buffer_space.
   }  /* if */
   /* Check to see if any of the source line modifications are replacements
      for text in the old buffer that was not copied into the new buffer; if
-     so, break that association or remove the modification, as appropriate.
-     One way this occurs is when read_logical_source_line is called during
-     a macro invocation.  In that case, all source line modifications
-     except those holding saved text for scanned macro arguments are
-     removed, and the line_loc for those modifications can refer to text
-     associated with modifications that were removed.  Another case is when
-     expand_top_level_pcc_macro is in the process of replacing the
-     top-level expansion and the text being replaced has leftover deletions
-     from LE_RAW_OR_EXPANDED_ARGUMENT sequences. */
+     so, break that association or remove the modification, as
+     appropriate. */
   for (slmp = source_line_modif_list; slmp != NULL; slmp = next_slmp) {
     next_slmp = slmp->next;
     if (ptr_in_range(slmp->line_loc, macro_buffer,
                      next_avail_in_macro_buffer)) {
-      check_assertion(slmp->contains_saved_macro_argument_text ||
-                      ptr_in_range(slmp->line_loc,
-                                   discarded_pcc_top_level_begin,
-                                   discarded_pcc_top_level_end));
       if (slmp->contains_saved_macro_argument_text) {
         /* Break the modification's association with the buffer text. */
         rem_source_line_modif_from_hash_table(slmp);

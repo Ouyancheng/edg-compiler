@@ -1,5 +1,13 @@
 Version 5.1
 
+1/18/19  [EDGcpfe/20638]
+Assertion failure in expand_macro_buffer
+
+The changes for EDGcpfe/18829 (in version 5.0) could result in a failed
+assertion in expand_macro_buffer when certain complex macro expansions are
+performed.  This is now fixed.
+
+
 1/16/19  [EDGcpfe/20766]
 Spurious error on empty pack expansion used with template template parameter
 
