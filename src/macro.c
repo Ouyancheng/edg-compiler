@@ -79,18 +79,6 @@ static char	*macro_buffer_region_in_progress;
 			   though the region is not associated with a source
 			   line modification at the time that macro_buffer is
 			   reallocated. */
-static a_const_char
-		*discarded_pcc_top_level_begin,
-		*discarded_pcc_top_level_end;
-			/* Delimit the region of the macro buffer
-			   containing the top-level expansion being
-			   replaced by expand_top_level_pcc_macro.  Valid
-			   only during the period when the macro buffer may
-			   be expanded for copying the contents of the
-			   auxiliary buffer.  Allows expand_macro_buffer to
-			   verify that any orphaned source line
-			   modifications are being legitimately
-			   abandoned. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
 static a_macro_text_map
 		macro_text_map;
@@ -3584,13 +3572,9 @@ end_loop:
        reclaimed during the next macro_buffer reallocation or truncation.  For
        now, just make the insertion appear empty, in case this call to
        ensure_macro_buffer_space() causes reallocation. */
-    discarded_pcc_top_level_begin = main_slmp->inserted_text;
-    discarded_pcc_top_level_end = main_slmp->end_inserted_text;
     main_slmp->inserted_text = main_slmp->end_inserted_text;
     len_new = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
     ensure_macro_buffer_space(len_new);
-    discarded_pcc_top_level_begin = NULL;
-    discarded_pcc_top_level_end = NULL;
     /* Copy the new text into macro_buffer.  This will copy up to and
        including the final lexical escape. */
     (void)memcpy(next_avail_in_macro_buffer, aux_buffer_for_pcc_macros,
